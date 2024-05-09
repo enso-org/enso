@@ -8,7 +8,6 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -94,12 +93,11 @@ export default function AssetRow(props: AssetRowProps) {
   const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { grabKeyboardFocus } = props
-  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
-  const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { backend, visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
 
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -305,12 +303,13 @@ export default function AssetRow(props: AssetRowProps) {
 
   React.useEffect(() => {
     if (isSoleSelected) {
-      setAssetPanelProps({ item, setItem })
+      setAssetPanelProps({ backend, item, setItem })
       setIsAssetPanelTemporarilyVisible(false)
     }
   }, [
     item,
     isSoleSelected,
+    /* should never change */ backend,
     /* should never change */ setAssetPanelProps,
     /* should never change */ setIsAssetPanelTemporarilyVisible,
   ])

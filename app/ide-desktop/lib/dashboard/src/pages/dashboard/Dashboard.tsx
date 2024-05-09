@@ -11,9 +11,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -36,13 +34,12 @@ import TheModal from '#/components/dashboard/TheModal'
 import Portal from '#/components/Portal'
 
 import * as backendModule from '#/services/Backend'
-import LocalBackend, * as localBackendModule from '#/services/LocalBackend'
+import type Backend from '#/services/Backend'
 import type * as projectManager from '#/services/ProjectManager'
-import RemoteBackend, * as remoteBackendModule from '#/services/RemoteBackend'
+import * as remoteBackendModule from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
-import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -130,14 +127,12 @@ export interface DashboardProps {
 export default function Dashboard(props: DashboardProps) {
   const { supportsLocalBackend, appRunner, initialProjectName } = props
   const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
-  const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
@@ -149,7 +144,6 @@ export default function Dashboard(props: DashboardProps) {
     (value: unknown): value is pageSwitcher.Page =>
       array.includes(Object.values(pageSwitcher.Page), value)
   )
-  const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [labels, setLabels] = React.useState<backendModule.Label[]>([])
   const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
@@ -173,10 +167,6 @@ export default function Dashboard(props: DashboardProps) {
   )
 
   const isCloud = categoryModule.isCloud(category)
-  const rootDirectoryId = React.useMemo(
-    () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [session.user]
-  )
   const isAssetPanelVisible =
     page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
 
@@ -348,62 +338,9 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const setBackendType = React.useCallback(
-    (newBackendType: backendModule.BackendType) => {
-      if (newBackendType !== backend.type) {
-        switch (newBackendType) {
-          case backendModule.BackendType.local: {
-            if (projectManagerUrl != null && projectManagerRootDirectory != null) {
-              setBackend(new LocalBackend(projectManagerUrl, projectManagerRootDirectory))
-            }
-            break
-          }
-          case backendModule.BackendType.remote: {
-            const client = new HttpClient([
-              ['Authorization', `Bearer ${session.accessToken ?? ''}`],
-            ])
-            setBackend(new RemoteBackend(client, logger, getText))
-            break
-          }
-        }
-      }
-    },
-    [
-      backend.type,
-      session.accessToken,
-      logger,
-      getText,
-      /* should never change */ projectManagerUrl,
-      /* should never change */ projectManagerRootDirectory,
-      /* should never change */ setBackend,
-    ]
-  )
-
-  const doCreateProject = React.useCallback(
-    (templateId: string | null = null, templateName: string | null = null) => {
-      const parentId =
-        backend.type === backendModule.BackendType.remote
-          ? rootDirectoryId
-          : localBackendModule.newDirectoryId(projectManagerRootDirectory ?? backendModule.Path(''))
-      dispatchAssetListEvent({
-        type: AssetListEventType.newProject,
-        parentKey: parentId,
-        parentId,
-        templateId,
-        datalinkId: null,
-        preferredName: templateName,
-      })
-    },
-    [
-      backend.type,
-      rootDirectoryId,
-      projectManagerRootDirectory,
-      /* should never change */ dispatchAssetListEvent,
-    ]
-  )
-
   const doOpenEditor = React.useCallback(
     async (
+      backend: Backend,
       newProject: backendModule.ProjectAsset,
       setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
       switchPage: boolean
@@ -425,7 +362,7 @@ export default function Dashboard(props: DashboardProps) {
         })
       }
     },
-    [backend, projectStartupInfo?.project.projectId, session.accessToken, setPage]
+    [projectStartupInfo?.project.projectId, session.accessToken, setPage]
   )
 
   const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
@@ -495,14 +432,12 @@ export default function Dashboard(props: DashboardProps) {
             setLabels={setLabels}
             setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
-            queuedAssetEvents={queuedAssetEvents}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}
             dispatchAssetEvent={dispatchAssetEvent}
             setAssetPanelProps={setAssetPanelProps}
             setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-            doCreateProject={doCreateProject}
             doOpenEditor={doOpenEditor}
             doCloseEditor={doCloseEditor}
           />
@@ -540,6 +475,7 @@ export default function Dashboard(props: DashboardProps) {
           {isAssetPanelVisible && (
             <AssetPanel
               key={assetPanelProps?.item?.item.id}
+              backend={assetPanelProps?.backend ?? null}
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
               setQuery={setQuery}

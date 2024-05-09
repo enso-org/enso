@@ -74,6 +74,7 @@ export default function TopBar(props: TopBarProps) {
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
               invisible
+              hidden={!isCloud}
               isAssetPanelEnabled={isAssetPanelEnabled}
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
@@ -101,6 +102,7 @@ export default function TopBar(props: TopBarProps) {
         <div className="flex gap-top-bar-right">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
+              hidden={!isCloud}
               isAssetPanelEnabled={isAssetPanelEnabled}
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />

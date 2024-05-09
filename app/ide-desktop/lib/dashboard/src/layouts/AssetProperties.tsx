@@ -8,7 +8,6 @@ import * as dataLinkValidator from '#/data/dataLinkValidator'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -24,6 +23,7 @@ import Button from '#/components/styled/Button'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
@@ -36,6 +36,7 @@ import * as permissions from '#/utilities/permissions'
 
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
+  readonly backend: Backend
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
@@ -47,18 +48,10 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const {
-    item: itemRaw,
-    setItem: setItemRaw,
-    category,
-    labels,
-    setQuery,
-    isReadonly = false,
-  } = props
-  const { dispatchAssetEvent } = props
+  const { backend, item: itemRaw, setItem: setItemRaw, category, labels, setQuery } = props
+  const { isReadonly = false, dispatchAssetEvent } = props
 
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [item, setItemInner] = React.useState(itemRaw)

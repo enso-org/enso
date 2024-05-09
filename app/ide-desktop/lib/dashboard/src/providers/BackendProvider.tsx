@@ -2,9 +2,10 @@
  * provider via the shared React context. */
 import * as React from 'react'
 
-import * as ensoCommon from 'enso-common'
+import * as common from 'enso-common'
 
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
 
 import type Backend from '#/services/Backend'
 
@@ -56,10 +57,13 @@ export function useRemoteBackend() {
 // === useRemoteBackendStrict ===
 // ==============================
 
-/** Get the Remote Backend. */
+/** Get the Remote Backend.
+ * @throws {Error} when no Remote Backend exists. This should only happen if the user is not logged
+ * in. */
 export function useRemoteBackendStrict() {
   const remoteBackend = React.useContext(BackendContext).remoteBackend
   if (remoteBackend == null) {
+    // eslint-disable-next-line no-restricted-syntax
     throw new Error('This component requires a Cloud Backend to function.')
   }
   return remoteBackend
@@ -86,8 +90,9 @@ export function useBackend(category: Category) {
   const localBackend = useLocalBackend()
   const backend = categoryModule.isCloud(category) ? remoteBackend : localBackend
   if (backend == null) {
+    // eslint-disable-next-line no-restricted-syntax
     throw new Error(
-      `This distribution of ${ensoCommon.PRODUCT_NAME} supports neither the Cloud Backend nor the Local Backend.`
+      `This distribution of ${common.PRODUCT_NAME} supports neither the Cloud Backend nor the Local Backend.`
     )
   }
   return backend

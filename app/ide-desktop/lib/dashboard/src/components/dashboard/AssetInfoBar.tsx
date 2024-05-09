@@ -3,27 +3,24 @@ import * as React from 'react'
 
 import SettingsIcon from 'enso-assets/settings.svg'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
-
-import * as backendModule from '#/services/Backend'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
+  readonly hidden: boolean
   readonly isAssetPanelEnabled: boolean
   readonly setIsAssetPanelEnabled: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 /** A menubar for displaying asset information. */
 export default function AssetInfoBar(props: AssetInfoBarProps) {
-  const { invisible = false, isAssetPanelEnabled, setIsAssetPanelEnabled } = props
-  const { backend } = backendProvider.useBackend()
+  const { invisible = false, hidden, isAssetPanelEnabled, setIsAssetPanelEnabled } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -31,7 +28,7 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
       {innerProps => (
         <div
           className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-icons rounded-full bg-frame px-icons-x ${
-            backend.type === backendModule.BackendType.remote ? '' : 'invisible'
+            hidden ? 'invisible' : ''
           }`}
           {...innerProps}
         >

@@ -143,6 +143,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             setModal(
               <ManageLabelsModal
                 key={uniqueString.uniqueString()}
+                backend={backend}
                 item={asset}
                 setItem={setAsset}
                 allLabels={labels}

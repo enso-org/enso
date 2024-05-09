@@ -1,7 +1,6 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -16,10 +15,12 @@ import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
   readonly hidden?: boolean
+  readonly backend: Backend
   readonly hasPasteData: boolean
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly directoryKey: backendModule.DirectoryId | null
@@ -33,10 +34,9 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, hasPasteData, directoryKey, directoryId, rootDirectoryId } = props
-  const { dispatchAssetListEvent } = props
+  const { hidden = false, backend, hasPasteData, directoryKey, directoryId } = props
+  const { rootDirectoryId, dispatchAssetListEvent } = props
   const { doPaste } = props
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const filesInputRef = React.useRef<HTMLInputElement>(null)

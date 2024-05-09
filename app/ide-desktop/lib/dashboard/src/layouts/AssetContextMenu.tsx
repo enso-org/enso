@@ -333,6 +333,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => {
               setModal(
                 <ManageLabelsModal
+                  backend={backend}
                   item={asset}
                   setItem={setAsset}
                   allLabels={labels}
@@ -396,6 +397,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       {(category === Category.cloud || category === Category.local) && (
         <GlobalContextMenu
           hidden={hidden}
+          backend={backend}
           hasPasteData={hasPasteData}
           rootDirectoryId={rootDirectoryId}
           directoryKey={

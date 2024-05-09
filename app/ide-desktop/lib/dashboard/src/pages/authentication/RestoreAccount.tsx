@@ -22,7 +22,7 @@ import SvgMask from '#/components/SvgMask'
 export default function RestoreAccount() {
   const { getText } = textProvider.useText()
   const { signOut, restoreUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
 
   const signOutMutation = reactQuery.useMutation({
     mutationFn: signOut,

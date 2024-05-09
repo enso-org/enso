@@ -25,11 +25,10 @@ import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
-import * as aria from '#/components/aria'
-import type * as spinner from '#/components/Spinner'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
 import type AssetQuery from '#/utilities/AssetQuery'
@@ -67,9 +66,6 @@ export interface DriveProps {
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  /** These events will be dispatched the next time the assets list is refreshed, rather than
-   * immediately. */
-  readonly queuedAssetEvents: assetEvent.AssetEvent[]
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
@@ -82,8 +78,8 @@ export interface DriveProps {
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
-  readonly doCreateProject: (templateId: string | null) => void
   readonly doOpenEditor: (
+    backend: Backend,
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
@@ -93,8 +89,8 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, initialProjectName, queuedAssetEvents } = props
-  const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
+  const { supportsLocalBackend, hidden, initialProjectName, query, setQuery } = props
+  const { labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
@@ -214,6 +210,7 @@ export default function Drive(props: DriveProps) {
   const doCreateLabel = React.useCallback(
     async (value: string, color: backendModule.LChColor) => {
       if (remoteBackend == null) {
+        // eslint-disable-next-line no-restricted-syntax
         throw new Error('Labels can only be created on the Remote Backend.')
       } else {
         const newLabelName = backendModule.LabelName(value)
@@ -238,12 +235,13 @@ export default function Drive(props: DriveProps) {
         )
       }
     },
-    [backend, toastAndLog, /* should never change */ setLabels]
+    [remoteBackend, toastAndLog, /* should never change */ setLabels]
   )
 
   const doDeleteLabel = React.useCallback(
     async (id: backendModule.TagId, value: backendModule.LabelName) => {
       if (remoteBackend == null) {
+        // eslint-disable-next-line no-restricted-syntax
         throw new Error('Labels can only be deleted on the Remote Backend.')
       } else {
         setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
@@ -264,7 +262,7 @@ export default function Drive(props: DriveProps) {
       }
     },
     [
-      backend,
+      remoteBackend,
       toastAndLog,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
@@ -403,7 +401,6 @@ export default function Drive(props: DriveProps) {
               initialProjectName={initialProjectName}
               projectStartupInfo={projectStartupInfo}
               deletedLabelNames={deletedLabelNames}
-              queuedAssetEvents={queuedAssetEvents}
               assetEvents={assetEvents}
               dispatchAssetEvent={dispatchAssetEvent}
               assetListEvents={assetListEvents}

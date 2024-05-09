@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import DropFilesImage from 'enso-assets/drop_files.svg'
-import * as ensoCommon from 'enso-common'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
@@ -48,7 +47,8 @@ import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import Backend, * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
 import * as array from '#/utilities/array'
@@ -361,9 +361,6 @@ export interface AssetsTableProps {
   readonly initialProjectName: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly deletedLabelNames: Set<backendModule.LabelName>
-  /** These events will be dispatched the next time the assets list is refreshed, rather than
-   * immediately. */
-  readonly queuedAssetEvents: assetEvent.AssetEvent[]
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
@@ -372,6 +369,7 @@ export interface AssetsTableProps {
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly doOpenEditor: (
+    backend: Backend,
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
@@ -384,10 +382,10 @@ export interface AssetsTableProps {
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, setCanDownload, category, allLabels } = props
   const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
-  const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
-  const { targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
+  const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
+  const { setAssetPanelProps, doCreateLabel, targetDirectoryNodeRef } = props
+  const { setIsAssetPanelTemporarilyVisible } = props
 
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
@@ -830,12 +828,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
     }
   }, [isCloud, assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
-
-  React.useEffect(() => {
-    if (rawQueuedAssetEvents.length !== 0) {
-      setQueuedAssetEvents(oldEvents => [...oldEvents, ...rawQueuedAssetEvents])
-    }
-  }, [rawQueuedAssetEvents])
 
   React.useEffect(() => {
     setIsLoading(true)
@@ -1779,13 +1771,24 @@ export default function AssetsTable(props: AssetsTableProps) {
     [/* should never change */ dispatchAssetEvent]
   )
 
+  const doOpenEditor = React.useCallback(
+    (
+      project: backendModule.ProjectAsset,
+      setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+      switchPage: boolean
+    ) => {
+      doOpenEditorRaw(backend, project, setProject, switchPage)
+    },
+    [backend, doOpenEditorRaw]
+  )
+
   const doCloseEditor = React.useCallback(
     (project: backendModule.ProjectAsset) => {
       if (project.id === projectStartupInfo?.projectAsset.id) {
-        rawDoCloseEditor(project)
+        doCloseEditorRaw(project)
       }
     },
-    [projectStartupInfo, rawDoCloseEditor]
+    [projectStartupInfo, doCloseEditorRaw]
   )
 
   const doCopy = React.useCallback(() => {
@@ -1855,6 +1858,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => (
       <AssetsTableContextMenu
         hidden
+        backend={backend}
         category={category}
         pasteData={pasteData}
         selectedKeys={selectedKeys}
@@ -1870,6 +1874,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       />
     ),
     [
+      backend,
       rootDirectoryId,
       category,
       selectedKeys,
@@ -1917,8 +1922,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       hideColumn,
       doToggleDirectoryExpansion,
       doOpenManually,
-      doOpenEditor: doOpenEditor,
-      doCloseEditor: doCloseEditor,
+      doOpenEditor,
+      doCloseEditor,
       doCreateLabel,
       doCopy,
       doCut,
@@ -2385,6 +2390,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         event.stopPropagation()
         setModal(
           <AssetsTableContextMenu
+            backend={backend}
             category={category}
             pasteData={pasteData}
             selectedKeys={selectedKeys}

@@ -26,7 +26,7 @@ export default function MembersSettingsTabBar() {
       <UnstyledButton
         className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
         onPress={() => {
-          setModal(<InviteUsersModal backend={backend} eventTarget={null} />)
+          setModal(<InviteUsersModal remoteBackend={backend} eventTarget={null} />)
         }}
       >
         <aria.Text className="text whitespace-nowrap font-semibold">

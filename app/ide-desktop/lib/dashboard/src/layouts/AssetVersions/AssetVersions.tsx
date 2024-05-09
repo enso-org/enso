@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetVersion from '#/layouts/AssetVersion'
@@ -13,6 +12,7 @@ import Spinner from '#/components/Spinner'
 import * as spinnerModule from '#/components/Spinner'
 
 import * as backendService from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
@@ -22,13 +22,13 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 /** Props for a {@link AssetVersions}. */
 export interface AssetVersionsProps {
+  readonly backend: Backend
   readonly item: AssetTreeNode
 }
 
 /** A list of previous versions of an asset. */
 export default function AssetVersions(props: AssetVersionsProps) {
-  const { item } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend, item } = props
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const isCloud = backend.type === backendService.BackendType.remote

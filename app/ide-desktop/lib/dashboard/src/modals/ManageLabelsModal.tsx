@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -17,6 +16,7 @@ import Input from '#/components/styled/Input'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
@@ -30,6 +30,7 @@ import * as string from '#/utilities/string'
 export interface ManageLabelsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
+  readonly backend: Backend
   readonly item: Asset
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
   readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
@@ -44,8 +45,7 @@ export interface ManageLabelsModalProps<
 export default function ManageLabelsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
-  const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend, item, setItem, allLabels, doCreateLabel, eventTarget } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

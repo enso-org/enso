@@ -10,7 +10,6 @@ import * as focusHooks from '#/hooks/focusHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -22,7 +21,8 @@ import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/UnstyledButton'
 
-import Backend, * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // =================
 // === Constants ===

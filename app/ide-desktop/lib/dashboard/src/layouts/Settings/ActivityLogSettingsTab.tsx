@@ -60,7 +60,7 @@ const EVENT_TYPE_NAME: Record<backendModule.EventType, string> = {
 
 /** Settings tab for viewing and editing organization members. */
 export default function ActivityLogSettingsTab() {
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
   const [startDate, setStartDate] = React.useState<Date | null>(null)
   const [endDate, setEndDate] = React.useState<Date | null>(null)

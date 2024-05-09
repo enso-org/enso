@@ -18,7 +18,7 @@ import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsTab() {
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
   const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
   const isLoading = members == null

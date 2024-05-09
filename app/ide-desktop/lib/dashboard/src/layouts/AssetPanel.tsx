@@ -12,7 +12,8 @@ import type Category from '#/layouts/CategorySwitcher/Category'
 
 import UnstyledButton from '#/components/UnstyledButton'
 
-import * as backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
@@ -51,6 +52,7 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
+  readonly backend: Backend | null
   readonly item: assetTreeNode.AnyAssetTreeNode | null
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
 }
@@ -60,21 +62,14 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isReadonly?: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
-  readonly labels: backend.Label[]
+  readonly labels: backendModule.Label[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const {
-    item,
-    setItem,
-    setQuery,
-    category,
-    labels,
-    dispatchAssetEvent,
-    isReadonly = false,
-  } = props
+  const { backend, item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
+  const { isReadonly = false } = props
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -82,8 +77,8 @@ export default function AssetPanel(props: AssetPanelProps) {
   const [tab, setTab] = React.useState(() => {
     const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
     if (
-      (item?.item.type === backend.AssetType.secret ||
-        item?.item.type === backend.AssetType.directory) &&
+      (item?.item.type === backendModule.AssetType.secret ||
+        item?.item.type === backendModule.AssetType.directory) &&
       savedTab === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
@@ -116,8 +111,8 @@ export default function AssetPanel(props: AssetPanelProps) {
     >
       <div className="flex">
         {item != null &&
-          item.item.type !== backend.AssetType.secret &&
-          item.item.type !== backend.AssetType.directory && (
+          item.item.type !== backendModule.AssetType.secret &&
+          item.item.type !== backendModule.AssetType.directory && (
             <UnstyledButton
               className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
                 tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
@@ -136,7 +131,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </div>
-      {item == null || setItem == null ? (
+      {item == null || setItem == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}
         </div>
@@ -144,6 +139,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         <>
           {tab === AssetPanelTab.properties && (
             <AssetProperties
+              backend={backend}
               isReadonly={isReadonly}
               item={item}
               setItem={setItem}
@@ -153,7 +149,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}
-          {tab === AssetPanelTab.versions && <AssetVersions item={item} />}
+          {tab === AssetPanelTab.versions && <AssetVersions backend={backend} item={item} />}
         </>
       )}
     </div>

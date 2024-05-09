@@ -20,6 +20,7 @@ import ContextMenus from '#/components/ContextMenus'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import type * as pasteDataModule from '#/utilities/pasteData'
@@ -33,6 +34,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
   readonly hidden?: boolean
+  readonly backend: Backend
   readonly category: Category
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
@@ -55,8 +57,8 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { category, pasteData, selectedKeys, clearSelectedKeys, nodeMapRef, event } = props
-  const { dispatchAssetEvent, dispatchAssetListEvent, rootDirectoryId, hidden = false } = props
+  const { hidden = false, backend, category, pasteData, selectedKeys, clearSelectedKeys } = props
+  const { nodeMapRef, event, dispatchAssetEvent, dispatchAssetListEvent, rootDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -201,6 +203,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )}
         <GlobalContextMenu
           hidden={hidden}
+          backend={backend}
           hasPasteData={pasteData != null}
           rootDirectoryId={rootDirectoryId}
           directoryKey={null}
