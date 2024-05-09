@@ -16,7 +16,7 @@ import SearchBar from '#/layouts/SearchBar'
 import * as settingsData from '#/layouts/Settings/settingsData'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
-import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
+import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsSection'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'

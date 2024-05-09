@@ -25,34 +25,23 @@ export default function SettingsSection(props: SettingsSectionProps) {
   const { nameId, focusArea = true, heading = true, entries } = data
   const { getText } = textProvider.useText()
 
-  const headingElement = !heading ? null : (
-    <aria.Heading level={2} className="h-[2.375rem] py-0.5 text-xl font-bold">
-      {getText(nameId)}
-    </aria.Heading>
-  )
-
-  const children = (
-    <div className="flex flex-col">
-      {entries.map((entry, i) => (
-        <SettingsEntry key={i} context={context} data={entry} />
-      ))}
-    </div>
-  )
-
-  return !focusArea ? (
-    <div className="flex min-w-settings-main-section flex-col gap-settings-section-header">
-      {headingElement}
-      {children}
-    </div>
-  ) : (
-    <FocusArea direction="vertical">
+  return (
+    <FocusArea active={focusArea} direction="vertical">
       {innerProps => (
         <div
           className="flex min-w-settings-main-section flex-col gap-settings-section-header"
           {...innerProps}
         >
-          {headingElement}
-          {children}
+          {!heading ? null : (
+            <aria.Heading level={2} className="h-[2.375rem] py-0.5 text-xl font-bold">
+              {getText(nameId)}
+            </aria.Heading>
+          )}
+          <div className="flex flex-col">
+            {entries.map((entry, i) => (
+              <SettingsEntry key={i} context={context} data={entry} />
+            ))}
+          </div>
         </div>
       )}
     </FocusArea>

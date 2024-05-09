@@ -14,9 +14,11 @@ import ChangePasswordForm from '#/layouts/Settings/ChangePasswordForm'
 import DeleteUserAccountSettingsSection from '#/layouts/Settings/DeleteUserAccountSettingsSection'
 import KeyboardShortcutsSettingsSection from '#/layouts/Settings/KeyboardShortcutsSettingsSection'
 import MembersSettingsSection from '#/layouts/Settings/MembersSettingsSection'
+import MembersTable from '#/layouts/Settings/MembersTable'
 import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProfilePictureInput'
 import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
+import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
 
 import * as backend from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -269,6 +271,34 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
+  [SettingsTabType.userGroups]: {
+    nameId: 'userGroupsSettingsTab',
+    settingsTab: SettingsTabType.userGroups,
+    icon: PeopleSettingsIcon,
+    sections: [
+      {
+        nameId: 'userGroupsSettingsSection',
+        columnClassName: 'h-3/5 lg:h-[unset] overflow-auto',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: UserGroupsSettingsSection,
+          },
+        ],
+      },
+      {
+        nameId: 'userGroupsUsersSettingsSection',
+        column: 2,
+        columnClassName: 'h-2/5 lg:h-[unset] overflow-auto',
+        entries: [
+          {
+            type: SettingsEntryType.custom,
+            render: () => <MembersTable draggable populateWithSelf />,
+          },
+        ],
+      },
+    ],
+  },
   [SettingsTabType.keyboardShortcuts]: {
     nameId: 'keyboardShortcutsSettingsTab',
     settingsTab: SettingsTabType.keyboardShortcuts,
@@ -315,7 +345,10 @@ export const SETTINGS_DATA: SettingsData = [
   },
   {
     nameId: 'accessSettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.members]],
+    tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.members],
+      SETTINGS_TAB_DATA[SettingsTabType.userGroups],
+    ],
   },
   {
     nameId: 'lookAndFeelSettingsTabSection',
@@ -385,6 +418,7 @@ export interface SettingsSectionData {
   readonly column?: number
   readonly heading?: false
   readonly focusArea?: false
+  readonly columnClassName?: string
   readonly aliases?: text.TextId[]
   readonly entries: readonly SettingsEntryData[]
 }

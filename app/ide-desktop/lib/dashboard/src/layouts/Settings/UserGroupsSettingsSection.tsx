@@ -18,7 +18,6 @@ import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
-import SettingsSection from '#/components/styled/settings/SettingsSection'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
@@ -27,12 +26,12 @@ import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
-// =============================
-// === UserGroupsSettingsTab ===
-// =============================
+// =================================
+// === UserGroupsSettingsSection ===
+// =================================
 
 /** Settings tab for viewing and editing organization members. */
-export default function UserGroupsSettingsTab() {
+export default function UserGroupsSettingsSection() {
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
@@ -208,119 +207,112 @@ export default function UserGroupsSettingsTab() {
   }
 
   return (
-    <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-hidden lg:h-auto lg:flex-row">
-      <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
-        <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
-          <HorizontalMenuBar>
-            <UnstyledButton
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-              onPress={event => {
-                const placeholderId = backendModule.newPlaceholderUserGroupId()
-                const rect = event.target.getBoundingClientRect()
-                const position = { pageX: rect.left, pageY: rect.top }
-                setModal(
-                  <NewUserGroupModal
-                    event={position}
-                    userGroups={userGroups}
-                    onSubmit={groupName => {
-                      if (user != null) {
-                        const id = placeholderId
-                        const { organizationId } = user
-                        setUserGroups(oldUserGroups => [
-                          ...(oldUserGroups ?? []),
-                          { organizationId, id, groupName },
-                        ])
-                      }
-                    }}
-                    onSuccess={newUserGroup => {
-                      setUserGroups(
-                        oldUserGroups =>
-                          oldUserGroups?.map(userGroup =>
-                            userGroup.id !== placeholderId ? userGroup : newUserGroup
-                          ) ?? null
-                      )
-                    }}
-                    onFailure={() => {
-                      setUserGroups(
-                        oldUserGroups =>
-                          oldUserGroups?.filter(userGroup => userGroup.id !== placeholderId) ?? null
-                      )
-                    }}
-                  />
-                )
-              }}
-            >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('newUserGroup')}
-              </aria.Text>
-            </UnstyledButton>
-          </HorizontalMenuBar>
-          <div
-            ref={rootRef}
-            className={`overflow-auto overflow-x-hidden transition-all lg:mb-2 ${shadowClass}`}
-            onScroll={onUserGroupsTableScroll}
-          >
-            <aria.Table
-              aria-label={getText('userGroups')}
-              className="w-full table-fixed self-start rounded-rows"
-              dragAndDropHooks={dragAndDropHooks}
-            >
-              <aria.TableHeader className="sticky top h-row">
-                <aria.Column
-                  isRowHeader
-                  className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
-                >
-                  {getText('userGroup')}
-                </aria.Column>
-                {/* Delete button. */}
-                <aria.Column className="relative border-0" />
-              </aria.TableHeader>
-              <aria.TableBody
-                ref={bodyRef}
-                items={userGroups ?? []}
-                dependencies={[isLoading, userGroups, usersByGroup]}
-                className="select-text"
-              >
-                {isLoading ? (
-                  <aria.Row className="h-row">
-                    <aria.Cell
-                      ref={element => {
-                        if (element != null) {
-                          element.colSpan = 2
-                        }
-                      }}
-                    >
-                      <div className="flex justify-center">
-                        <StatelessSpinner
-                          size={32}
-                          state={statelessSpinner.SpinnerState.loadingMedium}
-                        />
-                      </div>
-                    </aria.Cell>
-                  </aria.Row>
-                ) : (
-                  userGroup => (
-                    <>
-                      <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
-                      {(usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
-                        <UserGroupUserRow
-                          key={otherUser.userId}
-                          user={otherUser}
-                          userGroup={userGroup}
-                          doRemoveUserFromUserGroup={doRemoveUserFromUserGroup}
-                        />
-                      ))}
-                    </>
+    <>
+      <HorizontalMenuBar>
+        <UnstyledButton
+          className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+          onPress={event => {
+            const placeholderId = backendModule.newPlaceholderUserGroupId()
+            const rect = event.target.getBoundingClientRect()
+            const position = { pageX: rect.left, pageY: rect.top }
+            setModal(
+              <NewUserGroupModal
+                event={position}
+                userGroups={userGroups}
+                onSubmit={groupName => {
+                  if (user != null) {
+                    const id = placeholderId
+                    const { organizationId } = user
+                    setUserGroups(oldUserGroups => [
+                      ...(oldUserGroups ?? []),
+                      { organizationId, id, groupName },
+                    ])
+                  }
+                }}
+                onSuccess={newUserGroup => {
+                  setUserGroups(
+                    oldUserGroups =>
+                      oldUserGroups?.map(userGroup =>
+                        userGroup.id !== placeholderId ? userGroup : newUserGroup
+                      ) ?? null
                   )
-                )}
-              </aria.TableBody>
-            </aria.Table>
-          </div>
-        </SettingsSection>
+                }}
+                onFailure={() => {
+                  setUserGroups(
+                    oldUserGroups =>
+                      oldUserGroups?.filter(userGroup => userGroup.id !== placeholderId) ?? null
+                  )
+                }}
+              />
+            )
+          }}
+        >
+          <aria.Text className="text whitespace-nowrap font-semibold">
+            {getText('newUserGroup')}
+          </aria.Text>
+        </UnstyledButton>
+      </HorizontalMenuBar>
+      <div
+        ref={rootRef}
+        className={`overflow-auto overflow-x-hidden transition-all lg:mb-2 ${shadowClass}`}
+        onScroll={onUserGroupsTableScroll}
+      >
+        <aria.Table
+          aria-label={getText('userGroups')}
+          className="w-full table-fixed self-start rounded-rows"
+          dragAndDropHooks={dragAndDropHooks}
+        >
+          <aria.TableHeader className="sticky top h-row">
+            <aria.Column
+              isRowHeader
+              className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"
+            >
+              {getText('userGroup')}
+            </aria.Column>
+            {/* Delete button. */}
+            <aria.Column className="relative border-0" />
+          </aria.TableHeader>
+          <aria.TableBody
+            ref={bodyRef}
+            items={userGroups ?? []}
+            dependencies={[isLoading, userGroups, usersByGroup]}
+            className="select-text"
+          >
+            {isLoading ? (
+              <aria.Row className="h-row">
+                <aria.Cell
+                  ref={element => {
+                    if (element != null) {
+                      element.colSpan = 2
+                    }
+                  }}
+                >
+                  <div className="flex justify-center">
+                    <StatelessSpinner
+                      size={32}
+                      state={statelessSpinner.SpinnerState.loadingMedium}
+                    />
+                  </div>
+                </aria.Cell>
+              </aria.Row>
+            ) : (
+              userGroup => (
+                <>
+                  <UserGroupRow userGroup={userGroup} doDeleteUserGroup={doDeleteUserGroup} />
+                  {(usersByGroup.get(userGroup.id) ?? []).map(otherUser => (
+                    <UserGroupUserRow
+                      key={otherUser.userId}
+                      user={otherUser}
+                      userGroup={userGroup}
+                      doRemoveUserFromUserGroup={doRemoveUserFromUserGroup}
+                    />
+                  ))}
+                </>
+              )
+            )}
+          </aria.TableBody>
+        </aria.Table>
       </div>
-      <SettingsSection noFocusArea title={getText('users')} className="h-2/5 lg:h-[unset]">
-        <MembersTable draggable populateWithSelf />
-      </SettingsSection>
-    </div>
+    </>
   )
 }
