@@ -1,16 +1,12 @@
 /** @file Settings tab for viewing and editing organization members. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
-
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import MembersTable from '#/layouts/Settings/MembersTable'
 
 import * as aria from '#/components/aria'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -22,13 +18,8 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsSection() {
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const { setModal } = modalProvider.useSetModal()
-  const membersQuery = reactQuery.useQuery({
-    queryKey: ['members'],
-    queryFn: () => backend.listUsers(),
-  })
 
   return (
     <>

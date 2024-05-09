@@ -1,9 +1,10 @@
 /** @file A list of members in the organization. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import * as mimeTypes from '#/data/mimeTypes'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -14,7 +15,6 @@ import * as textProvider from '#/providers/TextProvider'
 import UserRow from '#/layouts/Settings/UserRow'
 
 import * as aria from '#/components/aria'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
 
@@ -41,16 +41,15 @@ export default function MembersTable(props: MembersTableProps) {
   const rootRef = React.useRef<HTMLTableElement>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const members = asyncEffectHooks.useAsyncEffect<backendModule.User[] | null>(
-    !populateWithSelf || user == null ? null : [user],
-    () => backend.listUsers(),
-    [backend]
-  )
+  const membersQuery = reactQuery.useQuery({
+    initialData: () => (populateWithSelf && user != null ? [user] : null),
+    queryKey: ['members'],
+    queryFn: () => backend.listUsers(),
+  })
   const membersMap = React.useMemo(
-    () => new Map((members ?? []).map(member => [member.userId, member])),
-    [members]
+    () => new Map((membersQuery.data ?? []).map(member => [member.userId, member])),
+    [membersQuery.data]
   )
-  const isLoading = members == null
 
   const { onScroll, shadowClass } = scrollHooks.useStickyTableHeaderOnScroll(
     scrollContainerRef,
@@ -141,34 +140,17 @@ export default function MembersTable(props: MembersTableProps) {
         </aria.TableHeader>
         <aria.TableBody
           ref={bodyRef}
-          items={members ?? []}
-          dependencies={[members]}
+          items={membersQuery.data ?? []}
+          dependencies={[membersQuery.data]}
           className="select-text"
         >
-          {isLoading ? (
-            <aria.Row className="h-row">
-              <aria.Cell
-                ref={element => {
-                  if (element != null) {
-                    element.colSpan = allowDelete ? 3 : 2
-                  }
-                }}
-                className="rounded-full bg-transparent"
-              >
-                <div className="flex justify-center">
-                  <StatelessSpinner size={32} state={statelessSpinner.SpinnerState.loadingMedium} />
-                </div>
-              </aria.Cell>
-            </aria.Row>
-          ) : (
-            member => (
-              <UserRow
-                id={member.userId}
-                draggable={draggable}
-                user={member}
-                doDeleteUser={!allowDelete ? null : doDeleteUser}
-              />
-            )
+          {member => (
+            <UserRow
+              id={member.userId}
+              draggable={draggable}
+              user={member}
+              doDeleteUser={!allowDelete ? null : doDeleteUser}
+            />
           )}
         </aria.TableBody>
       </aria.Table>

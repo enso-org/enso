@@ -11,7 +11,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import MembersTable from '#/layouts/Settings/MembersTable'
 import UserGroupRow from '#/layouts/Settings/UserGroupRow'
 import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 
