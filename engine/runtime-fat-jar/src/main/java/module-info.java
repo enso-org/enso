@@ -6,6 +6,11 @@ open module org.enso.runtime {
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires static org.slf4j;
+  // ydoc-server
+  requires io.helidon.webclient;
+  requires io.helidon.webclient.websocket;
+  requires io.helidon.webserver;
+  requires io.helidon.webserver.websocket;
 
   uses org.slf4j.spi.SLF4JServiceProvider;
   uses org.enso.interpreter.instrument.HandlerFactory;

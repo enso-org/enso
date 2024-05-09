@@ -2261,11 +2261,12 @@ lazy val `runtime-fat-jar` =
               LocalProject("runtime-instrument-common"),
               LocalProject("runtime-instrument-id-execution"),
               LocalProject("runtime-instrument-repl-debugger"),
-              LocalProject("runtime-instrument-runtime-server")
+              LocalProject("runtime-instrument-runtime-server"),
+              LocalProject("ydoc-server")
             ),
             inConfigurations(Compile)
           ),
-          modulePath = JPMSUtils.componentModules
+          modulePath = JPMSUtils.componentModules ++ helidon
         )
       }
         .dependsOn(Compile / compile)
@@ -2288,7 +2289,8 @@ lazy val `runtime-fat-jar` =
           GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
         val logbackMods =
           logbackPkg.map(_.withConfigurations(Some(Runtime.name)))
-        graalMods ++ langMods ++ logbackMods
+        val helidonMods = helidon.map(_.withConfigurations(Some(Runtime.name)))
+        graalMods ++ langMods ++ logbackMods ++ helidonMods
       }
     )
     /** Assembling Uber Jar */
@@ -2301,7 +2303,7 @@ lazy val `runtime-fat-jar` =
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
       assembly / assemblyExcludedJars := {
-        val pkgsToExclude = JPMSUtils.componentModules
+        val pkgsToExclude = JPMSUtils.componentModules ++ helidon
         val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
@@ -2330,6 +2332,7 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
+    .dependsOn(`ydoc-server`)
     .dependsOn(LocalProject("runtime"))
 
 /* Note [Unmanaged Classpath]
@@ -3575,7 +3578,7 @@ updateLibraryManifests := {
     JPMSUtils
       .filterModulesFromClasspath(
         fullCp,
-        JPMSUtils.componentModules,
+        JPMSUtils.componentModules ++ helidon,
         log,
         shouldContainAll = true
       )
