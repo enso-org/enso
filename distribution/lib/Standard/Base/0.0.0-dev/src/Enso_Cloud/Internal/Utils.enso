@@ -61,7 +61,7 @@ secrets_api = cloud_root_uri + "secrets"
 
 ## PRIVATE
    Root address for DataLinks API.
-datalinks_api = cloud_root_uri + "connectors"
+datalinks_api = cloud_root_uri + "datalinks"
 
 ## PRIVATE
    Flushes all cloud caches, including the authentication data
