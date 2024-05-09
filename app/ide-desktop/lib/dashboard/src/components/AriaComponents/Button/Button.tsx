@@ -119,7 +119,7 @@ const CLASSES_FOR_VARIANT: Record<Variant, string> = {
   tertiary: 'bg-share text-white hover:bg-share/90',
   cancel: 'bg-selected-frame opacity-80 hover:opacity-100',
   delete: 'bg-delete text-white',
-  icon: 'opacity-50 hover:opacity-100',
+  icon: 'opacity-70 hover:opacity-100',
   submit: 'bg-invite text-white opacity-80 hover:opacity-100',
   outline: 'border-primary/40 text-primary font-bold hover:border-primary/90',
 }
