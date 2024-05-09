@@ -47,7 +47,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
         src={TimeIcon}
         className="size-icon"
         alt={getText('modifiedColumnHide')}
-        onClick={() => {
+        onPress={() => {
           hideColumn(columnUtils.Column.modified)
         }}
       />

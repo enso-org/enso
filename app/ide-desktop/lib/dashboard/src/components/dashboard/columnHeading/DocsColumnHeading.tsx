@@ -22,7 +22,7 @@ export default function DocsColumnHeading(props: column.AssetColumnHeadingProps)
         src={DocsIcon}
         className="size-icon"
         alt={getText('docsColumnHide')}
-        onClick={() => {
+        onPress={() => {
           hideColumn(columnUtils.Column.docs)
         }}
       />

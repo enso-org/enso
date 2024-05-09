@@ -22,7 +22,7 @@ export default function AccessedByProjectsColumnHeading(props: column.AssetColum
         src={AccessedByProjectsIcon}
         className="size-icon"
         alt={getText('accessedByProjectsColumnHide')}
-        onClick={() => {
+        onPress={() => {
           hideColumn(columnUtils.Column.accessedByProjects)
         }}
       />

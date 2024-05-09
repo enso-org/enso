@@ -23,12 +23,12 @@ export interface SvgMaskProps {
   // underlying `div`.
   // eslint-disable-next-line no-restricted-syntax
   readonly className?: string | undefined
-  readonly onClick?: () => void
+  readonly onPress?: () => void
 }
 
 /** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
 export default function SvgMask(props: SvgMaskProps) {
-  const { invert = false, alt, src, style, color, className, onClick } = props
+  const { invert = false, alt, src, style, color, className, onPress } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
   const ref = React.useRef<HTMLButtonElement>(null)
@@ -38,7 +38,7 @@ export default function SvgMask(props: SvgMaskProps) {
   const image = (
     <aria.Button
       ref={ref}
-      isDisabled={onClick == null}
+      isDisabled={onPress == null}
       style={{
         ...(style ?? {}),
         backgroundColor: color ?? 'currentcolor',
@@ -56,17 +56,17 @@ export default function SvgMask(props: SvgMaskProps) {
         ...(invert ? { WebkitMaskComposite: 'exclude, exclude' } : {}),
         /* eslint-enable @typescript-eslint/naming-convention */
       }}
-      className={`inline-block ${onClick != null ? 'cursor-pointer' : ''} ${
+      className={`inline-block ${onPress != null ? 'cursor-pointer' : ''} ${
         className ?? 'h-max w-max'
       }`}
-      onPress={onClick ?? noop}
+      onPress={onPress ?? noop}
     >
       {/* This is required for this component to have the right size. */}
       <img alt={alt} src={src} className="transparent" draggable={false} />
     </aria.Button>
   )
 
-  return alt == null && onClick == null ? (
+  return alt == null && onPress == null ? (
     image
   ) : (
     <aria.TooltipTrigger>

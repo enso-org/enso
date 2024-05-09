@@ -113,7 +113,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                   <SvgMask
                     src={isShowingValue ? EyeIcon : EyeCrossedIcon}
                     className="absolute right-2 top-1 cursor-pointer rounded-full"
-                    onClick={() => {
+                    onPress={() => {
                       setIsShowingValue(show => !show)
                     }}
                   />

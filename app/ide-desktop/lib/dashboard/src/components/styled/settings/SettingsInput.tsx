@@ -93,7 +93,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
               src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
               alt={isShowingPassword ? getText('hidePassword') : getText('showPassword')}
               className="absolute right-2 top-1 cursor-pointer rounded-full"
-              onClick={() => {
+              onPress={() => {
                 setIsShowingPassword(show => !show)
               }}
             />

@@ -164,8 +164,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
           item.children != null ? 'rotate-90' : ''
         }`}
-        onClick={event => {
-          event.stopPropagation()
+        onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
       />

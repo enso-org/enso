@@ -22,7 +22,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
         src={PeopleIcon}
         className="size-icon"
         alt={getText('sharedWithColumnHide')}
-        onClick={() => {
+        onPress={() => {
           hideColumn(columnUtils.Column.sharedWith)
         }}
       />

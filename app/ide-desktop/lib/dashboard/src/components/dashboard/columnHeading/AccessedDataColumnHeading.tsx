@@ -22,7 +22,7 @@ export default function AccessedDataColumnHeading(props: column.AssetColumnHeadi
         src={AccessedDataIcon}
         className="size-icon"
         alt={getText('accessedDataColumnHide')}
-        onClick={() => {
+        onPress={() => {
           hideColumn(columnUtils.Column.accessedData)
         }}
       />

@@ -22,7 +22,7 @@ export default function LabelsColumnHeading(props: column.AssetColumnHeadingProp
         src={TagIcon}
         className="size-icon"
         alt={getText('labelsColumnHide')}
-        onClick={() => {
+        onPress={() => {
           hideColumn(columnUtils.Column.labels)
         }}
       />
