@@ -170,13 +170,11 @@ add_specs suite_builder =
                 source_file.exists . should_be_false
 
     sample_data_link_content = Data_Link.read_raw_config (enso_project.data / "simple.datalink")
-    # TODO Enso_File datalink once Enso_File & cloud datalink write is supported
-    datalink_backends = backends.filter b-> b.name != "Enso Cloud"
     ## This introduces a lot of combinations for testing the datalink copy/move logic, but unfortunately it is needed,
        because various combinations of backends may rely on different logic (different operations happen under the hood
        if a file is moved locally vs if it is moved from a local filesystem to S3 or vice versa), and all that different
        logic may be prone to mis-handling datalinks - so we need to test all paths to ensure coverage.
-    datalink_backends.each source_backend-> datalink_backends.each destination_backend->
+    backends.each source_backend-> backends.each destination_backend->
         ## All Data Link tests depend on S3 - even if the backends do not use S3, the datalink itself targets S3,
            so `api_pending` is always checked and the test will not be run without S3 config present.
         pending = any_pending [source_backend, destination_backend] . if_nothing api_pending
