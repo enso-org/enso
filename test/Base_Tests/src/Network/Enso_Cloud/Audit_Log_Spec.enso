@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Internal.Audit_Log.Audit_Log
-import Standard.Base.Enso_Cloud.Internal.Test_Utils
+import Standard.Base.Enso_Cloud.Errors.Enso_Cloud_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Time_Error.Time_Error
+from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field, cloud_http_request_for_test
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -23,7 +25,7 @@ add_specs suite_builder =
                 random_payload = "payload-" + Random.uuid
                 Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload]]) async=async . should_succeed
                 my_event = Test.with_retries <|
-                    event = Test_Utils.get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
+                    event = get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
                     event.should_succeed
                     event
 
@@ -41,7 +43,7 @@ add_specs suite_builder =
                 random_payload = "payload-" + Random.uuid
                 Audit_Log.report_event "TestEventInCloud" "Message⛅" (JS_Object.from_pairs [["my_field", random_payload]]) async=False . should_succeed
                 my_event = Test.with_retries <|
-                    event = Test_Utils.get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
+                    event = get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
                     event.should_succeed
                     event
 
@@ -54,3 +56,28 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
+
+## PRIVATE
+   Returns log events available in the current account.
+   This method is only used for testing and should not be used in production.
+get_audit_log_events -> Vector Audit_Log_Event =
+    json = cloud_http_request_for_test HTTP_Method.Get "log_events"
+    events_json = get_required_field "events" json
+    events_json.map Audit_Log_Event.from_json
+
+## PRIVATE
+type Audit_Log_Event
+    ## PRIVATE
+    Value organization_id:Text user_email:Text timestamp:Date_Time metadata:JS_Object message:Text project_id:Text
+
+    ## PRIVATE
+    from_json json =
+        organization_id = get_required_field "organizationId" json expected_type=Text
+        user_email = get_required_field "userEmail" json expected_type=Text
+        timestamp_text = get_optional_field "timestamp" json expected_type=Text
+        timestamp = timestamp_text.if_not_nothing <| Date_Time.parse timestamp_text . catch Time_Error error->
+            Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid timestamp format in audit log event: "+error.to_display_text)
+        metadata = get_required_field "metadata" json
+        message = get_required_field "message" json expected_type=Text
+        project_id = get_optional_field "projectId" json expected_type=Text
+        Audit_Log_Event.Value organization_id user_email timestamp metadata message project_id

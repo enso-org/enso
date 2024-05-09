@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Enso_Cloud.Internal.Test_Utils
 
 from Standard.Table import Table
 
@@ -8,6 +7,7 @@ from Standard.Database import all
 from Standard.Test import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Audit_Log_Spec import Audit_Log_Event, get_audit_log_events
 
 from project.Util import all
 
@@ -32,7 +32,7 @@ add_specs suite_builder prefix ~datalink_to_connection =
 
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
-                all_events = Test_Utils.get_audit_log_events
+                all_events = get_audit_log_events
                 relevant_events = all_events.filter e-> e.message.contains table_name
 
                 create = relevant_events.find (e-> e.message.contains "CREATE")
@@ -57,7 +57,7 @@ add_specs suite_builder prefix ~datalink_to_connection =
 
             # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
             Test.with_retries <|
-                all_events = Test_Utils.get_audit_log_events
+                all_events = get_audit_log_events
                 ## This is a bit white-box test - we assume the input query is found inside of the query that is run unchanged.
                    Currently that is OK, but if that ever stops being enough the test may need to be amended to be 'smarter'.
                 relevant_event = all_events.find e-> e.message.contains query
