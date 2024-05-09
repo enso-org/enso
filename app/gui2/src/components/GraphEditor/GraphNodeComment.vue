@@ -113,8 +113,6 @@ export function cookedTextToRaw(cooked: string) {
     @keydown.delete.stop
     @wheel.stop.passive
     @focusout="finishEdit"
-    @pointerdown.stop
-    @pointerup.stop
     @click.stop="startEdit"
     @contextmenu.stop
   ></div>

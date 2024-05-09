@@ -443,12 +443,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: NPM install
-        run: npm install
-      - name: Uninstall old Electron Builder
-        run: npm uninstall --save --workspace enso electron-builder
-      - name: Install new Electron Builder
-        run: npm install --save-dev --workspace enso electron-builder@24.6.4
       - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
@@ -517,12 +511,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: NPM install
-        run: npm install
-      - name: Uninstall old Electron Builder
-        run: npm uninstall --save --workspace enso electron-builder
-      - name: Install new Electron Builder
-        run: npm install --save-dev --workspace enso electron-builder@24.6.4
       - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}

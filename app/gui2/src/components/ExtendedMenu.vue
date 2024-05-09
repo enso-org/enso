@@ -13,22 +13,11 @@ const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadabl
 </script>
 
 <template>
-  <div
-    class="ExtendedMenu"
-    @pointerdown.stop
-    @pointerup.stop
-    @click.stop="isDropdownOpen = !isDropdownOpen"
-  >
+  <div class="ExtendedMenu" @click.stop="isDropdownOpen = !isDropdownOpen">
     <SvgIcon name="3_dot_menu" class="moreIcon" />
   </div>
   <Transition name="dropdown">
-    <div
-      v-show="isDropdownOpen"
-      class="ExtendedMenuPane"
-      @pointerdown.stop
-      @pointerup.stop
-      @click.stop
-    >
+    <div v-show="isDropdownOpen" class="ExtendedMenuPane">
       <div class="row">
         <div class="label">Zoom</div>
         <div class="zoomControl">
