@@ -578,8 +578,8 @@ export default class RemoteBackend extends Backend {
 
   /** Restore a project from a different version. */
   override async restoreProject(
-    projectId: backendModule.ProjectId,
-    versionId: backendModule.S3ObjectVersionId,
+    projectId: backend.ProjectId,
+    versionId: backend.S3ObjectVersionId,
     title: string
   ): Promise<void> {
     const path = remoteBackendPaths.restoreProjectPath(projectId)
@@ -593,12 +593,12 @@ export default class RemoteBackend extends Backend {
 
   /** Duplicate a specific version of a project. */
   override async duplicateProject(
-    projectId: backendModule.ProjectId,
-    versionId: backendModule.S3ObjectVersionId,
+    projectId: backend.ProjectId,
+    versionId: backend.S3ObjectVersionId,
     title: string
-  ): Promise<backendModule.CreatedProject> {
+  ): Promise<backend.CreatedProject> {
     const path = remoteBackendPaths.duplicateProjectPath(projectId)
-    const response = await this.post<backendModule.CreatedProject>(path, { versionId })
+    const response = await this.post<backend.CreatedProject>(path, { versionId })
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'duplicateProjectBackendError', title)
     } else {
