@@ -21,9 +21,8 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
       <SvgMask
         src={PeopleIcon}
         className="size-icon"
-        title={getText('sharedWithColumnHide')}
-        onClick={event => {
-          event.stopPropagation()
+        alt={getText('sharedWithColumnHide')}
+        onClick={() => {
           hideColumn(columnUtils.Column.sharedWith)
         }}
       />

@@ -46,9 +46,8 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
       <SvgMask
         src={TimeIcon}
         className="size-icon"
-        title={getText('modifiedColumnHide')}
-        onClick={event => {
-          event.stopPropagation()
+        alt={getText('modifiedColumnHide')}
+        onClick={() => {
           hideColumn(columnUtils.Column.modified)
         }}
       />

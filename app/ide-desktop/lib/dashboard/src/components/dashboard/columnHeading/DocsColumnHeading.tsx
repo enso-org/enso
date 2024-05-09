@@ -21,9 +21,8 @@ export default function DocsColumnHeading(props: column.AssetColumnHeadingProps)
       <SvgMask
         src={DocsIcon}
         className="size-icon"
-        title={getText('docsColumnHide')}
-        onClick={event => {
-          event.stopPropagation()
+        alt={getText('docsColumnHide')}
+        onClick={() => {
           hideColumn(columnUtils.Column.docs)
         }}
       />

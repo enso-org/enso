@@ -21,9 +21,8 @@ export default function LabelsColumnHeading(props: column.AssetColumnHeadingProp
       <SvgMask
         src={TagIcon}
         className="size-icon"
-        title={getText('labelsColumnHide')}
-        onClick={event => {
-          event.stopPropagation()
+        alt={getText('labelsColumnHide')}
+        onClick={() => {
           hideColumn(columnUtils.Column.labels)
         }}
       />
