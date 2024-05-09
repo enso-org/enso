@@ -87,37 +87,37 @@ parse_file file =
 
 ## PRIVATE
 parse_line line =
-    existing_entries = Vector.new_builder
-    current_entry = Java_String_Builder.new
-    next_entry =
-        existing_entries.append current_entry.toString
-        current_entry.setLength 0
-    characters = line.characters
-    go ix is_escape = case ix>=characters.length of
-        True ->
-            if is_escape then
-                # Handle the trailing escape character.
-                current_entry.append '\\'
-            next_entry
-        False ->
-            c = characters.at ix
-            case c=='\\' of
-                True ->
-                    if is_escape then
-                        current_entry.append '\\'
-                    @Tail_Call go (ix+1) is_escape.not
-                False -> case c==':' of
+    Vector.build existing_entries->
+        current_entry = Java_String_Builder.new
+        next_entry =
+            existing_entries.append current_entry.toString
+            current_entry.setLength 0
+        characters = line.characters
+        go ix is_escape = case ix>=characters.length of
+            True ->
+                if is_escape then
+                    # Handle the trailing escape character.
+                    current_entry.append '\\'
+                next_entry
+            False ->
+                c = characters.at ix
+                case c=='\\' of
                     True ->
-                        case is_escape of
-                            True -> current_entry.append ':'
-                            False -> next_entry
-                        @Tail_Call go (ix+1) False
-                    False ->
                         if is_escape then
-                            # Handle escape character followed by other characters.
                             current_entry.append '\\'
-                        # Any other character is just appended and escape is reset.
-                        current_entry.append c
-                        @Tail_Call go (ix+1) False
-    go 0 False
-    existing_entries.to_vector
+                        @Tail_Call go (ix+1) is_escape.not
+                    False -> case c==':' of
+                        True ->
+                            case is_escape of
+                                True -> current_entry.append ':'
+                                False -> next_entry
+                            @Tail_Call go (ix+1) False
+                        False ->
+                            if is_escape then
+                                # Handle escape character followed by other characters.
+                                current_entry.append '\\'
+                            # Any other character is just appended and escape is reset.
+                            current_entry.append c
+                            @Tail_Call go (ix+1) False
+        go 0 False
+        existing_entries

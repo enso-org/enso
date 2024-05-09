@@ -95,17 +95,16 @@ type GrandParent
     Value parent
 
 add_specs suite_builder =
-    Vector.new_builder
-        . append ["Enso", _-> Map.empty, Nothing]
-        . append ["Java", _-> JavaMap.of, Nothing]
-        . append ["JavaScript", _-> js_empty_dict, Nothing]
-        . append ["Python", _-> py_empty_dict, pending_python_missing]
-        . to_vector
-        . each entry->
-            lang = entry.get 0
-            empty_map_fn = entry.get 1
-            pending = entry.get 2
-            add_common_specs suite_builder lang pending empty_map_fn
+    languages = Vector.build builder->
+        builder . append ["Enso", _-> Map.empty, Nothing]
+        builder . append ["Java", _-> JavaMap.of, Nothing]
+        builder . append ["JavaScript", _-> js_empty_dict, Nothing]
+        builder . append ["Python", _-> py_empty_dict, pending_python_missing]
+    languages.each entry->
+        lang = entry.get 0
+        empty_map_fn = entry.get 1
+        pending = entry.get 2
+        add_common_specs suite_builder lang pending empty_map_fn
             
     suite_builder.group "Enso maps" group_builder->
 
@@ -239,17 +238,17 @@ add_specs suite_builder =
 
         group_builder.specify "should allow iterating over each value" <|
             m = Map.empty . insert 1 2 . insert 2 4
-            vec = Vector.new_builder
             expected_vec = [2, 4]
-            m.each (v -> vec.append v)
-            vec.to_vector . should_equal expected_vec
+            vec = Vector.build builder->
+                m.each (v -> builder.append v)
+            vec . should_equal expected_vec
 
         group_builder.specify "should allow iterating over each key-value pair" <|
             m = Map.empty . insert 1 2 . insert 2 4
-            vec = Vector.new_builder
             expected_vec = [3, 6]
-            m.each_with_key (k -> v -> vec.append (k+v))
-            vec.to_vector . should_equal expected_vec
+            vec = Vector.build builder->
+                m.each_with_key (k -> v -> builder.append (k+v))
+            vec . should_equal expected_vec
 
         group_builder.specify "should allow folding over the values" <|
             m = Map.empty . insert 1 2 . insert 2 4
