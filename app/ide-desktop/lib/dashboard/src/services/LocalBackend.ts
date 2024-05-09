@@ -5,8 +5,6 @@
  * the API. */
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
-
 import Backend, * as backend from '#/services/Backend'
 import * as projectManagerModule from '#/services/ProjectManager'
 import type ProjectManager from '#/services/ProjectManager'
@@ -96,7 +94,6 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export default class LocalBackend extends Backend {
-  private static readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   readonly type = backend.BackendType.local
 
   /** Create a {@link LocalBackend}. */
@@ -487,6 +484,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override changeUserGroup() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override getOrganization() {
     return this.invalidOperation()
   }
@@ -564,7 +566,6 @@ export default class LocalBackend extends Backend {
         ? this.projectManager.rootDirectory
         : extractTypeAndId(params.parentDirectoryId).id
     const path = projectManagerModule.joinPath(parentPath, params.fileName)
-    // await this.projectManager.createFile(path, file)
     const searchParams = new URLSearchParams([
       ['file_name', params.fileName],
       ...(params.parentDirectoryId == null ? [] : [['directory', parentPath]]),
@@ -575,6 +576,18 @@ export default class LocalBackend extends Backend {
     })
     // `project` MUST BE `null` as uploading projects uses a separate endpoint.
     return { path, id: newFileId(path), project: null }
+  }
+
+  /** Change the name of a file. */
+  override async updateFile(
+    fileId: backend.FileId,
+    body: backend.UpdateFileRequestBody
+  ): Promise<void> {
+    const typeAndId = extractTypeAndId(fileId)
+    const from = typeAndId.id
+    const folderPath = fileInfo.folderPath(from)
+    const to = projectManagerModule.joinPath(projectManagerModule.Path(folderPath), body.title)
+    await this.projectManager.moveFile(from, to)
   }
 
   /** Construct a new path using the given parent directory and a file name. */
@@ -646,6 +659,7 @@ export default class LocalBackend extends Backend {
   override listSecrets() {
     return Promise.resolve([])
   }
+
   /** Invalid operation. */
   override createTag() {
     return this.invalidOperation()
@@ -667,7 +681,22 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override createUserGroup() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override createCheckoutSession() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteUserGroup() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override listUserGroups() {
     return this.invalidOperation()
   }
 

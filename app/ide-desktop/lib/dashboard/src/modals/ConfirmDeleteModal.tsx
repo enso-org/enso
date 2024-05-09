@@ -17,6 +17,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
+  readonly event?: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   /** Must fit in the sentence "Are you sure you want to <action>?". */
   readonly actionText: string
   /** The label shown on the colored confirmation button. "Delete" by default. */
@@ -26,7 +27,7 @@ export interface ConfirmDeleteModalProps {
 
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-  const { actionText, actionButtonLabel = 'Delete', doDelete } = props
+  const { actionText, actionButtonLabel = 'Delete', event: positionEvent, doDelete } = props
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -41,7 +42,10 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   }
 
   return (
-    <Modal centered className="bg-dim">
+    <Modal
+      centered={positionEvent == null}
+      className={`bg-dim ${positionEvent == null ? '' : 'absolute size-full overflow-hidden'}`}
+    >
       <form
         data-testid="confirm-delete-modal"
         ref={element => {
@@ -49,6 +53,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
         tabIndex={-1}
         className="pointer-events-auto relative flex w-confirm-delete-modal flex-col gap-modal rounded-default p-modal-wide py-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
         onClick={event => {
           event.stopPropagation()
         }}

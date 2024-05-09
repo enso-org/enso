@@ -11,7 +11,7 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
 </script>
 
 <template>
-  <div class="NavBar" @pointerdown.stop @pointerup.stop @click.stop>
+  <div class="NavBar">
     <SvgIcon name="graph_editor" draggable="false" class="icon" />
     <div class="breadcrumbs-controls">
       <SvgIcon

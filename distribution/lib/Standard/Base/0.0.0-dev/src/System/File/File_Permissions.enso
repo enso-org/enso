@@ -24,7 +24,7 @@ type File_Permissions
        Converts the Enso atom to its Java enum counterpart.
     to_java : Vector PosixFilePermission
     to_java self =
-        Vector.new_builder result->
+        Vector.build result->
             if self.owner.contains Permission.Read then
                 result.append PosixFilePermission.OWNER_READ
             if self.owner.contains Permission.Write then
@@ -100,30 +100,31 @@ type File_Permissions
        ADVANCED
        Converts a Java `Set` of Java `PosixFilePermission` to `File_Permissions`.
     from_java_set java_set =
-        owner = Vector.new_builder
-        group = Vector.new_builder
-        others = Vector.new_builder
+        vecs = Vector.build_multiple 3 builders->
+            owner = builders.at 0
+            group = builders.at 1
+            others = builders.at 2
 
-        if java_set.contains PosixFilePermission.OWNER_READ then
-            owner.append Permission.Read
-        if java_set.contains PosixFilePermission.OWNER_WRITE then
-            owner.append Permission.Write
-        if java_set.contains PosixFilePermission.OWNER_EXECUTE then
-            owner.append Permission.Execute
-        if java_set.contains PosixFilePermission.GROUP_READ then
-            group.append Permission.Read
-        if java_set.contains PosixFilePermission.GROUP_WRITE then
-            group.append Permission.Write
-        if java_set.contains PosixFilePermission.GROUP_EXECUTE then
-            group.append Permission.Execute
-        if java_set.contains PosixFilePermission.OTHERS_READ then
-            others.append Permission.Read
-        if java_set.contains PosixFilePermission.OTHERS_WRITE then
-            others.append Permission.Write
-        if java_set.contains PosixFilePermission.OTHERS_EXECUTE then
-            others.append Permission.Execute
+            if java_set.contains PosixFilePermission.OWNER_READ then
+                owner.append Permission.Read
+            if java_set.contains PosixFilePermission.OWNER_WRITE then
+                owner.append Permission.Write
+            if java_set.contains PosixFilePermission.OWNER_EXECUTE then
+                owner.append Permission.Execute
+            if java_set.contains PosixFilePermission.GROUP_READ then
+                group.append Permission.Read
+            if java_set.contains PosixFilePermission.GROUP_WRITE then
+                group.append Permission.Write
+            if java_set.contains PosixFilePermission.GROUP_EXECUTE then
+                group.append Permission.Execute
+            if java_set.contains PosixFilePermission.OTHERS_READ then
+                others.append Permission.Read
+            if java_set.contains PosixFilePermission.OTHERS_WRITE then
+                others.append Permission.Write
+            if java_set.contains PosixFilePermission.OTHERS_EXECUTE then
+                others.append Permission.Execute
 
-        File_Permissions.Value owner.to_vector group.to_vector others.to_vector
+        File_Permissions.Value (vecs.at 0) (vecs.at 1) (vecs.at 2)
 
     ## PRIVATE
        Convert to a display representation of this File_Permissions.

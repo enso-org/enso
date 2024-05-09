@@ -128,17 +128,15 @@ export default function DriveBar(props: DriveBarProps) {
               </aria.Text>
             </UnstyledButton>
             <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
-              {isCloud && (
-                <Button
-                  active
-                  image={AddFolderIcon}
-                  alt={getText('newFolder')}
-                  onPress={() => {
-                    unsetModal()
-                    doCreateDirectory()
-                  }}
-                />
-              )}
+              <Button
+                active
+                image={AddFolderIcon}
+                alt={getText('newFolder')}
+                onPress={() => {
+                  unsetModal()
+                  doCreateDirectory()
+                }}
+              />
               {isCloud && (
                 <Button
                   active
@@ -165,7 +163,6 @@ export default function DriveBar(props: DriveBarProps) {
                 multiple
                 id="upload_files_input"
                 name="upload_files_input"
-                {...(isCloud ? {} : { accept: '.enso-project' })}
                 className="hidden"
                 onInput={event => {
                   if (event.currentTarget.files != null) {

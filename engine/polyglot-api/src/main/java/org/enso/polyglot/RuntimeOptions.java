@@ -16,7 +16,7 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(PROJECT_ROOT_KEY, PROJECT_ROOT).build();
 
   public static final String STRICT_ERRORS = optionName("strictErrors");
-  public static final OptionKey<Boolean> STRICT_ERRORS_KEY = new OptionKey<>(false);
+  public static final OptionKey<Boolean> STRICT_ERRORS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor STRICT_ERRORS_DESCRIPTOR =
       OptionDescriptor.newBuilder(STRICT_ERRORS_KEY, STRICT_ERRORS).build();
 

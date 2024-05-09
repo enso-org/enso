@@ -62,14 +62,12 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <NumericInputWidget
     ref="inputComponent"
     v-model="value"
     class="WidgetNumber r-24"
     :limits="limits"
-    @pointerdown.stop
-    @pointerup.stop
+    @click.stop
     @focus="editHandler.start()"
     @blur="editHandler.end()"
     @input="editHandler.edit($event)"

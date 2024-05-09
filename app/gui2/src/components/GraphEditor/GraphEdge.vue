@@ -571,6 +571,7 @@ const connected = computed(() => isConnected(props.edge))
   stroke-width: 14;
   stroke: transparent;
   pointer-events: stroke;
+  cursor: pointer;
 }
 .edge.visible {
   stroke-width: 4;

@@ -37,8 +37,8 @@ add_specs suite_builder =
         group_builder.specify "should be able to read in a table with dates" <|
             data.table.column_count.should_equal 5
             data.table.row_count.should_equal 7
-            data.table.info.at "Column" . to_vector . should_equal ['Number','Party', 'Title', 'From', 'To']
-            data.table.info.at "Value Type" . to_vector . should_equal [Value_Type.Integer, Value_Type.Char, Value_Type.Char, Value_Type.Date, Value_Type.Date]
+            data.table.column_info.at "Column" . to_vector . should_equal ['Number','Party', 'Title', 'From', 'To']
+            data.table.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Integer, Value_Type.Char, Value_Type.Char, Value_Type.Date, Value_Type.Date]
 
         group_builder.specify "should be able to treat a single value as a Date" <|
             from_column = data.table.at 'From'

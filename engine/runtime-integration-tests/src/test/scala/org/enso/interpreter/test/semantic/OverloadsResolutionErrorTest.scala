@@ -30,8 +30,8 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
           |Nothing.foo = 20
           |""".stripMargin.linesIterator.mkString("\n")
 
-      the[InterpreterException] thrownBy eval(code) should have message
-      "Compilation aborted due to errors."
+      val ex = the[InterpreterException] thrownBy eval(code)
+      ex.getMessage should include("Method overloads are not supported:")
 
       val diagnostics = consumeOut
       diagnostics
@@ -47,8 +47,8 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
           |bar x = x + 10
           |""".stripMargin.linesIterator.mkString("\n")
 
-      the[InterpreterException] thrownBy eval(code) should have message
-      "Compilation aborted due to errors."
+      val ex = the[InterpreterException] thrownBy eval(code)
+      ex.getMessage should include("Method overloads are not supported:")
 
       val diagnostics = consumeOut
       diagnostics
@@ -65,8 +65,9 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
           |type MyAtom
           |""".stripMargin.linesIterator.mkString("\n")
 
-      the[InterpreterException] thrownBy eval(code) should have message
-      "Compilation aborted due to errors."
+      val ex = the[InterpreterException] thrownBy eval(code)
+
+      ex.getMessage should include("Redefining atoms is not supported:")
 
       val diagnostics = consumeOut
       diagnostics
@@ -87,8 +88,8 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
           |Foo.from (that : Bar) = Foo.Mk_Foo that.x+200
           |""".stripMargin.linesIterator.mkString("\n")
 
-      the[InterpreterException] thrownBy eval(code) should have message
-      "Compilation aborted due to errors."
+      val ex = the[InterpreterException] thrownBy eval(code)
+      ex.getMessage should include("Ambiguous conversion:")
 
       val diagnostics = consumeOut
       diagnostics should have length 3
@@ -114,8 +115,8 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
           |    Foo.Mk_Foo y
           |""".stripMargin.linesIterator.mkString("\n")
 
-      the[InterpreterException] thrownBy eval(code) should have message
-      "Compilation aborted due to errors."
+      val ex = the[InterpreterException] thrownBy eval(code)
+      ex.getMessage should include("Ambiguous conversion:")
 
       val diagnostics = consumeOut
       diagnostics should have length 4
