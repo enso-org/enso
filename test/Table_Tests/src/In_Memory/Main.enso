@@ -20,22 +20,24 @@ import project.In_Memory.Table_Time_Of_Day_Spec
 import project.In_Memory.Table_Running_Spec
 
 add_specs suite_builder =
-    Table_Spec.add_specs suite_builder
-    Table_Xml_Spec.add_specs suite_builder
-    Column_Spec.add_specs suite_builder
+    Aggregate_Column_Spec.add_specs suite_builder
+    Builders_Spec.add_specs suite_builder
     Column_Format_Spec.add_specs suite_builder
+    Column_Spec.add_specs suite_builder
     Common_Spec.add_specs suite_builder
+    Fan_Out_Spec.add_specs suite_builder
     Integer_Overflow_Spec.add_specs suite_builder
     Lossy_Conversions_Spec.add_specs suite_builder
+    Parse_To_Table_Spec.add_specs suite_builder
+    Split_Tokenize_Spec.add_specs suite_builder
     Table_Conversion_Spec.add_specs suite_builder
     Table_Date_Spec.add_specs suite_builder
     Table_Date_Time_Spec.add_specs suite_builder
-    Table_Time_Of_Day_Spec.add_specs suite_builder
+    Table_Format_Spec.add_specs suite_builder
     Table_Running_Spec.add_specs suite_builder
-    Aggregate_Column_Spec.add_specs suite_builder
-    Builders_Spec.add_specs suite_builder
-    Split_Tokenize_Spec.add_specs suite_builder
-    Parse_To_Table_Spec.add_specs suite_builder
+    Table_Spec.add_specs suite_builder
+    Table_Time_Of_Day_Spec.add_specs suite_builder
+    Table_Xml_Spec.add_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->
