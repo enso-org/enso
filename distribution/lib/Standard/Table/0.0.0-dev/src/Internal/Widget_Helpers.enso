@@ -116,7 +116,6 @@ make_fill_default_value_selector column_source=Nothing display=Display.Always ad
    Make a filter condition selector.
 make_filter_condition_selector : Table -> Display -> Widget
 make_filter_condition_selector table display=Display.Always =
-    col_names = make_column_ref_by_name_selector table
     with_all_types = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
     with_number_text = make_column_ref_by_name_selector table add_text=True add_number=True
     with_text = make_column_ref_by_name_selector table add_text=True
@@ -129,7 +128,7 @@ make_filter_condition_selector table display=Display.Always =
     builder.append (Option "Less Than Or Equal" fqn+".Equal_Or_Less" [["than", with_number_text]])
     builder.append (Option "Greater Than" fqn+".Greater" [["than", with_number_text]])
     builder.append (Option "Greater Than Or Equal" fqn+".Equal_Or_Greater" [["than", with_number_text]])
-    builder.append (Option "Between" fqn+".Between" [["lower", col_names], ["upper", with_number_text]])
+    builder.append (Option "Between" fqn+".Between" [["lower", with_number_text], ["upper", with_number_text]])
     builder.append (Option "Equals Ignore Case" fqn+".Equal_Ignore_Case" [["to", with_text]])
     builder.append (Option "Starts With" fqn+".Starts_With" [["prefix", with_text]])
     builder.append (Option "Ends With" fqn+".Ends_With" [["suffix", with_text]])

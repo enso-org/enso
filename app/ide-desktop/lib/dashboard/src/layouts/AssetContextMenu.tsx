@@ -45,6 +45,7 @@ import * as permissions from '#/utilities/permissions'
 export interface AssetContextMenuProps {
   readonly hidden?: boolean
   readonly innerProps: assetRow.AssetRowInnerProps
+  readonly rootDirectoryId: backendModule.DirectoryId
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly eventTarget: HTMLElement | null
   readonly doDelete: () => void
@@ -59,17 +60,8 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const {
-    innerProps,
-    event,
-    eventTarget,
-    doCopy,
-    doCut,
-    doPaste,
-    doDelete,
-    doTriggerDescriptionEdit,
-  } = props
-  const { hidden = false } = props
+  const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
+  const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
   const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { doCreateLabel } = state
@@ -81,7 +73,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
-  const self = asset.permissions?.find(permission => permission.user.userId === user?.userId)
+  const self = asset.permissions?.find(
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+  )
   const isCloud = backend.type === backendModule.BackendType.remote
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
@@ -242,8 +236,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             isDisabled={
-              asset.type !== backendModule.AssetType.project &&
-              asset.type !== backendModule.AssetType.directory
+              isCloud
+                ? asset.type !== backendModule.AssetType.project &&
+                  asset.type !== backendModule.AssetType.directory
+                : false
             }
             action="rename"
             doAction={() => {
@@ -411,6 +407,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         <GlobalContextMenu
           hidden={hidden}
           hasPasteData={hasPasteData}
+          rootDirectoryId={rootDirectoryId}
           directoryKey={
             // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
             // eslint-disable-next-line no-restricted-syntax

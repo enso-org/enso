@@ -30,7 +30,7 @@ const NAME = 'enso'
  * `yargs` is a modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|is-network-error|validator.+'
+    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|is-network-error|validator.+|.*[.]json$'
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
@@ -242,14 +242,9 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `aria.Input` instead of `input`',
     },
     {
-        selector: 'JSXOpeningElement[name.name=span] > JSXIdentifier',
-        message: 'Use `aria.Text` instead of `span`',
-    },
-    {
         selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
         message: 'Use `aria.Heading` instead of `h1`-`h6`',
     },
-    // We may want to consider also preferring `aria.Form` in favor of `form` in the future.
 ]
 
 // ============================

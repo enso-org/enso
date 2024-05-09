@@ -415,7 +415,10 @@ export function defineKeybinds<
       }
       if (handled && stopAndPrevent) {
         event.stopImmediatePropagation()
-        event.preventDefault()
+        // We don't prevent default on PointerEvents, because it may prevent emitting
+        // mousedown/mouseup events, on which external libraries may rely (like AGGrid for hiding
+        // context menu).
+        if (!(event instanceof PointerEvent)) event.preventDefault()
       }
       return handled
     }

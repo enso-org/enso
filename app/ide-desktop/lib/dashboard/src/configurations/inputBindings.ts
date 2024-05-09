@@ -73,7 +73,6 @@ export const BINDINGS = inputBindings.defineBindings({
   paste: { name: 'Paste', bindings: ['Mod+V'], icon: PasteIcon },
   download: { name: 'Download', bindings: ['Mod+Shift+S'], icon: DataDownloadIcon },
   uploadFiles: { name: 'Upload Files', bindings: ['Mod+U'], icon: DataUploadIcon },
-  uploadProjects: { name: 'Upload Projects', bindings: ['Mod+U'], icon: DataUploadIcon },
   newProject: { name: 'New Project', bindings: ['Mod+N'], icon: AddNetworkIcon },
   newFolder: { name: 'New Folder', bindings: ['Mod+Shift+N'], icon: AddFolderIcon },
   // FIXME [sb]: Platform detection should be handled directly in `shortcuts.ts`.

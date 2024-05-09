@@ -1,7 +1,6 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -22,6 +21,7 @@ import * as backendModule from '#/services/Backend'
 export interface GlobalContextMenuProps {
   readonly hidden?: boolean
   readonly hasPasteData: boolean
+  readonly rootDirectoryId: backendModule.DirectoryId
   readonly directoryKey: backendModule.DirectoryId | null
   readonly directoryId: backendModule.DirectoryId | null
   readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
@@ -33,16 +33,12 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, hasPasteData, directoryKey, directoryId, dispatchAssetListEvent } = props
+  const { hidden = false, hasPasteData, directoryKey, directoryId, rootDirectoryId } = props
+  const { dispatchAssetListEvent } = props
   const { doPaste } = props
-  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const rootDirectoryId = React.useMemo(
-    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [user]
-  )
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -55,7 +51,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           type="file"
           id="context_menu_file_input"
           className="hidden"
-          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
           onInput={event => {
             if (event.currentTarget.files != null) {
               dispatchAssetListEvent({
@@ -71,7 +66,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       )}
       <ContextMenuEntry
         hidden={hidden}
-        action={backend.type === backendModule.BackendType.local ? 'uploadProjects' : 'uploadFiles'}
+        action={'uploadFiles'}
         doAction={() => {
           if (filesInputRef.current?.isConnected === true) {
             filesInputRef.current.click()

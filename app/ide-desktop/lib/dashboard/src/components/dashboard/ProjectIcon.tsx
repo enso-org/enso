@@ -264,7 +264,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
             if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
-              // void closeProject(false)
+              void closeProject(false)
             }
           }
         } else {

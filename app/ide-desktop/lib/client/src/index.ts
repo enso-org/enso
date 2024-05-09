@@ -16,6 +16,7 @@ import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
+import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 import * as contentConfig from 'enso-content-config'
 
 import * as authentication from 'authentication'
@@ -33,9 +34,6 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
-
-// prettier-ignore
-import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 

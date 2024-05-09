@@ -8,6 +8,7 @@ use crate::program::command::Manipulator;
 // === Export ===
 // ==============
 
+pub mod build;
 pub mod build_env;
 pub mod clippy;
 pub mod fmt;

@@ -156,14 +156,13 @@ sort vector order on by on_incomparable =
     vector.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
 
 distinct vector on =
-    builder = Vector.new_builder
-    result = vector.fold Map.empty existing->
-        item->
-            key = on item
-            if (existing.get key False) then existing else
-                builder.append item
-                existing.insert key True
-    if result.is_error then result else builder.to_vector
+    Vector.build builder->
+        vector.fold Map.empty existing->
+            item->
+                key = on item
+                if (existing.get key False) then existing else
+                    builder.append item
+                    existing.insert key True
 
 take vector range = case range of
     ## We are using a specialized implementation for `take Sample`, because
@@ -307,36 +306,28 @@ join vector separator prefix suffix =
 
 partition vector condition =
     predicate = unify_condition_or_predicate condition
-    pair = vector.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
-        case predicate elem of
-            True ->
-                Pair.new (acc.first.append elem) acc.second
-            False ->
-                Pair.new acc.first (acc.second.append elem)
-    pair.map .to_vector
+    vecs = Vector.build_multiple 2 builders->
+        vector.map elem->
+            case predicate elem of
+                True -> builders.at 0 . append elem
+                False -> builders.at 1 . append elem
+    Pair.new (vecs.at 0) (vecs.at 1)
 
 partition_with_index vector predicate =
-    pair = vector.fold_with_index (Pair.new Vector.new_builder Vector.new_builder) acc-> ix-> elem->
-        case predicate ix elem of
-            True -> Pair.new (acc.first.append elem) acc.second
-            False -> Pair.new acc.first (acc.second.append elem)
-    pair.map .to_vector
+    vecs = Vector.build_multiple 2 builders->
+        vector.map_with_index ix-> elem->
+            case predicate ix elem of
+                True -> builders.at 0 . append elem
+                False -> builders.at 1 . append elem
+    Pair.new (vecs.at 0) (vecs.at 1)
 
 filter vector filter =
     predicate = unify_condition_or_predicate filter
-    ## TODO: Correct propagation of warnings attached to vector elements
-       requires that this method return the list of `Builder`s that are returned
-       by `builder.append`.  Will be fixed in
-       https://github.com/enso-org/enso/issues/9733.
     Vector.build builder->
         vector.map elem->
             if predicate elem then builder.append elem
 
 filter_with_index vector predicate =
-    ## TODO: Correct propagation of warnings attached to vector elements
-       requires that this method return the list of `Builder`s that are returned
-       by `builder.append`.  Will be fixed in
-       https://github.com/enso-org/enso/issues/9733.
     Vector.build builder->
         vector.map_with_index ix-> elem->
             if predicate ix elem then builder.append elem
