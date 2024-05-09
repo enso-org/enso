@@ -24,7 +24,7 @@ export default function AccountSettingsTab() {
   const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
 
   return (
-    <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
+    <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row">
       <div className="flex w-settings-main-section flex-col gap-settings-subsection">
         <UserAccountSettingsSection />
         {canChangePassword && <ChangePasswordSettingsSection />}

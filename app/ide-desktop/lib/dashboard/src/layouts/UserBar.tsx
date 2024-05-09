@@ -52,8 +52,9 @@ export default function UserBar(props: UserBarProps) {
   const { getText } = textProvider.useText()
   const self =
     user != null
-      ? projectAsset?.permissions?.find(permissions => permissions.user.userId === user.userId) ??
-        null
+      ? projectAsset?.permissions?.find(
+          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+        ) ?? null
       : null
   const shouldShowShareButton =
     backend.type === backendModule.BackendType.remote &&
@@ -82,7 +83,7 @@ export default function UserBar(props: UserBarProps) {
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
               onPress={() => {
-                setModal(<InviteUsersModal eventTarget={null} />)
+                setModal(<InviteUsersModal />)
               }}
             >
               <aria.Text slot="label">{getText('invite')}</aria.Text>
