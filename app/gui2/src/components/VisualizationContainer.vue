@@ -2,10 +2,11 @@
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/composables/events'
+import { isTriggeredByKeyboard, usePointer, useResizeObserver } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { Vec2 } from '@/util/data/vec2'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
@@ -56,27 +57,55 @@ function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
 }
 
-function resizeHandler(resizeX: boolean, resizeY: boolean) {
+const realSize = useResizeObserver(contentNode)
+
+let initialWidth: number | undefined
+let initialHeight: number | undefined
+let leftDragging: boolean = false
+function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: boolean) {
   return usePointer((pos, _, type) => {
-    if (type !== 'move') {
-      return
+    switch (type) {
+      case 'start':
+        initialWidth = realSize.value.x
+        initialHeight = realSize.value.y
+        leftDragging = resizeX === 'left'
+        break
+      case 'move':
+        if (resizeX === 'right' && pos.delta.x !== 0) {
+          const width = (initialWidth ?? 0) + pos.relative.x / config.scale
+          config.width = Math.max(0, width)
+        }
+        if (resizeX === 'left' && pos.delta.x !== 0) {
+          const width = (initialWidth ?? 0) - pos.relative.x / config.scale
+          config.width = Math.max(0, width)
+          // Updating the node's position is done in the watch below.
+        }
+        if (resizeY && pos.delta.y !== 0) {
+          const height = (initialHeight ?? 0) + pos.relative.y / config.scale
+          config.height = Math.max(0, height)
+        }
+        break
+      case 'stop':
+        leftDragging = false
+        break
     }
-    if (resizeX && pos.delta.x !== 0) {
-      const width =
-        (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-      config.width = Math.max(0, width)
-    }
-    if (resizeY && pos.delta.y !== 0) {
-      const height =
-        (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
-      config.height = Math.max(0, height)
-    }
-  }, PointerButtonMask.Main)
+  })
 }
 
-const resizeRight = resizeHandler(true, false)
+const resizeRight = resizeHandler('right', false)
+const resizeLeft = resizeHandler('left', false)
 const resizeBottom = resizeHandler(false, true)
-const resizeBottomRight = resizeHandler(true, true)
+const resizeBottomRight = resizeHandler('right', true)
+const resizeBottomLeft = resizeHandler('left', true)
+
+// When dragging left resizer, we need to move node position accordingly. It may be done only by
+// reading the real width change, as `config.width` does not consider node's minimum width.
+watch(realSize, (newVal, oldVal) => {
+  if (!leftDragging) return
+  const delta = newVal.x - oldVal.x
+  if (delta !== 0)
+    config.nodePosition = new Vec2(config.nodePosition.x - delta, config.nodePosition.y)
+})
 
 const UNKNOWN_TYPE = 'Unknown'
 const nodeShortType = computed(() =>
@@ -100,13 +129,7 @@ const nodeShortType = computed(() =>
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
       }"
-      @pointerdown.stop
-      @pointerup.stop
-      @click.stop
     >
-      <div class="resizer-right" v-on="resizeRight.events"></div>
-      <div class="resizer-bottom" v-on="resizeBottom.events"></div>
-      <div class="resizer-bottom-right" v-on="resizeBottomRight.events"></div>
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
         class="below-viz"
@@ -126,6 +149,16 @@ const nodeShortType = computed(() =>
       >
         <slot></slot>
       </div>
+      <div class="resizer-left" v-on="resizeLeft.events" />
+      <div class="resizer-right" v-on="resizeRight.events" />
+      <div class="resizer-bottom" v-on="resizeBottom.events" />
+      <div class="resizer-bottom-left" v-on="resizeBottomLeft.events" />
+      <div class="resizer-bottom-right" v-on="resizeBottomRight.events" />
+      <SmallPlusButton
+        v-if="config.isCircularMenuVisible"
+        class="below-viz"
+        @createNodes="config.createNodes(...$event)"
+      />
       <div class="toolbars">
         <div
           :class="{
@@ -133,9 +166,6 @@ const nodeShortType = computed(() =>
             invisible: config.isCircularMenuVisible,
             hidden: config.fullscreen,
           }"
-          @pointerdown.stop
-          @pointerup.stop
-          @click.stop
         >
           <button class="image-button active" @click.stop="config.hide()">
             <SvgIcon class="icon" name="eye" alt="Hide visualization" />
@@ -312,42 +342,59 @@ const nodeShortType = computed(() =>
 .resizer-right {
   position: absolute;
   cursor: ew-resize;
-  left: 100%;
-  width: 12px;
+  left: calc(100% - var(--visualization-resize-handle-inside));
+  width: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
+  top: 0px;
   height: 100%;
 }
 
-.VisualizationContainer.below-node > .resizer-right {
-  height: calc(100% - 36px);
-}
-
-.VisualizationContainer.below-toolbar > .resizer-right {
-  height: calc(100% - 72px);
-}
-
-.VisualizationContainer.fullscreen.below-node > .resizer-right {
+.resizer-left {
+  position: absolute;
+  cursor: ew-resize;
+  left: calc(0px - var(--visualization-resize-handle-outside));
+  width: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
+  top: 0px;
   height: 100%;
-}
-
-.VisualizationContainer.fullscreen.below-toolbar > .resizer-right {
-  height: calc(100% - 38px);
 }
 
 .resizer-bottom {
   position: absolute;
   cursor: ns-resize;
-  top: 100%;
+  top: calc(100% - var(--visualization-resize-handle-inside));
   width: 100%;
-  height: 12px;
+  height: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
 }
 
 .resizer-bottom-right {
   position: absolute;
   cursor: nwse-resize;
-  left: calc(100% - 8px);
-  top: calc(100% - 8px);
-  width: 16px;
-  height: 16px;
+  left: calc(100% - var(--visualization-resize-handle-inside));
+  top: calc(100% - var(--visualization-resize-handle-inside));
+  width: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
+  height: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
+}
+
+.resizer-bottom-left {
+  position: absolute;
+  cursor: nesw-resize;
+  left: calc(0px - var(--visualization-resize-handle-inside));
+  top: calc(100% - var(--visualization-resize-handle-inside));
+  width: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
+  height: calc(
+    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
+  );
 }
 
 .invisible {

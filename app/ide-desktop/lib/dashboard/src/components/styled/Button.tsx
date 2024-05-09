@@ -26,6 +26,7 @@ export interface ButtonProps {
   /** A title that is only shown when `disabled` is `true`. */
   readonly error?: string | null
   readonly className?: string
+  readonly buttonClassName?: string
   readonly onPress: (event: aria.PressEvent) => void
 }
 
@@ -38,6 +39,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     error,
     alt,
     className,
+    buttonClassName = '',
     ...buttonProps
   } = props
   const { isDisabled = false } = buttonProps
@@ -46,11 +48,16 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   return (
     <FocusRing placement="after">
       <aria.Button
-        {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
-          ref,
-          className:
-            'relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring',
-        })}
+        {...aria.mergeProps<aria.ButtonProps>()(
+          buttonProps,
+          focusChildProps,
+          {
+            ref,
+            className:
+              'relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring',
+          },
+          { className: buttonClassName }
+        )}
       >
         <div
           className={`group flex selectable ${isDisabled || softDisabled ? 'disabled' : ''} ${active ? 'active' : ''}`}

@@ -21,7 +21,7 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
-  toggleColorPicker: []
+  setNodeColor: [color: string]
 }>()
 
 const projectStore = useProjectStore()
@@ -63,7 +63,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
     @doubleClick="emit('nodeDoubleClick', id)"
     @createNodes="emit('createNodes', id, $event)"
-    @toggleColorPicker="emit('toggleColorPicker')"
+    @setNodeColor="emit('setNodeColor', $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
     @update:visualizationId="

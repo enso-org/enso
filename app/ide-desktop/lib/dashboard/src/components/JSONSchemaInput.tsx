@@ -219,7 +219,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         {innerProps => (
                           <UnstyledButton
                             isDisabled={!isOptional}
-                            className={`text inline-block grow whitespace-nowrap rounded-full px-button-x text-left ${
+                            className={`text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
                               isOptional ? 'hover:bg-hover-bg' : ''
                             }`}
                             onPress={() => {

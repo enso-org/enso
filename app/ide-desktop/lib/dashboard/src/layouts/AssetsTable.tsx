@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import * as mimeTypes from '#/data/mimeTypes'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -292,6 +294,7 @@ const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | 
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
+  readonly rootDirectoryId: backendModule.DirectoryId
   readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
   readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
@@ -465,7 +468,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const owners =
           node.item.permissions
             ?.filter(permission => permission.permission === permissions.PermissionAction.own)
-            .map(owner => owner.user.name) ?? []
+            .map(backendModule.getAssetPermissionName) ?? []
         const globMatch = (glob: string, match: string) => {
           const regex = (globCache[glob] =
             globCache[glob] ??
@@ -801,7 +804,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             .flatMap(node =>
               (node.item.permissions ?? [])
                 .filter(permission => permission.permission === permissions.PermissionAction.own)
-                .map(permission => permission.user.name)
+                .map(backendModule.getAssetPermissionName)
             )
           setSuggestions(
             Array.from(
@@ -1890,6 +1893,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectedKeys={selectedKeys}
         clearSelectedKeys={clearSelectedKeys}
         nodeMapRef={nodeMapRef}
+        rootDirectoryId={rootDirectoryId}
         event={{ pageX: 0, pageY: 0 }}
         dispatchAssetEvent={dispatchAssetEvent}
         dispatchAssetListEvent={dispatchAssetListEvent}
@@ -1899,6 +1903,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       />
     ),
     [
+      rootDirectoryId,
       category,
       selectedKeys,
       pasteData,
@@ -1922,6 +1927,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const state = React.useMemo<AssetsTableState>(
     // The type MUST be here to trigger excess property errors at typecheck time.
     () => ({
+      rootDirectoryId,
       visibilities,
       selectedKeys: selectedKeysRef,
       scrollContainerRef: rootRef,
@@ -1951,6 +1957,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doPaste,
     }),
     [
+      rootDirectoryId,
       visibilities,
       category,
       allLabels,
@@ -2278,7 +2285,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               asset: node.item,
             }))
             event.dataTransfer.setData(
-              'application/vnd.enso.assets+json',
+              mimeTypes.ASSETS_MIME_TYPE,
               JSON.stringify(nodes.map(node => node.key))
             )
             drag.setDragImageToBlank(event)
@@ -2415,6 +2422,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             clearSelectedKeys={clearSelectedKeys}
             nodeMapRef={nodeMapRef}
             event={event}
+            rootDirectoryId={rootDirectoryId}
             dispatchAssetEvent={dispatchAssetEvent}
             dispatchAssetListEvent={dispatchAssetListEvent}
             doCopy={doCopy}

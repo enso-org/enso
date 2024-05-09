@@ -108,6 +108,7 @@
     enso-pack/:
       dist/: # Here ensogl-pack outputs its artifacts
     generated-java/:
+    rust/:
     test-results/:
   test/:
     Benchmarks/:

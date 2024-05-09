@@ -16,13 +16,17 @@ import SidebarTabButton from '#/components/styled/SidebarTabButton'
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
+  readonly isMenu?: true
+  readonly isUserInOrganization: boolean
   readonly settingsTab: SettingsTabType
   readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTabType>>
+  readonly onClickCapture?: () => void
 }
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { settingsTab, setSettingsTab } = props
+  const { isMenu = false, isUserInOrganization, settingsTab, setSettingsTab } = props
+  const { onClickCapture } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -30,7 +34,12 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
       {innerProps => (
         <div
           aria-label={getText('settingsSidebarLabel')}
-          className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
+          className={`w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto ${
+            !isMenu
+              ? 'hidden sm:flex'
+              : 'relative rounded-default p-modal text-xs text-primary before:absolute before:inset before:rounded-default before:bg-frame before:backdrop-blur-default sm:hidden'
+          }`}
+          onClickCapture={onClickCapture}
           {...innerProps}
         >
           {settingsData.SETTINGS_DATA.map(section => {
@@ -46,6 +55,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                 {section.tabs.map(tab => (
                   <SidebarTabButton
                     key={tab.settingsTab}
+                    isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
                     id={tab.settingsTab}
                     icon={tab.icon}
                     label={getText(tab.nameId)}

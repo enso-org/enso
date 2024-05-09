@@ -333,7 +333,8 @@ function AppRouter(props: AppRouterProps) {
       if (
         isClick &&
         !eventModule.isElementTextInput(event.target) &&
-        !eventModule.isElementPartOfMonaco(event.target)
+        !eventModule.isElementPartOfMonaco(event.target) &&
+        !eventModule.isElementTextInput(document.activeElement)
       ) {
         const selection = document.getSelection()
         const app = document.getElementById('app')

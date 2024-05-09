@@ -126,6 +126,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'organizationSettingsTab',
     settingsTab: SettingsTabType.organization,
     icon: PeopleSettingsIcon,
+    organizationOnly: true,
     sections: [
       {
         nameId: 'organizationSettingsSection',
@@ -255,6 +256,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'membersSettingsTab',
     settingsTab: SettingsTabType.members,
     icon: PeopleIcon,
+    organizationOnly: true,
     sections: [
       {
         nameId: 'membersSettingsSection',
@@ -288,6 +290,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'activityLogSettingsTab',
     settingsTab: SettingsTabType.activityLog,
     icon: LogIcon,
+    organizationOnly: true,
     sections: [
       {
         nameId: 'activityLogSettingsSection',
@@ -395,6 +398,7 @@ export interface SettingsTabData {
   readonly nameId: text.TextId & `${string}SettingsTab`
   readonly settingsTab: SettingsTabType
   readonly icon: string
+  readonly organizationOnly?: true
   readonly sections: readonly SettingsSectionData[]
 }
 

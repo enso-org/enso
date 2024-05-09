@@ -413,7 +413,7 @@ export default function Dashboard(props: DashboardProps) {
         templateId,
         datalinkId: null,
         preferredName: templateName,
-        onSpinnerStateChange: onSpinnerStateChange,
+        onSpinnerStateChange,
       })
     },
     [

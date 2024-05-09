@@ -37,7 +37,7 @@ export default function KeyboardShortcutsSettingsSection() {
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const allShortcuts = React.useMemo(() => {
     // This is REQUIRED, in order to avoid disabling the `react-hooks/exhaustive-deps` lint.
@@ -50,13 +50,7 @@ export default function KeyboardShortcutsSettingsSection() {
     [inputBindings.metadata]
   )
 
-  // This is required to prevent the table body from overlapping the table header, because
-  // the table header is transparent.
-  const onScroll = scrollHooks.useOnScroll(() => {
-    if (rootRef.current != null && bodyRef.current != null) {
-      bodyRef.current.style.clipPath = `inset(${rootRef.current.scrollTop}px 0 0 0)`
-    }
-  })
+  const { onScroll } = scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef)
 
   return (
     <>
@@ -105,7 +99,7 @@ export default function KeyboardShortcutsSettingsSection() {
                     {getText('name')}
                   </th>
                   <th className="px-cell-x">{getText('shortcuts')}</th>
-                  <th className="w-full min-w-keyboard-shortcuts-description-column px-cell-x">
+                  <th className="min-w-keyboard-shortcuts-description-column w-full px-cell-x">
                     {getText('description')}
                   </th>
                 </tr>

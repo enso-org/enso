@@ -1,24 +1,22 @@
 package org.enso.ydoc.polyfill.web;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import org.enso.ydoc.polyfill.ExecutorSetup;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AbortControllerTest {
+public class AbortControllerTest extends ExecutorSetup {
 
   private Context context;
-  private ExecutorService executor;
 
   public AbortControllerTest() {}
 
   @Before
   public void setup() throws Exception {
-    executor = Executors.newSingleThreadExecutor();
+    super.setup();
     var eventTarget = new EventTarget();
     var abortController = new AbortController();
     var contextBuilder = WebEnvironment.createContext();
@@ -36,8 +34,8 @@ public class AbortControllerTest {
   }
 
   @After
-  public void tearDown() {
-    executor.close();
+  public void tearDown() throws InterruptedException {
+    super.tearDown();
     context.close();
   }
 

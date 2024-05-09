@@ -27,15 +27,6 @@ use ide_ci::cache::goodie::graalvm;
 
 
 
-/// This should be kept as recent as possible.
-///
-/// macOS must use a recent version of Electron Builder to have Python 3 support. Otherwise, build
-/// would fail due to Python 2 missing.
-///
-/// We keep old versions of Electron Builder for Windows to avoid NSIS installer bug:
-/// https://github.com/electron-userland/electron-builder/issues/6865
-const ELECTRON_BUILDER_MACOS_VERSION: Version = Version::new(24, 6, 4);
-
 /// Target runners set (or just a single runner) for a job.
 pub trait RunsOn: 'static + Debug {
     /// A strategy that will be used for the job.
@@ -389,45 +380,24 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
                 &crate::ide::web::env::APPLETEAMID,
             )
             .with_env(crate::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
+            // `CSC_FOR_PULL_REQUEST` can potentially expose sensitive information to third-party,
+            // see the comment in the definition of `CSC_FOR_PULL_REQUEST` for more information.
+            //
+            // In our case, we are safe here, as any PRs from forks do not get the secrets exposed.
             .with_env(crate::ide::web::env::CSC_FOR_PULL_REQUEST, "true"),
         _ => step,
     }
-}
-
-/// The sequence of steps that bumps the version of the Electron-Builder to
-/// [`ELECTRON_BUILDER_MACOS_VERSION`].
-pub fn bump_electron_builder() -> Vec<Step> {
-    let npm_install =
-        Step { name: Some("NPM install".into()), run: Some("npm install".into()), ..default() };
-    let uninstall_old = Step {
-        name: Some("Uninstall old Electron Builder".into()),
-        run: Some("npm uninstall --save --workspace enso electron-builder".into()),
-        ..default()
-    };
-    let command = format!(
-        "npm install --save-dev --workspace enso electron-builder@{ELECTRON_BUILDER_MACOS_VERSION}"
-    );
-    let install_new =
-        Step { name: Some("Install new Electron Builder".into()), run: Some(command), ..default() };
-    vec![npm_install, uninstall_old, install_new]
 }
 
 /// Prepares the packaging steps for the given OS.
 ///
 /// This involves:
 /// * exposing secrets necessary for code signing and notarization;
-/// * exposing variables defining cloud environment for dashboard;
-/// * (macOS only) bumping the version of the Electron Builder to
-///   [`ELECTRON_BUILDER_MACOS_VERSION`].
+/// * exposing variables defining cloud environment for dashboard.
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
     let step = expose_gui_vars(step);
     let step = expose_os_specific_signing_secret(os, step);
-    let mut steps = Vec::new();
-    if os == OS::MacOS {
-        steps.extend(bump_electron_builder());
-    }
-    steps.push(step);
-    steps
+    vec![step]
 }
 
 /// Convenience for [`prepare_packaging_steps`].

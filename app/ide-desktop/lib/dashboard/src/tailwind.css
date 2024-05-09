@@ -284,6 +284,7 @@
   --invite-users-modal-width: 28.8125rem;
   --manage-permissions-modal-width: 28.8125rem;
   --upsert-data-link-modal-width: 24rem;
+  --upsert-data-link-modal-max-width: min(40rem, 100vw);
   --upsert-secret-modal-width: 24rem;
 
   --modal-tab-bar-padding-x: 0.5rem;
@@ -331,7 +332,7 @@
   --organization-settings-label-width: 10rem;
   --delete-user-account-button-padding-x: 0.5rem;
 
-  --members-name-column-width: 8rem;
+  --members-name-column-width: 12rem;
   --members-email-column-width: 12rem;
   --keyboard-shortcuts-icon-column-width: 2rem;
   --keyboard-shortcuts-name-column-width: 9rem;
