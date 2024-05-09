@@ -46,7 +46,7 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
 </script>
 
 <template>
-  <div class="ExtendedMenu" @click.stop="toggleDropdown">
+  <div ref="buttonElement" class="ExtendedMenu" @click.stop="toggleDropdown">
     <SvgIcon name="3_dot_menu" class="moreIcon" />
   </div>
   <Transition name="dropdown">
