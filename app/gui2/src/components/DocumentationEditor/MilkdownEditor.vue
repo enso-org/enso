@@ -14,11 +14,16 @@ import { Slice } from '@milkdown/prose/model'
 import { Plugin, PluginKey } from '@milkdown/prose/state'
 import { nord } from '@milkdown/theme-nord'
 import '@milkdown/theme-nord/style.css'
+import { insert } from '@milkdown/utils'
 import { Milkdown, useEditor } from '@milkdown/vue'
 import { createDebouncer } from 'lib0/eventloop'
 import { shallowRef, watch, watchEffect } from 'vue'
 
 const syncedContent = defineModel<string>({ required: true })
+const editing = defineModel<boolean>('editing', { default: false })
+const props = defineProps<{
+  preferSingleLine?: boolean | undefined
+}>()
 
 // === Set up editor ===
 
@@ -30,7 +35,8 @@ function buildEditor() {
         ctx.set(rootCtx, root)
       })
       .config(nord)
-      .use([...commonmark, ensoSync]),
+      .use(commonmark)
+      .use(ensoSync),
   )
   watch(loading, (loading) => {
     if (!loading) editor.value = get()!
@@ -93,20 +99,44 @@ const editor = buildEditor()
 
 watchEffect(() => editor.value?.action(syncToContent(syncedContent.value)))
 watchEffect(() => editor.value?.action((ctx) => (ctx.get(editorViewCtx).dom.spellcheck = false)))
+watchEffect(() => {
+  editor.value?.action(
+    editing.value ?
+      (ctx) => ctx.get(editorViewCtx).dom.focus()
+    : (ctx) => ctx.get(editorViewCtx).dom.blur(),
+  )
+})
+
+function onEnter(e: KeyboardEvent) {
+  if (props.preferSingleLine) {
+    if (e.shiftKey) {
+      editor.value?.action(insert('\n'))
+    } else {
+      editing.value = false
+    }
+    e.stopImmediatePropagation()
+    e.preventDefault()
+  }
+}
 </script>
 
 <template>
-  <Milkdown class="milkdown" @wheel.stop.passive @contextmenu.stop />
+  <Milkdown
+    class="milkdown"
+    @wheel.stop.passive
+    @contextmenu.stop
+    @click.stop="editing = true"
+    @focusin="editing = true"
+    @focusout="editing = false"
+    @keydown.enter.capture="onEnter"
+  />
 </template>
 
 <style scoped>
 .milkdown {
   user-select: auto;
-  margin: 0 10px;
-  padding-top: 10px;
   height: 100%;
   white-space: pre-wrap;
-  overflow-y: auto;
 }
 </style>
 
@@ -126,8 +156,8 @@ h6 {
   line-height: 2;
 }
 
-p {
-  padding-bottom: 4px;
+p + p {
+  margin-bottom: 4px;
 }
 
 .ProseMirror {

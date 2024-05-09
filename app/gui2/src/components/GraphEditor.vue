@@ -584,7 +584,9 @@ const groupColors = computed(() => {
         class="rightDock"
         data-testid="rightDock"
       >
-        <AstDocumentation :ast="graphStore.methodAst" />
+        <div class="scrollArea">
+          <AstDocumentation :ast="graphStore.methodAst" />
+        </div>
         <SvgIcon
           name="close"
           class="closeButton button"
@@ -651,8 +653,9 @@ const groupColors = computed(() => {
   border-radius: 7px 0 0;
   background-color: rgba(255, 255, 255, 0.35);
   backdrop-filter: var(--blur-app-bg);
+  padding: 4px 12px 0 6px;
   /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
-  overflow: clip;
+  overflow-x: clip;
 }
 .rightDock-enter-active,
 .rightDock-leave-active {
@@ -661,6 +664,11 @@ const groupColors = computed(() => {
 .rightDock-enter-from,
 .rightDock-leave-to {
   width: 0;
+}
+.rightDock .scrollArea {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .rightDock .closeButton {
