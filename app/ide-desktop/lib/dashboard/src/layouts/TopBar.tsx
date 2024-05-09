@@ -82,7 +82,7 @@ export default function TopBar(props: TopBarProps) {
           {remoteBackend != null && (
             <UserBar
               invisible
-              remoteBackend={remoteBackend}
+              backend={remoteBackend}
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}
@@ -109,7 +109,7 @@ export default function TopBar(props: TopBarProps) {
           )}
           {remoteBackend != null && (
             <UserBar
-              remoteBackend={remoteBackend}
+              backend={remoteBackend}
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}

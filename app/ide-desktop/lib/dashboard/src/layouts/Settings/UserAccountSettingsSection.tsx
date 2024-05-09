@@ -4,12 +4,13 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import SettingsInput from '#/components/styled/settings/SettingsInput'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
+
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
@@ -17,11 +18,16 @@ import * as object from '#/utilities/object'
 // === UserAccountSettingsSection ===
 // ==================================
 
+/** Props for a {@link UserAccountSettingsSection}. */
+export interface UserAccountSettingsSectionProps {
+  readonly backend: Backend
+}
+
 /** Settings section for viewing and editing account information. */
-export default function UserAccountSettingsSection() {
+export default function UserAccountSettingsSection(props: UserAccountSettingsSectionProps) {
+  const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const backend = backendProvider.useRemoteBackendStrict()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 

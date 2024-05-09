@@ -1,8 +1,6 @@
 /** @file Events related to changes in the asset list. */
 import type AssetListEventType from '#/events/AssetListEventType'
 
-import type * as spinner from '#/components/Spinner'
-
 import type * as backend from '#/services/Backend'
 
 // This is required, to whitelist this event.

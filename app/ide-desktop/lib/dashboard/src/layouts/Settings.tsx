@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
@@ -18,6 +17,7 @@ import SettingsSidebar from '#/layouts/SettingsSidebar'
 import * as aria from '#/components/aria'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 
@@ -25,15 +25,20 @@ import * as array from '#/utilities/array'
 // === Settings ===
 // ================
 
+/** Props for a {@link Settings}. */
+export interface SettingsProps {
+  readonly backend: Backend | null
+}
+
 /** Settings screen. */
-export default function Settings() {
+export default function Settings(props: SettingsProps) {
+  const { backend } = props
   const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTab.account,
-    (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
+    array.includesPredicate(Object.values(SettingsTab))
   )
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const remoteBackend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
     id: user?.organizationId ?? backendModule.OrganizationId(''),
@@ -47,28 +52,33 @@ export default function Settings() {
   React.useEffect(() => {
     void (async () => {
       if (sessionType === authProvider.UserSessionType.full) {
-        const newOrganization = await remoteBackend.getOrganization()
+        const newOrganization = await backend?.getOrganization()
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }
       }
     })()
-  }, [sessionType, remoteBackend])
+  }, [sessionType, backend])
 
-  let content: JSX.Element
+  let content: JSX.Element | null
   switch (settingsTab) {
     case SettingsTab.account: {
-      content = <AccountSettingsTab />
+      content = backend == null ? null : <AccountSettingsTab backend={backend} />
       break
     }
     case SettingsTab.organization: {
-      content = (
-        <OrganizationSettingsTab organization={organization} setOrganization={setOrganization} />
-      )
+      content =
+        backend == null ? null : (
+          <OrganizationSettingsTab
+            backend={backend}
+            organization={organization}
+            setOrganization={setOrganization}
+          />
+        )
       break
     }
     case SettingsTab.members: {
-      content = <MembersSettingsTab />
+      content = backend == null ? null : <MembersSettingsTab backend={backend} />
       break
     }
     case SettingsTab.keyboardShortcuts: {
@@ -76,7 +86,7 @@ export default function Settings() {
       break
     }
     case SettingsTab.activityLog: {
-      content = <ActivityLogSettingsTab />
+      content = backend == null ? null : <ActivityLogSettingsTab backend={backend} />
       break
     }
     default: {
@@ -84,6 +94,11 @@ export default function Settings() {
       content = <></>
       break
     }
+  }
+  if (content == null) {
+    // Set to the first settings page that does not require a backend.
+    setSettingsTab(SettingsTab.keyboardShortcuts)
+    content = <KeyboardShortcutsSettingsTab />
   }
 
   return (
@@ -99,7 +114,11 @@ export default function Settings() {
         </div>
       </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">
-        <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
+        <SettingsSidebar
+          hasBackend={backend != null}
+          settingsTab={settingsTab}
+          setSettingsTab={setSettingsTab}
+        />
         {content}
       </div>
     </div>

@@ -5,7 +5,6 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -13,6 +12,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // =================================================
 // === OrganizationProfilePictureSettingsSection ===
@@ -20,6 +20,7 @@ import type * as backendModule from '#/services/Backend'
 
 /** Props for a {@link OrganizationProfilePictureSettingsSection}. */
 export interface OrganizationProfilePictureSettingsSectionProps {
+  readonly backend: Backend
   readonly organization: backendModule.OrganizationInfo
   readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
 }
@@ -28,9 +29,8 @@ export interface OrganizationProfilePictureSettingsSectionProps {
 export default function OrganizationProfilePictureSettingsSection(
   props: OrganizationProfilePictureSettingsSectionProps
 ) {
-  const { organization, setOrganization } = props
+  const { backend, organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
 
   const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -8,7 +8,6 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as text from '#/text'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -154,18 +153,15 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     () =>
       CATEGORY_DATA.filter(data => {
         switch (data.category) {
-          case Category.cloud: {
-            return supportsCloudBackend
-          }
           case Category.local: {
             return supportsLocalBackend
           }
           default: {
-            return true
+            return supportsCloudBackend
           }
         }
       }),
-    []
+    [supportsCloudBackend, supportsLocalBackend]
   )
 
   React.useEffect(() => {

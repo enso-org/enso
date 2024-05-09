@@ -6,22 +6,28 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
+import type Backend from '#/services/Backend'
+
 // =====================================
 // === ProfilePictureSettingsSection ===
 // =====================================
 
+/** Props for a {@link ProfilePictureSettingsSection}. */
+export interface ProfilePictureSettingsSectionProps {
+  readonly backend: Backend
+}
+
 /** Settings tab for viewing and changing profile picture. */
-export default function ProfilePictureSettingsSection() {
+export default function ProfilePictureSettingsSection(props: ProfilePictureSettingsSectionProps) {
+  const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const backend = backendProvider.useRemoteBackendStrict()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 

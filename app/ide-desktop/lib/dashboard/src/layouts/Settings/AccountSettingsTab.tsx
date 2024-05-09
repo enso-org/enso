@@ -8,12 +8,20 @@ import DeleteUserAccountSettingsSection from '#/layouts/Settings/DeleteUserAccou
 import ProfilePictureSettingsSection from '#/layouts/Settings/ProfilePictureSettingsSection'
 import UserAccountSettingsSection from '#/layouts/Settings/UserAccountSettingsSection'
 
+import type Backend from '#/services/Backend'
+
 // ==========================
 // === AccountSettingsTab ===
 // ==========================
 
+/** Props for a {@link AccountSettingsTab}. */
+export interface AccountSettingsTabProps {
+  readonly backend: Backend
+}
+
 /** Settings tab for viewing and editing account information. */
-export default function AccountSettingsTab() {
+export default function AccountSettingsTab(props: AccountSettingsTabProps) {
+  const { backend } = props
   const { accessToken } = authProvider.useNonPartialUserSession()
 
   // The shape of the JWT payload is statically known.
@@ -26,11 +34,11 @@ export default function AccountSettingsTab() {
   return (
     <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
       <div className="flex w-settings-main-section flex-col gap-settings-subsection">
-        <UserAccountSettingsSection />
+        <UserAccountSettingsSection backend={backend} />
         {canChangePassword && <ChangePasswordSettingsSection />}
-        <DeleteUserAccountSettingsSection />
+        <DeleteUserAccountSettingsSection backend={backend} />
       </div>
-      <ProfilePictureSettingsSection />
+      <ProfilePictureSettingsSection backend={backend} />
     </div>
   )
 }

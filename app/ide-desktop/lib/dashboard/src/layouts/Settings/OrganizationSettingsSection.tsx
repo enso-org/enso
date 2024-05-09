@@ -5,7 +5,6 @@ import isEmail from 'validator/lib/isEmail'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -13,6 +12,7 @@ import SettingsInput from '#/components/styled/settings/SettingsInput'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
@@ -22,15 +22,15 @@ import * as object from '#/utilities/object'
 
 /** Props for a {@link OrganizationSettingsSection}. */
 export interface OrganizationSettingsSectionProps {
+  readonly backend: Backend
   readonly organization: backendModule.OrganizationInfo
   readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
 }
 
 /** Settings tab for viewing and editing organization information. */
 export default function OrganizationSettingsSection(props: OrganizationSettingsSectionProps) {
-  const { organization, setOrganization } = props
+  const { backend, organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
   const nameRef = React.useRef<HTMLInputElement | null>(null)
   const emailRef = React.useRef<HTMLInputElement | null>(null)

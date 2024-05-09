@@ -27,11 +27,13 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Account',
         settingsTab: SettingsTab.account,
         icon: SettingsIcon,
+        requiresBackend: true,
       },
       {
         name: 'Organization',
         settingsTab: SettingsTab.organization,
         icon: PeopleSettingsIcon,
+        requiresBackend: true,
       },
     ],
   },
@@ -42,6 +44,7 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Members',
         settingsTab: SettingsTab.members,
         icon: PeopleIcon,
+        requiresBackend: true,
       },
     ],
   },
@@ -52,6 +55,7 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Keyboard shortcuts',
         settingsTab: SettingsTab.keyboardShortcuts,
         icon: KeyboardShortcutsIcon,
+        requiresBackend: false,
       },
     ],
   },
@@ -62,10 +66,16 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Activity log',
         settingsTab: SettingsTab.activityLog,
         icon: LogIcon,
+        requiresBackend: true,
       },
     ],
   },
 ]
+
+const SECTIONS_NO_BACKEND = SECTIONS.flatMap(section => {
+  const tabs = section.tabs.filter(tab => !tab.requiresBackend)
+  return tabs.length === 0 ? [] : [{ ...section, tabs }]
+})
 
 // =============
 // === Types ===
@@ -76,6 +86,7 @@ interface SettingsTabLabelData {
   readonly name: string
   readonly settingsTab: SettingsTab
   readonly icon: string
+  readonly requiresBackend: boolean
 }
 
 /** Metadata for rendering a settings section. */
@@ -90,13 +101,14 @@ interface SettingsSectionData {
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
+  readonly hasBackend: boolean
   readonly settingsTab: SettingsTab
   readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTab>>
 }
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { settingsTab, setSettingsTab } = props
+  const { hasBackend, settingsTab, setSettingsTab } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -107,7 +119,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
           className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
           {...innerProps}
         >
-          {SECTIONS.map(section => (
+          {(hasBackend ? SECTIONS : SECTIONS_NO_BACKEND).map(section => (
             <div key={section.name} className="flex flex-col items-start">
               <aria.Header
                 id={`${section.name}_header`}

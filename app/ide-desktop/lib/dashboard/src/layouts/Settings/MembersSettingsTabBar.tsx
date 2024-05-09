@@ -1,7 +1,6 @@
 /** @file Button bar for managing organization members. */
 import * as React from 'react'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -11,22 +10,29 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 
+import type Backend from '#/services/Backend'
+
 // =============================
 // === MembersSettingsTabBar ===
 // =============================
 
+/** Props for a {@link MembersSettingsTabBar}. */
+export interface MembersSettingsTabBarProps {
+  readonly backend: Backend
+}
+
 /** Button bar for managing organization members. */
-export default function MembersSettingsTabBar() {
+export default function MembersSettingsTabBar(props: MembersSettingsTabBarProps) {
+  const { backend } = props
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const backend = backendProvider.useRemoteBackendStrict()
 
   return (
     <HorizontalMenuBar>
       <UnstyledButton
         className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
         onPress={() => {
-          setModal(<InviteUsersModal remoteBackend={backend} eventTarget={null} />)
+          setModal(<InviteUsersModal backend={backend} eventTarget={null} />)
         }}
       >
         <aria.Text className="text whitespace-nowrap font-semibold">

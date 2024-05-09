@@ -5,6 +5,7 @@ import OrganizationProfilePictureSettingsSection from '#/layouts/Settings/Organi
 import OrganizationSettingsSection from '#/layouts/Settings/OrganizationSettingsSection'
 
 import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // ===============================
 // === OrganizationSettingsTab ===
@@ -12,6 +13,7 @@ import type * as backendModule from '#/services/Backend'
 
 /** Props for a {@link OrganizationSettingsTab}. */
 export interface OrganizationSettingsTabProps {
+  readonly backend: Backend
   readonly organization: backendModule.OrganizationInfo
   readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
 }

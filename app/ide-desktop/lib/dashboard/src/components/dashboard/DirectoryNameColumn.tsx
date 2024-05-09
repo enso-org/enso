@@ -8,7 +8,6 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 

@@ -16,6 +16,8 @@ const ROLE_CLASSES: Readonly<Record<WindowButtonRole, string>> = {
 // ========================
 
 /** The role of a {@link WindowButton}. */
+// This alias is fine; it is a literal union that currently happens to only have one member.
+// eslint-disable-next-line no-restricted-syntax
 export type WindowButtonRole = 'close'
 
 // ====================
@@ -34,7 +36,7 @@ export default function WindowButton(props: WindowButtonProps) {
   return (
     <UnstyledButton
       onPress={onPress}
-      className={`bg-not-selected size-3 rounded-full transition-colors duration-200 ${ROLE_CLASSES[role]}`}
+      className={`size-3 rounded-full bg-not-selected transition-colors duration-200 ${ROLE_CLASSES[role]}`}
     />
   )
 }

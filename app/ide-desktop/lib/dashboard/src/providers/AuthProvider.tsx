@@ -17,7 +17,6 @@ import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
@@ -27,8 +26,6 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
-import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
@@ -155,20 +152,17 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly supportsLocalBackend: boolean
-  readonly setRemoteBackend: (backend: Backend) => void
+  readonly setRemoteBackend: (backend: Backend | null) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
-  readonly projectManagerUrl: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
-  const { shouldStartInOfflineMode, supportsLocalBackend, setRemoteBackend, authService } = props
-  const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory, children } = props
+  const { shouldStartInOfflineMode, setRemoteBackend, authService, onAuthenticated } = props
+  const { children } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
@@ -202,13 +196,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     setInitialized(true)
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
-  }, [
-    getText,
-    /* should never change */ projectManagerUrl,
-    /* should never change */ projectManagerRootDirectory,
-    /* should never change */ supportsLocalBackend,
-    /* should never change */ logger,
-  ])
+    setRemoteBackend(null)
+  }, [/* should never change */ setRemoteBackend])
 
   const goOffline = React.useCallback(
     (shouldShowToast = true) => {

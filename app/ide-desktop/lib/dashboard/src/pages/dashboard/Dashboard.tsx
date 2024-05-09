@@ -448,7 +448,7 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-          {page === pageSwitcher.Page.settings && <Settings />}
+          {page === pageSwitcher.Page.settings && <Settings backend={remoteBackend} />}
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
           {session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat

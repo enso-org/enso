@@ -9,7 +9,6 @@ import TrashIcon from 'enso-assets/trash.svg'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -23,24 +22,14 @@ import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as sorting from '#/utilities/sorting'
 
-// =========================
-// === ActivityLogColumn ===
-// =========================
-
-/** Sortable columns in an activity log table. */
-enum ActivityLogSortableColumn {
-  type = 'type',
-  email = 'email',
-  timestamp = 'timestamp',
-}
-
-// ==============================
-// === ActivityLogSettingsTab ===
-// ==============================
+// =================
+// === Constants ===
+// =================
 
 const EVENT_TYPE_ICON: Record<backendModule.EventType, string> = {
   [backendModule.EventType.GetSecret]: KeyIcon,
@@ -58,9 +47,29 @@ const EVENT_TYPE_NAME: Record<backendModule.EventType, string> = {
   [backendModule.EventType.UploadFile]: 'Upload File',
 }
 
+// =========================
+// === ActivityLogColumn ===
+// =========================
+
+/** Sortable columns in an activity log table. */
+enum ActivityLogSortableColumn {
+  type = 'type',
+  email = 'email',
+  timestamp = 'timestamp',
+}
+
+// ==============================
+// === ActivityLogSettingsTab ===
+// ==============================
+
+/** Props for a {@link ActivityLogSettingsTab}. */
+export interface ActivityLogSettingsTabProps {
+  readonly backend: Backend
+}
+
 /** Settings tab for viewing and editing organization members. */
-export default function ActivityLogSettingsTab() {
-  const backend = backendProvider.useRemoteBackendStrict()
+export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProps) {
+  const { backend } = props
   const { getText } = textProvider.useText()
   const [startDate, setStartDate] = React.useState<Date | null>(null)
   const [endDate, setEndDate] = React.useState<Date | null>(null)
@@ -141,13 +150,13 @@ export default function ActivityLogSettingsTab() {
                   multiple
                   items={backendModule.EVENT_TYPES}
                   selectedIndices={typeIndices}
-                  render={props => EVENT_TYPE_NAME[props.item]}
-                  renderMultiple={props =>
-                    props.items.length === 0 ||
-                    props.items.length === backendModule.EVENT_TYPES.length
+                  render={itemProps => EVENT_TYPE_NAME[itemProps.item]}
+                  renderMultiple={itemProps =>
+                    itemProps.items.length === 0 ||
+                    itemProps.items.length === backendModule.EVENT_TYPES.length
                       ? 'All'
-                      : (props.items[0] != null ? EVENT_TYPE_NAME[props.items[0]] : '') +
-                        (props.items.length <= 1 ? '' : ` (+${props.items.length - 1})`)
+                      : (itemProps.items[0] != null ? EVENT_TYPE_NAME[itemProps.items[0]] : '') +
+                        (itemProps.items.length <= 1 ? '' : ` (+${itemProps.items.length - 1})`)
                   }
                   onClick={(items, indices) => {
                     setTypes(items)
@@ -161,12 +170,12 @@ export default function ActivityLogSettingsTab() {
                   multiple
                   items={allEmails}
                   selectedIndices={emailIndices}
-                  render={props => props.item}
-                  renderMultiple={props =>
-                    props.items.length === 0 || props.items.length === allEmails.length
+                  render={itemProps => itemProps.item}
+                  renderMultiple={itemProps =>
+                    itemProps.items.length === 0 || itemProps.items.length === allEmails.length
                       ? 'All'
-                      : (props.items[0] ?? '') +
-                        (props.items.length <= 1 ? '' : `(+${props.items.length - 1})`)
+                      : (itemProps.items[0] ?? '') +
+                        (itemProps.items.length <= 1 ? '' : `(+${itemProps.items.length - 1})`)
                   }
                   onClick={(items, indices) => {
                     setEmails(items)

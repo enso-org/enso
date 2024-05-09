@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -12,15 +11,24 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
 
+import type Backend from '#/services/Backend'
+
 // ========================================
 // === DeleteUserAccountSettingsSection ===
 // ========================================
 
+/** Props for a {@link DeleteUserAccountSettingsSection}. */
+export interface DeleteUserAccountSettingsSectionProps {
+  readonly backend: Backend
+}
+
 /** Settings tab for deleting the current user. */
-export default function DeleteUserAccountSettingsSection() {
+export default function DeleteUserAccountSettingsSection(
+  props: DeleteUserAccountSettingsSectionProps
+) {
+  const { backend } = props
   const { signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
-  const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
 
   return (

@@ -20,8 +20,8 @@ export function includes<T>(array: T[], item: unknown): item is T {
   return arrayOfUnknown.includes(item)
 }
 
-/** Returns a type predicate that returns true if and only if the value is in the array.
- * The array MUST contain every element of `T`. */
+/** Returns a type predicate that returns true if and only if the value is in the iterable.
+ * The iterable MUST contain every element of `T`. */
 export function includesPredicate<T>(array: Iterable<T>) {
   const set: Set<unknown> = array instanceof Set ? array : new Set<T>(array)
   return (item: unknown): item is T => set.has(item)

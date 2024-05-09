@@ -419,12 +419,9 @@ function AppRouter(props: AppRouterProps) {
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}
-      supportsLocalBackend={supportsLocalBackend}
       setRemoteBackend={setRemoteBackend}
       authService={authService}
       onAuthenticated={onAuthenticated}
-      projectManagerUrl={projectManagerUrl}
-      projectManagerRootDirectory={projectManagerRootDirectory}
     >
       {result}
     </AuthProvider>

@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import MembersSettingsTabBar from '#/layouts/Settings/MembersSettingsTabBar'
@@ -12,13 +11,20 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 import SettingsPage from '#/components/styled/settings/SettingsPage'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
+import type Backend from '#/services/Backend'
+
 // ==========================
 // === MembersSettingsTab ===
 // ==========================
 
+/** Props for a {@link MembersSettingsTab}. */
+export interface MembersSettingsTabProps {
+  readonly backend: Backend
+}
+
 /** Settings tab for viewing and editing organization members. */
-export default function MembersSettingsTab() {
-  const backend = backendProvider.useRemoteBackendStrict()
+export default function MembersSettingsTab(props: MembersSettingsTabProps) {
+  const { backend } = props
   const { getText } = textProvider.useText()
   const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
   const isLoading = members == null
@@ -26,7 +32,7 @@ export default function MembersSettingsTab() {
   return (
     <SettingsPage>
       <SettingsSection noFocusArea title={getText('members')}>
-        <MembersSettingsTabBar />
+        <MembersSettingsTabBar backend={backend} />
         <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">

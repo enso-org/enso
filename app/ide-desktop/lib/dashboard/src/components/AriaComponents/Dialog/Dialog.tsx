@@ -48,7 +48,6 @@ export function Dialog(props: types.DialogProps) {
     className,
     ...ariaDialogProps
   } = props
-  const cleanupRef = React.useRef(() => {})
 
   const root = portal.useStrictPortalContext()
 
