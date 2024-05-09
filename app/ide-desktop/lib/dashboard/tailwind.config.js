@@ -94,6 +94,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-profile-picture': 'var(--chat-profile-picture-size)',
         'selection-brush-border': 'var(--selection-brush-border-width)',
         'button-focus-ring-inset': 'var(--button-focus-ring-inset)',
+        'negative-button-focus-ring-inset': 'calc(var(--button-focus-ring-inset) * -1)',
         'row-h': 'var(--row-height)',
         'text-h': 'var(--text-height)',
         'top-bar-margin': 'var(--top-bar-margin)',

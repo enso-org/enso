@@ -49,7 +49,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
           ref,
           className:
-            'relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring',
+            'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring m-button-focus-ring-inset p-negative-button-focus-ring-inset',
         })}
       >
         <div

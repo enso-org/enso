@@ -295,6 +295,7 @@
   "profilePictureWarning": "Your profile picture should not be irrelevant, abusive or vulgar. It should not be a default image provided by Enso.",
   "organizationProfilePictureWarning": "Your organization’s profile picture should not be irrelevant, abusive or vulgar. It should not be a default image provided by Enso.",
   "noFilesMatchTheCurrentFilters": "No files match the current filters.",
+  "youHaveNoRecentProjects": "You have no recent projects. Switch to the \"Cloud\" or \"Local\" categories to create a project.",
   "youHaveNoFiles": "You have no files. Go ahead and create one using the buttons above, or open a template from the home screen.",
   "placeholderChatPrompt": "Login or register to access live chat with our support team.",
   "confirmPrompt": "Are you sure you want to $0?",

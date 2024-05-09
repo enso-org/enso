@@ -2428,15 +2428,17 @@ export default function AssetsTable(props: AssetsTableProps) {
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
               {category === Category.trash ? (
-                query.query !== '' ? (
-                  <aria.Text className="px-cell-x placeholder">
-                    {getText('noFilesMatchTheCurrentFilters')}
-                  </aria.Text>
-                ) : (
-                  <aria.Text className="px-cell-x placeholder">
-                    {getText('yourTrashIsEmpty')}
-                  </aria.Text>
-                )
+                <aria.Text className="px-cell-x placeholder">
+                  {query.query !== ''
+                    ? getText('noFilesMatchTheCurrentFilters')
+                    : getText('yourTrashIsEmpty')}
+                </aria.Text>
+              ) : category === Category.recent ? (
+                <aria.Text className="px-cell-x placeholder">
+                  {query.query !== ''
+                    ? getText('noFilesMatchTheCurrentFilters')
+                    : getText('youHaveNoRecentProjects')}
+                </aria.Text>
               ) : query.query !== '' ? (
                 <aria.Text className="px-cell-x placeholder">
                   {getText('noFilesMatchTheCurrentFilters')}
@@ -2450,7 +2452,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </table>
       <div
         data-testid="root-directory-dropzone"
-        className="sticky left grid max-w-container grow place-items-center"
+        className={`sticky left grid max-w-container grow place-items-center ${category !== Category.cloud && category !== Category.local ? 'hidden' : ''}`}
         onClick={() => {
           setSelectedKeys(new Set())
         }}

@@ -90,7 +90,7 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-row py-drive-bar-y">
           <HorizontalMenuBar>
             <UnstyledButton
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              className="flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
               onPress={() => {
                 setModal(
                   <ConfirmDeleteModal
@@ -115,7 +115,7 @@ export default function DriveBar(props: DriveBarProps) {
           <HorizontalMenuBar>
             <aria.DialogTrigger>
               <UnstyledButton
-                className="bg-accent flex h-row items-center rounded-full px-new-project-button-x text-white"
+                className="flex h-row items-center rounded-full bg-accent px-new-project-button-x text-white"
                 onPress={() => {}}
               >
                 <aria.Text className="text whitespace-nowrap font-bold">
@@ -125,7 +125,7 @@ export default function DriveBar(props: DriveBarProps) {
               <Start createProject={doCreateProject} />
             </aria.DialogTrigger>
             <UnstyledButton
-              className="border-0.5 flex h-row items-center rounded-full border-black/20 px-new-project-button-x"
+              className="flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
               onPress={() => {
                 doCreateProject()
               }}
@@ -134,7 +134,7 @@ export default function DriveBar(props: DriveBarProps) {
                 {getText('newEmptyProject')}
               </aria.Text>
             </UnstyledButton>
-            <div className="border-0.5 flex h-row items-center gap-icons rounded-full border-black/20 px-drive-bar-icons-x text-black/50">
+            <div className="flex h-row items-center gap-icons rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
               <Button
                 active
                 image={AddFolderIcon}

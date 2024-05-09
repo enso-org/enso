@@ -370,14 +370,14 @@ export default function Drive(props: DriveProps) {
             dispatchAssetEvent={dispatchAssetEvent}
           />
           <div className="flex flex-1 gap-drive overflow-hidden">
-            {isCloud && (
-              <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
-                <CategorySwitcher
-                  supportsLocalBackend={supportsLocalBackend}
-                  category={category}
-                  setCategory={onSetCategory}
-                  dispatchAssetEvent={dispatchAssetEvent}
-                />
+            <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
+              <CategorySwitcher
+                supportsLocalBackend={supportsLocalBackend}
+                category={category}
+                setCategory={onSetCategory}
+                dispatchAssetEvent={dispatchAssetEvent}
+              />
+              {isCloud && (
                 <Labels
                   draggable={category !== Category.trash}
                   labels={labels}
@@ -388,8 +388,8 @@ export default function Drive(props: DriveProps) {
                   newLabelNames={newLabelNames}
                   deletedLabelNames={deletedLabelNames}
                 />
-              </div>
-            )}
+              )}
+            </div>
             <AssetsTable
               hidden={hidden}
               query={query}
