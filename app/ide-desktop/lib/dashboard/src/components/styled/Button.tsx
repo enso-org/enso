@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
@@ -43,7 +44,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   const { isDisabled = false } = buttonProps
   const focusChildProps = focusHooks.useFocusChild()
 
-  return (
+  const button = (
     <FocusRing placement="after">
       <aria.Button
         {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
@@ -64,6 +65,15 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         </div>
       </aria.Button>
     </FocusRing>
+  )
+
+  return alt == null ? (
+    button
+  ) : (
+    <aria.TooltipTrigger>
+      {button}
+      <ariaComponents.Tooltip>{alt}</ariaComponents.Tooltip>
+    </aria.TooltipTrigger>
   )
 }
 

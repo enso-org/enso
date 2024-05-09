@@ -81,12 +81,11 @@ interface InternalCategorySwitcherItemProps {
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { data, isCurrent, onPress, acceptedDragTypes, onDrop } = props
-  const { category, icon, textId, buttonTextId, dropZoneTextId } = data
+  const { category, icon, textId, buttonTextId } = data
   const { getText } = textProvider.useText()
 
   return (
     <aria.DropZone
-      aria-label={getText(dropZoneTextId)}
       getDropOperation={types =>
         acceptedDragTypes.some(type => types.has(type)) ? 'move' : 'cancel'
       }

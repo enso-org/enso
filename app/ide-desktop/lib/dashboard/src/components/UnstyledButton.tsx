@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as focusRing from '#/components/styled/FocusRing'
 import FocusRing from '#/components/styled/FocusRing'
 
@@ -29,7 +30,7 @@ function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTML
   const { focusRingPlacement, children, ...buttonProps } = props
   const focusChildProps = focusHooks.useFocusChild()
 
-  return (
+  const button = (
     <FocusRing {...(focusRingPlacement == null ? {} : { placement: focusRingPlacement })}>
       <aria.Button
         {...aria.mergeProps<aria.ButtonProps & React.RefAttributes<HTMLButtonElement>>()(
@@ -41,6 +42,15 @@ function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTML
         {children}
       </aria.Button>
     </FocusRing>
+  )
+
+  return buttonProps['aria-label'] == null ? (
+    button
+  ) : (
+    <aria.TooltipTrigger>
+      {button}
+      <ariaComponents.Tooltip>{buttonProps['aria-label']}</ariaComponents.Tooltip>
+    </aria.TooltipTrigger>
   )
 }
 
