@@ -318,9 +318,10 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
             if all_pairs.not then Error.throw (Illegal_Argument.Error "mapping is not a Vector of old name to new name.") else
                 ## Attempt to treat as Map
                 map = Map.from_vector mapping error_on_duplicates=False
-                if map.size == mapping.length then rename_columns naming_helper internal_columns map case_sensitivity error_on_missing_columns on_problems else
+                if map.length == mapping.length then rename_columns naming_helper internal_columns map case_sensitivity error_on_missing_columns on_problems else
                     duplicates = mapping.duplicates on=_.first . map .to_text
-                    duplicate_text = duplicates.take 3 . to_vector . join ", " + (if duplicates.length > 3 then ", ..." + (duplicates.length - 3).to_text + " others" else "")
+                    duplicate_text = if duplicates.length < 5 then duplicates.to_vector . join ", " else
+                        duplicates.take 3 . to_vector . join ", " + (", ... " + (duplicates.length - 3).to_text + " others")
                     Error.throw (Illegal_Argument.Error "duplicate old name mappings ("+duplicate_text+").")
         False ->
             unique = naming_helper.create_unique_name_strategy
