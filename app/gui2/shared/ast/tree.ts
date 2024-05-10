@@ -26,7 +26,6 @@ import {
   parentId,
 } from '.'
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
-import { last, unfold } from '../util/data/iterable'
 import type { Result } from '../util/data/result'
 import { Err, Ok } from '../util/data/result'
 import type { SourceRangeEdit } from '../util/data/text'
@@ -118,25 +117,23 @@ export abstract class Ast {
   }
 
   innerExpression(): Ast {
-    return this instanceof Documented && this.expression ? this.expression : this
+    return this.wrappedExpression()?.innerExpression() ?? this
+  }
+
+  wrappedExpression(): Ast | undefined {
+    return undefined
   }
 
   wrappingExpression(): Ast | undefined {
-    return this.parent()?.asWrappingExpression()
+    return this.parent()?.wrappedExpression() === this ? this.parent() : undefined
   }
 
   wrappingExpressionRoot(): Ast {
-    return last(unfold<Ast>(this, (ast) => ast.parent()?.asWrappingExpression()))
+    return this.wrappingExpression()?.wrappingExpressionRoot() ?? this
   }
 
   documentingAncestor(): Documented | undefined {
-    for (const ast of unfold<Ast>(this, (ast) => ast.parent()?.asWrappingExpression())) {
-      if (ast instanceof Documented) return ast
-    }
-  }
-
-  asWrappingExpression(): Ast | undefined {
-    return this instanceof Documented ? this : undefined
+    return this.wrappingExpression()?.documentingAncestor()
   }
 
   code(): string {
@@ -1599,6 +1596,14 @@ export class Documented extends Ast {
   documentation(): string {
     const raw = uninterpolatedText(this.fields.get('elements'), this.module)
     return raw.startsWith(' ') ? raw.slice(1) : raw
+  }
+
+  wrappedExpression(): Ast | undefined {
+    return this.expression
+  }
+
+  documentingAncestor(): Documented | undefined {
+    return this
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
