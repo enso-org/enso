@@ -1322,7 +1322,7 @@ type Builder
        ICON metadata
        Gets the current length of the builder.
     length : Integer
-    length self = self.java_builder.getSize
+    length self = self.elements_java_builder.getSize
 
     ## ICON join
        Appends a new element into this builder, propagating any
