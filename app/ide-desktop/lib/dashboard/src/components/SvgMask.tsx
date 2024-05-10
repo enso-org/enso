@@ -1,6 +1,8 @@
 /** @file File containing SVG icon definitions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 // ===============
 // === SvgMask ===
 // ===============
@@ -24,7 +26,7 @@ export interface SvgMaskProps {
 
 /** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
 export default function SvgMask(props: SvgMaskProps) {
-  const { invert = false, alt, src, style, color, className = 'h-max w-max' } = props
+  const { invert = false, alt, src, style, color, className } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
 
@@ -47,7 +49,7 @@ export default function SvgMask(props: SvgMaskProps) {
         ...(invert ? { WebkitMaskComposite: 'exclude, exclude' } : {}),
         /* eslint-enable @typescript-eslint/naming-convention */
       }}
-      className={`inline-block ${className}`}
+      className={tailwindMerge.twMerge('inline-block h-max w-max', className)}
     >
       {/* This is required for this component to have the right size. */}
       <img alt={alt} src={src} className="transparent" draggable={false} />

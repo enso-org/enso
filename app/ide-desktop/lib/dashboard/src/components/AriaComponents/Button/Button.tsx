@@ -7,6 +7,7 @@ import * as tailwindMerge from 'tailwind-merge'
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinnerModule from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
@@ -71,7 +72,7 @@ export function Button(props: ButtonProps) {
     }
   }
 
-  return (
+  const button = (
     <aria.Button
       {...aria.mergeProps<aria.ButtonProps>()(ariaButtonProps, focusChildProps, {
         className: values =>
@@ -83,5 +84,14 @@ export function Button(props: ButtonProps) {
     >
       {childrenFactory()}
     </aria.Button>
+  )
+
+  return ariaButtonProps['aria-label'] == null ? (
+    button
+  ) : (
+    <ariaComponents.TooltipTrigger>
+      {button}
+      <ariaComponents.Tooltip>{ariaButtonProps['aria-label']}</ariaComponents.Tooltip>
+    </ariaComponents.TooltipTrigger>
   )
 }

@@ -30,7 +30,8 @@ export interface ButtonProps {
   readonly error?: string | null
   /** Class names for the icon itself. */
   readonly className?: string
-  /** Extra class names for the `button` element wrapping the icon. */
+  /** Extra class names for the `button` element wrapping the icon.
+   * This is useful for things like positioning the entire button (e.g. `absolute`). */
   readonly buttonClassName?: string
   readonly onPress: (event: aria.PressEvent) => void
 }
@@ -44,7 +45,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     error,
     alt,
     className,
-    buttonClassName = '',
+    buttonClassName,
     ...buttonProps
   } = props
   const { isDisabled = false } = buttonProps
