@@ -125,14 +125,13 @@ read_characters decoder n =
     chars_read = decoder.read buffer
     if chars_read == -1 then Nothing else
         buffer.flip
-        v = Vector.new_builder
-        transfer_codepoints _ =
-            if buffer.hasRemaining.not then Nothing else
-                char = buffer.get
-                v.append char.codepoints.first
-                @Tail_Call transfer_codepoints Nothing
-        transfer_codepoints Nothing
-        v.to_vector
+        Vector.build builder->
+            transfer_codepoints _ =
+                if buffer.hasRemaining.not then Nothing else
+                    char = buffer.get
+                    builder.append char.codepoints.first
+                    @Tail_Call transfer_codepoints Nothing
+            transfer_codepoints Nothing
 
 main filter=Nothing =
     suite = Test.build suite_builder->

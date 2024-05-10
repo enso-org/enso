@@ -1772,16 +1772,14 @@ add_specs suite_builder setup =
 type Mixed_Type_Object
 
 all_combinations variables =
-    result = Vector.new_builder
-    go current_choices =
-        i = current_choices.length
-        if i == variables.length then result.append current_choices else
-            choices = variables.at i
-            choices.each x->
-                go (current_choices + [x])
-    go []
-    result.to_vector
-
+    Vector.build builder->
+        go current_choices =
+            i = current_choices.length
+            if i == variables.length then builder.append current_choices else
+                choices = variables.at i
+                choices.each x->
+                    go (current_choices + [x])
+        go []
 
 drop_table connection table =
     case table of

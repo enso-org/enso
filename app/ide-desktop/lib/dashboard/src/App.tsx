@@ -67,9 +67,14 @@ import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
-import Subscribe from '#/pages/subscribe/Subscribe'
+import * as subscribe from '#/pages/subscribe/Subscribe'
+import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
+import * as errorBoundary from '#/components/ErrorBoundary'
+import * as loader from '#/components/Loader'
 import * as rootComponent from '#/components/Root'
+
+import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -365,47 +370,71 @@ function AppRouter(props: AppRouterProps) {
 
   const routes = (
     <router.Routes>
-      <React.Fragment>
-        {/* Login & registration pages are visible to unauthenticated users. */}
-        <router.Route element={<authProvider.GuestLayout />}>
-          <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-          <router.Route
-            path={appUtils.LOGIN_PATH}
-            element={<Login supportsLocalBackend={supportsLocalBackend} />}
-          />
-        </router.Route>
+      {/* Login & registration pages are visible to unauthenticated users. */}
+      <router.Route element={<authProvider.GuestLayout />}>
+        <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
+        <router.Route
+          path={appUtils.LOGIN_PATH}
+          element={<Login supportsLocalBackend={supportsLocalBackend} />}
+        />
+      </router.Route>
 
-        {/* Protected pages are visible to authenticated users. */}
-        <router.Route element={<authProvider.NotDeletedUserLayout />}>
-          <router.Route element={<authProvider.ProtectedLayout />}>
+      {/* Protected pages are visible to authenticated users. */}
+      <router.Route element={<authProvider.NotDeletedUserLayout />}>
+        <router.Route element={<authProvider.ProtectedLayout />}>
+          <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
             <router.Route
               path={appUtils.DASHBOARD_PATH}
               element={shouldShowDashboard && <Dashboard {...props} />}
             />
-            <router.Route path={appUtils.SUBSCRIBE_PATH} element={<Subscribe />} />
-          </router.Route>
-        </router.Route>
 
-        {/* Semi-protected pages are visible to users currently registering. */}
-        <router.Route element={<authProvider.NotDeletedUserLayout />}>
-          <router.Route element={<authProvider.SemiProtectedLayout />}>
-            <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+            <router.Route
+              path={appUtils.SUBSCRIBE_PATH}
+              element={
+                <errorBoundary.ErrorBoundary>
+                  <React.Suspense fallback={<loader.Loader />}>
+                    <subscribe.Subscribe />
+                  </React.Suspense>
+                </errorBoundary.ErrorBoundary>
+              }
+            />
           </router.Route>
-        </router.Route>
 
-        {/* Other pages are visible to unauthenticated and authenticated users. */}
-        <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
-        <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
-        <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-        <router.Route path={appUtils.ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
-
-        {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
-        <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<authProvider.SoftDeletedUserLayout />}>
-            <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
-          </router.Route>
+          <router.Route
+            path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+            element={
+              <errorBoundary.ErrorBoundary>
+                <React.Suspense fallback={<loader.Loader />}>
+                  <subscribeSuccess.SubscribeSuccess />
+                </React.Suspense>
+              </errorBoundary.ErrorBoundary>
+            }
+          />
         </router.Route>
-      </React.Fragment>
+      </router.Route>
+
+      {/* Semi-protected pages are visible to users currently registering. */}
+      <router.Route element={<authProvider.NotDeletedUserLayout />}>
+        <router.Route element={<authProvider.SemiProtectedLayout />}>
+          <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+        </router.Route>
+      </router.Route>
+
+      {/* Other pages are visible to unauthenticated and authenticated users. */}
+      <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
+      <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
+      <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
+      <router.Route path={appUtils.ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
+
+      {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
+      <router.Route element={<authProvider.ProtectedLayout />}>
+        <router.Route element={<authProvider.SoftDeletedUserLayout />}>
+          <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
+        </router.Route>
+      </router.Route>
+
+      {/* 404 page */}
+      <router.Route path="*" element={<router.Navigate to="/" replace />} />
     </router.Routes>
   )
   let result = routes
