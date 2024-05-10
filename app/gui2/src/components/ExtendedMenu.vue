@@ -1,23 +1,57 @@
 <script setup lang="ts">
-import { codeEditorBindings } from '@/bindings'
+import { codeEditorBindings, documentationEditorBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { targetIsOutside } from '@/util/autoBlur'
 import { ref } from 'vue'
 
-const isDropdownOpen = ref(false)
-
+const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
+const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
 const props = defineProps<{
   zoomLevel: number
 }>()
-const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: []; toggleCodeEditor: [] }>()
+const emit = defineEmits<{
+  zoomIn: []
+  zoomOut: []
+  fitToAllClicked: []
+}>()
+
+const buttonElement = ref<HTMLElement>()
+const menuElement = ref<HTMLElement>()
+
+const isDropdownOpen = ref(false)
+
+const interaction = injectInteractionHandler()
+const dropdownInteraction: Interaction = {
+  cancel: () => (isDropdownOpen.value = false),
+  end: () => (isDropdownOpen.value = false),
+  pointerdown: (e: PointerEvent) => {
+    if ([buttonElement.value, menuElement.value].every((area) => targetIsOutside(e, area)))
+      closeDropdown()
+    return false
+  },
+}
+function openDropdown() {
+  isDropdownOpen.value = true
+  interaction.setCurrent(dropdownInteraction)
+}
+function closeDropdown() {
+  interaction.cancel(dropdownInteraction)
+}
+function toggleDropdown() {
+  isDropdownOpen.value ? closeDropdown() : openDropdown()
+}
+
 const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadable
+const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.toggle.humanReadable
 </script>
 
 <template>
-  <div class="ExtendedMenu" @click.stop="isDropdownOpen = !isDropdownOpen">
+  <div ref="buttonElement" class="ExtendedMenu" @click.stop="toggleDropdown">
     <SvgIcon name="3_dot_menu" class="moreIcon" />
   </div>
   <Transition name="dropdown">
-    <div v-show="isDropdownOpen" class="ExtendedMenuPane">
+    <div v-show="isDropdownOpen" ref="menuElement" class="ExtendedMenuPane">
       <div class="row">
         <div class="label">Zoom</div>
         <div class="zoomControl">
@@ -37,9 +71,21 @@ const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadabl
           </div>
         </div>
       </div>
-      <div class="row clickableRow" @click="emit('toggleCodeEditor')">
+      <div
+        class="row clickableRow"
+        :class="{ selected: showCodeEditor }"
+        @click="(showCodeEditor = !showCodeEditor), closeDropdown()"
+      >
         <div class="label">Code Editor</div>
-        <div>{{ toggleCodeEditorShortcut }}</div>
+        <div v-text="toggleCodeEditorShortcut" />
+      </div>
+      <div
+        class="row clickableRow"
+        :class="{ selected: showDocumentationEditor }"
+        @click="(showDocumentationEditor = !showDocumentationEditor), closeDropdown()"
+      >
+        <div class="label">Documentation Editor</div>
+        <div v-text="toggleDocumentationEditorShortcut" />
       </div>
     </div>
   </Transition>
@@ -79,6 +125,9 @@ const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadabl
   transition: background-color 0.3s;
   &:hover {
     background-color: var(--color-menu-entry-hover-bg);
+  }
+  &.selected {
+    background-color: var(--color-menu-entry-selected-bg);
   }
 }
 

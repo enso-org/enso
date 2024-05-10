@@ -10,6 +10,7 @@
   --color-text-inversed: rgb(255 255 255);
   --color-app-bg: rgb(255 255 255 / 0.8);
   --color-menu-entry-hover-bg: rgb(0 0 0 / 0.1);
+  --color-menu-entry-selected-bg: rgb(0 0 0 / 0.05);
   --color-visualization-bg: rgb(255 242 242);
   --color-dim: rgb(0 0 0 / 0.25);
   --color-frame-bg: rgb(255 255 255 / 0.3);
@@ -47,8 +48,13 @@
   --font-mono: 'DejaVu Sans Mono', /* System monspace font stack */ ui-monospace, Menlo, Monaco,
     'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
     'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+  /* Default resize handle widths, used for panels. */
+  --resize-handle-inside: 3px;
+  --resize-handle-outside: 3px;
+  /* Resize handle override for the visualization container. */
   --visualization-resize-handle-inside: 3px;
   --visualization-resize-handle-outside: 3px;
+  --right-dock-default-width: 40%;
 }
 
 *,

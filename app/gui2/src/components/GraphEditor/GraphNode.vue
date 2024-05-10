@@ -444,24 +444,6 @@ function portGroupStyle(port: PortData) {
 
 const editingComment = ref(false)
 
-const documentation = computed<string | undefined>({
-  get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
-  set: (text) => {
-    graph.edit((edit) => {
-      const outerExpr = edit.getVersion(props.node.outerExpr)
-      if (text) {
-        if (outerExpr instanceof Ast.MutableDocumented) {
-          outerExpr.setDocumentationText(text)
-        } else {
-          outerExpr.update((outerExpr) => Ast.Documented.new(text, outerExpr))
-        }
-      } else if (outerExpr instanceof Ast.MutableDocumented && outerExpr.expression) {
-        outerExpr.replace(outerExpr.expression.take())
-      }
-    })
-  },
-})
-
 const { getNodeColor, visibleNodeColors } = injectNodeColors()
 </script>
 
@@ -551,14 +533,7 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
     />
-    <Suspense>
-      <GraphNodeComment
-        v-if="documentation != null"
-        v-model="documentation"
-        v-model:editing="editingComment"
-        class="beforeNode"
-      />
-    </Suspense>
+    <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
     <div ref="contentNode" class="content" v-on="dragPointer.events" @click="handleNodeClick">
       <NodeWidgetTree
         :ast="props.node.innerExpr"
@@ -777,6 +752,7 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
   position: absolute;
   bottom: 100%;
   left: 60px;
+  width: calc(max(100% - 60px, 800px));
   margin-bottom: 2px;
 }
 

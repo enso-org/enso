@@ -45,6 +45,7 @@ export function placeholderGroups(): LibraryComponentGroup[] {
 }
 
 let mainFile = `\
+## Module documentation
 from Standard.Base import all
 
 func1 arg =
@@ -56,6 +57,7 @@ func2 a =
     r = 42 + a
     r
 
+## The main method
 main =
     five = 5
     ten = 10
