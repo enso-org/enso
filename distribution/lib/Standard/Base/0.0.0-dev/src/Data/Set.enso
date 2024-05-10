@@ -54,7 +54,7 @@ type Set
 
     ## GROUP Metadata
        ICON metadata
-       Returns the number of entries in this set.
+       Returns the number of elements in this set.
     length : Integer
     length self = self.size
 
