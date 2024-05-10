@@ -125,7 +125,8 @@ export abstract class Ast {
   }
 
   wrappingExpression(): Ast | undefined {
-    return this.parent()?.wrappedExpression() === this ? this.parent() : undefined
+    const parent = this.parent()
+    return parent?.wrappedExpression()?.is(this) ? parent : undefined
   }
 
   wrappingExpressionRoot(): Ast {
