@@ -330,6 +330,7 @@ export default function Drive(props: DriveProps) {
         <result.Result
           status="error"
           title={getText('notEnabledTitle')}
+          qa="not-enabled-stub"
           subtitle={`${getText('notEnabledSubtitle')}${!supportsLocalBackend ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
           {!supportsLocalBackend && (
@@ -337,6 +338,7 @@ export default function Drive(props: DriveProps) {
               variant="primary"
               size="medium"
               rounding="full"
+              data-testid="download-free-edition"
               onPress={async () => {
                 const downloadUrl = await github.getDownloadUrl()
                 if (downloadUrl == null) {
