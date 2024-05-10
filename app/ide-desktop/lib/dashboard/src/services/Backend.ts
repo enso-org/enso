@@ -917,7 +917,7 @@ export const assetIsFile = assetIsType(AssetType.file)
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
-  readonly versionId: string
+  readonly versionId: S3ObjectVersionId
   readonly lastModified: dateTime.Rfc3339DateTime
   readonly isLatest: boolean
   /** An archive containing the all the project files object in the S3 bucket. */
