@@ -36,7 +36,6 @@ const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
-const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context|interpolationFunction.+'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
@@ -195,10 +194,6 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: ':matches(MethodDeclaration, FunctionDeclaration) FunctionDeclaration',
         message: 'Use arrow functions for nested functions',
-    },
-    {
-        selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
-        message: 'Destructure function parameters in the body, instead of in the parameter list',
     },
     {
         selector: 'IfStatement > ExpressionStatement',

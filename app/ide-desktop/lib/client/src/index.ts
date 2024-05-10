@@ -70,7 +70,7 @@ class App {
         electron.app.commandLine.appendSwitch('ignore-certificate-errors-spki-list', 'true')
         electron.app.on(
             'certificate-error',
-            (event, webContents, url, error, certificate, callback) => {
+            (event, _webContents, _url, _error, _certificate, callback) => {
                 // Prevent having error
                 event.preventDefault()
                 // and continue

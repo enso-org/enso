@@ -67,14 +67,14 @@ import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
-import { Subscribe } from '#/pages/subscribe/Subscribe'
-import { SubscribeSuccess } from '#/pages/subscribe/SubscribeSuccess'
+import * as subscribe from '#/pages/subscribe/Subscribe'
+import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
 import * as rootComponent from '#/components/Root'
 
-import { SetOrganizationNameModal } from '#/modals/SetOrganizationNameModal'
+import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -382,7 +382,7 @@ function AppRouter(props: AppRouterProps) {
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<SetOrganizationNameModal />}>
+          <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
             <router.Route
               path={appUtils.DASHBOARD_PATH}
               element={shouldShowDashboard && <Dashboard {...props} />}
@@ -393,7 +393,7 @@ function AppRouter(props: AppRouterProps) {
               element={
                 <errorBoundary.ErrorBoundary>
                   <React.Suspense fallback={<loader.Loader />}>
-                    <Subscribe />
+                    <subscribe.Subscribe />
                   </React.Suspense>
                 </errorBoundary.ErrorBoundary>
               }
@@ -405,7 +405,7 @@ function AppRouter(props: AppRouterProps) {
             element={
               <errorBoundary.ErrorBoundary>
                 <React.Suspense fallback={<loader.Loader />}>
-                  <SubscribeSuccess />
+                  <subscribeSuccess.SubscribeSuccess />
                 </React.Suspense>
               </errorBoundary.ErrorBoundary>
             }

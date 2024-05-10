@@ -105,22 +105,22 @@ export class Server {
     }
 
     /** Start the server. */
-    run(): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            const defaultValidity = 365
-            const ca = await mkcert.createCA({
-                organization: 'Enso International Inc.',
-                countryCode: 'USA',
-                state: 'Delaware',
-                locality: 'Wilmington',
-                validity: defaultValidity,
-            })
-            const cert = await mkcert.createCert({
-                ca: { key: ca.key, cert: ca.cert },
-                domains: ['127.0.0.1', 'localhost'],
-                validity: defaultValidity,
-            })
+    async run(): Promise<void> {
+        const defaultValidity = 365
+        const ca = await mkcert.createCA({
+            organization: 'Enso International Inc.',
+            countryCode: 'USA',
+            state: 'Delaware',
+            locality: 'Wilmington',
+            validity: defaultValidity,
+        })
+        const cert = await mkcert.createCert({
+            ca: { key: ca.key, cert: ca.cert },
+            domains: ['127.0.0.1', 'localhost'],
+            validity: defaultValidity,
+        })
 
+        return new Promise((resolve, reject) => {
             createServer(
                 {
                     https: {
