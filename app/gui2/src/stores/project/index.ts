@@ -52,7 +52,6 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
   if (engine.rpcUrl != null && engine.dataUrl != null) {
     const dataUrl = engine.dataUrl
     const rpcUrl = engine.rpcUrl
-    /*
     let ydocUrl
     if (engine.ydocUrl == null || engine.ydocUrl === '') {
       ydocUrl = new URL(location.origin)
@@ -61,9 +60,6 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
       ydocUrl = new URL(engine.rpcUrl)
       ydocUrl.port = '1234'
     }
-    */
-    const ydocUrl = new URL(engine.rpcUrl)
-    ydocUrl.port = '1234'
     ydocUrl.pathname = '/project'
 
     return {

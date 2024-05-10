@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
@@ -34,8 +35,10 @@ public final class Ydoc implements AutoCloseable {
   public void start() throws ExecutionException, InterruptedException, IOException {
     var ydoc = Main.class.getResource(YDOC_SERVER_PATH);
     if (ydoc == null) {
-      throw new AssertionError(YDOC_SERVER_PATH + " not found in resources. You probably need to first built it with: "
-          + "`npm --workspace=enso-gui2 run build-ydoc-server-polyglot`");
+      throw new AssertionError(
+          YDOC_SERVER_PATH
+              + " not found in resources. You probably need to first built it with: "
+              + "`npm --workspace=enso-gui2 run build-ydoc-server-polyglot`");
     }
     var ydocJs = Source.newBuilder("js", ydoc).mimeType("application/javascript+module").build();
 
@@ -56,9 +59,10 @@ public final class Ydoc implements AutoCloseable {
   @Override
   public void close() throws Exception {
     executor.shutdownNow();
+    executor.awaitTermination(3, TimeUnit.SECONDS);
     parser.close();
     if (context != null) {
-      context.close();
+      context.close(true);
     }
   }
 }
