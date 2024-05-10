@@ -21,10 +21,10 @@ interface InternalBaseAutocompleteProps<T> {
   readonly type?: React.HTMLInputTypeAttribute
   readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
   readonly placeholder?: string
-  readonly values: T[]
+  readonly values: readonly T[]
   readonly autoFocus?: boolean
   /** This may change as the user types in the input. */
-  readonly items: T[]
+  readonly items: readonly T[]
   readonly itemToKey: (item: T) => string
   readonly itemToString: (item: T) => string
   readonly itemsToString?: (items: T[]) => string
@@ -48,8 +48,8 @@ interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteP
   /** This is `null` when multiple values are selected, causing the input to switch to a
    * {@link HTMLTextAreaElement}. */
   readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
-  readonly setValues: (value: T[]) => void
-  readonly itemsToString: (items: T[]) => string
+  readonly setValues: (value: readonly T[]) => void
+  readonly itemsToString: (items: readonly T[]) => string
 }
 
 /** {@link AutocompleteProps} when the text cannot be edited. */

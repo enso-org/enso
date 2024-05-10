@@ -61,13 +61,7 @@ export interface DropdownEntry {
 </script>
 
 <template>
-  <div
-    class="DropdownWidget"
-    :style="{ '--dropdown-bg': color }"
-    @pointerdown.stop
-    @pointerup.stop
-    @click.stop
-  >
+  <div class="DropdownWidget" :style="{ '--dropdown-bg': color }">
     <ul class="list scrollable" @wheel.stop>
       <template v-for="entry in sortedValues" :key="entry.value">
         <li v-if="entry.selected">

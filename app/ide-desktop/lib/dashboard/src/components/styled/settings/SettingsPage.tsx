@@ -12,5 +12,9 @@ export interface SettingsPageProps extends Readonly<React.PropsWithChildren> {}
 export default function SettingsPage(props: SettingsPageProps) {
   const { children } = props
 
-  return <div className="flex flex-col gap-settings-subsection">{children}</div>
+  return (
+    <div className="flex min-h-full flex-1 flex-col gap-settings-subsection overflow-auto">
+      {children}
+    </div>
+  )
 }

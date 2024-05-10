@@ -345,8 +345,9 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
                                 False ->
                                     if selector.is_a Regex . not then matches.map c-> Pair.new c replacement else
                                         matches.map c-> Pair.new c (selector.replace c.name replacement)
-                    builder = mapping.to_vector.fold Vector.new_builder builder-> pair-> builder.append_vector_range (resolve_rename pair.first pair.second)
-                    builder.to_vector
+                    Vector.build builder->
+                        mapping.to_vector.map pair->
+                            builder.append_vector_range (resolve_rename pair.first pair.second)
 
             all_new_names = columns_with_new_names.map .second
             naming_helper.validate_many_column_names all_new_names <|

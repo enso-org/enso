@@ -101,27 +101,27 @@ type Aggregation_Data
 
     setup create_connection_fn = Aggregation_Data.Value <|
         connection = create_connection_fn Nothing
-        builders = [Vector.new_builder,Vector.new_builder,Vector.new_builder]
-        insert v =
-            builders.zip v .append
-        insert ["foo",  0.4,     50]
-        insert ["foo",  0.2,     10]
-        insert ["foo",  0.4,     30]
-        insert ["bar",  3.5,     20]
-        insert ["foo",  Nothing, 20]
-        insert ["baz",  6.7,     40]
-        insert ["foo",  Nothing, 10]
-        insert ["bar",  97,      60]
-        insert ["quux", Nothing, 70]
-        insert ["zzzz", Nothing, Nothing]
-        insert ["zzzz", 1, 1]
-        insert ["zzzz", 0, 0]
-        insert ["zzzz", 0, 1]
-        insert ["zzzz", 1, 0]
-        insert ["zzzz", 0, 0]
-        insert ["zzzz", Nothing, Nothing]
+        vecs = Vector.build_multiple 3 builders->
+            insert v =
+                builders.zip v .append
+            insert ["foo",  0.4,     50]
+            insert ["foo",  0.2,     10]
+            insert ["foo",  0.4,     30]
+            insert ["bar",  3.5,     20]
+            insert ["foo",  Nothing, 20]
+            insert ["baz",  6.7,     40]
+            insert ["foo",  Nothing, 10]
+            insert ["bar",  97,      60]
+            insert ["quux", Nothing, 70]
+            insert ["zzzz", Nothing, Nothing]
+            insert ["zzzz", 1, 1]
+            insert ["zzzz", 0, 0]
+            insert ["zzzz", 0, 1]
+            insert ["zzzz", 1, 0]
+            insert ["zzzz", 0, 0]
+            insert ["zzzz", Nothing, Nothing]
         t9 = upload connection "T9" <|
-            Table.new [["name", builders.at 0 . to_vector], ["price", builders.at 1 . to_vector], ["quantity", builders.at 2 . to_vector]]
+            Table.new [["name", vecs.at 0], ["price", vecs.at 1], ["quantity", vecs.at 2]]
         [connection, t9]
 
     teardown self =

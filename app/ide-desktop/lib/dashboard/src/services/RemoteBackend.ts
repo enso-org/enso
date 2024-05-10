@@ -10,7 +10,7 @@ import type * as text from '#/text'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import type * as textProvider from '#/providers/TextProvider'
 
-import Backend, * as backendModule from '#/services/Backend'
+import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 import type HttpClient from '#/utilities/HttpClient'
@@ -62,25 +62,22 @@ const CHECK_STATUS_INTERVAL_MS = 5000
 
 /** Return a {@link Promise} that resolves only when a project is ready to open. */
 export async function waitUntilProjectIsReady(
-  backend: Backend,
-  item: backendModule.ProjectAsset,
+  remoteBackend: Backend,
+  item: backend.ProjectAsset,
   abortController: AbortController = new AbortController()
 ) {
-  let project = await backend.getProjectDetails(item.id, item.parentId, item.title)
-  if (!backendModule.IS_OPENING_OR_OPENED[project.state.type]) {
-    await backend.openProject(item.id, null, item.title)
+  let project = await remoteBackend.getProjectDetails(item.id, item.parentId, item.title)
+  if (!backend.IS_OPENING_OR_OPENED[project.state.type]) {
+    await remoteBackend.openProject(item.id, null, item.title)
   }
   let nextCheckTimestamp = 0
-  while (
-    !abortController.signal.aborted &&
-    project.state.type !== backendModule.ProjectState.opened
-  ) {
+  while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
     await new Promise<void>(resolve => {
       const delayMs = nextCheckTimestamp - Number(new Date())
       setTimeout(resolve, Math.max(0, delayMs))
     })
     nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await backend.getProjectDetails(item.id, item.parentId, item.title)
+    project = await remoteBackend.getProjectDetails(item.id, item.parentId, item.title)
   }
   return project
 }
@@ -91,37 +88,37 @@ export async function waitUntilProjectIsReady(
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
-  readonly users: backendModule.UserInfo[]
+  readonly users: backend.User[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
 export interface ListDirectoryResponseBody {
-  readonly assets: backendModule.AnyAsset[]
+  readonly assets: backend.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
 export interface ListProjectsResponseBody {
-  readonly projects: backendModule.ListedProjectRaw[]
+  readonly projects: backend.ListedProjectRaw[]
 }
 
 /** HTTP response body for the "list files" endpoint. */
 export interface ListFilesResponseBody {
-  readonly files: backendModule.FileLocator[]
+  readonly files: backend.FileLocator[]
 }
 
 /** HTTP response body for the "list secrets" endpoint. */
 export interface ListSecretsResponseBody {
-  readonly secrets: backendModule.SecretInfo[]
+  readonly secrets: backend.SecretInfo[]
 }
 
 /** HTTP response body for the "list tag" endpoint. */
 export interface ListTagsResponseBody {
-  readonly tags: backendModule.Label[]
+  readonly tags: backend.Label[]
 }
 
 /** HTTP response body for the "list versions" endpoint. */
 export interface ListVersionsResponseBody {
-  readonly versions: [backendModule.Version, ...backendModule.Version[]]
+  readonly versions: [backend.Version, ...backend.Version[]]
 }
 
 // =====================
@@ -134,14 +131,14 @@ type GetText = ReturnType<typeof textProvider.useText>['getText']
 
 /** Information for a cached default version. */
 interface DefaultVersionInfo {
-  readonly version: backendModule.VersionNumber
+  readonly version: backend.VersionNumber
   readonly lastUpdatedEpochMs: number
 }
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
-  readonly type = backendModule.BackendType.remote
-  private defaultVersions: Partial<Record<backendModule.VersionType, DefaultVersionInfo>> = {}
+  readonly type = backend.BackendType.remote
+  private defaultVersions: Partial<Record<backend.VersionType, DefaultVersionInfo>> = {}
 
   /** Create a new instance of the {@link RemoteBackend} API client.
    * @throws An error if the `Authorization` header is not set on the given `client`. */
@@ -192,12 +189,12 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return the ID of the root directory. */
-  override rootDirectoryId(user: backendModule.User | null): backendModule.DirectoryId | null {
+  override rootDirectoryId(user: backend.User | null): backend.DirectoryId | null {
     return user?.rootDirectoryId ?? null
   }
 
   /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<backendModule.UserInfo[]> {
+  override async listUsers(): Promise<backend.User[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -208,11 +205,9 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Set the username and parent organization of the current user. */
-  override async createUser(
-    body: backendModule.CreateUserRequestBody
-  ): Promise<backendModule.User> {
+  override async createUser(body: backend.CreateUserRequestBody): Promise<backend.User> {
     const path = remoteBackendPaths.CREATE_USER_PATH
-    const response = await this.post<backendModule.User>(path, body)
+    const response = await this.post<backend.User>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createUserBackendError')
     } else {
@@ -221,7 +216,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Change the username of the current user. */
-  override async updateUser(body: backendModule.UpdateUserRequestBody): Promise<void> {
+  override async updateUser(body: backend.UpdateUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.UPDATE_CURRENT_USER_PATH
     const response = await this.put(path, body)
     if (!responseIsSuccessful(response)) {
@@ -258,7 +253,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Invite a new user to the organization by email. */
-  override async inviteUser(body: backendModule.InviteUserRequestBody): Promise<void> {
+  override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.INVITE_USER_PATH
     const response = await this.post(path, body)
     if (!responseIsSuccessful(response)) {
@@ -270,16 +265,16 @@ export default class RemoteBackend extends Backend {
 
   /** Upload a new profile picture for the current user. */
   override async uploadUserPicture(
-    params: backendModule.UploadPictureRequestParams,
+    params: backend.UploadPictureRequestParams,
     file: Blob
-  ): Promise<backendModule.User> {
+  ): Promise<backend.User> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
-    const response = await this.putBinary<backendModule.User>(path, file)
+    const response = await this.putBinary<backend.User>(path, file)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'uploadUserPictureBackendError')
     } else {
@@ -287,11 +282,26 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Set the list of groups a user is in. */
+  override async changeUserGroup(
+    userId: backend.UserId,
+    userGroups: backend.ChangeUserGroupRequestBody,
+    name: string
+  ): Promise<backend.User> {
+    const path = remoteBackendPaths.changeUserGroupPath(userId)
+    const response = await this.put<backend.User>(path, userGroups)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(response, 'changeUserGroupsBackendError', name)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Return details for the current organization.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
-  override async getOrganization(): Promise<backendModule.OrganizationInfo | null> {
+  override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
-    const response = await this.get<backendModule.OrganizationInfo>(path)
+    const response = await this.get<backend.OrganizationInfo>(path)
     if (response.status === STATUS_NOT_FOUND) {
       // Organization info has not yet been created.
       return null
@@ -304,10 +314,10 @@ export default class RemoteBackend extends Backend {
 
   /** Update details for the current organization. */
   override async updateOrganization(
-    body: backendModule.UpdateOrganizationRequestBody
-  ): Promise<backendModule.OrganizationInfo | null> {
+    body: backend.UpdateOrganizationRequestBody
+  ): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.UPDATE_ORGANIZATION_PATH
-    const response = await this.patch<backendModule.OrganizationInfo>(path, body)
+    const response = await this.patch<backend.OrganizationInfo>(path, body)
 
     if (response.status === STATUS_NOT_FOUND) {
       // Organization info has not yet been created.
@@ -321,16 +331,16 @@ export default class RemoteBackend extends Backend {
 
   /** Upload a new profile picture for the current organization. */
   override async uploadOrganizationPicture(
-    params: backendModule.UploadPictureRequestParams,
+    params: backend.UploadPictureRequestParams,
     file: Blob
-  ): Promise<backendModule.OrganizationInfo> {
+  ): Promise<backend.OrganizationInfo> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
-    const response = await this.putBinary<backendModule.OrganizationInfo>(path, file)
+    const response = await this.putBinary<backend.OrganizationInfo>(path, file)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'uploadOrganizationPictureBackendError')
     } else {
@@ -339,7 +349,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Adds a permission for a specific user on a specific asset. */
-  override async createPermission(body: backendModule.CreatePermissionRequestBody): Promise<void> {
+  override async createPermission(body: backend.CreatePermissionRequestBody): Promise<void> {
     const path = remoteBackendPaths.CREATE_PERMISSION_PATH
     const response = await this.post(path, body)
     if (!responseIsSuccessful(response)) {
@@ -351,9 +361,9 @@ export default class RemoteBackend extends Backend {
 
   /** Return details for the current user.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
-  override async usersMe(): Promise<backendModule.User | null> {
+  override async usersMe(): Promise<backend.User | null> {
     const path = remoteBackendPaths.USERS_ME_PATH
-    const response = await this.get<backendModule.User>(path)
+    const response = await this.get<backend.User>(path)
     if (!responseIsSuccessful(response)) {
       return null
     } else {
@@ -364,9 +374,9 @@ export default class RemoteBackend extends Backend {
   /** Return a list of assets in a directory.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listDirectory(
-    query: backendModule.ListDirectoryRequestParams,
+    query: backend.ListDirectoryRequestParams,
     title: string
-  ): Promise<backendModule.AnyAsset[]> {
+  ): Promise<backend.AnyAsset[]> {
     const path = remoteBackendPaths.LIST_DIRECTORY_PATH
     const response = await this.get<ListDirectoryResponseBody>(
       path +
@@ -400,12 +410,12 @@ export default class RemoteBackend extends Backend {
         .map(asset =>
           object.merge(asset, {
             // eslint-disable-next-line no-restricted-syntax
-            type: asset.id.match(/^(.+?)-/)?.[1] as backendModule.AssetType,
+            type: asset.id.match(/^(.+?)-/)?.[1] as backend.AssetType,
           })
         )
         .map(asset =>
           object.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backendModule.compareUserPermissions),
+            permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
           })
         )
     }
@@ -414,10 +424,10 @@ export default class RemoteBackend extends Backend {
   /** Create a directory.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async createDirectory(
-    body: backendModule.CreateDirectoryRequestBody
-  ): Promise<backendModule.CreatedDirectory> {
+    body: backend.CreateDirectoryRequestBody
+  ): Promise<backend.CreatedDirectory> {
     const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
-    const response = await this.post<backendModule.CreatedDirectory>(path, body)
+    const response = await this.post<backend.CreatedDirectory>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createFolderBackendError', body.title)
     } else {
@@ -428,12 +438,12 @@ export default class RemoteBackend extends Backend {
   /** Change the name of a directory.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateDirectory(
-    directoryId: backendModule.DirectoryId,
-    body: backendModule.UpdateDirectoryRequestBody,
+    directoryId: backend.DirectoryId,
+    body: backend.UpdateDirectoryRequestBody,
     title: string
   ) {
     const path = remoteBackendPaths.updateDirectoryPath(directoryId)
-    const response = await this.put<backendModule.UpdatedDirectory>(path, body)
+    const response = await this.put<backend.UpdatedDirectory>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'updateFolderBackendError', title)
     } else {
@@ -443,11 +453,11 @@ export default class RemoteBackend extends Backend {
 
   /** List all previous versions of an asset. */
   override async listAssetVersions(
-    assetId: backendModule.AssetId,
+    assetId: backend.AssetId,
     title: string
-  ): Promise<backendModule.AssetVersions> {
+  ): Promise<backend.AssetVersions> {
     const path = remoteBackendPaths.listAssetVersionsPath(assetId)
-    const response = await this.get<backendModule.AssetVersions>(path)
+    const response = await this.get<backend.AssetVersions>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listAssetVersionsBackendError', title)
     } else {
@@ -457,7 +467,7 @@ export default class RemoteBackend extends Backend {
 
   /** Fetch the content of the `Main.enso` file of a project. */
   override async getFileContent(
-    projectId: backendModule.ProjectId,
+    projectId: backend.ProjectId,
     version: string,
     title: string
   ): Promise<string> {
@@ -474,8 +484,8 @@ export default class RemoteBackend extends Backend {
   /** Change the parent directory or description of an asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateAsset(
-    assetId: backendModule.AssetId,
-    body: backendModule.UpdateAssetRequestBody,
+    assetId: backend.AssetId,
+    body: backend.UpdateAssetRequestBody,
     title: string
   ) {
     const path = remoteBackendPaths.updateAssetPath(assetId)
@@ -490,8 +500,8 @@ export default class RemoteBackend extends Backend {
   /** Delete an arbitrary asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async deleteAsset(
-    assetId: backendModule.AssetId,
-    bodyRaw: backendModule.DeleteAssetRequestBody,
+    assetId: backend.AssetId,
+    bodyRaw: backend.DeleteAssetRequestBody,
     title: string
   ) {
     const body = object.omit(bodyRaw, 'parentId')
@@ -507,7 +517,7 @@ export default class RemoteBackend extends Backend {
 
   /** Restore an arbitrary asset from the trash.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async undoDeleteAsset(assetId: backendModule.AssetId, title: string): Promise<void> {
+  override async undoDeleteAsset(assetId: backend.AssetId, title: string): Promise<void> {
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
     const response = await this.patch(path, { assetId })
     if (!responseIsSuccessful(response)) {
@@ -520,12 +530,12 @@ export default class RemoteBackend extends Backend {
   /** Copy an arbitrary asset to another directory.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async copyAsset(
-    assetId: backendModule.AssetId,
-    parentDirectoryId: backendModule.DirectoryId,
+    assetId: backend.AssetId,
+    parentDirectoryId: backend.DirectoryId,
     title: string,
     parentDirectoryTitle: string
-  ): Promise<backendModule.CopyAssetResponse> {
-    const response = await this.post<backendModule.CopyAssetResponse>(
+  ): Promise<backend.CopyAssetResponse> {
+    const response = await this.post<backend.CopyAssetResponse>(
       remoteBackendPaths.copyAssetPath(assetId),
       { parentDirectoryId }
     )
@@ -538,7 +548,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return a list of projects belonging to the current user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listProjects(): Promise<backendModule.ListedProject[]> {
+  override async listProjects(): Promise<backend.ListedProject[]> {
     const path = remoteBackendPaths.LIST_PROJECTS_PATH
     const response = await this.get<ListProjectsResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -546,10 +556,8 @@ export default class RemoteBackend extends Backend {
     } else {
       return (await response.json()).projects.map(project => ({
         ...project,
-        jsonAddress:
-          project.address != null ? backendModule.Address(`${project.address}json`) : null,
-        binaryAddress:
-          project.address != null ? backendModule.Address(`${project.address}binary`) : null,
+        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
+        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
       }))
     }
   }
@@ -557,10 +565,10 @@ export default class RemoteBackend extends Backend {
   /** Create a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async createProject(
-    body: backendModule.CreateProjectRequestBody
-  ): Promise<backendModule.CreatedProject> {
+    body: backend.CreateProjectRequestBody
+  ): Promise<backend.CreatedProject> {
     const path = remoteBackendPaths.CREATE_PROJECT_PATH
-    const response = await this.post<backendModule.CreatedProject>(path, body)
+    const response = await this.post<backend.CreatedProject>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createProjectBackendError', body.projectName)
     } else {
@@ -570,7 +578,7 @@ export default class RemoteBackend extends Backend {
 
   /** Close a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async closeProject(projectId: backendModule.ProjectId, title: string): Promise<void> {
+  override async closeProject(projectId: backend.ProjectId, title: string): Promise<void> {
     const path = remoteBackendPaths.closeProjectPath(projectId)
     const response = await this.post(path, {})
     if (!responseIsSuccessful(response)) {
@@ -583,26 +591,24 @@ export default class RemoteBackend extends Backend {
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getProjectDetails(
-    projectId: backendModule.ProjectId,
-    _directory: backendModule.DirectoryId | null,
+    projectId: backend.ProjectId,
+    _directory: backend.DirectoryId | null,
     title: string
-  ): Promise<backendModule.Project> {
+  ): Promise<backend.Project> {
     const path = remoteBackendPaths.getProjectDetailsPath(projectId)
-    const response = await this.get<backendModule.ProjectRaw>(path)
+    const response = await this.get<backend.ProjectRaw>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'getProjectDetailsBackendError', title)
     } else {
       const project = await response.json()
       const ideVersion =
-        project.ide_version ?? (await this.getDefaultVersion(backendModule.VersionType.ide))
+        project.ide_version ?? (await this.getDefaultVersion(backend.VersionType.ide))
       return {
         ...project,
         ideVersion,
         engineVersion: project.engine_version,
-        jsonAddress:
-          project.address != null ? backendModule.Address(`${project.address}json`) : null,
-        binaryAddress:
-          project.address != null ? backendModule.Address(`${project.address}binary`) : null,
+        jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
+        binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
       }
     }
   }
@@ -610,8 +616,8 @@ export default class RemoteBackend extends Backend {
   /** Prepare a project for execution.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async openProject(
-    projectId: backendModule.ProjectId,
-    bodyRaw: backendModule.OpenProjectRequestBody,
+    projectId: backend.ProjectId,
+    bodyRaw: backend.OpenProjectRequestBody,
     title: string
   ): Promise<void> {
     const body = object.omit(bodyRaw, 'parentId')
@@ -620,14 +626,14 @@ export default class RemoteBackend extends Backend {
       return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
     } else {
       const credentials = body.cognitoCredentials
-      const exactCredentials: backendModule.CognitoCredentials = {
+      const exactCredentials: backend.CognitoCredentials = {
         accessToken: credentials.accessToken,
         clientId: credentials.clientId,
         expireAt: credentials.expireAt,
         refreshToken: credentials.refreshToken,
         refreshUrl: credentials.refreshUrl,
       }
-      const filteredBody: Omit<backendModule.OpenProjectRequestBody, 'parentId'> = {
+      const filteredBody: Omit<backend.OpenProjectRequestBody, 'parentId'> = {
         ...body,
         cognitoCredentials: exactCredentials,
       }
@@ -643,13 +649,13 @@ export default class RemoteBackend extends Backend {
   /** Update the name or AMI of a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateProject(
-    projectId: backendModule.ProjectId,
-    bodyRaw: backendModule.UpdateProjectRequestBody,
+    projectId: backend.ProjectId,
+    bodyRaw: backend.UpdateProjectRequestBody,
     title: string
-  ): Promise<backendModule.UpdatedProject> {
+  ): Promise<backend.UpdatedProject> {
     const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.projectUpdatePath(projectId)
-    const response = await this.put<backendModule.UpdatedProject>(path, body)
+    const response = await this.put<backend.UpdatedProject>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'updateProjectBackendError', title)
     } else {
@@ -660,11 +666,11 @@ export default class RemoteBackend extends Backend {
   /** Return the resource usage of a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async checkResources(
-    projectId: backendModule.ProjectId,
+    projectId: backend.ProjectId,
     title: string
-  ): Promise<backendModule.ResourceUsage> {
+  ): Promise<backend.ResourceUsage> {
     const path = remoteBackendPaths.checkResourcesPath(projectId)
-    const response = await this.get<backendModule.ResourceUsage>(path)
+    const response = await this.get<backend.ResourceUsage>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'checkResourcesBackendError', title)
     } else {
@@ -674,7 +680,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return a list of files accessible by the current user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listFiles(): Promise<backendModule.FileLocator[]> {
+  override async listFiles(): Promise<backend.FileLocator[]> {
     const path = remoteBackendPaths.LIST_FILES_PATH
     const response = await this.get<ListFilesResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -687,9 +693,9 @@ export default class RemoteBackend extends Backend {
   /** Upload a file.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async uploadFile(
-    params: backendModule.UploadFileRequestParams,
+    params: backend.UploadFileRequestParams,
     file: Blob
-  ): Promise<backendModule.FileInfo> {
+  ): Promise<backend.FileInfo> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
       file_name: params.fileName,
@@ -698,7 +704,7 @@ export default class RemoteBackend extends Backend {
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_FILE_PATH}?${paramsString}`
-    const response = await this.postBinary<backendModule.FileInfo>(path, file)
+    const response = await this.postBinary<backend.FileInfo>(path, file)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'uploadFileBackendError')
     } else {
@@ -714,11 +720,11 @@ export default class RemoteBackend extends Backend {
   /** Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getFileDetails(
-    fileId: backendModule.FileId,
+    fileId: backend.FileId,
     title: string
-  ): Promise<backendModule.FileDetails> {
+  ): Promise<backend.FileDetails> {
     const path = remoteBackendPaths.getFileDetailsPath(fileId)
-    const response = await this.get<backendModule.FileDetails>(path)
+    const response = await this.get<backend.FileDetails>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'getFileDetailsBackendError', title)
     } else {
@@ -729,10 +735,10 @@ export default class RemoteBackend extends Backend {
   /** Return a Data Link.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async createConnector(
-    body: backendModule.CreateConnectorRequestBody
-  ): Promise<backendModule.ConnectorInfo> {
+    body: backend.CreateConnectorRequestBody
+  ): Promise<backend.ConnectorInfo> {
     const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
-    const response = await this.post<backendModule.ConnectorInfo>(path, body)
+    const response = await this.post<backend.ConnectorInfo>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createConnectorBackendError', body.name)
     } else {
@@ -743,11 +749,11 @@ export default class RemoteBackend extends Backend {
   /** Return a Data Link.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getConnector(
-    connectorId: backendModule.ConnectorId,
+    connectorId: backend.ConnectorId,
     title: string
-  ): Promise<backendModule.Connector> {
+  ): Promise<backend.Connector> {
     const path = remoteBackendPaths.getConnectorPath(connectorId)
-    const response = await this.get<backendModule.Connector>(path)
+    const response = await this.get<backend.Connector>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'getConnectorBackendError', title)
     } else {
@@ -757,10 +763,7 @@ export default class RemoteBackend extends Backend {
 
   /** Delete a Data Link.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteConnector(
-    connectorId: backendModule.ConnectorId,
-    title: string
-  ): Promise<void> {
+  override async deleteConnector(connectorId: backend.ConnectorId, title: string): Promise<void> {
     const path = remoteBackendPaths.getConnectorPath(connectorId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
@@ -772,11 +775,9 @@ export default class RemoteBackend extends Backend {
 
   /** Create a secret environment variable.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createSecret(
-    body: backendModule.CreateSecretRequestBody
-  ): Promise<backendModule.SecretId> {
+  override async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretId> {
     const path = remoteBackendPaths.CREATE_SECRET_PATH
-    const response = await this.post<backendModule.SecretId>(path, body)
+    const response = await this.post<backend.SecretId>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createSecretBackendError', body.name)
     } else {
@@ -786,12 +787,9 @@ export default class RemoteBackend extends Backend {
 
   /** Return a secret environment variable.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getSecret(
-    secretId: backendModule.SecretId,
-    title: string
-  ): Promise<backendModule.Secret> {
+  override async getSecret(secretId: backend.SecretId, title: string): Promise<backend.Secret> {
     const path = remoteBackendPaths.getSecretPath(secretId)
-    const response = await this.get<backendModule.Secret>(path)
+    const response = await this.get<backend.Secret>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'getSecretBackendError', title)
     } else {
@@ -802,8 +800,8 @@ export default class RemoteBackend extends Backend {
   /** Update a secret environment variable.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateSecret(
-    secretId: backendModule.SecretId,
-    body: backendModule.UpdateSecretRequestBody,
+    secretId: backend.SecretId,
+    body: backend.UpdateSecretRequestBody,
     title: string
   ): Promise<void> {
     const path = remoteBackendPaths.updateSecretPath(secretId)
@@ -817,7 +815,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return the secret environment variables accessible by the user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listSecrets(): Promise<backendModule.SecretInfo[]> {
+  override async listSecrets(): Promise<backend.SecretInfo[]> {
     const path = remoteBackendPaths.LIST_SECRETS_PATH
     const response = await this.get<ListSecretsResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -829,9 +827,9 @@ export default class RemoteBackend extends Backend {
 
   /** Create a label used for categorizing assets.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createTag(body: backendModule.CreateTagRequestBody): Promise<backendModule.Label> {
+  override async createTag(body: backend.CreateTagRequestBody): Promise<backend.Label> {
     const path = remoteBackendPaths.CREATE_TAG_PATH
-    const response = await this.post<backendModule.Label>(path, body)
+    const response = await this.post<backend.Label>(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createLabelBackendError', body.value)
     } else {
@@ -841,7 +839,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return all labels accessible by the user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listTags(): Promise<backendModule.Label[]> {
+  override async listTags(): Promise<backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
     const response = await this.get<ListTagsResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -854,8 +852,8 @@ export default class RemoteBackend extends Backend {
   /** Set the full list of labels for a specific asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async associateTag(
-    assetId: backendModule.AssetId,
-    labels: backendModule.LabelName[],
+    assetId: backend.AssetId,
+    labels: backend.LabelName[],
     title: string
   ) {
     const path = remoteBackendPaths.associateTagPath(assetId)
@@ -869,10 +867,7 @@ export default class RemoteBackend extends Backend {
 
   /** Delete a label.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteTag(
-    tagId: backendModule.TagId,
-    value: backendModule.LabelName
-  ): Promise<void> {
+  override async deleteTag(tagId: backend.TagId, value: backend.LabelName): Promise<void> {
     const path = remoteBackendPaths.deleteTagPath(tagId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
@@ -882,11 +877,47 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Create a user group. */
+  override async createUserGroup(
+    body: backend.CreateUserGroupRequestBody
+  ): Promise<backend.UserGroupInfo> {
+    const path = remoteBackendPaths.CREATE_USER_GROUP_PATH
+    const response = await this.post<backend.UserGroupInfo>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(response, 'createUserGroupBackendError', body.name)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Delete a user group. */
+  override async deleteUserGroup(userGroupId: backend.UserGroupId, name: string): Promise<void> {
+    const path = remoteBackendPaths.deleteUserGroupPath(userGroupId)
+    const response = await this.delete(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(response, 'deleteUserGroupBackendError', name)
+    } else {
+      return
+    }
+  }
+
+  /** List all roles in the organization.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async listUserGroups(): Promise<backend.UserGroupInfo[]> {
+    const path = remoteBackendPaths.LIST_USER_GROUPS_PATH
+    const response = await this.get<backend.UserGroupInfo[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(response, 'listUserGroupsBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Return a list of backend or IDE versions.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listVersions(
-    params: backendModule.ListVersionsRequestParams
-  ): Promise<backendModule.Version[]> {
+    params: backend.ListVersionsRequestParams
+  ): Promise<backend.Version[]> {
     const paramsString = new URLSearchParams({
       // eslint-disable-next-line @typescript-eslint/naming-convention
       version_type: params.versionType,
@@ -903,12 +934,10 @@ export default class RemoteBackend extends Backend {
 
   /** Create a payment checkout session.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createCheckoutSession(
-    plan: backendModule.Plan
-  ): Promise<backendModule.CheckoutSession> {
-    const response = await this.post<backendModule.CheckoutSession>(
+  override async createCheckoutSession(plan: backend.Plan): Promise<backend.CheckoutSession> {
+    const response = await this.post<backend.CheckoutSession>(
       remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
-      { plan } satisfies backendModule.CreateCheckoutSessionRequestBody
+      { plan } satisfies backend.CreateCheckoutSessionRequestBody
     )
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createCheckoutSessionBackendError', plan)
@@ -920,10 +949,10 @@ export default class RemoteBackend extends Backend {
   /** Gets the status of a payment checkout session.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getCheckoutSession(
-    sessionId: backendModule.CheckoutSessionId
-  ): Promise<backendModule.CheckoutSessionStatus> {
+    sessionId: backend.CheckoutSessionId
+  ): Promise<backend.CheckoutSessionStatus> {
     const path = remoteBackendPaths.getCheckoutSessionPath(sessionId)
-    const response = await this.get<backendModule.CheckoutSessionStatus>(path)
+    const response = await this.get<backend.CheckoutSessionStatus>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'getCheckoutSessionBackendError', sessionId)
     } else {
@@ -932,10 +961,10 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List events in the organization's audit log. */
-  override async getLogEvents(): Promise<backendModule.Event[]> {
+  override async getLogEvents(): Promise<backend.Event[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
-      readonly events: backendModule.Event[]
+      readonly events: backend.Event[]
     }
 
     const path = remoteBackendPaths.GET_LOG_EVENTS_PATH
@@ -949,7 +978,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Get the default version given the type of version (IDE or backend). */
-  protected async getDefaultVersion(versionType: backendModule.VersionType) {
+  protected async getDefaultVersion(versionType: backend.VersionType) {
     const cached = this.defaultVersions[versionType]
     const nowEpochMs = Number(new Date())
     if (cached != null && nowEpochMs - cached.lastUpdatedEpochMs < ONE_DAY_MS) {

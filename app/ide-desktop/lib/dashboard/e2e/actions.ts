@@ -529,6 +529,12 @@ export function locateUpsertSecretModal(page: test.Page) {
   return page.getByTestId('upsert-secret-modal')
 }
 
+/** Find a "new user group" modal (if any) on the current page. */
+export function locateNewUserGroupModal(page: test.Page) {
+  // This has no identifying features.
+  return page.getByTestId('new-user-group-modal')
+}
+
 /** Find a user menu (if any) on the current page. */
 export function locateUserMenu(page: test.Page) {
   // This has no identifying features.

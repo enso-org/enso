@@ -1,6 +1,8 @@
 /** @file A styled button. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
@@ -26,8 +28,10 @@ export interface ButtonProps {
   readonly alt?: string
   /** A title that is only shown when `disabled` is `true`. */
   readonly error?: string | null
-  readonly buttonClassName?: string
+  /** Class names for the icon itself. */
   readonly className?: string
+  /** Extra class names for the `button` element wrapping the icon. */
+  readonly buttonClassName?: string
   readonly onPress: (event: aria.PressEvent) => void
 }
 
@@ -39,8 +43,8 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     image,
     error,
     alt,
-    buttonClassName,
     className,
+    buttonClassName = '',
     ...buttonProps
   } = props
   const { isDisabled = false } = buttonProps
@@ -51,9 +55,10 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
       <aria.Button
         {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
           ref,
-          className:
-            buttonClassName ??
+          className: tailwindMerge.twMerge(
             'relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring',
+            buttonClassName
+          ),
         })}
       >
         <div

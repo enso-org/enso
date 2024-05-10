@@ -35,10 +35,7 @@ const dragPointer = usePointer(
       return
     }
 
-    if (eventType === 'start') {
-      event.stopImmediatePropagation()
-      return
-    }
+    if (eventType === 'start') return
 
     if (inputFieldActive.value || props.limits == null) return false
 
@@ -50,8 +47,7 @@ const dragPointer = usePointer(
     editedValue.value = `${newValue}`
     if (eventType === 'stop') emitUpdate()
   },
-  PointerButtonMask.Main,
-  (event) => !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey,
+  { predicate: (event) => !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey },
 )
 
 const sliderWidth = computed(() => {
