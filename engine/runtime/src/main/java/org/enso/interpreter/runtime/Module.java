@@ -43,7 +43,6 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.scope.DelayedModuleScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
@@ -458,10 +457,6 @@ public final class Module implements EnsoObject {
 
   public ModuleScope.Builder getScopeBuilder() {
     // assert !scopeBuilder.isBuilt();
-    return scopeBuilder;
-  }
-
-  public DelayedModuleScope getDelayedScope() {
     return scopeBuilder;
   }
 

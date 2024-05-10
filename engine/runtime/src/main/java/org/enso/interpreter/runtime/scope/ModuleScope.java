@@ -25,15 +25,15 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** A representation of Enso's per-file top-level scope. */
 @ExportLibrary(TypesLibrary.class)
-public final class ModuleScope implements EnsoObject, DelayedModuleScope {
+public final class ModuleScope implements EnsoObject {
   private final Type associatedType;
   private final Module module;
   private final Map<String, Object> polyglotSymbols;
   private final Map<String, Type> types;
   private final Map<Type, Map<String, Supplier<Function>>> methods;
   private final Map<Type, Map<Type, Function>> conversions;
-  private final Set<DelayedModuleScope> imports;
-  private final Set<DelayedModuleScope> exports;
+  private final Set<ModuleScope.Builder> imports;
+  private final Set<ModuleScope.Builder> exports;
 
   private static final Type noTypeKey;
 
@@ -52,8 +52,8 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
       Map<String, Type> types,
       Map<Type, Map<String, Supplier<Function>>> methods,
       Map<Type, Map<Type, Function>> conversions,
-      Set<DelayedModuleScope> imports,
-      Set<DelayedModuleScope> exports) {
+      Set<ModuleScope.Builder> imports,
+      Set<ModuleScope.Builder> exports) {
     this.module = module;
     this.associatedType = associatedType;
     this.polyglotSymbols = polyglotSymbols;
@@ -112,7 +112,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
     }
 
     return imports.stream()
-        .map(scope -> scope.force().getExportedMethod(type, name))
+        .map(scope -> scope.build().getExportedMethod(type, name))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
@@ -135,7 +135,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
       return definedHere;
     }
     return imports.stream()
-        .map(scope -> scope.force().getExportedConversion(original, target))
+        .map(scope -> scope.build().getExportedConversion(original, target))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
@@ -147,7 +147,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
       return here.get();
     }
     return exports.stream()
-        .map(scope -> scope.force().getMethodMapFor(type).get(name))
+        .map(scope -> scope.build().getMethodMapFor(type).get(name))
         .filter(Objects::nonNull)
         .map(s -> s.get())
         .findFirst()
@@ -160,7 +160,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
       return here;
     }
     return exports.stream()
-        .map(scope -> scope.force().getConversionsFor(target).get(type))
+        .map(scope -> scope.build().getConversionsFor(target).get(type))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
@@ -260,13 +260,13 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
    * @param typeNames list of types to copy to the new scope
    * @return a copy of this scope modulo the requested types
    */
-  public DelayedModuleScope withTypes(List<String> typeNames) {
+  public ModuleScope.Builder withTypes(List<String> typeNames) {
     Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
     Map<String, Type> requestedTypes = new HashMap<>(this.types);
     Map<Type, Map<String, Supplier<Function>>> methods = new ConcurrentHashMap<>();
     Map<Type, Map<Type, Function>> conversions = new ConcurrentHashMap<>();
-    Set<DelayedModuleScope> imports = new HashSet<>(this.imports);
-    Set<DelayedModuleScope> exports = new HashSet<>(this.exports);
+    Set<ModuleScope.Builder> imports = new HashSet<>(this.imports);
+    Set<ModuleScope.Builder> exports = new HashSet<>(this.exports);
     this.types
         .entrySet()
         .forEach(
@@ -289,7 +289,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
           }
         });
 
-    return new ModuleScope(
+    return new ModuleScope.Builder(
         module,
         associatedType,
         polyglotSymbols,
@@ -315,12 +315,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
     return "Scope" + module + "-" + id;
   }
 
-  @Override
-  public ModuleScope force() {
-    return this;
-  }
-
-  public static class Builder implements DelayedModuleScope {
+  public static class Builder {
 
     @CompilerDirectives.CompilationFinal private volatile ModuleScope moduleScope = null;
 
@@ -330,8 +325,8 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
     private Map<String, Type> types;
     private Map<Type, Map<String, Supplier<Function>>> methods;
     private Map<Type, Map<Type, Function>> conversions;
-    private Set<DelayedModuleScope> imports;
-    private Set<DelayedModuleScope> exports;
+    private Set<ModuleScope.Builder> imports;
+    private Set<ModuleScope.Builder> exports;
 
     public Builder(Module module) {
       this.module = module;
@@ -342,6 +337,25 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
       this.imports = new HashSet<>();
       this.exports = new HashSet<>();
       this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
+    }
+
+    public Builder(
+        Module module,
+        Type associatedType,
+        Map<String, Object> polyglotSymbols,
+        Map<String, Type> types,
+        Map<Type, Map<String, Supplier<Function>>> methods,
+        Map<Type, Map<Type, Function>> conversions,
+        Set<ModuleScope.Builder> imports,
+        Set<ModuleScope.Builder> exports) {
+      this.module = module;
+      this.associatedType = associatedType;
+      this.polyglotSymbols = polyglotSymbols;
+      this.types = types;
+      this.methods = methods;
+      this.conversions = conversions;
+      this.imports = imports;
+      this.exports = exports;
     }
 
     public Type registerType(Type type) {
@@ -452,7 +466,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
      *
      * @param scope the scope of the newly added dependency
      */
-    public void addImport(DelayedModuleScope scope) {
+    public void addImport(ModuleScope.Builder scope) {
       assert moduleScope == null;
       imports.add(scope);
     }
@@ -462,7 +476,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
      *
      * @param scope the exported scope
      */
-    public void addExport(DelayedModuleScope scope) {
+    public void addExport(ModuleScope.Builder scope) {
       assert moduleScope == null;
       exports.add(scope);
     }
@@ -487,13 +501,13 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
       return polyglotSymbols.get(symbolName);
     }
 
-    public DelayedModuleScope withTypes(List<String> typeNames) {
+    public ModuleScope.Builder withTypes(List<String> typeNames) {
       Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
       Map<String, Type> requestedTypes = new HashMap<>(this.types);
       Map<Type, Map<String, Supplier<Function>>> methods = new ConcurrentHashMap<>();
       Map<Type, Map<Type, Function>> conversions = new ConcurrentHashMap<>();
-      Set<DelayedModuleScope> imports = new HashSet<>(this.imports);
-      Set<DelayedModuleScope> exports = new HashSet<>(this.exports);
+      Set<ModuleScope.Builder> imports = new HashSet<>(this.imports);
+      Set<ModuleScope.Builder> exports = new HashSet<>(this.exports);
       this.types
           .entrySet()
           .forEach(
@@ -516,7 +530,7 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
             }
           });
 
-      return new ModuleScope(
+      return new ModuleScope.Builder(
           module,
           associatedType,
           polyglotSymbols,
@@ -552,11 +566,6 @@ public final class ModuleScope implements EnsoObject, DelayedModuleScope {
       imports = new HashSet<>();
       exports = new HashSet<>();
       moduleScope = null;
-    }
-
-    @Override
-    public ModuleScope force() {
-      return build();
     }
   }
 }
