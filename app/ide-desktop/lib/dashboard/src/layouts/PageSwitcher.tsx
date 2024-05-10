@@ -13,9 +13,9 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
-// ====================
-// === PageSwitcher ===
-// ====================
+// ============
+// === Page ===
+// ============
 
 /** Main content of the screen. Only one should be visible at a time. */
 export enum Page {
@@ -24,13 +24,9 @@ export enum Page {
   settings = 'settings',
 }
 
-/** Data describing how to display a button for a page. */
-interface PageUIData {
-  readonly page: Page
-  readonly icon: string
-  readonly nameId: Extract<text.TextId, `${Page}PageName`>
-  readonly altId: Extract<text.TextId, `${Page}PageAltText`>
-}
+// =================
+// === Constants ===
+// =================
 
 const PAGE_DATA: PageUIData[] = [
   { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName', altId: 'drivePageAltText' },
@@ -41,6 +37,22 @@ const PAGE_DATA: PageUIData[] = [
     altId: 'editorPageAltText',
   },
 ]
+
+//===================
+// === PageUIData ===
+//===================
+
+/** Data describing how to display a button for a page. */
+interface PageUIData {
+  readonly page: Page
+  readonly icon: string
+  readonly nameId: Extract<text.TextId, `${Page}PageName`>
+  readonly altId: Extract<text.TextId, `${Page}PageAltText`>
+}
+
+// ====================
+// === PageSwitcher ===
+// ====================
 
 /** Props for a {@link PageSwitcher}. */
 export interface PageSwitcherProps {
@@ -81,7 +93,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
             return (
               <UnstyledButton
                 key={pageData.page}
-                className={`flex items-center gap-icon-with-text selectable ${page === pageData.page ? 'active' : ''}`}
+                className={`flex items-center gap-icon-with-text selectable ${page === pageData.page ? 'disabled active' : ''}`}
                 isDisabled={pageData.page === Page.editor && isEditorDisabled}
                 onPress={() => {
                   setPage(pageData.page)

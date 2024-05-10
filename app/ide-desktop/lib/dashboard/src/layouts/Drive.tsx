@@ -359,12 +359,10 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.ok: {
       return (
-        <div className="relative flex grow">
+        <div className={`relative flex grow ${hidden ? 'hidden' : ''}`}>
           <div
             data-testid="drive-view"
-            className={`mt-4 flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x ${
-              hidden ? 'hidden' : ''
-            }`}
+            className="mt-4 flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x"
           >
             <DriveBar
               query={query}

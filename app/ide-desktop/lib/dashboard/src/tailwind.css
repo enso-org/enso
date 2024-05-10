@@ -477,14 +477,14 @@ body::before {
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
   tab-size: 4;
-  font-family: "M PLUS 1";
+  font-family: "Enso", "M PLUS 1";
   font-weight: 500;
   font-feature-settings: normal;
 }
 
 .enso-dashboard kbd,
 .enso-chat kbd {
-  font-family: "M PLUS 1";
+  font-family: "Enso", "M PLUS 1";
 }
 
 .enso-dashboard :focus,

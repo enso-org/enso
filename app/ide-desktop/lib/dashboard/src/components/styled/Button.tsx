@@ -18,9 +18,6 @@ export interface ButtonProps {
   readonly autoFocus?: boolean
   /** When `true`, the button is not faded out even when not hovered. */
   readonly active?: boolean
-  /** When `true`, the button is clickable, but displayed as not clickable.
-   * This is mostly useful when letting a button still be keyboard focusable. */
-  readonly softDisabled?: boolean
   /** When `true`, the button is not clickable. */
   readonly isDisabled?: boolean
   readonly image: string
@@ -36,7 +33,6 @@ export interface ButtonProps {
 function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
   const {
     active = false,
-    softDisabled = false,
     image,
     error,
     alt,
@@ -58,9 +54,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
           ),
         })}
       >
-        <div
-          className={`group flex selectable ${isDisabled || softDisabled ? 'disabled' : ''} ${active ? 'active' : ''}`}
-        >
+        <div className={`group flex selectable ${active ? 'active' : ''}`}>
           <SvgMask
             src={image}
             {...(!active && isDisabled && error != null ? { title: error } : {})}
