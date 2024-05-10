@@ -24,6 +24,7 @@ const isDropdownOpen = ref(false)
 const interaction = injectInteractionHandler()
 const dropdownInteraction: Interaction = {
   cancel: () => (isDropdownOpen.value = false),
+  end: () => (isDropdownOpen.value = false),
   pointerdown: (e: PointerEvent) => {
     if ([buttonElement.value, menuElement.value].every((area) => targetIsOutside(e, area)))
       closeDropdown()

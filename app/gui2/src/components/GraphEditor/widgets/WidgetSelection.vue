@@ -226,6 +226,7 @@ provideSelectionArrow(
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
   cancel: () => {},
+  end: () => {},
   pointerdown: (e, _) => {
     if (targetIsOutside(e, unrefElement(dropdownElement))) {
       dropDownInteraction.end()
