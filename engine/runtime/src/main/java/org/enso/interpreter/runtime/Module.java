@@ -451,17 +451,14 @@ public final class Module implements EnsoObject {
    * @return the runtime scope of this module.
    */
   public ModuleScope getScope() {
-    // assert scopeBuilder.isBuilt();
     return scopeBuilder.build();
   }
 
   public ModuleScope.Builder getScopeBuilder() {
-    // assert !scopeBuilder.isBuilt();
     return scopeBuilder;
   }
 
   public void resetScope() {
-    // TODO: enable `assert scopeBuilder.isBuilt();`?
     scopeBuilder.reset();
   }
 

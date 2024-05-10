@@ -29,9 +29,6 @@ import org.enso.pkg.QualifiedName;
 @ExportLibrary(InteropLibrary.class)
 public final class Type implements EnsoObject {
 
-  private static int lastId = 0;
-
-  private final int id;
   private final String name;
   private @CompilerDirectives.CompilationFinal ModuleScope.Builder definitionScope;
   private final boolean builtin;
@@ -49,7 +46,6 @@ public final class Type implements EnsoObject {
       Type eigentype,
       boolean builtin,
       boolean isProjectPrivate) {
-    this.id = lastId++;
     this.name = name;
     this.definitionScope = definitionScope;
     this.supertype = supertype;
@@ -125,10 +121,6 @@ public final class Type implements EnsoObject {
       throw new RuntimeException(
           "Attempting to modify scope of a non-builtin type post-construction is not allowed");
     }
-  }
-
-  public int getId() {
-    return id;
   }
 
   public String getName() {

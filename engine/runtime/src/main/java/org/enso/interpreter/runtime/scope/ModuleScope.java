@@ -37,13 +37,9 @@ public final class ModuleScope implements EnsoObject {
 
   private static final Type noTypeKey;
 
-  private static int intGen = 0;
-
   static {
     noTypeKey = Type.noType();
   }
-
-  private final int id;
 
   public ModuleScope(
       Module module,
@@ -62,7 +58,6 @@ public final class ModuleScope implements EnsoObject {
     this.conversions = conversions;
     this.imports = imports;
     this.exports = exports;
-    this.id = intGen++;
   }
 
   /**
@@ -253,53 +248,6 @@ public final class ModuleScope implements EnsoObject {
     return polyglotSymbols.get(symbolName);
   }
 
-  // FIXME: this is wrong
-  /**
-   * Create a copy of this `ModuleScope` while taking into account only the provided list of types.
-   *
-   * @param typeNames list of types to copy to the new scope
-   * @return a copy of this scope modulo the requested types
-   */
-  public ModuleScope.Builder withTypes(List<String> typeNames) {
-    Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
-    Map<String, Type> requestedTypes = new HashMap<>(this.types);
-    Map<Type, Map<String, Supplier<Function>>> methods = new ConcurrentHashMap<>();
-    Map<Type, Map<Type, Function>> conversions = new ConcurrentHashMap<>();
-    Set<ModuleScope.Builder> imports = new HashSet<>(this.imports);
-    Set<ModuleScope.Builder> exports = new HashSet<>(this.exports);
-    this.types
-        .entrySet()
-        .forEach(
-            entry -> {
-              if (typeNames.contains(entry.getKey())) {
-                requestedTypes.put(entry.getKey(), entry.getValue());
-              }
-            });
-    Collection<Type> validTypes = requestedTypes.values();
-    this.methods.forEach(
-        (tpe, meths) -> {
-          if (validTypes.contains(tpe)) {
-            methods.put(tpe, meths);
-          }
-        });
-    this.conversions.forEach(
-        (tpe, meths) -> {
-          if (validTypes.contains(tpe)) {
-            conversions.put(tpe, meths);
-          }
-        });
-
-    return new ModuleScope.Builder(
-        module,
-        associatedType,
-        polyglotSymbols,
-        requestedTypes,
-        methods,
-        conversions,
-        imports,
-        exports);
-  }
-
   @ExportMessage
   boolean hasType() {
     return true;
@@ -312,12 +260,12 @@ public final class ModuleScope implements EnsoObject {
 
   @Override
   public String toString() {
-    return "Scope" + module + "-" + id;
+    return "Scope" + module;
   }
 
   public static class Builder {
 
-    @CompilerDirectives.CompilationFinal private volatile ModuleScope moduleScope = null;
+    @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
 
     private final Module module;
     private final Type associatedType;
@@ -403,9 +351,6 @@ public final class ModuleScope implements EnsoObject {
      * @param supply provider of the {@link Function} associated with this definition
      */
     public void registerMethod(Type type, String method, Supplier<Function> supply) {
-      if (moduleScope != null) {
-        System.out.println("What module? " + module.getName());
-      }
       assert moduleScope == null;
       Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
 
@@ -501,6 +446,13 @@ public final class ModuleScope implements EnsoObject {
       return polyglotSymbols.get(symbolName);
     }
 
+    /**
+     * Create a copy of this `ModuleScope` while taking into account only the provided list of
+     * types.
+     *
+     * @param typeNames list of types to copy to the new scope
+     * @return a copy of this scope modulo the requested types
+     */
     public ModuleScope.Builder withTypes(List<String> typeNames) {
       Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
       Map<String, Type> requestedTypes = new HashMap<>(this.types);
@@ -543,16 +495,20 @@ public final class ModuleScope implements EnsoObject {
 
     public ModuleScope build() {
       if (moduleScope == null) {
-        moduleScope =
-            new ModuleScope(
-                module,
-                associatedType,
-                polyglotSymbols,
-                types,
-                methods,
-                conversions,
-                imports,
-                exports);
+        synchronized (this) {
+          if (moduleScope == null) {
+            moduleScope =
+                new ModuleScope(
+                    module,
+                    associatedType,
+                    polyglotSymbols,
+                    types,
+                    methods,
+                    conversions,
+                    imports,
+                    exports);
+          }
+        }
       }
       return moduleScope;
     }
@@ -566,6 +522,10 @@ public final class ModuleScope implements EnsoObject {
       imports = new HashSet<>();
       exports = new HashSet<>();
       moduleScope = null;
+    }
+
+    public boolean isBuilt() {
+      return moduleScope != null;
     }
   }
 }
