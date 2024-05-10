@@ -16,8 +16,6 @@ import * as backendModule from '#/services/Backend'
 // === Constants ===
 // =================
 
-/** The horizontal offset of the editor's top bar from the left edge of the window. */
-const TOP_BAR_X_OFFSET_PX = 96
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'app'
 const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
@@ -129,7 +127,7 @@ export default function Editor(props: EditorProps) {
                     displayedProjectName: project.name,
                   },
                   window: {
-                    topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+                    topBarOffset: '0',
                   },
                 },
                 accessToken,

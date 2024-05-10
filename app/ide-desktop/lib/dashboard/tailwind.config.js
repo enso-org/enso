@@ -1,11 +1,6 @@
-;
 /** @file Configuration for Tailwind. */
-import reactAriaComponents from 'tailwindcss-react-aria-components';
-import plugin from 'tailwindcss/plugin.js';
-
-
-
-
+import reactAriaComponents from 'tailwindcss-react-aria-components'
+import plugin from 'tailwindcss/plugin.js'
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
@@ -216,7 +211,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'user-bar': 'var(--user-bar-gap)',
         'top-bar': 'var(--top-bar-gap)',
         'top-bar-right': 'var(--top-bar-right-gap)',
-        pages: 'var(--pages-gap)',
         auth: 'var(--auth-gap)',
         'auth-link': 'var(--auth-link-gap)',
         'drive-sidebar': 'var(--drive-sidebar-gap)',
@@ -317,7 +311,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'news-item-description': 'var(--news-item-description-padding)',
         'news-item-subtitle-y': 'var(--news-item-subtitle-padding-y)',
         'font-awesome-icon-x': 'var(--font-awesome-icon-padding-x)',
-        'page-switcher-x': 'var(--page-switcher-padding-x)',
         'search-suggestions': 'var(--search-suggestions-padding)',
         'search-suggestion-y': 'var(--search-suggestion-padding-y)',
         'side-panel-heading-y': 'var(--side-panel-heading-padding-y)',
@@ -455,6 +448,9 @@ inset 0 -36px 51px -51px #00000014`,
           '.pointer-events-none-recursive': {
             pointerEvents: 'none',
             '*': { pointerEvents: 'none' },
+          },
+          '.clip-path-0': {
+            clipPath: 'inset(0)',
           },
           '.clip-path-top': {
             clipPath: 'polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px))',

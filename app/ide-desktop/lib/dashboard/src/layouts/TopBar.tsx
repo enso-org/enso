@@ -34,21 +34,19 @@ export default function TopBar(props: TopBarProps) {
   const remoteBackend = backendProvider.useRemoteBackend()
 
   return (
-    <div className="p-top-bar h-12 w-full bg-primary/5 pb">
-      <div className="relative z-1 flex gap-top-bar">
-        <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-        <UserBar
-          backend={remoteBackend}
-          page={page}
-          setPage={setPage}
-          isHelpChatOpen={isHelpChatOpen}
-          setIsHelpChatOpen={setIsHelpChatOpen}
-          projectAsset={projectAsset}
-          setProjectAsset={setProjectAsset}
-          doRemoveSelf={doRemoveSelf}
-          onSignOut={onSignOut}
-        />
-      </div>
+    <div className="flex">
+      <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
+      <UserBar
+        backend={remoteBackend}
+        page={page}
+        setPage={setPage}
+        isHelpChatOpen={isHelpChatOpen}
+        setIsHelpChatOpen={setIsHelpChatOpen}
+        projectAsset={projectAsset}
+        setProjectAsset={setProjectAsset}
+        doRemoveSelf={doRemoveSelf}
+        onSignOut={onSignOut}
+      />
     </div>
   )
 }

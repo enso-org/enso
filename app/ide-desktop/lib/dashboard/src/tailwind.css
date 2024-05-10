@@ -7,6 +7,7 @@
 @tailwind utilities;
 
 :root {
+  --top-bar-height: 3rem;
   --row-height: 2rem;
   --page-padding-x: 0.8125rem;
   /* The height of the main heading of a page. */
@@ -38,7 +39,6 @@
   --icon-with-text-gap: 0.5rem;
   /* The horizontal gap between an input and its associated submit button. */
   --input-with-button-gap: 0.25rem;
-  --pages-gap: 1rem;
   /* The vertical gap between the drive heading and the rest of the drive page. */
   --drive-heading-gap: 0.625rem;
   /* The horizontal gap between the drive sidebar and the asset tree. */
@@ -130,7 +130,6 @@
   /* The horizontal gap between the arrow of a dropdown and the label of the current item. */
   --dropdown-arrow-gap: 0.25rem;
   --dropdown-items-height: 15rem;
-  --page-switcher-padding-x: 0.625rem;
   --selection-brush-corner-radius: 0.5rem;
   /* This MUST be in `px` as `border-width` does not understand `rem`. */
   --selection-brush-border-width: 6px;
@@ -477,14 +476,14 @@ body::before {
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
   tab-size: 4;
-  font-family: "Enso", "M PLUS 1";
+  font-family: "M PLUS 1";
   font-weight: 500;
   font-feature-settings: normal;
 }
 
 .enso-dashboard kbd,
 .enso-chat kbd {
-  font-family: "Enso", "M PLUS 1";
+  font-family: "M PLUS 1";
 }
 
 .enso-dashboard :focus,

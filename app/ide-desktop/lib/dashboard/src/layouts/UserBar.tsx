@@ -70,7 +70,7 @@ export default function UserBar(props: UserBarProps) {
     <FocusArea active={!invisible} direction="horizontal">
       {innerProps => (
         <div
-          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full px-icons-x"
+          className="pointer-events-auto flex h-12 shrink-0 cursor-default items-center gap-user-bar bg-primary/5 px-icons-x"
           {...innerProps}
         >
           <Button

@@ -1,6 +1,8 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
+import clsx from 'clsx'
+
 import DriveIcon from 'enso-assets/drive.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
@@ -67,6 +69,9 @@ export default function PageSwitcher(props: PageSwitcherProps) {
   const { getText } = textProvider.useText()
   const selectedChildIndexRef = React.useRef(0)
   const lastChildIndexRef = React.useRef(0)
+  const pageIndexRaw = PAGE_DATA.findIndex(pageData => page === pageData.page)
+  const pageIndex = pageIndexRaw === -1 ? null : pageIndexRaw
+  const isLastPageSelected = pageIndexRaw === PAGE_DATA.length - 1
 
   React.useEffect(() => {
     selectedChildIndexRef.current = PAGE_DATA.findIndex(data => data.page === page)
@@ -84,26 +89,38 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className={`pointer-events-auto flex shrink-0 grow cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
-            page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
-          }`}
+          className="pointer-events-auto flex h-12 shrink-0 grow cursor-default items-center rounded-full"
           {...innerProps}
         >
-          {PAGE_DATA.map(pageData => {
+          {PAGE_DATA.map((pageData, i) => {
+            const active = page === pageData.page
             return (
-              <UnstyledButton
+              <div
                 key={pageData.page}
-                className={`flex items-center gap-icon-with-text selectable ${page === pageData.page ? 'disabled active' : ''}`}
-                isDisabled={pageData.page === Page.editor && isEditorDisabled}
-                onPress={() => {
-                  setPage(pageData.page)
-                }}
+                className={clsx(
+                  'h-full px-4',
+                  page !== pageData.page && 'bg-primary/5 hover:enabled:bg-primary/[2.5%]',
+                  active && 'clip-path-0 rounded-t-3xl outline outline-[1rem] outline-primary/5',
+                  pageIndex != null && i === pageIndex + 1 && 'rounded-bl-3xl',
+                  pageIndex != null && i === pageIndex - 1 && 'rounded-br-3xl'
+                )}
               >
-                <SvgMask src={pageData.icon} alt={getText(pageData.altId)} />
-                <aria.Text className="text">{getText(pageData.nameId)}</aria.Text>
-              </UnstyledButton>
+                <UnstyledButton
+                  className={`flex h-full items-center gap-icon-with-text px-4 selectable ${active ? 'disabled active' : ''}`}
+                  isDisabled={pageData.page === Page.editor && isEditorDisabled}
+                  onPress={() => {
+                    setPage(pageData.page)
+                  }}
+                >
+                  <SvgMask src={pageData.icon} alt={getText(pageData.altId)} />
+                  <aria.Text className="text">{getText(pageData.nameId)}</aria.Text>
+                </UnstyledButton>
+              </div>
             )
           })}
+          <div
+            className={`h-full grow bg-primary/5 ${isLastPageSelected ? 'rounded-bl-3xl' : ''}`}
+          />
         </div>
       )}
     </FocusArea>
