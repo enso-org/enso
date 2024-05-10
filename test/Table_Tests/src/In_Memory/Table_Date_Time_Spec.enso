@@ -30,8 +30,8 @@ add_specs suite_builder =
     suite_builder.group "File.read (Delimited) should work with Date_Time" group_builder->
         group_builder.specify "should be able to read in a table with dates" <|
             data.table.column_count.should_equal 3
-            data.table.info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting date']
-            data.table.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Date_Time]
+            data.table.column_info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting date']
+            data.table.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Date_Time]
             data.table.row_count.should_equal 6
 
         group_builder.specify "should be able to treat a single value as a Date_Time" <|

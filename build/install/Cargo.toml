@@ -1,0 +1,46 @@
+[package]
+name = "enso-install"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = { workspace = true }
+dirs = { workspace = true }
+enso-build-base = { path = "../base" }
+enso-install-config = { path = "config" }
+flate2 = { workspace = true }
+ide-ci = { path = "../ci_utils" }
+indicatif = { workspace = true }
+named-lock = "0.4.1"
+self-replace = "1.3.7"
+serde_json = { workspace = true }
+strum = { workspace = true }
+sysinfo = { workspace = true }
+tar = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+windows = { version = "0.53.0", features = [
+    "Win32",
+    "Win32_UI",
+    "Win32_UI_Shell",
+    "Win32_System",
+    "Win32_System_LibraryLoader",
+    "Win32_Foundation",
+    "Win32_System_Com",
+] }
+
+[target.'cfg(windows)'.dependencies]
+mslnk = "0.1.8"
+native-windows-gui = { workspace = true }
+winreg = { workspace = true }
+
+[build-dependencies]
+embed-resource = "2.4.0"
+ide-ci = { path = "../ci_utils" }
+enso-install-config = { path = "config" }
+
+[lints]
+workspace = true

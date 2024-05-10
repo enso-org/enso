@@ -23,7 +23,6 @@ read_column result_set column_name =
                 @Tail_Call go result_set.next
 
             go result_set.next
-            builder
 
 ## PRIVATE
    Converts a ResultSet into a Table.

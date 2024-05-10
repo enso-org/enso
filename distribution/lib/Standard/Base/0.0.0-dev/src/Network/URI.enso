@@ -3,8 +3,8 @@ import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
-import project.Data.Text.Text
 import project.Data.Text.Extensions
+import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
@@ -24,8 +24,8 @@ from project.Enso_Cloud.Enso_Secret import as_hideable_value
 from project.Widget_Helpers import make_text_secret_selector
 
 polyglot java import java.net.URI as Java_URI
-polyglot java import java.net.URLEncoder
 polyglot java import java.net.URISyntaxException
+polyglot java import java.net.URLEncoder
 polyglot java import org.enso.base.enso_cloud.EnsoSecretAccessDenied
 polyglot java import org.enso.base.net.URITransformer
 polyglot java import org.enso.base.net.URIWithSecrets

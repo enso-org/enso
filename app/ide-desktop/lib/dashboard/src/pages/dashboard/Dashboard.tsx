@@ -118,13 +118,14 @@ export interface DashboardProps {
   readonly appRunner: AppRunner
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
+  readonly ydocUrl: string | null
   readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
   const { supportsLocalBackend, appRunner, initialProjectName } = props
-  const { projectManagerUrl, projectManagerRootDirectory } = props
+  const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -423,7 +424,7 @@ export default function Dashboard(props: DashboardProps) {
         templateId,
         datalinkId: null,
         preferredName: templateName,
-        onSpinnerStateChange: onSpinnerStateChange,
+        onSpinnerStateChange,
       })
     },
     [
@@ -505,7 +506,6 @@ export default function Dashboard(props: DashboardProps) {
             page={page}
             setPage={setPage}
             isEditorDisabled={projectStartupInfo == null}
-            isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             setBackendType={setBackendType}
             query={query}
@@ -546,6 +546,7 @@ export default function Dashboard(props: DashboardProps) {
           <Editor
             hidden={page !== pageSwitcher.Page.editor}
             supportsLocalBackend={supportsLocalBackend}
+            ydocUrl={ydocUrl}
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />

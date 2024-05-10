@@ -20,6 +20,7 @@ import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
@@ -29,7 +30,7 @@ import * as backendModule from '#/services/Backend'
 // =================
 
 /** The minimum width of the input for adding a new email. */
-const MIN_EMAIL_INPUT_WIDTH = 120
+const MIN_EMAIL_INPUT_WIDTH = 128
 
 // =============
 // === Email ===
@@ -55,15 +56,16 @@ function Email(props: InternalEmailProps) {
         isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
       }`}
     >
-      <aria.Text {...focusChildProps}>{email}</aria.Text>{' '}
-      <img
-        {...aria.mergeProps<JSX.IntrinsicElements['img']>()(focusChildProps, {
+      <span {...focusChildProps}>{email}</span>{' '}
+      <div
+        {...aria.mergeProps<JSX.IntrinsicElements['div']>()(focusChildProps, {
           role: 'button',
-          className: 'cursor-pointer rounded-full hover:brightness-50',
-          src: CrossIcon,
+          className: 'flex cursor-pointer rounded-full transition-colors hover:bg-primary/10',
           onClick: doDelete,
         })}
-      />
+      >
+        <SvgMask src={CrossIcon} />
+      </div>
     </div>
   )
 }
@@ -133,20 +135,19 @@ function EmailInput(props: InternalEmailInputProps) {
 
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
-  /** If this is `null`, this modal will be centered. */
-  readonly eventTarget: HTMLElement | null
+  /** If this is absent, this modal will be centered. */
+  readonly event?: Pick<React.MouseEvent, 'pageX' | 'pageY'>
 }
 
 /** A modal for inviting one or more users. */
 export default function InviteUsersModal(props: InviteUsersModalProps) {
-  const { eventTarget } = props
+  const { event: positionEvent } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState<string[]>([])
-  const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
   const existingEmails = React.useMemo(
     () => new Set(members.map<string>(member => member.email)),
@@ -182,16 +183,12 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
 
   return (
     <Modal
-      centered={eventTarget == null}
+      centered={positionEvent == null}
       className="absolute left top size-full overflow-hidden bg-dim"
     >
       <div
         tabIndex={-1}
-        style={
-          position != null
-            ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
-            : {}
-        }
+        style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
         className="sticky w-invite-users-modal rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={mouseEvent => {
           mouseEvent.stopPropagation()
@@ -216,7 +213,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           >
             <FocusArea direction="horizontal">
               {innerProps => (
-                <aria.TextField
+                <div
                   className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input"
                   {...innerProps}
                 >
@@ -242,7 +239,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                       setNewEmails(emails => emails.slice(0, -1))
                     }}
                   />
-                </aria.TextField>
+                </div>
               )}
             </FocusArea>
           </form>

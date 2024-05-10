@@ -42,6 +42,7 @@ public final class PrivateConstructorAnalysis implements IRPass {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Seq<IRPass> invalidatedPasses() {
     Object obj = scala.collection.immutable.Nil$.MODULE$;
     return (scala.collection.immutable.List<IRPass>) obj;

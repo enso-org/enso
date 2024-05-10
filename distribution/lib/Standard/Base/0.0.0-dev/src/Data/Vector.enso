@@ -433,8 +433,9 @@ type Vector a
          Finding a first element of the vector that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
+    @condition Filter_Condition.default_widget
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
+    find self (condition : Filter_Condition | (Any -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         Array_Like_Helpers.find self condition start if_missing
 
     ## GROUP Values
@@ -457,6 +458,7 @@ type Vector a
          Find the index of the first palindrome.
 
              ["ab", "abab", "aba", "bbb"].index_of (s-> s == s.reverse) == 2
+    @condition Filter_Condition.default_widget
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     index_of self condition (start : Integer = 0) =
         Array_Like_Helpers.index_of self condition start
@@ -481,6 +483,7 @@ type Vector a
          Find the index of the last palindrome.
 
              ["ab", "abab", "aba", "bbb"].last_index_of (s-> s == s.reverse) == 3
+    @condition Filter_Condition.default_widget
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self condition (start : Integer = -1) =
         Array_Like_Helpers.last_index_of self condition start
@@ -502,8 +505,9 @@ type Vector a
          Checking if any element of the vector is even.
 
              [1, 2, 3, 4, 5].any (x-> x%2 == 0)
+    @condition Filter_Condition.default_widget
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self condition =
+    any self (condition : Filter_Condition | (Any -> Boolean)) =
         Array_Like_Helpers.any self condition
 
     ## GROUP Logical
@@ -523,8 +527,9 @@ type Vector a
          Check if all elements in the vector are even.
 
              [-1, 1, 5, 8].all (x-> x%2 == 0)
+    @condition Filter_Condition.default_widget
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    all self condition =
+    all self (condition : Filter_Condition | (Any -> Boolean)) =
         Array_Like_Helpers.all self condition
 
     ## GROUP Logical
@@ -578,8 +583,9 @@ type Vector a
 
              [1, 2, 3, 4, 5].filter (> 3)
              [1, 2, 3, 4, 5].filter (Filter_Condition.Greater than=3)
+    @filter Filter_Condition.default_widget
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
-    filter self filter =
+    filter self (filter : Filter_Condition | (Any -> Boolean)) =
         Array_Like_Helpers.filter self filter
 
     ## GROUP Selections
@@ -624,8 +630,9 @@ type Vector a
          Splitting a vector into even and odd elements.
 
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
+    @condition Filter_Condition.default_widget
     partition : (Filter_Condition | (Any -> Boolean)) -> Pair (Vector Any) (Vector Any)
-    partition self condition =
+    partition self (condition : Filter_Condition | (Any -> Boolean)) =
         Array_Like_Helpers.partition self condition
 
     ## ICON preparation
@@ -1264,6 +1271,14 @@ type Builder
        number of elements and then convert them to a vector. This is
        particularly useful when the number of elements is not known upfront.
 
+       There are two ways to create and use a `Builder`: `Vector.new_builder`
+       and `Vector.build`. `.build` is the preferred approach.
+       - `Vector.new_builder`: creates a new `Builder`, which you have to
+         "close" with `.to_vector` at the end to get your newly-created
+         `Vector`.
+       - `Vector.build`: takes a function which uses the `Builder`, and
+         automatically "closes" and returns the newly-created `Vector`.
+
        ! Error Conditions
 
          - If  an uncaught dataflow error is appended with `append` or
@@ -1297,6 +1312,18 @@ type Builder
     new : Integer -> Builder
     new (capacity : Integer = 10) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
 
+    ## GROUP Logical
+       ICON metadata
+       Checks if this builder is not empty.
+    not_empty : Boolean
+    not_empty self = self.is_empty.not
+
+    ## GROUP Metadata
+       ICON metadata
+       Gets the current length of the builder.
+    length : Integer
+    length self = self.java_builder.getSize
+
     ## ICON join
        Appends a new element into this builder, propagating any
        errors that the provided element could have contained.
@@ -1309,6 +1336,9 @@ type Builder
          If the value to be appended is an uncaught dataflow error, it is thrown
          by the containing invocation of `Vector.build`.  The error is not added
          to the builder.
+
+         If an uncaught dataflow error is appended with `append`, the dataflow
+         error is propagated, and it is not added to the builder.
 
        > Example
          Append three items.
@@ -1435,6 +1465,212 @@ type Builder
        Checks if this builder is empty.
     is_empty : Boolean
     is_empty self = self.elements_java_builder.isEmpty
+
+       Arguments:
+       - condition: A `Filter_Condition` or a function that takes a vector
+         element and returns a boolean value that says whether that value
+         satisfies a condition.
+    @condition Filter_Condition.default_widget
+    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    any self (condition : Filter_Condition | (Any -> Boolean)) =
+        predicate = unify_condition_or_predicate condition
+        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
+
+    to_vector : Vector Any
+    to_vector self =
+        ## This creates a fresh copy of the builders storage, so any future
+           changes to the builder will not affect the returned vector.
+
+           This also reattaches any warnings that were attached to the added
+           values. It attaches them to the whole array, not the individual
+           values.
+        warnings_vector = Vector.from_polyglot_array self.warnings_java_builder.toArray
+        Warning.attach_multiple warnings_vector <|
+            Vector.from_polyglot_array self.elements_java_builder.toArray
+
+## PRIVATE
+type Build_Style_Builder
+    ## PRIVATE
+
+       A builder type for Enso vectors.
+
+       `Build_Style_Builder` is for use with `Vector.build`, rather than the
+       deprecated `Vector.new_builder`.
+
+       Arguments:
+       - elements_java_builder: The accumulator for the new vector.
+       - warnings_java_builder: The accumulator for `Warning`s that were
+         attached to values added to the builder.
+
+       A vector builder is a mutable data structure, that allows to gather a
+       number of elements and then convert them to a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       ! Error Conditions
+
+         - If  an uncaught dataflow error is appended with `append` or
+           `append_vector_range`, an internal panic is thrown, aborting the
+           builder callback that attempted to add the error to the builder. This
+           internal panic is caught by `Vector.build`, which then propagates the
+           dataflow error. The vector is not built.
+
+         - If a dataflow error is thrown from the builder callback, it is
+           propagated by `Vector.build`. The vector is not built.
+
+         - If a value with an attached warning is added to the builder, the
+           vector is built, and the resulting `Vector` keeps the attached
+           warning.
+
+       > Example
+         Append three items.
+
+             Vector.build builder->
+                 builder.append 1
+                 builder.append 2
+                 builder.append 3
+             # => [1, 2, 3]
+    private Value elements_java_builder warnings_java_builder
+
+    ## PRIVATE
+       Creates a new builder.
+
+       Arguments:
+       - capacity: Initial capacity of the Vector.Builder
+    new : Integer -> Build_Style_Builder 
+    new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
+
+    ## ICON join
+       Appends a new element into this builder, propagating any
+       errors that the provided element could have contained.
+
+       Arguments:
+       - item: The item to append to the vector builder.
+
+       ? Appending Dataflow Errors
+
+         If the value to be appended is an uncaught dataflow error, it is thrown
+         by the containing invocation of `Vector.build`.  The error is not added
+         to the builder.
+
+       > Example
+         Append three items.
+
+             Vector.build builder->
+                 builder.append 1
+                 builder.append 2
+                 builder.append 3
+             # => [1, 2, 3]
+    append : Any ! Error -> Nothing ! Error
+    append self (item : Any ! Error) -> Nothing ! Error =
+        Panic.rethrow_wrapped_if_error <|
+            item.if_not_error <|
+                self.unsafe_append item
+                self.add_warnings item
+                Nothing
+
+    ## ICON join
+       Appends a part of a given vector to this builder, propagating any errors
+       that the provided elements could have contained.
+
+       Arguments:
+       - vector: The vector from which the elements are sourced.
+       - start: The start index of the range to append.
+       - end: The end index (the first index after the last element to be
+         appended) of the range to be appended.
+
+       ? Appending Dataflow Errors
+
+         If any of the values to be appended are uncaught dataflow errors, the
+         first one is thrown by the containing invocation of Vector.build`. No
+         values are added to the builder.
+
+       > Example
+         Append a vector.
+
+            Vector.build builder->
+                builder.append_vector_range [1, 2]
+            # => [1, 2]
+
+       > Example
+         Append a part of a vector.
+
+             Vector.build builder->
+                 builder.append_vector_range [20, 30, 40, 50] 1 3
+             # => [30, 40]
+    append_vector_range : Vector Any ! Error -> Integer -> Integer -> Nothing ! Error
+    append_vector_range self vector (start : Integer = 0) end=vector.length -> Nothing ! Error =
+        subrange = vector.slice start end
+        first_dataflow_error = subrange.find (x-> x.is_error) if_missing=Nothing
+        Panic.rethrow_wrapped_if_error <|
+            first_dataflow_error.if_not_error <|
+                append_result = self.elements_java_builder.appendTo subrange
+                assert (append_result.is_error.not)
+                self.add_warnings subrange
+                Nothing
+
+    ## PRIVATE
+       Save any attached warnings in self.warnings_java_builder.
+    add_warnings : Any -> Nothing
+    add_warnings self x -> Nothing =
+        warnings = Warning.get_all x . map .value
+        append_result = self.warnings_java_builder.appendTo warnings
+        assert (append_result.is_error.not)
+        Nothing
+
+    ## PRIVATE
+       Appends a new element into this builder.
+
+       ? Propagating Dataflow Errors
+
+         Since this is an imperative operation which returns Nothing, if the
+         item to be appended contained a dataflow error, the operation will fail
+         and unless its result is inspected, the error can very easily be
+         ignored. To avoid this, prefer to use the `append` operation which will
+         ensure that dataflow errors are propagated, and not added to the
+         `Builder`.`
+
+       Arguments:
+       - item: The item to append to the vector builder.
+    unsafe_append : Any -> Nothing
+    unsafe_append self item = self.elements_java_builder.add item
+
+    ## GROUP Selections
+       ICON select_row
+       Gets an element from the vector builder at a specified index (0-based).
+
+       Arguments:
+       - index: The location in the vector to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the vector, i.e. -1 will correspond to the last element.
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        actual_index = if index < 0 then self.length + index else index
+        Panic.catch IndexOutOfBoundsException (self.elements_java_builder.get actual_index) _->
+            Error.throw (Index_Out_Of_Bounds.Error index self.length)
+
+    ## GROUP Selections
+       ICON select_row
+       Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
+       is empty.
+
+       > Example
+         The following code returns 1.
+
+             [1, 2, 3, 4].first
+    first : Vector ! Index_Out_Of_Bounds
+    first self = self.at 0
+
+    ## GROUP Selections
+       ICON select_row
+       Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
+       empty.
+
+       > Example
+         The following code returns 4.
+
+             [1, 2, 3, 4].last
+    last : Vector ! Index_Out_Of_Bounds
+    last self = self.at -1
 
     ## GROUP Metadata
        ICON metadata

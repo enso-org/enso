@@ -153,7 +153,7 @@ describe('Non dictated placement', () => {
       pos: new Vec2(1090, 1531),
       pan: new Vec2(0, 841),
     },
-  ])('$desc', ({ nodes, pos, gap, pan }) => {
+  ])('$desc', ({ nodes, pos, gap }) => {
     expect(
       nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes), new Vec2(gap ?? 24, gap ?? 24)),
     ).toEqual(pos)
@@ -335,7 +335,7 @@ describe('Previous node dictated placement', () => {
       pos: new Vec2(2071, 734),
       pan: new Vec2(981, 44),
     },
-  ])('$desc', ({ nodes, gap, pos, pan }) => {
+  ])('$desc', ({ nodes, gap, pos }) => {
     expect(
       previousNodeDictatedPlacement(
         nodeSize,

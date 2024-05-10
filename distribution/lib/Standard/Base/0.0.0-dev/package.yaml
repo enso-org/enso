@@ -10,22 +10,22 @@ maintainers:
     email: contact@enso.org
 component-groups:
   new:
-    - Input: {}
-    - Constants: {}
-    - Metadata: {}
-    - Output: {}
-    - Calculations: {}
-    - Statistics: {}
-    - Selections: {}
-    - Conversions: {}
-    - Values: {}
-    - Math: {}
-    - Rounding: {}
-    - Trigonometry: {}
-    - Random: {}
-    - Bitwise: {}
-    - Text: {}
-    - DateTime: {}
-    - Logical: {}
-    - Operators: {}
-    - Errors: {}
+    - Input: { color: oklch(0.545 0.14 170) }
+    - Constants: { color: oklch(0.545 0.14 145) }
+    - Metadata: { color: oklch(0.545 0.14 120) }
+    - Output: { color: oklch(0.545 0.14 60) }
+    - Calculations: { color: oklch(0.545 0.14 230) }
+    - Statistics: { color: oklch(0.545 0.14 230) }
+    - Selections: { color: oklch(0.545 0.14 325) }
+    - Conversions: { color: oklch(0.545 0.14 40) }
+    - Values: { color: oklch(0.545 0.14 275) }
+    - Math: { color: oklch(0.545 0.14 300) }
+    - Rounding: { color: oklch(0.545 0.14 300) }
+    - Trigonometry: { color: oklch(0.545 0.14 300) }
+    - Random: { color: oklch(0.545 0.14 145) }
+    - Bitwise: { color: oklch(0.545 0.14 300) }
+    - Text: { color: oklch(0.545 0.14 290) }
+    - DateTime: { color: oklch(0.545 0.14 295) }
+    - Logical: { color: oklch(0.545 0.14 300) }
+    - Operators: { color: oklch(0.545 0.14 275) }
+    - Errors: { color: oklch(0.545 0.14 15) }

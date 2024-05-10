@@ -17,6 +17,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
+import Button from '#/components/styled/Button'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
@@ -51,7 +52,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-  const isCloud = backend.type === backendModule.BackendType.remote
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -64,7 +64,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       setIsEditing(false)
       if (string.isWhitespaceOnly(newTitle)) {
         // Do nothing.
-      } else if (isCloud && newTitle !== asset.title) {
+      } else if (newTitle !== asset.title) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
@@ -159,14 +159,13 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <SvgMask
-        src={FolderArrowIcon}
+      <Button
+        image={FolderArrowIcon}
         alt={item.children == null ? getText('expand') : getText('collapse')}
         className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
           item.children != null ? 'rotate-90' : ''
         }`}
-        onClick={event => {
-          event.stopPropagation()
+        onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
       />

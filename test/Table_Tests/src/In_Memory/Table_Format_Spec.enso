@@ -101,11 +101,11 @@ add_specs suite_builder =
             actual.at "times" . should_equal expected_times
             check_unchanged data.table actual ["bools", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
 
-        group_builder.specify "Date and Date_Time, with Nothing format" <|
+        group_builder.specify "Date and Date_Time, with no format provided" <|
             expected_dates = Column.from_vector "dates" ["2020-12-21", "2023-04-25"]
             expected_datetimes = Column.from_vector "datetimes" ['2020-01-10 03:04:05Z[UTC]', '2020-08-08 05:06:07Z[UTC]']
             expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]
-            actual = data.table.format ["dates", "datetimes", "times"] Nothing
+            actual = data.table.format ["dates", "datetimes", "times"]
             actual.column_names . should_equal data.table.column_names
             actual.at "dates" . should_equal expected_dates
             actual.at "datetimes" . should_equal expected_datetimes
@@ -134,9 +134,9 @@ add_specs suite_builder =
             actual.at "bools" . should_equal expected_bools
             check_unchanged data.table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
 
-        group_builder.specify "Booleans, with format Nothing format" <|
+        group_builder.specify "Booleans, with no format provided" <|
             expected_bools = Column.from_vector "bools" ["True", "False"]
-            actual = data.table.format ["bools"] Nothing
+            actual = data.table.format ["bools"]
             actual.column_names . should_equal data.table.column_names
             actual.at "bools" . should_equal expected_bools
             check_unchanged data.table actual ["dates", "datetimes", "times", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
@@ -169,10 +169,10 @@ add_specs suite_builder =
             actual.at "floats" . should_equal expected_floats
             check_unchanged data.table actual ["dates", "datetimes", "times", "bools", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
 
-        group_builder.specify "Ints and floats, with Nothing format" <|
+        group_builder.specify "Ints and floats, with no format provided" <|
             expected_ints = Column.from_vector "ints" ["100000000", "2222"]
             expected_floats = Column.from_vector "floats" ['2.000000009E8', '4444.3']
-            actual = data.table.format ["ints", "floats"] Nothing
+            actual = data.table.format ["ints", "floats"]
             actual.column_names . should_equal data.table.column_names
             actual.at "ints" . should_equal expected_ints
             actual.at "floats" . should_equal expected_floats

@@ -141,7 +141,7 @@ public class ConversionMethodTests extends TestBase {
       Value res = evalModule(ctx, src);
       fail("Expected an exception, but got " + res);
     } catch (Exception e) {
-      assertEquals("Compilation aborted due to errors.", e.getMessage());
+      MatcherAssert.assertThat(e.getMessage(), Matchers.containsString("Ambiguous conversion:"));
       MatcherAssert.assertThat(
           getStdOut(),
           Matchers.containsString(
