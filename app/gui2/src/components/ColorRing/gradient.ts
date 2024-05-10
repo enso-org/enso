@@ -94,13 +94,14 @@ export function cssAngularColorStop({ hue, angle, angle2 }: GradientPoint) {
 
 export function gradientPoints(
   inputRanges: Iterable<FixedRange>,
-  minStops: number,
+  minStops?: number | undefined,
 ): GradientPoint[] {
   const points = new Array<GradientPoint>()
   const interpolationPoint = (angle: number) => ({ hue: angle, angle })
   const fixedRangeIter = new Resumable(inputRanges)
-  for (let i = 0; i < minStops; i++) {
-    const angle = i / (minStops - 1)
+  const min = Math.max(3, Math.round(minStops ?? 0))
+  for (let i = 0; i < min; i++) {
+    const angle = i / (min - 1)
     fixedRangeIter.advanceWhile((range) => range.end < angle)
     const nextFixedRange = fixedRangeIter.peek()
     if (!nextFixedRange || nextFixedRange.start > angle) points.push(interpolationPoint(angle))

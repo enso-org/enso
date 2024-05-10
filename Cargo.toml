@@ -12,6 +12,10 @@ members = [
     "build/macros/proc-macro",
     "build/ci-gen",
     "build/cli",
+    "build/install",
+    "build/install/config",
+    "build/install/installer",
+    "build/install/uninstaller",
     "lib/rust/*",
     "lib/rust/parser/doc-parser",
     "lib/rust/parser/src/syntax/tree/visitor",
@@ -89,23 +93,38 @@ blocks_in_conditions = "allow" # Until the issue is fixed: https://github.com/ru
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
 # with the core development team. Thank you!
+chrono = { version = "0.4.31", features = ["serde"] }
 clap = { version = "4.5.4", features = ["derive", "env", "wrap_help", "string"] }
 derive-where = "1.2.7"
+directories = { version = "5.0.1" }
 dirs = { version = "5.0.1" }
+flate2 = { version = "1.0.28" }
+indicatif = { version = "0.17.7", features = ["tokio"] }
+multimap = { version = "0.9.1" }
+native-windows-gui = { version = "1.0.13" }
+nix = { version = "0.27.1" }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
     "rustls",
 ] }
+path-absolutize = "3.1.1"
 platforms = { version = "3.2.0", features = ["serde"] }
 portpicker = { version = "0.1.1" }
 regex = { version = "1.6.0" }
 serde = { version = "1.0.130", features = ["derive", "rc"] }
 serde_yaml = { version = "0.9.16" }
+sha2 = { version = "0.10.8" }
 sysinfo = { version = "0.30.7" }
-tokio = { version = "1.23.0", features = ["full", "tracing"] }
-tokio-stream = { version = "0.1.12", features = ["fs"] }
-tokio-util = { version = "0.7.4", features = ["full"] }
+tar = { version = "0.4.40" }
+tokio = { version = "1.37.0", features = ["full", "tracing"] }
+tokio-stream = { version = "0.1.15", features = ["fs"] }
+tokio-util = { version = "0.7.10", features = ["full"] }
+tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+walkdir = { version = "2.5.0" }
 wasm-bindgen = { version = "0.2.92", features = [] }
 wasm-bindgen-test = { version = "0.3.34" }
+windows = { version = "0.52.0", features = ["Win32", "Win32_UI", "Win32_UI_Shell", "Win32_System", "Win32_System_LibraryLoader", "Win32_Foundation", "Win32_System_Com"] }
+winreg = { version = "0.52.0" }
 anyhow = { version = "1.0.66" }
 failure = { version = "0.1.8" }
 derive_more = { version = "0.99" }

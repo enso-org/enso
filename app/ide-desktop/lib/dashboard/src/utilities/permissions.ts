@@ -239,17 +239,10 @@ export const DEFAULT_PERMISSIONS: Permissions = Object.freeze({
 export function tryGetSingletonOwnerPermission(
   owner: backend.User | null
 ): backend.UserPermission[] {
-  return owner != null
-    ? [
-        {
-          user: {
-            organizationId: owner.organizationId,
-            userId: owner.userId,
-            name: owner.name,
-            email: owner.email,
-          },
-          permission: PermissionAction.own,
-        },
-      ]
-    : []
+  if (owner != null) {
+    const { organizationId, userId, name, email } = owner
+    return [{ user: { organizationId, userId, name, email }, permission: PermissionAction.own }]
+  } else {
+    return []
+  }
 }

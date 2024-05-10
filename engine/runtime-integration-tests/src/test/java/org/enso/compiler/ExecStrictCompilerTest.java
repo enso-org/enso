@@ -1,5 +1,7 @@
 package org.enso.compiler;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -55,17 +57,19 @@ public class ExecStrictCompilerTest {
 
   @Test
   public void redefinedArgument() throws Exception {
-    var module = ctx.eval("enso", """
-    type My_Type
-        Value a b c a
-    """);
     try {
-      var run = module.invokeMember("eval_expression", "My_Type.Value");
-      fail("Expecting no returned value: " + run);
+      var module = ctx.eval("enso", """
+      type My_Type
+          Value a b c a
+      """);
+      fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
-      assertEquals("Compilation aborted due to errors.", ex.getMessage());
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
+      assertEquals(
+          "Unnamed:2:17: error: Redefining arguments is not supported: a is defined multiple"
+              + " times.",
+          ex.getMessage());
 
       var errors = new String(MESSAGES.toByteArray(), StandardCharsets.UTF_8);
       assertNotEquals(
@@ -89,14 +93,14 @@ public class ExecStrictCompilerTest {
                 """,
                 "wrong_cons.enso")
             .build();
-    var module = ctx.eval(code);
     try {
-      var run = module.invokeMember("eval_expression", "foo 10");
-      fail("Expecting no returned value: " + run);
+      var module = ctx.eval(code);
+      fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
-      assertEquals("Compilation aborted due to errors.", ex.getMessage());
       assertTrue("Syntax error", ex.isSyntaxError());
       assertTrue("Guest exception", ex.isGuestException());
+      assertThat(
+          ex.getMessage(), containsString("The name `Index_Sub_Range.Sample` could not be found."));
 
       var errors = new String(MESSAGES.toByteArray(), StandardCharsets.UTF_8);
       assertNotEquals(

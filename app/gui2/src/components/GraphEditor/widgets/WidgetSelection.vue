@@ -366,13 +366,10 @@ declare module '@/providers/widgetRegistry' {
 </script>
 
 <template>
-  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <div
     ref="widgetRoot"
     class="WidgetSelection"
     :class="{ multiSelect: isMulti }"
-    @pointerdown.stop
-    @pointerup.stop
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"

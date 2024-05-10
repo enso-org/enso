@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import * as mimeTypes from '#/data/mimeTypes'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -461,7 +463,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const owners =
           node.item.permissions
             ?.filter(permission => permission.permission === permissions.PermissionAction.own)
-            .map(owner => owner.user.name) ?? []
+            .map(backendModule.getAssetPermissionName) ?? []
         const globMatch = (glob: string, match: string) => {
           const regex = (globCache[glob] =
             globCache[glob] ??
@@ -766,7 +768,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             .flatMap(node =>
               (node.item.permissions ?? [])
                 .filter(permission => permission.permission === permissions.PermissionAction.own)
-                .map(permission => permission.user.name)
+                .map(backendModule.getAssetPermissionName)
             )
           setSuggestions(
             Array.from(
@@ -2247,7 +2249,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               asset: node.item,
             }))
             event.dataTransfer.setData(
-              'application/vnd.enso.assets+json',
+              mimeTypes.ASSETS_MIME_TYPE,
               JSON.stringify(nodes.map(node => node.key))
             )
             drag.setDragImageToBlank(event)

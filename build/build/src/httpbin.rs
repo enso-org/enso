@@ -66,7 +66,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn spawn() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         set_current_dir(r"H:\NBO\enso5")?;
         let cache = cache::Cache::new_default().await?;
         cache::goodie::sbt::Sbt.install_if_missing(&cache).await?;

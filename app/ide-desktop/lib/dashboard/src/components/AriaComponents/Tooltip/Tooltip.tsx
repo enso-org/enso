@@ -4,21 +4,27 @@ import * as tailwindMerge from 'tailwind-merge'
 import * as aria from '#/components/aria'
 import * as portal from '#/components/Portal'
 
+// =================
+// === Constants ===
+// =================
+
+const DEFAULT_CLASSES =
+  'flex bg-frame outline outline-2 outline-primary backdrop-blur-default text-primary px-2 leading-cozy min-h-6 rounded-default shadow-soft text-xs'
+const DEFAULT_CONTAINER_PADDING = 4
+const DEFAULT_OFFSET = 4
+
+// ===============
+// === Tooltip ===
+// ===============
+
 /** Props for a {@link Tooltip}. */
 export interface TooltipProps
   extends Omit<Readonly<aria.TooltipProps>, 'offset' | 'UNSTABLE_portalContainer'> {}
 
-const DEFAULT_CLASSES = 'z-1 flex bg-neutral-800 text-white p-2 rounded-md shadow-lg text-xs'
-
-const DEFAULT_CONTAINER_PADDING = 4
-const DEFAULT_OFFSET = 4
-
 /** Displays the description of an element on hover or focus. */
 export function Tooltip(props: TooltipProps) {
   const { className, containerPadding = DEFAULT_CONTAINER_PADDING, ...ariaTooltipProps } = props
-
   const root = portal.useStrictPortalContext()
-
   const classes = tailwindMerge.twJoin(DEFAULT_CLASSES)
 
   return (

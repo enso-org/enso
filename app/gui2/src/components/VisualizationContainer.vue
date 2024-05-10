@@ -2,12 +2,7 @@
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import {
-  PointerButtonMask,
-  isTriggeredByKeyboard,
-  usePointer,
-  useResizeObserver,
-} from '@/composables/events'
+import { isTriggeredByKeyboard, usePointer, useResizeObserver } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Vec2 } from '@/util/data/vec2'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
@@ -94,7 +89,7 @@ function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: boolean) {
         leftDragging = false
         break
     }
-  }, PointerButtonMask.Main)
+  })
 }
 
 const resizeRight = resizeHandler('right', false)
@@ -134,9 +129,6 @@ const nodeShortType = computed(() =>
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
       }"
-      @pointerdown.stop
-      @pointerup.stop
-      @click.stop
     >
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
@@ -174,9 +166,6 @@ const nodeShortType = computed(() =>
             invisible: config.isCircularMenuVisible,
             hidden: config.fullscreen,
           }"
-          @pointerdown.stop
-          @pointerup.stop
-          @click.stop
         >
           <button class="image-button active" @click.stop="config.hide()">
             <SvgIcon class="icon" name="eye" alt="Hide visualization" />

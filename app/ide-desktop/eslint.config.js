@@ -242,14 +242,9 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `aria.Input` instead of `input`',
     },
     {
-        selector: 'JSXOpeningElement[name.name=span] > JSXIdentifier',
-        message: 'Use `aria.Text` instead of `span`',
-    },
-    {
         selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
         message: 'Use `aria.Heading` instead of `h1`-`h6`',
     },
-    // We may want to consider also preferring `aria.Form` in favor of `form` in the future.
 ]
 
 // ============================

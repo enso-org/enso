@@ -52,8 +52,9 @@ export default function UserBar(props: UserBarProps) {
   const { getText } = textProvider.useText()
   const self =
     user != null
-      ? projectAsset?.permissions?.find(permissions => permissions.user.userId === user.userId) ??
-        null
+      ? projectAsset?.permissions?.find(
+          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+        ) ?? null
       : null
   const shouldShowShareButton =
     backend.type === backendModule.BackendType.remote &&
@@ -74,6 +75,7 @@ export default function UserBar(props: UserBarProps) {
           <Button
             active={isHelpChatOpen}
             image={ChatIcon}
+            alt={getText('chatButtonAltText')}
             onPress={() => {
               setIsHelpChatOpen(!isHelpChatOpen)
             }}
@@ -81,8 +83,9 @@ export default function UserBar(props: UserBarProps) {
           {shouldShowInviteButton && (
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              aria-label={getText('inviteButtonAltText')}
               onPress={() => {
-                setModal(<InviteUsersModal eventTarget={null} />)
+                setModal(<InviteUsersModal />)
               }}
             >
               <aria.Text slot="label">{getText('invite')}</aria.Text>
@@ -91,6 +94,7 @@ export default function UserBar(props: UserBarProps) {
           {shouldShowShareButton && (
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              aria-label={getText('shareButtonAltText')}
               onPress={() => {
                 setModal(
                   <ManagePermissionsModal
@@ -108,6 +112,7 @@ export default function UserBar(props: UserBarProps) {
           )}
           <UnstyledButton
             className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+            aria-label={getText('userMenuAltText')}
             onPress={() => {
               updateModal(oldModal =>
                 oldModal?.type === UserMenu ? null : (

@@ -210,9 +210,9 @@ add_specs suite_builder = suite_builder.group "Range" group_builder->
         r2r.second . should_equal [4, 5, 6, 7, 8, 9]
 
     group_builder.specify "should allow iteration" <|
-        vec_mut = Vector.new_builder
-        1.up_to 6 . each (i -> vec_mut.append i)
-        vec_mut.to_vector . should_equal [1, 2, 3, 4, 5]
+        vec = Vector.build builder->
+            1.up_to 6 . each (i -> builder.append i)
+        vec . should_equal [1, 2, 3, 4, 5]
 
     group_builder.specify "should allow iteration, with error propagation and early exit" <|
         vec_mut = Vector.new_builder
@@ -223,15 +223,15 @@ add_specs suite_builder = suite_builder.group "Range" group_builder->
         vec_mut.to_vector . should_equal [1, 2]
 
     group_builder.specify "should allow iteration with index" <|
-        vec_mut = Vector.new_builder
-        5.up_to 8 . each_with_index ix-> elem->
-            vec_mut.append (Pair.new ix elem)
-        vec_mut.to_vector . should_equal [Pair.new 0 5, Pair.new 1 6, Pair.new 2 7]
+        vec = Vector.build builder->
+            5.up_to 8 . each_with_index ix-> elem->
+                builder.append (Pair.new ix elem)
+        vec . should_equal [Pair.new 0 5, Pair.new 1 6, Pair.new 2 7]
 
-        vec_mut_2 = Vector.new_builder
-        5.up_to 10 . with_step 2 . each_with_index ix-> elem->
-            vec_mut_2.append (Pair.new ix elem)
-        vec_mut_2.to_vector . should_equal [Pair.new 0 5, Pair.new 1 7, Pair.new 2 9]
+        vec2 = Vector.build builder->
+            5.up_to 10 . with_step 2 . each_with_index ix-> elem->
+                builder.append (Pair.new ix elem)
+        vec2 . should_equal [Pair.new 0 5, Pair.new 1 7, Pair.new 2 9]
 
     group_builder.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
@@ -345,9 +345,8 @@ add_specs suite_builder = suite_builder.group "Range" group_builder->
                 Test.fail "Range "+range.to_text+" unexpectedly contained "+x.to_text+"."
 
     build_with_each range =
-        builder = Vector.new_builder
-        range.each builder.append
-        builder.to_vector
+        Vector.build builder->
+            range.each builder.append
 
     group_builder.specify "should behave correctly if it is empty" <|
         check_empty_range r =
