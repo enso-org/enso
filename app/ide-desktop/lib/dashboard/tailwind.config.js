@@ -1,6 +1,11 @@
+;
 /** @file Configuration for Tailwind. */
-import reactAriaComponents from 'tailwindcss-react-aria-components'
-import plugin from 'tailwindcss/plugin.js'
+import reactAriaComponents from 'tailwindcss-react-aria-components';
+import plugin from 'tailwindcss/plugin.js';
+
+
+
+
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
@@ -209,7 +214,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'icon-with-text': 'var(--icon-with-text-gap)',
         'input-with-button': 'var(--input-with-button-gap)',
         'user-bar': 'var(--user-bar-gap)',
-        'top-level': 'var(--top-level-gap)',
         'top-bar': 'var(--top-bar-gap)',
         'top-bar-right': 'var(--top-bar-right-gap)',
         pages: 'var(--pages-gap)',
@@ -257,6 +261,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-buttons': 'var(--chat-buttons-gap)',
       },
       padding: {
+        'top-bar': 'var(--top-bar-padding)',
         modal: 'var(--modal-padding)',
         'modal-wide': 'var(--modal-wide-padding)',
         auth: 'var(--auth-padding)',
@@ -331,7 +336,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'missing-functionality-text-x': 'var(--missing-functionality-text-padding-x)',
       },
       margin: {
-        'top-bar': 'var(--top-bar-margin)',
         'name-column-icon': 'var(--name-column-icon-margin)',
         'button-px': 'var(--button-padding-x)',
         'permission-with-border': 'var(--permission-with-border-margin)',

@@ -9,8 +9,6 @@
 :root {
   --row-height: 2rem;
   --page-padding-x: 0.8125rem;
-  /* The gap between the top bar and the main content (the content of the current page). */
-  --top-level-gap: 1rem;
   /* The height of the main heading of a page. */
   --heading-height: 2.375rem;
   --heading-padding-x: 0.375rem;
@@ -69,7 +67,7 @@
   --selector-padding-y: 0.25rem;
   --backend-switcher-option-width: 5rem;
   /* The margin surrounding the entire top bar. */
-  --top-bar-margin: 0.5625rem;
+  --top-bar-padding: 0.5625rem;
   /* The gap between each panel in the top bar.*/
   --top-bar-gap: 0.875rem;
   /* The gap between the two panels on the right side of the top bar.*/

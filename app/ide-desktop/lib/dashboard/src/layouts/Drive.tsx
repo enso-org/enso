@@ -18,6 +18,7 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
+import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTable from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
@@ -72,8 +73,6 @@ export interface DriveProps {
   readonly labels: backendModule.Label[]
   readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
-  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly doOpenEditor: (
     backend: Backend,
     project: backendModule.ProjectAsset,
@@ -87,8 +86,7 @@ export interface DriveProps {
 export default function Drive(props: DriveProps) {
   const { hidden, initialProjectName, labels, setLabels, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
-  const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
+  const { doOpenEditor, doCloseEditor, category, setCategory } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -103,6 +101,12 @@ export default function Drive(props: DriveProps) {
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
+  const [assetPanelProps, setAssetPanelProps] =
+    React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
+  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
+    () => localStorage.get('isAssetPanelVisible') ?? false
+  )
+  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const [deletedLabelNames, setDeletedLabelNames] = React.useState(
     new Set<backendModule.LabelName>()
   )
@@ -126,11 +130,16 @@ export default function Drive(props: DriveProps) {
         : isCloud && user?.isEnabled !== true
           ? DriveStatus.notEnabled
           : DriveStatus.ok
+  const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
 
   const onSetCategory = eventCallback.useEventCallback((value: Category) => {
     setCategory(value)
     localStorage.set('driveCategory', value)
   })
+
+  React.useEffect(() => {
+    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
+  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {
@@ -350,69 +359,98 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.ok: {
       return (
-        <div
-          data-testid="drive-view"
-          className={`flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x ${
-            hidden ? 'hidden' : ''
-          }`}
-        >
-          <DriveBar
-            query={query}
-            setQuery={setQuery}
-            labels={labels}
-            suggestions={suggestions}
-            category={category}
-            canDownload={canDownload}
-            doEmptyTrash={doEmptyTrash}
-            doCreateProject={doCreateProject}
-            doUploadFiles={doUploadFiles}
-            doCreateDirectory={doCreateDirectory}
-            doCreateSecret={doCreateSecret}
-            doCreateDataLink={doCreateDataLink}
-            dispatchAssetEvent={dispatchAssetEvent}
-          />
-          <div className="flex flex-1 gap-drive overflow-hidden">
-            <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
-              <CategorySwitcher
-                category={category}
-                setCategory={onSetCategory}
-                dispatchAssetEvent={dispatchAssetEvent}
-              />
-              {isCloud && (
-                <Labels
-                  draggable={category !== Category.trash}
-                  labels={labels}
-                  query={query}
-                  setQuery={setQuery}
-                  doCreateLabel={doCreateLabel}
-                  doDeleteLabel={doDeleteLabel}
-                  newLabelNames={newLabelNames}
-                  deletedLabelNames={deletedLabelNames}
-                />
-              )}
-            </div>
-            <AssetsTable
-              hidden={hidden}
+        <div className="relative flex grow">
+          <div
+            data-testid="drive-view"
+            className={`mt-4 flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x ${
+              hidden ? 'hidden' : ''
+            }`}
+          >
+            <DriveBar
               query={query}
               setQuery={setQuery}
-              setCanDownload={setCanDownload}
+              labels={labels}
+              suggestions={suggestions}
               category={category}
-              allLabels={allLabels}
-              setSuggestions={setSuggestions}
-              initialProjectName={initialProjectName}
-              projectStartupInfo={projectStartupInfo}
-              deletedLabelNames={deletedLabelNames}
-              assetEvents={assetEvents}
+              canDownload={canDownload}
+              isAssetPanelOpen={isAssetPanelVisible}
+              setIsAssetPanelOpen={valueOrUpdater => {
+                const newValue =
+                  typeof valueOrUpdater === 'function'
+                    ? valueOrUpdater(isAssetPanelVisible)
+                    : valueOrUpdater
+                setIsAssetPanelTemporarilyVisible(false)
+                setIsAssetPanelEnabled(newValue)
+              }}
+              doEmptyTrash={doEmptyTrash}
+              doCreateProject={doCreateProject}
+              doUploadFiles={doUploadFiles}
+              doCreateDirectory={doCreateDirectory}
+              doCreateSecret={doCreateSecret}
+              doCreateDataLink={doCreateDataLink}
               dispatchAssetEvent={dispatchAssetEvent}
-              assetListEvents={assetListEvents}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-              setAssetPanelProps={setAssetPanelProps}
-              setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-              targetDirectoryNodeRef={targetDirectoryNodeRef}
-              doOpenEditor={doOpenEditor}
-              doCloseEditor={doCloseEditor}
-              doCreateLabel={doCreateLabel}
             />
+            <div className="flex flex-1 gap-drive overflow-hidden">
+              <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
+                <CategorySwitcher
+                  category={category}
+                  setCategory={onSetCategory}
+                  dispatchAssetEvent={dispatchAssetEvent}
+                />
+                {isCloud && (
+                  <Labels
+                    draggable={category !== Category.trash}
+                    labels={labels}
+                    query={query}
+                    setQuery={setQuery}
+                    doCreateLabel={doCreateLabel}
+                    doDeleteLabel={doDeleteLabel}
+                    newLabelNames={newLabelNames}
+                    deletedLabelNames={deletedLabelNames}
+                  />
+                )}
+              </div>
+              <AssetsTable
+                hidden={hidden}
+                query={query}
+                setQuery={setQuery}
+                setCanDownload={setCanDownload}
+                category={category}
+                allLabels={allLabels}
+                setSuggestions={setSuggestions}
+                initialProjectName={initialProjectName}
+                projectStartupInfo={projectStartupInfo}
+                deletedLabelNames={deletedLabelNames}
+                assetEvents={assetEvents}
+                dispatchAssetEvent={dispatchAssetEvent}
+                assetListEvents={assetListEvents}
+                dispatchAssetListEvent={dispatchAssetListEvent}
+                setAssetPanelProps={setAssetPanelProps}
+                setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
+                targetDirectoryNodeRef={targetDirectoryNodeRef}
+                doOpenEditor={doOpenEditor}
+                doCloseEditor={doCloseEditor}
+                doCreateLabel={doCreateLabel}
+              />
+            </div>
+          </div>
+          <div
+            className={`flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out ${
+              isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
+            }`}
+          >
+            {isAssetPanelVisible && (
+              <AssetPanel
+                key={assetPanelProps?.item?.item.id}
+                backend={assetPanelProps?.backend ?? null}
+                item={assetPanelProps?.item ?? null}
+                setItem={assetPanelProps?.setItem ?? null}
+                category={category}
+                labels={labels}
+                dispatchAssetEvent={dispatchAssetEvent}
+                isReadonly={category === Category.trash}
+              />
+            )}
           </div>
         </div>
       )

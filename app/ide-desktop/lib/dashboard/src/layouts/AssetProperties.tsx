@@ -265,7 +265,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                           try {
                             setDataLinkValue(editedDataLinkValue)
                             await backend.createConnector({
-                              connectorId: item.item.id,
+                              datalinkId: item.item.id,
                               name: item.item.title,
                               parentDirectoryId: null,
                               value: editedDataLinkValue,

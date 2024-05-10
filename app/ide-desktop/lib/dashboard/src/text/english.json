@@ -396,10 +396,8 @@
 
   "drivePageAltText": "Drive tab",
   "editorPageAltText": "Project tab",
-  "settingsPageAltText": "Settings tab",
-  "drivePageTooltip": "Go to drive",
-  "editorPageTooltip": "Go to project",
-  "settingsPageTooltip": "Go to settings",
+  "drivePageName": "Data Catalog",
+  "editorPageName": "Spatial Analysis",
 
   "soloPlanName": "Solo",
   "teamPlanName": "Team",

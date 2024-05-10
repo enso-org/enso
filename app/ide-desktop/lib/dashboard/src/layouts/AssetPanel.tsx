@@ -102,18 +102,18 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
+      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white p-top-bar-margin pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
     >
-      <div className="flex">
+      <div className="flex py-2">
         {item != null &&
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
             <UnstyledButton
-              className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
-                tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
+              className={`button pointer-events-auto h-8 select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-primary/[8%] ${
+                tab !== AssetPanelTab.versions ? '' : 'bg-primary/[8%] active'
               }`}
               onPress={() => {
                 setTab(oldTab =>

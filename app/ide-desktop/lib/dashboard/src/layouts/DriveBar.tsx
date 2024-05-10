@@ -7,6 +7,7 @@ import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
+import RightPanelIcon from 'enso-assets/right_panel.svg'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -46,6 +47,8 @@ export interface DriveBarProps {
   readonly suggestions: readonly assetSearchBar.Suggestion[]
   readonly category: Category
   readonly canDownload: boolean
+  readonly isAssetPanelOpen: boolean
+  readonly setIsAssetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>
   readonly doEmptyTrash: () => void
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
@@ -61,6 +64,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { query, setQuery, labels, suggestions, category, canDownload } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
+  const { isAssetPanelOpen, setIsAssetPanelOpen } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -217,6 +221,20 @@ export default function DriveBar(props: DriveBarProps) {
               suggestions={suggestions}
               className="mx-auto"
             />
+            <div
+              className={`transition-all duration-side-panel ${isAssetPanelOpen ? '' : 'w-5'}`}
+            />
+            <div
+              className={`absolute right top z-1 m-[15px] transition-all duration-side-panel ${isAssetPanelOpen ? '' : 'mt-[26px]'}`}
+            >
+              <Button
+                image={RightPanelIcon}
+                active={isAssetPanelOpen}
+                onPress={() => {
+                  setIsAssetPanelOpen(isOpen => !isOpen)
+                }}
+              />
+            </div>
           </HorizontalMenuBar>
         </div>
       )

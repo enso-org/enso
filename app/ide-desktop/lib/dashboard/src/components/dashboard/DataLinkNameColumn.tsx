@@ -97,7 +97,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
               try {
                 const { id } = await backend.createConnector({
                   parentDirectoryId: asset.parentId,
-                  connectorId: null,
+                  datalinkId: null,
                   name: asset.title,
                   value: event.value,
                 })

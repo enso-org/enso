@@ -8,6 +8,7 @@ import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
@@ -27,17 +28,17 @@ export enum Page {
 interface PageUIData {
   readonly page: Page
   readonly icon: string
+  readonly nameId: Extract<text.TextId, `${Page}PageName`>
   readonly altId: Extract<text.TextId, `${Page}PageAltText`>
-  readonly tooltipId: Extract<text.TextId, `${Page}PageTooltip`>
 }
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.drive, icon: DriveIcon, altId: 'drivePageAltText', tooltipId: 'drivePageTooltip' },
+  { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName', altId: 'drivePageAltText' },
   {
     page: Page.editor,
     icon: NetworkIcon,
+    nameId: 'editorPageName',
     altId: 'editorPageAltText',
-    tooltipId: 'editorPageTooltip',
   },
 ]
 
@@ -71,7 +72,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
+          className={`pointer-events-auto flex shrink-0 grow cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
             page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
           }`}
           {...innerProps}
@@ -80,14 +81,14 @@ export default function PageSwitcher(props: PageSwitcherProps) {
             return (
               <UnstyledButton
                 key={pageData.page}
-                aria-label={getText(pageData.tooltipId)}
-                className={`selectable ${page === pageData.page ? 'active' : ''}`}
+                className={`flex items-center gap-icon-with-text selectable ${page === pageData.page ? 'active' : ''}`}
                 isDisabled={pageData.page === Page.editor && isEditorDisabled}
                 onPress={() => {
                   setPage(pageData.page)
                 }}
               >
                 <SvgMask src={pageData.icon} alt={getText(pageData.altId)} />
+                <aria.Text className="text">{getText(pageData.nameId)}</aria.Text>
               </UnstyledButton>
             )
           })}

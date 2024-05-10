@@ -18,8 +18,6 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/AssetPanel'
-import AssetPanel from '#/layouts/AssetPanel'
 import Category from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -142,12 +140,6 @@ export default function Dashboard(props: DashboardProps) {
   const [assetListEvents, dispatchAssetListEvent] =
     eventHooks.useEvent<assetListEvent.AssetListEvent>()
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
-  const [assetPanelProps, setAssetPanelProps] =
-    React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
-  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
-    () => localStorage.get('isAssetPanelVisible') ?? false
-  )
-  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const defaultCategory = remoteBackend != null ? Category.cloud : Category.local
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
@@ -155,9 +147,6 @@ export default function Dashboard(props: DashboardProps) {
       remoteBackend == null ? Category.local : localStorage.get('driveCategory') ?? defaultCategory,
     (value): value is Category => array.includes(Object.values(Category), value)
   )
-
-  const isAssetPanelVisible =
-    page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
 
   React.useEffect(() => {
     setInitialized(true)
@@ -254,10 +243,6 @@ export default function Dashboard(props: DashboardProps) {
     // `initialized` is NOT a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectStartupInfo, /* should never change */ localStorage])
-
-  React.useEffect(() => {
-    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
-  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (page !== pageSwitcher.Page.settings) {
@@ -377,7 +362,7 @@ export default function Dashboard(props: DashboardProps) {
         }`}
       >
         <div
-          className="relative flex h-screen grow select-none flex-col gap-top-level container-size"
+          className="relative flex h-screen grow select-none flex-col container-size"
           onContextMenu={event => {
             event.preventDefault()
             unsetModal()
@@ -391,8 +376,6 @@ export default function Dashboard(props: DashboardProps) {
             isEditorDisabled={projectStartupInfo == null}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
-            isAssetPanelVisible={isAssetPanelVisible}
-            setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}
           />
@@ -408,8 +391,6 @@ export default function Dashboard(props: DashboardProps) {
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}
             dispatchAssetEvent={dispatchAssetEvent}
-            setAssetPanelProps={setAssetPanelProps}
-            setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
             doOpenEditor={doOpenEditor}
             doCloseEditor={doCloseEditor}
           />
@@ -435,24 +416,6 @@ export default function Dashboard(props: DashboardProps) {
               doClose={() => {
                 setIsHelpChatOpen(false)
               }}
-            />
-          )}
-        </div>
-        <div
-          className={`flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out ${
-            isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
-          }`}
-        >
-          {isAssetPanelVisible && (
-            <AssetPanel
-              key={assetPanelProps?.item?.item.id}
-              backend={assetPanelProps?.backend ?? null}
-              item={assetPanelProps?.item ?? null}
-              setItem={assetPanelProps?.setItem ?? null}
-              category={defaultCategory}
-              labels={labels}
-              dispatchAssetEvent={dispatchAssetEvent}
-              isReadonly={category === Category.trash}
             />
           )}
         </div>

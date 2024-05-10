@@ -1,11 +1,18 @@
+;
 /** @file Type definitions common between all backends. */
-import type * as React from 'react'
+import type * as React from 'react';
 
-import * as array from '#/utilities/array'
-import * as dateTime from '#/utilities/dateTime'
-import * as newtype from '#/utilities/newtype'
-import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
+
+
+import * as array from '#/utilities/array';
+import * as dateTime from '#/utilities/dateTime';
+import * as newtype from '#/utilities/newtype';
+import * as permissions from '#/utilities/permissions';
+import * as uniqueString from '#/utilities/uniqueString';
+
+
+
+
 
 // ================
 // === Newtypes ===
@@ -1069,7 +1076,7 @@ export interface CreateConnectorRequestBody {
   readonly name: string
   readonly value: unknown
   readonly parentDirectoryId: DirectoryId | null
-  readonly connectorId: ConnectorId | null
+  readonly datalinkId: ConnectorId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
