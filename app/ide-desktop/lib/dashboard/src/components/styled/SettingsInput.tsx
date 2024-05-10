@@ -6,9 +6,11 @@ import EyeIcon from 'enso-assets/eye.svg'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import * as aria from '#/components/aria'
+import Button from '#/components/styled/Button'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
 // =====================
 // === SettingsInput ===
@@ -28,6 +30,7 @@ export interface SettingsInputProps {
 function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLInputElement>) {
   const { isDisabled = false, type, placeholder, autoComplete, onChange, onSubmit } = props
   const focusChildProps = focusHooks.useFocusChild()
+  const { getText } = textProvider.useText()
   // This is SAFE. The value of this context is never a `SlottedContext`.
   // eslint-disable-next-line no-restricted-syntax
   const inputProps = (React.useContext(aria.InputContext) ?? null) as aria.InputProps | null
@@ -88,10 +91,12 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
             )}
           />
           {type === 'password' && (
-            <SvgMask
-              src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
-              className="absolute right-2 top-1 cursor-pointer rounded-full"
-              onClick={() => {
+            <Button
+              active
+              image={isShowingPassword ? EyeIcon : EyeCrossedIcon}
+              alt={isShowingPassword ? getText('hidePassword') : getText('showPassword')}
+              buttonClassName="absolute right-2 top-1 cursor-pointer rounded-full size-icon"
+              onPress={() => {
                 setIsShowingPassword(show => !show)
               }}
             />

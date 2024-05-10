@@ -1004,7 +1004,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         mat2.transpose . should_fail_with Illegal_Argument
 
 add_specs suite_builder =
-    suite_builder.group "Vector builder" group_builder->
+    suite_builder.group "Vector.new_builder" group_builder->
         group_builder.specify "empty builder.get" <|
             b = Vector.new_builder
             e = Panic.catch Index_Out_Of_Bounds (b.at 0) err->

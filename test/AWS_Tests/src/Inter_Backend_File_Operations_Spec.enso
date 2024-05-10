@@ -66,23 +66,21 @@ any_pending (backends : Vector Backend) -> Text|Nothing =
     backends.find .is_pending . reason . catch Not_Found _->Nothing
 
 prepare_available_backends s3_root tmp_dir_name =
-    builder = Vector.new_builder
+    Vector.build builder->
 
-    # Local
-    builder.append (Backend.Ready "Local" Temporary_Local_File.make)
+        # Local
+        builder.append (Backend.Ready "Local" Temporary_Local_File.make)
 
-    # Cloud
-    cloud_setup = Cloud_Tests_Setup.prepare
-    builder.append <| Panic.rethrow <| case cloud_setup.real_cloud_pending of
-        Nothing -> Backend.Ready "Enso Cloud" (Temporary_Enso_Cloud_File.make tmp_dir_name)
-        reason -> Backend.Pending "Enso Cloud" reason
+        # Cloud
+        cloud_setup = Cloud_Tests_Setup.prepare
+        builder.append <| Panic.rethrow <| case cloud_setup.real_cloud_pending of
+            Nothing -> Backend.Ready "Enso Cloud" (Temporary_Enso_Cloud_File.make tmp_dir_name)
+            reason -> Backend.Pending "Enso Cloud" reason
 
-    # S3
-    builder.append <| Panic.rethrow <| case api_pending of
-        Nothing -> Backend.Ready "S3" (Temporary_S3_File.make s3_root)
-        reason -> Backend.Pending "S3" reason
-
-    builder.to_vector
+        # S3
+        builder.append <| Panic.rethrow <| case api_pending of
+            Nothing -> Backend.Ready "S3" (Temporary_S3_File.make s3_root)
+            reason -> Backend.Pending "S3" reason
 
 add_specs suite_builder =
     tmp_dir_name = "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"

@@ -194,52 +194,52 @@ export function locateAssetLabels(page: test.Locator | test.Page) {
 
 /** Find a toggle for the "Name" column (if any) on the current page. */
 export function locateNameColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Name$/)
+  return page.getByAltText('Name')
 }
 
 /** Find a toggle for the "Modified" column (if any) on the current page. */
 export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Modified date column$/)
+  return page.getByAltText('Modified')
 }
 
 /** Find a toggle for the "Shared with" column (if any) on the current page. */
 export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Shared with column$/)
+  return page.getByAltText('Shared With')
 }
 
 /** Find a toggle for the "Labels" column (if any) on the current page. */
 export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Labels column$/)
+  return page.getByAltText('Labels')
 }
 
 /** Find a toggle for the "Accessed by projects" column (if any) on the current page. */
 export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed by projects column$/)
+  return page.getByAltText('Accessed By Projects')
 }
 
 /** Find a toggle for the "Accessed data" column (if any) on the current page. */
 export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed data column$/)
+  return page.getByAltText('Accessed Data')
 }
 
 /** Find a toggle for the "Docs" column (if any) on the current page. */
 export function locateDocsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Docs column$/)
+  return page.getByAltText('Docs')
 }
 
 /** Find a button for the "Recent" category (if any) on the current page. */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go To Recent category')
+  return page.getByLabel('Recent').locator('visible=true')
 }
 
 /** Find a button for the "Home" category (if any) on the current page. */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go To Home category')
+  return page.getByLabel('Home').locator('visible=true')
 }
 
 /** Find a button for the "Trash" category (if any) on the current page. */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByLabel('Go To Trash category')
+  return page.getByLabel('Trash').locator('visible=true')
 }
 
 // === Context menu buttons ===
@@ -361,32 +361,36 @@ export function locateUpgradeButton(page: test.Locator | test.Page) {
   return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade')
 }
 
+/**
+ * Find a not enabled stub view (if any) on the current page.
+ */
+export function locateNotEnabledStub(page: test.Locator | test.Page) {
+  return page.getByTestId('not-enabled-stub')
+}
+
 /** Find a "new folder" icon (if any) on the current page. */
 export function locateNewFolderIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('New Folder')
+  return page.getByRole('button').filter({ has: page.getByAltText('New Folder') })
 }
 
 /** Find a "new secret" icon (if any) on the current page. */
 export function locateNewSecretIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('New Secret')
+  return page.getByRole('button').filter({ has: page.getByAltText('New Secret') })
 }
 
-/** Find a "upload files" icon (if any) on the current page. */
+/** Find an "upload files" icon (if any) on the current page. */
 export function locateUploadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Upload Files')
+  return page.getByRole('button').filter({ has: page.getByAltText('Import') })
 }
 
 /** Find a "download files" icon (if any) on the current page. */
 export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Download Files')
+  return page.getByRole('button').filter({ has: page.getByAltText('Export') })
 }
 
 /** Find an icon to open or close the asset panel (if any) on the current page. */
 export function locateAssetPanelIcon(page: test.Locator | test.Page) {
-  return page
-    .getByAltText('Open Asset Panel')
-    .or(page.getByAltText('Close Asset Panel'))
-    .locator('visible=true')
+  return page.getByAltText('Asset Panel').locator('visible=true')
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
@@ -423,22 +427,22 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 /** Find a "home page" icon (if any) on the current page. */
 export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Home tab')
+  return page.getByRole('button').filter({ has: page.getByAltText('Home') })
 }
 
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Drive tab')
+  return page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
 }
 
 /** Find an "editor page" icon (if any) on the current page. */
 export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Project tab')
+  return page.getByRole('button').filter({ has: page.getByAltText('Graph Editor') })
 }
 
 /** Find a "settings page" icon (if any) on the current page. */
 export function locateSettingsPageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Settings tab')
+  return page.getByRole('button').filter({ has: page.getByAltText('Settings') })
 }
 
 /** Find a "name" column heading (if any) on the current page. */

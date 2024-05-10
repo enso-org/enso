@@ -26,12 +26,16 @@ export type ToastAndLogCallback = ReturnType<typeof useToastAndLog>
 export function useToastAndLog() {
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
+
   return React.useCallback(
     <K extends text.TextId, T>(
       textId: K | null,
       ...[error, ...replacements]: text.Replacements[K] extends readonly []
-        ? [error?: errorModule.MustNotBeKnown<T>]
-        : [error: errorModule.MustNotBeKnown<T> | null, ...replacements: text.Replacements[K]]
+        ? [error?: Error | errorModule.MustNotBeKnown<T>]
+        : [
+            error: Error | errorModule.MustNotBeKnown<T> | null,
+            ...replacements: text.Replacements[K],
+          ]
     ) => {
       const messagePrefix =
         textId == null

@@ -1,4 +1,5 @@
 /** @file Configuration for Tailwind. */
+import animate from 'tailwindcss-animate'
 import reactAriaComponents from 'tailwindcss-react-aria-components'
 import plugin from 'tailwindcss/plugin.js'
 
@@ -441,6 +442,7 @@ inset 0 -36px 51px -51px #00000014`,
   },
   plugins: [
     reactAriaComponents,
+    animate,
     plugin(({ addVariant, addUtilities, matchUtilities, addComponents, theme }) => {
       addVariant('group-hover-2', ['.group:where([data-hovered]) &', '.group:where(:hover) &'])
 

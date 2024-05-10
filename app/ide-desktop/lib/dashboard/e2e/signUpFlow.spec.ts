@@ -36,7 +36,7 @@ test.test('sign up flow', async ({ page }) => {
     ;(currentUser as { isEnabled: boolean }).isEnabled = true
   }
   await actions.login({ page }, email)
-  await test.expect(actions.locateUpgradeButton(page)).not.toBeVisible()
+  await test.expect(actions.locateNotEnabledStub(page)).not.toBeVisible()
   await test.expect(actions.locateDriveView(page)).toBeVisible()
 
   test.expect(api.currentUser?.email, 'new user has correct email').toBe(email)

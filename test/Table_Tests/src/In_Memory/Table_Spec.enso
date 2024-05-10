@@ -850,11 +850,10 @@ add_specs suite_builder =
             [True, False].each has_nulls->
                 [True, False].each has_true->
                     [True, False].each has_false->
-                        vec_builder = Vector.new_builder
-                        if has_nulls then vec_builder.append Nothing
-                        if has_true then vec_builder.append True
-                        if has_false then vec_builder.append False
-                        in_vector = vec_builder.to_vector
+                        in_vector = Vector.build builder->
+                            if has_nulls then builder.append Nothing
+                            if has_true then builder.append True
+                            if has_false then builder.append False
                         in_vector_set = Set.from_vector in_vector
 
                         vectors = [[True, False, Nothing], [Nothing, Nothing, Nothing], [False, False, True], [True, True, True], [False, False, False], [Nothing, True, True], [False, Nothing, False]]

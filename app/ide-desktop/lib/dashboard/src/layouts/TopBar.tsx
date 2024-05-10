@@ -25,7 +25,6 @@ export interface TopBarProps {
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly isEditorDisabled: boolean
   readonly setBackendType: (backendType: backendModule.BackendType) => void
-  readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly isAssetPanelVisible: boolean
   readonly isAssetPanelEnabled: boolean
@@ -38,9 +37,8 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
-  const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { isAssetPanelEnabled, isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf } = props
-  const { onSignOut } = props
+  const { isEditorDisabled, setBackendType, setIsHelpChatOpen, isAssetPanelEnabled } = props
+  const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
 
   const searchBar = searchBarProvider.useSearchBar()
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
@@ -72,7 +70,6 @@ export default function TopBar(props: TopBarProps) {
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}
-              isHelpChatOpen={isHelpChatOpen}
               setIsHelpChatOpen={setIsHelpChatOpen}
               projectAsset={projectAsset}
               setProjectAsset={setProjectAsset}
@@ -96,7 +93,6 @@ export default function TopBar(props: TopBarProps) {
             supportsLocalBackend={supportsLocalBackend}
             page={page}
             setPage={setPage}
-            isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             projectAsset={projectAsset}
             setProjectAsset={setProjectAsset}
