@@ -21,7 +21,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -37,13 +37,13 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { backend, category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const asset = item.item
-  const session = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = asset.permissions?.find(
-    permission => permission.user.userId === session.user?.userId
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
   const managesThisAsset =
     category !== Category.trash &&

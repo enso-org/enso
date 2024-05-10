@@ -30,9 +30,11 @@ export default function MembersSettingsTabBar(props: MembersSettingsTabBarProps)
   return (
     <HorizontalMenuBar>
       <UnstyledButton
-        variant="bar"
-        onPress={() => {
-          setModal(<InviteUsersModal backend={backend} eventTarget={null} />)
+        className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+        onPress={event => {
+          const rect = event.target.getBoundingClientRect()
+          const position = { pageX: rect.left, pageY: rect.top }
+          setModal(<InviteUsersModal backend={backend} event={position} />)
         }}
       >
         <aria.Text className="text whitespace-nowrap font-semibold">

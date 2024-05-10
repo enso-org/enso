@@ -19,7 +19,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 // ===============
@@ -53,8 +53,9 @@ export default function UserBar(props: UserBarProps) {
   const { getText } = textProvider.useText()
   const self =
     user != null
-      ? projectAsset?.permissions?.find(permissions => permissions.user.userId === user.userId) ??
-        null
+      ? projectAsset?.permissions?.find(
+          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+        ) ?? null
       : null
   const shouldShowShareButton =
     backend != null &&

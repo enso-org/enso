@@ -69,7 +69,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
-  const self = asset.permissions?.find(permission => permission.user.userId === user?.userId)
+  const self = asset.permissions?.find(
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+  )
   const isCloud = categoryModule.isCloud(category)
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin

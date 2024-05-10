@@ -45,6 +45,14 @@ const SECTIONS: SettingsSectionData[] = [
         settingsTab: SettingsTab.members,
         icon: PeopleIcon,
         requiresBackend: true,
+        organizationOnly: true,
+      },
+      {
+        name: 'User Groups',
+        settingsTab: SettingsTab.userGroups,
+        icon: PeopleSettingsIcon,
+        requiresBackend: true,
+        organizationOnly: true,
       },
     ],
   },
@@ -67,6 +75,7 @@ const SECTIONS: SettingsSectionData[] = [
         settingsTab: SettingsTab.activityLog,
         icon: LogIcon,
         requiresBackend: true,
+        organizationOnly: true,
       },
     ],
   },
@@ -87,6 +96,7 @@ interface SettingsTabLabelData {
   readonly settingsTab: SettingsTab
   readonly icon: string
   readonly requiresBackend: boolean
+  readonly organizationOnly?: true
 }
 
 /** Metadata for rendering a settings section. */
@@ -101,14 +111,18 @@ interface SettingsSectionData {
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
+  readonly isMenu?: true
   readonly hasBackend: boolean
+  readonly isUserInOrganization: boolean
   readonly settingsTab: SettingsTab
   readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTab>>
+  readonly onClickCapture?: () => void
 }
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { hasBackend, settingsTab, setSettingsTab } = props
+  const { isMenu = false, hasBackend, isUserInOrganization, settingsTab, setSettingsTab } = props
+  const { onClickCapture } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -116,20 +130,26 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
       {innerProps => (
         <div
           aria-label={getText('settingsSidebarLabel')}
-          className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
+          className={`w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto ${
+            !isMenu
+              ? 'hidden sm:flex'
+              : 'relative rounded-default p-modal text-xs text-primary before:absolute before:inset before:rounded-default before:bg-frame before:backdrop-blur-default sm:hidden'
+          }`}
+          onClickCapture={onClickCapture}
           {...innerProps}
         >
           {(hasBackend ? SECTIONS : SECTIONS_NO_BACKEND).map(section => (
             <div key={section.name} className="flex flex-col items-start">
               <aria.Header
                 id={`${section.name}_header`}
-                className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy"
+                className="relative mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy"
               >
                 {section.name}
               </aria.Header>
               {section.tabs.map(tab => (
                 <SidebarTabButton
                   key={tab.settingsTab}
+                  isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
                   id={tab.settingsTab}
                   icon={tab.icon}
                   label={tab.name}

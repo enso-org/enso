@@ -12,6 +12,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 /** Props for a {@link SidebarTabButton}. */
 export interface SidebarTabButtonProps {
   readonly id: string
+  readonly isDisabled?: boolean
   readonly autoFocus?: boolean
   /** When `true`, the button is not faded out even when not hovered. */
   readonly active?: boolean
@@ -22,13 +23,14 @@ export interface SidebarTabButtonProps {
 
 /** A styled button representing a tab on a sidebar. */
 export default function SidebarTabButton(props: SidebarTabButtonProps) {
-  const { autoFocus = false, active = false, icon, label, onPress } = props
+  const { isDisabled = false, autoFocus = false, active = false, icon, label, onPress } = props
 
   return (
     <UnstyledButton
       autoFocus={autoFocus}
       onPress={onPress}
-      className={`rounded-full ${active ? 'focus-default' : ''}`}
+      isDisabled={isDisabled}
+      className={`relative rounded-full ${active ? 'focus-default' : ''}`}
     >
       <div
         className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}

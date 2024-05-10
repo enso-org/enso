@@ -16,7 +16,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -45,8 +45,10 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
+  const self = asset.permissions?.find(
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+  )
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
-  const self = asset.permissions?.find(permission => permission.user.userId === user?.userId)
   const managesThisAsset =
     !isReadonly &&
     category !== Category.trash &&
@@ -66,17 +68,22 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map(otherUser => (
+      {(asset.permissions ?? []).map(other => (
         <PermissionDisplay
-          key={otherUser.user.userId}
-          action={otherUser.permission}
+          key={backendModule.getAssetPermissionId(other)}
+          action={other.permission}
           onPress={event => {
             setQuery(oldQuery =>
-              oldQuery.withToggled('owners', 'negativeOwners', otherUser.user.name, event.shiftKey)
+              oldQuery.withToggled(
+                'owners',
+                'negativeOwners',
+                backendModule.getAssetPermissionName(other),
+                event.shiftKey
+              )
             )
           }}
         >
-          {otherUser.user.name}
+          {backendModule.getAssetPermissionName(other)}
         </PermissionDisplay>
       ))}
       {managesThisAsset && (

@@ -38,9 +38,6 @@ define_env_var! {
     /// appropriate identity from your keychain will be automatically used.
     CSC_IDENTITY_AUTO_DISCOVERY, bool;
 
-    /// Path to the python2 executable, used by electron-builder on macOS to package DMG.
-    PYTHON_PATH, PathBuf;
-
     /// Note that enabling CSC_FOR_PULL_REQUEST can pose serious security risks. Refer to the
     /// [CircleCI documentation](https://circleci.com/docs/1.0/fork-pr-builds/) for more
     /// information. If the project settings contain SSH keys, sensitive environment variables,

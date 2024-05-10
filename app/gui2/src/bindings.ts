@@ -20,7 +20,6 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
 export const graphBindings = defineKeybinds('graph-editor', {
   undo: ['Mod+Z'],
   redo: ['Mod+Y', 'Mod+Shift+Z'],
-  dragScene: ['PointerAux', 'Mod+PointerMain'],
   openComponentBrowser: ['Enter'],
   toggleVisualization: ['Space'],
   deleteSelected: ['OsDelete'],

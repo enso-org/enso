@@ -74,7 +74,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [/* should never change */ setItemRaw]
   )
-  const self = item.item.permissions?.find(permission => permission.user.userId === user?.userId)
+  const self = item.item.permissions?.find(
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+  )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
