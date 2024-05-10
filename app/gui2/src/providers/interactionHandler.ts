@@ -37,7 +37,7 @@ export class InteractionHandler {
     return this.currentInteraction
   }
 
-  /** Clear the current interaction, if it is the specified instance. */
+  /** Clear the current interaction without calling any callback, if the current interaction is `interaction`. */
   ended(interaction: Interaction) {
     if (this.isActive(interaction)) this.currentInteraction = undefined
   }
