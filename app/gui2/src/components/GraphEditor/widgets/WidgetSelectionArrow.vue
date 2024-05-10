@@ -4,12 +4,12 @@ import { injectSelectionArrow } from '@/providers/selectionArrow'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { assert } from 'shared/util/assert'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { ArgumentNameShownKey } from './WidgetArgumentName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const innerInput = { ...props.input }
+const innerInput = computed(() => ({ ...props.input }))
 const info = injectSelectionArrow(true)
 const teleportTarget = ref<HTMLElement | null>()
 onMounted(() => {
