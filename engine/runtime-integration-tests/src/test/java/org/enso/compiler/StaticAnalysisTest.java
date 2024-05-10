@@ -3,6 +3,10 @@ package org.enso.compiler;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.function.Function;
+
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -14,54 +18,44 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.PassConfiguration;
 import org.enso.compiler.pass.PassManager;
 import org.enso.compiler.test.CompilerRunner;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.test.InterpreterContext;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
-public abstract class CompilerTest extends ParserTest {
+public abstract class StaticAnalysisTest {
+
   /**
-   * Note that this `compile` method will not run import resolution. For now we just have tests that
-   * do not need it, and tests that do need it are placed in {@link
-   * org.enso.interpreter.test.TypeInferenceConsistencyTest} which spawns the whole interpreter.
-   *
-   * <p>If we want to run the imports resolution here, we need to create an instance of {@link
-   * Compiler}, like in {@link org.enso.compiler.test.semantic.TypeSignaturesTest}, but that relies
-   * on spawning a Graal context anyway. If possible I think it's good to skip that so that these
-   * tests can be kept simple - and the more complex ones can be done in the other suite.
+   * The interpreter context is needed here as it ensures initialization of everything needed to perform imports
+   * resolution, including PackageRepository.
+   * <p>
+   * Ideally, the tests for the static analysis capabilities of the compiler should _not_ depend on the Graal runtime
+   * context, as they should be runnable in other contexts - i.e. in a Visual Studio Code language server.
    */
+  private final InterpreterContext interpreterContext = new InterpreterContext(
+      (builder) -> builder.option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
+  );
+  private final EnsoContext langCtx = interpreterContext.ctx()
+      .getBindings(LanguageInfo.ID)
+      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+      .asHostObject();
+
   protected Module compile(Source src) {
-    if (src.getCharacters().toString().contains("import")) {
-      throw new IllegalArgumentException("This method will not work correctly with imports.");
+    String suffix = ".enso";
+    String name = src.getName();
+    if (!name.endsWith(suffix)) {
+      throw new IllegalArgumentException("Source name must end with " + suffix);
     }
-
-    Module rawModule = parse(src.getCharacters());
-
-    var compilerConfig = new CompilerConfig(false, true, true, true, true, Option.empty());
-    var passes = new Passes(compilerConfig, Option.empty());
-    @SuppressWarnings("unchecked")
-    var passConfig =
-        new PassConfiguration((Seq<PassConfiguration.ConfigPair<?>>) Seq$.MODULE$.empty());
-    PassManager passManager = new PassManager(passes.passOrdering(), passConfig);
-    var compilerRunner =
-        new CompilerRunner() {
-          @Override
-          public CompilerConfig defaultConfig() {
-            return compilerConfig;
-          }
-
-          @Override
-          public void org$enso$compiler$test$CompilerRunner$_setter_$defaultConfig_$eq(
-              CompilerConfig x$1) {}
-        };
-    var moduleName = QualifiedName.simpleName(src.getName().replace(".enso", ""));
-    ModuleContext moduleContext =
-        compilerRunner.buildModuleContext(
-            moduleName, Option.apply(new FreshNameSupply()), Option.empty(), compilerConfig, false);
-    Module processedModule = passManager.runPassesOnModule(rawModule, moduleContext);
-    return processedModule;
+    QualifiedName qualifiedName = QualifiedName.fromString(name.substring(0, name.length() - suffix.length()));
+    var module = new org.enso.interpreter.runtime.Module(qualifiedName, null, src.getCharacters().toString());
+    langCtx.getCompiler().run(module.asCompilerModule());
+    return module.getIr();
   }
 
   protected final List<Diagnostic> getImmediateDiagnostics(IR ir) {

@@ -14,7 +14,7 @@ import org.graalvm.polyglot.Source;
 import org.junit.Test;
 import scala.Option;
 
-public class TypesFromSignaturesTest extends CompilerTest {
+public class TypesFromSignaturesTest extends StaticAnalysisTest {
 
   @Test
   public void simpleCheck() throws Exception {

@@ -24,7 +24,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import scala.Option;
 
-public class TypeInferenceTest extends CompilerTest {
+public class TypeInferenceTest extends StaticAnalysisTest {
   @Ignore("TODO resolving global methods")
   @Test
   public void zeroAryCheck() throws Exception {
