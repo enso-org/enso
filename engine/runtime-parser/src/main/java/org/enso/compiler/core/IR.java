@@ -52,7 +52,7 @@ public interface IR {
    * @return the external identifier for this IR node
    */
   default Option<@ExternalID UUID> getExternalId() {
-    return location().flatMap(l -> l.id().map(id -> id));
+    return location().flatMap(l -> l.id());
   }
 
   /**
