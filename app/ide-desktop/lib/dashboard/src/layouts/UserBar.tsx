@@ -75,6 +75,7 @@ export default function UserBar(props: UserBarProps) {
           <Button
             active={isHelpChatOpen}
             image={ChatIcon}
+            alt={getText('chatButtonAltText')}
             onPress={() => {
               setIsHelpChatOpen(!isHelpChatOpen)
             }}
@@ -82,6 +83,7 @@ export default function UserBar(props: UserBarProps) {
           {shouldShowInviteButton && (
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              aria-label={getText('inviteButtonAltText')}
               onPress={() => {
                 setModal(<InviteUsersModal />)
               }}
@@ -92,6 +94,7 @@ export default function UserBar(props: UserBarProps) {
           {shouldShowShareButton && (
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              aria-label={getText('shareButtonAltText')}
               onPress={() => {
                 setModal(
                   <ManagePermissionsModal
@@ -109,6 +112,7 @@ export default function UserBar(props: UserBarProps) {
           )}
           <UnstyledButton
             className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+            aria-label={getText('userMenuAltText')}
             onPress={() => {
               updateModal(oldModal =>
                 oldModal?.type === UserMenu ? null : (
