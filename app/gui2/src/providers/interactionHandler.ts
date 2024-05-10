@@ -60,7 +60,8 @@ export class InteractionHandler {
 
   handleCancel(): boolean {
     const hasCurrent = this.currentInteraction != null
-    if (hasCurrent) this.setCurrent(undefined)
+    this.currentInteraction?.cancel()
+    this.currentInteraction = undefined
     return hasCurrent
   }
 
