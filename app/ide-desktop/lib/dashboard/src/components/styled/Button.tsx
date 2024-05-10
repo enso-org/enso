@@ -6,6 +6,7 @@ import * as tailwindMerge from 'tailwind-merge'
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
@@ -15,6 +16,8 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {
+  /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
+  readonly tooltip?: React.ReactNode
   readonly autoFocus?: boolean
   /** When `true`, the button is not faded out even when not hovered. */
   readonly active?: boolean
@@ -24,7 +27,10 @@ export interface ButtonProps {
   readonly alt?: string
   /** A title that is only shown when `disabled` is `true`. */
   readonly error?: string | null
+  /** Class names for the icon itself. */
   readonly className?: string
+  /** Extra class names for the `button` element wrapping the icon.
+   * This is useful for things like positioning the entire button (e.g. `absolute`). */
   readonly buttonClassName?: string
   readonly onPress: (event: aria.PressEvent) => void
 }
@@ -32,18 +38,21 @@ export interface ButtonProps {
 /** A styled button. */
 function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
   const {
+    tooltip,
     active = false,
     image,
     error,
     alt,
     className,
-    buttonClassName = '',
+    buttonClassName,
     ...buttonProps
   } = props
   const { isDisabled = false } = buttonProps
   const focusChildProps = focusHooks.useFocusChild()
 
-  return (
+  const tooltipElement = tooltip === false ? null : tooltip ?? alt
+
+  const button = (
     <FocusRing placement="after">
       <aria.Button
         {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
@@ -64,6 +73,15 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         </div>
       </aria.Button>
     </FocusRing>
+  )
+
+  return tooltipElement == null ? (
+    button
+  ) : (
+    <ariaComponents.TooltipTrigger>
+      {button}
+      <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
+    </ariaComponents.TooltipTrigger>
   )
 }
 

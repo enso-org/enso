@@ -20,7 +20,6 @@ export interface TopBarProps {
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly isEditorDisabled: boolean
-  readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly doRemoveSelf: () => void
   readonly onSignOut: () => void
@@ -30,7 +29,7 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
   const { page, setPage, projectAsset, setProjectAsset, isEditorDisabled } = props
-  const { isHelpChatOpen, setIsHelpChatOpen, doRemoveSelf, onSignOut } = props
+  const { setIsHelpChatOpen, doRemoveSelf, onSignOut } = props
   const remoteBackend = backendProvider.useRemoteBackend()
 
   return (
@@ -40,7 +39,6 @@ export default function TopBar(props: TopBarProps) {
         backend={remoteBackend}
         page={page}
         setPage={setPage}
-        isHelpChatOpen={isHelpChatOpen}
         setIsHelpChatOpen={setIsHelpChatOpen}
         projectAsset={projectAsset}
         setProjectAsset={setProjectAsset}

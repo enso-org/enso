@@ -31,12 +31,11 @@ export enum Page {
 // =================
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName', altId: 'drivePageAltText' },
+  { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName' },
   {
     page: Page.editor,
     icon: NetworkIcon,
     nameId: 'editorPageName',
-    altId: 'editorPageAltText',
   },
 ]
 
@@ -49,7 +48,6 @@ interface PageUIData {
   readonly page: Page
   readonly icon: string
   readonly nameId: Extract<text.TextId, `${Page}PageName`>
-  readonly altId: Extract<text.TextId, `${Page}PageAltText`>
 }
 
 // ====================
@@ -112,7 +110,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                     setPage(pageData.page)
                   }}
                 >
-                  <SvgMask src={pageData.icon} alt={getText(pageData.altId)} />
+                  <SvgMask src={pageData.icon} />
                   <aria.Text className="text">{getText(pageData.nameId)}</aria.Text>
                 </UnstyledButton>
               </div>

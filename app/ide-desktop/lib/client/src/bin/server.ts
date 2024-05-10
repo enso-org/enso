@@ -6,6 +6,7 @@ import * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
+import * as mkcert from 'mkcert'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
@@ -104,19 +105,38 @@ export class Server {
     }
 
     /** Start the server. */
-    run(): Promise<void> {
+    async run(): Promise<void> {
+        const defaultValidity = 365
+        const ca = await mkcert.createCA({
+            organization: 'Enso International Inc.',
+            countryCode: 'USA',
+            state: 'Delaware',
+            locality: 'Wilmington',
+            validity: defaultValidity,
+        })
+        const cert = await mkcert.createCert({
+            ca: { key: ca.key, cert: ca.cert },
+            domains: ['127.0.0.1', 'localhost'],
+            validity: defaultValidity,
+        })
+
         return new Promise((resolve, reject) => {
             createServer(
                 {
-                    http: this.config.port,
+                    https: {
+                        key: cert.key,
+                        cert: cert.cert,
+                        port: this.config.port,
+                    },
                     handler: this.process.bind(this),
                 },
-                (err, { http: httpServer }) => {
+                (err, { https: httpsServer, http: httpServer }) => {
                     void (async () => {
                         if (err) {
                             logger.error(`Error creating server:`, err.http)
                             reject(err)
                         }
+                        const server = httpsServer ?? httpServer
                         // Prepare the YDoc server access point for the new Vue-based GUI.
                         // TODO[ao]: This is very ugly quickfix to make our rust-ffi WASM
                         // working both in browser and in ydocs server. Doing it properly
@@ -128,9 +148,9 @@ export class Server {
                         const rustFFIWasm = bundledFiles.find(name =>
                             /rust_ffi_bg-.*\.wasm/.test(name)
                         )
-                        if (httpServer && rustFFIWasm != null) {
+                        if (server && rustFFIWasm != null) {
                             await ydocServer.createGatewayServer(
-                                httpServer,
+                                server,
                                 path.join(assets, rustFFIWasm)
                             )
                         } else {
@@ -148,7 +168,7 @@ export class Server {
                                 .createServer({
                                     server: {
                                         middlewareMode: true,
-                                        hmr: httpServer ? { server: httpServer } : {},
+                                        hmr: server ? { server } : {},
                                     },
                                     configFile: process.env.GUI_CONFIG_PATH ?? false,
                                 })

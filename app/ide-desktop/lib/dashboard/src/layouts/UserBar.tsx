@@ -4,6 +4,8 @@ import * as React from 'react'
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
+import * as appUtils from '#/appUtils'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -12,7 +14,7 @@ import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
 import * as aria from '#/components/aria'
-import Button from '#/components/styled/Button'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -34,7 +36,6 @@ export interface UserBarProps {
   readonly invisible?: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
-  readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
@@ -44,10 +45,8 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { backend, invisible = false, page, setPage } = props
-  const { isHelpChatOpen, setIsHelpChatOpen, projectAsset, setProjectAsset } = props
-  const { doRemoveSelf, onSignOut } = props
-
+  const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
+  const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -73,16 +72,23 @@ export default function UserBar(props: UserBarProps) {
           className="pointer-events-auto flex h-12 shrink-0 cursor-default items-center gap-user-bar bg-primary/5 px-icons-x"
           {...innerProps}
         >
-          <Button
-            active={isHelpChatOpen}
-            image={ChatIcon}
+          <ariaComponents.Button
+            variant="icon"
+            size="custom"
+            className="mr-1"
+            icon={ChatIcon}
+            aria-label={getText('openHelpChat')}
             onPress={() => {
-              setIsHelpChatOpen(!isHelpChatOpen)
+              setIsHelpChatOpen(true)
             }}
           />
+
           {shouldShowInviteButton && (
-            <UnstyledButton
-              variant="accent"
+            <ariaComponents.Button
+              rounding="full"
+              size="xsmall"
+              variant="tertiary"
+              className="h-row"
               onPress={event => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }
@@ -90,12 +96,25 @@ export default function UserBar(props: UserBarProps) {
               }}
             >
               <aria.Text slot="label">{getText('invite')}</aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
+
+          <ariaComponents.Button
+            variant="primary"
+            rounding="full"
+            size="xsmall"
+            className="h-row"
+            href={appUtils.SUBSCRIBE_PATH}
+          >
+            {getText('upgrade')}
+          </ariaComponents.Button>
           {shouldShowShareButton && (
-            <UnstyledButton
-              variant="accent"
-              className="text my-auto h-row rounded-full bg-accent px-3 text-inversed"
+            <ariaComponents.Button
+              rounding="full"
+              size="xsmall"
+              variant="tertiary"
+              className="h-row"
+              aria-label={getText('shareButtonAltText')}
               onPress={() => {
                 setModal(
                   <ManagePermissionsModal
@@ -110,10 +129,11 @@ export default function UserBar(props: UserBarProps) {
               }}
             >
               <aria.Text slot="label">{getText('share')}</aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
           <UnstyledButton
             className="size-row flex select-none items-center overflow-clip rounded-full transition-colors hover:bg-black/10"
+            aria-label={getText('userMenuAltText')}
             onPress={() => {
               updateModal(oldModal =>
                 oldModal?.type === UserMenu ? null : (
