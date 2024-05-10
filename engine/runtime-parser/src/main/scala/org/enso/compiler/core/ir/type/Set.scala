@@ -141,7 +141,7 @@ object Set {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(label, memberType, value)
+    override lazy val children: List[IR] = List(label, memberType, value)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
@@ -249,7 +249,7 @@ object Set {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(left, right)
+    override lazy val children: List[IR] = List(left, right)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -354,7 +354,7 @@ object Set {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(left, right)
+    override lazy val children: List[IR] = List(left, right)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -458,7 +458,7 @@ object Set {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(left, right)
+    override lazy val children: List[IR] = List(left, right)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -554,7 +554,7 @@ object Set {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = operands.toList
+    override def children: List[IR] = operands
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -659,7 +659,7 @@ object Set {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(left, right)
+    override lazy val children: List[IR] = List(left, right)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =

@@ -111,7 +111,7 @@ object Error {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(ir)
+    override lazy val children: List[IR] = List(ir)
 
     /** @inheritdoc */
     override def message(source: (IdentifiedLocation => String)): String =

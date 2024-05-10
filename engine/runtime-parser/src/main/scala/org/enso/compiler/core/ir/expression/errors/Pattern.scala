@@ -82,7 +82,7 @@ sealed case class Pattern(
   override val location: Option[IdentifiedLocation] =
     originalPattern.location
 
-  override def children: List[IR] = List(originalPattern)
+  override lazy val children: List[IR] = List(originalPattern)
 
   override def showCode(indent: Int): String =
     originalPattern.showCode(indent)

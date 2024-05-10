@@ -79,7 +79,7 @@ sealed case class Resolution(
     )
 
   /** @inheritdoc */
-  override def children: List[IR] = List(originalName)
+  override lazy val children: List[IR] = List(originalName)
 
   /** @inheritdoc */
   override def showCode(indent: Int): String = originalName.showCode(indent)

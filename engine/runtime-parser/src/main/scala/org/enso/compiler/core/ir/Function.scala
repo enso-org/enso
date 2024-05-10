@@ -146,7 +146,7 @@ object Function {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = arguments :+ body
+    override lazy val children: List[IR] = arguments :+ body
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
@@ -308,7 +308,7 @@ object Function {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = (name :: arguments) :+ body
+    override lazy val children: List[IR] = (name :: arguments) :+ body
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {

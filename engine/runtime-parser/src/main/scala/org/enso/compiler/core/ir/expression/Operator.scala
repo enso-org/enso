@@ -134,7 +134,7 @@ object Operator {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(left, operator, right)
+    override lazy val children: List[IR] = List(left, operator, right)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {

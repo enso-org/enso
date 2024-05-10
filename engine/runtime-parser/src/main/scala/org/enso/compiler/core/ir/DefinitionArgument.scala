@@ -174,7 +174,7 @@ object DefinitionArgument {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] =
+    override lazy val children: List[IR] =
       name :: ascribedType.toList ++ defaultValue.toList
 
     /** @inheritdoc */

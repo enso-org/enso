@@ -157,7 +157,7 @@ object Expression {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = expressions :+ returnValue
+    override lazy val children: List[IR] = expressions :+ returnValue
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
@@ -268,7 +268,7 @@ object Expression {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(name, expression)
+    override lazy val children: List[IR] = List(name, expression)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =

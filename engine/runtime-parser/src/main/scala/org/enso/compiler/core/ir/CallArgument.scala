@@ -138,7 +138,7 @@ object CallArgument {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = name.toList :+ value
+    override lazy val children: List[IR] = name.toList :+ value
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {

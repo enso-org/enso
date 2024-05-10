@@ -125,7 +125,7 @@ object Section {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(arg, operator)
+    override lazy val children: List[IR] = List(arg, operator)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -216,7 +216,7 @@ object Section {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(operator)
+    override lazy val children: List[IR] = List(operator)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -322,7 +322,7 @@ object Section {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(operator, arg)
+    override lazy val children: List[IR] = List(operator, arg)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =

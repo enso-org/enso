@@ -164,7 +164,7 @@ object Import {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] =
+    override lazy val children: List[IR] =
       name :: List(
         rename.toList,
         onlyNames.getOrElse(List()),

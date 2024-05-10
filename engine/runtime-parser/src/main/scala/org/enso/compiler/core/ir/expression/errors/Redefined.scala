@@ -101,7 +101,7 @@ object Redefined {
     override def diagnosticKeys(): Array[Any] = Array()
 
     /** @inheritdoc */
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = "(Redefined This_Arg)"
@@ -223,7 +223,7 @@ object Redefined {
          |""".stripMargin
 
     /** @inheritdoc */
-    override def children: List[IR] =
+    override lazy val children: List[IR] =
       targetType
         .map(_ :: sourceType :: Nil)
         .getOrElse(sourceType :: Nil)
@@ -346,7 +346,7 @@ object Redefined {
          |""".stripMargin
 
     /** @inheritdoc */
-    override def children: List[IR] =
+    override lazy val children: List[IR] =
       atomName
         .map(_ :: methodName :: Nil)
         .getOrElse(methodName :: Nil)
@@ -472,7 +472,7 @@ object Redefined {
          |""".stripMargin
 
     /** @inheritdoc */
-    override def children: List[IR] = List(atomName, methodName)
+    override lazy val children: List[IR] = List(atomName, methodName)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -573,7 +573,7 @@ object Redefined {
          |""".stripMargin
 
     /** @inheritdoc */
-    override def children: List[IR] = List(typeName)
+    override lazy val children: List[IR] = List(typeName)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -674,7 +674,7 @@ object Redefined {
          |""".stripMargin
 
     /** @inheritdoc */
-    override def children: List[IR] = List(name)
+    override lazy val children: List[IR] = List(name)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -768,7 +768,7 @@ object Redefined {
          |""".stripMargin
 
     /** @inheritdoc */
-    override def children: List[IR] = List(invalidBinding)
+    override lazy val children: List[IR] = List(invalidBinding)
 
     /** @inheritdoc */
     override def message(source: (IdentifiedLocation => String)): String =

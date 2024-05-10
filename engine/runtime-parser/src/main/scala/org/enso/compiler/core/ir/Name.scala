@@ -145,7 +145,7 @@ object Name {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] =
+    override lazy val children: List[IR] =
       typePointer.map(_ :: methodName :: Nil).getOrElse(methodName :: Nil)
 
     /** @inheritdoc */
@@ -353,7 +353,7 @@ object Name {
          |""".stripMargin
 
     /** @inheritdoc */
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = "_"
@@ -423,7 +423,7 @@ object Name {
          |)
          |""".stripMargin
 
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     override def showCode(indent: Int): String = name
   }
@@ -526,7 +526,7 @@ object Name {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
@@ -630,7 +630,7 @@ object Name {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = s"@$name"
@@ -719,7 +719,7 @@ object Name {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(expression)
+    override lazy val children: List[IR] = List(expression)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -799,7 +799,7 @@ object Name {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name
@@ -875,7 +875,7 @@ object Name {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name

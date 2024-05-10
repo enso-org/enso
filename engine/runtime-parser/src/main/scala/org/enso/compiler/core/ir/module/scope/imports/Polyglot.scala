@@ -105,7 +105,7 @@ sealed case class Polyglot(
        |""".toSingleLine
 
   /** @inheritdoc */
-  override def children: List[IR] = List()
+  override def children: List[IR] = Nil
 
   /** @inheritdoc */
   override def showCode(indent: Int): String = {

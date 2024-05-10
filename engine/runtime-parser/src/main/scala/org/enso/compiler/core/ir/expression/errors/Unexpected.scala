@@ -111,7 +111,7 @@ object Unexpected {
       )
 
     /** @inheritdoc */
-    override def children: List[IR] = List(ir)
+    override lazy val children: List[IR] = List(ir)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =

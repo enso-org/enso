@@ -90,7 +90,7 @@ sealed case class Syntax(
        |""".toSingleLine
 
   /** @inheritdoc */
-  override def children: List[IR] = List()
+  override def children: List[IR] = Nil
 
   /** @inheritdoc */
   override def message(source: (IdentifiedLocation => String)): String =

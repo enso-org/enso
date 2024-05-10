@@ -80,7 +80,7 @@ sealed case class Conversion(
   }
 
   /** @inheritdoc */
-  override def children: List[IR] = List(storedIr)
+  override lazy val children: List[IR] = List(storedIr)
 
   /** @inheritdoc */
   override def showCode(indent: Int): String =

@@ -170,7 +170,7 @@ object Method {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(methodReference, body)
+    override lazy val children: List[IR] = List(methodReference, body)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
@@ -345,7 +345,7 @@ object Method {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] =
+    override lazy val children: List[IR] =
       (methodReference :: arguments) :+ body
 
     /** @inheritdoc */
@@ -485,7 +485,7 @@ object Method {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] =
+    override lazy val children: List[IR] =
       List(methodReference, sourceTypeName, body)
 
     /** @inheritdoc */

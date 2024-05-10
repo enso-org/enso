@@ -113,7 +113,7 @@ final case class Module(
   }
 
   /** @inheritdoc */
-  override def children: List[IR] = imports ++ exports ++ bindings
+  override lazy val children: List[IR] = imports ++ exports ++ bindings
 
   /** @inheritdoc */
   override def toString: String =

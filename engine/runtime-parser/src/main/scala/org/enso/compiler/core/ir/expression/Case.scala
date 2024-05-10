@@ -145,7 +145,7 @@ object Case {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = scrutinee :: branches.toList
+    override lazy val children: List[IR] = scrutinee :: branches.toList
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
@@ -298,7 +298,7 @@ object Case {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(pattern, expression)
+    override lazy val children: List[IR] = List(pattern, expression)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {

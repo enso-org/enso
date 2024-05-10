@@ -105,7 +105,7 @@ object Literal {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = if (this.base.isDefined) {
@@ -230,7 +230,7 @@ object Literal {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List()
+    override def children: List[IR] = Nil
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = s""""$text""""

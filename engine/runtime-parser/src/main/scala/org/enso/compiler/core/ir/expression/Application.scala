@@ -123,7 +123,7 @@ object Application {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = function :: arguments
+    override lazy val children: List[IR] = function :: arguments
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
@@ -216,7 +216,7 @@ object Application {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(target)
+    override lazy val children: List[IR] = List(target)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -328,8 +328,8 @@ object Application {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] =
-      expression.map(List(_)).getOrElse(List())
+    override lazy val children: List[IR] =
+      expression.map(List(_)).getOrElse(Nil)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {

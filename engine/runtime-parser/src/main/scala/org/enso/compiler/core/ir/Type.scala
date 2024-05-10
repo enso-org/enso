@@ -110,7 +110,7 @@ object Type {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = args :+ result
+    override lazy val children: List[IR] = args :+ result
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -218,7 +218,7 @@ object Type {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(typed, signature)
+    override lazy val children: List[IR] = List(typed, signature)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -323,7 +323,7 @@ object Type {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(typed, context)
+    override lazy val children: List[IR] = List(typed, context)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
@@ -426,7 +426,7 @@ object Type {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = List(typed, error)
+    override lazy val children: List[IR] = List(typed, error)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =

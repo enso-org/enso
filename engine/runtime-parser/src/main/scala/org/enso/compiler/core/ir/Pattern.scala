@@ -115,7 +115,7 @@ object Pattern {
       copy(location = location)
 
     /** @inheritdoc */
-    override def children: List[IR] = List(name)
+    override lazy val children: List[IR] = List(name)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = name.showCode(indent)
@@ -264,7 +264,7 @@ object Pattern {
     ): Constructor = copy(location = location)
 
     /** @inheritdoc */
-    override def children: List[IR] = constructor :: fields
+    override lazy val children: List[IR] = constructor :: fields
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
@@ -359,7 +359,7 @@ object Pattern {
       copy(location = location)
 
     /** @inheritdoc */
-    override def children: List[IR] = List(literal)
+    override lazy val children: List[IR] = List(literal)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = literal.showCode(indent)
@@ -463,7 +463,7 @@ object Pattern {
       copy(location = location)
 
     /** @inheritdoc */
-    override def children: List[IR] = List(name, tpe)
+    override lazy val children: List[IR] = List(name, tpe)
 
     /** @inheritdoc */
     override def showCode(indent: Int): String =
