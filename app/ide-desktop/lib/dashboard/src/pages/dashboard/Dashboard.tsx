@@ -20,7 +20,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -39,7 +38,6 @@ import type * as projectManager from '#/services/ProjectManager'
 import * as remoteBackendModule from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
-import AssetQuery from '#/utilities/AssetQuery'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -136,9 +134,7 @@ export default function Dashboard(props: DashboardProps) {
     (value: unknown): value is pageSwitcher.Page =>
       array.includes(Object.values(pageSwitcher.Page), value)
   )
-  const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [labels, setLabels] = React.useState<backendModule.Label[]>([])
-  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
   const [openProjectAbortController, setOpenProjectAbortController] =
@@ -167,12 +163,6 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     setInitialized(true)
   }, [])
-
-  React.useEffect(() => {
-    if (query.query !== '') {
-      setPage(pageSwitcher.Page.drive)
-    }
-  }, [query, setPage])
 
   React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
@@ -403,10 +393,6 @@ export default function Dashboard(props: DashboardProps) {
             isEditorDisabled={projectStartupInfo == null}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
-            query={query}
-            setQuery={setQuery}
-            labels={labels}
-            suggestions={suggestions}
             isAssetPanelVisible={isAssetPanelVisible}
             isAssetPanelEnabled={isAssetPanelEnabled}
             setIsAssetPanelEnabled={setIsAssetPanelEnabled}
@@ -418,11 +404,8 @@ export default function Dashboard(props: DashboardProps) {
             setCategory={setCategory}
             hidden={page !== pageSwitcher.Page.drive}
             initialProjectName={initialProjectName}
-            query={query}
-            setQuery={setQuery}
             labels={labels}
             setLabels={setLabels}
-            setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}
@@ -469,7 +452,6 @@ export default function Dashboard(props: DashboardProps) {
               backend={assetPanelProps?.backend ?? null}
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
-              setQuery={setQuery}
               category={defaultCategory}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}

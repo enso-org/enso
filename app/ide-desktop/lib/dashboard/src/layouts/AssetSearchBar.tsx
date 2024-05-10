@@ -1,6 +1,8 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
@@ -111,13 +113,14 @@ export interface AssetSearchBarProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly labels: backend.Label[]
-  readonly suggestions: Suggestion[]
+  readonly labels: readonly backend.Label[]
+  readonly suggestions: readonly Suggestion[]
+  readonly className?: string
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { isCloud, query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { isCloud, query, setQuery, labels, suggestions: rawSuggestions, className } = props
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
@@ -274,8 +277,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         <aria.Label
           data-testid="asset-search-bar"
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
-            className:
+            className: tailwindMerge.twMerge(
               'search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide',
+              className
+            ),
             ref: rootRef,
             onFocus: () => {
               setAreSuggestionsVisible(true)
@@ -308,7 +313,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     data-testid="asset-search-labels"
                     className="pointer-events-auto flex gap-buttons p-search-suggestions"
                   >
-                    {labels
+                    {[...labels]
                       .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
                       .map(label => {
                         const negated = query.negativeLabels.some(term =>

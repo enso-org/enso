@@ -91,7 +91,7 @@ export default function Settings(props: SettingsProps) {
       break
     }
     case SettingsTab.userGroups: {
-      content = <UserGroupsSettingsTab />
+      content = backend == null ? null : <UserGroupsSettingsTab backend={backend}/>
       break
     }
     case SettingsTab.keyboardShortcuts: {

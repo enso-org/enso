@@ -31,7 +31,7 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
-import type AssetQuery from '#/utilities/AssetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -69,11 +69,8 @@ export interface DriveProps {
   readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  readonly query: AssetQuery
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly labels: backendModule.Label[]
   readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
-  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
@@ -88,8 +85,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { hidden, initialProjectName, query, setQuery } = props
-  const { labels, setLabels, setSuggestions, projectStartupInfo } = props
+  const { hidden, initialProjectName, labels, setLabels, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
@@ -102,6 +98,8 @@ export default function Drive(props: DriveProps) {
   const backend = backendProvider.useBackend(category)
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
+  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
@@ -359,6 +357,10 @@ export default function Drive(props: DriveProps) {
           }`}
         >
           <DriveBar
+            query={query}
+            setQuery={setQuery}
+            labels={labels}
+            suggestions={suggestions}
             category={category}
             canDownload={canDownload}
             doEmptyTrash={doEmptyTrash}

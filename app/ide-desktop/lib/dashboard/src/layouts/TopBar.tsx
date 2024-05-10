@@ -3,16 +3,12 @@ import * as React from 'react'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
-import AssetSearchBar from '#/layouts/AssetSearchBar'
 import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserBar from '#/layouts/UserBar'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
 import type * as backendModule from '#/services/Backend'
-
-import type AssetQuery from '#/utilities/AssetQuery'
 
 // ==============
 // === TopBar ===
@@ -28,10 +24,6 @@ export interface TopBarProps {
   readonly isEditorDisabled: boolean
   readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  readonly query: AssetQuery
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly labels: backendModule.Label[]
-  readonly suggestions: assetSearchBar.Suggestion[]
   readonly isAssetPanelVisible: boolean
   readonly isAssetPanelEnabled: boolean
   readonly setIsAssetPanelEnabled: React.Dispatch<React.SetStateAction<boolean>>
@@ -44,27 +36,14 @@ export interface TopBarProps {
 export default function TopBar(props: TopBarProps) {
   const { isCloud, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
+  const { isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
   const remoteBackend = backendProvider.useRemoteBackend()
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
-    <div className="relative z-1 m-top-bar mb flex h-row gap-top-bar">
+    <div className="relative z-1 m-top-bar mb flex h-12 gap-top-bar">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-      {page === pageSwitcher.Page.editor ? (
-        <div className="flex-1" />
-      ) : (
-        <div className="flex flex-1 flex-wrap justify-around">
-          <AssetSearchBar
-            isCloud={isCloud}
-            query={query}
-            setQuery={setQuery}
-            labels={labels}
-            suggestions={suggestions}
-          />
-        </div>
-      )}
       <div
         className={`grid transition-all duration-side-panel ${isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'}`}
       >

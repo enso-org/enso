@@ -14,12 +14,12 @@ import * as permissionsModule from '#/utilities/permissions'
 export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren> {
   readonly action: permissionsModule.PermissionAction
   readonly className?: string
-  readonly onPress?: (event: aria.PressEvent) => void
+  readonly onPress?: ((event: aria.PressEvent) => void) | null
 }
 
 /** Colored border around icons and text indicating permissions. */
 export default function PermissionDisplay(props: PermissionDisplayProps) {
-  const { action, className, onPress: onPress, children } = props
+  const { action, className, onPress, children } = props
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
   switch (permission.type) {

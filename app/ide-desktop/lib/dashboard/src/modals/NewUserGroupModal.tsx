@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -13,6 +12,7 @@ import ButtonRow from '#/components/styled/ButtonRow'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
@@ -23,6 +23,7 @@ import * as string from '#/utilities/string'
 
 /** Props for a {@link NewUserGroupModal}. */
 export interface NewUserGroupModalProps {
+  readonly backend: Backend
   readonly event?: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly userGroups: backendModule.UserGroupInfo[] | null
   readonly onSubmit: (name: string) => void
@@ -32,9 +33,8 @@ export interface NewUserGroupModalProps {
 
 /** A modal to create a user group. */
 export default function NewUserGroupModal(props: NewUserGroupModalProps) {
-  const { userGroups: userGroupsRaw, onSubmit: onSubmitRaw, onSuccess, onFailure } = props
+  const { backend, userGroups: userGroupsRaw, onSubmit: onSubmitRaw, onSuccess, onFailure } = props
   const { event: positionEvent } = props
-  const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

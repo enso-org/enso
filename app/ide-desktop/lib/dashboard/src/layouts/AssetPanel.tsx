@@ -16,7 +16,6 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 
@@ -60,7 +59,6 @@ export interface AssetPanelRequiredProps {
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isReadonly?: boolean
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly labels: backendModule.Label[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -68,7 +66,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
+  const { backend, item, setItem, category, labels, dispatchAssetEvent } = props
   const { isReadonly = false } = props
 
   const { getText } = textProvider.useText()
@@ -145,7 +143,6 @@ export default function AssetPanel(props: AssetPanelProps) {
               setItem={setItem}
               category={category}
               labels={labels}
-              setQuery={setQuery}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}

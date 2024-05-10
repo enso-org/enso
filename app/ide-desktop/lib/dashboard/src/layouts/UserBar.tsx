@@ -83,8 +83,10 @@ export default function UserBar(props: UserBarProps) {
           {shouldShowInviteButton && (
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
-              onPress={() => {
-                setModal(<InviteUsersModal backend={backend} eventTarget={null} />)
+              onPress={event => {
+                const rect = event.target.getBoundingClientRect()
+                const position = { pageX: rect.left, pageY: rect.top }
+                setModal(<InviteUsersModal backend={backend} event={position} />)
               }}
             >
               <aria.Text slot="label">{getText('invite')}</aria.Text>

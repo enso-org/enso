@@ -225,6 +225,7 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
                 const position = { pageX: rect.left, pageY: rect.top }
                 setModal(
                   <NewUserGroupModal
+                    backend={backend}
                     event={position}
                     userGroups={userGroups}
                     onSubmit={groupName => {

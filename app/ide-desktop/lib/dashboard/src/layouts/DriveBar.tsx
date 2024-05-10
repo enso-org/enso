@@ -15,6 +15,8 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import AssetSearchBar from '#/layouts/AssetSearchBar'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Start from '#/layouts/Start'
 
@@ -27,6 +29,9 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
+import type * as backend from '#/services/Backend'
+
+import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
@@ -35,6 +40,10 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly labels: readonly backend.Label[]
+  readonly suggestions: readonly assetSearchBar.Suggestion[]
   readonly category: Category
   readonly canDownload: boolean
   readonly doEmptyTrash: () => void
@@ -49,7 +58,8 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
+  const { query, setQuery, labels, suggestions, category, canDownload } = props
+  const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -203,6 +213,14 @@ export default function DriveBar(props: DriveBarProps) {
               />
             </div>
           </HorizontalMenuBar>
+          <AssetSearchBar
+            isCloud={isCloud}
+            query={query}
+            setQuery={setQuery}
+            labels={labels}
+            suggestions={suggestions}
+            className="mx-auto"
+          />
         </div>
       )
     }
