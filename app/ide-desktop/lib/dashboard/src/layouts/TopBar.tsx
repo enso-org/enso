@@ -28,7 +28,6 @@ export interface TopBarProps {
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly isEditorDisabled: boolean
   readonly setBackendType: (backendType: backendModule.BackendType) => void
-  readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
@@ -45,7 +44,7 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
-  const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { isEditorDisabled, setBackendType, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
@@ -88,7 +87,6 @@ export default function TopBar(props: TopBarProps) {
               invisible
               page={page}
               setPage={setPage}
-              isHelpChatOpen={isHelpChatOpen}
               setIsHelpChatOpen={setIsHelpChatOpen}
               projectAsset={projectAsset}
               setProjectAsset={setProjectAsset}
@@ -111,7 +109,6 @@ export default function TopBar(props: TopBarProps) {
           <UserBar
             page={page}
             setPage={setPage}
-            isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             projectAsset={projectAsset}
             setProjectAsset={setProjectAsset}

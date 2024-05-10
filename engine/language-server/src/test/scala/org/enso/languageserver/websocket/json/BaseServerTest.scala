@@ -73,6 +73,7 @@ import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import org.slf4j.LoggerFactory
 
 abstract class BaseServerTest
     extends JsonRpcServerTestKit
@@ -235,7 +236,7 @@ abstract class BaseServerTest
       FileManager.props(
         config.fileManager,
         contentRootManagerWrapper,
-        new FileSystem,
+        new FileSystem(LoggerFactory.getLogger(classOf[BaseServerTest])),
         zioExec
       ),
       s"file-manager-${UUID.randomUUID()}"
@@ -273,7 +274,7 @@ abstract class BaseServerTest
         config,
         contentRootManagerWrapper,
         watcherFactory,
-        new FileSystem,
+        new FileSystem(LoggerFactory.getLogger(classOf[BaseServerTest])),
         zioExec
       ),
       s"fileevent-registry-${UUID.randomUUID()}"

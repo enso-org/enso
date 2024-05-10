@@ -2,6 +2,7 @@
  * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
 
+import clsx from 'clsx'
 import * as tailwindMerge from 'tailwind-merge'
 
 import Dismiss from 'enso-assets/dismiss.svg'
@@ -27,7 +28,7 @@ const MODAL_CLASSES_BY_TYPE: Readonly<Record<types.DialogType, string>> = {
 }
 
 const DIALOG_CLASSES_BY_TYPE: Readonly<Record<types.DialogType, string>> = {
-  modal: 'p-modal-wide',
+  modal: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
   popover: 'rounded-lg',
   fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
 }
@@ -45,7 +46,10 @@ export function Dialog(props: types.DialogProps) {
     type = 'modal',
     isDismissable = true,
     isKeyboardDismissDisabled = false,
+    hideCloseButton = false,
     className,
+    onOpenChange = () => {},
+    modalProps,
     ...ariaDialogProps
   } = props
   const cleanupRef = React.useRef(() => {})
@@ -58,6 +62,8 @@ export function Dialog(props: types.DialogProps) {
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
+      onOpenChange={onOpenChange}
+      {...modalProps}
     >
       <aria.Dialog
         className={tailwindMerge.twMerge(DIALOG_CLASSES, DIALOG_CLASSES_BY_TYPE[type], className)}
@@ -80,21 +86,26 @@ export function Dialog(props: types.DialogProps) {
         {opts => (
           <>
             {typeof title === 'string' && (
-              <aria.Header className="center sticky flex flex-none border-b px-3.5 py-2.5 text-primary shadow">
-                <aria.Heading level={2} className="text-l my-0 font-semibold leading-6">
+              <aria.Header className="center sticky flex flex-none items-center border-b px-3.5 py-2.5 text-primary shadow">
+                <aria.Heading
+                  slot="title"
+                  level={2}
+                  className="text-l my-0 font-semibold leading-6"
+                >
                   {title}
                 </aria.Heading>
 
                 <ariaComponents.Button
                   variant="icon"
-                  className="my-auto ml-auto"
+                  className={clsx('my-auto ml-auto mr-[-4px]', { hidden: hideCloseButton })}
+                  size="custom"
                   onPress={opts.close}
                   icon={Dismiss}
                 />
               </aria.Header>
             )}
 
-            <div className="flex-1 shrink-0">
+            <div className="relative flex-auto overflow-y-auto p-3.5">
               {typeof children === 'function' ? children(opts) : children}
             </div>
           </>

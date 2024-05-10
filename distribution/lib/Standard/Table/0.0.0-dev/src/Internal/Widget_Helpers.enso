@@ -120,31 +120,31 @@ make_filter_condition_selector table display=Display.Always =
     with_number_text = make_column_ref_by_name_selector table add_text=True add_number=True
     with_text = make_column_ref_by_name_selector table add_text=True
 
-    builder = Vector.new_builder
-    fqn = Meta.get_qualified_type_name Filter_Condition
-    builder.append (Option "Equals" fqn+".Equal" [["to", with_all_types]])
-    builder.append (Option "Not Equals" fqn+".Not_Equal" [["to", with_all_types]])
-    builder.append (Option "Less Than" fqn+".Less" [["than", with_number_text]])
-    builder.append (Option "Less Than Or Equal" fqn+".Equal_Or_Less" [["than", with_number_text]])
-    builder.append (Option "Greater Than" fqn+".Greater" [["than", with_number_text]])
-    builder.append (Option "Greater Than Or Equal" fqn+".Equal_Or_Greater" [["than", with_number_text]])
-    builder.append (Option "Between" fqn+".Between" [["lower", with_number_text], ["upper", with_number_text]])
-    builder.append (Option "Equals Ignore Case" fqn+".Equal_Ignore_Case" [["to", with_text]])
-    builder.append (Option "Starts With" fqn+".Starts_With" [["prefix", with_text]])
-    builder.append (Option "Ends With" fqn+".Ends_With" [["suffix", with_text]])
-    builder.append (Option "Contains" fqn+".Contains" [["substring", with_text]])
-    builder.append (Option "Is Nothing" fqn+".Is_Nothing")
-    builder.append (Option "Is Not Nothing" fqn+".Not_Nothing")
-    builder.append (Option "Is Finite" fqn+".Is_Finite")
-    builder.append (Option "Is Infinite" fqn+".Is_Infinite")
-    builder.append (Option "Is NaN" fqn+".Is_Nan")
-    builder.append (Option "Is True" fqn+".Is_True")
-    builder.append (Option "Is False" fqn+".Is_False")
-    builder.append (Option "Is Empty" fqn+".Is_Empty")
-    builder.append (Option "Is Not Empty" fqn+".Not_Empty")
-    builder.append (Option "Like" fqn+".Like" [["pattern", with_text]])
-    builder.append (Option "Is In" fqn+".Is_In")
-    Single_Choice builder.to_vector display=display
+    options = Vector.build builder->
+        fqn = Meta.get_qualified_type_name Filter_Condition
+        builder.append (Option "Equals" fqn+".Equal" [["to", with_all_types]])
+        builder.append (Option "Not Equals" fqn+".Not_Equal" [["to", with_all_types]])
+        builder.append (Option "Less Than" fqn+".Less" [["than", with_number_text]])
+        builder.append (Option "Less Than Or Equal" fqn+".Equal_Or_Less" [["than", with_number_text]])
+        builder.append (Option "Greater Than" fqn+".Greater" [["than", with_number_text]])
+        builder.append (Option "Greater Than Or Equal" fqn+".Equal_Or_Greater" [["than", with_number_text]])
+        builder.append (Option "Between" fqn+".Between" [["lower", with_number_text], ["upper", with_number_text]])
+        builder.append (Option "Equals Ignore Case" fqn+".Equal_Ignore_Case" [["to", with_text]])
+        builder.append (Option "Starts With" fqn+".Starts_With" [["prefix", with_text]])
+        builder.append (Option "Ends With" fqn+".Ends_With" [["suffix", with_text]])
+        builder.append (Option "Contains" fqn+".Contains" [["substring", with_text]])
+        builder.append (Option "Is Nothing" fqn+".Is_Nothing")
+        builder.append (Option "Is Not Nothing" fqn+".Not_Nothing")
+        builder.append (Option "Is Finite" fqn+".Is_Finite")
+        builder.append (Option "Is Infinite" fqn+".Is_Infinite")
+        builder.append (Option "Is NaN" fqn+".Is_Nan")
+        builder.append (Option "Is True" fqn+".Is_True")
+        builder.append (Option "Is False" fqn+".Is_False")
+        builder.append (Option "Is Empty" fqn+".Is_Empty")
+        builder.append (Option "Is Not Empty" fqn+".Not_Empty")
+        builder.append (Option "Like" fqn+".Like" [["pattern", with_text]])
+        builder.append (Option "Is In" fqn+".Is_In")
+    Single_Choice options display=display
 
 ## PRIVATE
    Make a join kind selector - Needed to override display.
