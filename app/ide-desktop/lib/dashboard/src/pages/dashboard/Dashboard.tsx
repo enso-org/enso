@@ -506,7 +506,6 @@ export default function Dashboard(props: DashboardProps) {
             page={page}
             setPage={setPage}
             isEditorDisabled={projectStartupInfo == null}
-            isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             setBackendType={setBackendType}
             query={query}
