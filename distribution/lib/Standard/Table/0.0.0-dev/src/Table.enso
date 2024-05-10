@@ -58,6 +58,7 @@ import project.Match_Columns.Match_Columns
 import project.Position.Position
 import project.Prefix_Name.Prefix_Name
 import project.Row.Row
+import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
@@ -1825,12 +1826,10 @@ type Table
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    rows : Integer | Nothing -> Boolean -> Vector Row
-    rows self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows : Boolean = True) =
-        proxy = Rows_View.Value (self.read max_rows warn_if_more_rows)
+    @max_rows Rows_To_Read.default_widget
+    rows : Rows_To_Read -> Vector Row
+    rows self (max_rows : Rows_To_Read = ..All_Rows) =
+        proxy = Rows_View.Value (self.read max_rows)
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     ## GROUP Standard.Base.Selections
@@ -2364,9 +2363,8 @@ type Table
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
     @max_rows Rows_To_Read.default_widget
-    read : Rows_To_Read -> Boolean -> Table
+    read : Rows_To_Read -> Table
     read self (max_rows : Rows_To_Read = ..All_Rows) = case max_rows of
         Rows_To_Read.All_Rows -> self
         Rows_To_Read.First n -> self.take (First n)
@@ -3139,28 +3137,3 @@ Table.from (that:XML_Element) =
 
    Either `Children` or `Value` will be generated, but not both.
 Table.from (that:XML_Document) = Table.from that.root_element
-
-## PRIVATE
-type Rows_To_Read
-    ## Read all rows.
-    All_Rows
-
-    ## Read the first specified number of rows.
-    First rows:Integer=1000
-
-    ## First 1000 Rows with an attached warning if more to read.
-       This is the default for database reading.
-    First_With_Warning rows:Integer=1000
-
-    ## PRIVATE
-    default_widget -> Widget =
-        make_single_choice [["All_Rows", "..All_Rows"], ["First", "..First"]]
-
-## PRIVATE
-Rows_To_Read.from (that:Nothing) =
-    _ = that
-    Rows_To_Read.All_Rows
-
-## PRIVATE
-Rows_To_Read.from (that:Integer) =
-    Rows_To_Read.First that
