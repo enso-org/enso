@@ -14,6 +14,8 @@ import type * as app from '#/App'
 import App from '#/App'
 import * as reactQueryClient from '#/reactQueryClient'
 
+import * as loader from '#/components/Loader'
+
 // =================
 // === Constants ===
 // =================
@@ -81,22 +83,25 @@ function run(props: app.AppProps) {
     const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
     const actualProjectManagerUrl = supportsLocalBackend ? projectManagerUrl : null
     const queryClient = reactQueryClient.createReactQueryClient()
-    const app = (
-      <reactQuery.QueryClientProvider client={queryClient}>
-        <App
-          {...props}
-          supportsDeepLinks={actuallySupportsDeepLinks}
-          projectManagerUrl={actualProjectManagerUrl}
-        />
-      </reactQuery.QueryClientProvider>
-    )
-    reactDOM
-      .createRoot(root)
-      .render(
+    reactDOM.createRoot(root).render(
+      <React.StrictMode>
         <sentry.ErrorBoundary>
-          {detect.IS_DEV_MODE ? <React.StrictMode>{app}</React.StrictMode> : app}
+          <React.Suspense fallback={<loader.Loader size={64} />}>
+            <reactQuery.QueryClientProvider client={queryClient}>
+              {detect.IS_DEV_MODE ? (
+                <App {...props} />
+              ) : (
+                <App
+                  {...props}
+                  supportsDeepLinks={actuallySupportsDeepLinks}
+                  projectManagerUrl={actualProjectManagerUrl}
+                />
+              )}
+            </reactQuery.QueryClientProvider>
+          </React.Suspense>
         </sentry.ErrorBoundary>
-      )
+      </React.StrictMode>
+    )
   }
 }
 

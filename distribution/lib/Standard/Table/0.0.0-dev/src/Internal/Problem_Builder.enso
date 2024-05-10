@@ -35,14 +35,12 @@ type Problem_Builder
        Returns a vector containing all reported problems, aggregated.
     build_problemset : Vector
     build_problemset self =
-        problems = Vector.new_builder
+        Vector.build problems->
 
-        missing_criteria = self.missing_input_columns.get.build + self.oob_indices.get.build
-        if missing_criteria.not_empty then
-            problems.append (Missing_Input_Columns.Error missing_criteria where=self.missing_input_columns_location)
-        self.other.to_vector.each problems.append
-
-        problems.to_vector
+            missing_criteria = self.missing_input_columns.get.build + self.oob_indices.get.build
+            if missing_criteria.not_empty then
+                problems.append (Missing_Input_Columns.Error missing_criteria where=self.missing_input_columns_location)
+            self.other.to_vector.each problems.append
 
     ## PRIVATE
        Attaches gathered warnings to the result.
