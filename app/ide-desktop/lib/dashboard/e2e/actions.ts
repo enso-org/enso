@@ -371,14 +371,14 @@ export function locateNewSecretIcon(page: test.Locator | test.Page) {
   return page.getByRole('button').filter({ has: page.getByAltText('New Secret') })
 }
 
-/** Find a "upload files" icon (if any) on the current page. */
+/** Find an "upload files" icon (if any) on the current page. */
 export function locateUploadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Upload Files') })
+  return page.getByRole('button').filter({ has: page.getByAltText('Import') })
 }
 
 /** Find a "download files" icon (if any) on the current page. */
 export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Download Files') })
+  return page.getByRole('button').filter({ has: page.getByAltText('Export') })
 }
 
 /** Find an icon to open or close the asset panel (if any) on the current page. */
