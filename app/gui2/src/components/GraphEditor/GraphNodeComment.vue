@@ -6,13 +6,12 @@ const editing = defineModel<boolean>('editing', { required: true })
 const props = defineProps<{ node: Node }>()
 </script>
 <template>
-  <div class="GraphNodeComment">
+  <div v-if="editing || props.node.documentation?.trimStart()" class="GraphNodeComment">
     <AstDocumentation
       v-model:editing="editing"
       :ast="props.node.outerExpr"
       :documentation="props.node.documentation ?? ''"
       preferSingleLine
-      hideWhenEmpty
     />
   </div>
 </template>

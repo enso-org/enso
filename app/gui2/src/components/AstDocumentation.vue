@@ -12,8 +12,6 @@ const props = defineProps<{
   documentation?: string
   /** If set, the Enter key will end editing instead of inserting a newline, unless the Shift key is held. */
   preferSingleLine?: boolean | undefined
-  /** If set, when the `editing` property is false, the editor will be hidden if it has no non-whitespace contents. */
-  hideWhenEmpty?: boolean | undefined
 }>()
 
 const graphStore = useGraphStore()
@@ -39,14 +37,8 @@ const documentation = computed({
     }
   },
 })
-const empty = computed(() => documentation.value.trimStart() === '')
 </script>
 
 <template>
-  <DocumentationEditor
-    v-if="!hideWhenEmpty || editing || !empty"
-    v-model="documentation"
-    v-model:editing="editing"
-    :preferSingleLine
-  />
+  <DocumentationEditor v-model="documentation" v-model:editing="editing" :preferSingleLine />
 </template>
