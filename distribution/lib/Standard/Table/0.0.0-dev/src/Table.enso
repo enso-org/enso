@@ -2365,17 +2365,16 @@ type Table
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
          If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Integer | Nothing) -> Boolean -> Table
-    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) = case max_rows of
-        Nothing -> self
-        _ : Integer ->
-            truncated = self.take (First max_rows)
-            needs_warning = warn_if_more_rows && self.row_count > max_rows
-            if needs_warning.not then truncated else
+    @max_rows Rows_To_Read.default_widget
+    read : Rows_To_Read -> Boolean -> Table
+    read self (max_rows : Rows_To_Read = ..All_Rows) = case max_rows of
+        Rows_To_Read.All_Rows -> self
+        Rows_To_Read.First n -> self.take (First n)
+        Rows_To_Read.First_With_Warning n ->
+            truncated = self.take (First n)
+            if self.row_count > n then truncated else
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
-                    Not_All_Rows_Downloaded.Warning max_rows
+                    Not_All_Rows_Downloaded.Warning n
 
     ## ALIAS metadata, field info, column types
        GROUP Standard.Base.Metadata
@@ -3140,3 +3139,28 @@ Table.from (that:XML_Element) =
 
    Either `Children` or `Value` will be generated, but not both.
 Table.from (that:XML_Document) = Table.from that.root_element
+
+## PRIVATE
+type Rows_To_Read
+    ## Read all rows.
+    All_Rows
+
+    ## Read the first specified number of rows.
+    First rows:Integer=1000
+
+    ## First 1000 Rows with an attached warning if more to read.
+       This is the default for database reading.
+    First_With_Warning rows:Integer=1000
+
+    ## PRIVATE
+    default_widget -> Widget =
+        make_single_choice [["All_Rows", "..All_Rows"], ["First", "..First"]]
+
+## PRIVATE
+Rows_To_Read.from (that:Nothing) =
+    _ = that
+    Rows_To_Read.All_Rows
+
+## PRIVATE
+Rows_To_Read.from (that:Integer) =
+    Rows_To_Read.First that
