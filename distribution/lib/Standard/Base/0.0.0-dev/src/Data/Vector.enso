@@ -1332,18 +1332,6 @@ type Builder
     new : Integer -> Builder
     new (capacity : Integer = 10) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
 
-    ## GROUP Logical
-       ICON metadata
-       Checks if this builder is not empty.
-    not_empty : Boolean
-    not_empty self = self.is_empty.not
-
-    ## GROUP Metadata
-       ICON metadata
-       Gets the current length of the builder.
-    length : Integer
-    length self = self.elements_java_builder.getSize
-
     ## ICON join
        Appends a new element into this builder, propagating any
        errors that the provided element could have contained.
@@ -1421,7 +1409,7 @@ type Builder
     add_warnings : Any -> Nothing
     add_warnings self x -> Nothing =
         warnings = Warning.get_all x . map .value
-        append_result = self.warnings_java_builder.appendTo (warnings . slice 0 warnings.length)
+        append_result = self.warnings_java_builder.appendTo warnings
         assert (append_result.is_error.not)
         Nothing
 
@@ -1480,11 +1468,23 @@ type Builder
     last : Vector ! Index_Out_Of_Bounds
     last self = self.at -1
 
+    ## GROUP Metadata
+       ICON metadata
+       Gets the current length of the builder.
+    length : Integer
+    length self = self.elements_java_builder.getSize
+
     ## GROUP Logical
        ICON metadata
        Checks if this builder is empty.
     is_empty : Boolean
     is_empty self = self.elements_java_builder.isEmpty
+
+    ## GROUP Logical
+       ICON metadata
+       Checks if this builder is not empty.
+    not_empty : Boolean
+    not_empty self = self.is_empty.not
 
     ## GROUP Logical
        ICON preparation
