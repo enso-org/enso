@@ -378,6 +378,9 @@ declare module '@/providers/widgetRegistry' {
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
+    <!-- Arrow icon is duplicated inside Teleport and outside because the teleport `to` target
+      must be already in the DOM when the <Teleport> component is mounted.
+      So the Teleport itself can be instantiated only when `arrowLocation` is already available. -->
     <Teleport v-if="arrowLocation" :to="arrowLocation">
       <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     </Teleport>

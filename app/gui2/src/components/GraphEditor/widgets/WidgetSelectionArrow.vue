@@ -53,7 +53,7 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div ref="teleportTarget" class="WidgetSelectionArrow">
-    <NodeWidget :input="innerInput" allowEmpty />
+    <NodeWidget :input="innerInput" />
   </div>
 </template>
 

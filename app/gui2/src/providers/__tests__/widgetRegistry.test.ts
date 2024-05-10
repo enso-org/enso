@@ -135,7 +135,7 @@ describe('WidgetRegistry', () => {
       { input: blankAst, nesting: 0 },
       new Set([widgetA.default, widgetB.default, widgetC.default, widgetD.default]),
     )
-    expect(case1).toBeUndefined
+    expect(case1).toBeUndefined()
     const selectedFirst = registry.select(
       { input: blankAst, nesting: 0 },
       new Set([widgetB.default, widgetC.default, widgetD.default]),
