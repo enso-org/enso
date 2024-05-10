@@ -36,6 +36,7 @@ import org.enso.languageserver.websocket.binary.factory.{
 import java.util.concurrent.{ExecutorService, Executors}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import org.slf4j.LoggerFactory
 
 abstract class BaseBinaryServerTest extends BinaryServerTestKit {
 
@@ -89,7 +90,9 @@ abstract class BaseBinaryServerTest extends BinaryServerTestKit {
           FileManager.props(
             config.fileManager,
             contentRootManagerWrapper,
-            new FileSystem,
+            new FileSystem(
+              LoggerFactory.getLogger(classOf[BaseBinaryServerTest])
+            ),
             zioExec
           )
         )
