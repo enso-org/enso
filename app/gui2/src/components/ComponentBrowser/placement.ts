@@ -1,8 +1,8 @@
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import type { ToValue } from '@/util/reactivity'
 import theme from '@/util/theme.json'
-import type { ComputedRef, MaybeRefOrGetter } from 'vue'
 import { toValue } from 'vue'
 
 // Assumed size of a newly created node. This is used to place the component browser and when creating a node before
@@ -11,8 +11,6 @@ export const DEFAULT_NODE_SIZE = new Vec2(300, 32)
 
 const orDefaultSize = (rect: Rect) =>
   rect.width !== 0 ? rect : new Rect(rect.pos, DEFAULT_NODE_SIZE)
-
-type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
 
 export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: ToValue<Rect>) {
   const gap = themeGap()

@@ -328,6 +328,8 @@ export class GraphDb {
     moduleCode: string,
     getSpan: (id: AstId) => SourceRange | undefined,
     dirtyNodes: Set<AstId>,
+    onNodeAdded: (id: NodeId) => void,
+    onNodeDeleted: (id: NodeId) => void,
   ) {
     const functionChanged = functionAst_.id !== this.currentFunction
     // Note: `subtrees` returns a set that has the iteration order of all `Ast.ID`s in the order they appear in the
@@ -351,6 +353,7 @@ export class GraphDb {
           colorOverride: nodeMeta.get('colorOverride'),
         }
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
+        onNodeAdded(nodeId)
       } else {
         const {
           outerExpr,
@@ -393,6 +396,7 @@ export class GraphDb {
     for (const nodeId of this.nodeIdToNode.keys()) {
       if (!currentNodeIds.has(nodeId)) {
         this.nodeIdToNode.delete(nodeId)
+        onNodeDeleted(nodeId)
       }
     }
     this.bindings.readFunctionAst(functionAst_, rawFunction, moduleCode, getSpan)

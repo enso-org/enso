@@ -6,13 +6,12 @@ import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
+import { dataAttribute, elementHierarchy } from '@/util/dom'
+import { computed, ref, shallowReactive, shallowRef } from 'vue'
 
-export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
-  isPortEnabled: (port: PortId) => boolean,
   margin: number,
   callbacks: {
     onSelected?: (element: T) => void
@@ -20,49 +19,15 @@ export function useSelection<T>(
   } = {},
 ) {
   const anchor = shallowRef<Vec2>()
-  const initiallySelected = new Set<T>()
+  let initiallySelected = new Set<T>()
   const selected = shallowReactive(new Set<T>())
-  const hoveredNode = ref<NodeId>()
-  const hoveredElement = ref<Element>()
+  const deleted = new Set<T>()
 
   const isChanging = computed(() => anchor.value != null)
   const committedSelection = computed(() => (isChanging.value ? initiallySelected : selected))
 
-  useEvent(document, 'pointerover', (event) => {
-    hoveredElement.value = event.target instanceof Element ? event.target : undefined
-  })
-
-  const hoveredPort = computed<PortId | undefined>(() => {
-    if (!hoveredElement.value) return undefined
-    for (const element of elementHierarchy(hoveredElement.value, '.WidgetPort')) {
-      const portId = elementPortId(element)
-      if (portId && isPortEnabled(portId)) return portId
-    }
-    return undefined
-  })
-
-  function* elementHierarchy(element: Element, selectors: string) {
-    for (;;) {
-      const match = element.closest(selectors)
-      if (!match) return
-      yield match
-      if (!match.parentElement) return
-      element = match.parentElement
-    }
-  }
-
-  function elementPortId(element: Element): PortId | undefined {
-    return (
-        element instanceof HTMLElement &&
-          'port' in element.dataset &&
-          typeof element.dataset.port === 'string'
-      ) ?
-        (element.dataset.port as PortId)
-      : undefined
-  }
-
   function readInitiallySelected() {
-    initiallySelected.clear()
+    initiallySelected = new Set()
     for (const id of selected) initiallySelected.add(id)
   }
 
@@ -77,6 +42,7 @@ export function useSelection<T>(
         selected.delete(id)
         callbacks.onDeselected?.(id)
       }
+    deleted.clear()
   }
 
   function execAdd() {
@@ -169,21 +135,58 @@ export function useSelection<T>(
     { predicate: (e) => e.target === e.currentTarget },
   )
 
-  return proxyRefs({
+  return {
+    // === Selected nodes ===
     selected,
-    anchor,
     selectAll: () => {
       for (const id of elementRects.keys()) selected.add(id)
     },
-    deselectAll: () => selected.clear(),
+    deselectAll: () => {
+      selected.clear()
+      deleted.clear()
+    },
     isSelected: (element: T) => selected.has(element),
-    isChanging,
     committedSelection,
     setSelection,
+    // === Selected nodes validity ===
+    elementDeleted: (id: T) => {
+      if (selected.delete(id)) deleted.add(id)
+    },
+    elementUndeleted: (id: T) => {
+      if (deleted.delete(id)) selected.add(id)
+    },
+    // === Selection changes ===
+    anchor,
+    isChanging,
+    // === Mouse events ===
     handleSelectionOf,
-    hoveredNode,
-    hoveredPort,
-    mouseHandler: selectionEventHandler,
     events: pointer.events,
+  }
+}
+
+// === Hover tracking for nodes and ports ===
+
+export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
+  const hoveredElement = ref<Element>()
+
+  useEvent(document, 'pointerover', (event) => {
+    hoveredElement.value = event.target instanceof Element ? event.target : undefined
   })
+
+  const hoveredPort = computed<PortId | undefined>(() => {
+    if (!hoveredElement.value) return undefined
+    for (const element of elementHierarchy(hoveredElement.value, '.WidgetPort')) {
+      const portId = dataAttribute<PortId>(element, 'port')
+      if (portId && isPortEnabled(portId)) return portId
+    }
+    return undefined
+  })
+
+  const hoveredNode = computed<NodeId | undefined>(() => {
+    const element = hoveredElement.value?.closest('.GraphNode')
+    if (!element) return undefined
+    return dataAttribute<NodeId>(element, 'node')
+  })
+
+  return { hoveredNode, hoveredPort }
 }
