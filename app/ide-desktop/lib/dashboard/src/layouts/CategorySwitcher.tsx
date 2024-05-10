@@ -105,8 +105,9 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       onDrop={onDrop}
     >
       <UnstyledButton
-        aria-label={getText(buttonTextId)}
+        tooltip={false}
         className={`rounded-inherit ${isCurrent ? 'focus-default' : ''}`}
+        aria-label={getText(buttonTextId)}
         onPress={onPress}
       >
         <div

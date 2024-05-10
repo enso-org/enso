@@ -34,16 +34,14 @@ interface PageUIData {
   readonly page: Page
   readonly icon: string
   readonly altId: Extract<text.TextId, `${Page}PageAltText`>
-  readonly tooltipId: Extract<text.TextId, `${Page}PageTooltip`>
 }
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.drive, icon: DriveIcon, altId: 'drivePageAltText', tooltipId: 'drivePageTooltip' },
+  { page: Page.drive, icon: DriveIcon, altId: 'drivePageAltText' },
   {
     page: Page.editor,
     icon: NetworkIcon,
     altId: 'editorPageAltText',
-    tooltipId: 'editorPageTooltip',
   },
 ]
 
@@ -83,16 +81,16 @@ export default function PageSwitcher(props: PageSwitcherProps) {
           {...innerProps}
         >
           {PAGE_DATA.map(pageData => {
+            const error = ERRORS[pageData.page]
             return (
               <Button
                 key={pageData.page}
-                aria-label={getText(pageData.tooltipId)}
                 alt={getText(pageData.altId)}
                 image={pageData.icon}
                 active={page === pageData.page}
                 softDisabled={page === pageData.page}
                 isDisabled={pageData.page === Page.editor && isEditorDisabled}
-                error={ERRORS[pageData.page]}
+                error={error == null ? null : getText(error)}
                 onPress={() => {
                   setPage(pageData.page)
                 }}

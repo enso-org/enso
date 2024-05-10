@@ -16,6 +16,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
+import Button from '#/components/styled/Button'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
@@ -156,14 +157,13 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <SvgMask
-        src={FolderArrowIcon}
+      <Button
+        image={FolderArrowIcon}
         alt={item.children == null ? getText('expand') : getText('collapse')}
         className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
           item.children != null ? 'rotate-90' : ''
         }`}
-        onClick={event => {
-          event.stopPropagation()
+        onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
       />
