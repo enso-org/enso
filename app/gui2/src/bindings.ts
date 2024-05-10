@@ -1,7 +1,6 @@
-import { defineKeybinds, keybindMixin } from '@/util/shortcuts'
+import { defineKeybinds } from '@/util/shortcuts'
 
-// Undo/redo may require different handlers in different contexts, but should have the same default bindings everywhere.
-const undoRedoBindings = keybindMixin({
+export const undoBindings = defineKeybinds('undo', {
   undo: ['Mod+Z'],
   redo: ['Mod+Y', 'Mod+Shift+Z'],
 })
@@ -11,7 +10,6 @@ export const codeEditorBindings = defineKeybinds('code-editor', {
 })
 
 export const documentationEditorBindings = defineKeybinds('documentation-editor', {
-  ...undoRedoBindings,
   toggle: ['Mod+D'],
 })
 
@@ -29,7 +27,6 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
 })
 
 export const graphBindings = defineKeybinds('graph-editor', {
-  ...undoRedoBindings,
   openComponentBrowser: ['Enter'],
   toggleVisualization: ['Space'],
   deleteSelected: ['OsDelete'],

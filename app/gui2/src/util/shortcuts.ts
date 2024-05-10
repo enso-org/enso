@@ -427,13 +427,6 @@ export function defineKeybinds<
   return { handler, bindings: bindingsInfo }
 }
 
-export function keybindMixin<
-  T extends Record<BindingName, [] | string[]>,
-  BindingName extends keyof T = keyof T,
->(bindings: Keybinds<T>) {
-  return bindings
-}
-
 /** A type predicate that narrows the potential child of the array. */
 function includesPredicate<T extends U, U>(array: readonly T[]) {
   const array_: readonly unknown[] = array

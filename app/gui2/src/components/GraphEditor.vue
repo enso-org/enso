@@ -4,6 +4,7 @@ import {
   documentationEditorBindings,
   graphBindings,
   interactionBindings,
+  undoBindings,
 } from '@/bindings'
 import AstDocumentation from '@/components/AstDocumentation.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
@@ -161,6 +162,7 @@ const interactionBindingsHandler = interactionBindings.handler({
 
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) ||
+    (!keyboardBusyExceptIn(documentationEditorArea.value) && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
     (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event))
@@ -185,17 +187,16 @@ useEvent(
 
 // === Keyboard/Mouse bindings ===
 
-const undoRedoHandlers = {
+const undoBindingsHandler = undoBindings.handler({
   undo() {
     graphStore.undoManager.undo()
   },
   redo() {
     graphStore.undoManager.redo()
   },
-}
+})
 
 const graphBindingsHandler = graphBindings.handler({
-  ...undoRedoHandlers,
   startProfiling() {
     projectStore.lsRpcConnection.profilingStart(true)
   },
@@ -294,7 +295,6 @@ const documentationEditorArea = ref<HTMLElement>()
 const showDocumentationEditor = ref(false)
 
 const documentationEditorHandler = documentationEditorBindings.handler({
-  ...undoRedoHandlers,
   toggle() {
     showDocumentationEditor.value = !showDocumentationEditor.value
   },
