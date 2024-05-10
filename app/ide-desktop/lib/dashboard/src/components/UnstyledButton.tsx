@@ -12,7 +12,13 @@ import FocusRing from '#/components/styled/FocusRing'
 // =================
 
 export const VARIANT_CLASSES: Readonly<Record<UnstyledButtonVariant, string>> = {
-  bar: 'flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
+  // Note that the `*:` variant is generally discouraged, but `relative` is a class that users
+  // will want to add to all children of elements with `before:absolute` anyway, otherwise the children
+  // will render under the backdrop because the backdrop is higher in the stacking order.
+  accent:
+    'relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90 *:relative',
+  regular:
+    'flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
 }
 
 // =============================
@@ -20,9 +26,7 @@ export const VARIANT_CLASSES: Readonly<Record<UnstyledButtonVariant, string>> = 
 // =============================
 
 /** Variants of an {@link UnstyledButton}. */
-// This alias is fine as it is a union that happens to only have one element.
-// eslint-disable-next-line no-restricted-syntax
-export type UnstyledButtonVariant = 'bar'
+export type UnstyledButtonVariant = 'accent' | 'regular'
 
 // ======================
 // === UnstyledButton ===

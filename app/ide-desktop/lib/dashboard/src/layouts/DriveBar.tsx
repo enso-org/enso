@@ -122,12 +122,9 @@ export default function DriveBar(props: DriveBarProps) {
     case Category.local: {
       return (
         <div className="flex h-row py-drive-bar-y">
-          <HorizontalMenuBar>
+          <HorizontalMenuBar grow>
             <aria.DialogTrigger>
-              <UnstyledButton
-                className="relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90"
-                onPress={() => {}}
-              >
+              <UnstyledButton variant="accent" onPress={() => {}}>
                 <aria.Text className="text relative whitespace-nowrap font-bold">
                   {getText('startWithATemplate')}
                 </aria.Text>
@@ -135,7 +132,7 @@ export default function DriveBar(props: DriveBarProps) {
               <Start createProject={doCreateProject} />
             </aria.DialogTrigger>
             <UnstyledButton
-              variant="bar"
+              variant="regular"
               onPress={() => {
                 doCreateProject()
               }}
@@ -212,15 +209,15 @@ export default function DriveBar(props: DriveBarProps) {
                 }}
               />
             </div>
+            <AssetSearchBar
+              isCloud={isCloud}
+              query={query}
+              setQuery={setQuery}
+              labels={labels}
+              suggestions={suggestions}
+              className="mx-auto"
+            />
           </HorizontalMenuBar>
-          <AssetSearchBar
-            isCloud={isCloud}
-            query={query}
-            setQuery={setQuery}
-            labels={labels}
-            suggestions={suggestions}
-            className="mx-auto"
-          />
         </div>
       )
     }

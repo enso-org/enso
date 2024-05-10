@@ -20,7 +20,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
-import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import Category from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
@@ -156,7 +156,6 @@ export default function Dashboard(props: DashboardProps) {
     (value): value is Category => array.includes(Object.values(Category), value)
   )
 
-  const isCloud = categoryModule.isCloud(category)
   const isAssetPanelVisible =
     page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
 
@@ -385,7 +384,6 @@ export default function Dashboard(props: DashboardProps) {
           }}
         >
           <TopBar
-            isCloud={isCloud}
             projectAsset={projectStartupInfo?.projectAsset ?? null}
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}
@@ -394,7 +392,6 @@ export default function Dashboard(props: DashboardProps) {
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
             isAssetPanelVisible={isAssetPanelVisible}
-            isAssetPanelEnabled={isAssetPanelEnabled}
             setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}

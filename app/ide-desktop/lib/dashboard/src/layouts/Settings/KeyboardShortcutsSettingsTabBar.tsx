@@ -34,7 +34,7 @@ export default function KeyboardShortcutsSettingsTabBar(
   return (
     <HorizontalMenuBar>
       <UnstyledButton
-        variant="bar"
+        variant="regular"
         onPress={() => {
           setModal(
             <ConfirmDeleteModal

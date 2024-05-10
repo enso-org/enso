@@ -10,17 +10,14 @@
   --row-height: 2rem;
   --page-padding-x: 0.8125rem;
   /* The gap between the top bar and the main content (the content of the current page). */
-  --top-level-gap: 2rem;
+  --top-level-gap: 1rem;
   /* The height of the main heading of a page. */
   --heading-height: 2.375rem;
   --heading-padding-x: 0.375rem;
   --heading-padding-y: 0.125rem;
   --input-corner-radius: 0.75rem;
   --small-rectangle-button-corner-radius: 0.375rem;
-  /* The height of a profile picture when displayed in a row.
-   * This should be slightly less than `--row-height`. */
-  --profile-picture-size: 1.75rem;
-  --profile-picture-padding: 0.1875rem;
+
   /* The height of text not beside an icon. */
   --text-height: 1.5rem;
   --unimportant-opacity: 50%;

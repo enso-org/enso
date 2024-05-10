@@ -70,7 +70,7 @@ export default function UserBar(props: UserBarProps) {
     <FocusArea active={!invisible} direction="horizontal">
       {innerProps => (
         <div
-          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
+          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full px-icons-x"
           {...innerProps}
         >
           <Button
@@ -82,7 +82,7 @@ export default function UserBar(props: UserBarProps) {
           />
           {shouldShowInviteButton && (
             <UnstyledButton
-              className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              variant="accent"
               onPress={event => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }
@@ -94,7 +94,8 @@ export default function UserBar(props: UserBarProps) {
           )}
           {shouldShowShareButton && (
             <UnstyledButton
-              className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              variant="accent"
+              className="text my-auto h-row rounded-full bg-accent px-3 text-inversed"
               onPress={() => {
                 setModal(
                   <ManagePermissionsModal
@@ -112,7 +113,7 @@ export default function UserBar(props: UserBarProps) {
             </UnstyledButton>
           )}
           <UnstyledButton
-            className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+            className="size-row flex select-none items-center overflow-clip rounded-full transition-colors hover:bg-black/10"
             onPress={() => {
               updateModal(oldModal =>
                 oldModal?.type === UserMenu ? null : (
@@ -125,8 +126,8 @@ export default function UserBar(props: UserBarProps) {
               src={user?.profilePicture ?? DefaultUserIcon}
               alt={getText('openUserMenu')}
               className="pointer-events-none"
-              height={28}
-              width={28}
+              height={32}
+              width={32}
             />
           </UnstyledButton>
           {/* Required for shortcuts to work. */}

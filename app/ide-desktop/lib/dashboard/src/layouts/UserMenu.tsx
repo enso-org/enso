@@ -70,7 +70,7 @@ export default function UserMenu(props: UserMenuProps) {
               <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
-                  className="pointer-events-none size-profile-picture"
+                  className="pointer-events-none size-row"
                 />
               </div>
               <aria.Text className="text">{user.name}</aria.Text>

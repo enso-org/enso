@@ -8,8 +8,9 @@ import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
+import SvgMask from '#/components/SvgMask'
+import UnstyledButton from '#/components/UnstyledButton'
 
 // ====================
 // === PageSwitcher ===
@@ -21,13 +22,6 @@ export enum Page {
   editor = 'editor',
   settings = 'settings',
 }
-
-/** Error text for each page. */
-const ERRORS = {
-  [Page.drive]: null,
-  [Page.editor]: 'noProjectIsCurrentlyOpen',
-  [Page.settings]: null,
-} as const satisfies Record<Page, text.TextId | null>
 
 /** Data describing how to display a button for a page. */
 interface PageUIData {
@@ -84,19 +78,17 @@ export default function PageSwitcher(props: PageSwitcherProps) {
         >
           {PAGE_DATA.map(pageData => {
             return (
-              <Button
+              <UnstyledButton
                 key={pageData.page}
                 aria-label={getText(pageData.tooltipId)}
-                alt={getText(pageData.altId)}
-                image={pageData.icon}
-                active={page === pageData.page}
-                softDisabled={page === pageData.page}
+                className={`selectable ${page === pageData.page ? 'active' : ''}`}
                 isDisabled={pageData.page === Page.editor && isEditorDisabled}
-                error={ERRORS[pageData.page]}
                 onPress={() => {
                   setPage(pageData.page)
                 }}
-              />
+              >
+                <SvgMask src={pageData.icon} alt={getText(pageData.altId)} />
+              </UnstyledButton>
             )
           })}
         </div>

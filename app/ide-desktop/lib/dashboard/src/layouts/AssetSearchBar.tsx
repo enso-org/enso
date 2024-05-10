@@ -295,8 +295,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             },
           })}
         >
-          <img src={FindIcon} className="relative z-1 placeholder" />
-          <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
+          <div className="relative size-icon placeholder" />
+          <div
+            className={`pointer-events-none absolute left top z-1 flex w-full flex-col overflow-hidden rounded-default border border-primary/10 transition-colors before:absolute before:inset before:backdrop-blur-default hover:before:bg-frame ${areSuggestionsVisible ? 'before:bg-frame' : ''}`}
+          >
             <div className="padding relative h-row" />
             {areSuggestionsVisible && (
               <div className="relative flex flex-col gap-search-suggestions">
@@ -395,6 +397,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               </div>
             )}
           </div>
+          <img src={FindIcon} className="absolute z-1 placeholder" />
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={getText('assetSearchFieldLabel')}
