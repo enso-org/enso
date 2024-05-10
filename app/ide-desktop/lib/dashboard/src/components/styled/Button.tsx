@@ -16,6 +16,8 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {
+  /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
+  readonly tooltip?: React.ReactNode
   readonly autoFocus?: boolean
   /** When `true`, the button is not faded out even when not hovered. */
   readonly active?: boolean
@@ -39,6 +41,7 @@ export interface ButtonProps {
 /** A styled button. */
 function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
   const {
+    tooltip,
     active = false,
     softDisabled = false,
     image,
@@ -50,6 +53,8 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   } = props
   const { isDisabled = false } = buttonProps
   const focusChildProps = focusHooks.useFocusChild()
+
+  const tooltipElement = tooltip === false ? null : tooltip ?? alt
 
   const button = (
     <FocusRing placement="after">
@@ -76,12 +81,12 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     </FocusRing>
   )
 
-  return alt == null ? (
+  return tooltipElement == null ? (
     button
   ) : (
     <ariaComponents.TooltipTrigger>
       {button}
-      <ariaComponents.Tooltip>{alt}</ariaComponents.Tooltip>
+      <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
   )
 }

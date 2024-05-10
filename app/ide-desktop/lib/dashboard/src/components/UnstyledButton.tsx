@@ -16,7 +16,8 @@ import FocusRing from '#/components/styled/FocusRing'
 export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'aria-label'?: string
-  readonly noTooltip?: boolean
+  /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
+  readonly tooltip?: React.ReactNode
   readonly focusRingPlacement?: focusRing.FocusRingPlacement
   readonly autoFocus?: boolean
   /** When `true`, the button is not clickable. */
@@ -28,8 +29,10 @@ export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
 
 /** An unstyled button with a focus ring and focus movement behavior. */
 function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
-  const { noTooltip = false, focusRingPlacement, children, ...buttonProps } = props
+  const { tooltip, focusRingPlacement, children, ...buttonProps } = props
   const focusChildProps = focusHooks.useFocusChild()
+
+  const tooltipElement = tooltip === false ? null : tooltip ?? buttonProps['aria-label']
 
   const button = (
     <FocusRing {...(focusRingPlacement == null ? {} : { placement: focusRingPlacement })}>
@@ -45,12 +48,12 @@ function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTML
     </FocusRing>
   )
 
-  return buttonProps['aria-label'] == null || noTooltip ? (
+  return tooltipElement == null ? (
     button
   ) : (
     <ariaComponents.TooltipTrigger>
       {button}
-      <ariaComponents.Tooltip>{buttonProps['aria-label']}</ariaComponents.Tooltip>
+      <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
   )
 }

@@ -17,6 +17,8 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps extends Readonly<aria.ButtonProps> {
+  /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
+  readonly tooltip?: React.ReactNode
   readonly loading?: boolean
   readonly variant: 'cancel' | 'delete' | 'icon' | 'submit'
   readonly icon?: string
@@ -47,8 +49,10 @@ const CLASSES_FOR_VARIANT: Record<ButtonProps['variant'], string> = {
 
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
 export function Button(props: ButtonProps) {
-  const { className, children, variant, icon, loading = false, ...ariaButtonProps } = props
+  const { tooltip, className, children, variant, icon, loading = false, ...ariaButtonProps } = props
   const focusChildProps = focusHooks.useFocusChild()
+
+  const tooltipElement = tooltip === false ? null : tooltip ?? ariaButtonProps['aria-label']
 
   const classes = clsx(
     DEFAULT_CLASSES,
@@ -86,12 +90,12 @@ export function Button(props: ButtonProps) {
     </aria.Button>
   )
 
-  return ariaButtonProps['aria-label'] == null ? (
+  return tooltipElement == null ? (
     button
   ) : (
     <ariaComponents.TooltipTrigger>
       {button}
-      <ariaComponents.Tooltip>{ariaButtonProps['aria-label']}</ariaComponents.Tooltip>
+      <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
   )
 }
