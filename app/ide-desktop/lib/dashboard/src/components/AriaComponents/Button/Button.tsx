@@ -165,7 +165,7 @@ export const Button = React.forwardRef(function Button(
 
   const goodDefaults = isLink ? { rel: 'noopener noreferrer' } : { type: 'button' }
 
-  const tooltipElement = tooltip === false ? null : tooltip ?? ariaButtonProps['aria-label']
+  const tooltipElement = tooltip === false ? null : tooltip ?? ariaProps['aria-label']
 
   const classes = clsx(
     DEFAULT_CLASSES,
