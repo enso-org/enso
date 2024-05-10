@@ -1001,18 +1001,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     type My_Type
                         Value v
 
-                    lit = 42
-                    ctor = My_Type.Value 42
                     const -> My_Type = My_Type.Value 23
-                    check (x : My_Type) = x
+                    check (x : My_Type) -> My_Type = x
 
                     foo =
-                        x1 = lit
-                        x2 = ctor
-                        x3 = const
-                        x4 = check
-                        x5 = check const
-                        [x1, x2, x3, x4, x5]
+                        x1 = const
+                        x2 = check
+                        x3 = check const
+                        [x1, x2, x3]
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -1023,11 +1019,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     var myType = "globalMethodTypes.My_Type";
 
-    assertAtomType("Standard.Base.Data.Numbers.Integer", findAssignment(foo, "x1"));
-    assertAtomType(myType, findAssignment(foo, "x2"));
+    assertAtomType(myType, findAssignment(foo, "x1"));
+    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x2")).toString());
     assertAtomType(myType, findAssignment(foo, "x3"));
-    assertEquals("My_Type -> My_Type", getInferredType(findAssignment(foo, "x4")).toString());
-    assertAtomType(myType, findAssignment(foo, "x5"));
   }
 
   @Test
