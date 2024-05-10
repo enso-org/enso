@@ -138,7 +138,8 @@ object CallArgument {
          |""".toSingleLine
 
     /** @inheritdoc */
-    override def children: List[IR] = name.map(List(_, value)).getOrElse(List(value))
+    override def children: List[IR] =
+      name.map(List(_, value)).getOrElse(List(value))
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
