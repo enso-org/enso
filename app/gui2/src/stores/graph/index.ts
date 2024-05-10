@@ -73,7 +73,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const syncModule = computed(() => proj.module && new MutableModule(proj.module.doc.ydoc))
+  const syncModule = computed(() => proj.module && markRaw(new MutableModule(proj.module.doc.ydoc)))
 
   const nodeRects = reactive(new Map<NodeId, Rect>())
   const vizRects = reactive(new Map<NodeId, Rect>())
