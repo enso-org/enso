@@ -168,7 +168,7 @@ duplicates vector on = Vector.build builder->
     vector.fold Map.empty current-> item->
         key = on item
         count = current.get key 0
-        if count == 1 then builder.append key
+        if count == 1 then builder.append item
         current.insert key count+1
 
 take vector range = case range of
