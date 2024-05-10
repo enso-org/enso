@@ -47,11 +47,16 @@ type Set
     to_vector : Vector
     to_vector self = self.underlying_map.keys
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ICON metadata
        Returns the number of elements in this set.
     size : Integer
     size self = self.underlying_map.size
+
+    ## GROUP Metadata
+       ICON metadata
+       Returns the number of elements in this set.
+    length : Integer
+    length self = self.size
 
     ## GROUP Logical
        ICON metadata

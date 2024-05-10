@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Position, Value_Type, Bits
 from Standard.Table.Errors import all
@@ -502,6 +503,29 @@ add_specs suite_builder setup =
             map = Map.from_vector [["a(.*)".to_regex, "$1"]]
             expect_column_names ["lpha", "beta", "gamma", "delta"] <|
                 data.table.rename_columns map
+
+        group_builder.specify "should report invalid input map nicely" <|
+            test_invalid_map map =
+                result = data.table.rename_columns map
+                result.should_fail_with Illegal_Argument
+                result.catch Any . message . should_equal "mapping is not a Vector of old name to new name."
+
+            test_invalid_map [["Alpha"]]
+            test_invalid_map [["Alpha", 1]]
+            test_invalid_map [["Alpha", "Beta", "Delta"]]
+            test_invalid_map [[True, "Beta"]]
+
+        group_builder.specify "should report duplicates in input map nicely" <|
+            test_duplicate_names map message =
+                result = data.table.rename_columns map
+                result.should_fail_with Illegal_Argument
+                result.catch Any . message . should_equal message
+
+            test_duplicate_names [["Alpha", "1"], ["Alpha", "2"]] "duplicate old name mappings (Alpha)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"]] "duplicate old name mappings (Beta, Alpha)."
+            test_duplicate_names [["Alpha", "1"], ["Alpha", "2"], ["Alpha", "3"]] "duplicate old name mappings (Alpha)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"], ["Gamma","6"], ["Delta","7"], ["Delta","8"]] "duplicate old name mappings (Beta, Alpha, Gamma, Delta)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"], ["Gamma","6"], ["Delta","7"], ["Delta","8"], ["Echo","9"], ["Echo","10"]] "duplicate old name mappings (Beta, Alpha, Gamma, ... 2 others)."
 
         group_builder.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
