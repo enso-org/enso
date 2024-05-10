@@ -57,7 +57,7 @@ export default function UserMenu(props: UserMenuProps) {
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
+        className={`absolute right-2 top-2 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'p-profile-picture size-row-h'}`}
         onClick={event => {
           event.stopPropagation()
         }}
@@ -67,10 +67,10 @@ export default function UserMenu(props: UserMenuProps) {
             <div
               className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
             >
-              <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
+              <div className="size-profile-picture flex shrink-0 items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
-                  className="pointer-events-none size-row"
+                  className="size-row pointer-events-none"
                 />
               </div>
               <aria.Text className="text">{user.name}</aria.Text>
@@ -123,7 +123,7 @@ export default function UserMenu(props: UserMenuProps) {
           </>
         ) : (
           <>
-            <div className="flex h-profile-picture items-center">
+            <div className="h-profile-picture flex items-center">
               <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
             </div>
             <div className="flex flex-col">

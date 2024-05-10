@@ -99,7 +99,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'negative-button-focus-ring-inset': 'calc(var(--button-focus-ring-inset) * -1)',
         'row-h': 'var(--row-height)',
         'text-h': 'var(--text-height)',
-        'top-bar-margin': 'var(--top-bar-margin)',
         'asset-panel-w': 'var(--asset-panel-width)',
         'indent-1': 'var(--indent-1-size)',
         'indent-2': 'var(--indent-2-size)',
