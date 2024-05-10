@@ -11,6 +11,7 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import type { MethodPointer } from 'shared/languageServerTypes'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -78,6 +79,18 @@ export function entryQn(entry: SuggestionEntry): QualifiedName {
     return qnJoin(entry.memberOf, entry.name)
   } else {
     return qnJoin(entry.definedIn, entry.name)
+  }
+}
+
+/**
+ * Get the MethodPointer pointing to definition represented by the entry.
+ */
+export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | undefined {
+  if (entry.kind !== SuggestionKind.Method || !entry.memberOf) return
+  return {
+    module: entry.definedIn,
+    definedOnType: entry.memberOf,
+    name: entry.name,
   }
 }
 

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
+import { useGraphStore } from '@/stores/graph'
+import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
 import { computed } from 'vue'
@@ -10,11 +13,29 @@ import { computed } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
 const application = computed(() => props.input[ArgumentApplicationKey])
+const graph = useGraphStore()
+
 const targetMaybePort = computed(() => {
   const target = application.value.target
-  const targetInput =
-    target instanceof Ast.Ast ? WidgetInput.FromAst(target) : target.toWidgetInput()
-  return { ...targetInput, forcePort: !(target instanceof ArgumentApplication) }
+  if (target instanceof Ast.Ast) {
+    const input = WidgetInput.FromAst(target)
+    console.log('INPUT', input)
+    if (!application.value.calledFunction) return input
+    const ptr = entryMethodPointer(application.value.calledFunction)
+    console.log('PTR', ptr)
+    if (!ptr) return input
+    const definition = graph.getMethodAst(ptr)
+    console.log('DEF', definition)
+    if (!definition.ok) return input
+    console.log('CODE', definition.value.code())
+    input[FunctionName] = {
+      calledFunction: application.value.calledFunction,
+      editableName: definition.value.name.externalId,
+    }
+    return input
+  } else {
+    return { ...target.toWidgetInput(), forcePort: !(target instanceof ArgumentApplication) }
+  }
 })
 
 const appClass = computed(() => {

@@ -20,12 +20,14 @@ import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
+import { Err, Ok, mapOk, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { normalizeQualifiedName, tryQualifiedName } from '@/util/qualifiedName'
 import { map, set } from 'lib0'
 import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
-import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, MethodPointer } from 'shared/languageServerTypes'
 import { reachable } from 'shared/util/data/graph'
 import type {
   LocalUserActionOrigin,
@@ -94,7 +96,7 @@ export const useGraphStore = defineStore('graph', () => {
   )
   const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
-  const methodAst = ref<Ast.Function>()
+  const methodAst = computed(() => getExecutedMethodAst())
 
   const unconnectedEdge = ref<UnconnectedEdge>()
 
@@ -168,14 +170,13 @@ export const useGraphStore = defineStore('graph', () => {
     const textContentLocal = moduleSource.text
     if (!textContentLocal) return
     if (!syncModule.value) return
-    methodAst.value = methodAstInModule(syncModule.value)
-    if (methodAst.value) {
-      const methodSpan = moduleSource.getSpan(methodAst.value.id)
+    if (methodAst.value.ok) {
+      const methodSpan = moduleSource.getSpan(methodAst.value.value.id)
       assert(methodSpan != null)
       const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
       assert(rawFunc != null)
       db.readFunctionAst(
-        methodAst.value,
+        methodAst.value.value,
         rawFunc,
         textContentLocal,
         (id) => moduleSource.getSpan(id),
@@ -184,11 +185,42 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  function methodAstInModule(mod: Ast.Module) {
-    const topLevel = mod.root()
-    if (!topLevel) return
+  function getExecutedMethodAst(module?: Ast.Module): Result<Ast.Function> {
+    const executionStackTop = proj.executionContext.getStackTop()
+    switch (executionStackTop.type) {
+      case 'ExplicitCall': {
+        return getMethodAst(executionStackTop.methodPointer, module)
+      }
+      case 'LocalCall': {
+        const exprId = executionStackTop.expressionId
+        const info = db.getExpressionInfo(exprId)
+        const ptr = info?.methodCall?.methodPointer
+        if (!ptr) return Err("Unknown method pointer of execution stack's top frame")
+        return getMethodAst(ptr, module)
+      }
+    }
+  }
+
+  function getMethodAst(ptr: MethodPointer, module?: Ast.Module): Result<Ast.Function> {
+    const topLevel = (module ?? syncModule.value)?.root()
+    if (!topLevel) return Err('Module unavailable')
     assert(topLevel instanceof Ast.BodyBlock)
-    return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
+    const modulePath =
+      proj.modulePath ?
+        mapOk(proj.modulePath, normalizeQualifiedName)
+      : Err('Uknown current module name')
+    if (!modulePath?.ok) return modulePath
+    console.log(ptr.module, modulePath.value)
+    const ptrModule = mapOk(tryQualifiedName(ptr.module), normalizeQualifiedName)
+    const ptrDefinedOnType = mapOk(tryQualifiedName(ptr.definedOnType), normalizeQualifiedName)
+    if (!ptrModule.ok) return ptrModule
+    if (!ptrDefinedOnType.ok) return ptrDefinedOnType
+    if (ptrModule.value !== modulePath.value) return Err('Cannot read method from different module')
+    if (ptrModule.value !== ptrDefinedOnType.value)
+      return Err('Method pointer is not a module method')
+    const method = Ast.findModuleMethod(topLevel, ptr.name)
+    if (!method) return Err(`No method with name ${ptr.name} in ${modulePath.value}`)
+    return Ok(method)
   }
 
   function generateUniqueIdent() {
@@ -601,7 +633,7 @@ export const useGraphStore = defineStore('graph', () => {
   function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: NodeId, targetNodeId: NodeId) {
     const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExpr.id
     const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExpr.id
-    const body = edit.getVersion(methodAstInModule(edit)!).bodyAsBlock()
+    const body = edit.getVersion(unwrap(getExecutedMethodAst(edit))).bodyAsBlock()
     assert(sourceExpr != null)
     assert(targetExpr != null)
     const lines = body.lines
@@ -665,6 +697,7 @@ export const useGraphStore = defineStore('graph', () => {
     visibleArea,
     unregisterNodeRect,
     methodAst,
+    getMethodAst,
     generateUniqueIdent,
     createEdgeFromOutput,
     disconnectSource,
@@ -731,27 +764,4 @@ interface UnconnectedEdge extends Edge {
   disconnectedEdgeTarget?: PortId
   /** A pointer event which caused the unconnected edge */
   event: PointerEvent | undefined
-}
-
-function getExecutedMethodAst(
-  topLevel: Ast.BodyBlock,
-  executionStackTop: StackItem,
-  db: GraphDb,
-): Ast.Function | undefined {
-  switch (executionStackTop.type) {
-    case 'ExplicitCall': {
-      // Assume that the provided AST matches the module in the method pointer. There is no way to
-      // actually verify this assumption at this point.
-      const ptr = executionStackTop.methodPointer
-      return Ast.findModuleMethod(topLevel, ptr.name) ?? undefined
-    }
-    case 'LocalCall': {
-      const exprId = executionStackTop.expressionId
-      const info = db.getExpressionInfo(exprId)
-      if (!info) return undefined
-      const ptr = info.methodCall?.methodPointer
-      if (!ptr) return undefined
-      return Ast.findModuleMethod(topLevel, ptr.name) ?? undefined
-    }
-  }
 }
