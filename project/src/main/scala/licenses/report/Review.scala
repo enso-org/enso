@@ -2,8 +2,8 @@ package src.main.scala.licenses.report
 
 import java.nio.file.{InvalidPathException, Path}
 import java.time.LocalDate
-import sbt.*
-import src.main.scala.licenses.*
+import sbt._
+import src.main.scala.licenses._
 
 import java.nio.charset.StandardCharsets
 import java.util.Base64
@@ -105,7 +105,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
 
     val unexpectedConfigurations =
       foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
-    val diagnostics = unexpectedConfigurations.map { p =>
+    val diagnostics = unexpectedConfigurations.map { p: File =>
       val packageNameFromConfig = p.getName
       val matchingPackages = knownPackages.filter(other =>
         packageNameFromConfig.startsWith(other.packageNameWithoutVersion + "-")
@@ -113,12 +113,12 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       val maybeMatchingPackage: Option[DependencyInformation] =
         if (matchingPackages.length == 1) Some(matchingPackages.head) else None
 
-      val commonMessagePrefix =
-        s"Found legal review configuration for package ${p.getName}, but no such dependency has been found."
       maybeMatchingPackage match {
         case Some(matchingPackage) =>
           Diagnostic.Error(
-            commonMessagePrefix + s" Perhaps the version was changed to `${matchingPackage.packageName}`?",
+            s"Found legal review configuration for package ${p.getName}, but " +
+            s"no such dependency has been found. Perhaps the version was " +
+            s"changed to `${matchingPackage.packageName}`?",
             metadata = Map(
               "class"     -> "rename-dependency-config",
               "data-from" -> packageNameFromConfig,
@@ -126,8 +126,14 @@ case class Review(root: File, dependencySummary: DependencySummary) {
             )
           )
         case None =>
-          Diagnostic.Error(
-            commonMessagePrefix + " Perhaps it has been removed or renamed (version change)?"
+          // The configuration is not related to any known package, so we remove it
+          IO.delete(p)
+          Diagnostic.Warning(
+            s"Found legal review configuration for package ${p.getName}, but " +
+            s"no such dependency has been found. It seems that the " +
+            s"dependency has been removed, so the configuration has been " +
+            s"deleted. If you think this was mistake, please rely on " +
+            s"version control to bring it back."
           )
       }
     }
