@@ -244,40 +244,40 @@ const transform = computed(() => {
 })
 
 const startEpochMs = ref(0)
-let startEvent: PointerEvent | null = null
-let startPos = Vec2.Zero
+let significantMove = false
 
-// TODO[ao]: Now, the dragPointer.events are preventing `click` events on widgets if they don't
-// stop pointerup and pointerdown. Now we ensure that any widget handling click does that, but
-// instead `usePointer` should be smarter.
-const dragPointer = usePointer((pos, event, type) => {
-  if (type !== 'start') {
-    const fullOffset = pos.absolute.sub(startPos)
-    emit('dragging', fullOffset)
-  }
-  switch (type) {
-    case 'start': {
-      startEpochMs.value = Number(new Date())
-      startEvent = event
-      startPos = pos.absolute
-      event.stopImmediatePropagation()
-      break
-    }
-    case 'stop': {
+const dragPointer = usePointer(
+  (pos, event, type) => {
+    if (type !== 'start') {
       if (
-        Number(new Date()) - startEpochMs.value <= MAXIMUM_CLICK_LENGTH_MS &&
-        startEvent != null &&
-        pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
+        !significantMove &&
+        (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
+          pos.relative.lengthSquared() >= MAXIMUM_CLICK_DISTANCE_SQ)
       ) {
-        nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
-        handleNodeClick(event)
+        // If this is clearly a drag (not a click), the node itself capture pointer events to
+        // prevent `click` on widgets.
+        if (event.currentTarget instanceof Element)
+          event.currentTarget.setPointerCapture?.(event.pointerId)
+        significantMove = true
       }
-      startEvent = null
-      startEpochMs.value = 0
-      emit('draggingCommited')
+      const fullOffset = pos.relative
+      emit('dragging', fullOffset)
     }
-  }
-})
+    switch (type) {
+      case 'start':
+        startEpochMs.value = Number(new Date())
+        significantMove = false
+        break
+      case 'stop': {
+        startEpochMs.value = 0
+        emit('draggingCommited')
+      }
+    }
+  },
+  // Pointer is captured by `target`, to make it receive the `up` and `click` event in case this
+  // is not going to be a node drag.
+  { pointerCapturedBy: 'target' },
+)
 
 const isRecordingOverridden = computed({
   get() {
@@ -368,8 +368,15 @@ const handlePortClick = useDoubleClick(
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
-  (e: MouseEvent) => nodeEditHandler(e),
-  () => emit('doubleClick'),
+  (e: MouseEvent) => {
+    if (!significantMove) {
+      nodeSelection?.handleSelectionOf(e, new Set([nodeId.value]))
+      nodeEditHandler(e)
+    }
+  },
+  () => {
+    if (!significantMove) emit('doubleClick')
+  },
 ).handleClick
 
 interface PortData {
@@ -437,24 +444,6 @@ function portGroupStyle(port: PortData) {
 
 const editingComment = ref(false)
 
-const documentation = computed<string | undefined>({
-  get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
-  set: (text) => {
-    graph.edit((edit) => {
-      const outerExpr = edit.getVersion(props.node.outerExpr)
-      if (text) {
-        if (outerExpr instanceof Ast.MutableDocumented) {
-          outerExpr.setDocumentationText(text)
-        } else {
-          outerExpr.update((outerExpr) => Ast.Documented.new(text, outerExpr))
-        }
-      } else if (outerExpr instanceof Ast.MutableDocumented && outerExpr.expression) {
-        outerExpr.replace(outerExpr.expression.take())
-      }
-    })
-  },
-})
-
 const { getNodeColor, visibleNodeColors } = injectNodeColors()
 </script>
 
@@ -493,9 +482,10 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
         @pointermove="updateSelectionHover"
         @pointerleave="updateSelectionHover(undefined)"
         v-on="dragPointer.events"
+        @click="handleNodeClick"
       />
     </Teleport>
-    <div class="binding" @pointerdown.stop v-text="node.pattern?.code()" />
+    <div class="binding" v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
@@ -543,22 +533,8 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
     />
-    <Suspense>
-      <GraphNodeComment
-        v-if="documentation != null"
-        v-model="documentation"
-        v-model:editing="editingComment"
-        class="beforeNode"
-      />
-    </Suspense>
-    <div
-      ref="contentNode"
-      class="content"
-      v-on="dragPointer.events"
-      @click.stop
-      @pointerdown.stop
-      @pointerup.stop
-    >
+    <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
+    <div ref="contentNode" class="content" v-on="dragPointer.events" @click="handleNodeClick">
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
@@ -776,6 +752,7 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
   position: absolute;
   bottom: 100%;
   left: 60px;
+  width: calc(max(100% - 60px, 800px));
   margin-bottom: 2px;
 }
 

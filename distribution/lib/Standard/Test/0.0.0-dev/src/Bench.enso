@@ -55,9 +55,9 @@ type Bench_Builder
     group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
     group self (name:Text) (configuration:Bench_Options) fn =
         validate_name name
-        b = Vector.new_builder
-        fn (Group_Builder.Impl b)
-        self.builder.append <| Bench.Group name configuration b.to_vector
+        group = Vector.build b->
+            fn (Group_Builder.Impl b)
+        self.builder.append <| Bench.Group name configuration group
 
 ## Builder to create a group of benchmarks.
 type Group_Builder
@@ -87,9 +87,8 @@ type Bench
     ## Construct a Bench object.
     build : (Bench_Builder -> Any) -> Bench
     build fn =
-        b = Vector.new_builder
-        fn (Bench_Builder.Impl b)
-        groups_vec = b.to_vector
+        groups_vec = Vector.build b->
+            fn (Bench_Builder.Impl b)
         Bench.All groups_vec . validate
 
     ## The default options for benchmarks.
@@ -232,15 +231,15 @@ type Bench
         duration_ns = conf.iterations * conf.seconds * 1000000000
         phase_start = System.nano_time
         stop_ns = phase_start + duration_ns
-        durations_builder = Vector.new_builder
-        go cur_ns =
-            if cur_ns  > stop_ns then Nothing else
-                dur = Bench.single_call act
-                durations_builder.append dur
-                @Tail_Call go (cur_ns + dur)
-        go phase_start
+        durations_nanos = Vector.build durations_builder->
+            go cur_ns =
+                if cur_ns  > stop_ns then Nothing else
+                    dur = Bench.single_call act
+                    durations_builder.append dur
+                    @Tail_Call go (cur_ns + dur)
+            go phase_start
         nanos_in_ms = 1000000
-        durations = durations_builder.to_vector.map (x-> x / nanos_in_ms)
+        durations = durations_nanos.map (x-> x / nanos_in_ms)
         stats = durations.compute_bulk [Statistic.Mean, Statistic.Standard_Deviation]
         avg = stats.first
         stddev = stats.second

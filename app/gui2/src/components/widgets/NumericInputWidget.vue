@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PointerButtonMask, usePointer } from '@/composables/events'
+import { usePointer } from '@/composables/events'
 import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
@@ -35,10 +35,7 @@ const dragPointer = usePointer(
       return
     }
 
-    if (eventType === 'start') {
-      event.stopImmediatePropagation()
-      return
-    }
+    if (eventType === 'start') return
 
     if (inputFieldActive.value || props.limits == null) return false
 
@@ -50,8 +47,7 @@ const dragPointer = usePointer(
     editedValue.value = `${newValue}`
     if (eventType === 'stop') emitUpdate()
   },
-  PointerButtonMask.Main,
-  (event) => !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey,
+  { predicate: (event) => !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey },
 )
 
 const sliderWidth = computed(() => {

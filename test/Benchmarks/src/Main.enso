@@ -40,61 +40,59 @@ from Standard.Base.Runtime import Debug
 
 all_benchmarks : Vector Bench.All
 all_benchmarks =
-    builder = Vector.new_builder
+    Vector.build builder->
 
-    # Vector
-    builder.append Array_Proxy_Bench.collect_benches
-    builder.append Distinct.collect_benches
-    builder.append Map_Error_Benchmark.collect_benches
-    builder.append Operations.collect_benches
-    builder.append Sort.collect_benches
+        # Vector
+        builder.append Array_Proxy_Bench.collect_benches
+        builder.append Distinct.collect_benches
+        builder.append Map_Error_Benchmark.collect_benches
+        builder.append Operations.collect_benches
+        builder.append Sort.collect_benches
 
-    # Map
-    builder.append Hash_Map.collect_benches
+        # Map
+        builder.append Hash_Map.collect_benches
 
-    # Statistics
-    builder.append Count_Min_Max.collect_benches
+        # Statistics
+        builder.append Count_Min_Max.collect_benches
 
-    # Table
-    builder.append Aggregate.collect_benches
-    builder.append Arithmetic.collect_benches
-    builder.append Add_Row_Number.collect_benches
-    builder.append Column_From_Vector.collect_benches
-    builder.append Cross_Tab.collect_benches
-    builder.append Join.collect_benches
-    builder.append Sorting.collect_benches
-    builder.append Multi_Value_Key.collect_benches
+        # Table
+        builder.append Aggregate.collect_benches
+        builder.append Arithmetic.collect_benches
+        builder.append Add_Row_Number.collect_benches
+        builder.append Column_From_Vector.collect_benches
+        builder.append Cross_Tab.collect_benches
+        builder.append Join.collect_benches
+        builder.append Sorting.collect_benches
+        builder.append Multi_Value_Key.collect_benches
 
-    # Text
-    builder.append Build.collect_benches
-    builder.append Compare.collect_benches
-    builder.append Contains.collect_benches
-    builder.append Pretty.collect_benches
-    builder.append Reverse.collect_benches
+        # Text
+        builder.append Build.collect_benches
+        builder.append Compare.collect_benches
+        builder.append Contains.collect_benches
+        builder.append Pretty.collect_benches
+        builder.append Reverse.collect_benches
 
-    # Time
-    builder.append Format.collect_benches
-    builder.append Work_Days.collect_benches
+        # Time
+        builder.append Format.collect_benches
+        builder.append Work_Days.collect_benches
 
-    # Vector
-    builder.append Collections.collect_benches
-    builder.append Column_Numeric.collect_benches
-    builder.append Decimal_Benchmark.collect_benches
-    builder.append Equality.collect_benches
-    builder.append Json_Bench.collect_benches
-    builder.append Natural_Order_Sort.collect_benches
-    builder.append Number_Parse.collect_benches
-    builder.append Numeric.collect_benches
-    builder.append Range.collect_benches
-    builder.append Sum.collect_benches
+        # Vector
+        builder.append Collections.collect_benches
+        builder.append Column_Numeric.collect_benches
+        builder.append Decimal_Benchmark.collect_benches
+        builder.append Equality.collect_benches
+        builder.append Json_Bench.collect_benches
+        builder.append Natural_Order_Sort.collect_benches
+        builder.append Number_Parse.collect_benches
+        builder.append Numeric.collect_benches
+        builder.append Range.collect_benches
+        builder.append Sum.collect_benches
 
-    # Runtime
-    builder.append Panics_And_Errors.collect_benches
+        # Runtime
+        builder.append Panics_And_Errors.collect_benches
 
-    builder.append Startup.collect_benches
-    builder.append Sieve.Main.collect_benches
-
-    builder.to_vector
+        builder.append Startup.collect_benches
+        builder.append Sieve.Main.collect_benches
 
 main filter=Nothing =
     benchmarks = if filter.is_nothing then all_benchmarks else
@@ -122,14 +120,13 @@ main filter=Nothing =
 
 ## Prints all benchmarks along with their configuration
 list_names =
-    builder = Vector.new_builder
-    all_benchmarks.each suite->
-        suite.groups.each group->
-            group.specs.each spec->
-                bench_name = group.name + "." + spec.name
-                with_conf = bench_name + " " + group.configuration.to_text
-                builder.append with_conf
-    all_names = builder.to_vector
+    all_names = Vector.build builder->
+        all_benchmarks.each suite->
+            suite.groups.each group->
+                group.specs.each spec->
+                    bench_name = group.name + "." + spec.name
+                    with_conf = bench_name + " " + group.configuration.to_text
+                    builder.append with_conf
 
     IO.println <| "Benchmarks: (count = " + all_names.length.to_text + ")"
     all_names.each name->

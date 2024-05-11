@@ -34,23 +34,24 @@ interface AngularStop {
 function angularStops(points: Iterable<GradientPoint>) {
   const stops = new Array<AngularStop>()
   for (const { hue, angle, angle2 } of points) {
-    stops.push({ hue, angle })
-    if (angle2 != null) stops.push({ hue, angle: angle2 })
+    const normalized = normalizeHue(hue)
+    stops.push({ hue: normalized, angle })
+    if (angle2 != null) stops.push({ hue: normalized, angle: angle2 })
   }
   return stops
 }
 
-function stopSpans(stops: Iterable<AngularStop>, radius: number) {
+function stopSpans(stops: Iterable<AngularStop>) {
   const spans = new Array<{ start: number; end: number; hue: number }>()
   let prev: AngularStop | undefined = undefined
   for (const stop of stops) {
     if (prev && stop.angle !== prev.angle) {
       expect(stop.angle).toBeGreaterThanOrEqual(prev.angle)
-      expect(stop.hue).toBeGreaterThanOrEqual(prev.hue)
+      if (stop.hue !== 0) expect(stop.hue).toBeGreaterThanOrEqual(prev.hue)
       if (stop.hue === prev.hue) {
         spans.push({ start: prev.angle, end: stop.angle, hue: stop.hue })
       } else {
-        expect(stop.hue).toBe(stop.angle)
+        expect(stop.hue).toBe(normalizeHue(stop.angle))
         expect(prev.hue).toBe(prev.angle)
       }
     }
@@ -72,12 +73,12 @@ function testGradients({ hues, radius }: { hues: number[]; radius: number }) {
   const approximateHues = new Set(hues.map(approximate))
   const ranges = rangesForInputs(approximateHues, radius)
   ranges.forEach(validateRange)
-  const points = gradientPoints(ranges, 2)
+  const points = gradientPoints(ranges)
   points.forEach(validateGradientPoint)
   const stops = angularStops(points)
   expect(stops[0]?.angle).toBe(0)
   expect(stops[stops.length - 1]?.angle).toBe(1)
-  const spans = stopSpans(stops, radius)
+  const spans = stopSpans(stops)
   for (const span of spans) {
     expect(approximateHues).toContain(approximate(span.hue))
     if (span.start < span.end) {

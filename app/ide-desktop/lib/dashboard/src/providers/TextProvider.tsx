@@ -16,6 +16,16 @@ export interface TextContextType {
   readonly setLanguage: (newLanguage: text.Language) => void
 }
 
+/**
+ * A function that gets localized text for a given key, with optional replacements.
+ * @param key - The key of the text to get.
+ * @param replacements - The replacements to insert into the text. If the text contains placeholders like `$0`, `$1`, etc., they will be replaced with the corresponding replacement.
+ */
+export type GetText = <K extends text.TextId>(
+  key: K,
+  ...replacements: text.Replacements[K]
+) => string
+
 const TextContext = React.createContext<TextContextType>({
   language: text.Language.english,
   /** Set `this.language`. It is NOT RECOMMENDED to use the default value, as this does not trigger
@@ -45,8 +55,8 @@ export function useText() {
   const { language, setLanguage } = React.useContext(TextContext)
   const localizedText = text.TEXTS[language]
 
-  const getText = React.useCallback(
-    <K extends text.TextId>(key: K, ...replacements: text.Replacements[K]) => {
+  const getText = React.useCallback<GetText>(
+    (key, ...replacements) => {
       const template = localizedText[key]
       return replacements.length === 0
         ? template
@@ -59,5 +69,5 @@ export function useText() {
     [localizedText]
   )
 
-  return { language, setLanguage, getText }
+  return { language, setLanguage, getText } as const
 }

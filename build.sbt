@@ -1,10 +1,10 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks.*
+import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers.*
+import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
@@ -15,7 +15,7 @@ import src.main.scala.licenses.{
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
-import JPMSPlugin.autoImport.*
+import JPMSPlugin.autoImport._
 
 import java.io.File
 
@@ -340,7 +340,8 @@ lazy val enso = (project in file("."))
     `exploratory-benchmark-java-helpers`,
     `benchmark-java-helpers`,
     `benchmarks-common`,
-    `bench-processor`
+    `bench-processor`,
+    `ydoc-server`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -1149,6 +1150,7 @@ lazy val `ydoc-server` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    frgaalJavaCompilerSetting,
     crossPaths := false,
     autoScalaLibrary := false,
     Compile / run / fork := true,
@@ -1789,7 +1791,7 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
-  .dependsOn(`interpreter-dsl`)
+  .dependsOn(`interpreter-dsl` % "provided")
   .dependsOn(`persistance-dsl` % "provided")
   .dependsOn(`library-manager`)
   .dependsOn(`logging-truffle-connector`)

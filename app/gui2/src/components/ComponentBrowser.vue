@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { componentBrowserBindings } from '@/bindings'
+import { default as DocumentationPanel } from '@/components/ComponentBrowser/DocumentationPanel.vue'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import { useScrolling } from '@/components/ComponentBrowser/scrolling'
-import { default as DocumentationPanel } from '@/components/DocumentationPanel.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
@@ -18,7 +18,7 @@ import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { targetIsOutside } from '@/util/autoBlur'
+import { endOnClickOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
@@ -63,22 +63,19 @@ const emit = defineEmits<{
   canceled: []
 }>()
 
-const cbOpen: Interaction = {
-  cancel: () => {
-    emit('canceled')
-  },
-  pointerdown: (e: PointerEvent) => {
-    if (targetIsOutside(e, cbRoot.value)) {
-      // In AI prompt mode likely the input is not a valid mode.
-      if (input.anyChange.value && input.context.value.type !== 'aiPrompt') {
-        acceptInput()
-      } else {
-        interaction.cancel(cbOpen)
-      }
+const cbRoot = ref<HTMLElement>()
+
+const cbOpen: Interaction = endOnClickOutside(cbRoot, {
+  cancel: () => emit('canceled'),
+  end: () => {
+    // In AI prompt mode likely the input is not a valid mode.
+    if (input.anyChange.value && input.context.value.type !== 'aiPrompt') {
+      acceptInput()
+    } else {
+      emit('canceled')
     }
-    return false
   },
-}
+})
 
 function scaleValues<T extends Record<any, number>>(
   values: T,
@@ -141,7 +138,6 @@ const transform = computed(() => {
 
 // === Input and Filtering ===
 
-const cbRoot = ref<HTMLElement>()
 const inputField = ref<HTMLInputElement>()
 const input = useComponentBrowserInput()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
@@ -413,7 +409,7 @@ function acceptSuggestion(component: Opt<Component> = null) {
 
 function acceptInput() {
   emit('accepted', input.code.value.trim(), input.importsToAdd())
-  interaction.end(cbOpen)
+  interaction.ended(cbOpen)
 }
 
 // === Key Events Handler ===

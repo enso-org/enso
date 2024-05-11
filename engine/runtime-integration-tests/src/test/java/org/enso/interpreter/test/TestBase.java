@@ -72,7 +72,7 @@ public abstract class TestBase {
    */
   protected static Value executeInContext(Context ctx, Callable<Object> callable) {
     // Force initialization of the context
-    ctx.eval("enso", "42");
+    ctx.eval("enso", "value = 0");
     var err = new Exception[1];
     ctx.getPolyglotBindings()
         .putMember(

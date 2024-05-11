@@ -31,7 +31,7 @@ const selectionColor = computed(() => {
 </script>
 
 <template>
-  <div class="SelectionMenu" @pointerdown.stop @pointerup.stop @click.stop>
+  <div class="SelectionMenu">
     <span
       v-text="`${selectedComponents} component${selectedComponents === 1 ? '' : 's'} selected`"
     />

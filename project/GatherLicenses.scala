@@ -1,6 +1,6 @@
-import sbt.Keys.*
-import sbt.*
-import complete.DefaultParsers.*
+import sbt.Keys._
+import sbt._
+import complete.DefaultParsers._
 import org.apache.ivy.core.resolve.IvyNode
 import src.main.scala.licenses.backend.{
   CombinedBackend,
@@ -9,15 +9,15 @@ import src.main.scala.licenses.backend.{
   GithubHeuristic
 }
 import src.main.scala.licenses.frontend.SbtLicenses
-import src.main.scala.licenses.report.*
+import src.main.scala.licenses.report._
 import src.main.scala.licenses.{
   DependencySummary,
   DistributionDescription,
   ReviewedSummary
 }
 
-import scala.collection.JavaConverters.*
-import scala.sys.process.*
+import scala.collection.JavaConverters._
+import scala.sys.process._
 
 /** The task and configuration for automatically gathering license information.
   */
