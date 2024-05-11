@@ -150,7 +150,7 @@ pub fn not_default_branch() -> String {
 ///
 /// As fork builds are run with different permissions, sometimes we need to skip some steps.
 pub fn not_a_fork() -> String {
-    "!github.event.repository.fork".into()
+    "github.event.pull_request.head.repo.full_name == github.repository".into()
 }
 
 pub fn release_concurrency() -> Concurrency {
