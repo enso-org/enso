@@ -146,6 +146,13 @@ pub fn not_default_branch() -> String {
     format!("github.ref != 'refs/heads/{DEFAULT_BRANCH_NAME}'")
 }
 
+/// Expression piece that evaluates to `true` if we are **not** building a fork.
+///
+/// As fork builds are run with different permissions, sometimes we need to skip some steps.
+pub fn not_a_fork() -> String {
+    "!github.event.repository.fork".into()
+}
+
 pub fn release_concurrency() -> Concurrency {
     Concurrency::new(RELEASE_CONCURRENCY_GROUP)
 }

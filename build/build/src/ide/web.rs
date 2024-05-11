@@ -10,7 +10,11 @@ use crate::version::ENSO_VERSION;
 use anyhow::Context;
 use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
 use ide_ci::io::download_all;
+
+
+
 use ide_ci::program::command::FallibleManipulator;
+use ide_ci::program::command::Manipulator;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
 use sha2::Digest;
@@ -167,6 +171,23 @@ pub fn path_to_executable_in_pm_bundle(
         .project_managerexe
         .strip_prefix(artifact)
         .context("Failed to generate in-bundle path to Project Manager executable.")
+}
+
+/// When secrets are not available in CI builds (e.g. when building a PR from a fork), the variables
+/// are set to empty strings. This manipulator removes such variables from the environment.
+#[derive(Clone, Copy, Debug)]
+pub struct RemoveEmptyCscEnvVars;
+
+impl Manipulator for RemoveEmptyCscEnvVars {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        for var in ide_ci::env::known::electron_builder::CI_CSC_SECRETS {
+            if let Ok(value) = std::env::var(var)
+                && value.is_empty()
+            {
+                command.env_remove(var);
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -326,6 +347,7 @@ impl IdeDesktop {
 
         self.npm()?
             .try_applying(&icons)?
+            .apply(&RemoveEmptyCscEnvVars)
             // .env("DEBUG", "electron-builder")
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
