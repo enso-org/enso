@@ -123,7 +123,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val zioExec = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
-  private val fileSystem: FileSystem = new FileSystem
+  private val fileSystem: FileSystem = new FileSystem(log)
   log.trace("Created file system [{}].", fileSystem)
 
   val git = Git.withEmptyUserConfig(

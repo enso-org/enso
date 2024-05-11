@@ -176,6 +176,28 @@ app.post('/override-custom-license/:report', function (req, res) {
     }
 })
 
+app.get('/get-known-license-texts', function (req, res) {
+    const knownLicenses = fs.readdirSync(path.join(settingsRoot, 'license-texts'))
+    res.send(JSON.stringify(knownLicenses))
+})
+
+app.post('/mark-license-as-reviewed/:report', function (req, res) {
+    const report = req.params['report']
+    const licenseName = req.body['licenseName']
+    const licenseTextPath = 'tools/legal-review/license-texts/' + req.body['licenseTextPath']
+    const location = path.join(settingsRoot, report, 'reviewed-licenses', licenseName)
+
+    console.log(licenseTextPath + ' -> ' + location)
+
+    if (fs.existsSync(location)) {
+        res.status(400).send('License already marked as reviewed')
+        return
+    }
+
+    fs.writeFileSync(location, licenseTextPath)
+    res.send('Marked ' + licenseName + ' as reviewed: ' + licenseTextPath)
+})
+
 /*
  * Listens on a random free port, opens a browser with the home page and waits
  * for a newline to terminate.

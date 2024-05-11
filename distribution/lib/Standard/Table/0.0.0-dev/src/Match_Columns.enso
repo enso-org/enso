@@ -97,11 +97,10 @@ find_column_counts tables =
    Returns a list of distinct column names, in the order of first appearance,
    starting from the first table.
 distinct_columns_in_appearance_order tables =
-    names_builder = Vector.new_builder
-    tables.fold Map.empty current-> table->
-        table.columns.fold current seen_names-> column->
-            name = column.name
-            if seen_names.contains_key name then seen_names else
-                names_builder.append name
-                seen_names.insert name True
-    names_builder.to_vector
+    Vector.build names_builder->
+        tables.fold Map.empty current-> table->
+            table.columns.fold current seen_names-> column->
+                name = column.name
+                if seen_names.contains_key name then seen_names else
+                    names_builder.append name
+                    seen_names.insert name True

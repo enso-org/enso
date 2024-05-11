@@ -12,6 +12,8 @@ import * as detect from 'enso-common/src/detect'
 import type * as app from '#/App'
 import App from '#/App'
 
+import * as loader from '#/components/Loader'
+
 // =================
 // === Constants ===
 // =================
@@ -78,15 +80,17 @@ function run(props: app.AppProps) {
     // via the browser.
     const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
     reactDOM.createRoot(root).render(
-      <sentry.ErrorBoundary>
-        {detect.IS_DEV_MODE ? (
-          <React.StrictMode>
-            <App {...props} />
-          </React.StrictMode>
-        ) : (
-          <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
-        )}
-      </sentry.ErrorBoundary>
+      <React.StrictMode>
+        <sentry.ErrorBoundary>
+          <React.Suspense fallback={<loader.Loader size={64} />}>
+            {detect.IS_DEV_MODE ? (
+              <App {...props} />
+            ) : (
+              <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
+            )}
+          </React.Suspense>
+        </sentry.ErrorBoundary>
+      </React.StrictMode>
     )
   }
 }
