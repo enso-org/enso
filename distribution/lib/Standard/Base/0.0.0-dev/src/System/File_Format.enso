@@ -97,6 +97,13 @@ type File_Format
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
+        _ = [stream, metadata]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
     default_widget : Widget
     default_widget =
         options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
