@@ -115,7 +115,7 @@ type DB_Column
        ICON convert
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
-    to_vector self = self.read max_rows=Nothing . to_vector
+    to_vector self = self.read (..All_Rows) . to_vector
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -153,7 +153,7 @@ type DB_Column
              example_at = Examples.integer_column.get 0 -1
     get : Integer -> Any -> Any | Nothing
     get self (index : Integer) (~default=Nothing) =
-        self.read index+1 . get index default
+        self.read (..First index+1) . get index default
 
     ## GROUP Standard.Base.Metadata
        Returns the `Value_Type` associated with that column.
