@@ -937,7 +937,7 @@ add_data_link_specs suite_builder =
             r.should_fail_with Illegal_Argument
             r.catch.to_display_text . should_contain "The Postgres Data Link cannot be saved to a file."
 
-    Audit_Spec.add_specs suite_builder "[PostgreSQL] " data_link_file.get
+    Audit_Spec.add_specs suite_builder "[PostgreSQL] " data_link_file.get database_pending=pending
 
 
 add_specs suite_builder =
