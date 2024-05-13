@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -10,6 +12,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.hamcrest.core.AllOf;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -243,8 +246,9 @@ public class BinaryDispatchTest extends TestBase {
       var diff1 = zOperator.execute(two, half);
       fail("Shouldn't return a value: " + diff1);
     } catch (PolyglotException ex) {
-      assertContains("Type error", ex.getMessage());
-      assertContains("`that` to be Z", ex.getMessage());
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("Type error"), containsString("`that` to be Z")));
     }
   }
 
@@ -259,8 +263,9 @@ public class BinaryDispatchTest extends TestBase {
       var diff1 = zOperator.execute(half, two);
       fail("Shouldn't return a value: " + diff1);
     } catch (PolyglotException ex) {
-      assertContains("Type error", ex.getMessage());
-      assertContains("`self` to be Z", ex.getMessage());
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("Type error"), containsString("`self` to be Z")));
     }
   }
 
@@ -289,12 +294,5 @@ public class BinaryDispatchTest extends TestBase {
         throw e;
       }
     }
-  }
-
-  private static void assertContains(String expected, String actual) {
-    if (actual.contains(expected)) {
-      return;
-    }
-    fail("Expecting " + expected + " in " + actual);
   }
 }

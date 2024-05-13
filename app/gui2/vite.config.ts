@@ -2,6 +2,8 @@
 
 import vue from '@vitejs/plugin-vue'
 import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
@@ -14,6 +16,9 @@ const localServerPort = 8080
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
+const IS_POLYGLOT_YDOC_SERVER_DEBUG = process.env.POLYGLOT_YDOC_SERVER_DEBUG === 'true'
+const IS_POLYGLOT_YDOC_SERVER =
+  process.env.POLYGLOT_YDOC_SERVER === 'true' || IS_POLYGLOT_YDOC_SERVER_DEBUG
 
 await readEnvironmentFromFile()
 
@@ -43,7 +48,6 @@ export default defineConfig({
   },
   server: {
     headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
@@ -59,6 +63,7 @@ export default defineConfig({
     ...getDefines(localServerPort),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
+    YDOC_SERVER_URL: IS_POLYGLOT_YDOC_SERVER ? JSON.stringify('defined') : undefined,
     RUNNING_VITEST: false,
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
@@ -94,13 +99,48 @@ export default defineConfig({
   },
 })
 
+let ydocServer: ChildProcessWithoutNullStreams | null
 function gatewayServer(): Plugin {
   return {
     name: 'gateway-server',
     configureServer(server) {
       if (server.httpServer == null) return
 
-      createGatewayServer(server.httpServer, undefined)
+      if (IS_POLYGLOT_YDOC_SERVER) {
+        const ydocServerJar = fileURLToPath(
+          new URL(
+            '../../lib/java/ydoc-server/target/ydoc-server-assembly-0.1.0-SNAPSHOT.jar',
+            import.meta.url,
+          ),
+        )
+        const runYdocServer = () => {
+          const args = []
+          if (IS_POLYGLOT_YDOC_SERVER_DEBUG) {
+            args.push('-DinspectPort=34567')
+          }
+          args.push('-jar', ydocServerJar)
+          ydocServer = spawn('java', args)
+          if (IS_POLYGLOT_YDOC_SERVER_DEBUG) {
+            ydocServer.stdout.on('data', (data) => console.log(`ydoc: ${data}`))
+          }
+          ydocServer.stderr.on('data', (data) => console.log(`ydoc: ${data}`))
+        }
+        if (!existsSync(ydocServerJar)) {
+          const cwd = fileURLToPath(new URL('../..', import.meta.url))
+          const sbt = spawn('sbt', ['ydoc-server/assembly'], { cwd })
+          sbt.stdout.on('data', (data) => console.log(`sbt: ${data}`))
+          sbt.on('exit', runYdocServer)
+        } else {
+          runYdocServer()
+        }
+      } else {
+        createGatewayServer(server.httpServer, undefined)
+      }
+    },
+    buildEnd() {
+      if (ydocServer == null) return
+
+      ydocServer.kill('SIGTERM')
     },
   }
 }

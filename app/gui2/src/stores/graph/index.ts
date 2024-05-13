@@ -73,7 +73,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const syncModule = computed(() => proj.module && new MutableModule(proj.module.doc.ydoc))
+  const syncModule = computed(() => proj.module && markRaw(new MutableModule(proj.module.doc.ydoc)))
 
   const nodeRects = reactive(new Map<NodeId, Rect>())
   const vizRects = reactive(new Map<NodeId, Rect>())
@@ -220,35 +220,33 @@ export const useGraphStore = defineStore('graph', () => {
     return edges.value.filter<ConnectedEdge>(isConnected)
   })
 
-  function createEdgeFromOutput(source: Ast.AstId) {
-    unconnectedEdge.value = { source, target: undefined }
+  function createEdgeFromOutput(source: Ast.AstId, event: PointerEvent | undefined) {
+    unconnectedEdge.value = { source, target: undefined, event }
   }
 
-  function disconnectSource(edge: Edge) {
+  function disconnectSource(edge: Edge, event: PointerEvent | undefined) {
     if (!edge.target) return
     unconnectedEdge.value = {
       source: undefined,
       target: edge.target,
       disconnectedEdgeTarget: edge.target,
+      event,
     }
   }
 
-  function disconnectTarget(edge: Edge) {
+  function disconnectTarget(edge: Edge, event: PointerEvent | undefined) {
     if (!edge.source || !edge.target) return
     unconnectedEdge.value = {
       source: edge.source,
       target: undefined,
       disconnectedEdgeTarget: edge.target,
+      event,
     }
   }
 
   function clearUnconnected() {
     unconnectedEdge.value = undefined
   }
-
-  const method = computed(() =>
-    syncModule.value ? methodAstInModule(syncModule.value) : undefined,
-  )
 
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
   function addMissingImports(
@@ -342,8 +340,16 @@ export const useGraphStore = defineStore('graph', () => {
     syncModule.value!.transact(fn)
   }
 
-  function stopCapturingUndo() {
-    proj.stopCapturingUndo()
+  const undoManager = {
+    undo() {
+      proj.module?.undoManager.undo()
+    },
+    redo() {
+      proj.module?.undoManager.redo()
+    },
+    undoStackBoundary() {
+      proj.module?.undoManager.stopCapturing()
+    },
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
@@ -665,7 +671,6 @@ export const useGraphStore = defineStore('graph', () => {
     disconnectTarget,
     clearUnconnected,
     moduleRoot,
-    method,
     deleteNodes,
     ensureCorrectNodeOrder,
     batchEdits,
@@ -673,7 +678,7 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeContent,
     setNodePosition,
     setNodeVisualization,
-    stopCapturingUndo,
+    undoManager,
     topLevel,
     updateNodeRect,
     updateVizRect,
@@ -724,6 +729,8 @@ export function isConnected(edge: Edge): edge is ConnectedEdge {
 interface UnconnectedEdge extends Edge {
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
   disconnectedEdgeTarget?: PortId
+  /** A pointer event which caused the unconnected edge */
+  event: PointerEvent | undefined
 }
 
 function getExecutedMethodAst(

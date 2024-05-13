@@ -98,19 +98,17 @@ build_replacement_vector replacement_string pattern =
     replacement_pattern = Regex.compile group_reference_regex
     it = replacement_pattern.iterator replacement_string
 
-    builder = Vector.new_builder
-    go it = case it.next of
-        Match_Iterator_Value.Next filler match next_it ->
-            replacement = parse_group_number pattern match
-            replacement.if_not_error <|
+    Vector.build builder->
+        go it = case it.next of
+            Match_Iterator_Value.Next filler match next_it ->
+                replacement = parse_group_number pattern match
+                replacement.if_not_error <|
+                    builder.append (Replacement.Literal filler.text)
+                    builder.append replacement
+                    @Tail_Call go next_it
+            Match_Iterator_Value.Last filler ->
                 builder.append (Replacement.Literal filler.text)
-                builder.append replacement
-                @Tail_Call go next_it
-        Match_Iterator_Value.Last filler ->
-            builder.append (Replacement.Literal filler.text)
-    result = go it
-    result.if_not_error <|
-        builder.to_vector
+        go it
 
 ## PRIVATE
 

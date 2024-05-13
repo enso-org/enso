@@ -12,7 +12,7 @@ import Standard.Visualization
 
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
-from Standard.Database import Database, SQLite, In_Memory
+from Standard.Database import Database, SQLite
 
 from Standard.Test import all
 
@@ -61,7 +61,7 @@ type Data
         Data.Value make_varied_type_table
 
 add_specs suite_builder =
-    suite_builder.group "Construction" group_builder->
+    suite_builder.group "Table Construction" group_builder->
         data = Data.setup
 
         group_builder.specify "should allow creating a table from rows" <|
@@ -126,8 +126,8 @@ add_specs suite_builder =
             py_dates = ["py_dates", [py_make_date 2022 8 27, py_make_date 1999 1 1]]
             py_objects = ["py_objects", [py_make_object "a" "b", py_make_object "foo" "bar"]]
             table = Table.new [enso_dates, py_dates, py_objects]
-            table.info.at "Column" . to_vector . should_equal ["enso_dates", "py_dates", "py_objects"]
-            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date, Value_Type.Mixed]
+            table.column_info.at "Column" . to_vector . should_equal ["enso_dates", "py_dates", "py_objects"]
+            table.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date, Value_Type.Mixed]
 
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
@@ -136,8 +136,8 @@ add_specs suite_builder =
             js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
             js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]
             table = Table.new [enso_dates, js_dates, js_objects]
-            table.info.at "Column" . to_vector . should_equal ["enso_dates", "js_dates", "js_objects"]
-            table.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date_Time, Value_Type.Mixed]
+            table.column_info.at "Column" . to_vector . should_equal ["enso_dates", "js_dates", "js_objects"]
+            table.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Date_Time, Value_Type.Mixed]
 
             enso_date_times = table.at "enso_dates" . map .to_date_time
             enso_date_times.value_type . should_equal Value_Type.Date_Time
@@ -177,6 +177,20 @@ add_specs suite_builder =
 
             col_3 = Column.from_vector 'z' [False, True, False]
             col_3.to_vector.map .not . should_equal [True, False, True]
+
+    suite_builder.group "Table Display" group_builder->
+        group_builder.specify "should be able to display a table" <|
+            t = Table.new [["foo", [10, 20, 30]], ["bar", [False, True, False]]]
+            raw_expected_text = """
+                   | foo | bar
+                ---+-----+-------
+                 0 | 10  | False
+                 1 | 20  | True
+                 2 | 30  | False
+            expected_text = raw_expected_text.lines.map .trim . join '\n'
+            raw_got_text = t.display
+            got_text = raw_got_text.lines.map .trim . join '\n'
+            got_text . should_equal expected_text
 
     suite_builder.group "Mapping Operations" group_builder->
         group_builder.specify "should allow mapping a function over a column" <|
@@ -333,7 +347,7 @@ add_specs suite_builder =
             b = ["ints", [1, 2, Nothing, Nothing]]
             c = ["objs", [1, "a", "c", Any]]
             r = Table.new [a, b, c]
-            i = r.info
+            i = r.column_info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Mixed]
@@ -655,20 +669,20 @@ add_specs suite_builder =
             table = Table.new [dates, texts, mixed, ints, floats, objects]
 
             t1 = table.aggregate ["dates"] [Aggregate_Column.Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
-            t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
-            t1.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Char, Value_Type.Char, Value_Type.Mixed, Value_Type.Integer, Value_Type.Mixed]
+            t1.column_info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
+            t1.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Char, Value_Type.Char, Value_Type.Mixed, Value_Type.Integer, Value_Type.Mixed]
 
             t2 = table.aggregate [] [Aggregate_Column.Mode "dates", Aggregate_Column.Count_Not_Nothing "objects", Aggregate_Column.Count_Distinct "texts", Aggregate_Column.Minimum "ints", Aggregate_Column.Maximum "floats"]
-            t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Not Nothing objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
-            t2.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Integer, Value_Type.Integer, Value_Type.Integer, Value_Type.Float]
+            t2.column_info.at "Column" . to_vector . should_equal ["Mode dates", "Count Not Nothing objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
+            t2.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Integer, Value_Type.Integer, Value_Type.Integer, Value_Type.Float]
 
             t3 = table.aggregate ["texts", "ints"] [Aggregate_Column.Last "floats"]
-            t3.info.at "Column" . to_vector . should_equal ["texts", "ints", "Last floats"]
-            t3.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Float]
+            t3.column_info.at "Column" . to_vector . should_equal ["texts", "ints", "Last floats"]
+            t3.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Float]
 
             t4 = table.aggregate ["mixed"] [Aggregate_Column.Sum "ints", Aggregate_Column.Sum "floats"]
-            t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
-            t4.info.at "Value Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Float, Value_Type.Float]
+            t4.column_info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
+            t4.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Float, Value_Type.Float]
 
         group_builder.specify "should take Unicode normalization into account when grouping by Text" <|
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]
@@ -850,11 +864,10 @@ add_specs suite_builder =
             [True, False].each has_nulls->
                 [True, False].each has_true->
                     [True, False].each has_false->
-                        vec_builder = Vector.new_builder
-                        if has_nulls then vec_builder.append Nothing
-                        if has_true then vec_builder.append True
-                        if has_false then vec_builder.append False
-                        in_vector = vec_builder.to_vector
+                        in_vector = Vector.build builder->
+                            if has_nulls then builder.append Nothing
+                            if has_true then builder.append True
+                            if has_false then builder.append False
                         in_vector_set = Set.from_vector in_vector
 
                         vectors = [[True, False, Nothing], [Nothing, Nothing, Nothing], [False, False, True], [True, True, True], [False, False, False], [Nothing, True, True], [False, Nothing, False]]
@@ -885,7 +898,7 @@ add_specs suite_builder =
             t = Table.new [["X", [1, 2, 3]]]
             Test.expect_panic Type_Error (t.join 42)
 
-            db_connection = Database.connect (SQLite In_Memory)
+            db_connection = Database.connect (SQLite.In_Memory)
             db_table = (Table.new [["Y", [4, 5, 6]]]).select_into_database_table db_connection "test"
 
             r = t.join db_table

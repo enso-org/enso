@@ -9,6 +9,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.pass.IRPass.IRMetadata;
+import org.enso.compiler.pass.resolve.DocumentationComments;
 
 /**
  * Represents a node in the GraphViz graph.
@@ -84,6 +86,9 @@ record GraphVizNode(
     private Map<String, String> additionalAttrs = new HashMap<>();
     private Object object;
 
+    private static final List<Class<? extends IRMetadata>> metadataToSkip =
+        List.of(DocumentationComments.Doc.class);
+
     static Builder fromObject(Object obj) {
       var className = className(obj);
       var id = Utils.id(obj);
@@ -129,8 +134,10 @@ record GraphVizNode(
         ir.passData()
             .map(
                 (pass, metadata) -> {
-                  var metaName = metadata.metadataName();
-                  bldr.addLabelLine("  - " + metaName);
+                  if (!metadataToSkip.contains(metadata.getClass())) {
+                    var metaName = metadata.metadataName();
+                    bldr.addLabelLine("  - " + metaName);
+                  }
                   return null;
                 });
       } else {

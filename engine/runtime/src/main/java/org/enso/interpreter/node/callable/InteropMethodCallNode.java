@@ -32,6 +32,10 @@ public abstract class InteropMethodCallNode extends Node {
     return InteropMethodCallNodeGen.create();
   }
 
+  public static InteropMethodCallNode getUncached() {
+    return InteropMethodCallNodeGen.getUncached();
+  }
+
   /**
    * Calls the method with given state and arguments.
    *

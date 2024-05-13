@@ -23,6 +23,7 @@ import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Constant_Column.Constant_Column
+import Standard.Table.Internal.Display_Helpers
 import Standard.Table.Internal.Join_Kind_Cross.Join_Kind_Cross
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Replace_Helpers
@@ -35,10 +36,8 @@ import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Row.Row
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
-from Standard.Table.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Table import print_table
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -74,11 +73,19 @@ type DB_Table
        Represents a column-oriented table data structure backed by a database.
 
        Arguments:
-       - name: The name of the table.
+       - internal_name: The name of the table.
        - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
-    Value name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+    private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+
+    ## The name of the table.
+    name : Text
+    name self = self.internal_name
+
+    ## The name of the SQL Dialect used by the table.
+    dialect_name : Text
+    dialect_name self = self.connection.dialect.name
 
     ## PRIVATE
        ADVANCED
@@ -89,9 +96,12 @@ type DB_Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.read max_rows=show_rows warn_if_more_rows=False
-        all_rows_count = self.row_count
-        display_dataframe df indices_count=0 all_rows_count format_terminal
+        data_fragment_with_warning = self.read max_rows=show_rows warn_if_more_rows=True
+        has_more_rows = data_fragment_with_warning.has_warnings warning_type=Not_All_Rows_Downloaded
+        data_fragment_cleared = data_fragment_with_warning.remove_warnings Not_All_Rows_Downloaded
+        # `row_count` means another Database query is performed, so we only do it if we need to.
+        all_rows_count = if has_more_rows then self.row_count else data_fragment_cleared.row_count
+        Display_Helpers.display_table table=data_fragment_cleared add_row_index=False max_rows_to_show=show_rows all_rows_count=all_rows_count format_terminal=format_terminal
 
     ## PRIVATE
        ADVANCED
@@ -154,31 +164,36 @@ type DB_Table
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS first field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
     first_column : DB_Column ! Index_Out_Of_Bounds
     first_column self = self.at 0
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS second field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the second column
     second_column : DB_Column ! Index_Out_Of_Bounds
     second_column self = self.at 1
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS last field
+       GROUP Standard.Base.Selections
        ICON select_column
        Gets the last column
     last_column : DB_Column ! Index_Out_Of_Bounds
     last_column self = self.at -1
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS field count
+       GROUP Standard.Base.Metadata
        ICON metadata
        Returns the number of columns in the table.
     column_count : Integer
     column_count self = self.internal_columns.length
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS select fields
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -234,7 +249,8 @@ type DB_Table
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         self.updated_columns new_columns
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS select fields by type
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtered by the type
        of the column.
@@ -245,13 +261,13 @@ type DB_Table
          be selected. If `False`, columns with related types will also be
          selected (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    select_by_type : Vector Value_Type -> Boolean -> Table
-    select_by_type self types:Vector strict:Boolean=False =
+    select_columns_by_type : Vector Value_Type -> Boolean -> Table
+    select_columns_by_type self types:Vector strict:Boolean=False =
         helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
         new_columns = helper.select_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS drop_columns
+    ## ALIAS drop_columns, drop fields, remove fields
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
@@ -305,7 +321,8 @@ type DB_Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS remove fields by type
+       GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
        on the type of the column.
@@ -316,13 +333,13 @@ type DB_Table
          be removed. If `False`, columns with related types will also be
          removed (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
-    remove_by_type : Vector Value_Type -> Boolean -> Table
-    remove_by_type self types:Vector strict:Boolean=False =
+    remove_columns_by_type : Vector Value_Type -> Boolean -> Table
+    remove_columns_by_type self types:Vector strict:Boolean=False =
         helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
         new_columns = helper.remove_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS select_missing_columns, select_na
+    ## ALIAS select_missing_columns, select_na, select_blank_fields
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -2570,15 +2587,15 @@ type DB_Table
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## ALIAS metadata
+    ## ALIAS metadata, field info, column types
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
        each column.
-    info : Table
-    info self =
+    column_info : Table
+    column_info self =
         cols = self.internal_columns
         count_query =
             ## Performing a subquery is the most robust way to handle both
@@ -2746,7 +2763,7 @@ type DB_Table
              from Standard.Database import all
 
              example_to_csv =
-                 connection = Database.connect (SQLite (File.new "db.sqlite"))
+                 connection = Database.connect (SQLite.From_File (File.new "db.sqlite"))
                  table = connection.query (SQL_Query.Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
     @path (Widget.Text_Input display=Display.Always)
@@ -2925,37 +2942,6 @@ make_table connection table_name columns ctx on_problems =
         # We do not want to stop the table from being fetched, so we report the issues as warnings.
         problem_builder.attach_problems_before on_problems <|
             DB_Table.Value table_name connection cols ctx
-
-## PRIVATE
-
-   Renders an ASCII-art representation for a Table from a dataframe that
-   contains a fragment of the underlying data and count of all rows.
-
-   Arguments:
-   - df: The materialized dataframe that contains the data to be displayed, it
-     should have no indices set.
-   - indices_count: Indicates how many columns from the materialized dataframe
-     should be treated as indices in the display (index columns will be bold if
-     `format_terminal` is enabled).
-   - all_rows_count: The count of all rows in the underlying Table; if
-     `all_rows_count` is bigger than the amount of rows of `df`, an additional
-     line will be included that will say how many hidden rows there are.
-   - format_term: A boolean flag, specifying whether to use ANSI escape codes
-     for rich formatting in the terminal.
-display_dataframe : Table -> Integer -> Integer -> Boolean -> Text
-display_dataframe df indices_count all_rows_count format_terminal =
-    cols = Vector.from_polyglot_array df.java_table.getColumns
-    col_names = cols.map .getName . map normalize_string_for_display
-    col_vals = cols.map .getStorage
-    display_rows = df.row_count
-    rows = Vector.new display_rows row_num->
-        col_vals.map col->
-            if col.isNothing row_num then "Nothing" else get_item_string col row_num
-    table = print_table col_names rows indices_count format_terminal
-    if display_rows == all_rows_count then table else
-        missing_rows_count = all_rows_count - display_rows
-        missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
-        table + missing
 
 ## PRIVATE
    By default, join on the first column, unless it's a cross join, in which

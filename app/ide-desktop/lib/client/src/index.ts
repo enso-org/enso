@@ -16,6 +16,7 @@ import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
+import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
 import * as contentConfig from 'enso-content-config'
 
 import * as authentication from 'authentication'
@@ -33,9 +34,6 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
-
-// prettier-ignore
-import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
@@ -65,6 +63,20 @@ class App {
         fileAssociations.setOpenFileEventHandler(id => {
             this.setProjectToOpenOnStartup(id)
         })
+
+        electron.app.commandLine.appendSwitch('allow-insecure-localhost', 'true')
+        electron.app.commandLine.appendSwitch('ignore-certificate-errors', 'true')
+        electron.app.commandLine.appendSwitch('ignore-ssl-errors', 'true')
+        electron.app.commandLine.appendSwitch('ignore-certificate-errors-spki-list', 'true')
+        electron.app.on(
+            'certificate-error',
+            (event, _webContents, _url, _error, _certificate, callback) => {
+                // Prevent having error
+                event.preventDefault()
+                // and continue
+                callback(true)
+            }
+        )
 
         const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
         this.handleItemOpening(fileToOpen, urlToOpen)
@@ -171,10 +183,17 @@ class App {
             }
         }
         const add = (option: string, value?: string) => {
+            const chromeOption = new configParser.ChromeOption(option, value)
+            const chromeOptionStr = chromeOption.display()
+            logger.log(`Setting '${chromeOptionStr}'`)
             chromeOptions.push(new configParser.ChromeOption(option, value))
         }
         logger.groupMeasured('Setting Chrome options', () => {
             const perfOpts = this.args.groups.performance.options
+            add('ignore-certificate-errors-spki-list')
+            add('allow-insecure-localhost')
+            add('ignore-certificate-errors')
+            add('ignore-ssl-errors')
             addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
             addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
             addIf(perfOpts.disableSandbox, 'no-sandbox')
@@ -439,7 +458,7 @@ class App {
                     searchParams[option.qualifiedName()] = option.value.toString()
                 }
             }
-            const address = new URL('http://localhost')
+            const address = new URL('https://localhost')
             address.port = this.serverPort().toString()
             address.search = new URLSearchParams(searchParams).toString()
             logger.log(`Loading the window address '${address.toString()}'.`)

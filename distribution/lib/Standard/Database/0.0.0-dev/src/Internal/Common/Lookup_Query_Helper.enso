@@ -147,25 +147,29 @@ prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
 
     lookup_counter_base = make_lookup_counter_column lookup_table.connection.dialect lookup_columns unique_name_strategy
 
-    self_requested_columns = Vector.new_builder
-    lookup_requested_columns = Vector.new_builder
+    vecs = Vector.build_multiple 2 builders->
+        self_requested_columns = builders.at 0
+        lookup_requested_columns = builders.at 1
 
-    lookup_columns.each c-> case c of
-        Lookup_Column.Key_Column base_column key_column ->
-            self_requested_columns.append [base_column]
-            lookup_requested_columns.append [key_column]
-        Lookup_Column.Keep_Column base_column ->
-            self_requested_columns.append [base_column]
-            lookup_requested_columns.append []
-        Lookup_Column.Replace_Column base_column lookup_column _ ->
-            self_requested_columns.append [base_column]
-            lookup_requested_columns.append [lookup_column]
-        Lookup_Column.Add_Column lookup_column ->
-            self_requested_columns.append []
-            lookup_requested_columns.append [lookup_column]
+        lookup_columns.each c-> case c of
+            Lookup_Column.Key_Column base_column key_column ->
+                self_requested_columns.append [base_column]
+                lookup_requested_columns.append [key_column]
+            Lookup_Column.Keep_Column base_column ->
+                self_requested_columns.append [base_column]
+                lookup_requested_columns.append []
+            Lookup_Column.Replace_Column base_column lookup_column _ ->
+                self_requested_columns.append [base_column]
+                lookup_requested_columns.append [lookup_column]
+            Lookup_Column.Add_Column lookup_column ->
+                self_requested_columns.append []
+                lookup_requested_columns.append [lookup_column]
 
-    self_sub = base_table.context.as_subquery self_alias self_requested_columns.to_vector
-    lookup_sub = lookup_table.context.as_subquery lookup_alias lookup_requested_columns.to_vector+[[lookup_counter_base]]
+    self_requested_columns = vecs.at 0
+    lookup_requested_columns = vecs.at 1
+
+    self_sub = base_table.context.as_subquery self_alias self_requested_columns
+    lookup_sub = lookup_table.context.as_subquery lookup_alias lookup_requested_columns+[[lookup_counter_base]]
     lookup_counter = lookup_sub.new_columns.at -1 . first
 
     Lookup_Subquery_Setup.Value self_sub lookup_sub lookup_counter new_table_name

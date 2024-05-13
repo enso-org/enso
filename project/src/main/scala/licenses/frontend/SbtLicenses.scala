@@ -14,7 +14,7 @@ import src.main.scala.licenses.{
   SourceAccess
 }
 
-import scala.collection.JavaConverters.*
+import scala.collection.JavaConverters._
 
 /** Defines the algorithm for discovering dependency metadata.
   */

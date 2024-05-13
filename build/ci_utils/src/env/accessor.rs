@@ -104,6 +104,12 @@ impl const From<&'static str> for PathBufVariable {
     }
 }
 
+impl AsRef<str> for PathBufVariable {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
+
 impl RawVariable for PathBufVariable {
     fn name(&self) -> &str {
         self.0

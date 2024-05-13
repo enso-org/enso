@@ -4,6 +4,7 @@ import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Widget_Helpers import make_format_chooser
 
 import project.Column_Ref.Column_Ref
 import project.Expression.Expression
@@ -72,36 +73,36 @@ type Simple_Expression
 
         filter_cond = Widget_Helpers.make_filter_condition_selector table
 
-        builder = Vector.new_builder
-        fqn = Meta.get_qualified_type_name Simple_Calculation
-        builder.append (Option "copy" fqn+".Copy")
-        builder.append (Option "add" fqn+".Add" [["rhs", with_number_text]])
-        builder.append (Option "subtract" fqn+".Subtract" [["rhs", with_number]])
-        builder.append (Option "multiply" fqn+".Multiply" [["rhs", with_number]])
-        builder.append (Option "divide" fqn+".Divide" [["rhs", with_number]])
-        builder.append (Option "mod" fqn+".Mod" [["rhs", with_number]])
-        builder.append (Option "power" fqn+".Power" [["rhs", with_number]])
-        builder.append (Option "round" fqn+".Round")
-        builder.append (Option "ceil" fqn+".Ceil")
-        builder.append (Option "floor" fqn+".Floor")
-        builder.append (Option "truncate" fqn+".Truncate")
-        builder.append (Option "min" fqn+".Min" [["rhs", with_number_text]])
-        builder.append (Option "max" fqn+".Max" [["rhs", with_number_text]])
-        builder.append (Option "date add" fqn+".Date_Add" [["length", col_names]])
-        builder.append (Option "date part" fqn+".Date_Part")
-        builder.append (Option "date diff" fqn+".Date_Diff" [["end", col_names]])
-        builder.append (Option "not" fqn+".Not")
-        builder.append (Option "and" fqn+".And" [["rhs", with_boolean]])
-        builder.append (Option "or" fqn+".Or" [["rhs", with_boolean]])
-        builder.append (Option "if" fqn+".If" [["condition", filter_cond], ["true_value", with_all_types], ["false_value", with_all_types]])
-        builder.append (Option "trim" fqn+".Trim" [["what", with_text]])
-        builder.append (Option "text_left" fqn+".Text_Left" [["length", with_number]])
-        builder.append (Option "text_right" fqn+".Text_Right" [["length", with_number]])
-        builder.append (Option "text_length" fqn+".Text_Length")
-        builder.append (Option "format" fqn+".Format")
+        options = Vector.build builder->
+            fqn = Meta.get_qualified_type_name Simple_Calculation
+            builder.append (Option "copy" fqn+".Copy")
+            builder.append (Option "add" fqn+".Add" [["rhs", with_number_text]])
+            builder.append (Option "subtract" fqn+".Subtract" [["rhs", with_number]])
+            builder.append (Option "multiply" fqn+".Multiply" [["rhs", with_number]])
+            builder.append (Option "divide" fqn+".Divide" [["rhs", with_number]])
+            builder.append (Option "mod" fqn+".Mod" [["rhs", with_number]])
+            builder.append (Option "power" fqn+".Power" [["rhs", with_number]])
+            builder.append (Option "round" fqn+".Round")
+            builder.append (Option "ceil" fqn+".Ceil")
+            builder.append (Option "floor" fqn+".Floor")
+            builder.append (Option "truncate" fqn+".Truncate")
+            builder.append (Option "min" fqn+".Min" [["rhs", with_number_text]])
+            builder.append (Option "max" fqn+".Max" [["rhs", with_number_text]])
+            builder.append (Option "date add" fqn+".Date_Add" [["length", with_number]])
+            builder.append (Option "date part" fqn+".Date_Part")
+            builder.append (Option "date diff" fqn+".Date_Diff" [["end", col_names]])
+            builder.append (Option "not" fqn+".Not")
+            builder.append (Option "and" fqn+".And" [["rhs", with_boolean]])
+            builder.append (Option "or" fqn+".Or" [["rhs", with_boolean]])
+            builder.append (Option "if" fqn+".If" [["condition", filter_cond], ["true_value", with_all_types], ["false_value", with_all_types]])
+            builder.append (Option "trim" fqn+".Trim" [["what", with_text]])
+            builder.append (Option "text_left" fqn+".Text_Left" [["length", with_number]])
+            builder.append (Option "text_right" fqn+".Text_Right" [["length", with_number]])
+            builder.append (Option "text_length" fqn+".Text_Length")
+            builder.append (Option "format" fqn+".Format" [["format", make_format_chooser include_number=True]])
 
         fqn_column = Meta.get_qualified_type_name Simple_Expression
-        derived = Option "<Simple Expression>" fqn_column+".From" [["input", with_all_types], ["operation", Single_Choice builder.to_vector]]
+        derived = Option "<Simple Expression>" fqn_column+".From" [["input", with_all_types], ["operation", Single_Choice options]]
 
         Single_Choice [text, number, boolean, expression, derived] display=display
 
@@ -149,10 +150,10 @@ type Simple_Calculation
     Max (rhs : Column_Ref|Expression|Any)
 
     ## Adds a period to a date/time column.
-    Date_Add (length : Column_Ref|Expression|Integer) (period : Date_Period|Time_Period = Date_Period.Day)
+    Date_Add (length : Column_Ref|Expression|Integer = 1) (period : Date_Period|Time_Period = Date_Period.Day)
 
     ## Returns part of a date/time column.
-    Date_Part (period : Date_Period|Time_Period)
+    Date_Part (period : Date_Period|Time_Period = Date_Period.Day)
 
     ## Returns the difference between two date/time columns.
     Date_Diff (end : Column_Ref|Expression|Date_Time|Date|Time_Of_Day) (period:Date_Period|Time_Period = Date_Period.Day)

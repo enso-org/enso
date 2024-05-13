@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Position, Value_Type, Bits
 from Standard.Table.Errors import all
@@ -222,41 +223,41 @@ add_specs suite_builder setup =
             r2.catch.cause . should_be_a Missing_Input_Columns
             r2.catch.to_display_text . should_equal "No columns in the result, because of another problem: The criteria 'hmmm' did not match any columns."
 
-    suite_builder.group prefix+"Table.select_by_type and Table.remove_by_type" group_builder->
+    suite_builder.group prefix+"Table.select_columns_by_type and Table.remove_columns_by_type" group_builder->
         data = Mixed_Columns_Data.setup create_connection_fn table_builder
 
         group_builder.teardown <|
             data.teardown
 
         group_builder.specify "should be able to select by type of columns" <|
-            expect_column_names ["int"] <| data.table.select_by_type [Value_Type.Integer]
-            expect_column_names ["float"] <| data.table.select_by_type [Value_Type.Float]
-            expect_column_names ["int", "float"] <| data.table.select_by_type [Value_Type.Integer, Value_Type.Float]
-            expect_column_names ["text"] <| data.table.select_by_type [Value_Type.Char]
-            expect_column_names ["bool"] <| data.table.select_by_type [Value_Type.Boolean]
+            expect_column_names ["int"] <| data.table.select_columns_by_type [Value_Type.Integer]
+            expect_column_names ["float"] <| data.table.select_columns_by_type [Value_Type.Float]
+            expect_column_names ["int", "float"] <| data.table.select_columns_by_type [Value_Type.Integer, Value_Type.Float]
+            expect_column_names ["text"] <| data.table.select_columns_by_type [Value_Type.Char]
+            expect_column_names ["bool"] <| data.table.select_columns_by_type [Value_Type.Boolean]
 
         group_builder.specify "should be able to drop by type of columns" <|
-            expect_column_names ["float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Integer]
-            expect_column_names ["int", "text", "bool"] <| data.table.remove_by_type [Value_Type.Float]
-            expect_column_names ["text", "bool"] <| data.table.remove_by_type [Value_Type.Integer, Value_Type.Float]
-            expect_column_names ["int", "float", "bool"] <| data.table.remove_by_type [Value_Type.Char]
-            expect_column_names ["int", "float", "text"] <| data.table.remove_by_type [Value_Type.Boolean]
+            expect_column_names ["float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer]
+            expect_column_names ["int", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float]
+            expect_column_names ["text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer, Value_Type.Float]
+            expect_column_names ["int", "float", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char]
+            expect_column_names ["int", "float", "text"] <| data.table.remove_columns_by_type [Value_Type.Boolean]
 
         group_builder.specify "should be able to select by strict type" <|
-            expect_column_names ["int"] <| data.table.select_by_type [Value_Type.Integer] strict=True
-            data.table.select_by_type [Value_Type.Integer Bits.Bits_16] strict=True . should_fail_with No_Output_Columns
-            expect_column_names ["float"] <| data.table.select_by_type [Value_Type.Float] strict=True
-            data.table.select_by_type [Value_Type.Float Bits.Bits_32] strict=True . should_fail_with No_Output_Columns
-            expect_column_names ["text"] <| data.table.select_by_type [Value_Type.Char] strict=True
-            data.table.select_by_type [Value_Type.Char 3 False] strict=True . should_fail_with No_Output_Columns
+            expect_column_names ["int"] <| data.table.select_columns_by_type [Value_Type.Integer] strict=True
+            data.table.select_columns_by_type [Value_Type.Integer Bits.Bits_16] strict=True . should_fail_with No_Output_Columns
+            expect_column_names ["float"] <| data.table.select_columns_by_type [Value_Type.Float] strict=True
+            data.table.select_columns_by_type [Value_Type.Float Bits.Bits_32] strict=True . should_fail_with No_Output_Columns
+            expect_column_names ["text"] <| data.table.select_columns_by_type [Value_Type.Char] strict=True
+            data.table.select_columns_by_type [Value_Type.Char 3 False] strict=True . should_fail_with No_Output_Columns
 
         group_builder.specify "should be able to remove by strict type" <|
-            expect_column_names ["float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Integer] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Integer Bits.Bits_16] strict=True
-            expect_column_names ["int", "text", "bool"] <| data.table.remove_by_type [Value_Type.Float] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Float Bits.Bits_32] strict=True
-            expect_column_names ["int", "float", "bool"] <| data.table.remove_by_type [Value_Type.Char] strict=True
-            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_by_type [Value_Type.Char 3 False] strict=True
+            expect_column_names ["float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer] strict=True
+            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer Bits.Bits_16] strict=True
+            expect_column_names ["int", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float] strict=True
+            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float Bits.Bits_32] strict=True
+            expect_column_names ["int", "float", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char] strict=True
+            expect_column_names ["int", "float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Char 3 False] strict=True
 
     suite_builder.group prefix+"Table.remove_columns" group_builder->
         data = Select_Columns_Data.setup create_connection_fn table_builder
@@ -502,6 +503,29 @@ add_specs suite_builder setup =
             map = Map.from_vector [["a(.*)".to_regex, "$1"]]
             expect_column_names ["lpha", "beta", "gamma", "delta"] <|
                 data.table.rename_columns map
+
+        group_builder.specify "should report invalid input map nicely" <|
+            test_invalid_map map =
+                result = data.table.rename_columns map
+                result.should_fail_with Illegal_Argument
+                result.catch Any . message . should_equal "mapping is not a Vector of old name to new name."
+
+            test_invalid_map [["Alpha"]]
+            test_invalid_map [["Alpha", 1]]
+            test_invalid_map [["Alpha", "Beta", "Delta"]]
+            test_invalid_map [[True, "Beta"]]
+
+        group_builder.specify "should report duplicates in input map nicely" <|
+            test_duplicate_names map message =
+                result = data.table.rename_columns map
+                result.should_fail_with Illegal_Argument
+                result.catch Any . message . should_equal message
+
+            test_duplicate_names [["Alpha", "1"], ["Alpha", "2"]] "duplicate old name mappings (Alpha)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"]] "duplicate old name mappings (Beta, Alpha)."
+            test_duplicate_names [["Alpha", "1"], ["Alpha", "2"], ["Alpha", "3"]] "duplicate old name mappings (Alpha)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"], ["Gamma","6"], ["Delta","7"], ["Delta","8"]] "duplicate old name mappings (Beta, Alpha, Gamma, Delta)."
+            test_duplicate_names [["Alpha", "1"], ["Beta", "2"], ["Gamma", "3"], ["Beta", "4"], ["Alpha", "5"], ["Gamma","6"], ["Delta","7"], ["Delta","8"], ["Echo","9"], ["Echo","10"]] "duplicate old name mappings (Beta, Alpha, Gamma, ... 2 others)."
 
         group_builder.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'

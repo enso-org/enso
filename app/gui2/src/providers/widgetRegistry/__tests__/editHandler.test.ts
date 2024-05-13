@@ -112,7 +112,7 @@ test.each`
     expect(editedHandler.handler.isActive()).toBeTruthy()
     interactionHandler.setCurrent(undefined)
     expect(widgetTree.currentEdit).toBeUndefined()
-    checkCallbackCall('cancel')
+    checkCallbackCall('end', undefined)
     expect(editedHandler.handler.isActive()).toBeFalsy()
   },
 )
@@ -160,7 +160,7 @@ test.each`
       widgetTree,
     )
     handlers.get(edited)?.handler.start()
-    interactionHandler.handlePointerDown(event, navigator)
+    interactionHandler.handlePointerEvent(event, 'pointerdown', navigator)
     const handlersCalled = new Set<string>()
     for (const [id, { interaction }] of handlers)
       if (interaction.pointerdown?.mock.lastCall) handlersCalled.add(id)

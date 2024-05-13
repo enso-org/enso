@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import ResizeHandles from '@/components/ResizeHandles.vue'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/composables/events'
+import { isTriggeredByKeyboard, useResizeObserver } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { onMounted, ref, watchEffect } from 'vue'
+import { Rect, type BoundsSet } from '@/util/data/rect'
+import { Vec2 } from '@/util/data/vec2'
+import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
@@ -55,39 +59,35 @@ function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
 }
 
-const resizeRight = usePointer((pos, _, type) => {
-  if (type !== 'move' || pos.delta.x === 0) {
-    return
-  }
-  const width =
-    (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-  config.width = Math.max(width, MIN_WIDTH_PX)
-}, PointerButtonMask.Main)
+const realSize = useResizeObserver(contentNode)
 
-const resizeBottom = usePointer((pos, _, type) => {
-  if (type !== 'move' || pos.delta.y === 0) {
-    return
-  }
-  const height =
-    (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
-  config.height = Math.max(0, height)
-}, PointerButtonMask.Main)
+const clientBounds = computed({
+  get() {
+    return new Rect(Vec2.Zero, realSize.value)
+  },
+  set(value) {
+    if (resizing.left || resizing.right) config.width = value.width / config.scale
+    if (resizing.bottom) config.height = value.height / config.scale
+  },
+})
 
-const resizeBottomRight = usePointer((pos, _, type) => {
-  if (type !== 'move') {
-    return
-  }
-  if (pos.delta.x !== 0) {
-    const width =
-      (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-    config.width = Math.max(0, width)
-  }
-  if (pos.delta.y !== 0) {
-    const height =
-      (pos.absolute.y - (contentNode.value?.getBoundingClientRect().top ?? 0)) / config.scale
-    config.height = Math.max(0, height)
-  }
-}, PointerButtonMask.Main)
+let resizing: BoundsSet = {}
+
+// When dragging left resizer, we need to move node position accordingly. It may be done only by
+// reading the real width change, as `config.width` does not consider node's minimum width.
+watch(realSize, (newVal, oldVal) => {
+  if (!resizing.left) return
+  const delta = newVal.x - oldVal.x
+  if (delta !== 0)
+    config.nodePosition = new Vec2(config.nodePosition.x - delta, config.nodePosition.y)
+})
+
+const UNKNOWN_TYPE = 'Unknown'
+const nodeShortType = computed(() =>
+  config.nodeType != null && isQualifiedName(config.nodeType) ?
+    qnLastSegment(config.nodeType)
+  : UNKNOWN_TYPE,
+)
 </script>
 
 <template>
@@ -104,13 +104,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
       }"
-      @pointerdown.stop
-      @pointerup.stop
-      @click.stop
     >
-      <div class="resizer-right" v-on="resizeRight.stop.events"></div>
-      <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>
-      <div class="resizer-bottom-right" v-on="resizeBottomRight.stop.events"></div>
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
         class="below-viz"
@@ -130,6 +124,18 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       >
         <slot></slot>
       </div>
+      <ResizeHandles
+        v-model="clientBounds"
+        left
+        right
+        bottom
+        @update:resizing="resizing = $event"
+      />
+      <SmallPlusButton
+        v-if="config.isCircularMenuVisible"
+        class="below-viz"
+        @createNodes="config.createNodes(...$event)"
+      />
       <div class="toolbars">
         <div
           :class="{
@@ -137,9 +143,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             invisible: config.isCircularMenuVisible,
             hidden: config.fullscreen,
           }"
-          @pointerdown.stop
-          @pointerup.stop
-          @click.stop
         >
           <button class="image-button active" @click.stop="config.hide()">
             <SvgIcon class="icon" name="eye" alt="Hide visualization" />
@@ -186,6 +189,11 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         <div v-if="$slots.toolbar" class="visualization-defined-toolbars">
           <div class="toolbar"><slot name="toolbar"></slot></div>
         </div>
+        <div
+          class="after-toolbars node-type"
+          :title="config.nodeType ?? UNKNOWN_TYPE"
+          v-text="nodeShortType"
+        />
       </div>
     </div>
   </Teleport>
@@ -195,6 +203,8 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 .VisualizationContainer {
   --node-height: 32px;
   --permanent-toolbar-width: 200px;
+  --resize-handle-inside: var(--visualization-resize-handle-inside);
+  --resize-handle-outside: var(--visualization-resize-handle-outside);
   color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
@@ -205,7 +215,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.below-node {
-  padding-top: --node-height;
+  padding-top: var(--node-height);
 }
 
 .VisualizationContainer.below-toolbar {
@@ -232,7 +242,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .toolbars {
-  width: 100%;
   transition-duration: 100ms;
   transition-property: padding-left;
 }
@@ -250,11 +259,21 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .toolbars {
+  width: 100%;
   user-select: none;
   position: absolute;
   display: flex;
   gap: 4px;
   top: calc(var(--node-height) + 4px);
+}
+
+.after-toolbars {
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.node-type {
+  font-weight: bold;
 }
 
 .VisualizationContainer.fullscreen .toolbars {
@@ -264,7 +283,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 .below-viz {
   position: absolute;
   top: 100%;
-  width: 100%;
   margin-top: 4px;
 }
 
@@ -298,47 +316,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   /* FIXME [sb]: This will cut off floating panels - consider investigating whether there's a better
    * way to clip only the toolbar div itself. */
   overflow-x: hidden;
-}
-
-.resizer-right {
-  position: absolute;
-  cursor: ew-resize;
-  left: 100%;
-  width: 12px;
-  height: 100%;
-}
-
-.VisualizationContainer.below-node > .resizer-right {
-  height: calc(100% - 36px);
-}
-
-.VisualizationContainer.below-toolbar > .resizer-right {
-  height: calc(100% - 72px);
-}
-
-.VisualizationContainer.fullscreen.below-node > .resizer-right {
-  height: 100%;
-}
-
-.VisualizationContainer.fullscreen.below-toolbar > .resizer-right {
-  height: calc(100% - 38px);
-}
-
-.resizer-bottom {
-  position: absolute;
-  cursor: ns-resize;
-  top: 100%;
-  width: 100%;
-  height: 12px;
-}
-
-.resizer-bottom-right {
-  position: absolute;
-  cursor: nwse-resize;
-  left: calc(100% - 8px);
-  top: calc(100% - 8px);
-  width: 16px;
-  height: 16px;
 }
 
 .invisible {

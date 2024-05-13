@@ -5,6 +5,7 @@ import java.io.IOException;
 public class UsersHandler implements CloudHandler {
 
   private static final String USERS = "users";
+  private final String currentUser;
 
   @Override
   public boolean canHandle(String subPath) {
@@ -41,29 +42,33 @@ public class UsersHandler implements CloudHandler {
     exchange.sendResponse(200, response);
   }
 
-  private final String currentUser =
-      """
-      {
-          "userId": "user-2Xcxm00p8jWoL2qByTo6tQfciWC",
-          "organizationId": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
-          "name": "My test User 1",
-          "organizationName": "Test.ORG",
-          "email": "enso-test-user-1@example.com",
-          "isEnabled": true,
-          "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
-      }
-      """;
+  private final String otherUser;
 
-  private final String otherUser =
-      """
-      {
-          "userId": "user-44AAA00A8AAAA2AAAAA6AAAAAAA",
-          "organizationId": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
-          "name": "My test User 2",
-          "organizationName": "Test.ORG",
-          "email": "enso-test-user-2@example.com",
-          "isEnabled": false,
-          "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
-      }
-      """;
+  public UsersHandler(UsersService usersService) {
+    currentUser =
+        """
+        {
+            "userId": "user-2Xcxm00p8jWoL2qByTo6tQfciWC",
+            "organizationId": "%s",
+            "name": "My test User 1",
+            "organizationName": "Test.ORG",
+            "email": "%s",
+            "isEnabled": true,
+            "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
+        }
+        """
+            .formatted(usersService.currentUserOrganizationId(), usersService.currentUserEmail());
+    otherUser =
+        """
+        {
+            "userId": "user-44AAA00A8AAAA2AAAAA6AAAAAAA",
+            "organizationId": "organization-27xJM00p8jWoL2qByTo6tQfciWC",
+            "name": "My test User 2",
+            "organizationName": "Test.ORG",
+            "email": "enso-test-user-2@example.com",
+            "isEnabled": false,
+            "rootDirectoryId": "directory-27xJM00p8jWoL2qByTo6tQfciWC"
+        }
+        """;
+  }
 }

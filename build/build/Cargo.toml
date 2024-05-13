@@ -12,7 +12,7 @@ aws-sdk-s3 = "0.21.0"
 base64 = "0.13.0"
 bytes = { workspace = true }
 byte-unit = { workspace = true }
-chrono = { version = "0.4.19", features = ["serde"] }
+chrono = { workspace = true }
 clap = { workspace = true }
 derivative = { workspace = true }
 derive_more = { workspace = true }
@@ -25,6 +25,7 @@ heck = "0.4.0"
 enso-build-base = { path = "../base" }
 enso-enso-font = { path = "../../lib/rust/enso-font" }
 enso-font = { path = "../../lib/rust/font" }
+enso-install-config = { path = "../install/config" }
 ide-ci = { path = "../ci_utils" }
 mime = "0.3.16"
 new_mime_guess = "4.0.1"
@@ -39,15 +40,16 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 scopeguard = "1.1.0"
+sha2 = { workspace = true }
 strum = { workspace = true }
 sysinfo = { workspace = true }
 tempfile = "3.2.0"
 toml = "0.5.8"
 tokio = { workspace = true }
-tracing = { version = "0.1.37" }
+tracing = { workspace = true }
 url = "2.2.2"
 uuid = { version = "1.1.0", features = ["v4"] }
-walkdir = "2.3.2"
+walkdir = { workspace = true }
 zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 
 [build-dependencies]

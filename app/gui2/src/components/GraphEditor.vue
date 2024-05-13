@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
+import {
+  codeEditorBindings,
+  documentationEditorBindings,
+  graphBindings,
+  interactionBindings,
+  undoBindings,
+} from '@/bindings'
+import AstDocumentation from '@/components/AstDocumentation.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
-import ColorPicker from '@/components/ColorPicker.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
@@ -14,14 +20,22 @@ import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
+import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
+import {
+  keyboardBusy,
+  keyboardBusyExceptIn,
+  useEvent,
+  useResizeObserver,
+} from '@/composables/events'
 import { useNavigatorStorage } from '@/composables/navigatorStorage'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
+import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
@@ -148,22 +162,41 @@ const interactionBindingsHandler = interactionBindings.handler({
 
 useEvent(window, 'keydown', (event) => {
   interactionBindingsHandler(event) ||
+    (!keyboardBusyExceptIn(documentationEditorArea.value) && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
-    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
+    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
+    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event))
 })
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerDown(e, graphNavigator), {
-  capture: true,
-})
+useEvent(
+  window,
+  'pointerdown',
+  (e) => interaction.handlePointerEvent(e, 'pointerdown', graphNavigator),
+  {
+    capture: true,
+  },
+)
+
+useEvent(
+  window,
+  'pointerup',
+  (e) => interaction.handlePointerEvent(e, 'pointerup', graphNavigator),
+  {
+    capture: true,
+  },
+)
 
 // === Keyboard/Mouse bindings ===
 
-const graphBindingsHandler = graphBindings.handler({
+const undoBindingsHandler = undoBindings.handler({
   undo() {
-    projectStore.module?.undoManager.undo()
+    graphStore.undoManager.undo()
   },
   redo() {
-    projectStore.module?.undoManager.redo()
+    graphStore.undoManager.redo()
   },
+})
+
+const graphBindingsHandler = graphBindings.handler({
   startProfiling() {
     projectStore.lsRpcConnection.profilingStart(true)
   },
@@ -176,12 +209,7 @@ const graphBindingsHandler = graphBindings.handler({
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
-  deleteSelected() {
-    graphStore.transact(() => {
-      graphStore.deleteNodes([...nodeSelection.selected])
-      nodeSelection.selected.clear()
-    })
-  },
+  deleteSelected,
   zoomToSelected() {
     zoomToSelected()
   },
@@ -191,10 +219,8 @@ const graphBindingsHandler = graphBindings.handler({
   },
   deselectAll() {
     nodeSelection.deselectAll()
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
-    graphStore.stopCapturingUndo()
+    clearFocus()
+    graphStore.undoManager.undoStackBoundary()
   },
   toggleVisualization() {
     graphStore.transact(() => {
@@ -231,35 +257,55 @@ const graphBindingsHandler = graphBindings.handler({
     stackNavigator.exitNode()
   },
   changeColorSelectedNodes() {
-    toggleColorPicker()
+    showColorPicker.value = true
   },
 })
 
 const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
-    graphBindingsHandler(e)
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
-    showColorPicker.value = false
+    if (e.target !== e.currentTarget) return false
+    clearFocus()
   },
-  () => {
+  (e: MouseEvent) => {
+    if (e.target !== e.currentTarget) return false
     stackNavigator.exitNode()
   },
 )
+
+function deleteSelected() {
+  graphStore.transact(() => {
+    graphStore.deleteNodes([...nodeSelection.selected])
+    nodeSelection.selected.clear()
+  })
+}
 
 // === Code Editor ===
 
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
-const toggleCodeEditor = () => {
-  showCodeEditor.value = !showCodeEditor.value
-}
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
-    toggleCodeEditor()
+    showCodeEditor.value = !showCodeEditor.value
   },
 })
+
+// === Documentation Editor ===
+
+const documentationEditorArea = ref<HTMLElement>()
+const showDocumentationEditor = ref(false)
+
+const documentationEditorHandler = documentationEditorBindings.handler({
+  toggle() {
+    showDocumentationEditor.value = !showDocumentationEditor.value
+  },
+})
+
+const rightDockComputedSize = useResizeObserver(documentationEditorArea)
+const rightDockComputedBounds = computed(() => new Rect(Vec2.Zero, rightDockComputedSize.value))
+const rightDockWidth = ref<number>()
+const cssRightDockWidth = computed(() =>
+  rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
+)
 
 // === Execution Mode ===
 
@@ -483,48 +529,17 @@ async function handleFileDrop(event: DragEvent) {
 
 // === Color Picker ===
 
-/** A small offset to keep the color picker slightly away from the nodes. */
-const COLOR_PICKER_X_OFFSET_PX = -300
-const showColorPicker = ref(false)
-const colorPickerSelectedColor = ref('')
-
-function overrideSelectedNodesColor(color: string) {
-  ;[...nodeSelection.selected].map((id) => graphStore.overrideNodeColor(id, color))
-}
-
-/** Toggle displaying of the color picker. It will change colors of selected nodes. */
-function toggleColorPicker() {
-  if (nodeSelection.selected.size === 0) {
-    showColorPicker.value = false
-    return
-  }
-  showColorPicker.value = !showColorPicker.value
-  if (showColorPicker.value) {
-    const oneOfSelected = set.first(nodeSelection.selected)
-    const color = graphStore.db.getNodeColorStyle(oneOfSelected)
-    if (color.startsWith('var') && viewportNode.value != null) {
-      // Some colors are defined in CSS variables, we need to get the actual color.
-      const variableName = color.slice(4, -1)
-      colorPickerSelectedColor.value = getComputedStyle(viewportNode.value).getPropertyValue(
-        variableName,
-      )
-    } else {
-      colorPickerSelectedColor.value = color
-    }
-  }
-}
-const colorPickerPos = computed(() => {
-  const nodeRects = [...nodeSelection.selected].map(
-    (id) => graphStore.nodeRects.get(id) ?? Rect.Zero,
-  )
-  const boundingRect = Rect.Bounding(...nodeRects)
-  return new Vec2(boundingRect.left + COLOR_PICKER_X_OFFSET_PX, boundingRect.center().y)
-})
-const colorPickerStyle = computed(() =>
-  colorPickerPos.value != null ?
-    { transform: `translate(${colorPickerPos.value.x}px, ${colorPickerPos.value.y}px)` }
-  : {},
+provideNodeColors((variable) =>
+  viewportNode.value ? getComputedStyle(viewportNode.value).getPropertyValue(variable) : '',
 )
+
+const showColorPicker = ref(false)
+
+function setSelectedNodesColor(color: string) {
+  graphStore.transact(() =>
+    nodeSelection.selected.forEach((id) => graphStore.overrideNodeColor(id, color)),
+  )
+}
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
@@ -553,15 +568,7 @@ const groupColors = computed(() => {
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @createNodes="createNodesFromSource"
-        @toggleColorPicker="toggleColorPicker"
-      />
-
-      <ColorPicker
-        class="colorPicker"
-        :style="colorPickerStyle"
-        :show="showColorPicker"
-        :color="colorPickerSelectedColor"
-        @update:color="overrideSelectedNodesColor"
+        @setNodeColor="setSelectedNodesColor"
       />
     </div>
     <div
@@ -570,7 +577,28 @@ const groupColors = computed(() => {
       :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
     />
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
-
+    <Transition name="rightDock">
+      <div
+        v-if="showDocumentationEditor"
+        ref="documentationEditorArea"
+        class="rightDock"
+        data-testid="rightDock"
+      >
+        <div class="scrollArea">
+          <AstDocumentation :ast="graphStore.methodAst" />
+        </div>
+        <SvgIcon
+          name="close"
+          class="closeButton button"
+          @click.stop="showDocumentationEditor = false"
+        />
+        <ResizeHandles
+          left
+          :modelValue="rightDockComputedBounds"
+          @update:modelValue="rightDockWidth = $event.width"
+        />
+      </div>
+    </Transition>
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
@@ -582,6 +610,9 @@ const groupColors = computed(() => {
     />
     <TopBar
       v-model:recordMode="projectStore.recordMode"
+      v-model:showColorPicker="showColorPicker"
+      v-model:showCodeEditor="showCodeEditor"
+      v-model:showDocumentationEditor="showDocumentationEditor"
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
@@ -594,11 +625,11 @@ const groupColors = computed(() => {
       @fitToAllClicked="zoomToSelected"
       @zoomIn="graphNavigator.stepZoom(+1)"
       @zoomOut="graphNavigator.stepZoom(-1)"
-      @toggleCodeEditor="toggleCodeEditor"
       @collapseNodes="collapseNodes"
-      @toggleColorPicker="toggleColorPicker"
+      @setNodeColor="setSelectedNodesColor"
+      @removeNodes="deleteSelected"
     />
-    <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
+    <PlusButton @click.stop="addNodeAuto()" />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
@@ -613,6 +644,45 @@ const groupColors = computed(() => {
 </template>
 
 <style scoped>
+.rightDock {
+  position: absolute;
+  top: 46px;
+  bottom: 0;
+  width: v-bind('cssRightDockWidth');
+  right: 0;
+  border-radius: 7px 0 0;
+  background-color: rgba(255, 255, 255, 0.35);
+  backdrop-filter: var(--blur-app-bg);
+  padding: 4px 12px 0 6px;
+  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
+  overflow-x: clip;
+}
+.rightDock-enter-active,
+.rightDock-leave-active {
+  transition: left 0.25s ease;
+}
+.rightDock-enter-from,
+.rightDock-leave-to {
+  width: 0;
+}
+.rightDock .scrollArea {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.rightDock .closeButton {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: red;
+  opacity: 0.3;
+
+  &:hover {
+    opacity: 0.6;
+  }
+}
+
 .GraphEditor {
   position: relative;
   contain: layout;
@@ -628,9 +698,5 @@ const groupColors = computed(() => {
   left: 0;
   width: 0;
   height: 0;
-}
-
-.colorPicker {
-  position: absolute;
 }
 </style>

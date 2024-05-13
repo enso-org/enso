@@ -1,6 +1,6 @@
 import JPMSPlugin.autoImport.javaModuleName
-import sbt.*
-import sbt.Keys.*
+import sbt._
+import sbt.Keys._
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
 import sbt.util.CacheStore
 import sbtassembly.Assembly.{Dependency, JarEntry, Project}
@@ -238,7 +238,10 @@ object JPMSUtils {
               log
             )
             if (!succ) {
-              log.error(s"Compilation of ${moduleInfo} failed")
+              val msg = s"Compilation of ${moduleInfo} failed"
+              log.error(s"javac options: $allOpts")
+              log.error(msg)
+              throw new IllegalStateException(msg)
             }
           }
         }

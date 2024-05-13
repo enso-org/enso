@@ -26,8 +26,6 @@ function entryTitle(index: number) {
       :key="index"
       :title="entryTitle(index)"
       class="button element"
-      @pointerdown.stop
-      @pointerup.stop
       @click.stop="emit('createProjection', [$event.shiftKey ? [...props.data.keys()] : [index]])"
     >
       <JsonValueWidget

@@ -30,7 +30,6 @@ import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Column_Names, Invalid_Value_Type, No_Index_Set_Error
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
-from project.Table import print_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
@@ -137,7 +136,7 @@ type Column
 
        Arguments:
        - java_column: The internal representation of the column.
-    Value java_column
+    private Value java_column
 
     ## PRIVATE
        ADVANCED
@@ -155,19 +154,7 @@ type Column
              example_display = Examples.integer_column.display
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        java_col = self.java_column
-        col_name = normalize_string_for_display java_col.getName
-        storage = java_col.getStorage
-        num_rows = java_col.getSize
-        display_rows = num_rows.min show_rows
-        items = Vector.new display_rows num->
-            row = if storage.isNothing num then "Nothing" else
-                get_item_string storage num
-            [num.to_text, row]
-        table = print_table ["", col_name] items 1 format_terminal
-        if num_rows - display_rows <= 0 then table else
-            missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
-            table + missing
+        self.to_table.display show_rows format_terminal
 
     ## PRIVATE
        ADVANCED
@@ -2226,15 +2213,14 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
-    ## ALIAS metadata
+    ## ALIAS metadata, field info, column type
        GROUP Standard.Base.Metadata
        ICON metadata
-       Returns a Table describing this column's contents.
+       Returns a Table describing this column's contents and type.
 
-       The table behaves like `Table.info` - it lists the column name, the count
-       of non-null items and the value type.
+       The table behaves like `Table.column_info.
     info : Table
-    info self = self.to_table.info
+    info self = self.to_table.column_info
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections

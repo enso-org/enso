@@ -50,7 +50,8 @@ class Passes(
       AmbiguousImportsAnalysis
     ) ++ (if (config.privateCheckEnabled) {
             List(
-              PrivateModuleAnalysis.INSTANCE
+              PrivateModuleAnalysis.INSTANCE,
+              PrivateConstructorAnalysis.INSTANCE
             )
           } else List())
     ++ List(
@@ -89,7 +90,10 @@ class Passes(
       DemandAnalysis,
       AliasAnalysis,
       TailCall,
-      Patterns,
+      Patterns
+    ) ++ (if (config.privateCheckEnabled) {
+            List(PrivateSymbolsAnalysis.INSTANCE)
+          } else List()) ++ List(
       AliasAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,

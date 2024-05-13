@@ -15,6 +15,14 @@ export async function readEnvironmentFromFile() {
     const isProduction = environment == null || environment === '' || environment === 'production'
     const fileName = isProduction ? '.env' : `.${environment}.env`
     const filePath = path.join(url.fileURLToPath(new URL('../../..', import.meta.url)), fileName)
+    const expectedKeys = Object.keys(DUMMY_DEFINES).map(key => key.replace(/^process[.]env[.]/, ''))
+    /** @type {string[]} */
+    const missingKeys = []
+    for (const key of expectedKeys) {
+        if (!(key in process.env)) {
+            missingKeys.push(key)
+        }
+    }
     try {
         const file = await fs.readFile(filePath, { encoding: 'utf-8' })
         // eslint-disable-next-line jsdoc/valid-types
@@ -27,21 +35,21 @@ export async function readEnvironmentFromFile() {
                 return [[key, value]]
             }
         })
-        if (environment == null) {
+        if (isProduction) {
             entries = entries.filter(kv => {
                 const [k] = kv
                 return process.env[k] == null
             })
         }
         const variables = Object.fromEntries(entries)
-        Object.assign(process.env, variables)
+        if (!isProduction || entries.length > 0) {
+            Object.assign(process.env, variables)
+        }
     } catch (error) {
-        if (isProduction) {
+        if (missingKeys.length !== 0) {
             console.warn('Could not load `.env` file; disabling cloud backend.')
+            console.warn(`Missing keys: ${missingKeys.map(key => `'${key}'`).join(', ')}`)
             console.error(error)
-            return
-        } else {
-            throw error
         }
     }
 }
@@ -89,6 +97,34 @@ export function getDefines(serverPort = 8080) {
         ),
         'process.env.ENSO_CLOUD_COGNITO_DOMAIN': stringify(process.env.ENSO_CLOUD_COGNITO_DOMAIN),
         'process.env.ENSO_CLOUD_COGNITO_REGION': stringify(process.env.ENSO_CLOUD_COGNITO_REGION),
+        'process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG': stringify(
+            process.env.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG
+        ),
         /* eslint-enable @typescript-eslint/naming-convention */
+    }
+}
+
+const SERVER_PORT = 8080
+const DUMMY_DEFINES = {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    'process.env.NODE_ENV': 'production',
+    'process.env.ENSO_CLOUD_REDIRECT': `http://localhost:${SERVER_PORT}`,
+    'process.env.ENSO_CLOUD_ENVIRONMENT': 'production',
+    'process.env.ENSO_CLOUD_API_URL': 'https://mock',
+    'process.env.ENSO_CLOUD_SENTRY_DSN':
+        'https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@o0000000000000000.ingest.sentry.io/0000000000000000',
+    'process.env.ENSO_CLOUD_STRIPE_KEY': '',
+    'process.env.ENSO_CLOUD_CHAT_URL': '',
+    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID': '',
+    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID': '',
+    'process.env.ENSO_CLOUD_COGNITO_DOMAIN': '',
+    'process.env.ENSO_CLOUD_COGNITO_REGION': '',
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+/** Load test environment variables, useful for when the Cloud backend is mocked or unnecessary. */
+export function loadTestEnvironmentVariables() {
+    for (const [k, v] of Object.entries(DUMMY_DEFINES)) {
+        process.env[k.replace(/^process[.]env[.]/, '')] = v
     }
 }

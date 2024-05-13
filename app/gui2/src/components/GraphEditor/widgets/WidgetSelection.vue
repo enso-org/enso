@@ -4,6 +4,7 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
+import { provideSelectionArrow } from '@/providers/selectionArrow.ts'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
@@ -26,7 +27,7 @@ import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { autoUpdate, offset, size, useFloating } from '@floating-ui/vue'
-import { computed, ref, type ComponentInstance } from 'vue'
+import { computed, proxyRefs, ref, type ComponentInstance, type RendererNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -166,7 +167,7 @@ interface Entry extends DropdownEntry {
   tag: ExpressionTag | ActionTag
 }
 const entries = computed<Entry[]>(() => {
-  return filteredTags.value.map((tag, index) => ({
+  return filteredTags.value.map((tag, _index) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     tag,
@@ -201,9 +202,31 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     dynamicConfig,
   }
 })
+
+provideSelectionArrow(
+  proxyRefs({
+    id: computed(() => {
+      // Find the top-most PropertyAccess, and return its rhs id.
+      // It will be used to place the dropdown arrow under the constructor name.
+      let node = props.input.value
+      while (node instanceof Ast.Ast) {
+        if (node instanceof Ast.PropertyAccess) return node.rhs.id
+        if (node instanceof Ast.App) node = node.function
+        else break
+      }
+      return null
+    }),
+    requestArrow: (target: RendererNode) => {
+      arrowLocation.value = target
+    },
+    handled: false,
+  }),
+)
+
 const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
 const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
   cancel: () => {},
+  end: () => {},
   pointerdown: (e, _) => {
     if (targetIsOutside(e, unrefElement(dropdownElement))) {
       dropDownInteraction.end()
@@ -293,6 +316,8 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
     props.onUpdate({ edit, portUpdate: { value: tagValue, origin: props.input.portId } })
   }
 }
+
+const arrowLocation = ref()
 </script>
 
 <script lang="ts">
@@ -342,19 +367,22 @@ declare module '@/providers/widgetRegistry' {
 </script>
 
 <template>
-  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <div
     ref="widgetRoot"
     class="WidgetSelection"
     :class="{ multiSelect: isMulti }"
-    @pointerdown.stop
-    @pointerup.stop
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
+    <!-- Arrow icon is duplicated inside Teleport and outside because the teleport `to` target
+      must be already in the DOM when the <Teleport> component is mounted.
+      So the Teleport itself can be instantiated only when `arrowLocation` is already available. -->
+    <Teleport v-if="arrowLocation" :to="arrowLocation">
+      <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
+    </Teleport>
+    <SvgIcon v-else-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
       <SizeTransition height :duration="100">
         <DropdownWidget
@@ -374,14 +402,18 @@ declare module '@/providers/widgetRegistry' {
 .WidgetSelection {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  position: relative;
+  min-height: --node-port-height;
 }
 
 .arrow {
   position: absolute;
   pointer-events: none;
-  bottom: -7px;
+  bottom: -8px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
+  transform-origin: center;
   opacity: 0.5;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
   pointer-events: none;

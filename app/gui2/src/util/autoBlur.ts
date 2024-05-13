@@ -1,4 +1,6 @@
-import { useEvent } from '@/composables/events'
+import { unrefElement, useEvent } from '@/composables/events'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import type { VueInstance } from '@vueuse/core'
 import type { Opt } from 'shared/util/data/opt'
 import { watchEffect, type Ref } from 'vue'
 
@@ -41,7 +43,28 @@ export function registerAutoBlurHandler() {
   )
 }
 
-/** Returns true if the target of the event is in the DOM subtree of the given `area` element. */
+/** Returns true if the target of the event is outside the DOM subtree of the given `area` element. */
 export function targetIsOutside(e: Event, area: Opt<Element>): boolean {
   return !!area && e.target instanceof Element && !area.contains(e.target)
+}
+
+/** Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event
+ *  occurs outside the given `area` element. */
+export function endOnClickOutside(
+  area: Ref<Element | VueInstance | null | undefined>,
+  interaction: Interaction,
+): Interaction {
+  const chainedPointerdown = interaction.pointerdown
+  const handler = injectInteractionHandler()
+  const wrappedInteraction: Interaction = {
+    ...interaction,
+    pointerdown: (e: PointerEvent, ...args) => {
+      if (targetIsOutside(e, unrefElement(area))) {
+        handler.end(wrappedInteraction)
+        return false
+      }
+      return chainedPointerdown ? chainedPointerdown(e, ...args) : false
+    },
+  }
+  return wrappedInteraction
 }

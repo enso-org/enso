@@ -283,7 +283,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_directory_packing() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let archive_temp = tempfile::tempdir()?;
         let archive_path = archive_temp.path().join("archive.tar.gz");
 
