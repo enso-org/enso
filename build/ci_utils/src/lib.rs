@@ -28,7 +28,6 @@
 
 pub mod actions;
 pub mod archive;
-pub mod buffer;
 pub mod cache;
 pub mod ci;
 pub mod deploy;
@@ -39,7 +38,6 @@ pub mod fs;
 pub mod future;
 pub mod github;
 pub mod global;
-pub mod goodies;
 pub mod io;
 pub mod log;
 pub mod models;
