@@ -37,6 +37,7 @@ abstract class TypePropagation {
   private final TypeResolver typeResolver;
   private final TypeCompatibility compatibilityChecker;
   private final BuiltinTypes builtinTypes;
+  private final MethodResolver methodResolver = new MethodResolver();
 
   TypePropagation(
       TypeResolver typeResolver,
@@ -320,14 +321,20 @@ abstract class TypePropagation {
           System.out.println("TODO: static calling " + function.name() + " on " + typeObject);
           // TODO if no ctor found, we should search static methods, but that is not implemented
           // currently; so we cannot report an error either - just do nothing
-          return null;
+          return methodResolver.resolveMethod(typeObject.name(), function.name());
         }
       }
 
       case TypeRepresentation.AtomType atomInstanceType -> {
         System.out.println(
             "TODO: calling " + function.name() + " on an instance of " + atomInstanceType);
-        return null;
+        return methodResolver.resolveMethod(atomInstanceType.fqn(), function.name());
+      }
+
+      case TypeRepresentation.TopType topType -> {
+        System.out.println("TODO: calling " + function.name() + " on Any");
+        // TODO
+        return methodResolver.resolveMethod(null, function.name());
       }
 
       default -> {

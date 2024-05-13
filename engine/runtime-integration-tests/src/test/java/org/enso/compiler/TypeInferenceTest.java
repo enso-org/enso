@@ -1038,7 +1038,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         one_arg self (x : My_Type) -> My_Type = My_Type.Value [self.v, x.v]
 
                         static_zero -> My_Type = My_Type.Value 42
-                        static_one x -> My_Type = My_Type.Value [x.v, 1]
+                        static_one (x : My_Type) -> My_Type = My_Type.Value [x.v, 1]
 
                     foo =
                         inst = My_Type.Value 23
