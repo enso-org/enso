@@ -743,7 +743,6 @@ lazy val `syntax-rust-definition` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java"
