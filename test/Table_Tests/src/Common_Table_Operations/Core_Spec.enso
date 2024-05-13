@@ -439,16 +439,16 @@ add_specs suite_builder setup =
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 1000
 
-            t2 = data.connection.read data.t_big.name limit=42
+            t2 = data.connection.read data.t_big.name (..First_With_Warning 42)
             t2.row_count . should_equal 42
             w2 = Problems.expect_only_warning Not_All_Rows_Downloaded t2
             w2.max_rows . should_equal 42
 
-            t3 = data.connection.read data.t_big.name limit=Nothing
+            t3 = data.connection.read data.t_big.name (..All_Rows)
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
-            t4 = data.connection.read data.t_big.name warn_if_more_rows=False
+            t4 = data.connection.read data.t_big.name (..First 1000)
             t4.row_count . should_equal 1000
             Problems.assume_no_problems t4
 
