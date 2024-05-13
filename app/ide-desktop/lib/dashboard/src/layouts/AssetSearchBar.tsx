@@ -13,6 +13,7 @@ import * as aria from '#/components/aria'
 import Label from '#/components/dashboard/Label'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 import type * as backend from '#/services/Backend'
 
@@ -278,7 +279,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           data-testid="asset-search-bar"
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className: tailwindMerge.twMerge(
-              'search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide',
+              'search-bar group relative flex h-row grow items-center gap-asset-search-bar rounded-full px-input-x text-primary',
               className
             ),
             ref: rootRef,
@@ -297,7 +298,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         >
           <div className="relative size-icon placeholder" />
           <div
-            className={`pointer-events-none absolute left top z-1 flex w-full flex-col overflow-hidden rounded-default border border-primary/10 transition-colors before:absolute before:inset before:backdrop-blur-default hover:before:bg-frame ${areSuggestionsVisible ? 'before:bg-frame' : ''}`}
+            className={`pointer-events-none absolute left top z-1 flex w-full flex-col overflow-hidden rounded-default border border-primary/20 transition-colors before:absolute before:inset before:backdrop-blur-default hover:before:bg-frame ${areSuggestionsVisible ? 'before:bg-frame' : ''}`}
           >
             <div className="padding relative h-row" />
             {areSuggestionsVisible && (
@@ -397,7 +398,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               </div>
             )}
           </div>
-          <img src={FindIcon} className="absolute z-1 placeholder" />
+          <SvgMask src={FindIcon} className="absolute z-1 text-primary/30" />
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={getText('assetSearchFieldLabel')}
@@ -413,10 +414,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 size={1}
                 placeholder={
                   isCloud
-                    ? getText('remoteBackendSearchPlaceholder')
+                    ? detect.isOnMacOS()
+                      ? getText('remoteBackendSearchPlaceholderMacOs')
+                      : getText('remoteBackendSearchPlaceholder')
                     : getText('localBackendSearchPlaceholder')
                 }
-                className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
+                className="focus-child peer text relative z-1 w-full bg-transparent placeholder-primary/20"
                 onChange={event => {
                   if (querySource.current !== QuerySource.internal) {
                     querySource.current = QuerySource.typing
