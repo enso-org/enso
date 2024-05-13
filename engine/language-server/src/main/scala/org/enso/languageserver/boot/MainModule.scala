@@ -494,7 +494,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
   private val ydoc = new Ydoc()
-  ydoc.getContextBuilder.logHandler(JulHandler.get())
   ydoc.start()
   log.trace("Started Ydoc server.")
 
