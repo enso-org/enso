@@ -93,7 +93,6 @@ export default function Editor(props: EditorProps) {
             url.port = '1234'
             ydocAddress = url.toString()
           }
-          console.log('ydocAddress:', ydocAddress, 'ydocUrl:', ydocUrl, ydocUrl === undefined, ydocUrl == null)
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {

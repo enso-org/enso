@@ -60,7 +60,6 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
       ydocUrl = new URL(engine.ydocUrl)
     }
     ydocUrl.pathname = '/project'
-    console.log('resuling ydocUrl:', ydocUrl)
 
     return {
       rpcUrl,
