@@ -2556,7 +2556,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         ).map(column => (
                           <Button
                             key={column}
-                            active
+                            light
                             image={columnUtils.COLUMN_ICONS[column]}
                             alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
                             onPress={() => {

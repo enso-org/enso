@@ -490,6 +490,9 @@ inset 0 -36px 51px -51px #00000014`,
             '@apply disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
               '',
           },
+          '.selectable-light': {
+            '@apply opacity-25': '',
+          },
           '.active': {
             '@apply opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default':
               '',
