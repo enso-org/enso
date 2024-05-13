@@ -14,7 +14,7 @@ const localServerPort = 8080
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
-const IS_POLYGLOT_YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER === 'true'
+const POLYGLOT_YDOC_SERVER = process.env.POLYGLOT_YDOC_SERVER
 
 await readEnvironmentFromFile()
 
@@ -59,7 +59,7 @@ export default defineConfig({
     ...getDefines(localServerPort),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
-    YDOC_SERVER_URL: IS_POLYGLOT_YDOC_SERVER ? JSON.stringify('defined') : undefined,
+    YDOC_SERVER_URL: JSON.stringify(POLYGLOT_YDOC_SERVER),
     RUNNING_VITEST: false,
     'import.meta.vitest': false,
     // Single hardcoded usage of `global` in aws-amplify.
@@ -99,7 +99,7 @@ function gatewayServer(): Plugin {
   return {
     name: 'gateway-server',
     configureServer(server) {
-      if (IS_POLYGLOT_YDOC_SERVER || server.httpServer == null) return
+      if (POLYGLOT_YDOC_SERVER != undefined || server.httpServer == null) return
 
       createGatewayServer(server.httpServer, undefined)
     },

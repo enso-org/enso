@@ -78,12 +78,22 @@ export default function Editor(props: EditorProps) {
       void (async () => {
         const jsonAddress = project.jsonAddress
         const binaryAddress = project.binaryAddress
-        const ydocAddress = ydocUrl ?? ''
         if (jsonAddress == null) {
           toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
           toastAndLog('noBinaryEndpointError')
         } else {
+          let ydocAddress;
+          if (ydocUrl == null) {
+            ydocAddress = 'undefined'
+          } else if (URL.canParse(ydocUrl)) {
+            ydocAddress = ydocUrl
+          } else {
+            const url = new URL(jsonAddress)
+            url.port = '1234'
+            ydocAddress = url.toString()
+          }
+          console.log('ydocAddress:', ydocAddress, 'ydocUrl:', ydocUrl, ydocUrl === undefined, ydocUrl == null)
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {

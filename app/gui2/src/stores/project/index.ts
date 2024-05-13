@@ -53,14 +53,14 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
     const dataUrl = engine.dataUrl
     const rpcUrl = engine.rpcUrl
     let ydocUrl
-    if (engine.ydocUrl == null || engine.ydocUrl === '') {
+    if (engine.ydocUrl === 'undefined') {
       ydocUrl = new URL(location.origin)
       ydocUrl.protocol = location.protocol.replace(/^http/, 'ws')
     } else {
-      ydocUrl = new URL(engine.rpcUrl)
-      ydocUrl.port = '1234'
+      ydocUrl = new URL(engine.ydocUrl)
     }
     ydocUrl.pathname = '/project'
+    console.log('resuling ydocUrl:', ydocUrl)
 
     return {
       rpcUrl,
