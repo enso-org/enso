@@ -29,6 +29,13 @@ type Rows_To_Read
         Rows_To_Read.First_With_Warning rows -> rows+1
 
     ## PRIVATE
+       Gets the number of rows to write (or Nothing if all rows).
+    rows_to_write self -> Integer | Nothing = case self of
+        Rows_To_Read.All_Rows -> Nothing
+        Rows_To_Read.First rows -> rows
+        Rows_To_Read.First_With_Warning rows -> rows
+
+    ## PRIVATE
     attach_warning self input:Table -> Table = case self of
         Rows_To_Read.First_With_Warning rows -> if input.row_count <= rows then input else
             Problem_Behavior.Report_Warning.attach_problem_after (input.take (First rows)) <|

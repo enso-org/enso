@@ -229,6 +229,7 @@ type Excel_Workbook
         case section of
             Excel_Section.Worksheet sheet headers skip_rows row_limit ->
                 java_headers = Excel_Reader.make_java_headers headers
+                java_limit = row_limit.rows_to_read
                 names = self.sheet_names
                 sheet_name = case sheet of
                     _ : Text -> if names.contains sheet then sheet else Error.throw (Illegal_Argument.Error "Worksheet not found.")
@@ -238,15 +239,16 @@ type Excel_Workbook
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     self.with_java_workbook java_workbook->
-                        ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
-                Table.Value java_table
+                        ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows java_limit java_problem_aggregator
+                row_limit.attach_warning (Table.Value java_table)
             Excel_Section.Cell_Range address headers skip_rows row_limit ->
                 java_headers = Excel_Reader.make_java_headers headers
+                java_limit = row_limit.rows_to_read
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     self.with_java_workbook java_workbook-> case address of
-                        _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
-                        _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows row_limit java_problem_aggregator
-                Table.Value java_table
+                        _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows java_limit java_problem_aggregator
+                        _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows java_limit java_problem_aggregator
+                row_limit.attach_warning (Table.Value java_table)
 
     ## ALIAS get, worksheet
        GROUP Standard.Base.Input
