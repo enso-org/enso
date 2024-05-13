@@ -240,8 +240,8 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
-        // Playwright build cache.
-        ignores: ['**/.cache/**', '**/playwright-report'],
+        // Playwright build cache and Vite output.
+        ignores: ['**/.cache/**', '**/playwright-report', 'dist'],
     },
     {
         settings: {
