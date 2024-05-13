@@ -19,6 +19,7 @@
     "build": "vite build",
     "dev": "vite",
     "dev:e2e": "vite -c vite.test.config.ts",
+    "dev:e2e:ci": "vite -c vite.test.config.ts build && vite preview --port 8080 --strictPort",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:unit:debug": "vitest",

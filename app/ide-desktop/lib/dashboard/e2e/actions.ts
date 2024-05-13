@@ -167,9 +167,14 @@ export function locateLabelsPanelLabels(page: test.Page) {
   )
 }
 
-/** Find a "home" button (if any) on the current page. */
-export function locateHomeButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Home' }).getByText('Home')
+/** Find a "cloud" category button (if any) on the current page. */
+export function locateCloudButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Cloud' }).getByText('Cloud')
+}
+
+/** Find a "local" category button (if any) on the current page. */
+export function locateLocalButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Local' }).getByText('Local')
 }
 
 /** Find a "trash" button (if any) on the current page. */
@@ -331,9 +336,16 @@ export function locateUploadFilesButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Upload Files' }).getByText('Upload Files')
 }
 
+/** Find a "start modal" button (if any) on the current page. */
+export function locateStartModalButton(page: test.Locator | test.Page) {
+  return page
+    .getByRole('button', { name: 'Start with a template' })
+    .getByText('Start with a template')
+}
+
 /** Find a "new project" button (if any) on the current page. */
 export function locateNewProjectButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Project' }).getByText('New Project')
+  return page.getByRole('button', { name: 'New Empty Project' }).getByText('New Empty Project')
 }
 
 /** Find a "new folder" button (if any) on the current page. */

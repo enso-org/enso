@@ -24,7 +24,7 @@ test.test('delete and restore', async ({ page }) => {
   await actions.locateRestoreFromTrashButton(contextMenu).click()
   await actions.expectTrashPlaceholderRow(page)
 
-  await actions.locateHomeButton(page).click()
+  await actions.locateCloudButton(page).click()
   await test.expect(assetRows).toHaveCount(1)
 })
 
@@ -45,6 +45,6 @@ test.test('delete and restore (keyboard)', async ({ page }) => {
   await actions.press(page, 'Mod+R')
   await actions.expectTrashPlaceholderRow(page)
 
-  await actions.locateHomeButton(page).click()
+  await actions.locateCloudButton(page).click()
   await test.expect(assetRows).toHaveCount(1)
 })

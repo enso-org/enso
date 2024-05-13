@@ -20,20 +20,30 @@ export interface HomeProps {
 
 /** Home screen. */
 export default function Home(props: HomeProps) {
-  const { createProject } = props
+  const { createProject: createProjectRaw } = props
   const { getText } = textProvider.useText()
+
   return (
     <ariaComponents.Dialog type="fullscreen" closeButton="floating">
-      <div className="relative mb-4 flex flex-1 flex-col gap-home text-xs">
-        <aria.Heading
-          level={2}
-          className="py-banner-item mx-10 mt-16 self-center text-center text-3xl font-light leading-snug"
-        >
-          <aria.Text className="inline-block max-w-[45rem]">{getText('welcomeSubtitle')}</aria.Text>
-        </aria.Heading>
-        <WhatsNew />
-        <Samples createProject={createProject} />
-      </div>
+      {opts => (
+        <div className="relative mb-4 flex flex-1 flex-col gap-home text-xs">
+          <aria.Heading
+            level={2}
+            className="py-banner-item mx-10 mt-16 self-center text-center text-3xl font-light leading-snug"
+          >
+            <aria.Text className="inline-block max-w-[45rem]">
+              {getText('welcomeSubtitle')}
+            </aria.Text>
+          </aria.Heading>
+          <WhatsNew />
+          <Samples
+            createProject={(templateId, templateName) => {
+              createProjectRaw(templateId, templateName)
+              opts.close()
+            }}
+          />
+        </div>
+      )}
     </ariaComponents.Dialog>
   )
 }
