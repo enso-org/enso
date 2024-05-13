@@ -564,7 +564,13 @@ export async function mockApi({ page }: MockParams) {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const body: backend.UpdateOrganizationRequestBody = await request.postDataJSON()
-      if (currentOrganization) {
+      if (body.name === '') {
+        await route.fulfill({
+          status: HTTP_STATUS_BAD_REQUEST,
+          json: { error: 'Organization name must not be empty' },
+        })
+        return
+      } else if (currentOrganization) {
         currentOrganization = { ...currentOrganization, ...body }
         return currentOrganization satisfies backend.OrganizationInfo
       } else {

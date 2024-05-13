@@ -20,6 +20,10 @@ test.test('organization settings', async ({ page }) => {
   }
   api.setCurrentOrganization(initialOrganization)
   test.expect(api.currentOrganization?.name).toBe(api.defaultOrganizationName)
+  test.expect(api.currentOrganization?.email).toBe(null)
+  test.expect(api.currentOrganization?.picture).toBe(null)
+  test.expect(api.currentOrganization?.website).toBe(null)
+  test.expect(api.currentOrganization?.address).toBe(null)
 
   await localActions.go(page)
   const nameInput = localActions.locateNameInput(page)
@@ -28,4 +32,23 @@ test.test('organization settings', async ({ page }) => {
   await nameInput.press('Enter')
   test.expect(api.currentOrganization?.name).toBe(newName)
   test.expect(api.currentUser?.name).not.toBe(newName)
+
+  // Setting to an empty name should fail.
+  // FIXME: Add validation on the frontend side.
+  await nameInput.fill('')
+  await nameInput.press('Enter')
+  test.expect(api.currentOrganization?.name).toBe(newName)
+  await test.expect(nameInput).toHaveValue(newName)
+
+  const invalidEmail = 'invalid@email'
+  const emailInput = localActions.locateEmailInput(page)
+  await emailInput.fill(invalidEmail)
+  await emailInput.press('Enter')
+  test.expect(api.currentOrganization?.name).toBe(null)
+
+  const newEmail = 'organization@email.com'
+  test.expect(api.currentOrganization?.name).toBe(newName)
+
+  const websiteInput = localActions.locateWebsiteInput(page)
+  const locationInput = localActions.locateLocationInput(page)
 })
