@@ -23,10 +23,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
         group_builder.specify "should be able to access an example HTTP data-link" <|
             datalink = test_root.get / "TestDataLink-HTTP.datalink"
+            datalink.exists.should_be_false
             Data_Link.write_raw_config datalink http_data_link_content . should_succeed
-
-            # TODO remove this
-            test_root.get.list.map f-> IO.println f.path+" "+f.asset_type.to_text
+            datalink.exists.should_be_true
 
             datalink.should_be_a Enso_File
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
@@ -40,6 +39,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
         group_builder.specify "will report which library is missing if a datalink relying on other library is accessed" <|
             datalink = test_root.get / "TestDataLink-S3.datalink"
             Data_Link.write_raw_config datalink s3_data_link_content . should_succeed
+            datalink.exists.should_be_true
+
             datalink.should_be_a Enso_File
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
 
@@ -59,13 +60,14 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
         group_builder.teardown test_root.cleanup
 
         group_builder.specify "should be able to read a local datalink to an Enso File" <|
+            my_target_enso_file = "Hello Enso Cloud File!".write (test_root.get / "my-file.txt") . should_succeed
             datalink = transform_datalink (enso_project.data / "datalinks" / "example-enso-file.datalink") content->
-                content.replace "enso://PLACEHOLDER_ORG_NAME/PLACEHOLDER_PATH" (test_root.get / "my-file.txt").path
-            datalink.read . should_equal "Hello Another!"
+                content.replace "enso://PLACEHOLDER_ORG_NAME/PLACEHOLDER_PATH" my_target_enso_file.path
+            datalink.read . should_equal "Hello Enso Cloud File!"
 
         group_builder.specify "should be able to read a datalink in the Cloud to Enso File" <|
-            my_target_enso_file = "Hello Enso Cloud File!".write (test_root.get / "my-file.txt")
-            datalink = Enso_File.new test_root.get.path+"/TestDataLink-EnsoFile.datalink"
+            my_target_enso_file = "Hello Enso Cloud File!".write (test_root.get / "my-file.txt") . should_succeed
+            datalink = test_root.get / "TestDataLink-EnsoFile.datalink"
             Data_Link.write_raw_config datalink (enso_file_data_link_content.replace "<PATH>" my_target_enso_file.path) . should_succeed
             datalink.read . should_equal "Hello Enso Cloud File!"
 

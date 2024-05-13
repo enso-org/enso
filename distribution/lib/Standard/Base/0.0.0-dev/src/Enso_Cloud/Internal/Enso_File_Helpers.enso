@@ -23,6 +23,7 @@ import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import data_link_encoding
+from project.Enso_Cloud.Public_Utils import get_required_field
 
 ## PRIVATE
 upload_file (local_file : File) (destination : Enso_File) (replace_existing : Boolean) -> Enso_File =
@@ -71,8 +72,9 @@ perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_r
             Asset_Cache.invalidate destination
             response = Utils.http_request_as_json HTTP_Method.Post full_uri pair.first
             response.if_not_error <|
-                Asset_Cache.update destination (Existing_Enso_Asset.from_json response)
-                pair.second
+                id = get_required_field "id" response expected_type=Text
+                Asset_Cache.update destination (Existing_Enso_Asset.from_id_and_title id file_name) . if_not_error <|
+                    pair.second
 
 ## PRIVATE
    Creates a directory at the given path, also creating parent directories if needed.
@@ -97,7 +99,7 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
     generic_create_asset destination allow_existing parent_directory_asset-> existing_asset->
         if existing_asset.is_nothing.not && existing_asset.asset_type != Enso_Asset_Type.Data_Link then Error.throw (Illegal_Argument.Error "The destination must be a path to a Data Link, not "+existing_asset.asset_type.to_text+".") else
             # TODO once path resolver is updated to automatically add .datalink extension, we should strip the extension from the name
-            name = destination.name
+            title = destination.name
             stream_result = Output_Stream.with_memory_stream stream_action
             raw_bytes = stream_result.first
             action_result = stream_result.second
@@ -105,11 +107,12 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
                 Error.throw (Illegal_Argument.Error "A datalink can be created only with a valid JSON payload, but the written payload was invalid: "+error.to_display_text cause=error)
             stream_result.if_not_error <|
                 payload = JS_Object.from_pairs <|
-                    [["parentDirectoryId", parent_directory_asset.id], ["name", name], ["value", raw_json]]
+                    [["parentDirectoryId", parent_directory_asset.id], ["name", title], ["value", raw_json]]
                         + (if existing_asset.is_nothing then [] else [["connectorId", existing_asset.id]])
 
                 Asset_Cache.invalidate destination
                 response = Utils.http_request_as_json HTTP_Method.Post Utils.datalinks_api payload
                 response.if_not_error <|
-                    Asset_Cache.update destination (Existing_Enso_Asset.from_json response)
-                    action_result
+                    id = get_required_field "id" response expected_type=Text
+                    Asset_Cache.update destination (Existing_Enso_Asset.from_id_and_title id title) . if_not_error <|
+                        action_result

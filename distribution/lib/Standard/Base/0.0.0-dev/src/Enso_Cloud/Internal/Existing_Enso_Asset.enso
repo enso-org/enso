@@ -104,11 +104,14 @@ type Existing_Enso_Asset
              assets.map Existing_Enso_Asset.from_json
 
     ## PRIVATE
-    from_json json =
+    from_json json -> Existing_Enso_Asset =
         title = get_required_field "title" json expected_type=Text
         id = get_required_field "id" json expected_type=Text
-        #org = json.get "organizationId" ""
-        asset_type = (id.take (Text_Sub_Range.Before "-")):Enso_Asset_Type
+        Existing_Enso_Asset.from_id_and_title id title
+
+    ## PRIVATE
+    from_id_and_title id:Text title:Text -> Existing_Enso_Asset =
+        asset_type = Enso_Asset_Type.from (id.take (Text_Sub_Range.Before "-"))
         Existing_Enso_Asset.Value title id asset_type
 
 

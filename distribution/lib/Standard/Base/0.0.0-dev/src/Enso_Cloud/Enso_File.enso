@@ -103,7 +103,10 @@ type Enso_File
        Checks if the folder or file exists
     exists : Boolean
     exists self =
-        Existing_Enso_Asset.get_asset_reference_for self . is_error . not
+        r = Existing_Enso_Asset.get_asset_reference_for self . if_not_error True
+        r.catch File_Error error-> case error of
+            File_Error.Not_Found _ -> False
+            _ -> r
 
     ## GROUP Metadata
        ICON metadata
