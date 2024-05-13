@@ -15,6 +15,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.State
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
+from Standard.Base.Panic import Wrapped_Dataflow_Error
 
 from Standard.Test import all
 
@@ -1012,6 +1013,54 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
 add_specs suite_builder =
     suite_builder.group "Vector.new_builder" group_builder->
+        group_builder.specify "Should be able to build a vector" <|
+            builder = Vector.new_builder
+            builder.append 1
+            builder.append 2
+            builder.append Nothing
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 2, Nothing, 3]
+
+            builder2 = Vector.new_builder
+            v2 = builder2.to_vector
+            v2 . should_equal []
+
+            builder3 = Vector.new_builder 20
+            builder3.append 1
+            v3 = builder3.to_vector
+            v3 . should_equal [1]
+
+        group_builder.specify "Builder should propagate an uncaught dataflow error if it is appended with .append" <|
+            builder = Vector.new_builder
+            builder.append 1
+            Test.expect_panic_with matcher=Wrapped_Dataflow_Error (builder.append (Error.throw (Illegal_Argument.Error "asdf")))
+
+        group_builder.specify "Builder should propagate an uncaught error if it is appended with .append_vector_range" <|
+            builder = Vector.new_builder
+            builder.append 1
+            Test.expect_panic_with matcher=Wrapped_Dataflow_Error (builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")])
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
+            builder = Vector.new_builder
+            ww = Warning.attach (My_Error.Error "err") 2
+            builder.append 1
+            builder.append ww
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append_vector_range" <|
+            builder = Vector.new_builder
+            ww = Warning.attach (My_Error.Error "err") 21
+            builder.append 1
+            builder.append_vector_range [20, ww, 22]
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
         group_builder.specify "empty builder.get" <|
             b = Vector.new_builder
             e = Panic.catch Index_Out_Of_Bounds (b.at 0) err->
