@@ -659,6 +659,22 @@ export namespace settings {
     export function locateNameInput(page: test.Page) {
       return locate(page).getByLabel('Organization display name')
     }
+
+    /** Find an "email" input in the "organization" settings section. */
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    export function locateEmailInput(page: test.Page) {
+      return locate(page).getByLabel('Email')
+    }
+
+    /** Find an "website" input in the "organization" settings section. */
+    export function locateWebsiteInput(page: test.Page) {
+      return locate(page).getByLabel('Website')
+    }
+
+    /** Find an "location" input in the "organization" settings section. */
+    export function locateLocationInput(page: test.Page) {
+      return locate(page).getByLabel('Location')
+    }
   }
 }
 

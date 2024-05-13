@@ -48,6 +48,8 @@
   "removeUserFromUserGroupError": "Could not remove user '$0' from user group '$1'",
   "deleteUserError": "Could not delete user '$0'",
 
+  "invalidEmailValidationError": "Invalid email",
+
   "projectHasNoSourceFilesPhrase": "project has no source files",
   "fileNotFoundPhrase": "file not found",
 
