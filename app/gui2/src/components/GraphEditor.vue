@@ -626,7 +626,6 @@ const groupColors = computed(() => {
       @zoomIn="graphNavigator.stepZoom(+1)"
       @zoomOut="graphNavigator.stepZoom(-1)"
       @collapseNodes="collapseNodes"
-      @setNodeColor="setSelectedNodesColor"
       @removeNodes="deleteSelected"
     />
     <PlusButton @click.stop="addNodeAuto()" />

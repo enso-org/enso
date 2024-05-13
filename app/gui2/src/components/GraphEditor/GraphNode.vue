@@ -444,7 +444,8 @@ function portGroupStyle(port: PortData) {
 
 const editingComment = ref(false)
 
-const { getNodeColor, visibleNodeColors } = injectNodeColors()
+const { getNodeColor, getNodeColors } = injectNodeColors()
+const matchableNodeColors = computed(() => getNodeColors((node) => node !== nodeId.value))
 </script>
 
 <template>
@@ -502,7 +503,7 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
       :isVisualizationVisible="isVisualizationVisible"
       :isFullMenuVisible="menuVisible && menuFull"
       :nodeColor="getNodeColor(nodeId)"
-      :visibleNodeColors="visibleNodeColors"
+      :matchableNodeColors="matchableNodeColors"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"

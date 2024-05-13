@@ -363,12 +363,16 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  function overrideNodeColor(nodeId: NodeId, color: string) {
+  function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
     const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) => {
       metadata.set('colorOverride', color)
     })
+  }
+
+  function getNodeColorOverride(node: NodeId) {
+    return db.nodeIdToNode.get(node)?.colorOverride ?? undefined
   }
 
   function normalizeVisMetadata(
@@ -675,6 +679,7 @@ export const useGraphStore = defineStore('graph', () => {
     ensureCorrectNodeOrder,
     batchEdits,
     overrideNodeColor,
+    getNodeColorOverride,
     setNodeContent,
     setNodePosition,
     setNodeVisualization,
