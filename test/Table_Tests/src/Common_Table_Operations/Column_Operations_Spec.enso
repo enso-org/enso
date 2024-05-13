@@ -20,7 +20,7 @@ import enso_dev.Base_Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main filter=Nothing = run_default_backend add_specs filter
+main filter="Decimal" = run_default_backend add_specs filter
 
 type Data
     Value ~connection
@@ -1767,6 +1767,27 @@ add_specs suite_builder setup =
             c = empty.make_constant_column Nothing
             c.value_type . should_equal Value_Type.Mixed
             (empty.set c).at c.name . value_type . should_equal Value_Type.Mixed
+
+    decimal_db_pending = if setup.is_database then "Decimals are currently not implemented for the Database backend."
+    suite_builder.group prefix+"Decimal" pending=decimal_db_pending group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+
+        group_builder.specify "Binary ops" <|
+            t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123E50"]]]
+            q = (t.at "x" + t.at "y").to_vector
+            p n = IO.println (n.to_text + " " + n.internal_representation.to_text)
+            (t.at "x" + t.at "y").to_vector . map p
+            [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"] . map p
+            (t.at "x" + t.at "y").to_vector . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
+            IO.println <| (t.at "x" - t.at "y").to_vector # . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
+            IO.println <| (t.at "x" * t.at "y").to_vector # . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
+            IO.println <| (t.at "x" / t.at "y").to_vector # . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
