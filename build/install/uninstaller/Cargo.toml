@@ -7,8 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-enso-build-base = { path = "../../base" }
-enso-build = { path = "../../build" }
 enso-install = { path = ".." }
 enso-install-config = { path = "../config" }
 ide-ci = { path = "../../ci_utils" }
