@@ -1126,7 +1126,7 @@ type DB_Table
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
     rows : Rows_To_Read -> Vector Row
-    rows self (max_rows : Rows_To_Read = (..First_With_Warning 1000) =
+    rows self (max_rows : Rows_To_Read = (..First_With_Warning 1000)) =
         self.read max_rows . rows
 
     ## GROUP Standard.Base.Selections
