@@ -181,17 +181,13 @@ final class ContextFactory {
     }
     if (ENGINE_HAS_JAVA) {
       var javaHome = System.getProperty("java.home");
-      if (javaHome == null) {
-        javaHome = System.getenv("JAVA_HOME");
-      }
-      if (javaHome == null) {
-        throw new IllegalStateException("Specify JAVA_HOME environment property");
+      if (javaHome != null) {
+        builder.option("java.JavaHome", javaHome);
       }
       builder
           .option("java.ExposeNativeJavaVM", "true")
           .option("java.Polyglot", "true")
           .option("java.UseBindingsLoader", "true")
-          .option("java.JavaHome", javaHome)
           .allowCreateThread(true);
     }
     return new PolyglotContext(builder.build());
@@ -205,6 +201,13 @@ final class ContextFactory {
 
   static {
     var modules = ModuleLayer.boot().modules().stream();
-    ENGINE_HAS_JAVA = modules.anyMatch(m -> "org.graalvm.espresso".equals(m.getName()));
+    var found = modules.anyMatch(m -> "org.graalvm.espresso".equals(m.getName()));
+    if (!found) {
+      var url =
+          ContextFactory.class.getResource(
+              "/META-INF/native-image/com.oracle.truffle.espresso/native-image.properties");
+      found = url != null;
+    }
+    ENGINE_HAS_JAVA = found;
   }
 }
