@@ -19,6 +19,8 @@ export interface ButtonProps {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactNode
   readonly autoFocus?: boolean
+  /** When `true`, the button uses a lighter color when it is not active. */
+  readonly light?: boolean
   /** When `true`, the button is not faded out even when not hovered. */
   readonly active?: boolean
   /** When `true`, the button is clickable, but displayed as not clickable.
@@ -42,6 +44,7 @@ export interface ButtonProps {
 function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
   const {
     tooltip,
+    light = false,
     active = false,
     softDisabled = false,
     image,
@@ -68,7 +71,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         })}
       >
         <div
-          className={`group flex selectable ${isDisabled || softDisabled ? 'disabled' : ''} ${active ? 'active' : ''}`}
+          className={`group flex selectable ${light ? 'selectable-light' : ''} ${isDisabled || softDisabled ? 'disabled' : ''} ${active ? 'active' : ''}`}
         >
           <SvgMask
             src={image}
