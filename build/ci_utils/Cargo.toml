@@ -41,7 +41,6 @@ pathdiff = "0.2.1"
 path-slash = "0.2.1"
 platforms = { workspace = true }
 portpicker = { workspace = true }
-rand = "0.8.4"
 regex = { workspace = true }
 reqwest = { workspace = true }
 semver = { workspace = true }

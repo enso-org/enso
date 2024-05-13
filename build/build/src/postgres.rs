@@ -226,27 +226,4 @@ mod tests {
         std::mem::forget(child);
         Ok(())
     }
-
-    #[tokio::test]
-    #[ignore]
-    async fn test_postgres() -> Result {
-        // let config = Configuration {
-        //     postgres_container: ContainerId("something".into()),
-        //     endpoint:           EndpointConfiguration::deduce()?,
-        //     version:            "latest".into(),
-        //     user:               "test".into(),
-        //     password:           "test".into(),
-        //     database_name:      "test".into(),
-        // };
-        // let child = Postgresql::start(config).await?;
-        // std::mem::forget(child);
-        // // let mut httpbin = get_and_spawn_httpbin_on_free_port().await?;
-        // Command::new("cmd")
-        //     .args(["/c",
-        // "H:\\NBO\\enso2\\built-distribution\\enso-engine-0.2.32-SNAPSHOT-windows-amd64\\enso-0.2.
-        // 32-SNAPSHOT\\bin\\enso", "--no-ir-caches", "--run",
-        // "H:\\NBO\\enso2\\test\\Database_Tests"]).run_ok().await?; httpbin.process.kill().
-        // await?;
-        Ok(())
-    }
 }
