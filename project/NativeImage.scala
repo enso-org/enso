@@ -91,17 +91,24 @@ object NativeImage {
     includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
-      val log            = state.value.log
-      val javaHome       = System.getProperty("java.home")
-      val subProjectRoot = baseDirectory.value
-      val nativeImagePath =
+      val log = state.value.log
+
+      def nativeImagePath(path: String): String =
         if (Platform.isWindows)
-          s"$javaHome\\bin\\native-image.cmd"
-        else s"$javaHome/bin/native-image"
+          s"$path\\bin\\native-image.cmd"
+        else s"$path/bin/native-image"
+
+      val localJdk = baseDirectory.value / ".." / ".." / "jdk"
+      val localNI  = nativeImagePath(localJdk.getPath())
+      val javaHome =
+        if (file(localNI).exists()) localJdk.getPath()
+        else System.getProperty("java.home")
+
+      val subProjectRoot = baseDirectory.value
       val pathToJAR =
         (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
 
-      if (!file(nativeImagePath).exists()) {
+      if (!file(nativeImagePath(javaHome)).exists()) {
         log.error(
           "Unexpected: Native Image component not found in the JVM distribution."
         )
@@ -225,7 +232,7 @@ object NativeImage {
       val newPath   = pathParts.mkString(File.pathSeparator)
 
       val cmd =
-        Seq(nativeImagePath) ++
+        Seq(nativeImagePath(javaHome)) ++
         verboseOpt ++
         Seq("@" + argFile.toAbsolutePath.toString)
 
