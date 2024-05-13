@@ -42,12 +42,12 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     var logger = ctx.executionService().getLogger();
+    ctx.jobControlPlane().abortJobs(contextId);
     var contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
     try {
       var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
       try {
         Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
-        ctx.jobControlPlane().abortJobs(contextId);
         ctx.executionService()
             .getContext()
             .setExecutionEnvironment(ExecutionEnvironment.forName(executionEnvironment.name()));

@@ -42,10 +42,24 @@ object JVMSettings {
   /** Creates a default instance of [[JVMSettings]] that just use the default
     * JVM with no options overrides.
     */
-  def default: JVMSettings =
+  def default: JVMSettings = {
+    val jvmOptions = Seq.newBuilder[(String, String)]
+    val concurrencyConfigs = Seq(
+      "scala.concurrent.context.minThreads",
+      "scala.concurrent.context.numThreads",
+      "scala.concurrent.context.maxThreads"
+    )
+    concurrencyConfigs.flatMap(jvmOptionIfSet).foreach(jvmOptions.addOne)
     JVMSettings(
       useSystemJVM = false,
-      jvmOptions   = Seq(),
+      jvmOptions   = jvmOptions.result(),
       extraOptions = Seq(nioOpen)
     )
+  }
+
+  private def jvmOptionIfSet(name: String): Option[(String, String)] = {
+    val propertyValue = System.getProperty(name)
+    Option(propertyValue).map((name, _))
+  }
+
 }

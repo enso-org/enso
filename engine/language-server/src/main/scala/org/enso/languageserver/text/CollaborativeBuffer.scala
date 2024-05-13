@@ -130,6 +130,7 @@ class CollaborativeBuffer(
       stop(Map.empty)
 
     case IOTimeout =>
+      logger.warn("Timeout reached when awaiting file's content")
       replyTo ! OpenFileResponse(Left(OperationTimeout))
       stop(Map.empty)
 
@@ -155,6 +156,7 @@ class CollaborativeBuffer(
     timeout: Cancellable
   ): Receive = {
     case ServerConfirmationTimeout =>
+      logger.warn("Timeout reached when awaiting response from the server")
       replyTo ! OpenFileResponse(Left(OperationTimeout))
       stop(Map.empty)
     case Api.Response(Some(id), Api.OpenFileResponse) if id == requestId =>
@@ -432,6 +434,7 @@ class CollaborativeBuffer(
       stop(Map.empty)
 
     case IOTimeout =>
+      logger.warn("Timeout reached when awaiting file's content reloading")
       replyTo ! ReloadBufferFailed(path, "io timeout")
       context.become(
         collaborativeEditing(
@@ -455,6 +458,9 @@ class CollaborativeBuffer(
     timeoutCancellable: Cancellable
   ): Receive = {
     case IOTimeout =>
+      logger.warn(
+        "Timeout reached when awaiting confirmation of buffer's saving"
+      )
       replyTo.foreach(_ ! SaveFailed(OperationTimeout))
       unstashAll()
       onClose match {
