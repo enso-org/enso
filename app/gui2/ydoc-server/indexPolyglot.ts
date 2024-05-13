@@ -16,7 +16,6 @@ declare global {
 const wss = new WebSocketServer({ host: 'localhost', port: 1234 })
 
 wss.onconnect = (socket, url) => {
-  console.log('onconnect', url)
   const doc = docName(url.pathname)
   const ls = url.searchParams.get('ls')
   if (doc != null && ls != null) {
