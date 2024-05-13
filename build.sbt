@@ -1213,38 +1213,6 @@ lazy val `ydoc-server` = project
     crossPaths := false,
     autoScalaLibrary := false,
     Test / fork := true,
-    assembly := assembly
-      .dependsOn(`profiling-utils` / Compile / packageBin)
-      .value,
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-        MergeStrategy.discard
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-        MergeStrategy.discard
-      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-        MergeStrategy.discard
-      case PathList("META-INF", "services", xs @ _*) =>
-        MergeStrategy.concat
-      case PathList("module-info.class") =>
-        MergeStrategy.preferProject
-      case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
-        MergeStrategy.discard
-      case _ => MergeStrategy.first
-    },
-    assembly / assemblyExcludedJars := {
-      val pkgsToExclude = JPMSUtils.componentModules ++ helidon
-      val ourFullCp     = (Runtime / fullClasspath).value
-      JPMSUtils.filterModulesFromClasspath(
-        ourFullCp,
-        pkgsToExclude,
-        streams.value.log
-      )
-    },
-    assembly / assemblyExcludedJars ++= {
-      val profUtilsClasses =
-        (`profiling-utils` / Compile / exportedProductJars).value
-      profUtilsClasses
-    },
     commands += WithDebugCommand.withDebug,
     // GraalVM and helidon modules (3rd party modules)
     modulePath := {
