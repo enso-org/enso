@@ -98,7 +98,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                 className={clsx(
                   'h-full px-4',
                   page !== pageData.page && 'bg-primary/5 hover:enabled:bg-primary/[2.5%]',
-                  active && 'clip-path-0 rounded-t-3xl outline outline-[1rem] outline-primary/5',
+                  active && 'rounded-t-3xl outline outline-[1rem] outline-primary/5 clip-path-0',
                   pageIndex != null && i === pageIndex + 1 && 'rounded-bl-3xl',
                   pageIndex != null && i === pageIndex - 1 && 'rounded-br-3xl'
                 )}

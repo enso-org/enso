@@ -1,18 +1,11 @@
-;
 /** @file Type definitions common between all backends. */
-import type * as React from 'react';
+import type * as React from 'react'
 
-
-
-import * as array from '#/utilities/array';
-import * as dateTime from '#/utilities/dateTime';
-import * as newtype from '#/utilities/newtype';
-import * as permissions from '#/utilities/permissions';
-import * as uniqueString from '#/utilities/uniqueString';
-
-
-
-
+import * as array from '#/utilities/array'
+import * as dateTime from '#/utilities/dateTime'
+import * as newtype from '#/utilities/newtype'
+import * as permissions from '#/utilities/permissions'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // ================
 // === Newtypes ===

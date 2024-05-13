@@ -102,7 +102,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white p-top-bar-margin pl-asset-panel-l"
+      className="p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-white pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
