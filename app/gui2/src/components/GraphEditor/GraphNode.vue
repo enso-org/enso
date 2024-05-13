@@ -59,7 +59,7 @@ const emit = defineEmits<{
   outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
-  setNodeColor: [color: string]
+  setNodeColor: [color: string | undefined]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]

@@ -48,6 +48,7 @@ appRunner.runApp(
       topBarOffset: '96',
     },
   },
+  'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
   null,
   undefined,
   pinia,

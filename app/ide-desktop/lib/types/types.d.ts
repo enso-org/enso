@@ -1,4 +1,5 @@
 /** @file Interfaces common to multiple modules. */
+import React from 'react'
 
 // ======================================
 // === Globally accessible interfaces ===
@@ -9,13 +10,13 @@ interface StringConfig {
     readonly [key: string]: StringConfig | string
 }
 
+interface AppProps {
+    config: StringConfig | null
+    projectId: string
+    metadata?: object
+    logEvent(message: string, projectId?: string | undefined, metadata?: object): void
+}
+
 /** The value passed from the entrypoint to the dashboard, which enables the dashboard to
  * open a new IDE instance. */
-interface AppRunner {
-    readonly stopApp: () => void
-    readonly runApp: (
-        config: StringConfig | null,
-        accessToken: string | null,
-        metadata?: object
-    ) => Promise<void>
-}
+type AppRunner = React.ComponentType<AppProps>

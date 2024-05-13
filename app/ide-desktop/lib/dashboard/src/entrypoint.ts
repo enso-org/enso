@@ -27,12 +27,5 @@ main.run({
   ydocUrl: null,
   // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
   // every time a new project is opened.
-  appRunner: {
-    stopApp: () => {
-      window.enso?.stopApp()
-    },
-    runApp: async (config, accessToken) => {
-      await window.enso?.runApp(config, accessToken)
-    },
-  },
+  appRunner: null,
 })

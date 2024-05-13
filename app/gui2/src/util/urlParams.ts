@@ -1,7 +1,7 @@
 import type { StringConfig } from './config'
 
 export interface UrlParamsProps {
-  ignoreKeysRegExp?: RegExp | null
+  ignoreKeysRegExp?: RegExp | undefined
 }
 
 /** Returns the parameters passed in the URL query string. */

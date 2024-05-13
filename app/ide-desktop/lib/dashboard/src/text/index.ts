@@ -95,6 +95,7 @@ interface PlaceholderOverrides {
   readonly createCheckoutSessionBackendError: [string]
   readonly getCheckoutSessionBackendError: [string]
   readonly getDefaultVersionBackendError: [string]
+  readonly logEventBackendError: [string]
 
   readonly subscribeSuccessSubtitle: [string]
 }

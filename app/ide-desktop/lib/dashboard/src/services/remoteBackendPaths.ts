@@ -65,6 +65,8 @@ export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
 export const GET_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
 /** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
 export const GET_LOG_EVENTS_PATH = 'log_events'
+/** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
+export const POST_LOG_EVENT_PATH = 'logs'
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
 export function changeUserGroupPath(userId: backend.UserId) {
   return `users/${userId}/usergroups`

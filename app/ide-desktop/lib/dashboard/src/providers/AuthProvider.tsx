@@ -249,8 +249,28 @@ export default function AuthProvider(props: AuthProviderProps) {
       platform: detect.platform(),
       architecture: detect.architecture(),
     })
+
     return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_app', 'close_app')
   }, [])
+
+  const remoteBackend = React.useMemo(() => {
+    if (session) {
+      const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
+      return new RemoteBackend(client, logger, getText)
+    }
+  }, [session?.accessToken])
+
+  React.useEffect(() => {
+    if (remoteBackend) {
+      remoteBackend.logEvent('open_app')
+      const onBeforeUnload = () => remoteBackend.logEvent('close_app')
+      window.addEventListener('beforeunload', onBeforeUnload)
+      return () => {
+        window.removeEventListener('beforeunload', onBeforeUnload)
+        onBeforeUnload()
+      }
+    }
+  }, [remoteBackend])
 
   // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
   // circular dependency.
@@ -298,25 +318,24 @@ export default function AuthProvider(props: AuthProviderProps) {
       if (!navigator.onLine || forceOfflineMode) {
         goOfflineInternal()
         setForceOfflineMode(false)
-      } else if (session == null) {
+      } else if (session == null || remoteBackend == null) {
         setInitialized(true)
         if (!initialized) {
           sentry.setUser(null)
           setUserSession(null)
         }
       } else {
-        const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
-        const backend = new RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
-          setBackendWithoutSavingType(backend)
+          setBackendWithoutSavingType(remoteBackend)
         }
         gtagEvent('cloud_open')
+        remoteBackend.logEvent('cloud_open')
         let user: backendModule.User | null
         while (true) {
           try {
-            user = await backend.usersMe()
+            user = await remoteBackend.usersMe()
             break
           } catch (error) {
             // The value may have changed after the `await`.
@@ -689,6 +708,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     signOut,
     session: userSession,
     setUser,
+    remoteBackend,
   }
 
   return (

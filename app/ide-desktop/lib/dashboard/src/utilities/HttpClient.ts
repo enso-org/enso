@@ -47,8 +47,14 @@ export default class HttpClient {
   }
 
   /** Send a JSON HTTP POST request to the specified URL. */
-  post<T = void>(url: string, payload: object) {
-    return this.request<T>(HttpMethod.post, url, JSON.stringify(payload), 'application/json')
+  post<T = void>(url: string, payload: object, keepalive = false) {
+    return this.request<T>(
+      HttpMethod.post,
+      url,
+      JSON.stringify(payload),
+      'application/json',
+      keepalive
+    )
   }
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
@@ -82,7 +88,8 @@ export default class HttpClient {
     method: HttpMethod,
     url: string,
     payload?: BodyInit,
-    mimetype?: string
+    mimetype?: string,
+    keepalive = false
   ) {
     const headers = new Headers(this.defaultHeaders)
     if (payload != null) {
@@ -97,6 +104,7 @@ export default class HttpClient {
       const response = (await fetch(url, {
         method,
         headers,
+        keepalive,
         ...(payload != null ? { body: payload } : {}),
       })) as ResponseWithTypedJson<T>
       document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))

@@ -126,6 +126,7 @@
   "createCheckoutSessionBackendError": "Could not create checkout session for plan '$0'.",
   "getCheckoutSessionBackendError": "Could not get checkout session for session ID '$0'.",
   "getLogEventsBackendError": "Could not get audit log events",
+  "logEventBackendError": "Could not log an event '$0'.",
   "getDefaultVersionBackendError": "No default $0 version found.",
   "duplicateUserGroupError": "This user group already exists.",
 

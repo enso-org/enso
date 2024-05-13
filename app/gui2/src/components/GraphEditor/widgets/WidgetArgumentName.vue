@@ -5,7 +5,9 @@ import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widge
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey, ArgumentPlaceholder } from '@/util/callTree'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
-import { computed } from 'vue'
+import { Fragment, computed } from 'vue'
+
+Fragment
 
 const props = defineProps(widgetProps(widgetDefinition))
 

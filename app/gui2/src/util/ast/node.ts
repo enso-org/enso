@@ -13,7 +13,7 @@ function makePrefixes() {
 
 /** MUST be called after `initializeFFI`. */
 export function initializePrefixes() {
-  prefixes = makePrefixes()
+  prefixes = prefixes ?? makePrefixes()
 }
 
 export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {

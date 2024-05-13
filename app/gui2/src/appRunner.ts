@@ -1,45 +1,59 @@
 import { baseConfig, mergeConfig, type StringConfig } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
 import type { Pinia } from 'pinia'
+import type { RootProps } from './createApp'
 
-let unmount: null | (() => void) = null
+let stopQueued: ReturnType<typeof setTimeout> | null = null
 let running = false
+let queuedProps: RootProps | null = null
+
+async function loadProjectApp() {
+  const { createProjectApp } = await import('./createApp')
+  return await createProjectApp()
+}
+const loadingPromise = loadProjectApp()
+let projectApp: null | Awaited<typeof loadingPromise> = null
 
 async function runApp(
   config: StringConfig | null,
-  accessToken: string | null,
-  _metadata?: object | undefined,
+  projectId: string,
+  logEvent: LogEvent,
+  ignoreKeysRegExp?: RegExp | undefined,
   pinia?: Pinia | undefined,
 ) {
-  const ignoreParamsRegex = (() => {
-    if (_metadata)
-      if ('ignoreParamsRegex' in _metadata)
-        if (_metadata['ignoreParamsRegex'] instanceof RegExp) return _metadata['ignoreParamsRegex']
-
-    return null
-  })()
-
-  running = true
-  const { mountProjectApp } = await import('./createApp')
-  if (!running) return
-  unmount?.()
   const unrecognizedOptions: string[] = []
-  function onUnrecognizedOption(path: string[]) {
-    unrecognizedOptions.push(path.join('.'))
-  }
-  const intermediateConfig = mergeConfig(
-    baseConfig,
-    urlParams({ ignoreKeysRegExp: ignoreParamsRegex }),
-    { onUnrecognizedOption },
-  )
+  const intermediateConfig = mergeConfig(baseConfig, urlParams({ ignoreKeysRegExp }), {
+    onUnrecognizedOption: (p) => unrecognizedOptions.push(p.join('.')),
+  })
   const appConfig = mergeConfig(intermediateConfig, config ?? {})
-  unmount = await mountProjectApp({ config: appConfig, accessToken, unrecognizedOptions }, pinia)
+  queuedProps = { config: appConfig, projectId, logEvent }
+
+  if (stopQueued) {
+    clearTimeout(stopQueued)
+    stopQueued = null
+  } else if (running) return
+
+  if (!projectApp) {
+    if (running) return
+    running = true
+    projectApp = await loadingPromise
+  } else running = true
+
+  if (running) {
+    projectApp.mountOrUpdate(queuedProps, pinia)
+  } else {
+    projectApp.unmount()
+    projectApp = null
+  }
 }
 
 function stopApp() {
-  running = false
-  unmount?.()
-  unmount = null
+  if (!running) return
+  stopQueued = setTimeout(() => {
+    running = false
+    projectApp?.unmount()
+    projectApp = null
+  }, 10)
 }
 
 export const appRunner = { runApp, stopApp }

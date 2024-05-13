@@ -54,6 +54,7 @@ import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import RemoteBackendProvider from '#/providers/RemoteBackendProvider'
 import SessionProvider from '#/providers/SessionProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
@@ -86,6 +87,8 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
+
+import * as types from '../../types/types'
 
 // ============================
 // === Global configuration ===
@@ -145,7 +148,7 @@ export interface AppProps {
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly appRunner: AppRunner
+  readonly appRunner: types.AppRunner | null
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -440,6 +443,7 @@ function AppRouter(props: AppRouterProps) {
   let result = routes
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = <ModalProvider>{result}</ModalProvider>
+  result = <RemoteBackendProvider>{result}</RemoteBackendProvider>
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}

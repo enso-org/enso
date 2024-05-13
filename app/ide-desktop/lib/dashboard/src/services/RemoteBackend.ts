@@ -981,6 +981,22 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Log an event that will be visible in the organization audit log. */
+  async logEvent(message: string, projectId?: string | undefined, metadata?: object) {
+    const path = remoteBackendPaths.POST_LOG_EVENT_PATH
+    const response = await this.post(path, {
+      message,
+      projectId,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        ...(metadata ?? {}),
+      },
+    })
+    if (!responseIsSuccessful(response)) {
+      return this.throw(response, 'logEventBackendError', message)
+    }
+  }
+
   /** Get the default version given the type of version (IDE or backend). */
   protected async getDefaultVersion(versionType: backend.VersionType) {
     const cached = this.defaultVersions[versionType]

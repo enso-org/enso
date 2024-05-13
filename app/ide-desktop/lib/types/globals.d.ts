@@ -82,7 +82,6 @@ declare global {
     // Documentation is already inherited.
     /** */
     interface Window {
-        readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi

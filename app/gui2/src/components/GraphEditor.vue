@@ -535,7 +535,7 @@ provideNodeColors((variable) =>
 
 const showColorPicker = ref(false)
 
-function setSelectedNodesColor(color: string) {
+function setSelectedNodesColor(color: string | undefined) {
   graphStore.transact(() =>
     nodeSelection.selected.forEach((id) => graphStore.overrideNodeColor(id, color)),
   )

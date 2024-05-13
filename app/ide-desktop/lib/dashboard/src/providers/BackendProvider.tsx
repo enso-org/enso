@@ -37,9 +37,8 @@ export interface BackendContextType {
   readonly setBackendWithoutSavingType: (backend: Backend) => void
 }
 
-// @ts-expect-error The default value will never be exposed
 // as `backend` will always be accessed using `useBackend`.
-const BackendContext = React.createContext<BackendContextType>(null)
+const BackendContext = React.createContext<BackendContextType | null>(null)
 
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
@@ -70,14 +69,20 @@ export default function BackendProvider(props: BackendProviderProps) {
   )
 }
 
+function useBackendContext() {
+  const ctx = React.useContext(BackendContext)
+  if (ctx == null) throw new Error(`Backend not provided.`)
+  return ctx
+}
+
 /** Exposes a property to get the current backend. */
 export function useBackend() {
-  const { backend } = React.useContext(BackendContext)
+  const { backend } = useBackendContext()
   return { backend }
 }
 
 /** Exposes a property to set the current backend. */
 export function useSetBackend() {
-  const { setBackend, setBackendWithoutSavingType } = React.useContext(BackendContext)
+  const { setBackend, setBackendWithoutSavingType } = useBackendContext()
   return { setBackend, setBackendWithoutSavingType }
 }

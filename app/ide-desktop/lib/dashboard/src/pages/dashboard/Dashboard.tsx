@@ -49,6 +49,8 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
+import { AppRunner } from '../../../../types/types'
+
 // ============================
 // === Global configuration ===
 // ============================
@@ -115,7 +117,7 @@ LocalStorage.registerKey('projectStartupInfo', {
 export interface DashboardProps {
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
-  readonly appRunner: AppRunner
+  readonly appRunner: AppRunner | null
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
@@ -241,7 +243,12 @@ export default function Dashboard(props: DashboardProps) {
                     abortController
                   )
                   if (!abortController.signal.aborted) {
-                    setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+                    setProjectStartupInfo(
+                      object.merge(savedProjectStartupInfo, {
+                        project,
+                        accessToken: session.accessToken,
+                      })
+                    )
                     if (page === pageSwitcher.Page.editor) {
                       setPage(page)
                     }
@@ -545,7 +552,6 @@ export default function Dashboard(props: DashboardProps) {
           />
           <Editor
             hidden={page !== pageSwitcher.Page.editor}
-            supportsLocalBackend={supportsLocalBackend}
             ydocUrl={ydocUrl}
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}

@@ -1,32 +1,57 @@
-import { initializePrefixes } from '@/util/ast/node'
 import { initializeFFI } from 'shared/ast/ffi'
 
 import App from '@/App.vue'
-import type { ApplicationConfig } from '@/util/config'
+import type { StringConfig } from '@/util/config'
 import { createPinia, type Pinia } from 'pinia'
-import { createApp } from 'vue'
+import { createApp, type ComponentPublicInstance, type App as VueApp } from 'vue'
 
 import '@/assets/main.css'
 
-export async function mountProjectApp(
-  rootProps: {
-    config: ApplicationConfig
-    accessToken: string | null
-    unrecognizedOptions: string[]
-  },
-  pinia?: Pinia | undefined,
-) {
-  await initializeFFI()
-  initializePrefixes()
+export type RootProps = {
+  config: StringConfig
+  projectId: string
+  logEvent: LogEvent
+  hidden: boolean
+  ignoreParamsRegex?: RegExp
+}
 
-  const usedPinia = pinia ?? createPinia()
-  const app = createApp(App, rootProps)
-  app.use(usedPinia)
-  app.mount('#app')
-  return () => {
-    app.unmount()
-    console.log('app unmounted')
-    disposePinia(usedPinia)
+export function AsyncApp() {
+  return Promise.all([initializeFFI(), import('@/App.vue')]).then(([_, app]) => app)
+}
+
+export function setupApp(app: VueApp) {
+  const pinia = createPinia()
+  app.use(pinia)
+}
+
+export async function createProjectApp() {
+  await initializeFFI()
+
+  let activePinia: Pinia | null = null
+  let app: VueApp | null = null
+  let root: ComponentPublicInstance | null = null
+  const unmount = () => {
+    app?.unmount()
+    if (activePinia) disposePinia(activePinia)
+    activePinia = null
+    app = null
+  }
+  return {
+    unmount,
+    mountOrUpdate: (props: RootProps, pinia?: Pinia | undefined) => {
+      const piniaToUse = pinia ?? activePinia ?? createPinia()
+      if (app == null || root == null || piniaToUse !== activePinia) {
+        unmount()
+        activePinia = piniaToUse
+        console.log('createApp')
+        app = createApp(App, props)
+        app.use(activePinia)
+        root = app.mount('#app')
+      } else {
+        console.log('update')
+        Object.assign(root.$props, props)
+      }
+    },
   }
 }
 
