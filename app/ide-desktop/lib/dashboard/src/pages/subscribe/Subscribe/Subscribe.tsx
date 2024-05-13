@@ -25,7 +25,7 @@ import * as components from './components'
 import * as componentForPlan from './getComponentForPlan'
 
 /**
- *
+ * The mutation data for the `onCompleteMutation` mutation.
  */
 interface CreateCheckoutSessionMutation {
   readonly plan: backendModule.Plan
