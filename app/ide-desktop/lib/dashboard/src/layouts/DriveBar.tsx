@@ -230,6 +230,7 @@ export default function DriveBar(props: DriveBarProps) {
               <Button
                 image={RightPanelIcon}
                 active={isAssetPanelOpen}
+                alt={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
                 onPress={() => {
                   setIsAssetPanelOpen(isOpen => !isOpen)
                 }}

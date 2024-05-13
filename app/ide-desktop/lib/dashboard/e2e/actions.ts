@@ -439,12 +439,12 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
+  return page.getByRole('button', { name: 'Data Catalog' })
 }
 
 /** Find an "editor page" icon (if any) on the current page. */
 export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Graph Editor') })
+  return page.getByRole('button', { name: 'Spatial Analysis' })
 }
 
 /** Find a "settings page" icon (if any) on the current page. */
@@ -805,7 +805,9 @@ export async function mockIDEContainer({ page }: MockParams) {
   await page.evaluate(() => {
     const ideContainer = document.getElementById('app')
     if (ideContainer) {
-      ideContainer.style.height = '100vh'
+      ideContainer.style.position = 'absolute'
+      ideContainer.style.top = '3rem'
+      ideContainer.style.height = 'calc(100vh - 3rem)'
       ideContainer.style.width = '100vw'
     }
   })
