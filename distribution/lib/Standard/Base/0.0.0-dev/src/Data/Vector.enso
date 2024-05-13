@@ -1333,20 +1333,22 @@ type Builder
     new (capacity : Integer = 10) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
 
     ## ICON join
-       Appends a new element into this builder, propagating any
-       errors that the provided element could have contained.
+       Appends a new element into this builder.
 
        Arguments:
        - item: The item to append to the vector builder.
 
        ? Appending Dataflow Errors
 
-         If the value to be appended is an uncaught dataflow error, it is thrown
-         by the containing invocation of `Vector.build`.  The error is not added
-         to the builder.
+         If a dataflow error is added to the builder, the result depends on
+         whether the builder is being used from `new_builder` or `build`.
 
-         If an uncaught dataflow error is appended with `append`, the dataflow
-         error is propagated, and it is not added to the builder.
+         - When using `build`: The dataflow error is re-thrown by the containing
+           invocation of `Vector.build`.  The error is not added to the builder.
+
+         - When using `new_builder`: The dataflow error is wrapped in a
+           `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not
+           added to the builder.
 
        > Example
          Append three items.
@@ -1376,9 +1378,16 @@ type Builder
 
        ? Appending Dataflow Errors
 
-         If any of the values to be appended are uncaught dataflow errors, the
-         first one is thrown by the containing invocation of Vector.build`. No
-         values are added to the builder.
+         If a dataflow error is added to the builder, the result depends on
+         whether the builder is being used from `new_builder` or `build`. The
+         first dataflow error encountered in `vector` is thrown.
+
+         - When using `build`: The dataflow error is re-thrown by the containing
+           invocation of `Vector.build`.  The error is not added to the builder.
+
+         - When using `new_builder`: The dataflow error is wrapped in a
+           `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not
+           added to the builder.
 
        > Example
          Append a vector.
