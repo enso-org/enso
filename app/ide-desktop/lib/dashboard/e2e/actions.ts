@@ -3,6 +3,8 @@ import * as test from '@playwright/test'
 
 import * as apiModule from './api'
 
+/* eslint-disable @typescript-eslint/no-namespace */
+
 // =================
 // === Constants ===
 // =================
@@ -610,6 +612,54 @@ export function locateAssetPanelDescription(page: test.Page) {
 export function locateAssetPanelPermissions(page: test.Page) {
   // This has no identifying features.
   return locateAssetPanel(page).getByTestId('asset-panel-permissions').getByRole('button')
+}
+
+// === Settings locators ===
+
+export namespace settings {
+  export namespace tab {
+    export namespace organization {
+      /** Find an "organization" tab button. */
+      export function locate(page: test.Page) {
+        return page.getByRole('button', { name: 'Organization' }).getByText('Organization')
+      }
+    }
+  }
+
+  export namespace userAccount {
+    /** Navigate so that the "user account" settings section is visible. */
+    export async function go(page: test.Page) {
+      await press(page, 'Mod+,')
+    }
+
+    /** Find a "user account" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('User Account')).locator('..')
+    }
+
+    /** Find a "name" input in the "user account" settings section. */
+    export function locateNameInput(page: test.Page) {
+      return locate(page).getByLabel('Name')
+    }
+  }
+
+  export namespace organization {
+    /** Navigate so that the "organization" settings section is visible. */
+    export async function go(page: test.Page) {
+      await press(page, 'Mod+,')
+      await tab.organization.locate(page).click()
+    }
+
+    /** Find an "organization" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Organization')).locator('..')
+    }
+
+    /** Find a "name" input in the "organization" settings section. */
+    export function locateNameInput(page: test.Page) {
+      return locate(page).getByLabel('Organization display name')
+    }
+  }
 }
 
 // ===============================

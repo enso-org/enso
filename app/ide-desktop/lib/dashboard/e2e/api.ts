@@ -48,6 +48,7 @@ export async function mockApi({ page }: MockParams) {
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
   const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
+  const defaultOrganizationName = 'organization name'
   const defaultUserId = backend.UserId('user-placeholder id')
   const defaultDirectoryId = backend.DirectoryId('directory-placeholder id')
   const defaultUser: backend.User = {
@@ -553,23 +554,24 @@ export async function mockApi({ page }: MockParams) {
     await put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH + '*', async (_route, request) => {
       // The type of the body sent by this app is statically known.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const body: backend.CreateUserRequestBody = await request.postDataJSON()
-      const organizationId = body.organizationId ?? defaultUser.organizationId
-      const rootDirectoryId = backend.DirectoryId(
-        organizationId.replace(/^organization-/, 'directory-')
-      )
-      currentUser = {
-        email: body.userEmail,
-        name: body.userName,
-        organizationId,
-        userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
-        isEnabled: false,
-        rootDirectoryId,
-        userGroups: null,
+      const body: backend.UpdateUserRequestBody = await request.postDataJSON()
+      if (currentUser && body.username != null) {
+        currentUser = { ...currentUser, name: body.username }
       }
-      return currentUser
     })
     await get(remoteBackendPaths.USERS_ME_PATH + '*', () => currentUser)
+    await patch(remoteBackendPaths.UPDATE_ORGANIZATION_PATH + '*', async (route, request) => {
+      // The type of the body sent by this app is statically known.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const body: backend.UpdateOrganizationRequestBody = await request.postDataJSON()
+      if (currentOrganization) {
+        currentOrganization = { ...currentOrganization, ...body }
+        return currentOrganization satisfies backend.OrganizationInfo
+      } else {
+        await route.fulfill({ status: HTTP_STATUS_NOT_FOUND })
+        return
+      }
+    })
     await get(remoteBackendPaths.GET_ORGANIZATION_PATH + '*', async route => {
       await route.fulfill({
         json: currentOrganization,
@@ -657,6 +659,7 @@ export async function mockApi({ page }: MockParams) {
     defaultEmail,
     defaultName: defaultUsername,
     defaultOrganizationId,
+    defaultOrganizationName,
     defaultUser,
     defaultUserId,
     rootDirectoryId: defaultDirectoryId,
@@ -668,13 +671,13 @@ export async function mockApi({ page }: MockParams) {
     setCurrentUser: (user: backend.User | null) => {
       currentUser = user
     },
-    /** Returns the current value of `currentUser`. This is a getter, so its return value
+    /** Returns the current value of `currentOrganization`. This is a getter, so its return value
      * SHOULD NOT be cached. */
     get currentOrganization() {
       return currentOrganization
     },
-    setCurrentOrganization: (user: backend.OrganizationInfo | null) => {
-      currentOrganization = user
+    setCurrentOrganization: (organization: backend.OrganizationInfo | null) => {
+      currentOrganization = organization
     },
     addAsset,
     deleteAsset,
