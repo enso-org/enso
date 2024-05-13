@@ -20,7 +20,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 export interface SubscribeFormProps {
   readonly stripe: stripeJs.Stripe
   readonly elements: stripeJs.StripeElements
-  readonly onSubmit: (paymentMethod: stripeJs.PaymentMethod) => Promise<void>
+  readonly onSubmit: (paymentMethodId: stripeJs.PaymentMethod['id']) => Promise<void>
 }
 
 /**
@@ -49,7 +49,7 @@ export function SubscribeForm(props: SubscribeFormProps) {
       }
     },
     onSuccess: async paymentMethod => {
-      await onSubmit(paymentMethod.paymentMethod)
+      await onSubmit(paymentMethod.paymentMethod.id)
       cardElement?.clear()
     },
   })
