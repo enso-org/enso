@@ -331,7 +331,7 @@ class App {
                         : {}),
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
-                window.setMenuBarVisibility(true)
+                window.setMenuBarVisibility(false)
                 const oldMenu = electron.Menu.getApplicationMenu()
                 if (oldMenu != null) {
                     const items = oldMenu.items.map(item => {
