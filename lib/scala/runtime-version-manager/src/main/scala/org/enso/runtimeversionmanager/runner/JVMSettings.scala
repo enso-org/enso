@@ -59,7 +59,9 @@ object JVMSettings {
 
   private def jvmOptionIfSet(name: String): Option[(String, String)] = {
     val propertyValue = System.getProperty(name)
-    Option(propertyValue).map((name, _))
+    if (propertyValue != null && !propertyValue.isEmpty)
+      Some((name, propertyValue))
+    else None
   }
 
 }
