@@ -189,7 +189,79 @@ function initializeLicenseReviewButton() {
         const button = ' <button class="mark-reviewed">Mark license as reviewed</button>'
         entry.append(button)
         entry.children('.mark-reviewed').on('click', function (ev) {
-            setStatus('Not implemented yet.', 'red')
+            let formHtml = ''
+            formHtml += '<div class="dialog"><form>'
+            formHtml += '<label for="license-text">Select license text: </label>'
+            formHtml += '<select name="license-text" id="license-text" disabled></select>'
+            formHtml += '<button type="button" class="reload-licenses">🔃</button>'
+            entry.append(formHtml)
+
+            let dialogRef = null
+            function onSubmit() {
+                const licenseTextPath = dialogRef.find('#license-text').val()
+                if (!licenseTextPath) {
+                    alert('Please select a license text first.')
+                    return
+                }
+
+                const data = {
+                    licenseName: licenseName,
+                    licenseTextPath: licenseTextPath,
+                }
+                $.post('/mark-license-as-reviewed/' + reportName, data, function (response) {
+                    dialogRef.dialog('close')
+                    entry.html('License reviewed. Regenerate the report to see the changes.')
+                    setStatus(response)
+                }).fail(function (err) {
+                    dialogRef.dialog('close')
+                    setStatus('Failed to mark license as reviewed: ' + JSON.stringify(err), 'red')
+                })
+            }
+
+            function refreshLicenses() {
+                $.get('/get-known-license-texts', function (response) {
+                    const knownLicenses = JSON.parse(response)
+                    const select = dialogRef.find('#license-text')
+                    select.empty()
+
+                    if (knownLicenses.length == 0) {
+                        select.prop('disabled', true)
+                        select.append($('<option></option>').attr('value', '').text(''))
+                        select
+                            .parent()
+                            .append(
+                                '<p style="color: red;">No license texts found. Add a file to /tools/legal-review/license-texts directory and reload.</p>'
+                            )
+                    } else {
+                        select.append($('<option></option>').attr('value', '').text(''))
+                        knownLicenses.forEach(license => {
+                            const option = $('<option></option>')
+                                .attr('value', license)
+                                .text(license)
+                            select.append(option)
+                        })
+                        select.prop('disabled', false)
+                    }
+                }).fail(function (err) {
+                    setStatus('Failed to fetch known license texts: ' + JSON.stringify(err), 'red')
+                })
+            }
+
+            dialogRef = entry.children('.dialog').dialog({
+                autoOpen: true,
+                modal: true,
+                width: 800,
+                buttons: {
+                    'Mark license as reviewed and associated with selected license text': onSubmit,
+                },
+            })
+
+            dialogRef.find('.reload-licenses').on('click', function (ev) {
+                ev.preventDefault()
+                refreshLicenses()
+            })
+
+            refreshLicenses()
         })
     })
 }
@@ -220,13 +292,14 @@ function resetCustomCopyrightButton(injectionLocation) {
                     package: injectionLocation.data('package'),
                     action: 'add',
                     file: 'copyright-add',
-                    line: encoded,
+                    encoded_line: encoded,
                 }
                 setStatus('Adding custom notice...')
                 $.post('/modify/' + reportName, data, function (response) {
                     injectionLocation.css('color', 'gray')
-                    setStatus('Custom notice added. Regenerate the report to see the changes.')
-                    // TODO add note to parent as well to make it clearer
+                    const msg = 'Custom notice added. Regenerate the report to see the changes.'
+                    setStatus(msg)
+                    injectionLocation.parent().append('<p>' + msg + '</p>')
                     resetCustomCopyrightButton(injectionLocation)
                 }).fail(function (err) {
                     setStatus('Failed to add custom notice: ' + JSON.stringify(err), 'red')

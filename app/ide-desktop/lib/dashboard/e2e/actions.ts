@@ -361,6 +361,13 @@ export function locateUpgradeButton(page: test.Locator | test.Page) {
   return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade')
 }
 
+/**
+ * Find a not enabled stub view (if any) on the current page.
+ */
+export function locateNotEnabledStub(page: test.Locator | test.Page) {
+  return page.getByTestId('not-enabled-stub')
+}
+
 /** Find a "new folder" icon (if any) on the current page. */
 export function locateNewFolderIcon(page: test.Locator | test.Page) {
   return page.getByRole('button').filter({ has: page.getByAltText('New Folder') })
