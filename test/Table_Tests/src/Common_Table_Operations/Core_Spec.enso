@@ -391,7 +391,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should allow to turn off the warning" <|
             t1 = data.t_big.read (..First 1000)
-            t1.row_count . should_equal (if has_default_row_limit then 1000 else 1500)
+            t1.row_count . should_equal 1000
             Problems.assume_no_problems t1
 
             t2 = data.t_big.read (..First 123)

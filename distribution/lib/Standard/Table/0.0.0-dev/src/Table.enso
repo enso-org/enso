@@ -2370,7 +2370,7 @@ type Table
         Rows_To_Read.First n -> self.take (First n)
         Rows_To_Read.First_With_Warning n ->
             truncated = self.take (First n)
-            if self.row_count > n then truncated else
+            if self.row_count <= n then truncated else
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning n
 

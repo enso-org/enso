@@ -10,6 +10,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Value_Type
 
 import project.Column_Description.Column_Description
@@ -265,7 +266,10 @@ type Connection
     @query make_table_name_selector
     read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Table ! Table_Not_Found
     read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
-        self.query query . read max_rows=limit warn_if_more_rows=warn_if_more_rows
+        rows_to_read = case limit of
+            Nothing -> Rows_To_Read.All_Rows
+            _ -> if warn_if_more_rows then Rows_To_Read.First_With_Warning limit else Rows_To_Read.First limit
+        self.query query . read max_rows=rows_to_read
 
     ## PRIVATE
        Creates a new empty table in the database and returns a query referencing
