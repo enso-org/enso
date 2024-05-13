@@ -35,6 +35,6 @@ test.test('sign up with organization id', async ({ page }) => {
   await actions.locateSetUsernameButton(page).click()
 
   test
-    .expect(api.currentUser?.organizationId, 'new user has correct organization id')
+    .expect(api.currentUser()?.organizationId, 'new user has correct organization id')
     .toBe(organizationId)
 })

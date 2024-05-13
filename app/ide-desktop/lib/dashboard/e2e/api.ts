@@ -64,8 +64,10 @@ export async function mockApi({ page }: MockParams) {
     userGroups: null,
   }
   let currentUser: backend.User | null = defaultUser
+  let currentProfilePicture: string | null = null
   let currentPassword = defaultPassword
   let currentOrganization: backend.OrganizationInfo | null = null
+  let currentOrganizationProfilePicture: string | null = null
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
@@ -455,6 +457,32 @@ export async function mockApi({ page }: MockParams) {
 
     // === Entity creation endpoints ===
 
+    await put(remoteBackendPaths.UPLOAD_USER_PICTURE_PATH + '*', async (route, request) => {
+      console.log(
+        request.postData(),
+        request.postDataBuffer(),
+        request.postDataJSON(),
+        await request.allHeaders()
+      )
+      const content = request.postData()
+      if (content != null) {
+        currentProfilePicture = content
+        return null
+      } else {
+        await route.fallback()
+        return
+      }
+    })
+    await put(remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH + '*', async (route, request) => {
+      const content = request.postData()
+      if (content != null) {
+        currentOrganizationProfilePicture = content
+        return null
+      } else {
+        await route.fallback()
+        return
+      }
+    })
     await post(remoteBackendPaths.UPLOAD_FILE_PATH + '*', (_route, request) => {
       /** The type for the JSON request payload for this endpoint. */
       interface SearchParams {
@@ -696,27 +724,17 @@ export async function mockApi({ page }: MockParams) {
     defaultUser,
     defaultUserId,
     rootDirectoryId: defaultDirectoryId,
-    /** Returns the current value of `currentUser`. This is a getter, so its return value
-     * SHOULD NOT be cached. */
-    get currentUser() {
-      return currentUser
-    },
+    currentUser: () => currentUser,
     setCurrentUser: (user: backend.User | null) => {
       currentUser = user
     },
-    /** Returns the current value of `currentPassword`. This is a getter, so its return value
-     * SHOULD NOT be cached. */
-    get currentPassword() {
-      return currentPassword
-    },
-    /** Returns the current value of `currentOrganization`. This is a getter, so its return value
-     * SHOULD NOT be cached. */
-    get currentOrganization() {
-      return currentOrganization
-    },
+    currentPassword: () => currentPassword,
+    currentProfilePicture: () => currentProfilePicture,
+    currentOrganization: () => currentOrganization,
     setCurrentOrganization: (organization: backend.OrganizationInfo | null) => {
       currentOrganization = organization
     },
+    currentOrganizationProfilePicture: () => currentOrganizationProfilePicture,
     addAsset,
     deleteAsset,
     undeleteAsset,

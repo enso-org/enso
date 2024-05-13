@@ -20,11 +20,11 @@ test.test('organization settings', async ({ page }) => {
   }
   api.setCurrentOrganization(initialOrganization)
   await test.test.step('initial state', () => {
-    test.expect(api.currentOrganization?.name).toBe(api.defaultOrganizationName)
-    test.expect(api.currentOrganization?.email).toBe(null)
-    test.expect(api.currentOrganization?.picture).toBe(null)
-    test.expect(api.currentOrganization?.website).toBe(null)
-    test.expect(api.currentOrganization?.address).toBe(null)
+    test.expect(api.currentOrganization()?.name).toBe(api.defaultOrganizationName)
+    test.expect(api.currentOrganization()?.email).toBe(null)
+    test.expect(api.currentOrganization()?.picture).toBe(null)
+    test.expect(api.currentOrganization()?.website).toBe(null)
+    test.expect(api.currentOrganization()?.address).toBe(null)
   })
 
   await localActions.go(page)
@@ -33,14 +33,14 @@ test.test('organization settings', async ({ page }) => {
   await test.test.step('set name', async () => {
     await nameInput.fill(newName)
     await nameInput.press('Enter')
-    test.expect(api.currentOrganization?.name).toBe(newName)
-    test.expect(api.currentUser?.name).not.toBe(newName)
+    test.expect(api.currentOrganization()?.name).toBe(newName)
+    test.expect(api.currentUser()?.name).not.toBe(newName)
   })
 
   await test.test.step('unset name (should fail)', async () => {
     await nameInput.fill('')
     await nameInput.press('Enter')
-    test.expect(api.currentOrganization?.name).toBe(newName)
+    test.expect(api.currentOrganization()?.name).toBe(newName)
     await test.expect(nameInput).toHaveValue(newName)
   })
 
@@ -50,7 +50,7 @@ test.test('organization settings', async ({ page }) => {
   await test.test.step('set invalid email', async () => {
     await emailInput.fill(invalidEmail)
     await emailInput.press('Enter')
-    test.expect(api.currentOrganization?.email).toBe(null)
+    test.expect(api.currentOrganization()?.email).toBe(null)
   })
 
   const newEmail = 'organization@email.com'
@@ -58,7 +58,7 @@ test.test('organization settings', async ({ page }) => {
   await test.test.step('set email', async () => {
     await emailInput.fill(newEmail)
     await emailInput.press('Enter')
-    test.expect(api.currentOrganization?.email).toBe(newEmail)
+    test.expect(api.currentOrganization()?.email).toBe(newEmail)
     await test.expect(emailInput).toHaveValue(newEmail)
   })
 
@@ -69,7 +69,7 @@ test.test('organization settings', async ({ page }) => {
   await test.test.step('set website', async () => {
     await websiteInput.fill(newWebsite)
     await websiteInput.press('Enter')
-    test.expect(api.currentOrganization?.website).toBe(newWebsite)
+    test.expect(api.currentOrganization()?.website).toBe(newWebsite)
     await test.expect(websiteInput).toHaveValue(newWebsite)
   })
 
@@ -79,7 +79,21 @@ test.test('organization settings', async ({ page }) => {
   await test.test.step('set location', async () => {
     await locationInput.fill(newLocation)
     await locationInput.press('Enter')
-    test.expect(api.currentOrganization?.address).toBe(newLocation)
+    test.expect(api.currentOrganization()?.address).toBe(newLocation)
     await test.expect(locationInput).toHaveValue(newLocation)
   })
+})
+
+test.test('upload organization profile picture', async ({ page }) => {
+  const { api } = await actions.mockAllAndLogin({ page })
+  const localActions = actions.settings.organizationProfilePicture
+
+  await localActions.go(page)
+  const fileChooserPromise = page.waitForEvent('filechooser')
+  await localActions.locateInput(page).click()
+  const fileChooser = await fileChooserPromise
+  const name = 'bar.jpeg'
+  const content = 'organization profile picture'
+  await fileChooser.setFiles([{ name, buffer: Buffer.from(content), mimeType: 'image/jpeg' }])
+  test.expect(api.currentOrganizationProfilePicture()).toEqual(content)
 })

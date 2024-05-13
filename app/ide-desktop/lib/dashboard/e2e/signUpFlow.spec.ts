@@ -28,7 +28,7 @@ test.test('sign up flow', async ({ page }) => {
   await test.expect(actions.locateDriveView(page)).not.toBeVisible()
 
   // Logged in, and account enabled
-  const currentUser = api.currentUser
+  const currentUser = api.currentUser()
   test.expect(currentUser).toBeDefined()
   if (currentUser != null) {
     // This is required because `UserOrOrganization` is `readonly`.
@@ -39,6 +39,6 @@ test.test('sign up flow', async ({ page }) => {
   await test.expect(actions.locateNotEnabledStub(page)).not.toBeVisible()
   await test.expect(actions.locateDriveView(page)).toBeVisible()
 
-  test.expect(api.currentUser?.email, 'new user has correct email').toBe(email)
-  test.expect(api.currentUser?.name, 'new user has correct name').toBe(name)
+  test.expect(api.currentUser()?.email, 'new user has correct email').toBe(email)
+  test.expect(api.currentUser()?.name, 'new user has correct name').toBe(name)
 })

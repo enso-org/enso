@@ -655,11 +655,28 @@ export namespace settings {
     }
   }
 
+  export namespace profilePicture {
+    /** Navigate so that the "profile picture" settings section is visible. */
+    export async function go(page: test.Page) {
+      await press(page, 'Mod+,')
+    }
+
+    /** Find a "profile picture" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Profile Picture')).locator('..')
+    }
+
+    /** Find a "profile picture" input. */
+    export function locateInput(page: test.Page) {
+      return locate(page).locator('label')
+    }
+  }
+
   export namespace organization {
     /** Navigate so that the "organization" settings section is visible. */
     export async function go(page: test.Page) {
       await press(page, 'Mod+,')
-      await tab.organization.locate(page).click()
+      await settings.tab.organization.locate(page).click()
     }
 
     /** Find an "organization" settings section. */
@@ -686,6 +703,24 @@ export namespace settings {
     /** Find an "location" input in the "organization" settings section. */
     export function locateLocationInput(page: test.Page) {
       return locate(page).getByLabel('Location')
+    }
+  }
+
+  export namespace organizationProfilePicture {
+    /** Navigate so that the "organization profile picture" settings section is visible. */
+    export async function go(page: test.Page) {
+      await press(page, 'Mod+,')
+      await settings.tab.organization.locate(page).click()
+    }
+
+    /** Find an "organization profile picture" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Profile Picture')).locator('..')
+    }
+
+    /** Find a "profile picture" input. */
+    export function locateInput(page: test.Page) {
+      return locate(page).locator('label')
     }
   }
 }
