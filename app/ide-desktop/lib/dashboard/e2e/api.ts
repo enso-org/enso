@@ -10,6 +10,8 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
+import * as actions from './actions'
+
 // =================
 // === Constants ===
 // =================
@@ -47,6 +49,7 @@ export async function mockApi({ page }: MockParams) {
   // eslint-disable-next-line no-restricted-syntax
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
+  const defaultPassword = actions.VALID_PASSWORD
   const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
   const defaultOrganizationName = 'organization name'
   const defaultUserId = backend.UserId('user-placeholder id')
@@ -61,6 +64,7 @@ export async function mockApi({ page }: MockParams) {
     userGroups: null,
   }
   let currentUser: backend.User | null = defaultUser
+  let currentPassword = defaultPassword
   let currentOrganization: backend.OrganizationInfo | null = null
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
@@ -209,15 +213,15 @@ export async function mockApi({ page }: MockParams) {
       (theMethod: string) =>
       async (url: string, callback: (route: test.Route, request: test.Request) => unknown) => {
         await page.route(BASE_URL + url, async (route, request) => {
-          if (request.method() === theMethod) {
+          if (request.method() !== theMethod) {
+            await route.fallback()
+          } else {
             const result = await callback(route, request)
             // `null` counts as a JSON value that we will want to return.
             // eslint-disable-next-line no-restricted-syntax
             if (result !== undefined) {
               await route.fulfill({ json: result })
             }
-          } else {
-            await route.fallback()
           }
         })
       }
@@ -240,6 +244,29 @@ export async function mockApi({ page }: MockParams) {
 
     await page.route(BASE_URL + '**', (_route, request) => {
       throw new Error(`Missing route handler for '${request.url().replace(BASE_URL, '')}'.`)
+    })
+
+    // === Mock Cognito endpoints ===
+
+    await page.route('https://mock-cognito.com/change-password', async (route, request) => {
+      if (request.method() !== 'POST') {
+        await route.fallback()
+      } else {
+        /** The type for the JSON request payload for this endpoint. */
+        interface Body {
+          readonly oldPassword: string
+          readonly newPassword: string
+        }
+        // The type of the body sent by this app is statically known.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const body: Body = await request.postDataJSON()
+        if (body.oldPassword === currentPassword) {
+          currentPassword = body.newPassword
+          await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
+        } else {
+          await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
+        }
+      }
     })
 
     // === Endpoints returning arrays ===
@@ -676,6 +703,11 @@ export async function mockApi({ page }: MockParams) {
     },
     setCurrentUser: (user: backend.User | null) => {
       currentUser = user
+    },
+    /** Returns the current value of `currentPassword`. This is a getter, so its return value
+     * SHOULD NOT be cached. */
+    get currentPassword() {
+      return currentPassword
     },
     /** Returns the current value of `currentOrganization`. This is a getter, so its return value
      * SHOULD NOT be cached. */

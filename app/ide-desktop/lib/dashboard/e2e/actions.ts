@@ -37,21 +37,6 @@ export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
   return page.getByPlaceholder('Confirm your password')
 }
 
-/** Find a "current password" input (if any) on the current page. */
-export function locateCurrentPasswordInput(page: test.Locator | test.Page) {
-  return page.getByPlaceholder('Enter your current password')
-}
-
-/** Find a "new password" input (if any) on the current page. */
-export function locateNewPasswordInput(page: test.Locator | test.Page) {
-  return page.getByPlaceholder('Enter your new password')
-}
-
-/** Find a "confirm new password" input (if any) on the current page. */
-export function locateConfirmNewPasswordInput(page: test.Locator | test.Page) {
-  return page.getByPlaceholder('Confirm your new password')
-}
-
 /** Find a "username" input (if any) on the current page. */
 export function locateUsernameInput(page: test.Locator | test.Page) {
   return page.getByPlaceholder('Enter your username')
@@ -111,11 +96,6 @@ export function locateLoginButton(page: test.Locator | test.Page) {
 /** Find a "register" button (if any) on the current locator. */
 export function locateRegisterButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Register' }).getByText('Register')
-}
-
-/** Find a "change" button (if any) on the current locator. */
-export function locateChangeButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Change' }).getByText('Change')
 }
 
 /** Find a user menu button (if any) on the current locator. */
@@ -640,6 +620,38 @@ export namespace settings {
     /** Find a "name" input in the "user account" settings section. */
     export function locateNameInput(page: test.Page) {
       return locate(page).getByLabel('Name')
+    }
+  }
+
+  export namespace changePassword {
+    /** Navigate so that the "change password" settings section is visible. */
+    export async function go(page: test.Page) {
+      await press(page, 'Mod+,')
+    }
+
+    /** Find a "change password" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Change Password')).locator('..')
+    }
+
+    /** Find a "current password" input in the "user account" settings section. */
+    export function locateCurrentPasswordInput(page: test.Page) {
+      return locate(page).getByLabel('Current password')
+    }
+
+    /** Find a "new password" input in the "user account" settings section. */
+    export function locateNewPasswordInput(page: test.Page) {
+      return locate(page).getByLabel('New password', { exact: true })
+    }
+
+    /** Find a "confirm new password" input in the "user account" settings section. */
+    export function locateConfirmNewPasswordInput(page: test.Page) {
+      return locate(page).getByLabel('Confirm new password')
+    }
+
+    /** Find a "change" button. */
+    export function locateChangeButton(page: test.Page) {
+      return locate(page).getByRole('button', { name: 'Change' }).getByText('Change')
     }
   }
 
