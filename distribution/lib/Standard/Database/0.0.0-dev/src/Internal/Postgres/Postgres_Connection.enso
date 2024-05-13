@@ -280,6 +280,9 @@ type Postgres_Connection
     base_connection : Connection
     base_connection self = self.connection
 
+    ## Creates a Data Link that will open the same connection.
+    save_as_data_link # TODO
+
 ## PRIVATE
 get_encoding_name : JDBC_Connection.JDBC_Connection -> Text
 get_encoding_name jdbc_connection =
