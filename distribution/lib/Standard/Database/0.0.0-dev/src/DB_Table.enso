@@ -2543,11 +2543,10 @@ type DB_Table
     read : Rows_To_Read -> Table
     read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) =
         if self.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
-            config = case max_rows of
-                Rows_To_Read.All_Rows -> [self, Nothing, False]
-                Rows_To_Read.First n -> [self.limit n, n, False]
-                Rows_To_Read.First_With_Warning n -> [self.limit n+1, n, True]
-            preprocessed = config.first
+            preprocessed = case max_rows of
+                Rows_To_Read.All_Rows -> self
+                Rows_To_Read.First n -> self.limit n
+                Rows_To_Read.First_With_Warning n -> self.limit n+1
 
             sql = preprocessed.to_sql
             column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
@@ -2568,11 +2567,7 @@ type DB_Table
                     if expected_type_kind == actual_type_kind then Nothing else
                         warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
-            max_rows = config.at 1 . if_nothing materialized_table.row_count
-            result = if materialized_table.row_count <= max_rows then materialized_table else
-                assert (config.at 2) "We may get more rows than we asked for _only_ if using First_With_Warning"
-                warnings_builder.append (Not_All_Rows_Downloaded.Warning max_rows)
-                materialized_table.take max_rows
+            result = max_rows.attach_warning materialized_table
             Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
 
     ## PRIVATE
