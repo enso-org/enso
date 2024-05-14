@@ -99,17 +99,15 @@ export default function UserBar(props: UserBarProps) {
             </ariaComponents.Button>
           )}
 
-          {false && (
-            <ariaComponents.Button
-              variant="primary"
-              rounding="full"
-              size="xsmall"
-              className="h-row"
-              href={appUtils.SUBSCRIBE_PATH}
-            >
-              {getText('upgrade')}
-            </ariaComponents.Button>
-          )}
+          <ariaComponents.Button
+            variant="primary"
+            rounding="full"
+            size="xsmall"
+            className="h-row"
+            href={appUtils.SUBSCRIBE_PATH}
+          >
+            {getText('upgrade')}
+          </ariaComponents.Button>
           {shouldShowShareButton && (
             <ariaComponents.Button
               rounding="full"

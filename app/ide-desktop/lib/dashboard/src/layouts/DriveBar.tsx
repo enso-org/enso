@@ -150,7 +150,7 @@ export default function DriveBar(props: DriveBarProps) {
                   doCreateDirectory()
                 }}
               />
-              {isCloud && false && (
+              {isCloud && (
                 <Button
                   active
                   image={AddKeyIcon}
