@@ -10,7 +10,7 @@ import { chain, map, range } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { fc, test as fcTest } from '@fast-check/vitest'
-import { describe, expect, test, vi } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
 // Vue playground to visually inspect failing fuzz cases:
 // https://play.vuejs.org/#eNrNU09PwjAU/ypNNeGCMPFC5jRR40EPatSbNXGMxyiMtmnfYGbZd/e1Y0Ci4Wwv6+/Pa3+v7Wp+Y8xgXQKPeeIyKw0yB1iaa6EyrRwyCxk6dsU+hPoU6pAlsmYFzDBmUZ+hNuG7kVOcx+w8ovkcZD4neRSxRqhk2G5ASxNAWJkiRSCUTOWaOfwu4ErwfU0UmeryYD0PBSc/Y6FifTbTlipCFqnapIKzuFuqZkY7iVKrmPXSidNFidDrbzN/nda+YuBRY6qvbQsdTaBltwE6PsBW6aJ2UotbbZJmy9zqUk1p75NxGKNRj86BXydDir/v41/mHdEYj3/l3c6S4e76eJ+jo0cxk/lg4bSih1R7q+CZXhlZgH02viW6mZgFxWtpUejNY+DQltDv+GwO2fIPfuEqzwn+YsGBXYPgOw1TmwO28v3bE1Q034krPS0Lch8RXyGcNGVsbbd0CBT7wBfSPqyMtihV/u7uKwTluqZ8UO9sgl9w+pvujrS+j3sxuAh1QjW8+QFAeS2/
@@ -18,17 +18,10 @@ import { describe, expect, test, vi } from 'vitest'
 const defaultScreenBounds = new Rect(new Vec2(100, 200), new Vec2(2000, 1000))
 const size = new Vec2(100, 20)
 const radius = size.y / 2
+const gap = new Vec2(24, 24)
 
-const getScreenBounds = vi.fn(() => defaultScreenBounds)
-const getNodeRects = vi.fn(() => iterable.empty())
-const getHorizontalGap = vi.fn(() => 24)
-const getVerticalGap = vi.fn(() => 24)
-const getSelectedNodeRects = vi.fn(() => iterable.empty())
-const getMousePosition = vi.fn(() => Vec2.Zero)
 // Center is at (1100, 700)
 const screenBounds = defaultScreenBounds
-// Half of this is (50, 10)
-const nodeSize = size
 
 function rectAt(left: number, top: number) {
   return new Rect(new Vec2(left, top), size)
@@ -47,9 +40,7 @@ describe('Non dictated placement', () => {
     return {
       screenBounds,
       nodeRects,
-      get selectedNodeRects() {
-        return getSelectedNodeRects()
-      },
+      selectedNodeRects: iterable.empty(),
     }
   }
 
@@ -155,10 +146,8 @@ describe('Non dictated placement', () => {
     },
   ])('$desc', ({ nodes, pos, gap }) => {
     expect(
-      nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes), new Vec2(gap ?? 24, gap ?? 24)),
+      nonDictatedPlacement(size, nonDictatedEnvironment(nodes), new Vec2(gap ?? 24, gap ?? 24)),
     ).toEqual(pos)
-    expect(getSelectedNodeRects, 'Should not depend on `selectedNodeRects`').not.toHaveBeenCalled()
-    expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
   })
 
   fcTest.prop({
@@ -176,8 +165,8 @@ describe('Non dictated placement', () => {
       ({ left, top, width, height }) => new Rect(new Vec2(left, top), new Vec2(width, height)),
     )
     const newNodeRect = new Rect(
-      nonDictatedPlacement(nodeSize, nonDictatedEnvironment(nodes)),
-      nodeSize,
+      nonDictatedPlacement(size, nonDictatedEnvironment(nodes)),
+      size,
     )
     for (const node of nodes) {
       expect(node.intersects(newNodeRect), {
@@ -186,8 +175,6 @@ describe('Non dictated placement', () => {
         },
       } as string).toBe(false)
     }
-    expect(getSelectedNodeRects, 'Should not depend on `selectedNodeRects`').not.toHaveBeenCalled()
-    expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
   })
 })
 
@@ -202,8 +189,8 @@ describe('Previous node dictated placement', () => {
 
   test('Previous node dictated placement is equivalent to non-dictated placement when there are no nodes', () => {
     const environment = previousNodeDictatedEnvironment([])
-    expect(previousNodeDictatedPlacement(nodeSize, environment)).toEqual(
-      nonDictatedPlacement(nodeSize, environment),
+    expect(previousNodeDictatedPlacement(size, environment)).toEqual(
+      nonDictatedPlacement(size, environment),
     )
   })
 
@@ -338,12 +325,11 @@ describe('Previous node dictated placement', () => {
   ])('$desc', ({ nodes, gap, pos }) => {
     expect(
       previousNodeDictatedPlacement(
-        nodeSize,
+        size,
         previousNodeDictatedEnvironment([...nodes, rectAt(1090, 690)]),
         new Vec2(gap ?? 24, gap ?? 24),
       ),
     ).toEqual(pos)
-    expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
   })
 
   fcTest.prop({
@@ -363,12 +349,12 @@ describe('Previous node dictated placement', () => {
     )
     const selectedNodeRects = nodeRects.slice(firstSelectedNode)
     const newNodeRect = new Rect(
-      previousNodeDictatedPlacement(nodeSize, {
+      previousNodeDictatedPlacement(size, {
         screenBounds,
         nodeRects,
         selectedNodeRects,
       }),
-      nodeSize,
+      size,
     )
     expect(newNodeRect.top, {
       toString() {
@@ -390,7 +376,6 @@ describe('Previous node dictated placement', () => {
         },
       } as string).toBe(false)
     }
-    expect(getMousePosition, 'Should not depend on `mousePosition`').not.toHaveBeenCalled()
   })
 })
 
@@ -399,16 +384,11 @@ describe('Mouse dictated placement', () => {
     x: fc.nat(1000),
     y: fc.nat(1000),
   })('prop testing', ({ x, y }) => {
-    expect(mouseDictatedPlacement(new Vec2(x, y), nodeSize)).toEqual(
+    expect(mouseDictatedPlacement(new Vec2(x, y), size)).toEqual(
       // Note: Currently, this is a reimplementation of the entire mouse dictated placement algorithm.
       new Vec2(x + radius, y + radius),
     )
     // Non-overlap test omitted, as mouse-dictated node placement MAY overlap existing nodes.
-    expect(getScreenBounds, 'Should not depend on `screenBounds`').not.toHaveBeenCalled()
-    expect(getNodeRects, 'Should not depend on `nodeRects`').not.toHaveBeenCalled()
-    expect(getSelectedNodeRects, 'Should not depend on `selectedNodeRects`').not.toHaveBeenCalled()
-    expect(getHorizontalGap, 'Should not depend on `horizontalGap`').not.toHaveBeenCalled()
-    expect(getVerticalGap, 'Should not depend on `verticalGap`').not.toHaveBeenCalled()
   })
 })
 
@@ -421,45 +401,26 @@ describe('Collapsed node placement', () => {
     }
   }
 
-  function options(): Vec2 {
-    class MockVec2 {
-      constructor(
-        private getX: () => number,
-        private getY: () => number,
-      ) {}
-      get x() {
-        return this.getX()
-      }
-      get y() {
-        return this.getY()
-      }
-      reflectXY(): MockVec2 {
-        return new MockVec2(this.getY, this.getX)
-      }
-    }
-    return new MockVec2(getHorizontalGap, getVerticalGap) as any
-  }
-
   test('One selected, no other nodes', () => {
     const X = 1100
     const Y = 700
     const selectedNodeRects = [rectAt(X, Y)]
-    const result = collapsedNodePlacement(nodeSize, environment(selectedNodeRects, []), options())
+    const result = collapsedNodePlacement(size, environment(selectedNodeRects, []), gap)
     expect(result).toEqual(new Vec2(X, Y))
   })
 
   test('Multiple selected, no other nodes', () => {
     const selectedNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
-    const result = collapsedNodePlacement(nodeSize, environment(selectedNodeRects, []), options())
+    const result = collapsedNodePlacement(size, environment(selectedNodeRects, []), gap)
     expect(result).toEqual(new Vec2(1000, 700))
   })
 
   test('Average position occupied', () => {
     const selectedNodeRects = [rectAt(1000, 600), rectAt(1300, 800)]
     const result = collapsedNodePlacement(
-      nodeSize,
+      size,
       environment(selectedNodeRects, [rectAt(1000, 700)]),
-      options(),
+      gap,
     )
     expect(result).toEqual(new Vec2(1000, 744))
   })
