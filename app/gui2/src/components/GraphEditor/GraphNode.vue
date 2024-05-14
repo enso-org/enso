@@ -67,6 +67,7 @@ const emit = defineEmits<{
   'update:visualizationVisible': [visible: boolean]
   'update:visualizationFullscreen': [fullscreen: boolean]
   'update:visualizationWidth': [width: number]
+  'update:visualizationHeight': [height: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -220,6 +221,7 @@ function openFullMenu() {
 
 const isDocsVisible = ref(false)
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
+const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
@@ -524,12 +526,14 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
+      :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
       @update:rect="emit('update:visualizationRect', $event)"
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
+      @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
     />

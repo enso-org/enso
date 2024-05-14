@@ -20,6 +20,7 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -174,6 +175,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const { unsetModal } = modalProvider.useSetModal()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
   // and the function call would error.
   // eslint-disable-next-line no-restricted-properties
@@ -615,6 +617,8 @@ export default function AuthProvider(props: AuthProviderProps) {
       setInitialized(false)
       sentry.setUser(null)
       setUserSession(null)
+      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
+      unsetModal()
       // This should not omit success and error toasts as it is not possible
       // to render this optimistically.
       await toast.toast.promise(cognito.signOut(), {
@@ -868,4 +872,14 @@ export function usePartialUserSession() {
 /** A React context hook returning the user session for a user that can perform actions. */
 export function useNonPartialUserSession() {
   return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
+}
+
+// ======================
+// === useUserSession ===
+// ======================
+
+/** A React context hook returning the user session for a user that may or may not be logged in. */
+export function useUserSession() {
+  // eslint-disable-next-line no-restricted-syntax
+  return router.useOutletContext<UserSession | undefined>()
 }

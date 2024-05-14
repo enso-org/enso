@@ -23,6 +23,7 @@ import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Constant_Column.Constant_Column
+import Standard.Table.Internal.Display_Helpers
 import Standard.Table.Internal.Join_Kind_Cross.Join_Kind_Cross
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Replace_Helpers
@@ -35,10 +36,8 @@ import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Row.Row
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
-from Standard.Table.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Table import print_table
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -97,9 +96,12 @@ type DB_Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.read max_rows=show_rows warn_if_more_rows=False
-        all_rows_count = self.row_count
-        display_dataframe df indices_count=0 all_rows_count format_terminal
+        data_fragment_with_warning = self.read max_rows=show_rows warn_if_more_rows=True
+        has_more_rows = data_fragment_with_warning.has_warnings warning_type=Not_All_Rows_Downloaded
+        data_fragment_cleared = data_fragment_with_warning.remove_warnings Not_All_Rows_Downloaded
+        # `row_count` means another Database query is performed, so we only do it if we need to.
+        all_rows_count = if has_more_rows then self.row_count else data_fragment_cleared.row_count
+        Display_Helpers.display_table table=data_fragment_cleared add_row_index=False max_rows_to_show=show_rows all_rows_count=all_rows_count format_terminal=format_terminal
 
     ## PRIVATE
        ADVANCED
@@ -482,6 +484,9 @@ type DB_Table
        - column_map: Mapping from old column names to new or a vector of new
          column names to apply by position. `Regex` objects can be used
          within the mapping to do pattern based renaming.
+         Can also be supplied as a `Table` either with a single column of new
+         names or two columns with old (first column) and new names (second
+         column).
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - error_on_missing_columns: Specifies if a missing input column should
@@ -537,10 +542,14 @@ type DB_Table
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
-        Warning.with_suspended new_names names->
-            self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
+    rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) = case column_map of
+        _ : Table ->
+            resolved = Table_Helpers.read_name_map_from_table column_map
+            self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
+        _ ->
+            new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+            Warning.with_suspended new_names names->
+                self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
     ## GROUP Standard.Base.Metadata
        ICON table_edit
@@ -2942,37 +2951,6 @@ make_table connection table_name columns ctx on_problems =
             DB_Table.Value table_name connection cols ctx
 
 ## PRIVATE
-
-   Renders an ASCII-art representation for a Table from a dataframe that
-   contains a fragment of the underlying data and count of all rows.
-
-   Arguments:
-   - df: The materialized dataframe that contains the data to be displayed, it
-     should have no indices set.
-   - indices_count: Indicates how many columns from the materialized dataframe
-     should be treated as indices in the display (index columns will be bold if
-     `format_terminal` is enabled).
-   - all_rows_count: The count of all rows in the underlying Table; if
-     `all_rows_count` is bigger than the amount of rows of `df`, an additional
-     line will be included that will say how many hidden rows there are.
-   - format_term: A boolean flag, specifying whether to use ANSI escape codes
-     for rich formatting in the terminal.
-display_dataframe : Table -> Integer -> Integer -> Boolean -> Text
-display_dataframe df indices_count all_rows_count format_terminal =
-    cols = Vector.from_polyglot_array df.java_table.getColumns
-    col_names = cols.map .getName . map normalize_string_for_display
-    col_vals = cols.map .getStorage
-    display_rows = df.row_count
-    rows = Vector.new display_rows row_num->
-        col_vals.map col->
-            if col.isNothing row_num then "Nothing" else get_item_string col row_num
-    table = print_table col_names rows indices_count format_terminal
-    if display_rows == all_rows_count then table else
-        missing_rows_count = all_rows_count - display_rows
-        missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
-        table + missing
-
-## PRIVATE
    By default, join on the first column, unless it's a cross join, in which
    case there are no join conditions.
 default_join_condition : DB_Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
@@ -2983,7 +2961,7 @@ default_join_condition table join_kind = case join_kind of
 ## PRIVATE
 Table.from (that:DB_Table) =
     _ = [that]
-    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+    Error.throw (Illegal_Argument.Error "This operation requires the data to be in-memory, materialize the table using `.read`.")
 
 ## PRIVATE
 DB_Table.from (that:Table) =

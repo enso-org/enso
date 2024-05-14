@@ -24,6 +24,14 @@ import * as backendModule from '#/services/Backend'
 import * as components from './components'
 import * as componentForPlan from './getComponentForPlan'
 
+/**
+ * The mutation data for the `onCompleteMutation` mutation.
+ */
+interface CreateCheckoutSessionMutation {
+  readonly plan: backendModule.Plan
+  readonly paymentMethodId: string
+}
+
 /** A page in which the currently active payment plan can be changed.
  *
  * This page can be in one of several states:
@@ -74,13 +82,16 @@ export function Subscribe() {
   })
 
   const onCompleteMutation = reactQuery.useMutation({
-    mutationFn: async (userSelectedPlan: backendModule.Plan) => {
-      const { id } = await backend.createCheckoutSession(userSelectedPlan)
+    mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
+      const { id } = await backend.createCheckoutSession({
+        plan: mutationData.plan,
+        paymentMethodId: mutationData.paymentMethodId,
+      })
       return backend.getCheckoutSession(id)
     },
-    onSuccess: (data, userSelectedPlan) => {
+    onSuccess: (data, mutationData) => {
       if (data.status === 'complete') {
-        navigate({ pathname: appUtils.SUBSCRIBE_SUCCESS_PATH, search: `plan=${userSelectedPlan}` })
+        navigate({ pathname: appUtils.SUBSCRIBE_SUCCESS_PATH, search: `plan=${mutationData.plan}` })
         return
       } else {
         throw new Error(
@@ -128,8 +139,11 @@ export function Subscribe() {
                             title={planProps.title}
                             submitButton={
                               <planProps.submitButton
-                                onSubmit={async () => {
-                                  await onCompleteMutation.mutateAsync(newPlan)
+                                onSubmit={async paymentMethodId => {
+                                  await onCompleteMutation.mutateAsync({
+                                    plan: newPlan,
+                                    paymentMethodId,
+                                  })
                                 }}
                                 elements={elements}
                                 stripe={stripeInstance}

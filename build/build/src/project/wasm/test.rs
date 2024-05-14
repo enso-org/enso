@@ -157,7 +157,6 @@ pub async fn test_all(repo_root: PathBuf, browsers: &[Browser]) -> Result {
                 .apply(&wasm_pack::TestFlags::Headless)
                 .apply_iter(browser_flags.iter().copied())
                 .env("WASM_BINDGEN_TEST_TIMEOUT", "300")
-                // .args(&wasm_pack_args)
                 .arg(member.strip_prefix(&repo_root).with_context(|| {
                     format!(
                         "Failed to strip prefix {} from {}. Is the test part of the repository?",
