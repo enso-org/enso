@@ -951,6 +951,12 @@ add_data_link_specs suite_builder =
                 # The written data link location is returned
                 r1.should_equal cloud_location
 
+                # A secret for the plain-text password is created:
+                secrets = Enso_Secret.list test_root.get
+                secrets.length . should_equal 1
+                secrets.first.name . should_contain "my-postgres-db"
+                secrets.first.name . should_contain "password"
+
                 written_data_link_connection = cloud_location.read
                 Panic.with_finalizer written_data_link_connection.close <|
                     written_data_link_connection.tables.column_names . should_contain "Name"
