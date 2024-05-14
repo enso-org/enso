@@ -25,10 +25,8 @@ use octocrab::models::repos::Asset;
 // ==============
 
 pub mod backend;
-pub mod engine;
 pub mod gui;
 pub mod ide;
-pub mod project_manager;
 pub mod runtime;
 pub mod wasm;
 
@@ -255,20 +253,6 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
     fn matches_asset(&self, _asset: &Asset) -> bool {
         todo!("Not implemented for target {self:?}!")
     }
-
-    // /// Upload the artifact as an asset to the GitHub release.
-    // fn upload_asset(
-    //     &self,
-    //     release_handle: ReleaseHandle,
-    //     output: impl Future<Output = Result<Self::Artifact>> + Send + 'static,
-    // ) -> BoxFuture<'static, Result> {
-    //     async move {
-    //         let artifact = output.await?;
-    //         release_handle.upload_compressed_dir(&artifact).await?;
-    //         Ok(())
-    //     }
-    //     .boxed()
-    // }
 
     fn download_asset(
         &self,

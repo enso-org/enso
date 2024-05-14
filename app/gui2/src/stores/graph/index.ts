@@ -73,7 +73,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const syncModule = computed(() => proj.module && new MutableModule(proj.module.doc.ydoc))
+  const syncModule = computed(() => proj.module && markRaw(new MutableModule(proj.module.doc.ydoc)))
 
   const nodeRects = reactive(new Map<NodeId, Rect>())
   const vizRects = reactive(new Map<NodeId, Rect>())
@@ -248,10 +248,6 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge.value = undefined
   }
 
-  const method = computed(() =>
-    syncModule.value ? methodAstInModule(syncModule.value) : undefined,
-  )
-
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
   function addMissingImports(
     edit: MutableModule,
@@ -344,8 +340,16 @@ export const useGraphStore = defineStore('graph', () => {
     syncModule.value!.transact(fn)
   }
 
-  function stopCapturingUndo() {
-    proj.stopCapturingUndo()
+  const undoManager = {
+    undo() {
+      proj.module?.undoManager.undo()
+    },
+    redo() {
+      proj.module?.undoManager.redo()
+    },
+    undoStackBoundary() {
+      proj.module?.undoManager.stopCapturing()
+    },
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
@@ -667,7 +671,6 @@ export const useGraphStore = defineStore('graph', () => {
     disconnectTarget,
     clearUnconnected,
     moduleRoot,
-    method,
     deleteNodes,
     ensureCorrectNodeOrder,
     batchEdits,
@@ -675,7 +678,7 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeContent,
     setNodePosition,
     setNodeVisualization,
-    stopCapturingUndo,
+    undoManager,
     topLevel,
     updateNodeRect,
     updateVizRect,

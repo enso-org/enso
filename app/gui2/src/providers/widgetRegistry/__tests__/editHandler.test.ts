@@ -112,7 +112,7 @@ test.each`
     expect(editedHandler.handler.isActive()).toBeTruthy()
     interactionHandler.setCurrent(undefined)
     expect(widgetTree.currentEdit).toBeUndefined()
-    checkCallbackCall('cancel')
+    checkCallbackCall('end', undefined)
     expect(editedHandler.handler.isActive()).toBeFalsy()
   },
 )

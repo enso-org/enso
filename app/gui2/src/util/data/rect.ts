@@ -52,6 +52,23 @@ export class Rect {
     return a.equals(b)
   }
 
+  withBounds({ top, left, bottom, right }: Partial<Bounds>): Rect {
+    return Rect.FromBounds(
+      left ?? this.left,
+      top ?? this.top,
+      right ?? this.right,
+      bottom ?? this.bottom,
+    )
+  }
+
+  withBoundsClamped(bounds: Partial<Bounds>): Rect {
+    const left = bounds?.left != null ? Math.min(bounds.left, this.right) : this.left
+    const right = bounds?.right != null ? Math.max(bounds.right, left) : this.right
+    const top = bounds?.top != null ? Math.min(bounds.top, this.bottom) : this.top
+    const bottom = bounds?.bottom != null ? Math.max(bounds.bottom, top) : this.bottom
+    return Rect.FromBounds(left, top, right, bottom)
+  }
+
   isFinite(): boolean {
     return this.pos.isFinite() && this.size.isFinite()
   }
@@ -173,3 +190,16 @@ export class Rect {
 }
 
 Rect.Zero = new Rect(Vec2.Zero, Vec2.Zero)
+
+export interface Bounds {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
+export interface BoundsSet {
+  left?: boolean
+  right?: boolean
+  top?: boolean
+  bottom?: boolean
+}

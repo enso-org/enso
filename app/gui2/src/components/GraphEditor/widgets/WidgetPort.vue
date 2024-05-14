@@ -221,8 +221,8 @@ export const widgetDefinition = defineWidget(
   position: relative;
   text-align: center;
   border-radius: 12px;
-  min-height: 24px;
-  min-width: 24px;
+  min-height: --node-port-height;
+  min-width: --node-port-height;
   box-sizing: border-box;
   padding: 0 var(--widget-port-extra-pad);
   margin: 0 calc(0px - var(--widget-port-extra-pad));
