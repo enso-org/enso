@@ -264,7 +264,7 @@ public class DebuggingEnsoTest {
                 DebugValue vecBuilder = event.getTopStackFrame().eval("vec_builder");
                 // `java_builder` is a field of `vec_builder` atom and it is a HostObject.
                 // As such it should be wrapped, and considered only as an interop string.
-                DebugValue javaBuilder = vecBuilder.getProperty("java_builder");
+                DebugValue javaBuilder = vecBuilder.getProperty("elements_java_builder");
                 assertTrue(javaBuilder.toDisplayString().contains("Array_Builder"));
               }
               event.getSession().suspendNextExecution();
