@@ -164,10 +164,7 @@ describe('Non dictated placement', () => {
     const nodes = nodeData.map(
       ({ left, top, width, height }) => new Rect(new Vec2(left, top), new Vec2(width, height)),
     )
-    const newNodeRect = new Rect(
-      nonDictatedPlacement(size, nonDictatedEnvironment(nodes)),
-      size,
-    )
+    const newNodeRect = new Rect(nonDictatedPlacement(size, nonDictatedEnvironment(nodes)), size)
     for (const node of nodes) {
       expect(node.intersects(newNodeRect), {
         toString() {
