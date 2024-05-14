@@ -2014,7 +2014,7 @@ lazy val `runtime-benchmarks` =
       frgaalJavaCompilerSetting,
       // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ Seq(
         "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion,
         "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion,
         "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
@@ -2047,10 +2047,11 @@ lazy val `runtime-benchmarks` =
         .value,
       parallelExecution := false,
       modulePath := {
-        val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion,
-          "org.slf4j" % "slf4j-nop" % slf4jVersion
-        )
+        val requiredModIds =
+          GraalVM.modules ++ GraalVM.langsPkgs ++ helidon ++ Seq(
+            "org.slf4j" % "slf4j-api" % slf4jVersion,
+            "org.slf4j" % "slf4j-nop" % slf4jVersion
+          )
         val requiredMods = JPMSUtils.filterModulesFromUpdate(
           (Compile / update).value,
           requiredModIds,
