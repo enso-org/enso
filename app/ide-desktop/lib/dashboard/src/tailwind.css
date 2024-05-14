@@ -30,17 +30,14 @@
    * current plan. */
   --missing-functionality-text-padding-x: 1rem;
   /* The horizontal gap between each icon in a list of buttons. */
-  --buttons-gap: 0.5rem;
-  /* The horizontal gap between each icon in a list of icons. */
-  --icons-gap: 0.75rem;
+  --buttons-gap: 0.5rem;/* The horizontal gap between each icon in a list of icons. */
+    --icons-gap: 0.75rem;
   /* The gap between an icon and its associated text. */
   --samples-icon-with-text-gap: 0.375rem;
   /* The horizontal gap between an icon and its associated text in a selector option. */
   --icon-with-text-gap: 0.5rem;
   /* The horizontal gap between an input and its associated submit button. */
   --input-with-button-gap: 0.25rem;
-  /* The vertical gap between the drive heading and the rest of the drive page. */
-  --drive-heading-gap: 0.625rem;
   /* The horizontal gap between the drive sidebar and the asset tree. */
   --drive-gap: 0.75rem;
   /* The gap between the icon and label of a menu entry or context menu entry. */
@@ -409,8 +406,6 @@
   --drive-accessed-by-projects-column-width: 24rem;
   --drive-accessed-data-column-width: 24rem;
   --drive-docs-column-width: 24rem;
-  --extra-columns-panel-padding-x: 0.5rem;
-  --extra-columns-panel-padding-y: 0.5625rem;
   --name-column-padding-x: 0.375rem;
   --name-column-padding-y: 0.125rem;
   --name-column-icon-margin: 0.25rem;

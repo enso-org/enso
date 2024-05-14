@@ -94,14 +94,14 @@ export default function DriveBar(props: DriveBarProps) {
       // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
       // in the given directory, to avoid name collisions.
       return (
-        <div className="flex h-row py-drive-bar-y">
+        <div className="flex h-9 items-center">
           <HorizontalMenuBar />
         </div>
       )
     }
     case Category.trash: {
       return (
-        <div className="flex h-row py-drive-bar-y">
+        <div className="flex h-9 items-center">
           <HorizontalMenuBar>
             <UnstyledButton
               className="flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
@@ -125,13 +125,11 @@ export default function DriveBar(props: DriveBarProps) {
     case Category.cloud:
     case Category.local: {
       return (
-        <div className="flex h-row py-drive-bar-y">
+        <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
             <aria.DialogTrigger>
               <UnstyledButton variant="accent" onPress={() => {}}>
-                <aria.Text className="text relative whitespace-nowrap font-bold">
-                  {getText('startWithATemplate')}
-                </aria.Text>
+                <aria.Text>{getText('startWithATemplate')}</aria.Text>
               </UnstyledButton>
               <Start createProject={doCreateProject} />
             </aria.DialogTrigger>
@@ -141,11 +139,9 @@ export default function DriveBar(props: DriveBarProps) {
                 doCreateProject()
               }}
             >
-              <aria.Text className="text whitespace-nowrap font-bold">
-                {getText('newEmptyProject')}
-              </aria.Text>
+              {getText('newEmptyProject')}
             </UnstyledButton>
-            <div className="flex h-row items-center gap-icons rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
+            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
               <Button
                 active
                 image={AddFolderIcon}
@@ -154,7 +150,7 @@ export default function DriveBar(props: DriveBarProps) {
                   doCreateDirectory()
                 }}
               />
-              {isCloud && (
+              {isCloud && false && (
                 <Button
                   active
                   image={AddKeyIcon}

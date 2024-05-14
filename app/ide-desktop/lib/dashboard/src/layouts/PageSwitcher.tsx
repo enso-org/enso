@@ -4,7 +4,7 @@ import * as React from 'react'
 import clsx from 'clsx'
 
 import DriveIcon from 'enso-assets/drive.svg'
-import NetworkIcon from 'enso-assets/network.svg'
+import WorkspaceIcon from 'enso-assets/workspace.svg'
 
 import type * as text from '#/text'
 
@@ -12,6 +12,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
+import WindowButton from '#/components/styled/WindowButton'
 import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -32,11 +33,7 @@ export enum Page {
 
 const PAGE_DATA: PageUIData[] = [
   { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName' },
-  {
-    page: Page.editor,
-    icon: NetworkIcon,
-    nameId: 'editorPageName',
-  },
+  { page: Page.editor, icon: WorkspaceIcon, nameId: 'editorPageName' },
 ]
 
 //===================
@@ -83,6 +80,10 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     }
   }, [isEditorDisabled])
 
+  const closeWindow = () => {
+    window.close()
+  }
+
   return (
     <FocusArea direction="horizontal">
       {innerProps => (
@@ -90,21 +91,28 @@ export default function PageSwitcher(props: PageSwitcherProps) {
           className="pointer-events-auto flex h-12 shrink-0 grow cursor-default items-center rounded-full"
           {...innerProps}
         >
+          <div
+            className={`flex bg-primary/5 py-[18px] pl-[19px] pr-[29px] ${pageIndex === 0 ? 'rounded-br-3xl' : ''}`}
+          >
+            <WindowButton role="close" onPress={closeWindow} />
+          </div>
           {PAGE_DATA.map((pageData, i) => {
             const active = page === pageData.page
             return (
               <div
                 key={pageData.page}
                 className={clsx(
-                  'h-full px-4',
-                  page !== pageData.page && 'bg-primary/5 hover:enabled:bg-primary/[2.5%]',
+                  'h-full pr-4 transition-all',
+                  page === pageData.page
+                    ? 'pl-[19px]'
+                    : 'bg-primary/5 pl-4 hover:enabled:bg-primary/[2.5%]',
                   active && 'rounded-t-3xl outline outline-[1rem] outline-primary/5 clip-path-0',
                   pageIndex != null && i === pageIndex + 1 && 'rounded-bl-3xl',
                   pageIndex != null && i === pageIndex - 1 && 'rounded-br-3xl'
                 )}
               >
                 <UnstyledButton
-                  className={`flex h-full items-center gap-icon-with-text px-4 selectable ${active ? 'disabled active' : ''}`}
+                  className={`flex h-full items-center gap-3 selectable ${active ? 'disabled active' : ''}`}
                   isDisabled={pageData.page === Page.editor && isEditorDisabled}
                   onPress={() => {
                     setPage(pageData.page)

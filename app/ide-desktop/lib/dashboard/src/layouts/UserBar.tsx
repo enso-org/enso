@@ -69,7 +69,7 @@ export default function UserBar(props: UserBarProps) {
     <FocusArea active={!invisible} direction="horizontal">
       {innerProps => (
         <div
-          className="pointer-events-auto flex h-12 shrink-0 cursor-default items-center gap-user-bar bg-primary/5 px-icons-x"
+          className="pointer-events-auto mt-0.5 flex h-[46px] shrink-0 cursor-default items-center gap-user-bar bg-primary/5 pl-icons-x pr-3"
           {...innerProps}
         >
           <ariaComponents.Button
@@ -99,15 +99,17 @@ export default function UserBar(props: UserBarProps) {
             </ariaComponents.Button>
           )}
 
-          <ariaComponents.Button
-            variant="primary"
-            rounding="full"
-            size="xsmall"
-            className="h-row"
-            href={appUtils.SUBSCRIBE_PATH}
-          >
-            {getText('upgrade')}
-          </ariaComponents.Button>
+          {false && (
+            <ariaComponents.Button
+              variant="primary"
+              rounding="full"
+              size="xsmall"
+              className="h-row"
+              href={appUtils.SUBSCRIBE_PATH}
+            >
+              {getText('upgrade')}
+            </ariaComponents.Button>
+          )}
           {shouldShowShareButton && (
             <ariaComponents.Button
               rounding="full"

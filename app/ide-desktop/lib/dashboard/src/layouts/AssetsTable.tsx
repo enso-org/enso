@@ -2539,13 +2539,13 @@ export default function AssetsTable(props: AssetsTableProps) {
               <div className="flex-0 sticky top flex h flex-col">
                 <div
                   data-testid="extra-columns"
-                  className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
+                  className="sticky right flex self-end px-[5px] py-2.5"
                 >
                   <FocusArea direction="horizontal">
                     {columnsBarProps => (
                       <div
                         {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                          className: 'inline-flex gap-icons',
+                          className: 'inline-flex gap-3',
                           onFocus: () => {
                             setKeyboardSelectedIndex(null)
                           },

@@ -17,9 +17,9 @@ export const VARIANT_CLASSES: Readonly<Record<UnstyledButtonVariant, string>> = 
   // will want to add to all children of elements with `before:absolute` anyway, otherwise the children
   // will render under the backdrop because the backdrop is higher in the stacking order.
   accent:
-    'relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90 *:relative',
+    'relative flex h-row items-center rounded-full px-3 text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90 *:relative text whitespace-nowrap font-bold',
   regular:
-    'flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
+    'flex h-row items-center rounded-full border-0.5 border-primary/20 px-[9.5px] transition-colors hover:bg-primary/10 text whitespace-nowrap font-bold',
 }
 
 // =============================

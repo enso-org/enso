@@ -366,7 +366,7 @@ export default function Drive(props: DriveProps) {
         <div className={`relative flex grow ${hidden ? 'hidden' : ''}`}>
           <div
             data-testid="drive-view"
-            className="mt-4 flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x"
+            className="mt-4 flex flex-1 flex-col gap-4 overflow-hidden px-page-x"
           >
             <DriveBar
               query={query}
