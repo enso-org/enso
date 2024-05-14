@@ -484,6 +484,8 @@ type DB_Table
        - column_map: Mapping from old column names to new or a vector of new
          column names to apply by position. `Regex` objects can be used
          within the mapping to do pattern based renaming.
+         Can also be supplied as a `Table` either with a single column of new
+         names or two columns with old and new names.
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - error_on_missing_columns: Specifies if a missing input column should

@@ -489,6 +489,16 @@ add_specs suite_builder setup =
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 data.table.rename_columns map
 
+        group_builder.specify "should work by single column Table of names" <|
+            vec = Table.new ["Name", ["one", "two", "three"]]
+            expect_column_names ["one", "two", "three", "delta"] <|
+                data.table.rename_columns vec
+
+        group_builder.specify "should work by two column Table of old name, new name" <|
+            vec = Table.from_rows ["Old", "New"] [["beta", "one"], ["delta", "two"], ["alpha", "three"]]
+            expect_column_names ["three", "one", "gamma", "two"] <|
+                data.table.rename_columns vec
+
         group_builder.specify "should work by name case-insensitively" <|
             map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
