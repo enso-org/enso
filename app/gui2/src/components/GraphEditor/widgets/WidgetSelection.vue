@@ -210,6 +210,7 @@ provideSelectionArrow(
       // It will be used to place the dropdown arrow under the constructor name.
       let node = props.input.value
       while (node instanceof Ast.Ast) {
+        if (node instanceof Ast.AutoscopedIdentifier) return node.identifier.id
         if (node instanceof Ast.PropertyAccess) return node.rhs.id
         if (node instanceof Ast.App) node = node.function
         else break
@@ -404,7 +405,7 @@ declare module '@/providers/widgetRegistry' {
   flex-direction: row;
   align-items: center;
   position: relative;
-  min-height: --node-port-height;
+  min-height: var(--node-port-height);
 }
 
 .arrow {
