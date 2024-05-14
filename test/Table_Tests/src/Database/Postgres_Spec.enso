@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
@@ -31,6 +32,7 @@ from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
 
 
@@ -936,6 +938,48 @@ add_data_link_specs suite_builder =
             r = Data.download url target_file
             r.should_fail_with Illegal_Argument
             r.catch.to_display_text . should_contain "The Postgres Data Link cannot be saved to a file."
+
+    cloud_setup = Cloud_Tests_Setup.prepare
+    suite_builder.group "[PostgreSQL] Saving to DataLink" pending=cloud_setup.real_cloud_pending <|
+        test_root = Temporary_Directory.make "Postgres-DataLinks"
+        group_builder.teardown test_root.cleanup
+        group_builder.specify "allows to save an established connection as a Data Link" <|
+            cloud_location = test_root.get / "my-postgres-db.datalink"
+            raw_connection = Database.connection connection_details
+            Panic.with_finalizer raw_connection.close <|
+                r1 = raw_connection.save_as_data_link cloud_location
+                # The written data link location is returned
+                r1.should_equal cloud_location
+
+                written_data_link_connection = cloud_location.read
+                Panic.with_finalizer written_data_link_connection.close <|
+                    written_data_link_connection.tables.column_names . should_contain "Name"
+                    q = written_data_link_connection.query 'SELECT 1 AS "A"'
+                    q.column_names . should_equal ["A"]
+                    q.at "A" . to_vector . should_equal [1]
+
+                # Also test existing file behaviour
+                r2 = raw_connection.save_as_data_link cloud_location
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Already_Exists
+
+                r3 = raw_connection.save_as_data_link cloud_location on_existing_file=Existing_File_Behavior.Overwrite
+                r3.should_succeed
+
+        group_builder.specify "does not allow Backup or Append modes in save_as_data_link" <|
+            cloud_location = test_root.get / "my-postgres-db-2.datalink"
+            raw_connection = Database.connection connection_details
+            Panic.with_finalizer raw_connection.close <|
+                raw_connection.save_as_data_link on_existing_file=Existing_File_Behavior.Backup . should_fail_with Illegal_Argument
+                raw_connection.save_as_data_link on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument
+
+        group_builder.specify "but will not allow to save a connection from a Data Link as a new Data Link" <|
+            ## (Because the Data Link connection is hiding its connection details from the user.)
+            cloud_location = test_root.get / "my-postgres-db-3.datalink"
+            data_link_connection = Data.read data_link_file.get
+            Panic.with_finalizer data_link_connection.close <|
+                r = data_link_connection.save_as_data_link cloud_location
+                r.should_fail_with Illegal_Argument
 
     Audit_Spec.add_specs suite_builder "[PostgreSQL] " data_link_file.get database_pending=pending
 
