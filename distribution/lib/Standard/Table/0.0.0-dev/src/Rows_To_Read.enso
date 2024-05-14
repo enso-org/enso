@@ -12,7 +12,8 @@ type Rows_To_Read
     ## Read the first specified number of rows.
     First rows:Integer=1000
 
-    ## First 1000 Rows with an attached warning if more to read.
+    ## Read a limited number of rows, attaching warning if there is more.
+       By default, a 1000 rows are read.
        This is the default for database reading.
     First_With_Warning rows:Integer=1000
 
