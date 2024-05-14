@@ -25,7 +25,7 @@ const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextI
   [backendModule.AssetType.project]: 'projectAssetType',
   [backendModule.AssetType.file]: 'fileAssetType',
   [backendModule.AssetType.secret]: 'secretAssetType',
-  [backendModule.AssetType.dataLink]: 'connectorAssetType',
+  [backendModule.AssetType.dataLink]: 'dataLinkAssetType',
   [backendModule.AssetType.specialEmpty]: 'specialEmptyAssetType',
   [backendModule.AssetType.specialLoading]: 'specialLoadingAssetType',
 } satisfies { [Type in backendModule.AssetType]: `${Type}AssetType` }

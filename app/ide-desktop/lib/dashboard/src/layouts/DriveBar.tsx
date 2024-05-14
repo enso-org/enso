@@ -2,7 +2,7 @@
  * the current directory and some configuration options. */
 import * as React from 'react'
 
-import AddConnectorIcon from 'enso-assets/add_connector.svg'
+import AddDataLinkIcon from 'enso-assets/add_datalink.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
@@ -150,7 +150,7 @@ export default function DriveBar(props: DriveBarProps) {
               {isCloud && (
                 <Button
                   active
-                  image={AddConnectorIcon}
+                  image={AddDataLinkIcon}
                   alt={getText('newDataLink')}
                   onPress={() => {
                     setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)

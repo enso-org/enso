@@ -99,7 +99,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.dataLink) {
-        const value = await backend.getConnector(item.item.id, item.item.title)
+        const value = await backend.getDataLink(item.item.id, item.item.title)
         setDataLinkValue(value)
         setEditedDataLinkValue(value)
         setIsDataLinkFetched(true)
@@ -273,8 +273,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                           const oldDataLinkValue = dataLinkValue
                           try {
                             setDataLinkValue(editedDataLinkValue)
-                            await backend.createConnector({
-                              connectorId: item.item.id,
+                            await backend.createDataLink({
+                              dataLinkId: item.item.id,
                               name: item.item.title,
                               parentDirectoryId: null,
                               value: editedDataLinkValue,

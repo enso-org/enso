@@ -511,7 +511,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 case backendModule.AssetType.dataLink: {
                   try {
-                    const value = await backend.getConnector(asset.id, asset.title)
+                    const value = await backend.getDataLink(asset.id, asset.title)
                     const fileName = `${asset.title}.datalink`
                     download.download(
                       URL.createObjectURL(

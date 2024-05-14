@@ -1,6 +1,6 @@
 /** @file Shortcuts for the dashboard application. */
 
-import AddConnectorIcon from 'enso-assets/add_connector.svg'
+import AddDataLinkIcon from 'enso-assets/add_datalink.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddKeyIcon from 'enso-assets/add_key.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
@@ -83,7 +83,7 @@ export const BINDINGS = inputBindings.defineBindings({
   newDataLink: {
     name: 'New Data Link',
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+Shift+N'] : ['Mod+Alt+Shift+N', 'Mod+Alt+Shift+~'],
-    icon: AddConnectorIcon,
+    icon: AddDataLinkIcon,
   },
   useInNewProject: {
     name: 'Use In New Project',

@@ -47,8 +47,8 @@ export const UPLOAD_FILE_PATH = 'files'
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
 export const LIST_SECRETS_PATH = 'secrets'
-/** Relative HTTP path to the "create connector" endpoint of the Cloud backend API. */
-export const CREATE_CONNECTOR_PATH = 'connectors'
+/** Relative HTTP path to the "create data link" endpoint of the Cloud backend API. */
+export const CREATE_DATA_LINK_PATH = 'datalinks'
 /** Relative HTTP path to the "create tag" endpoint of the Cloud backend API. */
 export const CREATE_TAG_PATH = 'tags'
 /** Relative HTTP path to the "list tags" endpoint of the Cloud backend API. */
@@ -125,9 +125,9 @@ export function updateSecretPath(secretId: backend.SecretId) {
 export function getSecretPath(secretId: backend.SecretId) {
   return `secrets/${secretId}`
 }
-/** Relative HTTP path to the "get connector" endpoint of the Cloud backend API. */
-export function getConnectorPath(connectorId: backend.ConnectorId) {
-  return `connectors/${connectorId}`
+/** Relative HTTP path to the "get data link" endpoint of the Cloud backend API. */
+export function getDataLinkPath(datalinkId: backend.DataLinkId) {
+  return `datalinks/${datalinkId}`
 }
 /** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
 export function associateTagPath(assetId: backend.AssetId) {

@@ -181,9 +181,9 @@ const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
     deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['file'] }),
   },
   {
-    render: () => 'type:connector',
-    addToQuery: query => query.addToLastTerm({ negativeTypes: ['connector'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['connector'] }),
+    render: () => 'type:datalink',
+    addToQuery: query => query.addToLastTerm({ negativeTypes: ['datalink'] }),
+    deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['datalink'] }),
   },
 ]
 
@@ -1656,7 +1656,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       case AssetListEventType.newDataLink: {
         const placeholderItem: backendModule.DataLinkAsset = {
           type: backendModule.AssetType.dataLink,
-          id: backendModule.ConnectorId(uniqueString.uniqueString()),
+          id: backendModule.DataLinkId(uniqueString.uniqueString()),
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,

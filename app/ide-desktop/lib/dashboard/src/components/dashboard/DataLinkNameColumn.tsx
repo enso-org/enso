@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
-import ConnectorIcon from 'enso-assets/connector.svg'
+import DataLinkIcon from 'enso-assets/datalink.svg'
 
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -23,9 +23,9 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import Visibility from '#/utilities/Visibility'
 
-// =====================
-// === ConnectorName ===
-// =====================
+// ====================
+// === DataLinkName ===
+// ====================
 
 /** Props for a {@link DataLinkNameColumn}. */
 export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
@@ -97,9 +97,9 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
             } else {
               rowState.setVisibility(Visibility.faded)
               try {
-                const { id } = await backend.createConnector({
+                const { id } = await backend.createDataLink({
                   parentDirectoryId: asset.parentId,
-                  connectorId: null,
+                  dataLinkId: null,
                   name: asset.title,
                   value: event.value,
                 })
@@ -145,7 +145,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         }
       }}
     >
-      <img src={ConnectorIcon} className="m-name-column-icon size-icon" />
+      <img src={DataLinkIcon} className="m-name-column-icon size-icon" />
       <EditableSpan
         editable={false}
         onSubmit={async newTitle => {

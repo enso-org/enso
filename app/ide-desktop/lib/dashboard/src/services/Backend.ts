@@ -52,8 +52,8 @@ export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
 /** Unique identifier for a Data Link. */
-export type ConnectorId = newtype.Newtype<string, 'ConnectorId'>
-export const ConnectorId = newtype.newtypeConstructor<ConnectorId>()
+export type DataLinkId = newtype.Newtype<string, 'DataLinkId'>
+export const DataLinkId = newtype.newtypeConstructor<DataLinkId>()
 
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
@@ -341,11 +341,11 @@ export interface SecretInfo {
 }
 
 /** A Data Link. */
-export type Connector = newtype.Newtype<unknown, 'Connector'>
+export type DataLink = newtype.Newtype<unknown, 'DataLink'>
 
 /** Metadata uniquely identifying a Data Link. */
-export interface ConnectorInfo {
-  readonly id: ConnectorId
+export interface DataLinkInfo {
+  readonly id: DataLinkId
 }
 
 /** A label. */
@@ -655,7 +655,7 @@ export enum AssetType {
   project = 'project',
   file = 'file',
   secret = 'secret',
-  dataLink = 'connector',
+  dataLink = 'dataLink',
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
@@ -668,7 +668,7 @@ export enum AssetType {
 export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
-  readonly [AssetType.dataLink]: ConnectorId
+  readonly [AssetType.dataLink]: DataLinkId
   readonly [AssetType.secret]: SecretId
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
@@ -876,7 +876,7 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       break
     }
     case AssetType.dataLink: {
-      result = ConnectorId(id)
+      result = DataLinkId(id)
       break
     }
     case AssetType.secret: {
@@ -1034,7 +1034,7 @@ export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName?: string
   readonly parentDirectoryId?: DirectoryId
-  readonly datalinkId?: ConnectorId
+  readonly datalinkId?: DataLinkId
 }
 
 /** HTTP request body for the "update project" endpoint.
@@ -1068,12 +1068,12 @@ export interface UpdateSecretRequestBody {
   readonly value: string
 }
 
-/** HTTP request body for the "create connector" endpoint. */
-export interface CreateConnectorRequestBody {
+/** HTTP request body for the "create datalink" endpoint. */
+export interface CreateDataLinkRequestBody {
   readonly name: string
   readonly value: unknown
   readonly parentDirectoryId: DirectoryId | null
-  readonly connectorId: ConnectorId | null
+  readonly dataLinkId: DataLinkId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
@@ -1321,11 +1321,11 @@ export default abstract class Backend {
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
   /** Create a Data Link. */
-  abstract createConnector(body: CreateConnectorRequestBody): Promise<ConnectorInfo>
+  abstract createDataLink(body: CreateDataLinkRequestBody): Promise<DataLinkInfo>
   /** Return a Data Link. */
-  abstract getConnector(connectorId: ConnectorId, title: string | null): Promise<Connector>
+  abstract getDataLink(dataLinkId: DataLinkId, title: string | null): Promise<DataLink>
   /** Delete a Data Link. */
-  abstract deleteConnector(connectorId: ConnectorId, title: string | null): Promise<void>
+  abstract deleteDataLink(dataLinkId: DataLinkId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */

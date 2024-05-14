@@ -63,7 +63,7 @@ type SanityCheck<
 export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
   readonly placeholderId: backend.ProjectId
   readonly templateId: string | null
-  readonly datalinkId: backend.ConnectorId | null
+  readonly datalinkId: backend.DataLinkId | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
@@ -84,7 +84,7 @@ export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.upd
 
 /** A signal to create a Data Link. */
 export interface AssetNewDataLinkEvent extends AssetBaseEvent<AssetEventType.newDataLink> {
-  readonly placeholderId: backend.ConnectorId
+  readonly placeholderId: backend.DataLinkId
   readonly value: unknown
 }
 

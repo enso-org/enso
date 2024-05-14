@@ -734,13 +734,13 @@ export default class RemoteBackend extends Backend {
 
   /** Return a Data Link.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createConnector(
-    body: backend.CreateConnectorRequestBody
-  ): Promise<backend.ConnectorInfo> {
-    const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
-    const response = await this.post<backend.ConnectorInfo>(path, body)
+  override async createDataLink(
+    body: backend.CreateDataLinkRequestBody
+  ): Promise<backend.DataLinkInfo> {
+    const path = remoteBackendPaths.CREATE_DATA_LINK_PATH
+    const response = await this.post<backend.DataLinkInfo>(path, body)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createConnectorBackendError', body.name)
+      return await this.throw(response, 'createDataLinkBackendError', body.name)
     } else {
       return await response.json()
     }
@@ -748,14 +748,14 @@ export default class RemoteBackend extends Backend {
 
   /** Return a Data Link.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getConnector(
-    connectorId: backend.ConnectorId,
+  override async getDataLink(
+    datalinkId: backend.DataLinkId,
     title: string
-  ): Promise<backend.Connector> {
-    const path = remoteBackendPaths.getConnectorPath(connectorId)
-    const response = await this.get<backend.Connector>(path)
+  ): Promise<backend.DataLink> {
+    const path = remoteBackendPaths.getDataLinkPath(datalinkId)
+    const response = await this.get<backend.DataLink>(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'getConnectorBackendError', title)
+      return await this.throw(response, 'getDataLinkBackendError', title)
     } else {
       return await response.json()
     }
@@ -763,11 +763,11 @@ export default class RemoteBackend extends Backend {
 
   /** Delete a Data Link.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteConnector(connectorId: backend.ConnectorId, title: string): Promise<void> {
-    const path = remoteBackendPaths.getConnectorPath(connectorId)
+  override async deleteDataLink(datalinkId: backend.DataLinkId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getDataLinkPath(datalinkId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'deleteConnectorBackendError', title)
+      return await this.throw(response, 'deleteDataLinkBackendError', title)
     } else {
       return
     }
