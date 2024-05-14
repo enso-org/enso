@@ -5,7 +5,7 @@ import {
   rangesForInputs,
 } from '@/components/ColorRing/gradient'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
-import { targetIsOutside } from '@/util/autoBlur'
+import { endOnClickOutside } from '@/util/autoBlur'
 import { cssSupported, ensoColor, formatCssColor, parseCssColor } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -49,13 +49,12 @@ const svgElement = ref<HTMLElement>()
 const interaction = injectInteractionHandler()
 
 onMounted(() => {
-  interaction.setCurrent({
-    cancel: () => emit('close'),
-    pointerdown: (e: PointerEvent) => {
-      if (targetIsOutside(e, svgElement.value)) emit('close')
-      return false
-    },
-  })
+  interaction.setCurrent(
+    endOnClickOutside(svgElement, {
+      cancel: () => emit('close'),
+      end: () => emit('close'),
+    }),
+  )
 })
 
 const mouseSelectedAngle = ref<number>()

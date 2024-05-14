@@ -117,8 +117,24 @@ export abstract class Ast {
   }
 
   innerExpression(): Ast {
-    // TODO: Override this in `Documented`, `Annotated`, `AnnotatedBuiltin`
-    return this
+    return this.wrappedExpression()?.innerExpression() ?? this
+  }
+
+  wrappedExpression(): Ast | undefined {
+    return undefined
+  }
+
+  wrappingExpression(): Ast | undefined {
+    const parent = this.parent()
+    return parent?.wrappedExpression()?.is(this) ? parent : undefined
+  }
+
+  wrappingExpressionRoot(): Ast {
+    return this.wrappingExpression()?.wrappingExpressionRoot() ?? this
+  }
+
+  documentingAncestor(): Documented | undefined {
+    return this.wrappingExpression()?.documentingAncestor()
   }
 
   code(): string {
@@ -326,6 +342,14 @@ export abstract class MutableAst extends Ast {
   /** Update the AST according to changes to its corresponding source code. */
   applyTextEdits(textEdits: SourceRangeEdit[], metadataSource?: Module) {
     applyTextEditsToAst(this, textEdits, metadataSource ?? this.module)
+  }
+
+  getOrInitDocumentation(): MutableDocumented {
+    const existing = this.documentingAncestor()
+    if (existing) return this.module.getVersion(existing)
+    return this.module
+      .getVersion(this.wrappingExpressionRoot())
+      .updateValue((ast) => Documented.new('', ast))
   }
 
   ///////////////////
@@ -1573,6 +1597,14 @@ export class Documented extends Ast {
   documentation(): string {
     const raw = uninterpolatedText(this.fields.get('elements'), this.module)
     return raw.startsWith(' ') ? raw.slice(1) : raw
+  }
+
+  wrappedExpression(): Ast | undefined {
+    return this.expression
+  }
+
+  documentingAncestor(): Documented | undefined {
+    return this
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {

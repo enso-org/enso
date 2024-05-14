@@ -52,7 +52,7 @@ type Postgres_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-    Value connection make_new
+    private Value connection make_new
 
     ## ICON data_input
        Closes the connection releasing the underlying database resources
@@ -320,4 +320,3 @@ parse_postgres_encoding encoding_name =
         fallback.catch Any _->
             warning = Unsupported_Database_Encoding.Warning "The database is using an encoding ("+encoding_name.to_display_text+") that is currently not supported by Enso. Falling back to UTF-8. Column/table names may not be mapped correctly if they contain unsupported characters."
             Warning.attach warning Encoding.utf_8
-

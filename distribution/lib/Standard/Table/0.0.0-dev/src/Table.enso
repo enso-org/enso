@@ -37,6 +37,7 @@ import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Constant_Column.Constant_Column
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
+import project.Internal.Display_Helpers
 import project.Internal.Expand_Objects_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
@@ -181,19 +182,7 @@ type Table
              example_display = Examples.inventory_table.display
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        cols = Vector.from_polyglot_array self.java_table.getColumns
-        col_names = ([""] + cols.map .getName) . map normalize_string_for_display
-        col_vals = cols.map .getStorage
-        num_rows = self.row_count
-        display_rows = num_rows.min show_rows
-        rows = Vector.new display_rows row_num->
-            cols = col_vals.map col->
-                if col.isNothing row_num then "Nothing" else get_item_string col row_num
-            [row_num.to_text] + cols
-        table = print_table col_names rows 1 format_terminal
-        if num_rows - display_rows <= 0 then table else
-            missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
-            table + missing
+        Display_Helpers.display_table self add_row_index=True max_rows_to_show=show_rows all_rows_count=self.row_count format_terminal=format_terminal
 
     ## PRIVATE
        ADVANCED
@@ -3027,59 +3016,6 @@ type Table
                 problem_builder_for_unification.attach_problems_before on_problems <|
                     if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
                         Table.new good_columns
-## PRIVATE
-
-   Ensures that the `txt` has at least `len` characters by appending spaces at
-   the end.
-
-   Arguments:
-   - txt: The text to pad.
-   - len: The minimum length of the text.
-pad : Text -> Integer -> Text
-pad txt len =
-    true_len = txt.characters.length
-    txt + (" ".repeat (len - true_len))
-
-## PRIVATE
-
-   Adds ANSI bold escape sequences to text if the feature is enabled.
-
-   Arguments:
-   - enabled: will insert ANSI sequences only if this flag is true and we are not on Windows.
-   - txt: The text to possibly bold.
-ansi_bold : Boolean -> Text -> Text
-ansi_bold enabled txt =
-    case Platform.os of
-        ## Output formatting for Windows is not currently supported.
-        Platform.OS.Windows -> txt
-        _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
-
-## PRIVATE
-
-   A helper function for creating an ASCII-art representation of tabular data.
-
-   Arguments:
-   - header: vector of names of columns in the table.
-   - rows: a vector of rows, where each row is a vector that contains a text
-     representation of each cell
-   - indices_count: the number specifying how many columns should be treated as
-     indices; this will make them in bold font if `format_term` is enabled.
-   - format_term: a boolean flag, specifying whether to use ANSI escape codes
-     for rich formatting in the terminal.
-print_table : Vector Text -> (Vector (Vector Text)) -> Integer -> Boolean -> Text
-print_table header rows indices_count format_term =
-    content_lengths = Vector.new header.length i->
-        max_row = 0.up_to rows.length . fold 0 a-> j-> a.max (rows.at j . at i . characters . length)
-        max_row.max (header.at i . characters . length)
-    header_line = header.zip content_lengths pad . map (ansi_bold format_term) . join ' | '
-    divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
-    row_lines = rows.map r->
-        x = r.zip content_lengths pad
-        ixes = x.take (First indices_count) . map (ansi_bold format_term)
-        with_bold_ix = ixes + x.drop (First indices_count)
-        y = with_bold_ix . join ' | '
-        " " + y
-    ([" " + header_line, divider] + row_lines).join '\n'
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.

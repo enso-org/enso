@@ -967,7 +967,35 @@ test.each(docEditCases)('Documentation edit round trip: $code', (docCase) => {
   expect(edited.code()).toBe(docCase.normalized ?? code)
 })
 
-test('Adding comments', () => {
+test.each([
+  '## Some documentation\nf x = 123',
+  '## Some documentation\n    and a second line\nf x = 123',
+  '## Some documentation## Another documentation??\nf x = 123',
+])('Finding documentation: $code', (code) => {
+  const block = Ast.parseBlock(code)
+  const method = Ast.findModuleMethod(block, 'f')
+  assertDefined(method)
+  expect(method.documentingAncestor()).toBeDefined()
+})
+
+test.each([
+  {
+    code: '## Already documented\nf x = 123',
+    expected: '## Already documented\nf x = 123',
+  },
+  {
+    code: 'f x = 123',
+    expected: '## \nf x = 123',
+  },
+])('Adding documentation: $code', ({ code, expected }) => {
+  const block = Ast.parseBlock(code)
+  const module = block.module
+  const method = module.getVersion(Ast.findModuleMethod(block, 'f')!)
+  method.getOrInitDocumentation()
+  expect(block.code()).toBe(expected)
+})
+
+test('Creating comments', () => {
   const expr = Ast.parse('2 + 2')
   expr.module.replaceRoot(expr)
   expr.update((expr) => Ast.Documented.new('Calculate five', expr))
