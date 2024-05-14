@@ -798,6 +798,10 @@ export class AutoscopedIdentifier extends Ast {
     super(module, fields)
   }
 
+  get identifier(): Token {
+    return this.module.getToken(this.fields.get('identifier').node)
+  }
+
   static tryParse(
     source: string,
     module?: MutableModule,
