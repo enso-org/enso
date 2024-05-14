@@ -30,6 +30,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             datalink.should_be_a Enso_File
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
 
+            # Currently metadata is not available on datalinks
+            datalink.size.should_fail_with Illegal_Argument
+            datalink.creation_time.should_fail_with Illegal_Argument
+
             Test.with_retries <|
                 # We assume that the datalink points to
                 r = datalink.read
@@ -47,6 +51,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             r = datalink.read
             r.should_fail_with Missing_Data_Link_Library
             r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
+
+            # But we can still read the raw Data Link config:
+            Data_Link.read_raw_config datalink . should_contain '{'
 
         group_builder.specify "does not allow to use  Data_Link to read/write regular files" <|
             temp_file = File.create_temporary_file "not-a-datalink" ".txt"

@@ -237,7 +237,8 @@ add_specs suite_builder =
                 source_link.exists . should_be_true
 
                 # But if we read it raw, we can see that it is still a datalink, not just a copy of the data:
-                Data_Link.read_raw_config destination_link . should_equal sample_data_link_content
+                # (We are comparing parsed representation, as things like non-significant whitespace can change within the representation.)
+                Data_Link.read_raw_config destination_link . parse_json . should_equal sample_data_link_content.parse_json
 
             group_builder.specify "should be able to move a datalink using Data_Link.move" <| with_default_credentials <|
                 source_link = source_link_provider.get
@@ -262,7 +263,7 @@ add_specs suite_builder =
                 source_link.exists . should_be_false
 
                 destination_link.read . should_equal "Hello WORLD!"
-                Data_Link.read_raw_config destination_link . should_equal sample_data_link_content
+                Data_Link.read_raw_config destination_link . parse_json . should_equal sample_data_link_content.parse_json
 
 main filter=Nothing =
     suite = Test.build suite_builder->
