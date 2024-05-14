@@ -56,7 +56,7 @@ export function labelOfEntry(
         ...(match.memberOfRanges ?? match.definedInRanges ?? []).flatMap((range) =>
           range.end <= lastSegmentStart ?
             []
-          : [new Range(Math.max(0, range.start - lastSegmentStart), range.end - lastSegmentStart)],
+            : [new Range(Math.max(0, range.start - lastSegmentStart), range.end - lastSegmentStart)],
         ),
         ...(match.nameRanges ?? []).map(
           (range) => new Range(range.start + nameOffset, range.end + nameOffset),
@@ -70,11 +70,10 @@ export function labelOfEntry(
 }
 
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
-  return {
-    label:
-      labelInfo.matchedAlias ? `${labelInfo.label} (${labelInfo.matchedAlias})` : labelInfo.label,
-    matchedRanges: labelInfo.matchedRanges,
-  }
+  const shiftRange = (range: Range) => new Range(range.start + labelInfo.label.length + 2, range.end + labelInfo.label.length + 2)
+  return !labelInfo.matchedAlias ?
+      { label: labelInfo.label, matchedRanges: labelInfo.matchedRanges }
+    : { label: `${labelInfo.label} (${labelInfo.matchedAlias})`, matchedRanges: labelInfo.matchedRanges?.map(shiftRange) }
 }
 
 export interface MatchedSuggestion {
