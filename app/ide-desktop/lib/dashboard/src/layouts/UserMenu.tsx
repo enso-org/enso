@@ -49,10 +49,8 @@ export default function UserMenu(props: UserMenuProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  React.useEffect(() => {
-    requestAnimationFrame(() => {
-      setInitialized(true)
-    })
+  React.useLayoutEffect(() => {
+    setInitialized(true)
   }, [])
 
   const aboutThisAppMenuEntry = (

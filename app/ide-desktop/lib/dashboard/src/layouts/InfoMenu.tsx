@@ -30,7 +30,7 @@ export default function InfoMenu(props: InfoMenuProps) {
   const { getText } = textProvider.useText()
   const [initialized, setInitialized] = React.useState(false)
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     // Change the CSS from the initial state to the final state after the first render.
     // This ensures that the CSS transition triggers.
     setInitialized(true)
