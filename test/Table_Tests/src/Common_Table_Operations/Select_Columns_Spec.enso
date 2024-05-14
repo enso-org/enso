@@ -514,6 +514,18 @@ add_specs suite_builder setup =
             fail_3 . should_fail_with Illegal_Argument
             fail_3.catch.message.should_equal "Expected a table with one or two columns of text values."
 
+        if setup.is_database then group_builder.specify "should error if renaming by Database table (it must be materialized)" <|
+            db_source_table = data.table
+            db_rename_table = data.table.select_columns [0, 1] . cast [0, 1] Value_Type.Char
+            fail_1 = db_source_table.rename_columns db_rename_table
+            fail_1.should_fail_with Illegal_Argument
+            fail_1.catch.message.should_contain "materialize"
+
+            # We also check that renaming an in-memory table with a database table as mapping also fails.
+            fail_2 = (Table.new [["X", [1, 2]]]).rename_columns db_rename_table
+            fail_2.should_fail_with Illegal_Argument
+            fail_2.catch.message.should_contain "materialize"
+
         group_builder.specify "should work by name case-insensitively" <|
             map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
