@@ -51,27 +51,35 @@ object GraalVM {
     * into engine distribution build, so we have to maintain these manually.
     */
 
-  val pythonPkgs = Seq(
-    "org.graalvm.python"   % "python-language"    % version,
-    "org.graalvm.python"   % "python-resources"   % version,
-    "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
-    "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
-    "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
-    "org.graalvm.llvm"     % "llvm-api"           % version,
-    "org.graalvm.truffle"  % "truffle-nfi"        % version,
-    "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
-    "org.graalvm.regex"    % "regex"              % version,
-    "org.graalvm.tools"    % "profiler-tool"      % version,
-    "org.graalvm.shadowed" % "json"               % version,
-    "org.graalvm.shadowed" % "icu4j"              % version,
-    "org.graalvm.shadowed" % "xz"                 % version
-  )
+  val pythonPkgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
+    Seq()
+  } else {
+    Seq(
+      "org.graalvm.python"   % "python-language"    % version,
+      "org.graalvm.python"   % "python-resources"   % version,
+      "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
+      "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
+      "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
+      "org.graalvm.llvm"     % "llvm-api"           % version,
+      "org.graalvm.truffle"  % "truffle-nfi"        % version,
+      "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
+      "org.graalvm.regex"    % "regex"              % version,
+      "org.graalvm.tools"    % "profiler-tool"      % version,
+      "org.graalvm.shadowed" % "json"               % version,
+      "org.graalvm.shadowed" % "icu4j"              % version,
+      "org.graalvm.shadowed" % "xz"                 % version
+    )
+  }
 
-  val jsPkgs = Seq(
-    "org.graalvm.js"       % "js-language" % version,
-    "org.graalvm.regex"    % "regex"       % version,
-    "org.graalvm.shadowed" % "icu4j"       % version
-  )
+  val jsPkgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
+    Seq()
+  } else {
+    Seq(
+      "org.graalvm.js"       % "js-language" % version,
+      "org.graalvm.regex"    % "regex"       % version,
+      "org.graalvm.shadowed" % "icu4j"       % version
+    )
+  }
 
   val chromeInspectorPkgs = Seq(
     "org.graalvm.tools"    % "chromeinspector-tool" % version,
@@ -89,6 +97,8 @@ object GraalVM {
 
   val espressoPkgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
     Seq(
+      "org.graalvm.truffle"  % "truffle-nfi"                            % version,
+      "org.graalvm.truffle"  % "truffle-nfi-libffi"                     % version,
       "org.graalvm.espresso" % "espresso-language"                      % version,
       "org.graalvm.espresso" % "espresso-libs-resources-linux-amd64"    % version,
       "org.graalvm.espresso" % "espresso-runtime-resources-linux-amd64" % version
