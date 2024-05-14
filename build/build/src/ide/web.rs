@@ -9,7 +9,6 @@ use crate::version::ENSO_VERSION;
 
 use anyhow::Context;
 use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
-use ide_ci::io::download_all;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
@@ -35,11 +34,6 @@ lazy_static! {
     /// The file must follow the schema of type [`BuildInfo`].
     pub static ref BUILD_INFO: PathBuf = PathBuf::from("build.json");
 }
-
-pub const IDE_ASSETS_URL: &str =
-    "https://github.com/enso-org/ide-assets/archive/refs/heads/main.zip";
-
-pub const ARCHIVED_ASSET_FILE: &str = "ide-assets-main/content/assets/";
 
 pub mod env {
     use super::*;
@@ -146,16 +140,6 @@ impl FallibleManipulator for IconsArtifacts {
         command.set_env(env::ENSO_BUILD_ICONS, &self.0)?;
         Ok(())
     }
-}
-
-/// Fill the directory under `output_path` with the assets.
-pub async fn download_js_assets(output_path: impl AsRef<Path>) -> Result {
-    let output = output_path.as_ref();
-    let archived_asset_prefix = PathBuf::from(ARCHIVED_ASSET_FILE);
-    let archive = download_all(IDE_ASSETS_URL).await?;
-    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(archive))?;
-    ide_ci::archive::zip::extract_subtree(&mut archive, &archived_asset_prefix, output)?;
-    Ok(())
 }
 
 /// Get a relative path to the Project Manager executable in the PM bundle.
@@ -367,18 +351,6 @@ impl IdeDesktop {
             enso_install_config::bundler::bundle(config).await?;
             store_sha256_checksum(&ide_artifacts.image, &ide_artifacts.image_checksum)?;
         }
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn download_test() -> Result {
-        let temp = TempDir::new()?;
-        download_js_assets(temp.path()).await?;
         Ok(())
     }
 }

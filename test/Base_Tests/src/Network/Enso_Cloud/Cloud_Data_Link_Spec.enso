@@ -16,7 +16,7 @@ import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 from project.Network.Enso_Cloud.Cloud_Tests_Setup import create_local_datalink_to
 
 
-add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
+add_specs suite_builder setup:Cloud_Tests_Setup =
     suite_builder.group "DataLinks in Enso Cloud" pending=setup.real_cloud_pending group_builder->
         group_builder.specify "should be able to access an example HTTP data-link" <|
             ## We assume that the cloud has a sample data-link called `TestDataLink` present

@@ -12,7 +12,6 @@ pub mod location;
 pub mod resolver;
 pub mod shell;
 pub mod version;
-pub mod with_cwd;
 
 pub use command::Command;
 pub use resolver::Resolver;

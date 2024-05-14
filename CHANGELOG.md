@@ -660,6 +660,9 @@
 - [Added ability to write to Data Links.][9750]
 - [Added `Vector.build_multiple`, and better for support for errors and warnings
   inside `Vector.build` and `Vector.build_multiple`.][9766]
+- [Added `Vector.duplicates`.][9917]
+- [Log operations performed on a Postgres database connection obtained through a
+  Data Link.][9873]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -968,6 +971,8 @@
 [9577]: https://github.com/enso-org/enso/pull/9577
 [9750]: https://github.com/enso-org/enso/pull/9750
 [9766]: https://github.com/enso-org/enso/pull/9766
+[9917]: https://github.com/enso-org/enso/pull/9917
+[9873]: https://github.com/enso-org/enso/pull/9873
 
 #### Enso Compiler
 

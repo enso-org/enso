@@ -25,13 +25,11 @@ const emits = defineEmits<{
 const MIN_DRAG_MOVE = 10
 
 const editingEdge: Interaction = {
-  cancel() {
-    graph.clearUnconnected()
-  },
-  pointerdown(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    return edgeInteractionClick(graphNavigator)
-  },
-  pointerup(e: PointerEvent, graphNavigator: GraphNavigator): boolean {
+  cancel: () => graph.clearUnconnected(),
+  end: () => graph.clearUnconnected(),
+  pointerdown: (_e: PointerEvent, graphNavigator: GraphNavigator) =>
+    edgeInteractionClick(graphNavigator),
+  pointerup: (e: PointerEvent, graphNavigator: GraphNavigator) => {
     const originEvent = graph.unconnectedEdge?.event
     if (originEvent?.type === 'pointerdown') {
       const delta = new Vec2(e.screenX, e.screenY).sub(
