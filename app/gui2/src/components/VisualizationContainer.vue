@@ -61,9 +61,11 @@ function hideSelector() {
 
 const realSize = useResizeObserver(contentNode)
 
+// Because ResizeHandles are applying the screen mouse movements, the bouds must be in `screen`
+// space.
 const clientBounds = computed({
   get() {
-    return new Rect(Vec2.Zero, realSize.value)
+    return new Rect(Vec2.Zero, realSize.value.scale(config.scale))
   },
   set(value) {
     if (resizing.left || resizing.right) config.width = value.width / config.scale
