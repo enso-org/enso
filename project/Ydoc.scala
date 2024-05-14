@@ -5,6 +5,8 @@ import scala.sys.process.*
 
 object Ydoc {
 
+  private val npmCommand = if (Platform.isWindows) "npm.cmd" else "npm"
+
   /** Generates the bundled JS source of the Ydoc server.
     *
     * @param buildBase the path to the base directory of this build
@@ -43,7 +45,7 @@ object Ydoc {
     val generator = Tracked.inputChanged[Seq[File], Seq[File]](store) {
       case (changed, _) =>
         if (changed) {
-          "npm --workspace=enso-gui2 run build-ydoc-server-polyglot" ! streams.log
+          s"$npmCommand --workspace=enso-gui2 run build-ydoc-server-polyglot" ! streams.log
         }
         val generatedFiles =
           (ydocServerBase / "target" / "ydoc-server-bundle" / "assets") * "*.js"
