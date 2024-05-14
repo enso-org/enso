@@ -72,7 +72,7 @@ export function labelOfEntry(
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
   return {
     label:
-      labelInfo.matchedAlias ? `${labelInfo.matchedAlias} (${labelInfo.label})` : labelInfo.label,
+      labelInfo.matchedAlias ? `${labelInfo.label} (${labelInfo.matchedAlias})` : labelInfo.label,
     matchedRanges: labelInfo.matchedRanges,
   }
 }
