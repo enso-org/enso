@@ -1268,7 +1268,17 @@ lazy val `ydoc-server` = project
         modName + "/" + mainKlazz
       )
       args
-    }
+    },
+    Compile / resourceGenerators +=
+      Def
+        .task(
+          Ydoc.generateJsBundle(
+            (ThisBuild / baseDirectory).value,
+            baseDirectory.value,
+            streams.value
+          )
+        )
+        .taskValue
   )
   .dependsOn(`syntax-rust-definition`)
   .dependsOn(`logging-service-logback`)

@@ -23,7 +23,7 @@ export default defineConfig({
   build: {
     minify: false, // For debugging
     emptyOutDir: true,
-    outDir: '../../lib/java/ydoc-server/target/classes/dist',
+    outDir: '../../lib/java/ydoc-server/target/ydoc-server-bundle',
     rollupOptions: {
       input: {
         ydocServer: fileURLToPath(new URL('ydoc-server/indexPolyglot.ts', import.meta.url)),

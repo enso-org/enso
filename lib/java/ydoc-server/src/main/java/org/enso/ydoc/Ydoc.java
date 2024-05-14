@@ -14,7 +14,7 @@ import org.graalvm.polyglot.io.IOAccess;
 
 public final class Ydoc implements AutoCloseable {
 
-  private static final String YDOC_SERVER_PATH = "/dist/assets/ydocServer.js";
+  private static final String YDOC_SERVER_PATH = "/ydocServer.js";
 
   private final ExecutorService executor;
   private final ParserPolyfill parser;
