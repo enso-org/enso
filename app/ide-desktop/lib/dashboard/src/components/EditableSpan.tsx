@@ -16,6 +16,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import * as string from '#/utilities/string'
 
 // ====================
 // === EditableSpan ===
@@ -151,7 +152,7 @@ export default function EditableSpan(props: EditableSpanProps) {
   } else {
     return (
       <aria.Text data-testid={props['data-testid']} className={className}>
-        {children}
+        {string.displayGlyphs(children)}
       </aria.Text>
     )
   }

@@ -15,6 +15,7 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
+import * as string from '#/utilities/string'
 
 // =================
 // === Constants ===
@@ -94,7 +95,9 @@ export default function Permission(props: PermissionProps) {
               doDelete(backendModule.getAssetPermissionId(permission))
             }}
           />
-          <aria.Text className="text">{backendModule.getAssetPermissionName(permission)}</aria.Text>
+          <aria.Text className="text">
+            {string.displayGlyphs(backendModule.getAssetPermissionName(permission))}
+          </aria.Text>
         </div>
       )}
     </FocusArea>

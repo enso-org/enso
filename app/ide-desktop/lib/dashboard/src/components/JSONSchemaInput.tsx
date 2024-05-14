@@ -14,6 +14,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
+import * as string from '#/utilities/string'
 
 // =======================
 // === JSONSchemaInput ===
@@ -328,7 +329,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               items={childSchemas}
               selectedIndex={selectedChildIndex}
-              render={childProps => jsonSchema.getSchemaName(defs, childProps.item)}
+              render={childProps =>
+                string.displayGlyphs(jsonSchema.getSchemaName(defs, childProps.item))
+              }
               className="self-start"
               onClick={(childSchema, index) => {
                 setSelectedChildIndex(index)

@@ -150,7 +150,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                   multiple
                   items={backendModule.EVENT_TYPES}
                   selectedIndices={typeIndices}
-                  render={itemProps => EVENT_TYPE_NAME[itemProps.item]}
+                  render={itemProps => <aria.Text>{EVENT_TYPE_NAME[itemProps.item]}</aria.Text>}
                   renderMultiple={itemProps =>
                     itemProps.items.length === 0 ||
                     itemProps.items.length === backendModule.EVENT_TYPES.length
@@ -170,7 +170,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                   multiple
                   items={allEmails}
                   selectedIndices={emailIndices}
-                  render={itemProps => itemProps.item}
+                  render={itemProps => <aria.Text>{itemProps.item}</aria.Text>}
                   renderMultiple={itemProps =>
                     itemProps.items.length === 0 || itemProps.items.length === allEmails.length
                       ? 'All'
@@ -199,7 +199,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByName')
                         : getText('sortByNameDescending')
                   }
-                  className="h-table-row group flex w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.type
@@ -244,7 +244,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByEmail')
                         : getText('sortByEmailDescending')
                   }
-                  className="h-table-row group flex w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.email
@@ -289,7 +289,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByTimestamp')
                         : getText('sortByTimestampDescending')
                   }
-                  className="h-table-row group flex w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.timestamp

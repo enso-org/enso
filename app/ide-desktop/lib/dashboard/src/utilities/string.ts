@@ -57,3 +57,18 @@ export function compareCaseInsensitive(a: string, b: string) {
 export function normalizeName(name: string) {
   return name.trim().replace(/\s+/g, ' ').toLowerCase()
 }
+
+// ======================
+// === displayGlyphs ===
+// ======================
+
+const DISPLAY_GLYPHS_REPLACEMENTS: Record<string, string> = {
+  '.': '․',
+  ' ': ' ',
+  '-': '–',
+}
+
+/** Convert all glyphs in a string into glyphs suitable for display for sentence text (not code). */
+export function displayGlyphs(string: string) {
+  return string.replace(/[. -]/gu, character => DISPLAY_GLYPHS_REPLACEMENTS[character] ?? character)
+}
