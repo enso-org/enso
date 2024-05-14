@@ -31,7 +31,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
             ? getText('stopSortingByModificationDate')
             : getText('sortByModificationDateDescending')
       }
-      className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
+      className="h-table-row group flex w-full cursor-pointer items-center gap-icon-with-text"
     >
       <Button
         active
@@ -43,7 +43,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
         }}
       />
       <UnstyledButton
-        className="flex grow gap-icon-with-text"
+        className="flex grow items-center gap-icon-with-text"
         onPress={() => {
           const nextDirection = isSortActive
             ? sorting.nextSortDirection(sortInfo.direction)

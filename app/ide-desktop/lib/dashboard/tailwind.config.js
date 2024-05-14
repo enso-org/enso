@@ -175,6 +175,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       maxWidth: ({ theme }) => ({ .../** @type {{}}*/ (theme('width')) }),
       height: {
         row: 'var(--row-height)',
+        'table-row': 'var(--table-row-height)',
         text: 'var(--text-height)',
         heading: 'var(--heading-height)',
         'news-item': 'var(--news-item-height)',
@@ -184,7 +185,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'side-panel-heading': 'var(--side-panel-heading-height)',
         'chat-thread-list': 'var(--chat-thread-list-height)',
         'payment-form': 'var(--payment-form-height)',
-        'drive-table-heading': 'var(--drive-table-heading-height)',
         'paragraph-input': 'var(--paragraph-input-height)',
         'autocomplete-suggestions': 'var(--autocomplete-suggestions-height)',
         'dropdown-items': 'var(--dropdown-items-height)',
@@ -273,7 +273,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'button-x': 'var(--button-padding-x)',
         'icons-x': 'var(--icons-padding-x)',
         'drive-bar-y': 'var(--drive-bar-padding-y)',
-        'drive-bar-icons-x': 'var(--drive-bar-icons-padding-x)',
         'selector-x': 'var(--selector-padding-x)',
         'selector-y': 'var(--selector-padding-y)',
         'menu-entry': 'var(--menu-entry-padding)',

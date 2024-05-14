@@ -136,7 +136,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   return (
     <div
-      className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
+      className={`h-table-row group flex min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -160,7 +160,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <Button
         image={FolderArrowIcon}
         alt={item.children == null ? getText('expand') : getText('collapse')}
-        className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
+        buttonClassName="m-[0px] hidden group-hover:inline-block"
+        className={`size-icon cursor-pointer transition-transform duration-arrow ${
           item.children != null ? 'rotate-90' : ''
         }`}
         onPress={() => {

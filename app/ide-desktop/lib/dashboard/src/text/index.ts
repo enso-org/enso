@@ -50,7 +50,7 @@ interface PlaceholderOverrides {
   readonly versionX: [versionNumber: number]
   readonly compareVersionXWithLatest: [versionNumber: number]
   readonly onDateX: [dateString: string]
-  readonly xUsersSelected: [usersCount: number]
+  readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
   readonly upgradeTo: [planName: string]
   readonly enterTheNewKeyboardShortcutFor: [actionName: string]
   readonly downloadProjectError: [projectName: string]

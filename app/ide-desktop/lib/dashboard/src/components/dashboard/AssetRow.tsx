@@ -721,7 +721,7 @@ export default function AssetRow(props: AssetRowProps) {
                     element.focus()
                   }
                 }}
-                className={`h-row rounded-full transition-all ease-in-out rounded-rows-child ${visibility} ${isDraggedOver || selected ? 'selected' : ''}`}
+                className={`h-table-row rounded-full transition-all ease-in-out rounded-rows-child ${visibility} ${isDraggedOver || selected ? 'selected' : ''}`}
                 onClick={event => {
                   unsetModal()
                   onClick(innerProps, event)

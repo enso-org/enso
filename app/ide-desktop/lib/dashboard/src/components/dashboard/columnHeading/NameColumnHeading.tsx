@@ -29,7 +29,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
             ? getText('stopSortingByName')
             : getText('sortByNameDescending')
       }
-      className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+      className="h-table-row group flex w-full items-center gap-icon-with-text px-name-column-x"
       onPress={() => {
         const nextDirection = isSortActive
           ? sorting.nextSortDirection(sortInfo.direction)

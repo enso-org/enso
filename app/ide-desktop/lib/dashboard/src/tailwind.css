@@ -9,6 +9,7 @@
 :root {
   --top-bar-height: 3rem;
   --row-height: 2rem;
+  --table-row-height: 2.3125rem;
   --page-padding-x: 0.8125rem;
   /* The height of the main heading of a page. */
   --heading-height: 2.375rem;
@@ -30,8 +31,8 @@
    * current plan. */
   --missing-functionality-text-padding-x: 1rem;
   /* The horizontal gap between each icon in a list of buttons. */
-  --buttons-gap: 0.5rem;/* The horizontal gap between each icon in a list of icons. */
-    --icons-gap: 0.75rem;
+  --buttons-gap: 0.5rem; /* The horizontal gap between each icon in a list of icons. */
+  --icons-gap: 0.75rem;
   /* The gap between an icon and its associated text. */
   --samples-icon-with-text-gap: 0.375rem;
   /* The horizontal gap between an icon and its associated text in a selector option. */
@@ -99,7 +100,7 @@
   /* The default height for an input with a large default size,
    * indicating that the input expects a lot of text (e.g. a paragraph). */
   --paragraph-input-height: 6rem;
-  --asset-search-bar-gap: 0.625rem;
+  --asset-search-bar-gap: 0.5rem;
   /* The default maximum width of the asset search bar.
    * It is narrower below a certain point, and wider above a certain point. */
   --asset-search-bar-width: 24.5625rem;
@@ -108,7 +109,6 @@
   --permission-display-width: 7.5625rem;
   --permission-type-selector-width: 28.125rem;
   --payment-form-height: 38.75rem;
-  --drive-table-heading-height: 2rem;
   --new-project-button-padding-x: 0.625rem;
   /* The horizontal gap between adjacent column items. */
   --column-items-gap: 0.25rem;
@@ -177,8 +177,6 @@
 
   --drive-bar-gap: 0.625rem;
   --drive-bar-padding-y: 0.125rem;
-  /* The horizontal padding of the entire horizontal list of icons on the drive bar. */
-  --drive-bar-icons-padding-x: 0.75rem;
   /* The gap between each item in the horizontal user bar. */
   --user-bar-gap: 0.5rem;
   /* The gap between a user permission and the corresponding username. */

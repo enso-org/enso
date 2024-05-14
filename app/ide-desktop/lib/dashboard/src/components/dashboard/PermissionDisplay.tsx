@@ -56,7 +56,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           <div
             className={`${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } m-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y`}
+            } ${permission.docs || permission.execute ? 'm-permission-with-border' : ''} h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y`}
           >
             {children}
           </div>

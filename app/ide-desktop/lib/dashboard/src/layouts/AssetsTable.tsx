@@ -105,11 +105,9 @@ const AUTOSCROLL_THRESHOLD_PX = 50
 const AUTOSCROLL_SPEED = 100
 /** The autoscroll speed is `AUTOSCROLL_SPEED / (distance + AUTOSCROLL_DAMPENING)`. */
 const AUTOSCROLL_DAMPENING = 10
-/** The height of the header row. */
-const HEADER_HEIGHT_PX = 33
 /** The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling. */
-const ROW_HEIGHT_PX = 32
+const ROW_HEIGHT_PX = 38
 /** The size of the loading spinner. */
 const LOADING_SPINNER_SIZE_PX = 36
 /** The number of pixels the header bar should shrink when the column selector is visible,
@@ -2075,7 +2073,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (scrollContainer != null) {
         const rect = scrollContainer.getBoundingClientRect()
         if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
-          const distanceToTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
+          const distanceToTop = Math.max(0, rectangle.top - rect.top - ROW_HEIGHT_PX)
           if (distanceToTop < AUTOSCROLL_THRESHOLD_PX) {
             scrollContainer.scrollTop -= Math.floor(
               AUTOSCROLL_SPEED / (distanceToTop + AUTOSCROLL_DAMPENING)
@@ -2100,10 +2098,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }
         const overlapsHorizontally = rect.right > rectangle.left && rect.left < rectangle.right
-        const selectionTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
+        const selectionTop = Math.max(0, rectangle.top - rect.top - ROW_HEIGHT_PX)
         const selectionBottom = Math.max(
           0,
-          Math.min(rect.height, rectangle.bottom - rect.top - HEADER_HEIGHT_PX)
+          Math.min(rect.height, rectangle.bottom - rect.top - ROW_HEIGHT_PX)
         )
         const range = dragSelectionRangeRef.current
         if (!overlapsHorizontally) {
@@ -2454,7 +2452,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </table>
       <div
         data-testid="root-directory-dropzone"
-        className={`sticky left grid max-w-container grow place-items-center ${category !== Category.cloud && category !== Category.local ? 'hidden' : ''}`}
+        className={`group sticky left grid max-w-container grow place-items-center ${category !== Category.cloud && category !== Category.local ? 'hidden' : ''}`}
         onClick={() => {
           setSelectedKeys(new Set())
         }}
@@ -2496,7 +2494,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           }}
         >
           <UnstyledButton
-            className="m-4 flex flex-col items-center gap-3 text-black/30 transition-colors duration-200 hover:text-black/50"
+            className="my-20 flex flex-col items-center gap-3 text-black/30 transition-colors duration-200 group-hover:text-black/50"
             onPress={() => {}}
           >
             <SvgMask src={DropFilesImage} className="size-[186px]" />
@@ -2537,10 +2535,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           <div className="flex h-max min-h-full w-max min-w-full flex-col">
             {isCloud && (
               <div className="flex-0 sticky top flex h flex-col">
-                <div
-                  data-testid="extra-columns"
-                  className="sticky right flex self-end px-[5px] py-2.5"
-                >
+                <div data-testid="extra-columns" className="sticky right flex self-end p-2.5">
                   <FocusArea direction="horizontal">
                     {columnsBarProps => (
                       <div

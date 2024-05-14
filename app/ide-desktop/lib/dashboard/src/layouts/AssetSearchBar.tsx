@@ -279,7 +279,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           data-testid="asset-search-bar"
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className: tailwindMerge.twMerge(
-              'search-bar group relative flex h-row grow items-center gap-asset-search-bar rounded-full px-input-x text-primary',
+              'search-bar group relative flex h-row grow items-center gap-asset-search-bar rounded-full px-3 text-primary',
               className
             ),
             ref: rootRef,
@@ -300,7 +300,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           <div
             className={`pointer-events-none absolute left top z-1 flex w-full flex-col overflow-hidden rounded-default border border-primary/20 transition-colors before:absolute before:inset before:backdrop-blur-default hover:before:bg-frame ${areSuggestionsVisible ? 'before:bg-frame' : ''}`}
           >
-            <div className="padding relative h-row" />
+            <div className="padding relative h-[30px]" />
             {areSuggestionsVisible && (
               <div className="relative flex flex-col gap-search-suggestions">
                 {/* Tags (`name:`, `modified:`, etc.) */}
@@ -398,7 +398,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               </div>
             )}
           </div>
-          <SvgMask src={FindIcon} className="absolute z-1 text-primary/30" />
+          <SvgMask src={FindIcon} className="absolute left-3 z-1 text-primary/30" />
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={getText('assetSearchFieldLabel')}

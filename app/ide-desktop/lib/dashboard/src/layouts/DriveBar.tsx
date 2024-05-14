@@ -128,7 +128,7 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
             <aria.DialogTrigger>
-              <UnstyledButton variant="accent" onPress={() => {}}>
+              <UnstyledButton variant="accent" className="px-2.5" onPress={() => {}}>
                 <aria.Text>{getText('startWithATemplate')}</aria.Text>
               </UnstyledButton>
               <Start createProject={doCreateProject} />
@@ -141,7 +141,7 @@ export default function DriveBar(props: DriveBarProps) {
             >
               {getText('newEmptyProject')}
             </UnstyledButton>
-            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
+            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
               <Button
                 active
                 image={AddFolderIcon}

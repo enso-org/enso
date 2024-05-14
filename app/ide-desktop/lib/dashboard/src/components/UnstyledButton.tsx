@@ -1,6 +1,8 @@
 /** @file An unstyled button with a focus ring and focus movement behavior. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
@@ -51,7 +53,7 @@ export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
 
 /** An unstyled button with a focus ring and focus movement behavior. */
 function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
-  const { tooltip, focusRingPlacement, variant, children, ...buttonProps } = props
+  const { tooltip, focusRingPlacement, variant, children, className = '', ...buttonProps } = props
   const focusChildProps = focusHooks.useFocusChild()
 
   const tooltipElement = tooltip === false ? null : tooltip ?? buttonProps['aria-label']
@@ -62,7 +64,7 @@ function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTML
         {...aria.mergeProps<aria.ButtonProps & React.RefAttributes<HTMLButtonElement>>()(
           buttonProps,
           focusChildProps,
-          { className: variant == null ? '' : VARIANT_CLASSES[variant] },
+          { className: tailwindMerge.twMerge(variant == null ? '' : VARIANT_CLASSES[variant], className) },
           { ref }
         )}
       >

@@ -1,6 +1,7 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
@@ -116,24 +117,28 @@ export default function ManagePermissionsModal<
     // This MUST be an error, otherwise the hooks below are considered as conditionally called.
     throw new Error('Cannot share assets on the local backend.')
   } else {
-    const listedUsers = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [])
-    const listedUserGroups = asyncEffectHooks.useAsyncEffect(
-      null,
-      () => backend.listUserGroups(),
-      []
-    )
+    const usersQuery = reactQuery.useQuery({
+      initialData: [],
+      queryKey: ['users'],
+      queryFn: () => backend.listUsers(),
+    })
+    const userGroupsQuery = reactQuery.useQuery({
+      initialData: [],
+      queryKey: ['user groups'],
+      queryFn: () => backend.listUserGroups(),
+    })
     const canAdd = React.useMemo(
       () => [
-        ...(listedUsers ?? []).filter(
+        ...usersQuery.data.filter(
           listedUser =>
             !permissionsHoldersNames.has(listedUser.name) &&
             !emailsOfUsersWithPermission.has(listedUser.email)
         ),
-        ...(listedUserGroups ?? []).filter(
+        ...userGroupsQuery.data.filter(
           userGroup => !permissionsHoldersNames.has(userGroup.groupName)
         ),
       ],
-      [emailsOfUsersWithPermission, permissionsHoldersNames, listedUsers, listedUserGroups]
+      [emailsOfUsersWithPermission, permissionsHoldersNames, usersQuery.data, userGroupsQuery.data]
     )
     const willInviteNewUser = React.useMemo(() => {
       if (usersAndUserGroups.length !== 0 || email == null || email === '') {
@@ -309,16 +314,18 @@ export default function ManagePermissionsModal<
                         multiple
                         autoFocus
                         placeholder={
-                          // `listedUsers` will always include the current user.
-                          listedUsers?.length !== 1
+                          // `usersQuery.data` will always include the current user.
+                          usersQuery.data.length > 1
                             ? getText('inviteUserPlaceholder')
                             : getText('inviteFirstUserPlaceholder')
                         }
                         type="text"
                         itemsToString={items =>
-                          items.length === 1 && items[0] != null && 'email' in items[0]
-                            ? items[0].email
-                            : getText('xUsersSelected', items.length)
+                          items.length === 1 && items[0] != null
+                            ? 'email' in items[0]
+                              ? items[0].email
+                              : items[0].groupName
+                            : getText('xUsersAndGroupsSelected', items.length)
                         }
                         values={usersAndUserGroups}
                         setValues={setUserAndUserGroups}

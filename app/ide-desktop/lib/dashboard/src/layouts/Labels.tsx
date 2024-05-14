@@ -73,9 +73,12 @@ export default function Labels(props: LabelsProps) {
           className="gap-sidebar-section-heading flex w-full flex-col items-start"
           {...innerProps}
         >
-          <div className="text-header px-sidebar-section-heading-x text-sm font-bold">
+          <aria.Header
+            id="header"
+            className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
+          >
             {getText('labels')}
-          </div>
+          </aria.Header>
           <div
             data-testid="labels-list"
             aria-label={getText('labelsListLabel')}

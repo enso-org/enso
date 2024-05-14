@@ -297,7 +297,7 @@
   "compareWithLatest": "Compare with latest",
   "compareVersionXWithLatest": "Compare version $0 with latest",
   "onDateX": "on $0",
-  "xUsersSelected": "$0 users selected",
+  "xUsersAndGroupsSelected": "$0 users and groups selected",
   "allTrashedItemsForever": "all trashed items forever",
   "resetAllKeyboardShortcuts": "reset all keyboard shortcuts",
   "mustNotBeBlank": "Must not be blank.",

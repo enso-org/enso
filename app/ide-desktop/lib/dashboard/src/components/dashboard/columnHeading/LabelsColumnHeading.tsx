@@ -17,7 +17,7 @@ export default function LabelsColumnHeading(props: column.AssetColumnHeadingProp
   const { getText } = textProvider.useText()
 
   return (
-    <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
+    <div className="h-table-row flex w-full items-center gap-icon-with-text">
       <Button
         active
         image={TagIcon}
