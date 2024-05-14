@@ -618,6 +618,9 @@ type Table
        - column_map: Mapping from old column names to new or a vector of new
          column names to apply by position. `Regex` objects can be used
          within the mapping to do pattern based renaming.
+         Can also be supplied as a `Table` either with a single column of new
+         names or two columns with old (first column) and new names (second
+         column).
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - error_on_missing_columns: Specifies if a missing input column should
@@ -673,10 +676,14 @@ type Table
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.column_naming_helper self.columns column_map case_sensitivity error_on_missing_columns on_problems
-        Warning.with_suspended new_names names->
-            Table.new (self.columns.map c-> c.rename (names.at c.name))
+    rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) = case column_map of
+        _ : Table ->
+            resolved = Table_Helpers.read_name_map_from_table column_map
+            self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
+        _ ->
+            new_names = Table_Helpers.rename_columns self.column_naming_helper self.columns column_map case_sensitivity error_on_missing_columns on_problems
+            Warning.with_suspended new_names names->
+                Table.new (self.columns.map c-> c.rename (names.at c.name))
 
     ## GROUP Standard.Base.Metadata
        ICON table_edit

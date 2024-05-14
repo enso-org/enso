@@ -284,6 +284,21 @@ type Table_Column_Helper
             Error.throw (No_Output_Columns.Error message)
 
 ## PRIVATE
+   A helper function which takes a Table like object and a Table for a name
+   mapping and returns a new Table with the columns renamed according to the
+   mapping.
+read_name_map_from_table : Table -> Vector | Map ! Illegal_Argument
+read_name_map_from_table column_map:Table = case column_map.column_count of
+    1 ->
+        col = column_map.first_column
+        if col.value_type.is_text then col.to_vector else
+            Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
+    2 ->
+        if column_map.first_column.value_type.is_text && column_map.second_column.value_type.is_text then Map.from_vector column_map.rows else
+            Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
+    _ -> Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
+
+## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
    implementations of various Table variants. See the documentation for the
    Table type for details.
