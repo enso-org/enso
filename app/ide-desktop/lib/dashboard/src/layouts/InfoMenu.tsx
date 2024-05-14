@@ -31,16 +31,14 @@ export default function InfoMenu(props: InfoMenuProps) {
   const [initialized, setInitialized] = React.useState(false)
 
   React.useEffect(() => {
-    requestAnimationFrame(() => {
-      setInitialized(true)
-    })
+    // Change the CSS from the initial state to the final state after the first render.
+    // This ensures that the CSS transition triggers.
+    setInitialized(true)
   }, [])
 
   return (
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
-        // The name comes from a third-party API and cannot be changed.
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'info-menu' } : {})}
         className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
         onClick={event => {

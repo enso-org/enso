@@ -53,33 +53,23 @@ export default function AboutModal() {
   ] satisfies readonly (readonly [text.TextId, string])[]
 
   const doCopy = () => {
-    const textContainer = textContainerRef.current
-    if (textContainer == null) {
-      return
-    } else {
-      const firstChild = textContainer.children[0]
-      const lastChild = textContainer.children[textContainer.children.length - 1]
-      if (firstChild != null && lastChild != null) {
-        getSelection()?.setBaseAndExtent(firstChild, 0, lastChild, 2)
-      }
-      const lines = versionsEntries.map(entry => {
-        const [textId, version] = entry
-        return `${getText(textId)} ${version}`
-      })
-      void navigator.clipboard.writeText(lines.join('\n'))
-      if (!isCopied) {
-        setIsCopied(true)
-        setTimeout(() => {
-          setIsCopied(false)
-        }, CLEAR_COPIED_STATE_TIMEOUT_MS)
-      }
-      return
+    const lines = versionsEntries.map(entry => {
+      const [textId, version] = entry
+      return `${getText(textId)} ${version}`
+    })
+    void navigator.clipboard.writeText(lines.join('\n'))
+    if (!isCopied) {
+      setIsCopied(true)
+      setTimeout(() => {
+        setIsCopied(false)
+      }, CLEAR_COPIED_STATE_TIMEOUT_MS)
     }
   }
 
   return (
-    <aria.DialogTrigger defaultOpen>
-      <aria.Button className="h w" />
+    <ariaComponents.DialogTrigger defaultOpen>
+      {/* This button is not visible - it is only to provide the button for this `DialogTrigger`. */}
+      <aria.Button className="h-0 w-0" />
       <ariaComponents.Dialog className="w-[30rem]">
         <div className="relative flex items-center gap-4">
           <SvgMask src={LogoIcon} className="size-16 shrink-0" />
@@ -95,7 +85,9 @@ export default function AboutModal() {
                   const [textId, version] = entry
                   return (
                     <tr key={textId}>
-                      <td className="whitespace-nowrap pr-cell-x">{getText(textId)}</td>
+                      <td className="whitespace-nowrap pr-cell-x align-text-top">
+                        {getText(textId)}
+                      </td>
                       <td>{version}</td>
                     </tr>
                   )
@@ -115,6 +107,6 @@ export default function AboutModal() {
           </div>
         </div>
       </ariaComponents.Dialog>
-    </aria.DialogTrigger>
+    </ariaComponents.DialogTrigger>
   )
 }

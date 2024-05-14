@@ -34,16 +34,22 @@ export default function InfoBar(props: InfoBarProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
+          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-profile-picture backdrop-blur-default"
           {...innerProps}
         >
-          <Button
-            active={isHelpChatOpen}
-            image={ChatIcon}
-            onPress={() => {
-              setIsHelpChatOpen(!isHelpChatOpen)
-            }}
-          />
+          {/* FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/1227
+           * Make help chat work even when signed out.
+           * Note that the original class for the `div` above is `pr-profile-picture px-icons-x`. */}
+          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+          {false && (
+            <Button
+              active={isHelpChatOpen}
+              image={ChatIcon}
+              onPress={() => {
+                setIsHelpChatOpen(!isHelpChatOpen)
+              }}
+            />
+          )}
           <UnstyledButton
             className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
             onPress={() => {

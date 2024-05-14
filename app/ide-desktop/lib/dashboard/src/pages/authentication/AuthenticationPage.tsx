@@ -13,8 +13,6 @@ import FocusArea from '#/components/styled/FocusArea'
 
 /** Props for an {@link AuthenticationPage}. */
 export interface AuthenticationPageProps extends Readonly<React.PropsWithChildren> {
-  // This matches the capitalization of `data-` attributes in React.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'data-testid'?: string
   readonly isNotForm?: boolean
   readonly title: string
