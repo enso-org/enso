@@ -1,6 +1,6 @@
 import type { NodeCreation } from '@/composables/nodeCreation'
 import type { GraphSelection } from '@/providers/graphSelection'
-import type { Node } from '@/stores/graph'
+import type { GraphStore, Node } from '@/stores/graph'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
@@ -119,11 +119,10 @@ function getClipboard() {
 }
 
 export function useGraphEditorClipboard(
+  graphStore: GraphStore,
   nodeSelection: GraphSelection,
   createNodes: NodeCreation['createNodes'],
 ) {
-  const graphStore = useGraphStore()
-
   /** Copy the content of the selected node to the clipboard. */
   function copySelectionToClipboard() {
     const nodes = new Array<Node>()

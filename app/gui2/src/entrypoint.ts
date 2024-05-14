@@ -7,7 +7,7 @@ import { lazyVueInReact } from 'veaury'
 
 import 'enso-dashboard/src/tailwind.css'
 import type { AppRunner } from '../../ide-desktop/lib/types/types'
-import { AsyncApp, setupApp } from './createApp'
+import { AsyncApp } from './asyncApp'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
@@ -46,11 +46,7 @@ window.addEventListener('resize', () => {
   scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
 })
 
-const appRunner = lazyVueInReact(AsyncApp as any, {
-  beforeVueAppMount(app) {
-    setupApp(app as any)
-  },
-}) as AppRunner
+const appRunner = lazyVueInReact(AsyncApp as any /* async VueComponent */) as AppRunner
 
 /** The entrypoint into the IDE. */
 function main() {

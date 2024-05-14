@@ -1,9 +1,7 @@
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type GraphStore, type NodeId } from '@/stores/graph'
 import { computed } from 'vue'
 
-export function useNodeColors(getCssValue: (variable: string) => string) {
-  const graphStore = useGraphStore()
-
+export function useNodeColors(graphStore: GraphStore, getCssValue: (variable: string) => string) {
   function getNodeColor(node: NodeId) {
     const color = graphStore.db.getNodeColorStyle(node)
     if (color.startsWith('var')) {

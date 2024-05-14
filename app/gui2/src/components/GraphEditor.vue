@@ -41,10 +41,11 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { provideGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
-import { useProjectStore } from '@/stores/project'
-import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { provideProjectStore } from '@/stores/project'
+import { groupColorVar, provideSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
@@ -54,14 +55,27 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
+import { isDevMode } from 'shared/util/detect'
+import { computed, onMounted, onUnmounted, ref, shallowRef, toRaw, toRef, watch } from 'vue'
 
 const keyboard = provideKeyboard()
-const graphStore = useGraphStore()
+const projectStore = provideProjectStore()
+const suggestionDb = provideSuggestionDbStore(projectStore)
+const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
+const _visualizationStore = provideVisualizationStore(projectStore)
+
 widgetRegistry.loadBuiltins()
-const projectStore = useProjectStore()
-const suggestionDb = useSuggestionDbStore()
+
+// Initialize suggestion db immediately, so it will be ready when user needs it.
+onMounted(() => {
+  if (isDevMode) {
+    ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
+  }
+})
+onUnmounted(() => {
+  projectStore.disposeYDocsProvider()
+})
 
 // === Navigator ===
 
@@ -103,11 +117,11 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = useStackNavigator()
+const stackNavigator = useStackNavigator(projectStore, graphStore)
 
 // === Toasts ===
 
-const toasts = useGraphEditorToasts()
+const toasts = useGraphEditorToasts(projectStore)
 
 // === Selection ===
 
@@ -137,6 +151,7 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
 )
 
 const { createNode, createNodes, placeNode } = provideNodeCreation(
+  graphStore,
   toRef(graphNavigator, 'viewport'),
   toRef(graphNavigator, 'sceneMousePos'),
   (nodes) => {
@@ -149,6 +164,7 @@ const { createNode, createNodes, placeNode } = provideNodeCreation(
 // === Clipboard Copy/Paste ===
 
 const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
+  graphStore,
   nodeSelection,
   createNodes,
 )
@@ -529,7 +545,7 @@ async function handleFileDrop(event: DragEvent) {
 
 // === Color Picker ===
 
-provideNodeColors((variable) =>
+provideNodeColors(graphStore, (variable) =>
   viewportNode.value ? getComputedStyle(viewportNode.value).getPropertyValue(variable) : '',
 )
 

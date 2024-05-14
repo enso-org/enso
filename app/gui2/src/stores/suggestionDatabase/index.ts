@@ -1,4 +1,5 @@
-import { useProjectStore } from '@/stores/project'
+import { createContextStore } from '@/providers'
+import { useProjectStore, type ProjectStore } from '@/stores/project'
 import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
@@ -10,11 +11,10 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { defineStore } from 'pinia'
 import { LanguageServer } from 'shared/languageServer'
 import type { MethodPointer } from 'shared/languageServerTypes'
 import { exponentialBackoff } from 'shared/util/net'
-import { markRaw, ref, type Ref } from 'vue'
+import { markRaw, proxyRefs, ref, type Ref } from 'vue'
 
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
@@ -69,10 +69,10 @@ class Synchronizer {
   queue: AsyncQueue<{ currentVersion: number }>
 
   constructor(
+    projectStore: ProjectStore,
     public entries: SuggestionDb,
     public groups: Ref<Group[]>,
   ) {
-    const projectStore = useProjectStore()
     const lsRpc = projectStore.lsRpcConnection
     const initState = exponentialBackoff(() =>
       lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
@@ -80,8 +80,8 @@ class Synchronizer {
       if (!capability.ok) {
         capability.error.log('Will not receive database updates')
       }
-      this.setupUpdateHandler(lsRpc)
-      this.loadGroups(lsRpc, projectStore.firstExecution)
+      this.#setupUpdateHandler(lsRpc)
+      this.#loadGroups(lsRpc, projectStore.firstExecution)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
     })
 
@@ -112,7 +112,7 @@ class Synchronizer {
     return { currentVersion: initialDb.value.currentVersion }
   }
 
-  private setupUpdateHandler(lsRpc: LanguageServer) {
+  #setupUpdateHandler(lsRpc: LanguageServer) {
     lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
       this.queue.pushTask(async ({ currentVersion }) => {
         // There are rare cases where the database is updated twice in quick succession, with the
@@ -139,7 +139,7 @@ class Synchronizer {
     })
   }
 
-  private async loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
+  async #loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
     this.queue.pushTask(async ({ currentVersion }) => {
       await firstExecution
       const groups = await exponentialBackoff(() => lsRpc.getComponentGroups())
@@ -159,10 +159,12 @@ class Synchronizer {
   }
 }
 
-export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
-  const entries = new SuggestionDb()
-  const groups = ref<Group[]>([])
+export type SuggestionDbStore = ReturnType<typeof useSuggestionDbStore>
+export const { provideFn: provideSuggestionDbStore, injectFn: useSuggestionDbStore } =
+  createContextStore('suggestionDatabase', (projectStore: ProjectStore) => {
+    const entries = new SuggestionDb()
+    const groups = ref<Group[]>([])
 
-  const _synchronizer = new Synchronizer(entries, groups)
-  return { entries: markRaw(entries), groups, _synchronizer }
-})
+    const _synchronizer = new Synchronizer(projectStore, entries, groups)
+    return proxyRefs({ entries: markRaw(entries), groups, _synchronizer })
+  })

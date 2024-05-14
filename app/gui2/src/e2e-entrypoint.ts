@@ -4,13 +4,13 @@
  * providing mocks for connections with engine and to avoid running dashboard.
  */
 
-import { appRunner } from '@/appRunner'
 import { MockYdocProvider } from '@/util/crdt'
 import { MockTransport, MockWebSocket } from '@/util/net'
-import { createPinia } from 'pinia'
 import { mockDataHandler, mockLSHandler, mockYdocProvider } from '../mock/engine'
 
 import 'enso-dashboard/src/tailwind.css'
+import { createApp } from 'vue'
+import App from './App.vue'
 
 MockTransport.addMock('engine', mockLSHandler)
 MockWebSocket.addMock('data', mockDataHandler)
@@ -24,16 +24,8 @@ window_.fileBrowserApi = {
   },
 }
 
-const pinia = createPinia()
-pinia.use((ctx) => {
-  if (ctx.store.$id === 'graph') {
-    window_.mockExpressionUpdate = ctx.store.mockExpressionUpdate
-  }
-})
-
-// Instead of running through dashboard, setup the app immediately with mocked configuration.
-appRunner.runApp(
-  {
+const app = createApp(App, {
+  config: {
     startup: {
       project: 'Mock_Project',
       displayedProjectName: 'Mock Project',
@@ -48,8 +40,6 @@ appRunner.runApp(
       topBarOffset: '96',
     },
   },
-  'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
-  null,
-  undefined,
-  pinia,
-)
+  projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
+})
+app.mount('#app')

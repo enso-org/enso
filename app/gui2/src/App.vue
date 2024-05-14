@@ -3,19 +3,27 @@ import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideGuiConfig } from '@/providers/guiConfig'
-import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { registerAutoBlurHandler } from '@/util/autoBlur'
-import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
+import {
+  baseConfig,
+  configValue,
+  mergeConfig,
+  type ApplicationConfigValue,
+  type StringConfig,
+} from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
 import { useEventListener } from '@vueuse/core'
-import { isDevMode } from 'shared/util/detect'
-import { computed, onMounted, onUnmounted, toRaw, toRef, watch } from 'vue'
-import type { RootProps } from './createApp'
+import { computed, toRef, watch } from 'vue'
 import { initializePrefixes } from './util/ast/node'
 import { urlParams } from './util/urlParams'
 
-const props = defineProps<RootProps>()
+const props = defineProps<{
+  config: StringConfig
+  projectId: string
+  logEvent: LogEvent
+  hidden: boolean
+  ignoreParamsRegex?: RegExp
+}>()
 
 const classSet = provideAppClassSet()
 
@@ -51,17 +59,6 @@ const appConfig = computed(() => {
 provideGuiConfig(computed((): ApplicationConfigValue => configValue(appConfig.value.config)))
 
 registerAutoBlurHandler()
-
-// Initialize suggestion db immediately, so it will be ready when user needs it.
-onMounted(() => {
-  const suggestionDb = useSuggestionDbStore()
-  if (isDevMode) {
-    ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
-  }
-})
-onUnmounted(() => {
-  useProjectStore().disposeYDocsProvider()
-})
 </script>
 
 <template>
