@@ -8,7 +8,7 @@ import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */

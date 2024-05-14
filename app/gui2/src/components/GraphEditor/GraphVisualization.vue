@@ -43,7 +43,6 @@ import {
 const MIN_WIDTH_PX = 200
 const MIN_HEIGHT_PX = 16
 const DEFAULT_HEIGHT_PX = 150
-const TOP_WITHOUT_TOOLBAR_PX = 36
 const TOP_WITH_TOOLBAR_PX = 72
 
 // Used for testing.
