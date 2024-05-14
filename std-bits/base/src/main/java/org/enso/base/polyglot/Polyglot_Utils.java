@@ -37,15 +37,12 @@ public class Polyglot_Utils {
       throw new WrappedDataflowError(item);
     }
 
-    //if (item.receiver instanceof Atom atom && atom.getConstructor().getType() == "Decimal") {
     if (item.hasMember("big_decimal")) {
       Object member = item.getMember("big_decimal").asHostObject();
       if (member instanceof BigDecimal bigDecimal) {
         return bigDecimal;
       }
     }
-// ((org.enso.interpreter.runtime.data.atom.BoxingAtom)item.receiver).getConstructor().getType()
-// item.getMember("big_decimal")
 
     var ret = item.as(Object.class);
     if (ret instanceof BigInteger && item.fitsInLong()) {
