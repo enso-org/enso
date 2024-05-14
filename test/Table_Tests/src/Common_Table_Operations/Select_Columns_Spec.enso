@@ -1,11 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Position, Value_Type, Bits
+from Standard.Table import Position, Value_Type, Bits, Table
 from Standard.Table.Errors import all
 
 from Standard.Test import all
-
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
 
