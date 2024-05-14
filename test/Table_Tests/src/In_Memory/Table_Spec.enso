@@ -903,7 +903,7 @@ add_specs suite_builder =
 
             r = t.join db_table
             r.should_fail_with Illegal_Argument
-            r.catch.message . contains "cross-backend" . should_be_true
+            r.catch.message . contains "materialize" . should_be_true
 
     suite_builder.group "[In-Memory-specific] Table.set" group_builder->
         group_builder.specify "should allow using vector and range for a new column" <|
