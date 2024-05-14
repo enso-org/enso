@@ -490,14 +490,30 @@ add_specs suite_builder setup =
                 data.table.rename_columns map
 
         group_builder.specify "should work by single column Table of names" <|
-            vec = Table.new ["Name", ["one", "two", "three"]]
+            table_1 = Table.new ["Name", ["one", "two", "three"]]
             expect_column_names ["one", "two", "three", "delta"] <|
-                data.table.rename_columns vec
+                data.table.rename_columns table_1
 
         group_builder.specify "should work by two column Table of old name, new name" <|
-            vec = Table.from_rows ["Old", "New"] [["beta", "one"], ["delta", "two"], ["alpha", "three"]]
+            table_2 = Table.from_rows ["Old", "New"] [["beta", "one"], ["delta", "two"], ["alpha", "three"]]
             expect_column_names ["three", "one", "gamma", "two"] <|
-                data.table.rename_columns vec
+                data.table.rename_columns table_2
+
+        group_builder.specify "should error if not correct table structure" <|
+            table_1 = Table.new [["Name", [1, 2, 3]]]
+            fail_1 = data.table.rename_columns table_1
+            fail_1 . should_fail_with Illegal_Argument
+            fail_1.catch.message.should_equal "Expected a table with one or two columns of text values."
+
+            table_2 = Table.new Table.from_rows ["Old", "New"] [["beta", 1], ["delta", 2], ["alpha", 3]]
+            fail_2 = data.table.rename_columns table_2
+            fail_2 . should_fail_with Illegal_Argument
+            fail_2.catch.message.should_equal "Expected a table with one or two columns of text values."
+
+            table_3 = Table.new [["Name", ["A", "B", "C"]], ["NewName", ["AA", "BB", "CC"]], ["Another", ["a", "b", "c"]]]
+            fail_3 = data.table.rename_columns table_3
+            fail_3 . should_fail_with Illegal_Argument
+            fail_3.catch.message.should_equal "Expected a table with one or two columns of text values."
 
         group_builder.specify "should work by name case-insensitively" <|
             map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]

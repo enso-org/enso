@@ -545,7 +545,7 @@ type DB_Table
     rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) = case column_map of
         _ : Table ->
             resolved = Table_Helpers.read_name_map_from_table column_map
-            self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems else
+            self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
         _ ->
             new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
             Warning.with_suspended new_names names->
