@@ -2961,7 +2961,7 @@ default_join_condition table join_kind = case join_kind of
 ## PRIVATE
 Table.from (that:DB_Table) =
     _ = [that]
-    Error.throw (Illegal_Argument.Error "This operation requires the data in-memory, materialize the table using `.read`.")
+    Error.throw (Illegal_Argument.Error "This operation requires the data to be in-memory, materialize the table using `.read`.")
 
 ## PRIVATE
 DB_Table.from (that:Table) =
