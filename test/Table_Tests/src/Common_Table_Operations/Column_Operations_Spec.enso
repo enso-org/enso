@@ -1780,14 +1780,10 @@ add_specs suite_builder setup =
 
         group_builder.specify "Binary ops" <|
             t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123E50"]]]
-            q = (t.at "x" + t.at "y").to_vector
-            p n = IO.println (n.to_text + " " + n.internal_representation.to_text)
-            (t.at "x" + t.at "y").to_vector . map p
-            [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"] . map p
             (t.at "x" + t.at "y").to_vector . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
-            IO.println <| (t.at "x" - t.at "y").to_vector # . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
-            IO.println <| (t.at "x" * t.at "y").to_vector # . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
-            IO.println <| (t.at "x" / t.at "y").to_vector # . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
+            (t.at "x" - t.at "y").to_vector . should_equal [Decimal.new "-12299999999999999999999999999999999999999976742754654.654654655"]
+            (t.at "x" * t.at "y").to_vector . should_equal [Decimal.new "2.860641177477477477435E+62"]
+            (t.at "x" / t.at "y").to_vector . should_equal [Decimal.new "1"]
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object

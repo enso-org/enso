@@ -8,6 +8,8 @@ import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 from project.Errors import Inexact_Type_Coercion
 
+polyglot java import java.math.BigDecimal
+
 polyglot java import org.enso.table.data.column.builder.Builder as Java_Builder
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
 polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
@@ -69,6 +71,14 @@ closest_storage_type value_type = case value_type of
         if is_integer then BigIntegerType.INSTANCE else BigDecimalType.INSTANCE
     _ ->
         Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
+
+enso_to_java x = case x of
+    Decimal.Value big_decimal -> big_decimal
+    _ -> x
+
+java_to_enso x = case x of
+    _ : BigDecimal -> Decimal.Value x
+    _ -> x
 
 ## PRIVATE
    Converts a value type to an in-memory storage type, possibly approximating it

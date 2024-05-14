@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigInteger;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 
