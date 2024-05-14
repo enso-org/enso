@@ -31,7 +31,7 @@ from project.Enso_Cloud.Public_Utils import get_required_field
 type Existing_Enso_Asset
     ## PRIVATE
        Represents an existing asset within the Enso cloud.
-    Value title:Text id:Text asset_type:Enso_Asset_Type
+    private Value title:Text id:Text asset_type:Enso_Asset_Type
 
     ## PRIVATE
        Target URI for the api

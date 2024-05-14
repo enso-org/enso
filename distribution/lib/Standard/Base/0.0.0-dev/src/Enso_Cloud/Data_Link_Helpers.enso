@@ -111,7 +111,7 @@ secure_value_to_json (value : Text | Enso_Secret) -> JS_Object | Text =
     case value of
         text : Text -> text
         secret : Enso_Secret ->
-            JS_Object.from_pairs [["type", "secret"], ["secretPath", secret.internal_path.to_text]]
+            JS_Object.from_pairs [["type", "secret"], ["secretPath", secret.path.to_text]]
 
 ## PRIVATE
 parse_format (json : Any) -> Any ! Illegal_State = case json of

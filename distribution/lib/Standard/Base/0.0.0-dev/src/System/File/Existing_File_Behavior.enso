@@ -1,3 +1,11 @@
+import project.Data.Vector.Vector
+import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
+from project.Data.Boolean import Boolean, False, True
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
+
 ## Specifies the behavior of a write operation when the destination file
    already exists.
 type Existing_File_Behavior
@@ -20,3 +28,16 @@ type Existing_File_Behavior
     ## If the file already exists, a `File_Error.Already_Exists` error is
        raised.
     Error
+
+    widget (include_overwrite:Boolean = True) (include_backup:Boolean = True) (include_append:Boolean = True) (include_error:Boolean = True) -> Widget =
+        fqn = Meta.get_qualified_type_name Existing_File_Behavior
+        options = Vector.build builder->
+            if include_overwrite then
+                builder.append (Option "Overwrite" fqn+".Overwrite")
+            if include_backup then
+                builder.append (Option "Backup" fqn+".Backup")
+            if include_append then
+                builder.append (Option "Append" fqn+".Append")
+            if include_error then
+                builder.append (Option "Error" fqn+".Error")
+        Single_Choice display=Display.Always values=options

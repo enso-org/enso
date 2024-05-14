@@ -72,7 +72,7 @@ type Enso_File
         Enso_File.Value (Enso_Path.parse path)
 
     ## PRIVATE
-    Value (enso_path : Enso_Path)
+    private Value (enso_path : Enso_Path)
 
     ## ICON folder
        Represents the root folder of the current users.
