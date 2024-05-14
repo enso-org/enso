@@ -19,11 +19,6 @@ const props = defineProps<{
   belowToolbar?: boolean
 }>()
 
-/** The minimum width must be at least the total width of:
- * - both of toolbars that are always visible (32px + 60px), and
- * - the 4px flex gap between the toolbars. */
-const MIN_WIDTH_PX = 200
-
 const config = useVisualizationConfig()
 
 watchEffect(() => (config.isBelowToolbar = props.belowToolbar))
@@ -52,8 +47,6 @@ function blur(event: Event) {
 }
 
 const contentNode = ref<HTMLElement>()
-
-onMounted(() => (config.width = MIN_WIDTH_PX))
 
 function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
