@@ -16,6 +16,9 @@ type Author
 type Book
     Value title author
 
+type My_Error
+    Error
+
 Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
         _ -> Spec_Result.Failure "Expected a parse error, but no error reported."
@@ -147,6 +150,10 @@ add_specs suite_builder =
         group_builder.specify "should be buildable from pairs" <|
             JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
             JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
+
+        group_builder.specify "`from_pairs` should propagate errors" <|
+            JS_Object.from_pairs [["key", (Error.throw My_Error.Error)]] . should_fail_with My_Error
+            JS_Object.from_pairs [[(Error.throw My_Error.Error), "value"]] . should_fail_with My_Error
 
         group_builder.specify "should be handle equality on a key level" <|
             JS_Object.from_pairs [["a", 42]] . should_equal <| Json.parse '{"a": 42}'
