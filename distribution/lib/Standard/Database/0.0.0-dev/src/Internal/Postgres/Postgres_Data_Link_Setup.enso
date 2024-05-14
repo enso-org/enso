@@ -37,7 +37,6 @@ type Postgres_Data_Link_Setup
                                 schema_part = if details.schema.not_empty then [["schema", details.schema]] else []
                                 credential_part = if credentials.is_nothing.not then [["credentials", credentials]] else []
                                 header + connection_part + schema_part + credential_part
-                            IO.println json
                             Data_Link.write_config destination json replace_existing
                 _ -> Error.throw (Illegal_Argument.Error "Currently a connection can only be saved as a Data Link into the Enso Cloud. Please provide an `Enso_File` as destination.")
 
