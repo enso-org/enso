@@ -991,7 +991,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / run / connectInput) := true,
     commands += WithDebugCommand.withDebug,
     libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
-    libraryDependencies ++= circe,
+    libraryDependencies ++= circe ++ helidon,
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"              % typesafeConfigVersion,
       "com.github.pureconfig"      %% "pureconfig"          % pureconfigVersion,
@@ -1060,7 +1060,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     Test / modulePath := {
       val updateReport = (Test / update).value
       val requiredModIds =
-        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
           "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
@@ -1503,7 +1503,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     Test / modulePath := {
       val updateReport = (Test / update).value
       val requiredModIds =
-        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
           "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
@@ -1552,7 +1552,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (LocalProject("runtime") / Compile / productDirectories).value ++
         (LocalProject(
           "syntax-rust-definition"
-        ) / Compile / productDirectories).value
+        ) / Compile / productDirectories).value ++
+        (LocalProject("ydoc-server") / Compile / productDirectories).value
       val extraModsToPatch = JPMSUtils.filterModulesFromUpdate(
         (Test / update).value,
         Seq(
