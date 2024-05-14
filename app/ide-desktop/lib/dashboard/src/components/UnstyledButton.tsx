@@ -1,7 +1,7 @@
 /** @file An unstyled button with a focus ring and focus movement behavior. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import * as focusHooks from '#/hooks/focusHooks'
 

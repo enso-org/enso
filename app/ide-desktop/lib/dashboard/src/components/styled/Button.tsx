@@ -1,14 +1,14 @@
 /** @file A styled button. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ==============
 // === Button ===
