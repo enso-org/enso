@@ -83,7 +83,7 @@ export default function Editor(props: EditorProps) {
         } else if (binaryAddress == null) {
           toastAndLog('noBinaryEndpointError')
         } else {
-          let ydocAddress;
+          let ydocAddress: string
           if (ydocUrl == null) {
             ydocAddress = 'undefined'
           } else if (URL.canParse(ydocUrl)) {
