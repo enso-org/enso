@@ -1871,7 +1871,7 @@ lazy val `runtime-integration-tests` =
           Level.Warn
         ),
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
         "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk"      % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
@@ -1918,7 +1918,7 @@ lazy val `runtime-integration-tests` =
       Test / modulePath := {
         val updateReport = (Test / update).value
         val requiredModIds =
-          GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
+          GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
             "org.slf4j"           % "slf4j-api"               % slf4jVersion,
             "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion,
             "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
