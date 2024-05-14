@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import AstDocumentation from '@/components/AstDocumentation.vue'
+import PlainTextEditor from '@/components/PlainTextEditor.vue'
+import { useAstDocumentation } from '@/composables/astDocumentation'
 import { type Node } from '@/stores/graph'
+import { computed } from 'vue'
 
 const editing = defineModel<boolean>('editing', { required: true })
 const props = defineProps<{ node: Node }>()
+
+const { documentation: astDocumentation } = useAstDocumentation(() => props.node.outerExpr)
+const documentation = computed({
+  // This returns the same value as the `astDocumentation` getter, but with fewer reactive dependencies.
+  get: () => props.node.documentation ?? '',
+  set: (value) => (astDocumentation.value = value),
+})
 </script>
 <template>
   <div v-if="editing || props.node.documentation?.trimStart()" class="GraphNodeComment">
-    <AstDocumentation
-      v-model:editing="editing"
-      :ast="props.node.outerExpr"
-      :documentation="props.node.documentation ?? ''"
-      preferSingleLine
-    />
+    <PlainTextEditor v-model="documentation" v-model:focused="editing" singleLine />
   </div>
 </template>
 

@@ -13,6 +13,7 @@ import {
   watch,
   type Ref,
   type WatchSource,
+  type toValue,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -156,3 +157,5 @@ export function syncSet<T>(target: Set<T>, newState: Set<T>) {
   for (const oldKey of target) if (!newState.has(oldKey)) target.delete(oldKey)
   for (const newKey of newState) if (!target.has(newKey)) target.add(newKey)
 }
+
+export type ToValue<T> = Parameters<typeof toValue<T>>[0]
