@@ -108,7 +108,7 @@ create_datalink_from_stream_action (destination : Enso_File) (allow_existing : B
             stream_result.if_not_error <|
                 payload = JS_Object.from_pairs <|
                     [["parentDirectoryId", parent_directory_asset.id], ["name", title], ["value", raw_json]]
-                        + (if existing_asset.is_nothing then [] else [["connectorId", existing_asset.id]])
+                        + (if existing_asset.is_nothing then [] else [["datalinkId", existing_asset.id]])
 
                 Asset_Cache.invalidate destination
                 response = Utils.http_request_as_json HTTP_Method.Post Utils.datalinks_api payload
