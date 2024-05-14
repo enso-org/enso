@@ -1,3 +1,4 @@
+import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { computed, type Ref } from 'vue'
 import { createContextStore } from '.'
 
@@ -16,7 +17,6 @@ function eventLogger(logEvent: Ref<LogEvent>, projectId: Ref<string>) {
 
   return {
     async send(message: string) {
-      console.log('event:', message)
       logEvent.value(message, logProjectId.value)
     },
   }
