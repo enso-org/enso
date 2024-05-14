@@ -445,7 +445,7 @@ Enso_Asset_Type.from (that:Text) = case that of
 ## PRIVATE
 File_Format_Metadata.from (that:Enso_File) =
     asset_type = that.asset_type.catch File_Error _->Nothing
-    if asset_type == Enso_Asset_Type.Data_Link then File_Format_Metadata.Value path=that.path name=that.name content_type=Data_Link.data_link_content_type else
+    if asset_type == Enso_Asset_Type.Data_Link then File_Format_Metadata.Value path=that.path name=that.name content_type=Data_Link_Helpers.data_link_content_type else
         File_Format_Metadata.Value path=that.path name=that.name extension=(that.extension.catch _->Nothing)
 
 ## PRIVATE
