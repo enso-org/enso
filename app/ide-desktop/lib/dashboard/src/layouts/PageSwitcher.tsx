@@ -102,7 +102,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
               <div
                 key={pageData.page}
                 className={clsx(
-                  'h-full pr-4 transition-all',
+                  'h-full pr-4 transition-[padding-left]',
                   page === pageData.page
                     ? 'pl-[19px]'
                     : 'bg-primary/5 pl-4 hover:enabled:bg-primary/[2.5%]',

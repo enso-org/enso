@@ -31,7 +31,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
             ? getText('stopSortingByModificationDate')
             : getText('sortByModificationDateDescending')
       }
-      className="h-table-row group flex w-full cursor-pointer items-center gap-icon-with-text"
+      className="group flex h-table-row w-full cursor-pointer items-center gap-icon-with-text"
     >
       <Button
         active

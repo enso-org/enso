@@ -10,6 +10,7 @@ import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
+import * as aria from '#/components/aria'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
@@ -131,7 +132,7 @@ export default function AssetPanel(props: AssetPanelProps) {
       </div>
       {item == null || setItem == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
-          {getText('selectExactlyOneAssetToViewItsDetails')}
+          <aria.Text>{getText('selectExactlyOneAssetToViewItsDetails')}</aria.Text>
         </div>
       ) : (
         <>

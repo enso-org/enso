@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
 import UnstyledButton from '#/components/UnstyledButton'

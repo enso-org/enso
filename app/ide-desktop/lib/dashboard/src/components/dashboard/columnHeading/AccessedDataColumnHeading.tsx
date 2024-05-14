@@ -17,7 +17,7 @@ export default function AccessedDataColumnHeading(props: column.AssetColumnHeadi
   const { getText } = textProvider.useText()
 
   return (
-    <div className="h-table-row flex w-full items-center gap-icon-with-text">
+    <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         active
         image={AccessedDataIcon}

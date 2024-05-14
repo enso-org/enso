@@ -2498,7 +2498,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             onPress={() => {}}
           >
             <SvgMask src={DropFilesImage} className="size-[186px]" />
-            {getText('assetsDropzoneDescription')}
+            <aria.Text className="text">{getText('assetsDropzoneDescription')}</aria.Text>
           </UnstyledButton>
         </aria.FileTrigger>
       </div>

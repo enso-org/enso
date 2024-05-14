@@ -94,7 +94,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                       />
                     </td>
                     <td className="border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
-                      {info.name}
+                      <aria.Text>{info.name}</aria.Text>
                     </td>
                     <td className="group min-w-max border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
                       <FocusArea direction="horizontal">

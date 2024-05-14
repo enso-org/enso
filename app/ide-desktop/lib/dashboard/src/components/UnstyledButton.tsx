@@ -1,14 +1,14 @@
 /** @file An unstyled button with a focus ring and focus movement behavior. */
 import * as React from 'react'
 
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import type * as focusRing from '#/components/styled/FocusRing'
 import FocusRing from '#/components/styled/FocusRing'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -64,11 +64,16 @@ function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTML
         {...aria.mergeProps<aria.ButtonProps & React.RefAttributes<HTMLButtonElement>>()(
           buttonProps,
           focusChildProps,
-          { className: tailwindMerge.twMerge(variant == null ? '' : VARIANT_CLASSES[variant], className) },
+          {
+            className: tailwindMerge.twMerge(
+              variant == null ? '' : VARIANT_CLASSES[variant],
+              className
+            ),
+          },
           { ref }
         )}
       >
-        {children}
+        {typeof children === 'string' ? <aria.Text>{children}</aria.Text> : children}
       </aria.Button>
     </FocusRing>
   )

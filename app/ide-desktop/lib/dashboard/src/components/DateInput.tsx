@@ -119,7 +119,9 @@ export default function DateInput(props: DateInputProps) {
           })}
         >
           <div className="flex grow flex-col items-center">
-            {date != null ? dateTime.formatDate(date) : getText('noDateSelected')}
+            <aria.Text>
+              {date != null ? dateTime.formatDate(date) : getText('noDateSelected')}
+            </aria.Text>
           </div>
           {date != null && (
             <UnstyledButton

@@ -8,6 +8,7 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetVersion from '#/layouts/AssetVersion'
 import * as useAssetVersions from '#/layouts/AssetVersions/useAssetVersions'
 
+import * as aria from '#/components/aria'
 import Spinner from '#/components/Spinner'
 import * as spinnerModule from '#/components/Spinner'
 
@@ -51,15 +52,15 @@ export default function AssetVersions(props: AssetVersionsProps) {
     <div className="pointer-events-auto flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
       {(() => {
         if (!isCloud) {
-          return <div>{getText('localAssetsDoNotHaveVersions')}</div>
+          return <aria.Text>{getText('localAssetsDoNotHaveVersions')}</aria.Text>
         } else if (isPending) {
           return <Spinner size={32} state={spinnerModule.SpinnerState.loadingMedium} />
         } else if (status === 'error') {
-          return <div>{getText('listVersionsError')}</div>
+          return <aria.Text>{getText('listVersionsError')}</aria.Text>
         } else if (versions.length === 0) {
-          return <div>{getText('noVersionsFound')}</div>
+          return <aria.Text>{getText('noVersionsFound')}</aria.Text>
         } else if (!latestVersion) {
-          return <div>{getText('fetchLatestVersionError')}</div>
+          return <aria.Text>{getText('fetchLatestVersionError')}</aria.Text>
         } else {
           return versions.map((version, i) => (
             <AssetVersion
