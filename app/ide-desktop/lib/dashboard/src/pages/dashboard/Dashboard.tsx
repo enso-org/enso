@@ -49,7 +49,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
-import { AppRunner } from '../../../../types/types'
+import { EditorRunner } from '../../../../types/types'
 
 // ============================
 // === Global configuration ===
@@ -117,7 +117,7 @@ LocalStorage.registerKey('projectStartupInfo', {
 export interface DashboardProps {
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
-  readonly appRunner: AppRunner | null
+  readonly appRunner: EditorRunner | null
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null

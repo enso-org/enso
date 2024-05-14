@@ -148,7 +148,7 @@ export interface AppProps {
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly appRunner: types.AppRunner | null
+  readonly appRunner: types.EditorRunner | null
 }
 
 /** Component called by the parent module, returning the root React component for this

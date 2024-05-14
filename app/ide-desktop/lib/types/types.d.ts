@@ -10,13 +10,14 @@ interface StringConfig {
     readonly [key: string]: StringConfig | string
 }
 
-interface AppProps {
+interface EditorProps {
     config: StringConfig | null
     projectId: string
-    metadata?: object
+    hidden?: boolean
+    ignoreParamsRegex?: RegExp
     logEvent(message: string, projectId?: string | undefined, metadata?: object): void
 }
 
 /** The value passed from the entrypoint to the dashboard, which enables the dashboard to
  * open a new IDE instance. */
-type AppRunner = React.ComponentType<AppProps>
+type EditorRunner = React.ComponentType<EditorProps>

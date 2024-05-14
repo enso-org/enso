@@ -30,7 +30,7 @@ export interface EditorProps {
   readonly hidden: boolean
   readonly ydocUrl: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly appRunner: types.AppRunner | null
+  readonly appRunner: types.EditorRunner | null
 }
 
 /** The container that launches the IDE. */
@@ -58,7 +58,7 @@ export default function Editor(props: EditorProps) {
     }
   }, [projectStartupInfo, hidden])
 
-  const appProps: types.AppProps | null = React.useMemo(() => {
+  const appProps: types.EditorProps | null = React.useMemo(() => {
     if (projectStartupInfo == null) return null
     const { project } = projectStartupInfo
     const projectId = projectStartupInfo.projectAsset.id
@@ -89,9 +89,9 @@ export default function Editor(props: EditorProps) {
         },
       },
       projectId,
-      logEvent,
       hidden,
       ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
+      logEvent,
     }
   }, [projectStartupInfo, toastAndLog, hidden])
 
