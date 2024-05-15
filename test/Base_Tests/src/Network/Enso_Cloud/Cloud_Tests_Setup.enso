@@ -177,8 +177,10 @@ type Mock_Credentials
 type Temporary_Directory
     Value ~get
 
+    timestamp_text -> Text = Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|"
+
     make (name : Text) (with_initializer : (Enso_File -> Any) = (_->Nothing)) -> Temporary_Directory = Temporary_Directory.Value <|
-        directory_name = "test-run-"+name+"-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")
+        directory_name = "test-run-"+name+"-"+Temporary_Directory.timestamp_text
         test_root = (Enso_File.root / directory_name).create_directory
         with_initializer test_root . if_not_error test_root
 
