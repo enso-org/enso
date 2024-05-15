@@ -51,6 +51,9 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
+    watch: {
+      ignored: ['**/playwright-report/*', '**/test-results/*', '**/vite.config.ts.timestamp-*.mjs'],
+    },
   },
   resolve: {
     alias: {
