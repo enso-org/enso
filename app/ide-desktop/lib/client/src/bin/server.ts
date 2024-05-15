@@ -74,8 +74,31 @@ export class Config {
 
 /** Determine the initial available communication endpoint, starting from the specified port,
  * to provide file hosting services. */
-async function findPort(port: number): Promise<number> {
-    return await portfinder.getPortPromise({ port, startPort: port })
+async function findPort(port: number, stopPort: number): Promise<number> {
+    return await portfinder.getPortPromise({ port, startPort: port, stopPort })
+}
+
+// ================
+// === Port Use ===
+// ================
+
+/**
+ * Check if a port is in use.
+ */
+async function isPortInUse(port: number): Promise<boolean> {
+    // we need to check if the port is in use
+    // by finding the nearest port that is not in use
+    // we limit the search to the next port
+    // because we should check only the port provided
+    // and not the whole range
+    // if the port is in use, the function will throw
+    // and we will know that the port is in use
+    try {
+        await findPort(port, port)
+        return false
+    } catch (e) {
+        return true
+    }
 }
 
 // ==============
@@ -98,10 +121,20 @@ export class Server {
     /** Server constructor. */
     static async create(config: Config): Promise<Server> {
         const localConfig = Object.assign({}, config)
-        localConfig.port = await findPort(localConfig.port)
-        const server = new Server(localConfig)
-        await server.run()
-        return server
+
+        if (await isPortInUse(localConfig.port)) {
+            logger.error(
+                `💥Port ${localConfig.port} is already in use. Please close the application using it and try again.`
+            )
+
+            return Promise.reject(
+                `💥Port ${localConfig.port} is already in use. Please close the application using it and try again.`
+            )
+        } else {
+            const server = new Server(localConfig)
+            await server.run()
+            return server
+        }
     }
 
     /** Start the server. */

@@ -147,7 +147,7 @@ declare global {
             // === Cloud environment variables ===
 
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_REDIRECT: string
+            readonly ENSO_CLOUD_REDIRECT?: string
             // When unset, the `.env` loader tries to load `.env` rather than `.<name>.env`.
             // Set to the empty string to load `.env`.
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
