@@ -283,6 +283,7 @@ lazy val enso = (project in file("."))
     `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
+    yaml,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -691,6 +692,15 @@ lazy val `syntax-rust-definition` = project
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java"
+  )
+
+lazy val yaml = (project in file("lib/java/yaml"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-yaml" % circeYamlVersion % "provided"
+    )
   )
 
 lazy val pkg = (project in file("lib/scala/pkg"))
@@ -2259,6 +2269,7 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
+    .dependsOn(yaml)
     .dependsOn(LocalProject("runtime"))
 
 /* Note [Unmanaged Classpath]
@@ -2314,6 +2325,9 @@ lazy val `engine-runner` = project
         MergeStrategy.concat
       case "reference.conf" =>
         MergeStrategy.concat
+      // remove once https://github.com/snakeyaml/snakeyaml/pull/12 gets integrated
+      case PathList("org", "yaml", "snakeyaml", "introspector", xs @ _*) =>
+        MergeStrategy.preferProject
       case PathList(xs @ _*) if xs.last.contains("module-info") =>
         // runner.jar must not be a JPMS module
         MergeStrategy.discard
@@ -2396,6 +2410,7 @@ lazy val `engine-runner` = project
       .value
   )
   .dependsOn(`version-output`)
+  .dependsOn(yaml)
   .dependsOn(pkg)
   .dependsOn(cli)
   .dependsOn(`library-manager`)
