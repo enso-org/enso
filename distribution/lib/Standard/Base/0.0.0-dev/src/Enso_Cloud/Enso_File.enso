@@ -432,7 +432,7 @@ Enso_Asset_Type.from (that:Text) = case that of
     "file" -> Enso_Asset_Type.File
     "directory" -> Enso_Asset_Type.Directory
     "secret" -> Enso_Asset_Type.Secret
-    "connector" -> Enso_Asset_Type.Data_Link
+    "datalink" -> Enso_Asset_Type.Data_Link
     _ -> Error.throw (Illegal_Argument.Error "Invalid asset type: "+that.pretty+".")
 
 ## PRIVATE
