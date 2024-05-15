@@ -38,7 +38,7 @@ prepare_visualization y max_rows=1000 =
             make_json_for_table dataframe [index] all_rows_count
         _ : DB_Column -> prepare_visualization x.to_table max_rows
         _ : DB_Table ->
-            dataframe = x.read max_rows warn_if_more_rows=False
+            dataframe = x.read (..First max_rows)
             all_rows_count = x.row_count
             make_json_for_table dataframe [] all_rows_count
         _ : Function ->
@@ -196,7 +196,7 @@ make_json_for_value val level=0 = case val of
             "Row{" + (prepared.join ", ") + "}"
     _ : DB_Column ->
         if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
-            materialise = val.read 5 warn_if_more_rows=False
+            materialise = val.read (..First 5)
             truncated = materialise . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "Column{" + val.name + ": " + prepared + "}"

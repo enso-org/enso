@@ -58,6 +58,7 @@ import project.Match_Columns.Match_Columns
 import project.Position.Position
 import project.Prefix_Name.Prefix_Name
 import project.Row.Row
+import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
@@ -1832,12 +1833,10 @@ type Table
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    rows : Integer | Nothing -> Boolean -> Vector Row
-    rows self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows : Boolean = True) =
-        proxy = Rows_View.Value (self.read max_rows warn_if_more_rows)
+    @max_rows Rows_To_Read.default_widget
+    rows : Rows_To_Read -> Vector Row
+    rows self (max_rows : Rows_To_Read = ..All_Rows) =
+        proxy = Rows_View.Value (self.read max_rows)
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
     ## GROUP Standard.Base.Selections
@@ -2371,18 +2370,16 @@ type Table
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Integer | Nothing) -> Boolean -> Table
-    read self (max_rows : Integer | Nothing = Nothing) (warn_if_more_rows:Boolean = True) = case max_rows of
-        Nothing -> self
-        _ : Integer ->
-            truncated = self.take (First max_rows)
-            needs_warning = warn_if_more_rows && self.row_count > max_rows
-            if needs_warning.not then truncated else
+    @max_rows Rows_To_Read.default_widget
+    read : Rows_To_Read -> Table
+    read self (max_rows : Rows_To_Read = ..All_Rows) = case max_rows of
+        Rows_To_Read.All_Rows -> self
+        Rows_To_Read.First n -> self.take (First n)
+        Rows_To_Read.First_With_Warning n ->
+            truncated = self.take (First n)
+            if self.row_count <= n then truncated else
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
-                    Not_All_Rows_Downloaded.Warning max_rows
+                    Not_All_Rows_Downloaded.Warning n
 
     ## ALIAS metadata, field info, column types
        GROUP Standard.Base.Metadata
