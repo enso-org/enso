@@ -34,7 +34,7 @@ export default function InfoBar(props: InfoBarProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-profile-picture backdrop-blur-default"
+          className="px-profile-picture pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default"
           {...innerProps}
         >
           {/* FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/1227
@@ -51,7 +51,7 @@ export default function InfoBar(props: InfoBarProps) {
             />
           )}
           <UnstyledButton
-            className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+            className="size-profile-picture flex select-none items-center overflow-clip rounded-full"
             onPress={() => {
               updateModal(oldModal => (oldModal?.type === InfoMenu ? null : <InfoMenu />))
             }}

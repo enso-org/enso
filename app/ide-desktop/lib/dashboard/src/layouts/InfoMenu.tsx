@@ -40,7 +40,7 @@ export default function InfoMenu(props: InfoMenuProps) {
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
         {...(!hidden ? { 'data-testid': 'info-menu' } : {})}
-        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
+        className={`right-top-bar-margin top-top-bar-margin absolute flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'p-profile-picture size-row-h'}`}
         onClick={event => {
           event.stopPropagation()
         }}
@@ -48,8 +48,8 @@ export default function InfoMenu(props: InfoMenuProps) {
         <div
           className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
         >
-          <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
-            <img src={LogoIcon} className="pointer-events-none size-profile-picture" />
+          <div className="size-profile-picture flex shrink-0 items-center overflow-clip rounded-full">
+            <img src={LogoIcon} className="size-profile-picture pointer-events-none" />
           </div>
           <aria.Text className="text">{common.PRODUCT_NAME}</aria.Text>
         </div>
