@@ -3,8 +3,6 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
-
 // ===============================
 // === readEnvironmentFromFile ===
 // ===============================
@@ -50,10 +48,17 @@ export async function readEnvironmentFromFile() {
         if (!isProduction || entries.length > 0) {
             Object.assign(process.env, variables)
         }
+        const buildInfo = await (async () => {
+            try {
+                return await import('../../../../../build.json', { type: 'json' })
+            } catch {
+                return { commit: '', version: '', engineVersion: '', name: '' }
+            }
+        })()
         // @ts-expect-error This is the only file where `process.env` should be written to.
-        process.env.ENSO_CLOUD_DASHBOARD_VERSION ??= BUILD_INFO.version
+        process.env.ENSO_CLOUD_DASHBOARD_VERSION ??= buildInfo.version
         // @ts-expect-error This is the only file where `process.env` should be written to.
-        process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH ??= BUILD_INFO.commit
+        process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH ??= buildInfo.commit
     } catch (error) {
         if (missingKeys.length !== 0) {
             console.warn('Could not load `.env` file; disabling cloud backend.')
