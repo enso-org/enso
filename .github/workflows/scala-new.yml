@@ -47,10 +47,6 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - name: Setup Node
-        uses: actions/setup-node@v4
-      - name: Install dependencies
-        uses: bahmutov/npm-install@v1
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -60,6 +56,10 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+      - name: Install dependencies
+        uses: bahmutov/npm-install@v1
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
