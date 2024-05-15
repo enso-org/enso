@@ -5,7 +5,7 @@ import LogoIcon from 'enso-assets/enso_logo.svg'
 
 import type * as text from '#/text'
 
-import * as supportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -28,7 +28,7 @@ const CLEAR_COPIED_STATE_TIMEOUT_MS = 2_500
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
-  const supportsLocalBackend = supportsLocalBackendProvider.useSupportsLocalBackend()
+  const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const [isCopied, setIsCopied] = React.useState(false)
   const textContainerRef = React.useRef<HTMLTableSectionElement | null>(null)
@@ -75,7 +75,7 @@ export default function AboutModal() {
           <SvgMask src={LogoIcon} className="size-16 shrink-0" />
           <div className="flex flex-col gap-3">
             <div className="text-base font-semibold">
-              {supportsLocalBackend
+              {localBackend != null
                 ? getText('appNameDesktopEdition')
                 : getText('appNameCloudEdition')}
             </div>
