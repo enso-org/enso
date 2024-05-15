@@ -15,15 +15,7 @@ import { LazySyncEffectSet } from '@/util/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
-import {
-  computed,
-  effectScope,
-  isReactive,
-  reactive,
-  toRaw,
-  type ComputedRef,
-  type DebuggerOptions,
-} from 'vue'
+import { computed, effectScope, reactive, toRaw, type ComputedRef, type DebuggerOptions } from 'vue'
 
 export type OnDelete = (cleanupFn: () => void) => void
 
