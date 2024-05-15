@@ -22,12 +22,11 @@ import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setu
 import enso_dev.Base_Tests.System.File_Spec as Local_File_Spec
 
 test_credentials -> AWS_Credential ! Illegal_State =
-    access_key_id = Environment.get "ENSO_LIB_S3_AWS_ACCESS_KEY_ID"
-    secret_access_key = Environment.get "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY"
-    credentials = access_key_id.if_not_nothing <|
-        secret_access_key.if_not_nothing <|
-            AWS_Credential.Key access_key_id secret_access_key
-    credentials.if_nothing (Error.throw (Illegal_State.Error "No AWS credentials found in the environment."))
+    access_key_id = Environment.get "ENSO_LIB_S3_AWS_ACCESS_KEY_ID" ""
+    secret_access_key = Environment.get "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY" ""
+    credentials_set = access_key_id.not_empty && secret_access_key.not_empty
+    if credentials_set then AWS_Credential.Key access_key_id secret_access_key else
+        Error.throw (Illegal_State.Error "No AWS credentials found in the environment.")
 
 ## Runs the action, overriding `AWS_Credential.Default` to point to `test_credentials`.
 with_default_credentials ~action =

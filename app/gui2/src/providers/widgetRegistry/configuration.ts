@@ -128,7 +128,7 @@ export interface FunctionCall {
 export interface OneOfFunctionCalls {
   kind: 'OneOfFunctionCalls'
   /** A list of possible function calls and their corresponding configuration.
-   * The key is typically a fully qualified name of the function, but in general it can be anything,
+   * The key is typically a fully qualified or autoscoped name of the function, but in general it can be anything,
    * depending on the widget implementation. */
   possibleFunctions: Map<string, FunctionCall>
 }
