@@ -140,10 +140,22 @@ object SbtLicenses {
     new SourceAccess {
       override def access[R](withSources: Path => R): R =
         IO.withTemporaryDirectory { root =>
-          IO.unzip(jarPath.toFile, root)
+          IO.unzip(jarPath.toFile, root, jarFileNameFilter)
           withSources(root.toPath)
         }
     }
+
+  /** Filter for the files extracted from the JAR archive.
+    *
+    * Filtered files:
+    * - Files with absolute paths
+    *
+    * @param name the file name in the JAR archive
+    * @return the predicate indicating if the path should be extracted
+    */
+  private def jarFileNameFilter(name: String): Boolean = {
+    !name.startsWith("/")
+  }
 
   /** Returns a sequence of [[SourceAccess]] instances that give access to any
     * sources JARs that are available with the dependency.
