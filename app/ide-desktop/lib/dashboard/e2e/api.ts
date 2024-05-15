@@ -459,9 +459,9 @@ export async function mockApi({ page }: MockParams) {
 
     await put(remoteBackendPaths.UPLOAD_USER_PICTURE_PATH + '*', async (route, request) => {
       console.log(
-        request.postData(),
         request.postDataBuffer(),
         request.postDataJSON(),
+        request.postData(),
         await request.allHeaders()
       )
       const content = request.postData()

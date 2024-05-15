@@ -1,6 +1,5 @@
 /** @file Test the user settings tab. */
 import * as test from '@playwright/test'
-import * as chai from 'chai'
 
 import * as actions from './actions'
 
@@ -89,7 +88,7 @@ test.test('upload profile picture', async ({ page }) => {
   const fileChooser = await fileChooserPromise
   const name = 'foo.png'
   const content = 'a profile picture'
-  await fileChooser.setFiles([{ name, buffer: Buffer.from(content), mimeType: 'image/png' }])
+  await fileChooser.setFiles([{ name, mimeType: 'image/png', buffer: Buffer.from(content) }])
   await test
     .expect(() => {
       test.expect(api.currentProfilePicture()).toEqual(content)

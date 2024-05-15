@@ -68,7 +68,12 @@ export default class HttpClient {
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
   async putBinary<T = void>(url: string, payload: Blob) {
-    return await this.request<T>(HttpMethod.put, url, payload, 'application/octet-stream')
+    return await this.request<T>(
+      HttpMethod.put,
+      url,
+      payload,
+      payload.type || 'application/octet-stream'
+    )
   }
 
   /** Send an HTTP DELETE request to the specified URL. */

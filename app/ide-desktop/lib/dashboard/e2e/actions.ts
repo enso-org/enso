@@ -884,7 +884,8 @@ interface MockParams {
 // eslint-disable-next-line no-restricted-syntax
 async function mockDate({ page }: MockParams) {
   // https://github.com/microsoft/playwright/issues/6347#issuecomment-1085850728
-  await page.addInitScript(`{
+  await test.test.step('Mock Date', async () => {
+    await page.addInitScript(`{
         Date = class extends Date {
             constructor(...args) {
                 if (args.length === 0) {
@@ -898,6 +899,7 @@ async function mockDate({ page }: MockParams) {
         const __DateNow = Date.now;
         Date.now = () => __DateNow() + __DateNowOffset;
     }`)
+  })
 }
 
 // ========================
@@ -908,12 +910,14 @@ async function mockDate({ page }: MockParams) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockIDEContainer({ page }: MockParams) {
-  await page.evaluate(() => {
-    const ideContainer = document.getElementById('app')
-    if (ideContainer) {
-      ideContainer.style.height = '100vh'
-      ideContainer.style.width = '100vw'
-    }
+  await test.test.step('Mock IDE container', async () => {
+    await page.evaluate(() => {
+      const ideContainer = document.getElementById('app')
+      if (ideContainer) {
+        ideContainer.style.height = '100vh'
+        ideContainer.style.width = '100vw'
+      }
+    })
   })
 }
 
@@ -925,6 +929,26 @@ export async function mockIDEContainer({ page }: MockParams) {
 // eslint-disable-next-line no-restricted-syntax
 export const mockApi = apiModule.mockApi
 
+// ========================
+// === mockRequestClone ===
+// ========================
+
+/** Mock `Request#clone` to un-break POST body.
+ * See this page for an explanation why this is an issue:
+ * https://github.com/microsoft/playwright/issues/6479 */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockRequestClone({ page }: MockParams) {
+  await test.test.step('Mock Request.clone', async () => {
+    await page.evaluate(() => {
+      Request.prototype.clone = function () {
+        console.log('cloning...')
+        return this
+      }
+    })
+  })
+}
+
 // ===============
 // === mockAll ===
 // ===============
@@ -934,6 +958,7 @@ export const mockApi = apiModule.mockApi
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAll({ page }: MockParams) {
   const api = await mockApi({ page })
+  await mockRequestClone({ page })
   await mockDate({ page })
   await mockIDEContainer({ page })
   return { api }
