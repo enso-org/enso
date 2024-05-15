@@ -1,6 +1,16 @@
 Enso
 Copyright 2020 - 2024 New Byte Order sp. z o. o.
 
+'logback-classic', licensed under the GNU Lesser General Public License, is distributed with the engine.
+The license file can be found at `licenses/GNU_Lesser_General_Public_License`.
+Copyright notices related to this dependency can be found in the directory `ch.qos.logback.logback-classic-1.3.7`.
+
+
+'logback-core', licensed under the GNU Lesser General Public License, is distributed with the engine.
+The license file can be found at `licenses/GNU_Lesser_General_Public_License`.
+Copyright notices related to this dependency can be found in the directory `ch.qos.logback.logback-core-1.3.7`.
+
+
 'enumeratum-circe_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-circe_2.13-1.7.2`.
@@ -46,29 +56,9 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.module.jackson-module-scala_2.13-2.15.2`.
 
 
-'error_prone_annotations', licensed under the Apache 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.errorprone.error_prone_annotations-2.18.0`.
-
-
 'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.flatbuffers.flatbuffers-java-24.3.25`.
-
-
-'failureaccess', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.guava.failureaccess-1.0.1`.
-
-
-'guava', licensed under the Apache License, Version 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.guava.guava-32.0.0-jre`.
-
-
-'j2objc-annotations', licensed under the Apache License, Version 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.j2objc.j2objc-annotations-2.8`.
 
 
 'JavaEWAH', licensed under the Apache 2, is distributed with the engine.
@@ -251,14 +241,189 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-yaml_2.13-0.14.2`.
 
 
+'helidon-builder-api', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.builder.helidon-builder-api-4.0.8`.
+
+
+'helidon-common-features', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.features.helidon-common-features-4.0.8`.
+
+
+'helidon-common-features-api', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.features.helidon-common-features-api-4.0.8`.
+
+
+'helidon-common', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-4.0.8`.
+
+
+'helidon-common-buffers', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-buffers-4.0.8`.
+
+
+'helidon-common-config', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-config-4.0.8`.
+
+
+'helidon-common-configurable', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-configurable-4.0.8`.
+
+
+'helidon-common-context', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-context-4.0.8`.
+
+
+'helidon-common-key-util', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-key-util-4.0.8`.
+
+
+'helidon-common-mapper', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-mapper-4.0.8`.
+
+
+'helidon-common-media-type', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-media-type-4.0.8`.
+
+
+'helidon-common-parameters', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-parameters-4.0.8`.
+
+
+'helidon-common-security', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-security-4.0.8`.
+
+
+'helidon-common-socket', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-socket-4.0.8`.
+
+
+'helidon-common-task', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-task-4.0.8`.
+
+
+'helidon-common-tls', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-tls-4.0.8`.
+
+
+'helidon-common-types', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-types-4.0.8`.
+
+
+'helidon-common-uri', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.common.helidon-common-uri-4.0.8`.
+
+
+'helidon-config', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.config.helidon-config-4.0.8`.
+
+
+'helidon', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.helidon-4.0.8`.
+
+
+'helidon-http-encoding', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.http.encoding.helidon-http-encoding-4.0.8`.
+
+
+'helidon-http', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.http.helidon-http-4.0.8`.
+
+
+'helidon-http-media', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.http.media.helidon-http-media-4.0.8`.
+
+
+'helidon-inject-api', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.inject.helidon-inject-api-4.0.8`.
+
+
+'helidon-logging-common', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.logging.helidon-logging-common-4.0.8`.
+
+
+'helidon-webclient', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.webclient.helidon-webclient-4.0.8`.
+
+
+'helidon-webclient-api', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.webclient.helidon-webclient-api-4.0.8`.
+
+
+'helidon-webclient-http1', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.webclient.helidon-webclient-http1-4.0.8`.
+
+
+'helidon-webclient-websocket', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.webclient.helidon-webclient-websocket-4.0.8`.
+
+
+'helidon-webserver', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.webserver.helidon-webserver-4.0.8`.
+
+
+'helidon-webserver-websocket', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.webserver.helidon-webserver-websocket-4.0.8`.
+
+
+'helidon-websocket', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.websocket.helidon-websocket-4.0.8`.
+
+
 'directory-watcher', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.methvin.directory-watcher-0.18.0`.
 
 
+'sentry', licensed under the MIT, is distributed with the engine.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `io.sentry.sentry-6.28.0`.
+
+
+'sentry-logback', licensed under the MIT, is distributed with the engine.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `io.sentry.sentry-logback-6.28.0`.
+
+
 'spray-json_2.13', licensed under the Apache 2, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.spray.spray-json_2.13-1.3.6`.
+
+
+'jakarta.inject-api', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `jakarta.inject.jakarta.inject-api-2.0.1`.
 
 
 'jna', licensed under the Apache-2.0, is distributed with the engine.
@@ -309,11 +474,6 @@ Copyright notices related to this dependency can be found in the directory `org.
 'bcutil-jdk18on', licensed under the Bouncy Castle Licence, is distributed with the engine.
 The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
 Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcutil-jdk18on-1.76`.
-
-
-'checker-qual', licensed under the The MIT License, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.33.0`.
 
 
 'org.eclipse.jgit', licensed under the Eclipse Distribution License (New BSD License), is distributed with the engine.
