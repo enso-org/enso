@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useSync } from '@/components/lexical/sync'
+import { useLexicalSync } from '@/components/lexical/sync'
 import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
@@ -11,7 +11,7 @@ import { onMounted, onUnmounted } from 'vue'
 const markdown = defineModel<string>({ required: true })
 
 onMounted(() => {
-  const { content, unregister } = useSync(
+  const { content, unregister } = useLexicalSync(
     () => $convertToMarkdownString(TRANSFORMERS),
     (value) => $convertFromMarkdownString(value, TRANSFORMERS),
   )
@@ -20,4 +20,5 @@ onMounted(() => {
 })
 </script>
 
+<!-- tslint:disable:vue/valid-template-root -->
 <template />

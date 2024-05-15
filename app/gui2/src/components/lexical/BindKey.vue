@@ -29,4 +29,5 @@ onMounted(() => {
 })
 </script>
 
+<!-- tslint:disable:vue/valid-template-root -->
 <template />

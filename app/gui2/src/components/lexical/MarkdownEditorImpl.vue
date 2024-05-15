@@ -45,7 +45,7 @@ syncRef(focused, useFocusDelayed(root).focused)
 </script>
 
 <template>
-  <LexicalComposer :initial-config="config" @error="console.error($event)">
+  <LexicalComposer :initialConfig="config" @error="console.error($event)">
     <LexicalRichTextPlugin>
       <template #contentEditable>
         <LexicalContentEditable

@@ -9,7 +9,12 @@ function $getRootText() {
   return $getRoot().getTextContent()
 }
 
-export function useSync(
+/** Enables two-way synchronization between the editor and a string model `content`.
+ *
+ * By default, the editor's text contents are synchronized with the string. A content getter and setter may be provided
+ * to synchronize a different view of the state, e.g. to transform to an encoding that keeps rich text information.
+ */
+export function useLexicalSync(
   $getEditorContent: () => string = $getRootText,
   $setEditorContent: (content: string) => void = $setRootText,
 ) {
