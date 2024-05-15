@@ -47,7 +47,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,7 +99,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -149,7 +149,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -200,7 +200,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -251,7 +251,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -302,7 +302,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -365,7 +365,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -426,7 +426,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -488,7 +488,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -550,7 +550,7 @@ jobs:
       - name: Run npm install
         uses: bahmutov/npm-install@v1
         with:
-          working-directory: app/gui2
+          install-command: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
