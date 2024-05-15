@@ -84,10 +84,7 @@ type Existing_Enso_Asset
         error_handlers = Map.from_vector [["resource_missing", handle_not_found]]
 
         uri = ((URI.from Utils.cloud_root_uri) / "path/resolve") . add_query_argument "path" path
-
-        # TODO remove workaround - this should be a Get endpoint, not Post
-        response = Context.Output.with_enabled <|
-            Utils.http_request_as_json HTTP_Method.Get uri error_handlers=error_handlers
+        response = Utils.http_request_as_json HTTP_Method.Get uri error_handlers=error_handlers
         Existing_Enso_Asset.from_json response
 
     ## PRIVATE
