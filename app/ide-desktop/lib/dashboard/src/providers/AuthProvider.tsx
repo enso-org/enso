@@ -731,16 +731,6 @@ export function useAuth() {
   }
 }
 
-// ===============================
-// === shouldPreventNavigation ===
-// ===============================
-
-/** True if navigation should be prevented, for debugging purposes. */
-function getShouldPreventNavigation() {
-  const location = router.useLocation()
-  return new URLSearchParams(location.search).get('prevent-navigation') === 'true'
-}
-
 // =======================
 // === ProtectedLayout ===
 // =======================
@@ -748,11 +738,10 @@ function getShouldPreventNavigation() {
 /** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
   const { session } = useAuth()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (!shouldPreventNavigation && session == null) {
+  if (session == null) {
     return <router.Navigate to={appUtils.LOGIN_PATH} />
-  } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
+  } else if (session.type === UserSessionType.partial) {
     return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
   } else {
     return <router.Outlet context={session} />
@@ -768,9 +757,8 @@ export function ProtectedLayout() {
 export function SemiProtectedLayout() {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
+  if (session?.type === UserSessionType.full) {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
       localStorage.delete('loginRedirect')
@@ -793,11 +781,10 @@ export function SemiProtectedLayout() {
 export function GuestLayout() {
   const { session } = useAuth()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
+  if (session?.type === UserSessionType.partial) {
     return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
-  } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
+  } else if (session?.type === UserSessionType.full) {
     const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
       localStorage.delete('loginRedirect')
@@ -816,16 +803,11 @@ export function GuestLayout() {
  */
 export function NotDeletedUserLayout() {
   const { session, isUserMarkedForDeletion } = useAuth()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (shouldPreventNavigation) {
-    return <router.Outlet context={session} />
+  if (isUserMarkedForDeletion()) {
+    return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
   } else {
-    if (isUserMarkedForDeletion()) {
-      return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
-    } else {
-      return <router.Outlet context={session} />
-    }
+    return <router.Outlet context={session} />
   }
 }
 
@@ -834,11 +816,8 @@ export function NotDeletedUserLayout() {
  */
 export function SoftDeletedUserLayout() {
   const { session, isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
-  const shouldPreventNavigation = getShouldPreventNavigation()
 
-  if (shouldPreventNavigation) {
-    return <router.Outlet context={session} />
-  } else if (isUserMarkedForDeletion()) {
+  if (isUserMarkedForDeletion()) {
     const isSoftDeleted = isUserSoftDeleted()
     const isDeleted = isUserDeleted()
     if (isSoftDeleted) {
