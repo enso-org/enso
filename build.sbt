@@ -2246,6 +2246,9 @@ lazy val `runtime-fat-jar` =
           MergeStrategy.concat
         case PathList("module-info.class") =>
           MergeStrategy.preferProject
+        // remove once https://github.com/snakeyaml/snakeyaml/pull/12 gets integrated
+        case PathList("org", "yaml", "snakeyaml", "introspector", xs @ _*) =>
+          MergeStrategy.preferProject
         case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
           MergeStrategy.discard
         case _ => MergeStrategy.first
