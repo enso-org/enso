@@ -1,8 +1,5 @@
-/**
- * @file
- * A dialog is an overlay shown above other content in an application.
- * Can be used to display alerts, confirmations, or other content.
- */
+/** @file A dialog is an overlay shown above other content in an application.
+ * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
 
 import clsx from 'clsx'
@@ -17,34 +14,39 @@ import WindowButton from '#/components/styled/WindowButton'
 
 import type * as types from './types'
 
-const MODAL_CLASSES =
-  'fixed top-0 left-0 right-0 bottom-0 bg-black/[15%] flex items-center justify-center text-center'
-const DIALOG_CLASSES =
-  'relative flex flex-col overflow-hidden rounded-xl text-xs text-primary text-left align-middle shadow-2xl bg-clip-padding border border-black/10 before:absolute before:inset before:h-full before:w-full before:rounded-xl before:bg-selected-frame before:backdrop-blur-default'
+// =================
+// === Constants ===
+// =================
 
-const MODAL_CLASSES_BY_TYPE = {
-  modal: 'p-4',
+const MODAL_CLASSES = 'fixed z-1 inset bg-dim flex items-center justify-center text-center'
+const DIALOG_CLASSES =
+  'relative flex flex-col overflow-hidden text-xs rounded-default text-left align-middle text-primary before:absolute before:inset before:rounded-default before:bg-selected-frame before:backdrop-blur-default'
+
+const MODAL_CLASSES_BY_TYPE: Readonly<Record<types.DialogType, string>> = {
+  modal: '',
   popover: '',
   fullscreen: 'p-4',
-} satisfies Record<types.DialogType, string>
+}
 
-const DIALOG_CLASSES_BY_TYPE = {
+const DIALOG_CLASSES_BY_TYPE: Readonly<Record<types.DialogType, string>> = {
   modal: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
   popover: 'rounded-lg',
   fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
-} satisfies Record<types.DialogType, string>
+}
 
-/**
- * A dialog is an overlay shown above other content in an application.
- * Can be used to display alerts, confirmations, or other content.
- */
+// ==============
+// === Dialog ===
+// ==============
+
+/** A dialog is an overlay shown above other content in an application.
+ * Can be used to display alerts, confirmations, or other content. */
 export function Dialog(props: types.DialogProps) {
   const {
     children,
     title,
     type = 'modal',
     closeButton = 'none',
-    isDismissible = true,
+    isDismissable = true,
     isKeyboardDismissDisabled = false,
     hideCloseButton = false,
     className,
@@ -52,21 +54,36 @@ export function Dialog(props: types.DialogProps) {
     modalProps,
     ...ariaDialogProps
   } = props
+  const cleanupRef = React.useRef(() => {})
 
   const root = portal.useStrictPortalContext()
 
   return (
     <aria.Modal
-      className={tailwindMerge.twMerge(MODAL_CLASSES, [MODAL_CLASSES_BY_TYPE[type]])}
-      isDismissable={isDismissible}
+      className={tailwindMerge.twMerge(MODAL_CLASSES, MODAL_CLASSES_BY_TYPE[type])}
+      isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
       onOpenChange={onOpenChange}
       {...modalProps}
     >
       <aria.Dialog
-        className={tailwindMerge.twMerge(DIALOG_CLASSES, [DIALOG_CLASSES_BY_TYPE[type]], className)}
+        className={tailwindMerge.twMerge(DIALOG_CLASSES, DIALOG_CLASSES_BY_TYPE[type], className)}
         {...ariaDialogProps}
+        ref={element => {
+          cleanupRef.current()
+          if (element == null) {
+            cleanupRef.current = () => {}
+          } else {
+            const onClick = (event: Event) => {
+              event.stopPropagation()
+            }
+            element.addEventListener('click', onClick)
+            cleanupRef.current = () => {
+              element.removeEventListener('click', onClick)
+            }
+          }
+        }}
       >
         {opts => (
           <>

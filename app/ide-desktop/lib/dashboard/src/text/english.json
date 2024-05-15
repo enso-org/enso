@@ -163,6 +163,8 @@
   "delete": "Delete",
   "remove": "Remove",
   "invite": "Invite",
+  "copy": "Copy",
+  "copied": "Copied",
   "color": "Color",
   "labels": "Labels",
   "views": "Views",
@@ -275,6 +277,7 @@
   "sampleAndCommunityProjects": "Sample and community projects",
   "startWithATemplate": "Start with a template",
   "openUserMenu": "Open user menu",
+  "openInfoMenu": "Open info menu",
   "noProjectIsCurrentlyOpen": "No project is currently open.",
   "youAreNotLoggedIn": "You are not logged in.",
   "notEnabledTitle": "Your cloud experience in progress",
@@ -294,6 +297,11 @@
   "replyExclamation": "Reply!",
   "lastModifiedOn": "last modified on $0",
   "versionX": "Version $0",
+  "version": "Version",
+  "build": "Build",
+  "electronVersion": "Electron",
+  "chromeVersion": "Chrome",
+  "userAgent": "User Agent",
   "compareWithLatest": "Compare with latest",
   "compareVersionXWithLatest": "Compare version $0 with latest",
   "onDateX": "on $0",
@@ -490,6 +498,7 @@
   "selectAdditionalRangeShortcut": "Select Additional Range",
   "goBackShortcut": "Go Back",
   "goForwardShortcut": "Go Forward",
+  "aboutThisAppShortcut": "About Enso",
 
   "moveToTrashShortcut": "Move To Trash",
   "moveAllToTrashShortcut": "Move All To Trash",
@@ -552,6 +561,7 @@
 
   "assetSearchFieldLabel": "Search through items",
   "userMenuLabel": "User menu",
+  "infoMenuLabel": "Info menu",
   "categorySwitcherMenuLabel": "Category switcher",
   "labelsListLabel": "Labels",
   "globalContextMenuLabel": "Global context menu",
@@ -559,12 +569,15 @@
   "assetContextMenuLabel": "Asset context menu",
   "labelContextMenuLabel": "Label context menu",
   "settingsSidebarLabel": "Settings sidebar",
-
-  "tryAgain": "Try again",
-  "arbitraryErrorTitle": "An error occurred",
   "userContextMenuLabel": "User context menu",
   "userGroupContextMenuLabel": "User Group context menu",
   "userGroupUserContextMenuLabel": "User Group User context menu",
+
+  "appNameDesktopEdition": "Enso Desktop Edition",
+  "appNameCloudEdition": "Enso Cloud Edition",
+
+  "tryAgain": "Try again",
+  "arbitraryErrorTitle": "An error occurred",
   "arbitraryErrorSubtitle": "Please try again or contact the administrators.",
 
   "subscribeSubmit": "Subscribe",

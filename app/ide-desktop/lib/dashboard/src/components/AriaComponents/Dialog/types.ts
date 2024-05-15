@@ -15,7 +15,7 @@ export interface DialogProps extends aria.DialogProps {
   readonly type?: DialogType
   readonly closeButton?: DialogCloseButtonType
   readonly title?: string
-  readonly isDismissible?: boolean
+  readonly isDismissable?: boolean
   readonly hideCloseButton?: boolean
   readonly onOpenChange?: (isOpen: boolean) => void
   readonly isKeyboardDismissDisabled?: boolean

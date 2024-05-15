@@ -4,6 +4,10 @@ import * as React from 'react'
 import * as aria from '#/components/aria'
 import * as portal from '#/components/Portal'
 
+// ============
+// === Root ===
+// ============
+
 /** Props for {@link Root}. */
 export interface RootProps extends React.PropsWithChildren {
   readonly rootRef: React.RefObject<HTMLElement>

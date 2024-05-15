@@ -379,6 +379,7 @@ export const useGraphStore = defineStore('graph', () => {
       visible: false,
       fullscreen: false,
       width: null,
+      height: null,
     }
     const vis: VisualizationMetadata = { ...empty, ...partial }
     if (visMetadataEquals(vis, empty)) return undefined
@@ -394,6 +395,7 @@ export const useGraphStore = defineStore('graph', () => {
         visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
         fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
         width: vis.width ?? metadata.get('visualization')?.width ?? null,
+        height: vis.height ?? metadata.get('visualization')?.height ?? null,
       }
       metadata.set('visualization', normalizeVisMetadata(data))
     })
