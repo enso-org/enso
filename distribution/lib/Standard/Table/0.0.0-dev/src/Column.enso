@@ -24,6 +24,7 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Storage
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
+import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
@@ -2141,13 +2142,11 @@ type Column
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Nothing | Integer) -> Boolean -> Column
-    read self (max_rows : Nothing | Integer = Nothing) (warn_if_more_rows:Boolean = True) =
+    @max_rows Rows_To_Read.default_widget
+    read : Rows_To_Read -> Column
+    read self (max_rows : Rows_To_Read = ..All_Rows) =
         if max_rows.is_nothing then self else
-            self.to_table.read max_rows warn_if_more_rows . at 0
+            self.to_table.read max_rows . at 0
 
     ## GROUP Standard.Base.Conversions
        ICON convert
