@@ -29,6 +29,7 @@ type Existing_File_Behavior
        raised.
     Error
 
+    ## PRIVATE
     widget (include_overwrite:Boolean = True) (include_backup:Boolean = True) (include_append:Boolean = True) (include_error:Boolean = True) -> Widget =
         fqn = Meta.get_qualified_type_name Existing_File_Behavior
         options = Vector.build builder->
