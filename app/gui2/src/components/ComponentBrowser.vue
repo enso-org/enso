@@ -62,7 +62,7 @@ const emit = defineEmits<{
   accepted: [
     searcherExpression: string,
     requiredImports: RequiredImport[],
-    firstAppliedReturnType: Typename | null,
+    firstAppliedReturnType: Typename | undefined,
   ]
   canceled: []
 }>()

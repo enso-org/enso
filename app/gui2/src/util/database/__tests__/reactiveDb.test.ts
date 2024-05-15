@@ -78,6 +78,22 @@ test('Name to id index', () => {
   expect(index.lookup('qdr')).toEqual(new Set([3]))
 })
 
+// Regression test for a bug when the API built on top of ReactiveIndex
+// considered an empty set as an existing key value pair.
+test('Typical usage of index when looking up if a key exists', () => {
+  const db = new ReactiveDb<number, { name: string }>()
+  const index = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])
+  const allNames = () => [...index.allForward()].map(([name, _]) => name)
+  db.set(1, { name: 'abc' })
+  db.set(2, { name: 'xyz' })
+  db.set(3, { name: 'abc' })
+  expect(allNames()).toEqual(['abc', 'xyz'])
+  db.delete(2)
+
+  expect(index.hasKey('xyz')).toBe(false)
+  expect(allNames()).toEqual(['abc'])
+})
+
 test('Parent index', async () => {
   const db = new ReactiveDb<number, { name: string; definedIn?: string }>()
   const qnIndex = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])

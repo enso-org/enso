@@ -363,7 +363,7 @@ function createWithComponentBrowser(options: NewNodeOptions) {
 function commitComponentBrowser(
   content: string,
   requiredImports: RequiredImport[],
-  type: Typename | null,
+  type: Typename | undefined,
 ) {
   if (graphStore.editedNodeInfo) {
     // We finish editing a node.
@@ -373,7 +373,7 @@ function commitComponentBrowser(
     createNode({
       placement: { type: 'fixed', position: componentBrowserNodePosition.value },
       expression: content,
-      type: type ?? undefined,
+      type,
       requiredImports,
     })
   }

@@ -137,7 +137,7 @@ export function useNodeCreation(
     const rhs = Ast.parse(options.expression, edit)
     const inferredPrefix = inferPrefixFromAst(rhs)
     const namePrefix = options.type ? typeToPrefix(options.type) : inferredPrefix
-    const ident = graphStore.generateUniqueIdent(namePrefix)
+    const ident = graphStore.generateLocallyUniqueIdent(namePrefix)
     rhs.setNodeMetadata(options.metadata ?? {})
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     for (const _conflict of conflicts) {
@@ -156,16 +156,20 @@ export function useNodeCreation(
   return { createNode, createNodes, placeNode }
 }
 
+const operatorCodeToName: Record<string, string> = {
+  '+': 'sum',
+  '-': 'diff',
+  '*': 'prod',
+  '/': 'quot',
+}
+
 /** Try to infer binding name from AST. This is used when type information from the engine is not available yet. */
 function inferPrefixFromAst(expr: Ast.Ast): string | undefined {
   if (expr instanceof Ast.Vector) return 'vector'
   if (expr instanceof Ast.NumericLiteral) return expr.code().includes('.') ? 'float' : 'integer'
   if (expr instanceof Ast.TextLiteral) return 'text'
-  if (expr instanceof Ast.OprApp) {
-    if (expr.operator.ok && expr.operator.value.code() === '+') return 'sum'
-    if (expr.operator.ok && expr.operator.value.code() === '-') return 'diff'
-    if (expr.operator.ok && expr.operator.value.code() === '*') return 'prod'
-    if (expr.operator.ok && expr.operator.value.code() === '/') return 'quot'
+  if (expr instanceof Ast.OprApp && expr.operator.ok) {
+    return operatorCodeToName[expr.operator.value.code()] ?? 'operator'
   }
   return undefined
 }

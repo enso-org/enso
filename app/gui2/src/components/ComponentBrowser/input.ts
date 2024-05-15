@@ -89,7 +89,7 @@ export function useComponentBrowserInput(
   const imports = ref<RequiredImport[]>([])
   const processingAIPrompt = ref(false)
   const toastError = useToast.error()
-  const firstAppliedReturnType = ref<Typename | null>(null)
+  const firstAppliedReturnType = ref<Typename>()
 
   // Code Model to being edited externally (by user).
   //
