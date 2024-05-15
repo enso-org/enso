@@ -12,8 +12,11 @@ export function useAstDocumentation(ast: ToValue<Ast | undefined>) {
         const astValue = toValue(ast)
         if (!astValue) return
         if (value.trimStart() !== '') {
-          graphStore.edit((edit) =>
-            edit.getVersion(astValue).getOrInitDocumentation().setDocumentationText(value),
+          graphStore.edit(
+            (edit) =>
+              edit.getVersion(astValue).getOrInitDocumentation().setDocumentationText(value),
+            true,
+            true,
           )
         } else {
           // Remove the documentation node.

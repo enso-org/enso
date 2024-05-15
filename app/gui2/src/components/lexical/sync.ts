@@ -1,6 +1,5 @@
 import { $setRootText } from '@/components/lexical/utils'
-import { $getRoot, type EditorState } from 'lexical'
-import { useLexicalComposer } from 'lexical-vue'
+import { $getRoot, type EditorState, type LexicalEditor } from 'lexical'
 import { computed, ref } from 'vue'
 
 const SYNC_TAG = 'ENSO_SYNC'
@@ -15,11 +14,10 @@ function $getRootText() {
  * to synchronize a different view of the state, e.g. to transform to an encoding that keeps rich text information.
  */
 export function useLexicalSync(
+  editor: LexicalEditor,
   $getEditorContent: () => string = $getRootText,
   $setEditorContent: (content: string) => void = $setRootText,
 ) {
-  const editor = useLexicalComposer()
-
   const state = ref<EditorState>()
 
   const unregister = editor.registerUpdateListener(({ editorState, tags }) => {
@@ -27,16 +25,18 @@ export function useLexicalSync(
     state.value = editorState
   })
 
+  const getContent = computed(() => {
+    if (!state.value) return ''
+    return state.value.read(() => $getEditorContent())
+  })
+
   return {
     content: computed({
-      get: () => {
-        if (!state.value) return ''
-        return state.value.read(() => $getEditorContent())
-      },
+      get: () => getContent.value,
       set: (content) => {
         editor.update(
           () => {
-            if ($getEditorContent() !== content) $setEditorContent(content)
+            if (getContent.value !== content) $setEditorContent(content)
           },
           {
             discrete: true,

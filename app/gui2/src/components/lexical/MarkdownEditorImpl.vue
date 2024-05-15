@@ -1,71 +1,71 @@
 <script setup lang="ts">
-import EditorRoot from '@/components/lexical/EditorRoot.vue'
-import MarkdownSync from '@/components/lexical/MarkdownSync.vue'
+import TextEditor from '@/components/lexical/TextEditor.vue'
+import { useLexicalSync } from '@/components/lexical/sync'
 import { useFocusDelayed } from '@/composables/focus'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
 import { ListItemNode, ListNode } from '@lexical/list'
-import { TRANSFORMERS } from '@lexical/markdown'
-import { HeadingNode, QuoteNode } from '@lexical/rich-text'
+import {
+  $convertFromMarkdownString,
+  $convertToMarkdownString,
+  TRANSFORMERS,
+  registerMarkdownShortcuts,
+} from '@lexical/markdown'
+import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
 import { syncRef } from '@vueuse/core'
-import {
-  LexicalComposer,
-  LexicalContentEditable,
-  LexicalMarkdownShortcutPlugin,
-  LexicalRichTextPlugin,
-} from 'lexical-vue'
-import { ref } from 'vue'
+import { type LexicalEditor } from 'lexical'
+import { ref, type ComponentInstance } from 'vue'
 
-const text = defineModel<string>({ required: true })
+const markdown = defineModel<string>({ required: true })
 const focused = defineModel<boolean>('focused', { default: false })
 
-const root = ref<HTMLElement>()
+const editorComponent = ref<ComponentInstance<typeof LexicalEditor>>()
 
-const config = {
-  editable: true,
-  namespace: 'MarkdownEditor',
-  theme: {},
-  nodes: [
-    HeadingNode,
-    QuoteNode,
-    ListItemNode,
-    ListNode,
-    AutoLinkNode,
-    LinkNode,
-    CodeHighlightNode,
-    CodeNode,
-    TableCellNode,
-    TableNode,
-    TableRowNode,
-  ],
+const nodes = [
+  HeadingNode,
+  QuoteNode,
+  ListItemNode,
+  ListNode,
+  AutoLinkNode,
+  LinkNode,
+  CodeHighlightNode,
+  CodeNode,
+  TableCellNode,
+  TableNode,
+  TableRowNode,
+]
+
+function configureEditor(editor: LexicalEditor) {
+  registerRichText(editor)
+  registerMarkdownShortcuts(editor, TRANSFORMERS)
+  syncRef(
+    markdown,
+    useLexicalSync(
+      editor,
+      () => $convertToMarkdownString(TRANSFORMERS),
+      (value) => $convertFromMarkdownString(value, TRANSFORMERS),
+    ).content,
+  )
+  syncRef(focused, useFocusDelayed(editorComponent).focused)
 }
-
-syncRef(focused, useFocusDelayed(root).focused)
 </script>
 
 <template>
-  <LexicalComposer :initialConfig="config" @error="console.error($event)">
-    <LexicalRichTextPlugin>
-      <template #contentEditable>
-        <LexicalContentEditable
-          :spellcheck="false"
-          class="lexicalContent"
-          @wheel.stop
-          @contextmenu.stop
-        />
-      </template>
-    </LexicalRichTextPlugin>
-    <MarkdownSync v-model="text" />
-    <EditorRoot v-model="root" />
-    <LexicalMarkdownShortcutPlugin :transformers="TRANSFORMERS" />
-  </LexicalComposer>
+  <TextEditor
+    ref="editorComponent"
+    :nodes="nodes"
+    name="MarkdownEditor"
+    class="fullHeight"
+    @initialized="configureEditor"
+    @wheel.stop
+    @contextmenu.stop
+  />
 </template>
 
 <style scoped>
-.lexicalContent {
+.fullHeight {
   height: 100%;
-  outline: none;
 }
 </style>
 
