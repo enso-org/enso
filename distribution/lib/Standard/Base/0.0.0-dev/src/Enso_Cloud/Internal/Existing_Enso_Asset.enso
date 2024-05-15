@@ -18,6 +18,7 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Unimplemented.Unimplemented
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.URI.URI
 import project.Runtime.Context
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
@@ -82,12 +83,11 @@ type Existing_Enso_Asset
         handle_not_found _ = if_not_found
         error_handlers = Map.from_vector [["resource_missing", handle_not_found]]
 
-        uri = Utils.cloud_root_uri+"path/resolve"
-        payload = JS_Object.from_pairs [["path", path]]
+        uri = ((URI.from Utils.cloud_root_uri) / "path/resolve") . add_query_argument "path" path
 
         # TODO remove workaround - this should be a Get endpoint, not Post
         response = Context.Output.with_enabled <|
-            Utils.http_request_as_json HTTP_Method.Post uri payload error_handlers=error_handlers
+            Utils.http_request_as_json HTTP_Method.Get uri error_handlers=error_handlers
         Existing_Enso_Asset.from_json response
 
     ## PRIVATE
