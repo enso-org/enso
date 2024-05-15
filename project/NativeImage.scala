@@ -88,7 +88,8 @@ object NativeImage {
     mainClass: Option[String]                = None,
     additionalCp: () => Seq[String]          = () => Seq(),
     verbose: Boolean                         = false,
-    includeRuntime: Boolean                  = true
+    includeRuntime: Boolean                  = true,
+    localJdk: Option[() => File]             = None
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log = state.value.log
@@ -98,11 +99,11 @@ object NativeImage {
           s"$path\\bin\\native-image.cmd"
         else s"$path/bin/native-image"
 
-      val localJdk = baseDirectory.value / ".." / ".." / "jdk"
-      val localNI  = nativeImagePath(localJdk.getPath())
       val javaHome =
-        if (file(localNI).exists()) localJdk.getPath()
-        else System.getProperty("java.home")
+        localJdk
+          .map(f => f().getPath())
+          .filter(p => file(nativeImagePath(p)).exists())
+          .getOrElse(System.getProperty("java.home"))
 
       val subProjectRoot = baseDirectory.value
       val pathToJAR =
@@ -110,7 +111,7 @@ object NativeImage {
 
       if (!file(nativeImagePath(javaHome)).exists()) {
         log.error(
-          "Unexpected: Native Image component not found in the JVM distribution."
+          "Unexpected: Native Image component not found in the JVM distribution: " + javaHome
         )
         log.error("Is this a GraalVM distribution?")
         log.error(

@@ -2380,6 +2380,21 @@ lazy val `engine-runner` = project
               core ++ jars.map(_.getAbsolutePath())
             }
           },
+          localJdk = Some(() => {
+            var smalljdk = (new File("target") / "jdk").getAbsoluteFile()
+            val exitCode = scala.sys.process
+              .Process(
+                "bash project/smalljdk.sh " + smalljdk,
+                None,
+                "JAVA_HOME" -> System.getProperty("java.home")
+              )
+              .!
+            if (exitCode != 0) {
+              throw new RuntimeException(s"Cannot execute jdk.sh.")
+            }
+            assert(smalljdk.exists(), "Dir created " + smalljdk)
+            smalljdk
+          }),
           initializeAtRuntime = Seq(
             "org.jline.nativ.JLineLibrary",
             "org.jline.terminal.impl.jna",
