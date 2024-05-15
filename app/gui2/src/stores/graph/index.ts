@@ -191,9 +191,10 @@ export const useGraphStore = defineStore('graph', () => {
     return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
   }
 
-  function generateUniqueIdent() {
-    for (;;) {
-      const ident = randomIdent()
+  function generateUniqueIdent(prefix?: string | undefined) {
+    for (let i = 1; ; i++) {
+      const ident = (prefix ?? 'operator') + i
+      assert(isIdentifier(ident))
       if (!db.identifierUsed(ident)) return ident
     }
   }
@@ -704,12 +705,6 @@ export const useGraphStore = defineStore('graph', () => {
     },
   }
 })
-
-function randomIdent() {
-  const ident = 'operator' + Math.round(Math.random() * 100000)
-  assert(isIdentifier(ident))
-  return ident
-}
 
 /** An edge, which may be connected or unconnected. */
 export interface Edge {

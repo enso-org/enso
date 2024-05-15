@@ -244,7 +244,11 @@ export class ReactiveIndex<K, V, IK, IV> {
    */
   removeFromIndex(key: IK, value: IV): void {
     const remove = <K, V>(map: Map<K, Set<V>>, key: K, value: V) => {
-      map.get(key)?.delete(value)
+      const values = map.get(key)
+      values?.delete(value)
+      if (values?.size === 0) {
+        map.delete(key)
+      }
     }
     remove(this.forward, key, value)
     remove(this.reverse, value, key)
