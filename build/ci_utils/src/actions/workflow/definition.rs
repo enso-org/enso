@@ -98,11 +98,7 @@ pub fn setup_node_step() -> Step {
 pub fn npm_install_step() -> Step {
     Step {
         name: Some("Run npm install".into()),
-        uses: Some("bahmutov/npm-install@v1".into()),
-        with: Some(step::Argument::new_other(
-            "install-command",
-            "npm --workspace=enso-gui2 install",
-        )),
+        run: Some("npm --workspace=enso-gui2 install".into()),
         ..default()
     }
 }

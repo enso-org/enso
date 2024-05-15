@@ -45,9 +45,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -97,9 +95,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -147,9 +143,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -198,9 +192,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -249,9 +241,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -300,9 +290,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -363,9 +351,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -424,9 +410,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -486,9 +470,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -548,9 +530,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Run npm install
-        uses: bahmutov/npm-install@v1
-        with:
-          install-command: npm --workspace=enso-gui2 install
+        run: npm --workspace=enso-gui2 install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
