@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
+@import "./enso.css";
 
 /* Scoped to `.enso-dashboard, .enso-chat` in tailwind config. */
 @tailwind base;
@@ -469,14 +470,14 @@ body::before {
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
   tab-size: 4;
-  font-family: "Enso", "M PLUS 1";
+  font-family: "Enso Prose", "Enso", "M PLUS 1";
   font-weight: 500;
   font-feature-settings: normal;
 }
 
 .enso-dashboard kbd,
 .enso-chat kbd {
-  font-family: "Enso", "M PLUS 1";
+  font-family: "Enso Prose", "Enso", "M PLUS 1";
 }
 
 .enso-dashboard :focus,
@@ -534,85 +535,4 @@ body[data-debug] [data-focus-area] {
 body[data-debug] [data-navigator2d-neighbor] {
   outline: 2px solid rgb(0 255 255 / 60%);
   outline-offset: -1px;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-Thin.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 100;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-ExtraLight.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 200;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-Light.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 300;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-Regular.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 400;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-Medium.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 500;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-SemiBold.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 600;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-Bold.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 700;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-ExtraBold.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 800;
-}
-
-@font-face {
-  font-family: "Enso";
-  src:
-    url("/font-enso/Enso-Black.ttf"),
-    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
-      format("woff2");
-  font-weight: 900;
 }

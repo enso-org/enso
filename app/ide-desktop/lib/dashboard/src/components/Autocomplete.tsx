@@ -5,8 +5,6 @@ import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
 
-import * as string from '#/utilities/string'
-
 // =================
 // === Constants ===
 // =================
@@ -192,7 +190,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               autoFocus={autoFocus}
               size={1}
               value={text ?? ''}
-              placeholder={placeholder == null ? placeholder : string.displayGlyphs(placeholder)}
+              placeholder={placeholder == null ? placeholder : placeholder}
               className="text grow rounded-full bg-transparent px-button-x"
               onFocus={() => {
                 setIsDropdownVisible(true)

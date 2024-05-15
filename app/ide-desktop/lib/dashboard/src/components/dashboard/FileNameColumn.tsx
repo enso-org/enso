@@ -167,7 +167,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className="text grow bg-transparent"
+        className="text grow bg-transparent font-naming"
         checkSubmittable={newTitle =>
           newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

@@ -158,7 +158,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     >
       <SvgMask src={KeyIcon} className="m-name-column-icon size-icon" />
       {/* Secrets cannot be renamed. */}
-      <aria.Text data-testid="asset-row-name" className="text grow bg-transparent">
+      <aria.Text data-testid="asset-row-name" className="text grow bg-transparent font-naming">
         {asset.title}
       </aria.Text>
     </div>

@@ -1,0 +1,260 @@
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-Thin.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 100;
+}
+
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-ExtraLight.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 200;
+}
+
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-Light.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-Regular.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-Medium.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-SemiBold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-Bold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-ExtraBold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 800;
+}
+
+@font-face {
+  font-family: "Enso";
+  src:
+    url("/font-enso/Enso-Black.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 900;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-Thin.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 100;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-ExtraLight.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 200;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-Light.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 300;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-Regular.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 400;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-Medium.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 500;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-SemiBold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 600;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-Bold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 700;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-ExtraBold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 800;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Prose";
+  src:
+    url("/font-enso-prose/Enso-Prose-Black.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 900;
+  unicode-range: U+0020, U+002E, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-Thin.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 100;
+  unicode-range: U+0020, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-ExtraLight.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 200;
+  unicode-range: U+0020, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-Light.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 300;
+  unicode-range: U+0020, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-Regular.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 400;
+  unicode-range: U+0020, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-Medium.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 500;
+  unicode-range: U+0020, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-SemiBold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 600;
+  unicode-range: U+0020, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-Bold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 700;
+  unicode-range: U+0020, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-ExtraBold.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 800;
+  unicode-range: U+0020, U+2010;
+}
+
+@font-face {
+  font-family: "Enso Naming";
+  src:
+    url("/font-enso-naming/Enso-Naming-Black.ttf"),
+    url(https://fonts.gstatic.com/s/mplus1/v7/R70ZjygA28ymD4HgBWu_uC8.woff2)
+      format("woff2");
+  font-weight: 900;
+  unicode-range: U+0020, U+2010;
+}

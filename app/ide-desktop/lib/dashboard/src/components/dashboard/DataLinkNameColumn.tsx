@@ -162,7 +162,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        className="text grow bg-transparent"
+        className="text grow bg-transparent font-naming"
       >
         {asset.title}
       </EditableSpan>
