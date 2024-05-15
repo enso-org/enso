@@ -7,7 +7,6 @@ edition = "2021"
 anyhow = { workspace = true }
 byte-unit = { workspace = true }
 chrono = { workspace = true }
-enso-build-base = { path = "../../base" }
 enso-install = { path = ".." }
 enso-install-config = { path = "../config" }
 flate2 = { workspace = true }
@@ -15,11 +14,6 @@ ide-ci = { path = "../../ci_utils" }
 serde_json = { workspace = true }
 sysinfo = { workspace = true }
 tar = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-windows = { workspace = true }
-winapi = "0.3"
 
 [target.'cfg(windows)'.dependencies]
 native-windows-gui = { workspace = true }

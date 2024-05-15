@@ -142,6 +142,8 @@ export interface UserInfo {
   /** The ID of the parent organization. If this is a sole user, they are implicitly in an
    * organization consisting of only themselves. */
   readonly organizationId: OrganizationId
+  /** The name of the parent organization. */
+  readonly organizationName?: string
   /** The ID of this user.
    *
    * The user ID is globally unique. Thus, the user ID is always sufficient to uniquely identify a
@@ -162,6 +164,7 @@ export interface User extends UserInfo {
   readonly profilePicture?: HttpsUrl
   readonly userGroups: UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
+  readonly plan?: Plan
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -413,6 +416,7 @@ export interface CognitoCredentials {
 export enum Plan {
   solo = 'solo',
   team = 'team',
+  enterprise = 'enterprise',
 }
 
 export const PLANS = Object.values(Plan)
@@ -1099,6 +1103,7 @@ export interface CreateUserGroupRequestBody {
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
   readonly plan: Plan
+  readonly paymentMethodId: string
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -1126,6 +1131,14 @@ export interface UploadPictureRequestParams {
 export interface ListVersionsRequestParams {
   readonly versionType: VersionType
   readonly default: boolean
+}
+
+/**
+ * POST request body for the "create checkout session" endpoint.
+ */
+export interface CreateCheckoutSessionRequestParams {
+  readonly plan: Plan
+  readonly paymentMethodId: string
 }
 
 // ==============================
@@ -1362,7 +1375,9 @@ export default abstract class Backend {
   /** Return a list of backend or IDE versions. */
   abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
   /** Create a payment checkout session. */
-  abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
+  abstract createCheckoutSession(
+    params: CreateCheckoutSessionRequestParams
+  ): Promise<CheckoutSession>
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */

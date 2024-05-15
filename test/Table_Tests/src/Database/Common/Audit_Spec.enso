@@ -1,0 +1,91 @@
+from Standard.Base import all
+
+from Standard.Table import Table
+
+from Standard.Database import all
+
+from Standard.Test import all
+
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Audit_Log_Spec import Audit_Log_Event, get_audit_log_events
+
+from project.Util import all
+
+polyglot java import java.lang.Thread
+
+## Tests the audit capabilities of the connection.
+   It takes a data link to the connection. This data link is expected to be a local data link (from the filesystem), not a Cloud one.
+add_specs suite_builder prefix ~datalink_to_connection database_pending =
+    ## By default, these tests are run only on the Cloud mock, not on the real deployment.
+       This is mostly because we don't yet have log filtering so the results on the real deployment could be massive.
+       The local environment is more predictable for running these tests.
+       The following flag can be changed to `False` to run it on the real cloud (if it is set up in the test context).
+       This can be used to verify that the mock logic is consistent with the real thing.
+    always_run_on_mock = True
+    cloud_setup = if always_run_on_mock then Cloud_Tests_Setup.prepare_mock_setup else Cloud_Tests_Setup.prepare
+    suite_builder.group prefix+"Audit Logs" pending=(cloud_setup.pending.if_nothing database_pending) group_builder->
+        group_builder.specify "should see Database operations performed on a table through the standard workflow" <| cloud_setup.with_prepared_environment <|
+            audited_connection = datalink_to_connection.read
+            table_name = "audited-table-"+Random.uuid
+            mem_table = Table.new [["X", [1, 2]], ["Y", ["my_payload", "foo"]]]
+            audited_table = mem_table.select_into_database_table audited_connection table_name temporary=True . should_succeed
+            audited_table.read . should_equal mem_table
+            audited_connection.drop_table table_name . should_succeed
+
+            # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
+            Test.with_retries <|
+                Thread.sleep 500
+                all_events = get_audit_log_events
+                relevant_events = all_events.filter e-> e.message.contains table_name
+
+                create = relevant_events.find (e-> e.message.contains "CREATE")
+                create.should_succeed
+                create.user_email . should_equal Enso_User.current.email
+                create.metadata.get "connection_uri" . should_contain "jdbc:"
+
+                insert = relevant_events.find (e-> e.message.contains "INSERT INTO")
+                insert.should_succeed
+                # The insert query should not contain column cell data - only column names / metadata.
+                insert.message.should_not_contain "my_payload"
+
+                create_sequence_number = create.metadata.get "sequence_number"
+                insert_sequence_number = insert.metadata.get "sequence_number"
+                create_sequence_number.should_be_a Integer
+                insert_sequence_number.should_be_a Integer
+                (create_sequence_number < insert_sequence_number) . should_be_true
+
+                relevant_events.find (e-> e.message.contains "SELECT") . should_succeed
+                relevant_events.find (e-> e.message.contains "DROP") . should_succeed
+
+        group_builder.specify "should see Database operations performed manually" <| cloud_setup.with_prepared_environment <|
+            audited_connection = datalink_to_connection.read
+            query = "SELECT 1 AS A, 2 AS B, "+(Random.integer 0 1000000).to_text+" AS C"
+            t = audited_connection.read query
+            # Force the connector to perform the query:
+            t.at 0 . to_vector . should_equal [1]
+
+            # Retrying is needed as there may be some delay before the background thread finishes processing the logs.
+            Test.with_retries <|
+                all_events = get_audit_log_events
+                ## This is a bit white-box test - we assume the input query is found inside of the query that is run unchanged.
+                   Currently that is OK, but if that ever stops being enough the test may need to be amended to be 'smarter'.
+                relevant_event = all_events.find e-> e.message.contains query
+                relevant_event.should_succeed
+
+        group_builder.specify "should still be able to open a local data link if not logged in" <|
+            # The logs should be sent to the local logger, but we cannot easily check that in tests.
+            non_existent_file = (enso_project.data / "nonexistent-credentials-file")
+            non_existent_file.exists.should_be_false
+            Cloud_Tests_Setup.run_with_overridden_credentials non_existent_file <|
+                locally_audited_connection = datalink_to_connection.read
+
+                # We just check that we can read queries through this connection:
+                locally_audited_connection.read "SELECT 1" . at 0 . to_vector . should_equal [1]
+
+        group_builder.specify "should know the asset id of the data link used for the connection" pending="TODO: https://github.com/enso-org/enso/issues/9869" <|
+            ## TODO:
+               1. write data link to Enso File
+               2. set up real cloud and establish the connection
+               3. switch to mock cloud (if wanted) and run some queries
+               4. inspect logs and search for the asset id
+            Error.throw "TODO"

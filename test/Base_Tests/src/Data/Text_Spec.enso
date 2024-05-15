@@ -888,13 +888,13 @@ add_specs suite_builder =
 
         group_builder.specify "should allow to iterate over characters" <|
             str = kshi + accent_1 + accent_2 + 'abc'
-            builder = Vector.new_builder
-            str.each builder.append
-            builder.to_vector . should_equal [kshi, accent_1, accent_2, 'a', 'b', 'c']
+            chars = Vector.build builder->
+                str.each builder.append
+            chars . should_equal [kshi, accent_1, accent_2, 'a', 'b', 'c']
 
-            builder2 = Vector.new_builder
-            'a'.each builder2.append
-            builder2.to_vector . should_equal ['a']
+            chars2 = Vector.build builder->
+                'a'.each builder.append
+            chars2 . should_equal ['a']
 
         group_builder.specify "dataflow errors in .each should become panics" <|
             do_write x =

@@ -9,8 +9,12 @@ import { toValue } from 'vue'
 // other recently-created nodes have rendered and computed their real sizes.
 export const DEFAULT_NODE_SIZE = new Vec2(300, 32)
 
-const orDefaultSize = (rect: Rect) =>
-  rect.width !== 0 ? rect : new Rect(rect.pos, DEFAULT_NODE_SIZE)
+const orDefaultSize = (rect: Rect) => {
+  if (rect.width !== 0 && rect.height !== 0) return rect
+  const width = Math.max(rect.width, DEFAULT_NODE_SIZE.x)
+  const height = Math.max(rect.height, DEFAULT_NODE_SIZE.y)
+  return new Rect(rect.pos, new Vec2(width, height))
+}
 
 type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
 

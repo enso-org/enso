@@ -73,6 +73,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @update:visualizationVisible="graphStore.setNodeVisualization(id, { visible: $event })"
     @update:visualizationFullscreen="graphStore.setNodeVisualization(id, { fullscreen: $event })"
     @update:visualizationWidth="graphStore.setNodeVisualization(id, { width: $event })"
+    @update:visualizationHeight="graphStore.setNodeVisualization(id, { height: $event })"
   />
   <UploadingFile
     v-for="(nameAndFile, index) in uploadingFiles"

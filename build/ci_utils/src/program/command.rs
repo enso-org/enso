@@ -232,23 +232,6 @@ pub trait IsCommandWrapper {
         self
     }
 
-    // fn spawn(&mut self) -> Result<Child> {
-    //     self.borrow_mut_command().spawn().anyhow_err()
-    // }
-    //
-    //
-    // fn status(&mut self) -> BoxFuture<'static, Result<ExitStatus>> {
-    //     let fut = self.borrow_mut_command().status();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
-    //
-    // fn output(&mut self) -> BoxFuture<'static, Result<Output>> {
-    //     let fut = self.borrow_mut_command().output();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
-
-
-
     /// Value-based variant of [`Self::current_dir`], for convenience.
     fn with_current_dir(self, dir: impl AsRef<Path>) -> Self
     where Self: Sized {
@@ -424,16 +407,6 @@ impl Command {
             }
         })
     }
-
-    // pub fn status(&mut self) -> BoxFuture<'static, Result<ExitStatus>> {
-    //     let fut = self.borrow_mut_command().status();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
-    //
-    // pub fn output(&mut self) -> BoxFuture<'static, Result<Output>> {
-    //     let fut = self.borrow_mut_command().output();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
 }
 
 impl Command {
@@ -532,61 +505,4 @@ impl<T: Manipulator> Manipulator for Option<T> {
 
 pub trait FallibleManipulator {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result;
-}
-
-
-#[cfg(test)]
-mod tests {
-    // use super::*;
-    // use crate::global::new_spinner;
-    // // use crate::global::println;
-    // use tokio::io::AsyncBufReadExt;
-    // use tokio::io::AsyncRead;
-    // use tokio::io::BufReader;
-    // use tokio::process::ChildStdout;
-    // use tokio::task::JoinHandle;
-
-    // pub fn spawn_log_processor(
-    //     prefix: String,
-    //     out: impl AsyncRead + Send + Unpin + 'static,
-    // ) -> JoinHandle<Result> {
-    //     tokio::task::spawn(async move {
-    //         let bufread = BufReader::new(out);
-    //         let mut lines = bufread.lines();
-    //         while let Some(line) = lines.next_line().await? {
-    //             println(format!("{} {}", prefix, line))
-    //         }
-    //         println(format!("{} {}", prefix, "<ENDUT>"));
-    //         Result::Ok(())
-    //     })
-    // }U
-    //
-    // pub fn spawn_logged(cmd: &mut Command) {
-    //     cmd.stdout(Stdio::piped());
-    //     cmd.stderr(Stdio::piped());
-    // }
-    //
-    // #[tokio::test]
-    // async fn test_cmd_out_interception() -> Result {
-    //     pretty_env_logger::init();
-    //     let mut cmd = Command::new("cargo");
-    //     cmd.arg("update");
-    //     cmd.stdout(Stdio::piped());
-    //     cmd.stderr(Stdio::piped());
-    //
-    //     let mut child = cmd.spawn()?;
-    //     spawn_log_processor("[out]".into(), child.stdout.take().unwrap());
-    //     spawn_log_processor("[err]".into(), child.stderr.take().unwrap());
-    //     let bar = new_spinner(format!("Running {:?}", cmd));
-    //     child.wait().await?;
-    //     Ok(())
-    // }
-    //
-    // #[tokio::test]
-    // async fn spawning() -> Result {
-    //     println!("Start");
-    //     tokio::process::Command::new("python").spawn()?.wait().await?;
-    //     println!("Finish");
-    //     Ok(())
-    // }
 }

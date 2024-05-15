@@ -47,7 +47,11 @@ interface PlaceholderOverrides {
   readonly userIsAlreadyInTheOrganization: [userEmail: string]
   readonly youAreAlreadyAddingUser: [userEmail: string]
   readonly lastModifiedOn: [dateString: string]
-  readonly versionX: [versionNumber: number]
+  readonly versionX: [version: number | string]
+  readonly buildX: [build: string]
+  readonly electronVersionX: [electronVersion: string]
+  readonly chromeVersionX: [chromeVersion: string]
+  readonly userAgentX: [userAgent: string]
   readonly compareVersionXWithLatest: [versionNumber: number]
   readonly onDateX: [dateString: string]
   readonly xUsersSelected: [usersCount: number]
@@ -97,6 +101,8 @@ interface PlaceholderOverrides {
   readonly createCheckoutSessionBackendError: [string]
   readonly getCheckoutSessionBackendError: [string]
   readonly getDefaultVersionBackendError: [string]
+
+  readonly subscribeSuccessSubtitle: [string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

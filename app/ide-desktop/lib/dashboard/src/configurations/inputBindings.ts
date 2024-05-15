@@ -14,6 +14,7 @@ import CopyIcon from 'enso-assets/copy.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
+import LogoIcon from 'enso-assets/enso_logo.svg'
 import OpenIcon from 'enso-assets/open.svg'
 import PasteIcon from 'enso-assets/paste.svg'
 import PenIcon from 'enso-assets/pen.svg'
@@ -119,5 +120,11 @@ export const BINDINGS = inputBindings.defineBindings({
     bindings: detect.isOnMacOS() ? ['Mod+ArrowRight', 'Mod+]'] : ['Alt+ArrowRight'],
     rebindable: true,
     icon: ArrowRightIcon,
+  },
+  aboutThisApp: {
+    name: 'About Enso',
+    bindings: ['Mod+/'],
+    rebindable: true,
+    icon: LogoIcon,
   },
 })

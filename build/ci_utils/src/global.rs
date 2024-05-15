@@ -144,14 +144,3 @@ pub async fn complete_tasks() -> Result {
     debug!("All pending tasks have been completed.");
     Ok(())
 }
-
-
-//
-// pub fn complete_tasks(rt: &Runtime) -> Result {
-//     info!("Waiting for remaining tasks to complete.");
-//     while let tasks = std::mem::replace(&mut GLOBAL.lock().unwrap().ongoing_tasks, default()) &&
-// !tasks.is_empty() {         let tasks = try_join_all(tasks, AsyncPolicy::FutureParallelism);
-//          rt.block_on(tasks)?;
-//     }
-//     Ok(())
-// }

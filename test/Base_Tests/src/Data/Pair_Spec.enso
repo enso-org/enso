@@ -96,9 +96,9 @@ type_spec suite_builder name ctor = suite_builder.group name group_builder->
         ctor "Hello" "World" . reduce (a->b-> a+" "+b) . should_equal "Hello World"
 
     group_builder.specify "should allow applying a function to each element" <|
-        vec_mut = Vector.new_builder
-        ctor 10 20 . each vec_mut.append
-        vec_mut.to_vector . should_equal [10, 20]
+        vec = Vector.build builder->
+            ctor 10 20 . each builder.append
+        vec . should_equal [10, 20]
 
     group_builder.specify "dataflow errors in .each should become panics" <|
         do_write x =

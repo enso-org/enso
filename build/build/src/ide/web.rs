@@ -9,8 +9,8 @@ use crate::version::ENSO_VERSION;
 
 use anyhow::Context;
 use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
-use ide_ci::io::download_all;
 use ide_ci::program::command::FallibleManipulator;
+use ide_ci::program::command::Manipulator;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
 use sha2::Digest;
@@ -35,11 +35,6 @@ lazy_static! {
     /// The file must follow the schema of type [`BuildInfo`].
     pub static ref BUILD_INFO: PathBuf = PathBuf::from("build.json");
 }
-
-pub const IDE_ASSETS_URL: &str =
-    "https://github.com/enso-org/ide-assets/archive/refs/heads/main.zip";
-
-pub const ARCHIVED_ASSET_FILE: &str = "ide-assets-main/content/assets/";
 
 pub mod env {
     use super::*;
@@ -148,16 +143,6 @@ impl FallibleManipulator for IconsArtifacts {
     }
 }
 
-/// Fill the directory under `output_path` with the assets.
-pub async fn download_js_assets(output_path: impl AsRef<Path>) -> Result {
-    let output = output_path.as_ref();
-    let archived_asset_prefix = PathBuf::from(ARCHIVED_ASSET_FILE);
-    let archive = download_all(IDE_ASSETS_URL).await?;
-    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(archive))?;
-    ide_ci::archive::zip::extract_subtree(&mut archive, &archived_asset_prefix, output)?;
-    Ok(())
-}
-
 /// Get a relative path to the Project Manager executable in the PM bundle.
 pub fn path_to_executable_in_pm_bundle(
     artifact: &generated::ProjectManagerBundle,
@@ -167,6 +152,23 @@ pub fn path_to_executable_in_pm_bundle(
         .project_managerexe
         .strip_prefix(artifact)
         .context("Failed to generate in-bundle path to Project Manager executable.")
+}
+
+/// When secrets are not available in CI builds (e.g. when building a PR from a fork), the variables
+/// are set to empty strings. This manipulator removes such variables from the environment.
+#[derive(Clone, Copy, Debug)]
+pub struct RemoveEmptyCscEnvVars;
+
+impl Manipulator for RemoveEmptyCscEnvVars {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        for var in ide_ci::env::known::electron_builder::CI_CSC_SECRETS {
+            if let Ok(value) = std::env::var(var)
+                && value.is_empty()
+            {
+                command.env_remove(var);
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -326,6 +328,7 @@ impl IdeDesktop {
 
         self.npm()?
             .try_applying(&icons)?
+            .apply(&RemoveEmptyCscEnvVars)
             // .env("DEBUG", "electron-builder")
             .set_env(env::ENSO_BUILD_GUI, gui.as_ref())?
             .set_env(env::ENSO_BUILD_IDE, output_path)?
@@ -367,18 +370,6 @@ impl IdeDesktop {
             enso_install_config::bundler::bundle(config).await?;
             store_sha256_checksum(&ide_artifacts.image, &ide_artifacts.image_checksum)?;
         }
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn download_test() -> Result {
-        let temp = TempDir::new()?;
-        download_js_assets(temp.path()).await?;
         Ok(())
     }
 }

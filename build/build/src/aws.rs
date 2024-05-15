@@ -128,15 +128,6 @@ mod tests {
     use super::*;
 
 
-    // #[tokio::test]
-    // async fn aaa() -> Result {
-    //     let repo = RepoContext::from_str("enso-org/enso")?;
-    //     let paths =
-    //         Paths::new_version(r"H:\NBO\enso", Version::parse("2022.1.1-nightly.2022-01-28")?)?;
-    //     update_manifest(&repo, &paths).await?;
-    //     Ok(())
-    // }
-
     #[test]
     fn updating_manifest() -> Result {
         let old_nightly = serde_yaml::from_str::<Manifest>(

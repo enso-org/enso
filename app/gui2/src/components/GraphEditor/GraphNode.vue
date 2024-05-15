@@ -67,6 +67,7 @@ const emit = defineEmits<{
   'update:visualizationVisible': [visible: boolean]
   'update:visualizationFullscreen': [fullscreen: boolean]
   'update:visualizationWidth': [width: number]
+  'update:visualizationHeight': [height: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -220,6 +221,7 @@ function openFullMenu() {
 
 const isDocsVisible = ref(false)
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
+const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
@@ -444,24 +446,6 @@ function portGroupStyle(port: PortData) {
 
 const editingComment = ref(false)
 
-const documentation = computed<string | undefined>({
-  get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
-  set: (text) => {
-    graph.edit((edit) => {
-      const outerExpr = edit.getVersion(props.node.outerExpr)
-      if (text) {
-        if (outerExpr instanceof Ast.MutableDocumented) {
-          outerExpr.setDocumentationText(text)
-        } else {
-          outerExpr.update((outerExpr) => Ast.Documented.new(text, outerExpr))
-        }
-      } else if (outerExpr instanceof Ast.MutableDocumented && outerExpr.expression) {
-        outerExpr.replace(outerExpr.expression.take())
-      }
-    })
-  },
-})
-
 const { getNodeColor, visibleNodeColors } = injectNodeColors()
 </script>
 
@@ -542,23 +526,18 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
+      :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
       @update:rect="emit('update:visualizationRect', $event)"
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
+      @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
     />
-    <Suspense>
-      <GraphNodeComment
-        v-if="documentation != null"
-        v-model="documentation"
-        v-model:editing="editingComment"
-        class="beforeNode"
-      />
-    </Suspense>
+    <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
     <div ref="contentNode" class="content" v-on="dragPointer.events" @click="handleNodeClick">
       <NodeWidgetTree
         :ast="props.node.innerExpr"
@@ -777,6 +756,7 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
   position: absolute;
   bottom: 100%;
   left: 60px;
+  width: calc(max(100% - 60px, 800px));
   margin-bottom: 2px;
 }
 
