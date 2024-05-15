@@ -46,6 +46,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -96,6 +98,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -144,6 +148,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -193,6 +199,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -242,6 +250,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -291,6 +301,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -352,6 +364,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -411,6 +425,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -471,6 +487,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -531,6 +549,8 @@ jobs:
         uses: actions/setup-node@v4
       - name: Run npm install
         uses: bahmutov/npm-install@v1
+        with:
+          working-directory: app/gui2
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
