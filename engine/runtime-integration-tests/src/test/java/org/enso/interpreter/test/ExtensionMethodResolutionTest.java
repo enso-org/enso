@@ -136,6 +136,72 @@ public class ExtensionMethodResolutionTest extends TestBase {
         });
   }
 
+  @Test
+  public void sameExtensionMethodInDifferentTypes() throws IOException {
+    var mod =
+        new SourceModule(
+            QualifiedName.fromString("Mod"),
+            """
+            type T
+            T.method = 42
+            """);
+    // main module imports just the `Mod` and not the type - it should succeed.
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            import project.Mod
+            type T
+            T.method = 23
+            main =
+                T.method
+            """);
+    var projDir = createProject("Proj", Set.of(mod, mainMod), tempFolder);
+    testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.isNumber(), is(true));
+          assertThat(res.asInt(), is(23));
+        });
+  }
+
+  @Test
+  public void sameExtensionMethodInDifferentTypesInThreeModules() throws IOException {
+    var mod2 =
+        new SourceModule(
+            QualifiedName.fromString("Mod2"),
+            """
+            # An empty module
+            """);
+    // The type T defined in mod1 and mainMod have exactly the same location on purpose.
+    var mod1 =
+        new SourceModule(
+            QualifiedName.fromString("Mod1"),
+            """
+            import project.Mod2
+            type T
+            T.method = 1
+            """);
+    // main module imports just the `Mod` and not the type - it should succeed.
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            import project.Mod1
+            type T
+            T.method = 2
+            main =
+                T.method
+            """);
+    var projDir = createProject("Proj", Set.of(mod2, mod1, mainMod), tempFolder);
+    testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.isNumber(), is(true));
+          assertThat(res.asInt(), is(2));
+        });
+  }
+
   private void testProjectCompilationFailure(String mainSrc, Matcher<String> errorMessageMatcher)
       throws IOException {
     var projDir = createProject("Proj", mainSrc, tempFolder);
