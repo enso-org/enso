@@ -38,7 +38,7 @@ function setColor(color: string | undefined) {
   })
 }
 
-const matchableColors = computed(() => getNodeColors((node) => !selection.selected.has(node)))
+const matchableColors = getNodeColors((node) => !selection.selected.has(node))
 </script>
 
 <template>

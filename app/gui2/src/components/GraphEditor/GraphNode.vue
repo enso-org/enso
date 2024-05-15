@@ -445,7 +445,7 @@ function portGroupStyle(port: PortData) {
 const editingComment = ref(false)
 
 const { getNodeColor, getNodeColors } = injectNodeColors()
-const matchableNodeColors = computed(() => getNodeColors((node) => node !== nodeId.value))
+const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
 </script>
 
 <template>
