@@ -47,6 +47,10 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - name: Setup Node
+        uses: actions/setup-node@v4
+      - name: Install dependencies
+        uses: bahmutov/npm-install@v1
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
