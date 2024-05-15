@@ -7,6 +7,8 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as text from '#/text'
 
+import * as mimeTypes from '#/data/mimeTypes'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -94,8 +96,9 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       onDrop={onDrop}
     >
       <UnstyledButton
-        aria-label={getText(buttonTextId)}
+        tooltip={false}
         className={`rounded-inherit ${isCurrent ? 'focus-default' : ''}`}
+        aria-label={getText(buttonTextId)}
         onPress={onPress}
       >
         <div
@@ -170,7 +173,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                 acceptedDragTypes={
                   (category === Category.trash && data.category === Category.home) ||
                   (category !== Category.trash && data.category === Category.trash)
-                    ? ['application/vnd.enso.assets+json']
+                    ? [mimeTypes.ASSETS_MIME_TYPE]
                     : []
                 }
                 onDrop={event => {
@@ -178,7 +181,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   void Promise.all(
                     event.items.flatMap(async item => {
                       if (item.kind === 'text') {
-                        const text = await item.getText('application/vnd.enso.assets+json')
+                        const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
                         const payload: unknown = JSON.parse(text)
                         return Array.isArray(payload)
                           ? payload.flatMap(key =>

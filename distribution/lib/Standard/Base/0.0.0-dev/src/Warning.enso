@@ -16,6 +16,7 @@ import project.Runtime
 import project.Runtime.Source_Location.Source_Location
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False, True
+from project.Function import flip
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
@@ -27,6 +28,12 @@ type Warning
     attach warning value =
         origin = Runtime.get_stack_trace
         attach_with_stacktrace value warning (origin.drop (Index_Sub_Range.First 1))
+
+    ## PRIVATE
+       ADVANCED
+       Attaches a new warning to the value.
+    attach_multiple : Vector Any -> Any -> Any
+    attach_multiple warnings value = warnings.fold value (flip Warning.attach)
 
     ## PRIVATE
        ADVANCED

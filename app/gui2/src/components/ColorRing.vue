@@ -5,7 +5,7 @@ import {
   rangesForInputs,
 } from '@/components/ColorRing/gradient'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
-import { targetIsOutside } from '@/util/autoBlur'
+import { endOnClickOutside } from '@/util/autoBlur'
 import { cssSupported, ensoColor, formatCssColor, parseCssColor } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -49,13 +49,12 @@ const svgElement = ref<HTMLElement>()
 const interaction = injectInteractionHandler()
 
 onMounted(() => {
-  interaction.setCurrent({
-    cancel: () => emit('close'),
-    pointerdown: (e: PointerEvent) => {
-      if (targetIsOutside(e, svgElement.value)) emit('close')
-      return false
-    },
-  })
+  interaction.setCurrent(
+    endOnClickOutside(svgElement, {
+      cancel: () => emit('close'),
+      end: () => emit('close'),
+    }),
+  )
 })
 
 const mouseSelectedAngle = ref<number>()
@@ -121,7 +120,7 @@ const triangleHue = computed(() => {
 const cssGradient = computed(() => {
   const points = gradientPoints(
     fixedRanges.value,
-    browserSupportsOklchInterpolation ? 2 : NONNATIVE_OKLCH_INTERPOLATION_STEPS,
+    browserSupportsOklchInterpolation ? undefined : NONNATIVE_OKLCH_INTERPOLATION_STEPS,
   )
   const angularColorStopList = Array.from(points, cssAngularColorStop)
   const colorStops = angularColorStopList.join(',')
@@ -148,8 +147,6 @@ const cssTriangleColor = computed(() =>
       @pointerleave="mouseSelectedAngle = undefined"
       @pointermove="ringHover"
       @click.stop="ringClick"
-      @pointerdown.stop
-      @pointerup.stop
     />
   </div>
 </template>

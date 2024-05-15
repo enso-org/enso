@@ -1,0 +1,83 @@
+from Standard.Base import all
+import Standard.Base.Enso_Cloud.Internal.Audit_Log.Audit_Log
+import Standard.Base.Enso_Cloud.Errors.Enso_Cloud_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Time_Error.Time_Error
+from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field, cloud_http_request_for_test
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+
+add_specs suite_builder =
+    ## By default, these tests are run only on the Cloud mock, not on the real deployment.
+       This is mostly because we don't yet have log filtering so the results on the real deployment could be massive.
+       The local environment is more predictable for running these tests.
+       The following flag can be changed to `False` to run it on the real cloud (if it is set up in the test context).
+       This can be used to verify that the mock logic is consistent with the real thing.
+    always_run_on_mock = True
+    setup = if always_run_on_mock then Cloud_Tests_Setup.prepare_mock_setup else Cloud_Tests_Setup.prepare
+    suite_builder.group "Enso Cloud Audit Log" pending=setup.pending group_builder->
+        [False, True].each async->
+            group_builder.specify "should be able to send a log message "+(if async then "(async)" else "(sync)") <| setup.with_prepared_environment <|
+                random_payload = "payload-" + Random.uuid
+                Audit_Log.report_event "TestEvent" "Message" (JS_Object.from_pairs [["my_field", random_payload]]) async=async . should_succeed
+                my_event = Test.with_retries <|
+                    event = get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
+                    event.should_succeed
+                    event
+
+                my_event.metadata.get "operation" . should_equal "TestEvent"
+
+                # TODO this test should be re-enabled after https://github.com/enso-org/enso/issues/9845 is fixed
+                #my_event.metadata.get "projectName" . should_equal "enso_dev.Base_Tests"
+
+                my_event.message . should_equal "Message"
+                my_event.user_email . should_equal Enso_User.current.email
+
+        group_builder.specify "will include the project id in the log message, if provided by the Cloud" <| setup.with_prepared_environment <|
+            example_project_id = "project-27xJM00p8jWoL2qByTo6tQfciWC"
+            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_ID" example_project_id <|
+                random_payload = "payload-" + Random.uuid
+                Audit_Log.report_event "TestEventInCloud" "Message⛅" (JS_Object.from_pairs [["my_field", random_payload]]) async=False . should_succeed
+                my_event = Test.with_retries <|
+                    event = get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
+                    event.should_succeed
+                    event
+
+                my_event.project_id . should_equal example_project_id
+
+        group_builder.specify "does not allow restricted fields in metadata" <| setup.with_prepared_environment <|
+            Audit_Log.report_event "TestEventType" "Message" (JS_Object.from_pairs [["type", "my type override?"]]) . should_fail_with Illegal_Argument
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+## PRIVATE
+   Returns log events available in the current account.
+   This method is only used for testing and should not be used in production.
+get_audit_log_events -> Vector Audit_Log_Event =
+    json = cloud_http_request_for_test HTTP_Method.Get "log_events"
+    events_json = get_required_field "events" json
+    events_json.map Audit_Log_Event.from_json
+
+## PRIVATE
+type Audit_Log_Event
+    ## PRIVATE
+    Value organization_id:Text user_email:Text timestamp:Date_Time metadata:JS_Object message:Text project_id:Text
+
+    ## PRIVATE
+    from_json json =
+        organization_id = get_required_field "organizationId" json expected_type=Text
+        user_email = get_required_field "userEmail" json expected_type=Text
+        timestamp_text = get_optional_field "timestamp" json expected_type=Text
+        timestamp = timestamp_text.if_not_nothing <| Date_Time.parse timestamp_text . catch Time_Error error->
+            Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid timestamp format in audit log event: "+error.to_display_text)
+        metadata = get_required_field "metadata" json
+        message = get_required_field "message" json expected_type=Text
+        project_id = get_optional_field "projectId" json expected_type=Text
+        Audit_Log_Event.Value organization_id user_email timestamp metadata message project_id

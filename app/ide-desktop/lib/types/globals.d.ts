@@ -6,7 +6,7 @@
 // This file is being imported for its types.
 // prettier-ignore
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import * as buildJson from './../../build.json' assert { type: 'json' }
+import * as buildJson from './../../build.json' assert {type: 'json'}
 
 // =============
 // === Types ===
@@ -73,6 +73,28 @@ interface NavigationApi {
     readonly goForward: () => void
 }
 
+// ================
+// === Menu API ===
+// ================
+
+/** `window.menuApi` exposes functionality related to the system menu. */
+interface MenuApi {
+    /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
+    readonly setShowAboutModalHandler: (callback: () => void) => void
+}
+
+// ====================
+// === Version Info ===
+// ====================
+
+/** Versions of the app, and selected software bundled with Electron. */
+interface VersionInfo {
+    readonly version: string
+    readonly build: string
+    readonly electron: string
+    readonly chrome: string
+}
+
 // =====================================
 // === Global namespace augmentation ===
 // =====================================
@@ -86,6 +108,8 @@ declare global {
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
+        readonly menuApi: MenuApi
+        readonly versionInfo?: VersionInfo
     }
 
     namespace NodeJS {
@@ -94,6 +118,7 @@ declare global {
         // eslint-disable-next-line no-restricted-syntax
         interface ProcessEnv {
             readonly [key: string]: never
+
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
             // This is declared in `@types/node`. It MUST be re-declared here to suppress the error
@@ -112,6 +137,8 @@ declare global {
             readonly APPLETEAMID?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_BUILD_ICONS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_BUILD_ELECTRON_BUILDER_CONFIG?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly npm_package_name?: string
 
@@ -141,6 +168,10 @@ declare global {
             readonly ENSO_CLOUD_COGNITO_REGION?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_GOOGLE_ANALYTICS_TAG?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_DASHBOARD_VERSION?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_DASHBOARD_COMMIT_HASH?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
 

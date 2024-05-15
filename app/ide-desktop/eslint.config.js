@@ -36,7 +36,6 @@ const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
-const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context|interpolationFunction.+'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
@@ -115,11 +114,6 @@ const RESTRICTED_SYNTAXES = [
             'TSTypeAliasDeclaration > :matches(TSBooleanKeyword, TSBigintKeyword, TSNullKeyword, TSNumberKeyword, TSObjectKeyword, TSStringKeyword, TSSymbolKeyword, TSUndefinedKeyword, TSUnknownKeyword, TSVoidKeyword)',
         message:
             'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',
-    },
-    {
-        // Matches other functions, non-consts, and consts not at the top level.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_CAMEL_CASE}]:not(:has(${JSX})), VariableDeclarator[id.name=${NOT_CAMEL_CASE}]:has(ArrowFunctionExpression.init:not(:has(${JSX}))), :matches(VariableDeclaration[kind^=const], Program :not(ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const], ExportNamedDeclaration > * VariableDeclaration[kind=const]) > VariableDeclarator[id.name=${NOT_CAMEL_CASE}]:not(:has(ArrowFunctionExpression)))`,
-        message: 'Use `camelCase` for everything but React components',
     },
     {
         // Matches non-functions.
@@ -202,15 +196,6 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use arrow functions for nested functions',
     },
     {
-        selector:
-            ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/^(?!Internal).+Props$/]',
-        message: 'All React component `Props` types must be exported',
-    },
-    {
-        selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
-        message: 'Destructure function parameters in the body, instead of in the parameter list',
-    },
-    {
         selector: 'IfStatement > ExpressionStatement',
         message: 'Wrap `if` branches in `{}`',
     },
@@ -242,14 +227,9 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `aria.Input` instead of `input`',
     },
     {
-        selector: 'JSXOpeningElement[name.name=span] > JSXIdentifier',
-        message: 'Use `aria.Text` instead of `span`',
-    },
-    {
         selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
         message: 'Use `aria.Heading` instead of `h1`-`h6`',
     },
-    // We may want to consider also preferring `aria.Form` in favor of `form` in the future.
 ]
 
 // ============================
@@ -260,8 +240,8 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
-        // Playwright build cache.
-        ignores: ['**/.cache/**', '**/playwright-report'],
+        // Playwright build cache and Vite build directory.
+        ignores: ['**/.cache/**', '**/playwright-report', '**/dist'],
     },
     {
         settings: {
@@ -318,7 +298,6 @@ export default [
             ],
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
-            'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
             // Not relevant because TypeScript checks types.
             'react/prop-types': 'off',
@@ -355,7 +334,7 @@ export default [
                     format: ['camelCase', 'PascalCase'],
                 },
                 {
-                    selector: ['parameter', 'property', 'method'],
+                    selector: ['parameter', 'method'],
                     format: ['camelCase'],
                 },
                 {
@@ -363,6 +342,14 @@ export default [
                     modifiers: ['unused'],
                     format: ['camelCase'],
                     leadingUnderscore: 'require',
+                },
+                {
+                    selector: ['property'],
+                    format: ['camelCase'],
+                    filter: {
+                        regex: '^(?:data-testid)$',
+                        match: false,
+                    },
                 },
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',

@@ -126,6 +126,14 @@ type Cloud_Tests_Setup
             HTTP.fetch uri . decode_as_json
         _ -> Panic.throw (Illegal_State.Error "This method is only valid for Mock setup.")
 
+    ## Runs the action with overridden credentials, clearing caches before and
+       after the action to ensure that the credential change is picked up.
+    run_with_overridden_credentials path:File ~action =
+        Panic.with_finalizer Cloud_Tests_Setup.reset <|
+            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" path.absolute.normalize.path <|
+                Cloud_Tests_Setup.reset
+                action
+
 type Mock_Credentials
     Value access_token:Text expire_at:Date_Time refresh_token:Text refresh_url:Text client_id:Text
 

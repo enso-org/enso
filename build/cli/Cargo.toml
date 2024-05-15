@@ -7,21 +7,16 @@ default-run = "enso-build-cli"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 anyhow = { workspace = true }
-byte-unit = { workspace = true }
 clap = { workspace = true }
 derivative = { workspace = true }
 enso-build-base = { path = "../base" }
 enso-build = { path = "../build" }
 enso-formatter = { path = "../enso-formatter" }
 futures-util = "0.3.17"
-glob = "0.3.0"
-humantime = "2.1.0"
 ide-ci = { path = "../ci_utils" }
 octocrab = { workspace = true }
-tempfile = "3.2.0"
 tokio = { workspace = true }
-toml = "0.5.9"
-tracing = { version = "0.1.37" }
+tracing = { workspace = true }
 
 [lints]
 workspace = true

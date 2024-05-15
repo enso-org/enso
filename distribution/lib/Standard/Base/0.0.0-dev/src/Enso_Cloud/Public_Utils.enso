@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
@@ -57,3 +58,11 @@ get_optional_field (key : Text) js_object (~if_missing = Nothing) (show_value : 
     _ ->
         representation = if show_value then js_object.to_display_text else Meta.type_of js_object . to_display_text
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+representation+".")
+
+## PRIVATE
+   UNSTABLE
+   Re-exports parts of the functionality of `http_request_as_json` function that
+   is needed in tests.
+   It should not be used anywhere else and may be removed in the near future.
+cloud_http_request_for_test method url_suffix =
+    Utils.http_request_as_json method Utils.cloud_root_uri+url_suffix

@@ -1,5 +1,5 @@
-import sbt.Keys.*
-import sbt.*
+import sbt.Keys._
+import sbt._
 import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}

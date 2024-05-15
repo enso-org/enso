@@ -295,7 +295,7 @@ export const DefaultHandler = Symbol('default handler')
  * if the event should be considered not handled (and thus propagated). Returning true or just
  * nothing from the function will cause propagation of event stop.
  *
- * @param namespace should be unique among other `defineKebinds` calls.
+ * @param namespace should be unique among other `defineKeybinds` calls.
  * @param bindings is an object defining actions and their key bindings. Each property name is an
  * action name, and value is list of default key bindings. See "Keybinds should be parsed
  * correctly" test for examples of valid strings.

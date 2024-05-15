@@ -16,26 +16,24 @@ perform print=IO.println =
     row3 = [ 3 ]
     operator16985 = Table.from_rows [ 'Organisation' ] [row1, row2, row3 ]
 
-    interesting_uuids = Vector.new_builder
+    interesting_uuids = Vector.build builder->
         # line 9: (..Count)
-        . append "4cf46843-236f-4551-a9cc-30dd7552bb5f" # 287, 1
-        . append "1ccebe69-abaa-4f58-9d0d-22fbf93645db" # 287, 9
-        . append "f4e5de7c-c9c6-44fb-9355-5a4a54d85b68" # 288, 2
-        . append "c6fe8aaf-e963-4f63-a990-d15d230bc9ab" # 288, 7
-        . append "374688f9-19ea-4a9e-aafb-40d6acc10624" # 290, 5
-        . append "f1e1f7c9-6ef8-4b07-9d9e-1e6f14cfb8ea" # 295, 1
-        . append "6aa617ff-4a62-4184-8166-d3b7c8ec7c74" # 296, 1
+        builder . append "4cf46843-236f-4551-a9cc-30dd7552bb5f" # 287, 1
+        builder . append "1ccebe69-abaa-4f58-9d0d-22fbf93645db" # 287, 9
+        builder . append "f4e5de7c-c9c6-44fb-9355-5a4a54d85b68" # 288, 2
+        builder . append "c6fe8aaf-e963-4f63-a990-d15d230bc9ab" # 288, 7
+        builder . append "374688f9-19ea-4a9e-aafb-40d6acc10624" # 290, 5
+        builder . append "f1e1f7c9-6ef8-4b07-9d9e-1e6f14cfb8ea" # 295, 1
+        builder . append "6aa617ff-4a62-4184-8166-d3b7c8ec7c74" # 296, 1
 
         # line 10: (Aggregate_Column.Count)
-        . append "2d2b49e5-d3e2-4185-b0a3-1659a2648879" # 375, 1
-        . append "562ee720-ed6f-4c55-b2b4-d93db273147b" # 375, 24
-        . append "788f7b33-54ae-4452-85ff-4b7b5688b598" # 376, 16
-        . append "00e33517-6d19-4f5a-84c5-126f59a93b67" # 376, 22
-        . append "d1844837-30e7-46b7-bde3-72f7afec52cf" # 393, 5
-        . append "3d721b78-d1c7-4422-a7d0-64ef4366dbe7" # 398, 1
-        . append "fed548dd-0143-4d7b-b165-c9c7e60a8958" # 399, 1
-
-        . to_vector
+        builder . append "2d2b49e5-d3e2-4185-b0a3-1659a2648879" # 375, 1
+        builder . append "562ee720-ed6f-4c55-b2b4-d93db273147b" # 375, 24
+        builder . append "788f7b33-54ae-4452-85ff-4b7b5688b598" # 376, 16
+        builder . append "00e33517-6d19-4f5a-84c5-126f59a93b67" # 376, 22
+        builder . append "d1844837-30e7-46b7-bde3-72f7afec52cf" # 393, 5
+        builder . append "3d721b78-d1c7-4422-a7d0-64ef4366dbe7" # 398, 1
+        builder . append "fed548dd-0143-4d7b-b165-c9c7e60a8958" # 399, 1
 
     enter uuid:Text =
         if interesting_uuids.contains uuid then print "enter  "+uuid

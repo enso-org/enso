@@ -18,9 +18,13 @@ import * as uniqueString from '#/utilities/uniqueString'
 export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
 
-/** Unique identifier for a user. */
+/** Unique identifier for a user in an organization. */
 export type UserId = newtype.Newtype<string, 'UserId'>
 export const UserId = newtype.newtypeConstructor<UserId>()
+
+/** Unique identifier for a user group. */
+export type UserGroupId = newtype.Newtype<string, 'UserGroupId'>
+export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
@@ -86,15 +90,38 @@ export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
 export type Ami = newtype.Newtype<string, 'Ami'>
 export const Ami = newtype.newtypeConstructor<Ami>()
 
-/** An AWS user ID. */
-export type Subject = newtype.Newtype<string, 'Subject'>
-export const Subject = newtype.newtypeConstructor<Subject>()
+/** An identifier for an entity with an {@link AssetPermission} for an {@link Asset}. */
+export type UserPermissionIdentifier = UserGroupId | UserId
 
 /** An filesystem path. Only present on the local backend. */
 export type Path = newtype.Newtype<string, 'Path'>
 export const Path = newtype.newtypeConstructor<Path>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
+
+/** Whether a given {@link string} is an {@link UserId}. */
+export function isUserId(id: string): id is UserId {
+  return id.startsWith('user-')
+}
+
+/** Whether a given {@link string} is an {@link UserGroupId}. */
+export function isUserGroupId(id: string): id is UserGroupId {
+  return id.startsWith('usergroup-')
+}
+
+const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
+
+/** Whether a given {@link UserGroupId} represents a user group that does not yet exist on the
+ * server. */
+export function isPlaceholderUserGroupId(id: string) {
+  return id.startsWith(PLACEHOLDER_USER_GROUP_PREFIX)
+}
+
+/** Return a new {@link UserGroupId} that represents a placeholder user group that is yet to finish
+ * being created on the backend. */
+export function newPlaceholderUserGroupId() {
+  return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}`)
+}
 
 // =============
 // === Types ===
@@ -111,6 +138,8 @@ export interface UserInfo {
   /** The ID of the parent organization. If this is a sole user, they are implicitly in an
    * organization consisting of only themselves. */
   readonly organizationId: OrganizationId
+  /** The name of the parent organization. */
+  readonly organizationName?: string
   /** The ID of this user.
    *
    * The user ID is globally unique. Thus, the user ID is always sufficient to uniquely identify a
@@ -124,13 +153,14 @@ export interface UserInfo {
 
 /** A user in the application. These are the primary owners of a project. */
 export interface User extends UserInfo {
-  /** A URL. */
-  readonly profilePicture: string | null
-  /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
+  /** If `false`, this account is awaiting acceptance from an administrator, and endpoints other than
    * `usersMe` will not work. */
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
+  readonly profilePicture?: HttpsUrl
+  readonly userGroups: UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
+  readonly plan?: Plan
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -373,6 +403,7 @@ export interface CognitoCredentials {
 export enum Plan {
   solo = 'solo',
   team = 'team',
+  enterprise = 'enterprise',
 }
 
 export const PLANS = Object.values(Plan)
@@ -417,10 +448,60 @@ export interface OrganizationInfo {
   readonly picture: HttpsUrl | null
 }
 
+/** A user group and its associated metadata. */
+export interface UserGroupInfo {
+  readonly organizationId: OrganizationId
+  readonly id: UserGroupId
+  readonly groupName: string
+}
+
 /** User permission for a specific user. */
 export interface UserPermission {
   readonly user: UserInfo
   readonly permission: permissions.PermissionAction
+}
+
+/** User permission for a specific user group. */
+export interface UserGroupPermission {
+  readonly userGroup: UserGroupInfo
+  readonly permission: permissions.PermissionAction
+}
+
+/** User permission for a specific user or user group. */
+export type AssetPermission = UserGroupPermission | UserPermission
+
+/** Whether an {@link AssetPermission} is a {@link UserPermission}. */
+export function isUserPermission(permission: AssetPermission): permission is UserPermission {
+  return 'user' in permission
+}
+
+/** Whether an {@link AssetPermission} is a {@link UserPermission} with an additional predicate. */
+export function isUserPermissionAnd(predicate: (permission: UserPermission) => boolean) {
+  return (permission: AssetPermission): permission is UserPermission =>
+    isUserPermission(permission) && predicate(permission)
+}
+
+/** Whether an {@link AssetPermission} is a {@link UserGroupPermission}. */
+export function isUserGroupPermission(
+  permission: AssetPermission
+): permission is UserGroupPermission {
+  return 'userGroup' in permission
+}
+
+/** Whether an {@link AssetPermission} is a {@link UserGroupPermission} with an additional predicate. */
+export function isUserGroupPermissionAnd(predicate: (permission: UserGroupPermission) => boolean) {
+  return (permission: AssetPermission): permission is UserGroupPermission =>
+    isUserGroupPermission(permission) && predicate(permission)
+}
+
+/** Get the property representing the name on an arbitrary variant of {@link UserPermission}. */
+export function getAssetPermissionName(permission: AssetPermission) {
+  return isUserPermission(permission) ? permission.user.name : permission.userGroup.groupName
+}
+
+/** Get the property representing the id on an arbitrary variant of {@link UserPermission}. */
+export function getAssetPermissionId(permission: AssetPermission): UserPermissionIdentifier {
+  return isUserPermission(permission) ? permission.user.userId : permission.userGroup.id
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -623,7 +704,7 @@ export interface BaseAsset {
   /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
    * (and currently safe) to assume it is always a {@link DirectoryId}. */
   readonly parentId: DirectoryId
-  readonly permissions: UserPermission[] | null
+  readonly permissions: AssetPermission[] | null
   readonly labels: LabelName[] | null
   readonly description: string | null
 }
@@ -677,7 +758,7 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
 export function createPlaceholderFileAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: UserPermission[]
+  assetPermissions: AssetPermission[]
 ): FileAsset {
   return {
     type: AssetType.file,
@@ -696,7 +777,7 @@ export function createPlaceholderFileAsset(
 export function createPlaceholderProjectAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: UserPermission[],
+  assetPermissions: AssetPermission[],
   organization: User | null,
   path: Path | null
 ): ProjectAsset {
@@ -828,35 +909,29 @@ export const assetIsDataLink = assetIsType(AssetType.dataLink)
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
 export const assetIsFile = assetIsType(AssetType.file)
-/* eslint-disable no-restricted-syntax */
+/* eslint-enable no-restricted-syntax */
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
-  versionId: string
-  lastModified: dateTime.Rfc3339DateTime
-  isLatest: boolean
-  /**
-   * The field points to an archive containing the all the project files object in the S3 bucket,
-   */
-  key: string
+  readonly versionId: string
+  readonly lastModified: dateTime.Rfc3339DateTime
+  readonly isLatest: boolean
+  /** An archive containing the all the project files object in the S3 bucket. */
+  readonly key: string
 }
 
 /** A list of asset versions. */
 export interface AssetVersions {
-  versions: S3ObjectVersion[]
+  readonly versions: S3ObjectVersion[]
 }
 
-// ==============================
-// === compareUserPermissions ===
-// ==============================
-
-/** A value returned from a compare function passed to {@link Array.sort}, indicating that the
- * first argument was less than the second argument. */
-const COMPARE_LESS_THAN = -1
+// ===============================
+// === compareAssetPermissions ===
+// ===============================
 
 /** Return a positive number when `a > b`, a negative number when `a < b`, and `0`
  * when `a === b`. */
-export function compareUserPermissions(a: UserPermission, b: UserPermission) {
+export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) {
   const relativePermissionPrecedence =
     permissions.PERMISSION_ACTION_PRECEDENCE[a.permission] -
     permissions.PERMISSION_ACTION_PRECEDENCE[b.permission]
@@ -865,16 +940,16 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
   } else {
     // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
     // name first, so that it's easier to find a permission in a long list (i.e., for readability).
-    const aName = a.user.name
-    const bName = b.user.name
-    const aUserId = a.user.userId
-    const bUserId = b.user.userId
+    const aName = 'user' in a ? a.user.name : a.userGroup.groupName
+    const bName = 'user' in b ? b.user.name : b.userGroup.groupName
+    const aUserId = 'user' in a ? a.user.userId : a.userGroup.id
+    const bUserId = 'user' in b ? b.user.userId : b.userGroup.id
     return aName < bName
-      ? COMPARE_LESS_THAN
+      ? -1
       : aName > bName
         ? 1
         : aUserId < bUserId
-          ? COMPARE_LESS_THAN
+          ? -1
           : aUserId > bUserId
             ? 1
             : 0
@@ -894,15 +969,20 @@ export interface CreateUserRequestBody {
 
 /** HTTP request body for the "update user" endpoint. */
 export interface UpdateUserRequestBody {
-  username: string | null
+  readonly username: string | null
+}
+
+/** HTTP request body for the "change user group" endpoint. */
+export interface ChangeUserGroupRequestBody {
+  readonly userGroups: UserGroupId[]
 }
 
 /** HTTP request body for the "update organization" endpoint. */
 export interface UpdateOrganizationRequestBody {
-  name?: string
-  email?: EmailAddress
-  website?: HttpsUrl
-  address?: string
+  readonly name?: string
+  readonly email?: EmailAddress
+  readonly website?: HttpsUrl
+  readonly address?: string
 }
 
 /** HTTP request body for the "invite user" endpoint. */
@@ -913,7 +993,7 @@ export interface InviteUserRequestBody {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly actorsIds: UserId[]
+  readonly actorsIds: UserPermissionIdentifier[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }
@@ -990,10 +1070,10 @@ export interface UpdateSecretRequestBody {
 
 /** HTTP request body for the "create connector" endpoint. */
 export interface CreateConnectorRequestBody {
-  name: string
-  value: unknown
-  parentDirectoryId: DirectoryId | null
-  connectorId: ConnectorId | null
+  readonly name: string
+  readonly value: unknown
+  readonly parentDirectoryId: DirectoryId | null
+  readonly connectorId: ConnectorId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
@@ -1002,9 +1082,15 @@ export interface CreateTagRequestBody {
   readonly color: LChColor
 }
 
+/** HTTP request body for the "create user group" endpoint. */
+export interface CreateUserGroupRequestBody {
+  readonly name: string
+}
+
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
-  plan: Plan
+  readonly plan: Plan
+  readonly paymentMethodId: string
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -1034,6 +1120,14 @@ export interface ListVersionsRequestParams {
   readonly default: boolean
 }
 
+/**
+ * POST request body for the "create checkout session" endpoint.
+ */
+export interface CreateCheckoutSessionRequestParams {
+  readonly plan: Plan
+  readonly paymentMethodId: string
+}
+
 // ==============================
 // === detectVersionLifecycle ===
 // ==============================
@@ -1060,15 +1154,17 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
   if (relativeTypeOrder !== 0) {
     return relativeTypeOrder
+  } else {
+    const aModified = Number(new Date(a.modifiedAt))
+    const bModified = Number(new Date(b.modifiedAt))
+    const modifiedDelta = aModified - bModified
+    if (modifiedDelta !== 0) {
+      // Sort by date descending, rather than ascending.
+      return -modifiedDelta
+    } else {
+      return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
+    }
   }
-  const aModified = Number(new Date(a.modifiedAt))
-  const bModified = Number(new Date(b.modifiedAt))
-  const modifiedDelta = aModified - bModified
-  if (modifiedDelta !== 0) {
-    // Sort by date descending, rather than ascending.
-    return -modifiedDelta
-  }
-  return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
 }
 
 // ==================
@@ -1087,7 +1183,7 @@ export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
 
 /** A subset of properties of the JS `File` type. */
 interface JSFile {
-  name: string
+  readonly name: string
 }
 
 /** Whether a `File` is a project. */
@@ -1131,7 +1227,7 @@ export default abstract class Backend {
   /** Return the ID of the root directory, if known. */
   abstract rootDirectoryId(user: User | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<UserInfo[]>
+  abstract listUsers(): Promise<User[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
@@ -1142,6 +1238,12 @@ export default abstract class Backend {
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */
   abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
+  /** Set the list of groups a user is in. */
+  abstract changeUserGroup(
+    userId: UserId,
+    userGroups: ChangeUserGroupRequestBody,
+    name: string | null
+  ): Promise<User>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Get the details of the current organization. */
@@ -1244,10 +1346,18 @@ export default abstract class Backend {
   abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
+  /** Create a user group. */
+  abstract createUserGroup(body: CreateUserGroupRequestBody): Promise<UserGroupInfo>
+  /** Delete a user group. */
+  abstract deleteUserGroup(userGroupId: UserGroupId, name: string): Promise<void>
+  /** Return all user groups in the organization. */
+  abstract listUserGroups(): Promise<UserGroupInfo[]>
   /** Return a list of backend or IDE versions. */
   abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
   /** Create a payment checkout session. */
-  abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
+  abstract createCheckoutSession(
+    params: CreateCheckoutSessionRequestParams
+  ): Promise<CheckoutSession>
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */

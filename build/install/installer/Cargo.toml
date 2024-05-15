@@ -1,0 +1,29 @@
+[package]
+name = "enso-installer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+byte-unit = { workspace = true }
+chrono = { workspace = true }
+enso-install = { path = ".." }
+enso-install-config = { path = "../config" }
+flate2 = { workspace = true }
+ide-ci = { path = "../../ci_utils" }
+serde_json = { workspace = true }
+sysinfo = { workspace = true }
+tar = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+native-windows-gui = { workspace = true }
+
+[build-dependencies]
+embed-resource = "2.4.0"
+ide-ci = { path = "../../ci_utils" }
+enso-install-config = { path = "../config" }
+flate2 = { workspace = true }
+tar = { workspace = true }
+
+[lints]
+workspace = true

@@ -54,6 +54,28 @@ public class AddRunning {
         }
         return new RunningMaxStatistic(sourceColumn, problemAggregator);
       }
+      case VariancePopulation -> {
+        return new RunningVarianceStatistic(sourceColumn, problemAggregator, true);
+      }
+      case VarianceSample -> {
+        return new RunningVarianceStatistic(sourceColumn, problemAggregator, false);
+      }
+      case StandardDeviationPopulation -> {
+        return new RunningStandardDeviationStatistic(sourceColumn, problemAggregator, true);
+      }
+      case StandardDeviationSample -> {
+        return new RunningStandardDeviationStatistic(sourceColumn, problemAggregator, false);
+      }
+      case SkewPopulation -> {
+        return new RunningSkewStatistic(sourceColumn, problemAggregator, true);
+      }
+      case SkewSample -> {
+        return new RunningSkewStatistic(sourceColumn, problemAggregator, false);
+      }
+      case Kurtosis -> {
+        return new RunningKurtosisStatistic(sourceColumn, problemAggregator);
+      }
+
       default -> throw new IllegalArgumentException("Unsupported statistic: " + statistic);
     }
   }
@@ -199,14 +221,6 @@ public class AddRunning {
     public RunningIterator<Double> getNewIterator() {
       return new RunningSumIterator();
     }
-
-    private static class RunningSumIterator extends RunningIteratorBase {
-
-      @Override
-      public void increment(double value) {
-        current += value;
-      }
-    }
   }
 
   private static class RunningMeanStatistic extends RunningStatisticBase<Double> {
@@ -219,27 +233,240 @@ public class AddRunning {
     public RunningIterator<Double> getNewIterator() {
       return new RunningMeanIterator();
     }
+  }
 
-    private static class RunningMeanIterator extends RunningIteratorBase {
+  private static class RunningVarianceStatistic extends RunningStatisticBase<Double> {
 
-      private int currentCount;
+    private final boolean isPopulationVariance;
 
-      @Override
-      public void increment(double value) {
-        current += value;
-        currentCount++;
+    RunningVarianceStatistic(
+        Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulationVariance) {
+      super(sourceColumn, problemAggregator, new DoubleHandler());
+      this.isPopulationVariance = isPopulationVariance;
+    }
+
+    @Override
+    public RunningIterator<Double> getNewIterator() {
+      return new RunningVarianceIterator(isPopulationVariance);
+    }
+  }
+
+  private static class RunningStandardDeviationStatistic extends RunningStatisticBase<Double> {
+
+    private final boolean isPopulation;
+
+    RunningStandardDeviationStatistic(
+        Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulation) {
+      super(sourceColumn, problemAggregator, new DoubleHandler());
+      this.isPopulation = isPopulation;
+    }
+
+    @Override
+    public RunningIterator<Double> getNewIterator() {
+      return new RunningStandardDeviationIterator(isPopulation);
+    }
+  }
+
+  private static class RunningSkewStatistic extends RunningStatisticBase<Double> {
+
+    private final boolean isPopulation;
+
+    RunningSkewStatistic(
+        Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulation) {
+      super(sourceColumn, problemAggregator, new DoubleHandler());
+      this.isPopulation = isPopulation;
+    }
+
+    @Override
+    public RunningIterator<Double> getNewIterator() {
+      return new RunningSkewIterator(isPopulation);
+    }
+  }
+
+  private static class RunningKurtosisStatistic extends RunningStatisticBase<Double> {
+
+    RunningKurtosisStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
+      super(sourceColumn, problemAggregator, new DoubleHandler());
+    }
+
+    @Override
+    public RunningIterator<Double> getNewIterator() {
+      return new RunningKurtosisIterator();
+    }
+  }
+
+  private static class RunningSumIterator extends RunningIteratorBase {
+
+    protected double sum;
+
+    @Override
+    public void initialize(double value) {
+      super.initialize(value);
+      sum = value;
+    }
+
+    @Override
+    public void increment(double value) {
+      sum += value;
+    }
+
+    @Override
+    public double getCurrent() {
+      return sum;
+    }
+  }
+
+  private static class RunningMeanIterator extends RunningSumIterator {
+
+    protected int currentCount;
+
+    @Override
+    public void increment(double value) {
+      super.increment(value);
+      currentCount++;
+    }
+
+    @Override
+    public void initialize(double value) {
+      super.initialize(value);
+      currentCount = 1;
+    }
+
+    @Override
+    public double getCurrent() {
+      return sum / currentCount;
+    }
+  }
+
+  private static class RunningVarianceIterator extends RunningMeanIterator {
+
+    protected double sumSquares;
+    protected boolean isPopulation;
+
+    RunningVarianceIterator(boolean isPopulation) {
+      this.isPopulation = isPopulation;
+    }
+
+    @Override
+    public void increment(double value) {
+      super.increment(value);
+      sumSquares += value * value;
+    }
+
+    @Override
+    public void initialize(double value) {
+      super.initialize(value);
+      sumSquares = value * value;
+    }
+
+    @Override
+    public double getCurrent() {
+      double mean = super.getCurrent();
+      double denominator = isPopulation ? currentCount : currentCount - 1;
+      return (sumSquares - 2 * mean * sum + currentCount * mean * mean) / denominator;
+    }
+  }
+
+  private static class RunningStandardDeviationIterator extends RunningVarianceIterator {
+
+    RunningStandardDeviationIterator(boolean isPopulation) {
+      super(isPopulation);
+    }
+
+    @Override
+    public double getCurrent() {
+      return Math.sqrt(super.getCurrent());
+    }
+  }
+
+  private static class RunningSkewIterator extends RunningStandardDeviationIterator {
+
+    protected double sumCubes;
+
+    RunningSkewIterator(boolean isPopulation) {
+      super(isPopulation);
+    }
+
+    @Override
+    public void increment(double value) {
+      super.increment(value);
+      sumCubes += value * value * value;
+    }
+
+    @Override
+    public void initialize(double value) {
+      super.initialize(value);
+      sumCubes = value * value * value;
+    }
+
+    @Override
+    public double getCurrent() {
+      if (currentCount <= 2) {
+        return Double.NaN;
       }
+      double mean = sum / currentCount;
+      double standardDeviation = super.getCurrent();
+      double denominator =
+          isPopulation
+              ? currentCount
+              : ((double) ((currentCount - 1) * (currentCount - 2)) / (double) currentCount);
+      double scale =
+          1.0 / (standardDeviation * standardDeviation * standardDeviation) / denominator;
+      double skew = (sumCubes - 3 * mean * sumSquares + 2 * mean * mean * sum) * scale;
+      return skew;
+    }
+  }
 
-      @Override
-      public void initialize(double value) {
-        current = value;
-        currentCount = 1;
-      }
+  private static class RunningKurtosisIterator extends RunningVarianceIterator {
 
-      @Override
-      public double getCurrent() {
-        return current / currentCount;
+    private double sumCubes;
+    private double sumQuads;
+
+    RunningKurtosisIterator() {
+      super(false);
+    }
+
+    @Override
+    public void increment(double value) {
+      super.increment(value);
+      sumCubes += value * value * value;
+      sumQuads += value * value * value * value;
+    }
+
+    @Override
+    public void initialize(double value) {
+      super.initialize(value);
+      sumCubes = value * value * value;
+      sumQuads = value * value * value * value;
+      currentCount = 1;
+    }
+
+    @Override
+    public double getCurrent() {
+      if (currentCount <= 3) {
+        return Double.NaN;
       }
+      double mean = sum / currentCount;
+      double variance = super.getCurrent();
+      double scale =
+          (double) (currentCount * (currentCount + 1))
+              / (double)
+                  ((currentCount - 1)
+                      * (currentCount - 2)
+                      * (currentCount - 3)
+                      * variance
+                      * variance);
+      double shift =
+          (double) (3 * (currentCount - 1) * (currentCount - 1))
+              / (double) ((currentCount - 2) * (currentCount - 3));
+      double kurtosis =
+          (sumQuads
+                      - 4 * mean * sumCubes
+                      + 6 * mean * mean * sumSquares
+                      - 3 * mean * mean * mean * sum)
+                  * scale
+              - shift;
+      return kurtosis;
     }
   }
 
