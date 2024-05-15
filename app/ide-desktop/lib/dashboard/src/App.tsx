@@ -55,7 +55,6 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
-import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
@@ -448,11 +447,6 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
   let result = routes
-  result = (
-    <SupportsLocalBackendProvider supportsLocalBackend={supportsLocalBackend}>
-      {result}
-    </SupportsLocalBackendProvider>
-  )
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = (
     <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>

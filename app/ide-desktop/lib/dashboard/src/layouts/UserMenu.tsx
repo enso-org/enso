@@ -11,7 +11,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as supportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
@@ -42,7 +41,6 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, setPage, onSignOut } = props
   const [initialized, setInitialized] = React.useState(false)
-  const supportsLocalBackend = supportsLocalBackendProvider.useSupportsLocalBackend()
   const navigate = navigateHooks.useNavigate()
   const localBackend = backendProvider.useLocalBackend()
   const { signOut } = authProvider.useAuth()
