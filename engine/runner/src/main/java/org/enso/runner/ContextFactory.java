@@ -149,7 +149,6 @@ final class ContextFactory {
             .options(options)
             .option(RuntimeOptions.ENABLE_AUTO_PARALLELISM, Boolean.toString(enableAutoParallelism))
             .option(RuntimeOptions.WARNINGS_LIMIT, Integer.toString(warningsLimit))
-            .option("js.foreign-object-prototype", "true")
             .out(out)
             .in(in)
             .serverTransport(
