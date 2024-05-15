@@ -111,7 +111,7 @@ object Tree {
 
   case class Root[+A](
     @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.NAME
+      use = JsonTypeInfo.Id.NAME
     )
     children: Vector[Node[A]]
   ) extends Tree[A]
@@ -120,7 +120,7 @@ object Tree {
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
     element: A,
     @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.NAME
+      use = JsonTypeInfo.Id.NAME
     )
     children: Vector[Node[A]]
   ) extends Tree[A]
