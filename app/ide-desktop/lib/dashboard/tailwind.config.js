@@ -64,7 +64,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'gray-350': '#b7bcc5',
       },
       fontFamily: {
-        naming: ['Enso Naming', 'Enso', 'M PLUS 1'],
+        naming: ['"Enso Naming"', '"Enso"', '"M PLUS 1"'],
       },
       fontSize: {
         xs: '0.71875rem',
