@@ -15,6 +15,8 @@ use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 
 use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::npm_install_step;
+use ide_ci::actions::workflow::definition::setup_node_step;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -192,7 +194,14 @@ impl JobArchetype for JvmTests {
         let graal_edition = self.graal_edition;
         let job_name = format!("JVM Tests ({graal_edition})");
         let mut job = RunStepsBuilder::new("backend test jvm")
-            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
+            .customize(move |step| {
+                vec![
+                    setup_node_step(),
+                    npm_install_step(),
+                    step,
+                    step::engine_test_reporter(target, graal_edition),
+                ]
+            })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
@@ -428,7 +437,9 @@ pub struct CiCheckBackend {
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Engine ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
+        let mut job = RunStepsBuilder::new("backend ci-check")
+            .customize(move |step| vec![setup_node_step(), npm_install_step(), step])
+            .build_job(job_name, target);
         match self.graal_edition {
             graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
