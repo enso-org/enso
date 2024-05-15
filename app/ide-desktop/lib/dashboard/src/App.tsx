@@ -227,10 +227,6 @@ function AppRouter(props: AppRouterProps) {
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const navigator2D = navigator2DProvider.useNavigator2D()
-  if (detect.IS_DEV_MODE) {
-    // @ts-expect-error This is used exclusively for debugging.
-    window.navigate = navigate
-  }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
   const [root] = React.useState<React.RefObject<HTMLElement>>(() => ({
     current: document.getElementById('enso-dashboard'),

@@ -101,11 +101,6 @@ export default class LocalBackend extends Backend {
   constructor(projectManagerUrl: string, rootDirectory: projectManager.Path) {
     super()
     this.projectManager = new ProjectManager(projectManagerUrl, rootDirectory)
-    if (detect.IS_DEV_MODE) {
-      // @ts-expect-error This exists only for debugging purposes. It does not have types
-      // because it MUST NOT be used in this codebase.
-      window.localBackend = this
-    }
   }
 
   /** Return the ID of the root directory. */

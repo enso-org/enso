@@ -154,13 +154,6 @@ export default class RemoteBackend extends Backend {
       const message = 'Authorization header not set.'
       this.logger.error(message)
       throw new Error(message)
-    } else {
-      if (detect.IS_DEV_MODE) {
-        // @ts-expect-error This exists only for debugging purposes. It does not have types
-        // because it MUST NOT be used in this codebase.
-        window.remoteBackend = this
-      }
-      return
     }
   }
 
