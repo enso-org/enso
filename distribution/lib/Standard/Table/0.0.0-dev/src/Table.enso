@@ -2248,87 +2248,64 @@ type Table
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
-           If unmatched columns are to be dropped, the resulting table will keep
-           only the set of columns that appear in all provided tables, in the
-           relative order that they appeared in the `self` table.
-           If unmatched columns are kept, they are added in the order of
-           appearance - i.e. first all columns from `self` will be added in the
-           original order, then any columns from the second table that were not
-           matched will be added at the end (preserving their relative order),
-           and so on for all the remaining tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
-           If unmatched columns are to be dropped, the resulting table will have
-           as many columns as the table that had the least columns and the
-           column names of the first table (self) will be used.
-           If unmatched columns are kept, the resulting table will have as many
-           columns as the table with the most columns. Since the first table may
-           not have all the necessary columns to provide column names for the
-           result, the result will have column names taken from the first table
-           that has the biggest number of columns.
-       - keep_unmatched_columns: If set to `True`, unmatched columns are kept
-         and are padded with `Nothing` for tables that did not have them.
-         If set to `False`, only the common subset of columns is kept - any
-         column that is not present in all tables is dropped. Defaults to
-         `Report_Unmatched`, which behaves like `True` - unmatched columns are
-         kept and padded with `Nothing`, but a problem is reported.
-       - allow_type_widening: Specifies if the resulting column type should be
-         adjusted to fit columns from all arguments. If `True`, a common type
-         will be chosen for each column (see "Unifying Column Types" below).
-         If `False`, the resulting column type will be the same as in the first
-         table containing the column. In this case, all columns that are
-         concatenated must have the same type as the first one (unless this
-         had a `Mixed` type - in which case it will accept any other types).
+           The names of each column come from the first table in which the given
+           column appears in.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in all tables.
+         The `List` option is not applicable when mapping columns by position.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         - If `keep_unmatched_columns` is set to `Report_Unmatched` (the
-           default):
-           - If matching by name and there are columns that are not present in
-             all tables, `Unmatched_Columns` is reported.
-           - If matching by position and column counts of the merged tables
-             differ, then a `Column_Count_Mismatch` is reported. The error will
-             contain the greatest column count as its `expected` value and the
-             smallest one as its `actual` value.
-         - If `keep_unmatched_columns` is set to `False` and matching by name,
-           it is possible that there are no columns that are common to all
-           provided tables, in that case `No_Output_Columns` is thrown as a
-           dataflow error regardless of the `on_problems` setting, because there
-           are no columns to include in the resulting table.
-         - If type widening is disabled and one of corresponding columns has a
-           type that is incompatible with the type coming from the first table,
-           a `Column_Type_Mismatch` is reported. The problematic column will be
-           dropped from the resulting table. With type widening disabled, the
-           subsequent tables must have the same types as the first one, unless
-           the type of the first one was `Mixed` which will accept any other
-           type.
-         - If a common type coercion for a set of matched columns from
-           concatenated tables cannot be found, a `No_Common_Type` is reported.
-           In warning or ignore mode, the problematic column will be dropped
-           from the resulting table.
-
        ? Unifying Column Types
 
-         If `allow_type_widening` is set to `True`, then the following rules are
-         used to find a common type that will fit values from all merged tables.
-
-         Numeric columns are unified by finding the most general type that can
-         fit all of the columns. The biggest integer type will be chosen and if
+         Numeric columns are unified by finding the smallest type that can fit
+         all of the columns. The biggest integer type will be chosen and if
          integers and decimals are mixed, the decimal type will be chosen.
          If boolean columns are mixed with numeric columns, they will be coerced
          to the numeric type (and converted to 0 and 1).
 
-         Text types will also be coerced according to the common rules - if
-         constant-length texts of different lengths are mixed, they will be
-         coerced to a varying-length type.
+         Text types will are also unified by finding the smallest type that can
+         fit all the values. If constant-length texts of different lengths are
+         mixed, they will be coerced to a varying-length type.
+
+         If date and date-time columns are unified, this yields a date-time
+         column. In-memory, the date is promoted by adding a time of 00:00 and
+         the system time-zone. In other backends that behaviour may differ.
 
          If one of the matched columns has `Mixed` type, that type will be used
-         regardless of types of other columns. Mixing any other types will
-         result in a `No_Common_Type` problem. If columns of incompatible types
-         are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention. Note that the
-         `Mixed` type may not be supported by most Database backends.
-    union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables:(Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+         regardless of types of other columns. Note that the `Mixed` type may
+         not be supported by most Database backends.
+
+         Finally, if no common type is found using the rules above, everything
+         is converted to text.
+
+       ? Problem Conditions
+
+         - If no common type is found and the text conversion fallback is used,
+           the `No_Common_Type` problem is reported.
+         - The `Float` type may not be able to exactly represent larger
+           integers, thus if such large integers are mixed with floats, the
+           resulting conversion to `Float` may cause a loss of precision.
+           In that case, a `Loss_Of_Integer_Precision` problem is reported.
+         - If a column of dates is unified with a column of date-times, the
+           assumption of using the midnight time-of-day is arbitrary, hence
+           a `???` is reported.
+         - If `columns_to_keep` is set to `In_All` or `List` and an expected
+           column is missing in some of the tables, a `Missing_Input_Columns`
+           problem is reported. If this causes the output to contain no columns,
+           a `No_Output_Columns` error is raised.
+
+       ? Ordering of Columns in the result
+
+         When matching columns by name, it is possible that the ordering of
+         columns may vary between input tables. The ordering is determined as
+         following: columns that are kept from the first table are in the order
+         they appear in that table. If there are columns that do not appear in
+         the first table, they are appended to the end of the resulting table in
+         the order they appear in the input.
+    union : (Table | Vector Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> Table
+    union self tables:(Table | Vector) (match_columns : Match_Columns = Match_Columns.By_Name) (columns_to_keep : Columns_To_Keep = ..In_All) (on_problems : Problem_Behavior = Report_Warning) =
         Table.from_union ([self] + Vector.unify_vector_or_element tables) match_columns keep_unmatched_columns allow_type_widening on_problems
 
     ## ALIAS drop_missing_rows, dropna
@@ -2956,87 +2933,65 @@ type Table
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
-           If unmatched columns are to be dropped, the resulting table will keep
-           only the set of columns that appear in all provided tables, in the
-           relative order that they appeared in the `self` table.
-           If unmatched columns are kept, they are added in the order of
-           appearance - i.e. first all columns from `self` will be added in the
-           original order, then any columns from the second table that were not
-           matched will be added at the end (preserving their relative order),
-           and so on for all the remaining tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
-           If unmatched columns are to be dropped, the resulting table will have
-           as many columns as the table that had the least columns and the
-           column names of the first table (self) will be used.
-           If unmatched columns are kept, the resulting table will have as many
-           columns as the table with the most columns. Since the first table may
-           not have all the necessary columns to provide column names for the
-           result, the result will have column names taken from the first table
-           that has the biggest number of columns.
-       - keep_unmatched_columns: If set to `True`, unmatched columns are kept
-         and are padded with `Nothing` for tables that did not have them.
-         If set to `False`, only the common subset of columns is kept - any
-         column that is not present in all tables is dropped. Defaults to
-         `Report_Unmatched`, which behaves like `True` - unmatched columns are
-         kept and padded with `Nothing`, but a problem is reported.
-       - allow_type_widening: Specifies if the resulting column type should be
-         adjusted to fit columns from all arguments. If `True`, a common type
-         will be chosen for each column (see "Unifying Column Types" below).
-         If `False`, the resulting column type will be the same as in the first
-         table containing the column. In this case, all columns that are
-         concatenated must have the same type as the first one (unless this
-         had a `Mixed` type - in which case it will accept any other types).
+           The names of each column come from the first table in which the given
+           column appears in.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in all tables.
+         The `List` option is not applicable when mapping columns by position.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         - If `keep_unmatched_columns` is set to `Report_Unmatched` (the
-           default):
-           - If matching by name and there are columns that are not present in
-             all tables, `Unmatched_Columns` is reported.
-           - If matching by position and column counts of the merged tables
-             differ, then a `Column_Count_Mismatch` is reported. The error will
-             contain the greatest column count as its `expected` value and the
-             smallest one as its `actual` value.
-         - If `keep_unmatched_columns` is set to `False` and matching by name,
-           it is possible that there are no columns that are common to all
-           provided tables, in that case `No_Output_Columns` is thrown as a
-           dataflow error regardless of the `on_problems` setting, because there
-           are no columns to include in the resulting table.
-         - If type widening is disabled and one of corresponding columns has a
-           type that is incompatible with the type coming from the first table,
-           a `Column_Type_Mismatch` is reported. The problematic column will be
-           dropped from the resulting table. With type widening disabled, the
-           subsequent tables must have the same types as the first one, unless
-           the type of the first one was `Mixed` which will accept any other
-           type.
-         - If a common type coercion for a set of matched columns from
-           concatenated tables cannot be found, a `No_Common_Type` is reported.
-           In warning or ignore mode, the problematic column will be dropped
-           from the resulting table.
-
        ? Unifying Column Types
 
-         If `allow_type_widening` is set to `True`, then the following rules are
-         used to find a common type that will fit values from all merged tables.
-
-         Numeric columns are unified by finding the most general type that can
-         fit all of the columns. The biggest integer type will be chosen and if
+         Numeric columns are unified by finding the smallest type that can fit
+         all of the columns. The biggest integer type will be chosen and if
          integers and decimals are mixed, the decimal type will be chosen.
          If boolean columns are mixed with numeric columns, they will be coerced
          to the numeric type (and converted to 0 and 1).
 
-         Text types will also be coerced according to the common rules - if
-         constant-length texts of different lengths are mixed, they will be
-         coerced to a varying-length type.
+         Text types will are also unified by finding the smallest type that can
+         fit all the values. If constant-length texts of different lengths are
+         mixed, they will be coerced to a varying-length type.
+
+         If date and date-time columns are unified, this yields a date-time
+         column. In-memory, the date is promoted by adding a time of 00:00 and
+         the system time-zone. In other backends that behaviour may differ.
 
          If one of the matched columns has `Mixed` type, that type will be used
-         regardless of types of other columns. Mixing any other types will
-         result in a `No_Common_Type` problem. If columns of incompatible types
-         are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention. Note that the
-         `Mixed` type may not be supported by most Database backends.
-    from_union : (Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    from_union tables:(Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+         regardless of types of other columns. Note that the `Mixed` type may
+         not be supported by most Database backends.
+
+         Finally, if no common type is found using the rules above, everything
+         is converted to text.
+
+       ? Problem Conditions
+
+         - If no common type is found and the text conversion fallback is used,
+           the `No_Common_Type` problem is reported.
+         - The `Float` type may not be able to exactly represent larger
+           integers, thus if such large integers are mixed with floats, the
+           resulting conversion to `Float` may cause a loss of precision.
+           In that case, a `Loss_Of_Integer_Precision` problem is reported.
+         - If a column of dates is unified with a column of date-times, the
+           assumption of using the midnight time-of-day is arbitrary, hence
+           a `???` is reported.
+         - If an empty vector of tables is provided, a `???` error is raised.
+         - If `columns_to_keep` is set to `In_All` or `List` and an expected
+           column is missing in some of the tables, a `Missing_Input_Columns`
+           problem is reported. If this causes the output to contain no columns,
+           a `No_Output_Columns` error is raised.
+
+       ? Ordering of Columns in the result
+
+         When matching columns by name, it is possible that the ordering of
+         columns may vary between input tables. The ordering is determined as
+         following: columns that are kept from the first table are in the order
+         they appear in that table. If there are columns that do not appear in
+         the first table, they are appended to the end of the resulting table in
+         the order they appear in the input.
+    from_union : (Vector Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> Table
+    from_union tables:(Vector) (match_columns : Match_Columns = Match_Columns.By_Name) (columns_to_keep : Columns_To_Keep = ..In_All) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = (tables.map t-> Table.from t)
         all_tables.if_not_error <|
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,

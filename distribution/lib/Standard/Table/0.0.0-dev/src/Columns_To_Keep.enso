@@ -1,0 +1,19 @@
+## Specifies which columns to keep in a union operation.
+type Columns_To_Keep
+    ## All columns are kept.
+
+       If a column is present only in some of the tables, it is padded with
+       `Nothing` for tables where it is missing.
+    In_Any
+
+    ## Only columns that are present in all tables are kept.
+
+       If there are columns that are only present in some of the tables,
+       a problem is reported.
+    In_All
+
+    ## Specific list of column names to keep.
+
+       If a table does not have a column that is specified in the list, it is
+       padded with `Nothing` and a problem is reported.
+    In_List (column_names:Vector Text)
