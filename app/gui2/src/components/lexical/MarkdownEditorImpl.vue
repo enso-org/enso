@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import TextEditor from '@/components/lexical/TextEditor.vue'
 import { useLexicalSync } from '@/components/lexical/sync'
-import { useFocusDelayed } from '@/composables/focus'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
 import { ListItemNode, ListNode } from '@lexical/list'
@@ -15,12 +14,8 @@ import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
 import { syncRef } from '@vueuse/core'
 import { type LexicalEditor } from 'lexical'
-import { ref, type ComponentInstance } from 'vue'
 
 const markdown = defineModel<string>({ required: true })
-const focused = defineModel<boolean>('focused', { default: false })
-
-const editorComponent = ref<ComponentInstance<typeof LexicalEditor>>()
 
 const nodes = [
   HeadingNode,
@@ -36,28 +31,25 @@ const nodes = [
   TableRowNode,
 ]
 
-function configureEditor(editor: LexicalEditor) {
+function configure(editor: LexicalEditor) {
   registerRichText(editor)
   registerMarkdownShortcuts(editor, TRANSFORMERS)
-  syncRef(
-    markdown,
-    useLexicalSync(
-      editor,
-      () => $convertToMarkdownString(TRANSFORMERS),
-      (value) => $convertFromMarkdownString(value, TRANSFORMERS),
-    ).content,
+  const { content } = useLexicalSync(
+    editor,
+    () => $convertToMarkdownString(TRANSFORMERS),
+    (value) => $convertFromMarkdownString(value, TRANSFORMERS),
   )
-  syncRef(focused, useFocusDelayed(editorComponent).focused)
+  content.value = markdown.value
+  syncRef(markdown, content, { immediate: false })
 }
 </script>
 
 <template>
   <TextEditor
-    ref="editorComponent"
     :nodes="nodes"
     name="MarkdownEditor"
     class="fullHeight"
-    @initialized="configureEditor"
+    @initialized="configure"
     @wheel.stop
     @contextmenu.stop
   />

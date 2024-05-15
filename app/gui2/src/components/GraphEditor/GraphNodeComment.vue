@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import PlainTextEditor from '@/components/PlainTextEditor.vue'
 import { useAstDocumentation } from '@/composables/astDocumentation'
+import { useFocusDelayed } from '@/composables/focus'
 import { type Node } from '@/stores/graph'
-import { computed } from 'vue'
+import { syncRef } from '@vueuse/core'
+import { computed, ref, type ComponentInstance } from 'vue'
 
 const editing = defineModel<boolean>('editing', { required: true })
 const props = defineProps<{ node: Node }>()
+
+const textEditor = ref<ComponentInstance<typeof PlainTextEditor>>()
 
 const { documentation: astDocumentation } = useAstDocumentation(() => props.node.outerExpr)
 const documentation = computed({
@@ -13,10 +17,16 @@ const documentation = computed({
   get: () => props.node.documentation ?? '',
   set: (value) => (astDocumentation.value = value),
 })
+
+syncRef(editing, useFocusDelayed(textEditor).focused)
 </script>
 <template>
   <div v-if="editing || props.node.documentation?.trimStart()" class="GraphNodeComment">
-    <PlainTextEditor v-model="documentation" v-model:focused="editing" singleLine />
+    <PlainTextEditor
+      ref="textEditor"
+      v-model="documentation"
+      @keydown.enter.capture.stop="editing = false"
+    />
   </div>
 </template>
 

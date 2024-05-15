@@ -1,12 +1,8 @@
-import { $setRootText } from '@/components/lexical/utils'
-import { $getRoot, type EditorState, type LexicalEditor } from 'lexical'
+import type { EditorState, LexicalEditor } from 'lexical'
+import { $createParagraphNode, $createTextNode, $getRoot, $setSelection } from 'lexical'
 import { computed, ref } from 'vue'
 
 const SYNC_TAG = 'ENSO_SYNC'
-
-function $getRootText() {
-  return $getRoot().getTextContent()
-}
 
 /** Enables two-way synchronization between the editor and a string model `content`.
  *
@@ -48,4 +44,18 @@ export function useLexicalSync(
     }),
     unregister,
   }
+}
+
+function $getRootText() {
+  return $getRoot().getTextContent()
+}
+
+function $setRootText(text: string) {
+  if (text === $getRoot().getTextContent()) return
+  const root = $getRoot()
+  root.clear()
+  const paragraph = $createParagraphNode()
+  paragraph.append($createTextNode(text))
+  root.append(paragraph)
+  $setSelection(null)
 }
