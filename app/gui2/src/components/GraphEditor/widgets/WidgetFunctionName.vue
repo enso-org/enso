@@ -6,16 +6,27 @@ import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { useToast } from '@/util/toast'
+import { PropertyAccess } from 'shared/ast'
 import type { ExpressionId } from 'shared/languageServerTypes'
-import { ref, watchEffect } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
+import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const name = ref(props.input.value.code())
+const displayedName = ref(props.input.value.code())
 
 const project = useProjectStore()
 const renameError = useToast.error()
 
-watchEffect(() => (name.value = props.input.value.code()))
+const thisArg = computed(() =>
+  props.input.value instanceof PropertyAccess ? props.input.value.lhs : undefined,
+)
+const operator = computed(() =>
+  props.input.value instanceof PropertyAccess ? props.input.value.operator : undefined,
+)
+const name = computed(() =>
+  props.input.value instanceof PropertyAccess ? props.input.value.rhs : props.input.value,
+)
+watchEffect(() => (displayedName.value = name.value.code()))
 
 function newNameAccepted(name: string | undefined) {
   if (!name) return
@@ -37,7 +48,7 @@ async function renameFunction(newName: string): Promise<Result> {
     newName,
   )
   if (!refactorResult.ok) return refactorResult
-  name.value = refactorResult.value.newName
+  displayedName.value = refactorResult.value.newName
   return Ok()
 }
 </script>
@@ -71,25 +82,24 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <AutoSizedInput v-model="name" class="FunctionName" @change="newNameAccepted" />
+  <div class="WidgetFunctionName">
+    <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
+    <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
+    <AutoSizedInput
+      v-model="displayedName"
+      class="FunctionName"
+      @change="newNameAccepted"
+      @pointerdown.stop
+      @click.stop
+      @keydown.enter.stop
+    />
+  </div>
 </template>
 
 <style scoped>
-.FunctionName {
-  display: inline-block;
-  vertical-align: middle;
-  white-space: pre;
-  color: rgb(255 255 255 / 0.33);
-
-  &.Ident,
-  &.TextSection,
-  &.Digits {
-    color: white;
-  }
-
-  &.TextSection,
-  &.Digits {
-    font-weight: bold;
-  }
+.WidgetFunctionName {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 </style>

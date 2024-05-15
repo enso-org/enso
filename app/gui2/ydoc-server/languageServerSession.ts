@@ -107,6 +107,7 @@ export class LanguageServerSession {
     })
     const modifiedCb = async (event: { path: Path }) => {
       const path = event.path.segments.join('/')
+      console.log('FILE MODIFIED', path)
       const result = await exponentialBackoff(
         async () => this.tryGetExistingModuleModel(event.path)?.reload() ?? Ok(),
         printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),

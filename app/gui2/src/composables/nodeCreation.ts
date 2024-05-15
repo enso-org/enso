@@ -115,13 +115,13 @@ export function useNodeCreation(
     const placedNodes = placeNodes(nodesOptions)
     if (placedNodes.length === 0) return new Set()
     const methodAst = graphStore.methodAst
-    if (!methodAst) {
-      console.error(`BUG: Cannot add node: No current function.`)
+    if (!methodAst.ok) {
+      methodAst.error.log(`BUG: Cannot add node: No current function.`)
       return new Set()
     }
     const created = new Set<NodeId>()
     graphStore.edit((edit) => {
-      const bodyBlock = edit.getVersion(methodAst).bodyAsBlock()
+      const bodyBlock = edit.getVersion(methodAst.value).bodyAsBlock()
       for (const options of placedNodes) {
         const { rootExpression, id } = newAssignmentNode(
           edit,

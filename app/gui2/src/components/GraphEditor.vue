@@ -51,6 +51,7 @@ import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
+import { unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
@@ -585,7 +586,7 @@ const groupColors = computed(() => {
         data-testid="rightDock"
       >
         <div class="scrollArea">
-          <AstDocumentation :ast="graphStore.methodAst" />
+          <AstDocumentation :ast="unwrapOr(graphStore.methodAst, undefined)" />
         </div>
         <SvgIcon
           name="close"

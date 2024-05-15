@@ -326,8 +326,8 @@ const previewedSuggestionReturnType = computed(() => {
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
   if (isAIPromptMode.value) return
   if (!previewed.value.expression.trim()) return
-  if (!graphStore.methodAst) return
-  const body = graphStore.methodAst.body
+  if (!graphStore.methodAst.ok) return
+  const body = graphStore.methodAst.value.body
   if (!body) return
 
   return {

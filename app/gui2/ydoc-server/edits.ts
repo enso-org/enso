@@ -151,7 +151,7 @@ export function translateVisualizationFromFile(
  * A simplified diff algorithm.
  *
  * The `fast-diff` package uses Myers' https://neil.fraser.name/writing/diff/myers.pdf with some
- * optimizations to generate minimal diff. Unfortunately, event this algorithm is still to slow
+ * optimizations to generate minimal diff. Unfortunately, event this algorithm is still too slow
  * for our metadata. Therefore we need to use faster algorithm which will not produce theoretically
  * minimal diff.
  *
