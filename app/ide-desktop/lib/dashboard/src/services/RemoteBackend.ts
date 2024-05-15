@@ -632,7 +632,7 @@ export default class RemoteBackend extends Backend {
   /** Return Language Server logs for a project session.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getProjectSessionLogs(
-    projectSessionId: backendModule.ProjectSessionId,
+    projectSessionId: backend.ProjectSessionId,
     title: string
   ): Promise<string[]> {
     const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
