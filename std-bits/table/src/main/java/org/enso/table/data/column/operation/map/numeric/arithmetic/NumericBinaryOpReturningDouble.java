@@ -3,10 +3,13 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter.fromAnyStorage;
 
 import java.math.BigInteger;
+
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 
 public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends Storage<? super T>>
@@ -33,9 +36,15 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
   @Override
   public Storage<? extends Number> runZip(
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-    DoubleArrayAdapter lhs = fromAnyStorage(storage);
-    DoubleArrayAdapter rhs = fromAnyStorage(arg);
-    return runDoubleZip(lhs, rhs, problemAggregator);
+    if (storage instanceof BigDecimalStorage || arg instanceof BigDecimalStorage) {
+      BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromAnyStorage(storage);
+      BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromAnyStorage(arg);
+      return runBigDecimalZip(left, right, problemAggregator);
+    } else {
+      DoubleArrayAdapter lhs = fromAnyStorage(storage);
+      DoubleArrayAdapter rhs = fromAnyStorage(arg);
+      return runDoubleZip(lhs, rhs, problemAggregator);
+    }
   }
 
   @Override
