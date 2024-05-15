@@ -115,14 +115,13 @@ const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
   graphStore.isPortEnabled,
+  (id) => graphStore.db.nodeIdToNode.has(id),
   {
     onSelected(id) {
       graphStore.db.moveNodeToTop(id)
     },
   },
 )
-graphStore.onNodeAdded((id) => nodeSelection.elementUndeleted(id))
-graphStore.onNodeDeleted((id) => nodeSelection.elementDeleted(id))
 
 // Clear selection whenever the graph view is switched.
 watch(

@@ -162,9 +162,6 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  const onNodeAdded = new Array<(id: NodeId) => void>()
-  const onNodeDeleted = new Array<(id: NodeId) => void>()
-
   function updateState(dirtyNodes?: Set<AstId>) {
     const module = proj.module
     if (!module) return
@@ -183,8 +180,6 @@ export const useGraphStore = defineStore('graph', () => {
         textContentLocal,
         (id) => moduleSource.getSpan(id),
         dirtyNodes ?? new Set(),
-        (id) => onNodeAdded.forEach((f) => f(id)),
-        (id) => onNodeDeleted.forEach((f) => f(id)),
       )
     }
   }
@@ -707,8 +702,6 @@ export const useGraphStore = defineStore('graph', () => {
       if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
       return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
     },
-    onNodeAdded: (f: (id: NodeId) => void) => onNodeAdded.push(f),
-    onNodeDeleted: (f: (id: NodeId) => void) => onNodeDeleted.push(f),
   }
 })
 

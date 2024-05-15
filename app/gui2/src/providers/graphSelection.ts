@@ -14,13 +14,14 @@ const { provideFn, injectFn } = createContextStore(
     navigator: NavigatorComposable,
     nodeRects: Map<NodeId, Rect>,
     isPortEnabled,
+    isValid: (id: NodeId) => boolean,
     callbacks: {
       onSelected?: (id: NodeId) => void
       onDeselected?: (id: NodeId) => void
     } = {},
   ) =>
     proxyRefs({
-      ...useSelection(navigator, nodeRects, SELECTION_BRUSH_MARGIN_PX, callbacks),
+      ...useSelection(navigator, nodeRects, SELECTION_BRUSH_MARGIN_PX, isValid, callbacks),
       ...useGraphHover(isPortEnabled),
     }),
 )

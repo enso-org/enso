@@ -7,12 +7,15 @@ import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
 import { dataAttribute, elementHierarchy } from '@/util/dom'
+import * as set from 'lib0/set'
+import { filter } from 'shared/util/data/iterable'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
 
 export function useSelection<T>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
   margin: number,
+  isValid: (element: T) => boolean,
   callbacks: {
     onSelected?: (element: T) => void
     onDeselected?: (element: T) => void
@@ -20,29 +23,29 @@ export function useSelection<T>(
 ) {
   const anchor = shallowRef<Vec2>()
   let initiallySelected = new Set<T>()
-  const selected = shallowReactive(new Set<T>())
-  const deleted = new Set<T>()
+  const rawSelected = shallowReactive(new Set<T>())
 
+  const selected = computed(() => set.from(filter(rawSelected, isValid)))
   const isChanging = computed(() => anchor.value != null)
-  const committedSelection = computed(() => (isChanging.value ? initiallySelected : selected))
+  const committedSelection = computed(() =>
+    isChanging.value ? set.from(filter(initiallySelected, isValid)) : selected.value,
+  )
 
   function readInitiallySelected() {
-    initiallySelected = new Set()
-    for (const id of selected) initiallySelected.add(id)
+    initiallySelected = set.from(rawSelected)
   }
 
   function setSelection(newSelection: Set<T>) {
     for (const id of newSelection)
-      if (!selected.has(id)) {
-        selected.add(id)
+      if (!rawSelected.has(id)) {
+        rawSelected.add(id)
         callbacks.onSelected?.(id)
       }
-    for (const id of selected)
+    for (const id of rawSelected)
       if (!newSelection.has(id)) {
-        selected.delete(id)
+        rawSelected.delete(id)
         callbacks.onDeselected?.(id)
       }
-    deleted.clear()
   }
 
   function execAdd() {
@@ -139,22 +142,12 @@ export function useSelection<T>(
     // === Selected nodes ===
     selected,
     selectAll: () => {
-      for (const id of elementRects.keys()) selected.add(id)
+      for (const id of elementRects.keys()) rawSelected.add(id)
     },
-    deselectAll: () => {
-      selected.clear()
-      deleted.clear()
-    },
-    isSelected: (element: T) => selected.has(element),
+    deselectAll: () => rawSelected.clear(),
+    isSelected: (element: T) => rawSelected.has(element),
     committedSelection,
     setSelection,
-    // === Selected nodes validity ===
-    elementDeleted: (id: T) => {
-      if (selected.delete(id)) deleted.add(id)
-    },
-    elementUndeleted: (id: T) => {
-      if (deleted.delete(id)) selected.add(id)
-    },
     // === Selection changes ===
     anchor,
     isChanging,

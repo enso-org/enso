@@ -27,6 +27,10 @@ export function* map<T, U>(iter: Iterable<T>, map: (value: T) => U) {
   }
 }
 
+export function* filter<T>(iter: Iterable<T>, include: (value: T) => boolean): Iterable<T> {
+  for (const value of iter) if (include(value)) yield value
+}
+
 export function* chain<T>(...iters: Iterable<T>[]) {
   for (const iter of iters) {
     yield* iter

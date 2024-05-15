@@ -15,7 +15,6 @@ import {
   type MaybeRefOrGetter,
   type Ref,
   type WatchSource,
-  type toValue,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -160,4 +159,5 @@ export function syncSet<T>(target: Set<T>, newState: Set<T>) {
   for (const newKey of newState) if (!target.has(newKey)) target.add(newKey)
 }
 
-export type ToValue<T> = Parameters<typeof toValue<T>>[0]
+/** Type of the parameter of `toValue`. */
+export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>

@@ -47,15 +47,7 @@ test('Reading graph from definition', () => {
   assert(func instanceof Ast.Function)
   const rawFunc = toRaw.get(func.id)
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
-  db.readFunctionAst(
-    func,
-    rawFunc,
-    code,
-    getSpan,
-    new Set(),
-    () => {},
-    () => {},
-  )
+  db.readFunctionAst(func, rawFunc, code, getSpan, new Set())
 
   const idFromExternal = new Map<ExternalId, AstId>()
   ast.visitRecursiveAst((ast) => {
