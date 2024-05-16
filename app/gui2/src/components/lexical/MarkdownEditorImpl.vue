@@ -56,7 +56,12 @@ useLexical(contentElement, 'MarkdownEditor', [markdownPlugin, markdownSyncPlugin
 </script>
 
 <template>
-  <LexicalContent ref="contentElement" class="MarkdownEditor fullHeight" @wheel.stop @contextmenu.stop />
+  <LexicalContent
+    ref="contentElement"
+    class="MarkdownEditor fullHeight"
+    @wheel.stop
+    @contextmenu.stop
+  />
 </template>
 
 <style scoped>
