@@ -45,6 +45,8 @@ import {
   type ShallowRef,
 } from 'vue'
 
+const FALLBACK_BINDING_PREFIX = 'node'
+
 export type {
   Node,
   NodeDataFromAst,
@@ -196,7 +198,7 @@ export const useGraphStore = defineStore('graph', () => {
     // as the same name can likely be assigned by multiple clients.
     // Consider implementing a mechanism to repair the document in case of name clashes.
     for (let i = 1; ; i++) {
-      const ident = (prefix ?? 'operator') + i
+      const ident = (prefix ?? FALLBACK_BINDING_PREFIX) + i
       assert(isIdentifier(ident))
       if (!db.identifierUsed(ident)) return ident
     }

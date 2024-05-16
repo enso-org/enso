@@ -169,7 +169,7 @@ function inferPrefixFromAst(expr: Ast.Ast): string | undefined {
   if (expr instanceof Ast.NumericLiteral) return expr.code().includes('.') ? 'float' : 'integer'
   if (expr instanceof Ast.TextLiteral) return 'text'
   if (expr instanceof Ast.OprApp && expr.operator.ok) {
-    return operatorCodeToName[expr.operator.value.code()] ?? 'operator'
+    return operatorCodeToName[expr.operator.value.code()]
   }
   return undefined
 }
