@@ -3,6 +3,7 @@ package org.enso.compiler.core;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -10,6 +11,9 @@ import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
+import scala.collection.Seq;
+import scala.collection.Seq$;
+import scala.jdk.javaapi.CollectionConverters$;
 
 public class PersistanceTest {
   @Test
@@ -172,4 +176,66 @@ public class PersistanceTest {
   @Persistable(id = 432436)
   public record ServiceSupply(Service supply) {}
   // @end region="self-annotation"
+
+  @Persistable(id = 432437)
+  public static class SelfLoop {
+    public Persistance.Reference<SelfLoop> self;
+
+    public Persistance.Reference<SelfLoop> self() {
+      return self;
+    }
+
+    public SelfLoop(Persistance.Reference<SelfLoop> self) {
+      this.self = self;
+    }
+  }
+
+  @Test
+  public void testReferenceLoopsInPersistance() throws Exception {
+    var obj = new SelfLoop(null);
+    // make the loop
+    obj.self = Persistance.Reference.of(obj);
+
+    var loaded = serde(SelfLoop.class, obj, -1);
+    assertSame("The recreated object again points to itself", loaded, loaded.self.get(SelfLoop.class));
+  }
+
+  @Persistable(id = 432439)
+  public record LongerLoop1(int x, Persistance.Reference<LongerLoop2> y) {}
+
+  @Persistable(id = 432440)
+  public record LongerLoop2(Persistance.Reference<LongerLoop3> y) {}
+
+  @Persistable(id = 432441)
+  public static class LongerLoop3 {
+    public final String a;
+    public Persistance.Reference<LongerLoop1> y;
+
+    public String a() {
+      return a;
+    }
+
+    public Persistance.Reference<LongerLoop1> y() {
+      return y;
+    }
+
+    public LongerLoop3(String a, Persistance.Reference<LongerLoop1> y) {
+      this.a = a;
+      this.y = y;
+    }
+  }
+
+  @Test
+  public void testLoopsBetweenDifferentTypes() throws Exception {
+    var obj3 = new LongerLoop3("a", null);
+    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3));
+    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2));
+    obj3.y = Persistance.Reference.of(obj1);
+
+    var loaded1 = serde(LongerLoop1.class, obj1, -1);
+    var r2 = loaded1.y().get(LongerLoop2.class);
+    var r3 = r2.y().get(LongerLoop3.class);
+    var r1 = r3.y().get(LongerLoop1.class);
+    assertSame("The recreated structure contains the loop", loaded1, r1);
+  }
 }
