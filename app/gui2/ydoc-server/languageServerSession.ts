@@ -105,20 +105,22 @@ export class LanguageServerSession {
       const result = await this.handleFileEvent(event)
       if (!result.ok) this.restartClient()
     })
-    const modifiedCb = async (event: { path: Path }) => {
+    const fileModified = async (event: { path: Path }) => {
       const path = event.path.segments.join('/')
-      console.log('FILE MODIFIED', path)
+      // TODO[ao]: for debugging #9960
+      // console.log('FILE MODIFIED', path)
       const result = await exponentialBackoff(
         async () => this.tryGetExistingModuleModel(event.path)?.reload() ?? Ok(),
         printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
       )
       if (!result.ok) this.restartClient()
     }
-    this.ls.on('text/fileModifiedOnDisk', modifiedCb)
+    this.ls.on('text/fileModifiedOnDisk', fileModified)
     this.ls.on('text/didChange', (event) => {
-      console.log('DID CHANGE', JSON.stringify(event))
+      // TODO[ao]: for debugging #9960
+      //console.log('DID CHANGE', JSON.stringify(event))
       for (const edit of event.edits) {
-        modifiedCb(edit)
+        fileModified(edit)
       }
     })
     exponentialBackoff(
@@ -682,7 +684,8 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
               const [contents, checksum] = await promise
               if (!contents.ok) return contents
               if (!checksum.ok) return checksum
-              console.log(contents.value, checksum)
+              // TODO[ao]: for debugging #9960
+              // console.log(contents.value, checksum)
               this.syncFileContents(contents.value.contents, checksum.value.checksum)
               return Ok()
             })

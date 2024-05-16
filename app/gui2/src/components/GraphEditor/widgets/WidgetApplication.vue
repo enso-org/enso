@@ -19,15 +19,11 @@ const targetMaybePort = computed(() => {
   const target = application.value.target
   if (target instanceof Ast.Ast) {
     const input = WidgetInput.FromAst(target)
-    console.log('INPUT', input)
     if (!application.value.calledFunction) return input
     const ptr = entryMethodPointer(application.value.calledFunction)
-    console.log('PTR', ptr)
     if (!ptr) return input
     const definition = graph.getMethodAst(ptr)
-    console.log('DEF', definition)
     if (!definition.ok) return input
-    console.log('CODE', definition.value.code())
     input[FunctionName] = {
       calledFunction: application.value.calledFunction,
       editableName: definition.value.name.externalId,

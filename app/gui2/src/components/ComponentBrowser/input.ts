@@ -506,13 +506,8 @@ export function useComponentBrowserInput(
     processingAIPrompt.value = true
     ai.query(ctx.prompt, ctx.selfIdent).then(
       (result) => {
-        if (result.ok) {
-          code.value = `${ctx.selfIdent}.${result.value}`
-        } else {
-          const msg = result.error.message('Applying AI prompt failed')
-          console.error(msg)
-          toastError.show(msg)
-        }
+        if (result.ok) code.value = `${ctx.selfIdent}.${result.value}`
+        toastError.reportError(result, 'Applying AI prompt failed')
         processingAIPrompt.value = false
       },
       (err) => {

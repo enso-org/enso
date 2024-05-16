@@ -30,14 +30,7 @@ watchEffect(() => (displayedName.value = name.value.code()))
 
 function newNameAccepted(name: string | undefined) {
   if (!name) return
-  renameFunction(name).then((result) => {
-    if (!result.ok) {
-      // TODO[ao]: method for this:
-      const msg = result.error.message('Cannot rename function')
-      renameError.show(msg)
-      console.error(msg)
-    }
-  })
+  renameFunction(name).then((result) => renameError.reportError(result))
 }
 
 async function renameFunction(newName: string): Promise<Result> {
@@ -54,7 +47,6 @@ async function renameFunction(newName: string): Promise<Result> {
 </script>
 
 <script lang="ts">
-// TODO[ao]: Rename?
 export const FunctionName: unique symbol = Symbol('FunctionName')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
