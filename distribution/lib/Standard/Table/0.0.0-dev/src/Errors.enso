@@ -494,7 +494,8 @@ type Column_Type_Mismatch
 
 type No_Common_Type
     ## PRIVATE
-       An error indicating that no common type could be found.
+       An error indicating that no common type could be found, and the operation
+       could not be performed.
 
        Arguments:
        - types: The types that were tried to be unified.
@@ -503,17 +504,25 @@ type No_Common_Type
     Error (types : Vector Value_Type) (related_column_name : Nothing|Text)
 
     ## PRIVATE
+       A warning indicating that no common type could be found, so the operation
+       had to fall back to converting all values to text.
+    Warning (types : Vector Value_Type) (related_column_name:Text)
+
+    ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         types = self.types.map .to_display_text . join ", "
         prefix = "No common type was found for types: "+types
-        infix = case self.related_column_name of
-            column_name : Text -> " when unifying column ["+column_name+"]."
-            _ -> "."
-        suffix = " If you want to allow mixed types, please cast one of the columns to `Mixed` beforehand."
-        prefix + infix + suffix
+        location = case self.related_column_name of
+            column_name : Text -> " when unifying column ["+column_name+"]"
+            _ -> ""
+        suffix_type = case self of
+            No_Common_Type.Error _ _ -> "."
+            No_Common_Type.Warning _ _ -> ", so the values were converted to text."
+        suffix_mixed = " If you want to have mixed types instead, please cast one of the columns to `Mixed` beforehand."
+        prefix + location + suffix_type + suffix_mixed
 
 type Unmatched_Columns
     ## PRIVATE
@@ -834,3 +843,14 @@ type Nothing_Value_In_Filter_Condition
     to_display_text : Text
     to_display_text self =
         "Using `Nothing` as an argument to a `"+self.filter_condition.to_text+"` cannot match anything."
+
+## Indicates that an automatic conversion from Date to Date_Time has been performed.
+
+   This is a warning, because using the `00:00` time and default time-zone may
+   not always be the expected choice, so the user should be aware of this.
+type Implicit_Date_As_Date_Time_Conversion
+    ## PRIVATE
+    Warning
+
+    to_display_text self -> Text =
+        "When unifying date and date-time columns, the date values have been automatically converted to date-time by adding a time of 00:00 and the default time-zone."

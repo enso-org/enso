@@ -2973,10 +2973,11 @@ type Table
            integers, thus if such large integers are mixed with floats, the
            resulting conversion to `Float` may cause a loss of precision.
            In that case, a `Loss_Of_Integer_Precision` problem is reported.
-         - If a column of dates is unified with a column of date-times, the
-           assumption of using the midnight time-of-day is arbitrary, hence
-           a `???` is reported.
-         - If an empty vector of tables is provided, a `???` error is raised.
+         - If a column of dates is unified with a column of date-times, since
+           the assumption of using the midnight time-of-day is arbitrary,
+           a `Implicit_Date_As_Date_Time_Conversion` problem is reported.
+         - If an empty vector of tables is provided, an `Illegal_Argument` error
+           is raised.
          - If `columns_to_keep` is set to `In_All` or `List` and an expected
            column is missing in some of the tables, a `Missing_Input_Columns`
            problem is reported. If this causes the output to contain no columns,
