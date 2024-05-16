@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import TextEditor from '@/components/lexical/TextEditor.vue'
+import { useLexical, type LexicalPlugin } from '@/components/lexical'
+import LexicalContent from '@/components/lexical/LexicalContent.vue'
 import { useLexicalSync } from '@/components/lexical/sync'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
@@ -13,46 +14,49 @@ import {
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
 import { syncRef } from '@vueuse/core'
-import { type LexicalEditor } from 'lexical'
+import { ref, type ComponentInstance } from 'vue'
 
 const markdown = defineModel<string>({ required: true })
 
-const nodes = [
-  HeadingNode,
-  QuoteNode,
-  ListItemNode,
-  ListNode,
-  AutoLinkNode,
-  LinkNode,
-  CodeHighlightNode,
-  CodeNode,
-  TableCellNode,
-  TableNode,
-  TableRowNode,
-]
+const contentElement = ref<ComponentInstance<typeof LexicalContent>>()
 
-function configure(editor: LexicalEditor) {
-  registerRichText(editor)
-  registerMarkdownShortcuts(editor, TRANSFORMERS)
-  const { content } = useLexicalSync(
-    editor,
-    () => $convertToMarkdownString(TRANSFORMERS),
-    (value) => $convertFromMarkdownString(value, TRANSFORMERS),
-  )
-  content.value = markdown.value
-  syncRef(markdown, content, { immediate: false })
+const markdownPlugin: LexicalPlugin = {
+  nodes: [
+    HeadingNode,
+    QuoteNode,
+    ListItemNode,
+    ListNode,
+    AutoLinkNode,
+    LinkNode,
+    CodeHighlightNode,
+    CodeNode,
+    TableCellNode,
+    TableNode,
+    TableRowNode,
+  ],
+  register: (editor) => {
+    registerRichText(editor)
+    registerMarkdownShortcuts(editor, TRANSFORMERS)
+  },
 }
+
+const markdownSyncPlugin: LexicalPlugin = {
+  register: (editor) => {
+    const { content } = useLexicalSync(
+      editor,
+      () => $convertToMarkdownString(TRANSFORMERS),
+      (value) => $convertFromMarkdownString(value, TRANSFORMERS),
+    )
+    content.value = markdown.value
+    syncRef(markdown, content, { immediate: false })
+  },
+}
+
+useLexical(contentElement, 'MarkdownEditor', [markdownPlugin, markdownSyncPlugin])
 </script>
 
 <template>
-  <TextEditor
-    :nodes="nodes"
-    name="MarkdownEditor"
-    class="fullHeight"
-    @initialized="configure"
-    @wheel.stop
-    @contextmenu.stop
-  />
+  <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
 </template>
 
 <style scoped>

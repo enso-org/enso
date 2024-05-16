@@ -1,20 +1,30 @@
 <script setup lang="ts">
-import TextEditor from '@/components/lexical/TextEditor.vue'
+import { useLexical, type LexicalPlugin } from '@/components/lexical'
+import LexicalContent from '@/components/lexical/LexicalContent.vue'
 import { useLexicalSync } from '@/components/lexical/sync'
 import { registerPlainText } from '@lexical/plain-text'
 import { syncRef } from '@vueuse/core'
-import { type LexicalEditor } from 'lexical'
+import { ref, type ComponentInstance } from 'vue'
 
 const text = defineModel<string>({ required: true })
 
-function configure(editor: LexicalEditor) {
-  registerPlainText(editor)
-  const { content } = useLexicalSync(editor)
-  content.value = text.value
-  syncRef(text, content, { immediate: false })
+const contentElement = ref<ComponentInstance<typeof LexicalContent>>()
+
+const plainText: LexicalPlugin = {
+  register: registerPlainText,
 }
+
+const textSync: LexicalPlugin = {
+  register: (editor) => {
+    const { content } = useLexicalSync(editor)
+    content.value = text.value
+    syncRef(text, content, { immediate: false })
+  },
+}
+
+useLexical(contentElement, 'PlainTextEditor', [plainText, textSync])
 </script>
 
 <template>
-  <TextEditor name="PlainTextEditor" @initialized="configure" />
+  <LexicalContent ref="contentElement" />
 </template>
