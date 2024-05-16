@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
-
 from Standard.Test import all
 
 fib n b=1 = if n <= 1 then b else
@@ -265,5 +264,5 @@ main filter=Nothing =
 
 
 #### METADATA ####
-[[{"index":{"value":131},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":73},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":226},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"],[{"index":{"value":119},"size":{"value":7}},"00000000-ffff-1111-bbbb-000000000000"]]
+[[{"index":{"value":172},"size":{"value":3}},"00000000-aaaa-bbbb-0000-000000000000"],[{"index":{"value":114},"size":{"value":61}},"00000000-ffff-bbbb-0000-000000000000"],[{"index":{"value":267},"size":{"value":5}},"00000000-eeee-bbbb-2222-000000000000"],[{"index":{"value":160},"size":{"value":7}},"00000000-ffff-1111-bbbb-000000000000"]]
 
