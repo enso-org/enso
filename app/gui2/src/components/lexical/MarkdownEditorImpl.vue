@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useLexical, type LexicalPlugin } from '@/components/lexical'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
+import SelectionFormattingToolbar from '@/components/lexical/SelectionFormattingToolbar.vue'
 import { listPlugin } from '@/components/lexical/listPlugin'
-import { useLexicalSync } from '@/components/lexical/sync'
+import { useLexicalStringSync } from '@/components/lexical/sync'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
 import { ListItemNode, ListNode } from '@lexical/list'
@@ -43,7 +44,7 @@ const markdownPlugin: LexicalPlugin = {
 
 const markdownSyncPlugin: LexicalPlugin = {
   register: (editor) => {
-    const { content } = useLexicalSync(
+    const { content } = useLexicalStringSync(
       editor,
       () => $convertToMarkdownString(TRANSFORMERS),
       (value) => $convertFromMarkdownString(value, TRANSFORMERS),
@@ -53,47 +54,61 @@ const markdownSyncPlugin: LexicalPlugin = {
   },
 }
 
-useLexical(contentElement, 'MarkdownEditor', [listPlugin, markdownPlugin, markdownSyncPlugin])
+const { editor } = useLexical(contentElement, 'MarkdownEditor', [
+  listPlugin,
+  markdownPlugin,
+  markdownSyncPlugin,
+])
 </script>
 
 <template>
-  <LexicalContent
-    ref="contentElement"
-    class="MarkdownEditor fullHeight"
-    @wheel.stop
-    @contextmenu.stop
-  />
+  <div class="MarkdownEditor fullHeight">
+    <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
+    <SelectionFormattingToolbar v-if="contentElement" :editor="editor" />
+  </div>
 </template>
 
 <style scoped>
+.MarkdownEditor {
+  position: relative;
+}
+
 .fullHeight {
   height: 100%;
 }
 
-.MarkdownEditor :deep(h1) {
+.LexicalContent :deep(h1) {
   font-weight: 700;
   font-size: 16px;
   line-height: 1.75;
 }
 
-.MarkdownEditor :deep(h2, h3, h4, h5, h6) {
+.LexicalContent :deep(h2, h3, h4, h5, h6) {
   font-size: 14px;
   line-height: 2;
 }
 
-.MarkdownEditor :deep(p + p) {
+.LexicalContent :deep(p + p) {
   margin-bottom: 4px;
 }
 
-.MarkdownEditor :deep(ol) {
+.LexicalContent :deep(ol) {
   list-style-type: decimal;
   list-style-position: outside;
   padding-left: 1.6em;
 }
 
-.MarkdownEditor :deep(ul) {
+.LexicalContent :deep(ul) {
   list-style-type: disc;
   list-style-position: outside;
   padding-left: 1.6em;
+}
+
+.LexicalContent :deep(strong) {
+  font-weight: bold;
+}
+
+.LexicalContent :deep(.lexical-strikethrough) {
+  text-decoration: line-through;
 }
 </style>

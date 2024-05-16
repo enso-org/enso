@@ -6,7 +6,7 @@ import {
   type LexicalNode,
   type LexicalNodeReplacement,
 } from 'lexical'
-import { onMounted, type Ref } from 'vue'
+import { markRaw, onMounted, type Ref } from 'vue'
 
 type NodeDefinition = KlassConstructor<typeof LexicalNode> | LexicalNodeReplacement
 
@@ -23,13 +23,19 @@ export function useLexical(
   const nodes = new Set<NodeDefinition>()
   for (const node of plugins.flatMap((plugin) => plugin.nodes)) if (node) nodes.add(node)
 
-  const editor = createEditor({
-    editable: true,
-    namespace,
-    theme: {},
-    nodes: [...nodes],
-    onError: console.error,
-  })
+  const editor = markRaw(
+    createEditor({
+      editable: true,
+      namespace,
+      theme: {
+        text: {
+          strikethrough: 'lexical-strikethrough',
+        },
+      },
+      nodes: [...nodes],
+      onError: console.error,
+    }),
+  )
 
   onMounted(() => {
     const element = unrefElement(contentElement.value)
