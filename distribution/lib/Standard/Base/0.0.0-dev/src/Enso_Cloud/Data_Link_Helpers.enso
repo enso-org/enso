@@ -107,6 +107,12 @@ parse_secure_value json -> Text | Enso_Secret =
                 other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link: "+other+".")
         _ -> Error.throw (Illegal_State.Error "Parsing a secure value failed. Expected either a string or an object representing a secret, but got "+(Meta.type_of json . to_display_text)+".")
 
+secure_value_to_json (value : Text | Enso_Secret) -> JS_Object | Text =
+    case value of
+        text : Text -> text
+        secret : Enso_Secret ->
+            JS_Object.from_pairs [["type", "secret"], ["secretPath", secret.path.to_text]]
+
 ## PRIVATE
 parse_format (json : Any) -> Any ! Illegal_State = case json of
     Nothing -> Auto_Detect

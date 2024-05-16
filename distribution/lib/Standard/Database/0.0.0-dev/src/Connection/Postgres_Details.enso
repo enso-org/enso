@@ -8,6 +8,7 @@ import project.Connection.Credentials.Credentials
 import project.Connection.SSL_Mode.SSL_Mode
 import project.Internal.Postgres.Pgpass
 import project.Internal.Postgres.Postgres_Connection.Postgres_Connection
+import project.Internal.Postgres.Postgres_Data_Link_Setup.Postgres_Data_Link_Setup
 
 polyglot java import org.postgresql.Driver
 
@@ -33,17 +34,20 @@ type Postgres_Details
 
        Arguments:
        - options: Overrides for the connection properties.
-    connect : Connection_Options -> Postgres_Connection
-    connect self options =
+       - allow_data_links: Whether to allow saving this connection as a data link.
+    connect : Connection_Options -> Boolean -> Postgres_Connection
+    connect self options (allow_data_links : Boolean = True) =
         if Driver.isRegistered.not then Driver.register
 
+        data_link_setup = if allow_data_links then Postgres_Data_Link_Setup.Available self else
+            Postgres_Data_Link_Setup.Unavailable "Saving connections established through a Data Link is not allowed. Please copy the Data Link instead."
         properties = options.merge self.jdbc_properties
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
         make_new database schema =
-            Postgres_Details.Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
+            Postgres_Details.Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options allow_data_links
 
-        Postgres_Connection.create self.jdbc_url properties make_new
+        Postgres_Connection.create self.jdbc_url properties make_new data_link_setup
 
     ## PRIVATE
        Provides the jdbc url for the connection.
