@@ -2992,7 +2992,7 @@ type Table
          the first table, they are appended to the end of the resulting table in
          the order they appear in the input.
     from_union : (Vector Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> Table
-    from_union tables:(Vector) (match_columns : Match_Columns = Match_Columns.By_Name) (columns_to_keep : Columns_To_Keep = ..In_All) (on_problems : Problem_Behavior = Report_Warning) =
+    from_union tables:(Vector) (match_columns : Match_Columns = Match_Columns.By_Name) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = (tables.map t-> Table.from t)
         all_tables.if_not_error <|
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,

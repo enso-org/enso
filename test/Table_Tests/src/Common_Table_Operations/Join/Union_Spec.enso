@@ -95,7 +95,7 @@ run_union_tests group_builder setup call_union =
         t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
         t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
 
-        t4 = call_union[t1, t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Report_Error
+        t4 = call_union [t1, t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Report_Error
         Problems.assume_no_problems t4
         expect_column_names ["A"] t4
         t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
