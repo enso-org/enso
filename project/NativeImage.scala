@@ -8,6 +8,7 @@ import sbtassembly.AssemblyKeys.assembly
 import sbtassembly.AssemblyPlugin.autoImport.assemblyOutputPath
 
 import scala.sys.process._
+import java.nio.file.Paths
 
 object NativeImage {
 
@@ -96,22 +97,35 @@ object NativeImage {
     .task {
       val log = state.value.log
 
-      def nativeImagePath(path: String): String =
+      def nativeImagePath(path: Path): Path = {
+        val base = path.resolve("bin")
         if (Platform.isWindows)
-          s"$path\\bin\\native-image.cmd"
-        else s"$path/bin/native-image"
+          base.resolve("native-image.cmd")
+        else base.resolve("native-image")
+      }
 
-      val javaHome =
+      def nativeImagePathSmallJdk(path: Path): Path = {
+        val base = path.resolve(Paths.get("lib", "svm", "bin"))
+        if (Platform.isWindows)
+          base.resolve("native-image.cmd")
+        else base.resolve("native-image")
+      }
+
+      val (javaHome: Path, nativeImagePathResolver) =
         smallJdk.value
-          .map(f => f.getPath())
-          .filter(p => file(nativeImagePath(p)).exists())
-          .getOrElse(System.getProperty("java.home"))
+          .map(f => (f.toPath(), nativeImagePathSmallJdk _))
+          .filter { case (p, resolver) => resolver(p).toFile.exists() }
+          .getOrElse(
+            (Paths.get(System.getProperty("java.home")), nativeImagePath _)
+          )
+
+      log.info("Native image JAVA_HOME: " + javaHome)
 
       val subProjectRoot = baseDirectory.value
       val pathToJAR =
         (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
 
-      if (!file(nativeImagePath(javaHome)).exists()) {
+      if (!nativeImagePathResolver(javaHome).toFile.exists()) {
         log.error(
           "Unexpected: Native Image component not found in the JVM distribution: " + javaHome
         )
@@ -236,7 +250,7 @@ object NativeImage {
       val newPath   = pathParts.mkString(File.pathSeparator)
 
       val cmd =
-        Seq(nativeImagePath(javaHome)) ++
+        Seq(nativeImagePathResolver(javaHome).toString) ++
         verboseOpt ++
         Seq("@" + argFile.toAbsolutePath.toString)
 

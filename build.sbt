@@ -2363,6 +2363,9 @@ lazy val `engine-runner` = project
     },
     buildSmallJdk := {
       val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
+      if (smallJdkDirectory.exists()) {
+        IO.delete(smallJdkDirectory)
+      }
       val JS_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
@@ -2387,22 +2390,26 @@ lazy val `engine-runner` = project
           (
             exec,
             moduleJars.map(jar => jh.resolve(jar).toString),
-            targetLibDirs.map(d => jh.resolve("lib").resolve("d"))
+            targetLibDirs.map(d => jh.resolve("lib").resolve(d))
           )
       }
 
       val exec =
         s"$jlink --module-path ${modules.mkString(":")} --output $smallJdkDirectory --add-modules $JS_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
       val exitCode = scala.sys.process.Process(exec).!
-      libDirs.foreach(libDir =>
-        IO.copyDirectory(
-          libDir.toFile,
-          smallJdkDirectory.toPath.resolve("lib").toFile
-        )
-      )
+
       if (exitCode != 0) {
         throw new RuntimeException(s"Cannot execute smalljdk.sh")
       }
+      libDirs.foreach(libDir =>
+        IO.copyDirectory(
+          libDir.toFile,
+          smallJdkDirectory.toPath
+            .resolve("lib")
+            .resolve(libDir.toFile.getName)
+            .toFile
+        )
+      )
       assert(
         smallJdkDirectory.exists(),
         "Directory of small JDK " + smallJdkDirectory + " is not present"
@@ -2444,7 +2451,8 @@ lazy val `engine-runner` = project
             "akka.http"
           )
         )
-        .dependsOn(`std-base` / Compile / packageBin)
+        .dependsOn(NativeImage.additionalCp)
+        .dependsOn(NativeImage.smallJdk)
         .dependsOn(assembly)
         .dependsOn(
           buildEngineDistribution
