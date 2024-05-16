@@ -16,6 +16,8 @@ object NativeImage {
     */
   private val includeDebugInfo: Boolean = false
 
+  lazy val smallJdk = taskKey[Option[File]]("Location of a minimal JDK")
+
   /** List of classes that should be initialized at build time by the native image.
     * Note that we strive to initialize as much classes during the native image build
     * time as possible, as this reduces the time needed to start the native image.
@@ -86,10 +88,9 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    additionalCp: () => Seq[String]          = () => Seq(),
+    additionalCp: Seq[String]                = Seq(),
     verbose: Boolean                         = false,
-    includeRuntime: Boolean                  = true,
-    localJdk: Option[() => File]             = None
+    includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log = state.value.log
@@ -100,8 +101,8 @@ object NativeImage {
         else s"$path/bin/native-image"
 
       val javaHome =
-        localJdk
-          .map(f => f().getPath())
+        smallJdk.value
+          .map(f => f.getPath())
           .filter(p => file(nativeImagePath(p)).exists())
           .getOrElse(System.getProperty("java.home"))
 
@@ -194,9 +195,9 @@ object NativeImage {
 
       val fullCp =
         if (includeRuntime) {
-          componentModules ++ additionalCp()
+          componentModules ++ additionalCp
         } else {
-          ourCp.map(_.data.getAbsolutePath) ++ additionalCp()
+          ourCp.map(_.data.getAbsolutePath) ++ additionalCp
         }
       val cpStr = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)

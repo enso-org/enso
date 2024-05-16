@@ -18,6 +18,7 @@ import src.main.scala.licenses.{
 import JPMSPlugin.autoImport._
 
 import java.io.File
+import java.nio.file.Paths
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -1029,6 +1030,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     Test / javaOptions ++= testLogProviderOptions
   )
   .settings(
+    NativeImage.smallJdk := None,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
@@ -2350,6 +2352,55 @@ lazy val `engine-runner` = project
     run / connectInput := true
   )
   .settings(
+    NativeImage.smallJdk := Some(buildSmallJdk.value),
+    buildSmallJdk := {
+      val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
+      val JS_MODULES =
+        "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
+      val DEBUG_MODULES  = "jdk.jdwp.agent"
+      val PYTHON_MODULES = "jdk.security.auth,java.naming"
+
+      val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
+      val (jlink, modules, libDirs) = javaHome match {
+        case None =>
+          throw new RuntimeException("Missing java.home variable")
+        case Some(jh) =>
+          val exec = jh.resolve("bin").resolve("jlink")
+          val moduleJars = List(
+            "lib/svm/bin/../../graalvm/svm-driver.jar",
+            "lib/svm/bin/../builder/native-image-base.jar",
+            "lib/svm/bin/../builder/objectfile.jar",
+            "lib/svm/bin/../builder/pointsto.jar",
+            "lib/svm/bin/../builder/svm-enterprise.jar",
+            "lib/svm/bin/../builder/svm.jar",
+            "lib/svm/bin/../library-support.jar"
+          )
+          val targetLibDirs = List("graalvm", "svm", "static", "truffle")
+          (
+            exec,
+            moduleJars.map(jar => jh.resolve(jar).toString),
+            targetLibDirs.map(d => jh.resolve("lib").resolve("d"))
+          )
+      }
+
+      val exec =
+        s"$jlink --module-path ${modules.mkString(":")} --output $smallJdkDirectory --add-modules $JS_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
+      val exitCode = scala.sys.process.Process(exec).!
+      libDirs.foreach(libDir =>
+        IO.copyDirectory(
+          libDir.toFile,
+          smallJdkDirectory.toPath.resolve("lib").toFile
+        )
+      )
+      if (exitCode != 0) {
+        throw new RuntimeException(s"Cannot execute smalljdk.sh")
+      }
+      assert(
+        smallJdkDirectory.exists(),
+        "Directory of small JDK " + smallJdkDirectory + " is not present"
+      )
+      smallJdkDirectory
+    },
     assembly := assembly
       .dependsOn(`runtime-fat-jar` / assembly)
       .value,
@@ -2368,33 +2419,14 @@ lazy val `engine-runner` = project
             "-Dnic=nic"
           ),
           mainClass = Some("org.enso.runner.Main"),
-          additionalCp = () => {
+          additionalCp = {
             val core = Seq(
               "runtime.jar",
               "runner.jar"
             )
             val jars = `base-polyglot-root`.listFiles("*.jar")
-            if (jars == null) {
-              core
-            } else {
-              core ++ jars.map(_.getAbsolutePath())
-            }
+            core ++ jars.map(_.getAbsolutePath())
           },
-          localJdk = Some(() => {
-            var smalljdk = (new File("target") / "jdk").getAbsoluteFile()
-            val exitCode = scala.sys.process
-              .Process(
-                "bash project/smalljdk.sh " + smalljdk,
-                None,
-                "JAVA_HOME" -> System.getProperty("java.home")
-              )
-              .!
-            if (exitCode != 0) {
-              throw new RuntimeException(s"Cannot execute jdk.sh.")
-            }
-            assert(smalljdk.exists(), "Dir created " + smalljdk)
-            smalljdk
-          }),
           initializeAtRuntime = Seq(
             "org.jline.nativ.JLineLibrary",
             "org.jline.terminal.impl.jna",
@@ -2412,6 +2444,7 @@ lazy val `engine-runner` = project
             "akka.http"
           )
         )
+        .dependsOn(`std-base` / Compile / packageBin)
         .dependsOn(assembly)
         .dependsOn(
           buildEngineDistribution
@@ -2435,6 +2468,9 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`polyglot-api`)
 
+lazy val buildSmallJdk =
+  taskKey[File]("Build a minimal JDK used for native image generation")
+
 lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
@@ -2449,6 +2485,7 @@ lazy val launcher = project
     )
   )
   .settings(
+    NativeImage.smallJdk := None,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "enso",
