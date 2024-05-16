@@ -1,7 +1,8 @@
+import { normalizeHue } from '@/util/colors'
 import { fc, test as fcTest } from '@fast-check/vitest'
 import { expect } from 'vitest'
 import type { FixedRange, GradientPoint } from '../gradient'
-import { gradientPoints, normalizeHue, rangesForInputs } from '../gradient'
+import { gradientPoints, rangesForInputs } from '../gradient'
 
 /** Check value ranges and internal consistency. */
 function validateRange({ start, end }: FixedRange) {

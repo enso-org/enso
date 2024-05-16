@@ -13,7 +13,7 @@ const props = defineProps<{
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
-  visibleNodeColors: Set<string>
+  matchableNodeColors: Set<string>
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
@@ -84,7 +84,8 @@ const showColorPicker = ref(false)
     <div v-if="showColorPicker" class="circle">
       <ColorRing
         v-model="nodeColor"
-        :matchableColors="visibleNodeColors"
+        :matchableColors="matchableNodeColors"
+        :initialColorAngle="90"
         @close="showColorPicker = false"
       />
     </div>
