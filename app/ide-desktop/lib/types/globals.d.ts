@@ -86,6 +86,7 @@ declare global {
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
+        readonly isInPlaywrightTest?: boolean
     }
 
     namespace NodeJS {

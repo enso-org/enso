@@ -95,6 +95,12 @@ export default class HttpClient {
       headers.set('Content-Type', contentType)
     }
 
+    // `Blob` request payloads are NOT VISIBLE in Playwright due to a Chromium bug.
+    // https://github.com/microsoft/playwright/issues/6479#issuecomment-1574627457
+    if (window.isInPlaywrightTest === true && payload instanceof Blob) {
+      payload = await payload.arrayBuffer()
+    }
+
     try {
       // This is an UNSAFE type assertion, however this is a HTTP client
       // and should only be used to query APIs with known response types.

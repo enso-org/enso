@@ -458,12 +458,6 @@ export async function mockApi({ page }: MockParams) {
     // === Entity creation endpoints ===
 
     await put(remoteBackendPaths.UPLOAD_USER_PICTURE_PATH + '*', async (route, request) => {
-      console.log(
-        request.postDataBuffer(),
-        request.postDataJSON(),
-        request.postData(),
-        await request.allHeaders()
-      )
       const content = request.postData()
       if (content != null) {
         currentProfilePicture = content

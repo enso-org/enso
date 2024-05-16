@@ -867,6 +867,23 @@ export async function login(
   await locateToastCloseButton(page).click()
 }
 
+// ==============================
+// === mockIsInPlaywrightTest ===
+// ==============================
+
+/** Inject `isInPlaywrightTest` into the page. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockIsInPlaywrightTest({ page }: MockParams) {
+  await test.test.step('Mock `isInPlaywrightTest`', async () => {
+    await page.evaluate(() => {
+      // @ts-expect-error This is SAFE - it is a mistake for this variable to be written to
+      // from anywhere else.
+      window.isInPlaywrightTest = true
+    })
+  })
+}
+
 // ================
 // === mockDate ===
 // ================
@@ -929,26 +946,6 @@ export async function mockIDEContainer({ page }: MockParams) {
 // eslint-disable-next-line no-restricted-syntax
 export const mockApi = apiModule.mockApi
 
-// ========================
-// === mockRequestClone ===
-// ========================
-
-/** Mock `Request#clone` to un-break POST body.
- * See this page for an explanation why this is an issue:
- * https://github.com/microsoft/playwright/issues/6479 */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
-export async function mockRequestClone({ page }: MockParams) {
-  await test.test.step('Mock Request.clone', async () => {
-    await page.evaluate(() => {
-      Request.prototype.clone = function () {
-        console.log('cloning...')
-        return this
-      }
-    })
-  })
-}
-
 // ===============
 // === mockAll ===
 // ===============
@@ -958,7 +955,7 @@ export async function mockRequestClone({ page }: MockParams) {
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAll({ page }: MockParams) {
   const api = await mockApi({ page })
-  await mockRequestClone({ page })
+  await mockIsInPlaywrightTest({ page })
   await mockDate({ page })
   await mockIDEContainer({ page })
   return { api }
@@ -974,8 +971,11 @@ export async function mockAll({ page }: MockParams) {
 export async function mockAllAndLogin({ page }: MockParams) {
   const mocks = await mockAll({ page })
   await login({ page })
-  // This MUST run after login, otherwise the element's styles are reset when the browser
+  // This MUST run after login because the element's styles are reset when the browser
   // is navigated to another page.
   await mockIDEContainer({ page })
+  // This MUST also run after login because globals are reset when the browser
+  // is navigated to another page.
+  await mockIsInPlaywrightTest({ page })
   return mocks
 }

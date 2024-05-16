@@ -3,8 +3,6 @@
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
-import * as detect from 'enso-common/src/detect'
-
 import type * as text from '#/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
@@ -154,6 +152,8 @@ export default class RemoteBackend extends Backend {
       const message = 'Authorization header not set.'
       this.logger.error(message)
       throw new Error(message)
+    } else {
+      return
     }
   }
 
