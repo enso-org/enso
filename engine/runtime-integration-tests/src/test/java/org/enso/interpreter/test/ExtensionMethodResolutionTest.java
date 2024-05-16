@@ -3,7 +3,9 @@ package org.enso.interpreter.test;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
@@ -16,6 +18,7 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -56,16 +59,27 @@ public class ExtensionMethodResolutionTest extends TestBase {
   public void extensionMethodAndNormalMethodConflictInDifferentModules() throws IOException {
     var modSrc = """
         type T
-            foo x = x
+            foo = "Mod.T.foo"
         """;
     var mainSrc = """
         from project.Mod import T
-        T.foo x y = x + y
+        T.foo = "Main.T.foo"
+        main = T.foo
         """;
     var projDir = createProject("Proj", mainSrc, tempFolder);
     var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
     Files.writeString(modSrcFile, modSrc);
-    testProjectCompilationFailure(projDir, methodsOverloadErrorMessageMatcher);
+    try {
+      String[] ret = new String[] {""};
+      testProjectRun(projDir, (res) -> {
+        ret[0] = res.asString();
+      });
+      fail("Expected compilation error during first run, instead got: " + ret[0]);
+    } catch (PolyglotException e) {
+      assertThat("Not_Invokable is not a proper error message for this case",
+          e.getMessage(), not(containsString("Not_Invokable"))
+      );
+    }
   }
 
   @Test
