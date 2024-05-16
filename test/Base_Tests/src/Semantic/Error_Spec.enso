@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -349,7 +350,7 @@ add_specs suite_builder =
             ref3.get . should_equal "finalized"
 
         group_builder.specify "should propagate any panics raised in `with_finalizer` finalization" <|
-            v1 = Vector.new_builder
+            v1 = Builder.new
             c1 = Panic.catch Any handler=(.payload) <|
                 do_finalize =
                     v1.append 2
@@ -361,7 +362,7 @@ add_specs suite_builder =
             c1 . should_equal "finalizer"
             v1.to_vector . should_equal [1, 2]
 
-            v2 = Vector.new_builder
+            v2 = Builder.new
             c2 = Panic.catch Any handler=(.payload) <|
                 do_finalize =
                     v2.append 2

@@ -1312,14 +1312,14 @@ type Builder
        > Example
          Construct a vector using a builder that contains the items 1 to 5.
 
-             example_new_builder =
-                  builder = Builder.new 5
-                  do_build start stop =
-                      builder.append start
-                      if start >= stop then Nothing else
-                          @Tail_Call do_build start+1 stop
-                  do_build 1 5
-                  builder.to_vector
+             builder = Builder.new 5
+             do_build start stop =
+                 builder.append start
+                 if start >= stop then Nothing else
+                     @Tail_Call do_build start+1 stop
+             do_build 1 5
+             builder.to_vector
+             # => [1, 2, 3, 4]
     new : Integer -> Builder
     new (capacity : Integer = 10) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
 

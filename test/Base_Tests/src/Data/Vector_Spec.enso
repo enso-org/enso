@@ -1012,9 +1012,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         mat2.transpose . should_fail_with Illegal_Argument
 
 add_specs suite_builder =
-    suite_builder.group "Vector.new_builder" group_builder->
+    suite_builder.group "Builder.new" group_builder->
         group_builder.specify "Should be able to build a vector" <|
-            builder = Vector.new_builder
+            builder = Builder.new
             builder.append 1
             builder.append 2
             builder.append Nothing
@@ -1022,27 +1022,27 @@ add_specs suite_builder =
             v = builder.to_vector
             v . should_equal [1, 2, Nothing, 3]
 
-            builder2 = Vector.new_builder
+            builder2 = Builder.new
             v2 = builder2.to_vector
             v2 . should_equal []
 
-            builder3 = Vector.new_builder 20
+            builder3 = Builder.new 20
             builder3.append 1
             v3 = builder3.to_vector
             v3 . should_equal [1]
 
         group_builder.specify "Builder should throw an uncaught dataflow error as a panic if it is appended with .append" <|
-            builder = Vector.new_builder
+            builder = Builder.new
             builder.append 1
             Test.expect_panic_with matcher=Wrapped_Dataflow_Error (builder.append (Error.throw (Illegal_Argument.Error "asdf")))
 
         group_builder.specify "Builder should throw an uncaught error as a panic if it is appended with .append_vector_range" <|
-            builder = Vector.new_builder
+            builder = Builder.new
             builder.append 1
             Test.expect_panic_with matcher=Wrapped_Dataflow_Error (builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")])
 
         group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
-            builder = Vector.new_builder
+            builder = Builder.new
             ww = Warning.attach (My_Error.Error "err") 2
             builder.append 1
             builder.append ww
@@ -1052,7 +1052,7 @@ add_specs suite_builder =
             Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
 
         group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append_vector_range" <|
-            builder = Vector.new_builder
+            builder = Builder.new
             ww = Warning.attach (My_Error.Error "err") 21
             builder.append 1
             builder.append_vector_range [20, ww, 22]
@@ -1062,7 +1062,7 @@ add_specs suite_builder =
             Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
 
         group_builder.specify "empty builder.get" <|
-            b = Vector.new_builder
+            b = Builder.new
             e = Panic.catch Index_Out_Of_Bounds (b.at 0) err->
                 err.payload
             Meta.type_of e . should_equal Index_Out_Of_Bounds
@@ -1070,7 +1070,7 @@ add_specs suite_builder =
             e.length . should_equal 0
 
         group_builder.specify "one number builder.get" <|
-            b = Vector.new_builder
+            b = Builder.new
             b.append 32
             e = Panic.catch Index_Out_Of_Bounds (b.at 1) err->
                 err.payload
@@ -1092,6 +1092,15 @@ add_specs suite_builder =
             l = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
             v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
             v . should_equal [1, 2, 3]
+
+        group_builder.specify "example" <|
+            builder = Builder.new 5
+            do_build start stop =
+                builder.append start
+                if start >= stop then Nothing else
+                    @Tail_Call do_build start+1 stop
+            do_build 1 5
+            builder.to_vector . should_equal [1, 2, 3, 4, 5]
 
     suite_builder.group "Vector.build" group_builder->
         group_builder.specify "Should be able to build a vector" <|

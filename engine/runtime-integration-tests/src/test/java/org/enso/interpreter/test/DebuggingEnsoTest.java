@@ -526,12 +526,13 @@ public class DebuggingEnsoTest {
         createEnsoSource(
             """
         from Standard.Base import Vector
+        import Standard.Base.Data.Vector.Builder
 
         bar vec num_elems =
             vec.slice 0 num_elems
 
         foo x =
-            vec_builder = Vector.new_builder
+            vec_builder = Builder.new
             vec_builder.append 1
             vec_builder.append 2
             vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)
@@ -541,7 +542,7 @@ public class DebuggingEnsoTest {
     List<String> expectedLines =
         List.of(
             "foo x =",
-            "vec_builder = Vector.new_builder",
+            "vec_builder = Builder.new",
             "vec_builder.append 1",
             "vec_builder.append 2",
             "vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)",

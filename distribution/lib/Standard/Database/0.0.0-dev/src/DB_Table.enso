@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -2560,7 +2561,7 @@ type DB_Table
             materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
                 Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
 
-            warnings_builder = Vector.new_builder
+            warnings_builder = Builder.new
             expected_types = self.columns.map .value_type
             actual_types = materialized_table.columns.map .value_type
             expected_types.zip actual_types expected_type-> actual_type->

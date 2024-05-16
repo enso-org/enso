@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
+
 from Standard.Test import all
 
 fib n b=1 = if n <= 1 then b else
@@ -17,7 +19,7 @@ add_specs suite_builder =
         a_plus_b_uuid = "00000000-aaaa-bbbb-0000-000000000000" # UUID for a+b
 
         group_builder.specify "collect and filter on return updates" <|
-            b = Vector.new_builder
+            b = Builder.new
 
             collect uuid:Text result =
                 if uuid == a_plus_b_uuid then
@@ -46,7 +48,7 @@ add_specs suite_builder =
             b.to_vector.length . should_equal 1
 
         group_builder.specify "access local variables " <|
-            b = Vector.new_builder
+            b = Builder.new
 
             collect uuid:Text ~result =
                 if uuid == a_plus_b_uuid then
@@ -101,7 +103,7 @@ add_specs suite_builder =
 
         group_builder.specify "call and collect on return updates" <|
             n1_plus_n2 = "00000000-eeee-bbbb-2222-000000000000" # UUID for n1+n2
-            b = Vector.new_builder
+            b = Builder.new
 
             call_fn uuid:Text fn:Function (args : Vector Any) =
                 fn.to_text . should_contain "Integer.+"
@@ -189,7 +191,7 @@ add_specs suite_builder =
 
 
         group_builder.specify "Access (even default) arguments of calls" <|
-            b = Vector.new_builder
+            b = Builder.new
 
             call_fn uuid:Text fn:Function args:Any =
                 if uuid == "00000000-ffff-1111-bbbb-000000000000" then
