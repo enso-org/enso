@@ -23,6 +23,7 @@ export function useSelection<T>(
 ) {
   const anchor = shallowRef<Vec2>()
   let initiallySelected = new Set<T>()
+  // Selection, including elements that do not (currently) pass `isValid`.
   const rawSelected = shallowReactive(new Set<T>())
 
   const selected = computed(() => set.from(filter(rawSelected, isValid)))
