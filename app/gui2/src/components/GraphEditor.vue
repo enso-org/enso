@@ -54,7 +54,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
+import { computed, onMounted, ref, shallowRef, toRef, watch, watchEffect } from 'vue'
 
 const keyboard = provideKeyboard()
 const graphStore = useGraphStore()
@@ -68,14 +68,31 @@ const suggestionDb = useSuggestionDbStore()
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
 const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
-useNavigatorStorage(graphNavigator, (enc) => {
-  // Navigator viewport needs to be stored separately for:
-  // - each project
-  // - each function within the project
-  encoding.writeVarString(enc, projectStore.name)
-  const methodPtr = graphStore.currentMethodPointer()
-  if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
-})
+useNavigatorStorage(
+  graphNavigator,
+  (enc) => {
+    // Navigator viewport needs to be stored separately for:
+    // - each project
+    // - each function within the project
+    encoding.writeVarString(enc, projectStore.name)
+    const methodPtr = graphStore.currentMethodPointer()
+    if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
+  },
+  waitInitializationAndPanToAll,
+)
+
+const stopInitialization = ref<() => void>()
+function waitInitializationAndPanToAll() {
+  stopInitialization.value?.()
+  stopInitialization.value = watchEffect(() => {
+    const nodesCount = [...graphStore.db.nodeIdToNode.keys()].length
+    const visibleNodeAreas = graphStore.visibleNodeAreas
+    if (nodesCount > 0 && visibleNodeAreas.length == nodesCount) {
+      zoomToSelected(true)
+      stopInitialization.value?.()
+    }
+  })
+}
 
 function selectionBounds() {
   if (!viewportNode.value) return
@@ -90,9 +107,10 @@ function selectionBounds() {
   if (bounds.isFinite()) return bounds
 }
 
-function zoomToSelected() {
+function zoomToSelected(skipAnimation: boolean = false) {
   const bounds = selectionBounds()
-  if (bounds) graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
+  if (bounds)
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
 
 function panToSelected() {
