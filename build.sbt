@@ -742,6 +742,7 @@ lazy val `profiling-utils` = project
       exclude ("org.netbeans.api", "org-openide-awt")
       exclude ("org.netbeans.api", "org-openide-modules")
       exclude ("org.netbeans.api", "org-netbeans-api-annotations-common"),
+      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
       "junit"          % "junit"           % junitVersion   % Test,
       "com.github.sbt" % "junit-interface" % junitIfVersion % Test
     ),
@@ -749,7 +750,8 @@ lazy val `profiling-utils` = project
       JPMSUtils.filterModulesFromUpdate(
         update.value,
         Seq(
-          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
+          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
+          "org.slf4j"        % "slf4j-api"                    % slf4jVersion
         ),
         streams.value.log,
         shouldContainAll = true
