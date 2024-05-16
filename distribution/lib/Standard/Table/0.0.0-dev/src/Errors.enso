@@ -646,9 +646,11 @@ type Conversion_Failure
 
 type Loss_Of_Integer_Precision
     ## PRIVATE
-       Indicates that an automatic conversion of an integer column to a decimal
+       Indicates that an automatic conversion of an Integer column to a Float
        column is losing precision because some of the large integers cannot be
-       exactly represented by the `double` type.
+       exactly represented by the floating-point type.
+
+       Currently, this error is only reported in-memory.
     Warning (affected_rows_count : Integer) (example_value : Integer) (example_value_converted : Float)
 
     ## PRIVATE
@@ -850,7 +852,7 @@ type Nothing_Value_In_Filter_Condition
    not always be the expected choice, so the user should be aware of this.
 type Implicit_Date_As_Date_Time_Conversion
     ## PRIVATE
-    Warning
+    Warning related_column_name:Text
 
     to_display_text self -> Text =
-        "When unifying date and date-time columns, the date values have been automatically converted to date-time by adding a time of 00:00 and the default time-zone."
+        "When unifying date and date-time columns (column "+self.related_column_name+" in the output), the date values have been automatically converted to date-time by adding a time of 00:00 and the default time-zone."

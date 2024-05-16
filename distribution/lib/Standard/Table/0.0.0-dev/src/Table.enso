@@ -2975,6 +2975,8 @@ type Table
            integers, thus if such large integers are mixed with floats, the
            resulting conversion to `Float` may cause a loss of precision.
            In that case, a `Loss_Of_Integer_Precision` problem is reported.
+           This warning is only reported in the in-memory backend. Currently,
+           the Database backend proceeds without a warning about precision loss.
          - If a column of dates is unified with a column of date-times, since
            the assumption of using the midnight time-of-day is arbitrary,
            a `Implicit_Date_As_Date_Time_Conversion` problem is reported.
