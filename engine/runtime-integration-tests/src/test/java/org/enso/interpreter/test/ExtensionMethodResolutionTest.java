@@ -3,7 +3,6 @@ package org.enso.interpreter.test;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
@@ -18,7 +17,6 @@ import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -61,7 +59,8 @@ public class ExtensionMethodResolutionTest extends TestBase {
         type T
             foo = "Mod.T.foo"
         """;
-    var mainSrc = """
+    var mainSrc =
+        """
         from project.Mod import T
         T.foo = "Main.T.foo"
         main = T.foo
@@ -71,14 +70,17 @@ public class ExtensionMethodResolutionTest extends TestBase {
     Files.writeString(modSrcFile, modSrc);
     try {
       String[] ret = new String[] {""};
-      testProjectRun(projDir, (res) -> {
-        ret[0] = res.asString();
-      });
+      testProjectRun(
+          projDir,
+          (res) -> {
+            ret[0] = res.asString();
+          });
       fail("Expected compilation error during first run, instead got: " + ret[0]);
     } catch (PolyglotException e) {
-      assertThat("Not_Invokable is not a proper error message for this case",
-          e.getMessage(), not(containsString("Not_Invokable"))
-      );
+      assertThat(
+          "Not_Invokable is not a proper error message for this case",
+          e.getMessage(),
+          not(containsString("Not_Invokable")));
     }
   }
 
@@ -183,8 +185,7 @@ public class ExtensionMethodResolutionTest extends TestBase {
   public void sameExtensionMethodInDifferentTypesInThreeModules() throws IOException {
     var mod2 =
         new SourceModule(
-            QualifiedName.fromString("Mod2"),
-            """
+            QualifiedName.fromString("Mod2"), """
             # An empty module
             """);
     // The type T defined in mod1 and mainMod have exactly the same location on purpose.

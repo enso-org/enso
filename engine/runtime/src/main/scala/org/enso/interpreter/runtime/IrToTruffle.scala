@@ -439,7 +439,8 @@ class IrToTruffle(
         )
 
         val consDefScope = cons.getDefinitionScope
-        val foundMethod = consDefScope.getMethodForType(cons, methodDef.methodName.name)
+        val foundMethod =
+          consDefScope.getMethodForType(cons, methodDef.methodName.name)
         if (foundMethod != null) {
           throw new CompilerError(
             s"Method `${methodDef.methodName.name}` is already defined for type `${cons.getName}`."
