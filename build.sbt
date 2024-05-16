@@ -1031,6 +1031,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   )
   .settings(
     NativeImage.smallJdk := None,
+    NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
@@ -2353,6 +2354,13 @@ lazy val `engine-runner` = project
   )
   .settings(
     NativeImage.smallJdk := Some(buildSmallJdk.value),
+    NativeImage.additionalCp := {
+      val core = Seq(
+        "runtime.jar",
+        "runner.jar"
+      )
+      core ++ `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+    },
     buildSmallJdk := {
       val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
       val JS_MODULES =
@@ -2419,14 +2427,6 @@ lazy val `engine-runner` = project
             "-Dnic=nic"
           ),
           mainClass = Some("org.enso.runner.Main"),
-          additionalCp = {
-            val core = Seq(
-              "runtime.jar",
-              "runner.jar"
-            )
-            val jars = `base-polyglot-root`.listFiles("*.jar")
-            core ++ jars.map(_.getAbsolutePath())
-          },
           initializeAtRuntime = Seq(
             "org.jline.nativ.JLineLibrary",
             "org.jline.terminal.impl.jna",
@@ -2486,6 +2486,7 @@ lazy val launcher = project
   )
   .settings(
     NativeImage.smallJdk := None,
+    NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "enso",

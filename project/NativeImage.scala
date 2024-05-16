@@ -17,6 +17,10 @@ object NativeImage {
   private val includeDebugInfo: Boolean = false
 
   lazy val smallJdk = taskKey[Option[File]]("Location of a minimal JDK")
+  lazy val additionalCp =
+    taskKey[Seq[String]](
+      "Additional class-path entries to be added to the native image"
+    )
 
   /** List of classes that should be initialized at build time by the native image.
     * Note that we strive to initialize as much classes during the native image build
@@ -72,8 +76,6 @@ object NativeImage {
     *                            time initialization is set to default
     * @param initializeAtBuildtime a list of classes that should be initialized at
     *                              build time.
-    * @param additionalCp additional class-path entries to be added to the
-    *                     native image.
     * @param includeRuntime Whether `org.enso.runtime` should is included. If yes, then
     *                       it will be passed as a module to the native-image along with other
     *                       Graal and Truffle related modules.
@@ -88,7 +90,6 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    additionalCp: Seq[String]                = Seq(),
     verbose: Boolean                         = false,
     includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
@@ -193,11 +194,12 @@ object NativeImage {
         )
         .map(_.data.getAbsolutePath)
 
+      val auxCp = additionalCp.value
       val fullCp =
         if (includeRuntime) {
-          componentModules ++ additionalCp
+          componentModules ++ auxCp
         } else {
-          ourCp.map(_.data.getAbsolutePath) ++ additionalCp
+          ourCp.map(_.data.getAbsolutePath) ++ auxCp
         }
       val cpStr = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
