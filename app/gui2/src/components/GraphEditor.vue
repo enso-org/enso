@@ -6,7 +6,6 @@ import {
   interactionBindings,
   undoBindings,
 } from '@/bindings'
-import AstDocumentation from '@/components/AstDocumentation.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
@@ -19,11 +18,13 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import TopBar from '@/components/TopBar.vue'
+import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import {
   keyboardBusy,
@@ -296,6 +297,8 @@ const rightDockWidth = ref<number>()
 const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
+
+const { documentation } = useAstDocumentation(() => graphStore.methodAst)
 
 // === Execution Mode ===
 
@@ -576,7 +579,7 @@ const groupColors = computed(() => {
         data-testid="rightDock"
       >
         <div class="scrollArea">
-          <AstDocumentation :ast="graphStore.methodAst" />
+          <MarkdownEditor v-model="documentation" />
         </div>
         <SvgIcon
           name="close"
