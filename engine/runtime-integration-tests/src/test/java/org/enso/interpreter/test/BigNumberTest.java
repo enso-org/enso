@@ -90,6 +90,7 @@ public class BigNumberTest extends TestBase {
   public void averageOfMixedArrayOverNumber() throws Exception {
     var code =
         """
+    import Standard.Base.Data.Vector.Builder
     from Standard.Base.Data.Vector import Vector
     polyglot java import org.enso.example.TestClass
 
@@ -114,6 +115,7 @@ public class BigNumberTest extends TestBase {
   public void averageOfMixedArrayOverBigInteger() throws Exception {
     var code =
         """
+    import Standard.Base.Data.Vector.Builder
     from Standard.Base.Data.Vector import Vector
     import Standard.Base.Data.Numbers
     polyglot java import org.enso.example.TestClass
