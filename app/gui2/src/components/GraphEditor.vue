@@ -81,15 +81,16 @@ useNavigatorStorage(
   waitInitializationAndPanToAll,
 )
 
-const stopInitialization = ref<() => void>()
+let stopInitialization: (() => void) | undefined
 function waitInitializationAndPanToAll() {
-  stopInitialization.value?.()
-  stopInitialization.value = watchEffect(() => {
-    const nodesCount = [...graphStore.db.nodeIdToNode.keys()].length
+  stopInitialization?.()
+  stopInitialization = watchEffect(() => {
+    const nodesCount = graphStore.db.nodeIdToNode.size
     const visibleNodeAreas = graphStore.visibleNodeAreas
     if (nodesCount > 0 && visibleNodeAreas.length == nodesCount) {
       zoomToSelected(true)
-      stopInitialization.value?.()
+      stopInitialization?.()
+      stopInitialization = undefined
     }
   })
 }
