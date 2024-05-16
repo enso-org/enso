@@ -60,6 +60,7 @@ export function Dialog(props: types.DialogProps) {
     className,
     onOpenChange = () => {},
     modalProps = {},
+    testId = 'dialog',
     ...ariaDialogProps
   } = props
   const dialogRef = React.useRef<HTMLDivElement>(null)

@@ -183,6 +183,8 @@
   "reset": "Reset",
   "members": "Members",
   "drop": "Drop",
+  "accept": "Accept",
+  "reject": "Reject",
   "clearTrash": "Clear Trash",
   "sharedWith": "Shared with",
   "editSecret": "Edit Secret",
@@ -456,6 +458,11 @@
   "subscribeSuccessSubmit": "Go to Dashboard",
   "subscribeSuccessTitle": "Success",
   "subscribeSuccessSubtitle": "We received your payment and now you on $0 plan",
+
+  "licenseAgreementTitle": "Enso Terms of Service",
+  "licenseAgreementCheckbox": "I agree to the Enso Terms of Service",
+  "licenseAgreementCheckboxError": "You must agree to the Enso Terms of Service",
+  "viewLicenseAgreement": "View Terms of Service",
 
   "metaModifier": "Meta",
   "shiftModifier": "Shift",

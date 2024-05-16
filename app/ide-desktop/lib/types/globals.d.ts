@@ -199,6 +199,8 @@ declare global {
             readonly ENSO_CLOUD_DASHBOARD_COMMIT_HASH?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_ENSO_HOST?: string
 
             // === Electron watch script variables ===
 
