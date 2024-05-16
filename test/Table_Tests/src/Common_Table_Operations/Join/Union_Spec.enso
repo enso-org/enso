@@ -128,6 +128,37 @@ run_union_tests group_builder setup call_union =
         t4.should_fail_with No_Output_Columns
         t4.catch.to_display_text . should_equal "No columns in the result, because of another problem: Unmatched columns are set to be dropped, but no common column names were found."
 
+    group_builder.specify "should allow to select specified columns for union by In_List, using the ordering from the list" <|
+        t1 = table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
+        t2 = table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
+
+        t3 = call_union [t1, t2] columns_to_match=(..In_List ["B", "A"])
+        expect_column_names ["B", "A"] t3
+        t3.at "B" . to_vector . should_equal ["a", "b"]
+        t3.at "A" . to_vector . should_equal [1, 4]
+
+    group_builder.specify "should add a Null column for unmatched columns from In_List" <|
+        t1 = table_builder [["A", [1]], ["X", [2]]]
+        t2 = table_builder [["Z", [4]], ["A", [5]]]
+
+        t3 = call_union [t1, t2] columns_to_match=(..In_List ["B", "A"])
+        expect_column_names ["B", "A"] t3
+        t3.at "B" . to_vector . should_equal [Nothing, Nothing]
+        t3.at "A" . to_vector . should_equal [1, 5]
+
+    group_builder.specify "does not allow an empty list in In_List" <|
+        t1 = table_builder [["A", [1]], ["X", [2]]]
+        t2 = table_builder [["Z", [4]], ["A", [5]]]
+        r = call_union [t1, t2] columns_to_match=(..In_List [])
+        r.should_fail_with Illegal_Argument
+
+    group_builder.specify "does not error if duplicate entries appear in the In_List" <|
+        t1 = table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
+        t2 = table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
+
+        t3 = call_union [t1, t2] columns_to_match=(..In_List ["B", "B", "A", "A", "B"])
+        expect_column_names ["B", "A"] t3
+
     group_builder.specify "should ignore column names when matching by position" <|
         t1 = table_builder [["A", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
         t2 = table_builder [["X", [4, 5, 6]], ["A", ["d", "e", "f"]]]
@@ -172,6 +203,12 @@ run_union_tests group_builder setup call_union =
         t4.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
         t4.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
         t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
+
+    group_builder.specify "does not allow In_List with positional matching" <|
+        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+        t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
+        r = call_union [t1, t2] columns_to_match=(..In_List ["A", "B"]) match_columns=Match_Columns.By_Position
+        r.should_fail_with Illegal_Argument
 
     group_builder.specify "should use column names from the first table that has enough columns in positional matching mode" <|
         t1 = table_builder [["A", [1, 2, 3]]]
