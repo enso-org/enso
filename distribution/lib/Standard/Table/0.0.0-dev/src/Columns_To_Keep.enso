@@ -19,7 +19,7 @@ type Columns_To_Keep
 
        If a table does not have a column that is specified in the list, it is
        padded with `Nothing` and a problem is reported.
-    In_List (column_names:Vector Text)
+    In_List (column_names : Vector Text)
 
     ## PRIVATE
        Same as `In_Any`, but it will warn about columns that are not present in

@@ -530,7 +530,9 @@ is_column obj =
 ## PRIVATE
    A helper method that resolves what should be the result type of a particular
    column set based on the union settings.
-unify_result_type_for_union column_set all_tables allow_type_widening problem_builder =
+unify_result_type_for_union column_set all_tables problem_builder =
+    # TODO remove `allow_type_widening`
+    allow_type_widening = True
     columns = column_set.resolve_columns all_tables
     case allow_type_widening of
         True ->
