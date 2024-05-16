@@ -71,7 +71,7 @@ function edgeInteractionClick(graphNavigator: GraphNavigator) {
   return true
 }
 
-interaction.setWhen(() => graph.unconnectedEdge != null, editingEdge)
+interaction.setWhen(() => graph.unconnectedEdge?.anchor.type === 'mouse', editingEdge)
 
 function disconnectEdge(target: PortId) {
   graph.edit((edit) => {
@@ -124,7 +124,8 @@ function createEdge(source: AstId, target: PortId) {
     <svg
       v-if="graph.unconnectedEdge"
       :viewBox="props.navigator.viewBox"
-      class="overlay aboveNodes nonInteractive"
+      class="overlay nonInteractive"
+      :class="graph.unconnectedEdge?.belowNodes ? 'behindNodes' : 'aboveNodes'"
     >
       <GraphEdge :edge="graph.unconnectedEdge" maskSource />
     </svg>

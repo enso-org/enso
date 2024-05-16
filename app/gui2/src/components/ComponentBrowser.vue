@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { componentBrowserBindings } from '@/bindings'
+import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import { default as DocumentationPanel } from '@/components/ComponentBrowser/DocumentationPanel.vue'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
@@ -9,25 +10,29 @@ import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/composables/animation'
-import { useEvent, useResizeObserver } from '@/composables/events'
+import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
+import { groupColorStyle } from '@/composables/nodeColors'
+import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type UnconnectedEdge } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
-import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
-import { endOnClickOutside } from '@/util/autoBlur'
+import { endOnClickOutside, isNodeOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { DEFAULT_ICON, suggestionEntryToIcon } from '@/util/getIconName'
 import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onMounted, reactive, ref, watch, type Ref } from 'vue'
+import type { ComponentInstance, Ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
 import LoadingSpinner from './LoadingSpinner.vue'
 
 const ITEM_SIZE = 32
@@ -46,6 +51,10 @@ const PAN_MARGINS = {
   left: 80,
   right: 40,
 }
+const COMPONENT_EDITOR_PADDING = 12
+const ICON_WIDTH = 16
+
+const cssComponentEditorPadding = `${COMPONENT_EDITOR_PADDING}px`
 
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
@@ -73,7 +82,7 @@ const cbOpen: Interaction = endOnClickOutside(cbRoot, {
   cancel: () => emit('canceled'),
   end: () => {
     // In AI prompt mode likely the input is not a valid mode.
-    if (input.anyChange.value && input.context.value.type !== 'aiPrompt') {
+    if (input.anyChange.value && !input.isAiPrompt.value) {
       acceptInput()
     } else {
       emit('canceled')
@@ -90,15 +99,22 @@ function scaleValues<T extends Record<any, number>>(
   ) as any
 }
 
+const clientToSceneFactor = computed(() => 1 / props.navigator.targetScale)
+
+const originScenePos = computed(() => {
+  return props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET.scale(clientToSceneFactor.value))
+})
+
 function panIntoView() {
-  // Factor that converts client-coordinate dimensions to scene-coordinate dimensions.
-  const scale = 1 / props.navigator.targetScale
-  const origin = props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET.scale(scale))
-  const inputArea = new Rect(origin, new Vec2(WIDTH, INPUT_AREA_HEIGHT).scale(scale))
-  const panelsAreaDimensions = new Vec2(WIDTH, PANELS_HEIGHT).scale(scale)
+  const origin = originScenePos.value
+  const inputArea = new Rect(
+    origin,
+    new Vec2(WIDTH, INPUT_AREA_HEIGHT).scale(clientToSceneFactor.value),
+  )
+  const panelsAreaDimensions = new Vec2(WIDTH, PANELS_HEIGHT).scale(clientToSceneFactor.value)
   const panelsArea = new Rect(origin.sub(new Vec2(0, panelsAreaDimensions.y)), panelsAreaDimensions)
-  const vizHeight = VISUALIZATION_HEIGHT * scale
-  const margins = scaleValues(PAN_MARGINS, scale)
+  const vizHeight = VISUALIZATION_HEIGHT * clientToSceneFactor.value
+  const margins = scaleValues(PAN_MARGINS, clientToSceneFactor.value)
   props.navigator.panTo([
     // Always include the bottom-left of the input area.
     { x: inputArea.left, y: inputArea.bottom },
@@ -117,13 +133,7 @@ function panIntoView() {
 onMounted(() => {
   interaction.setCurrent(cbOpen)
   input.reset(props.usage)
-  if (inputField.value != null) {
-    inputField.value.focus({ preventScroll: true })
-  } else {
-    console.warn(
-      'Component Browser input element was not mounted. This is not expected and may break the Component Browser',
-    )
-  }
+  inputElement.value?.focus()
   panIntoView()
 })
 
@@ -132,7 +142,9 @@ onMounted(() => {
 const transform = computed(() => {
   const nav = props.navigator
   const translate = nav.translate
-  const position = props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
+  const position = props.nodePosition.add(
+    COMPONENT_BROWSER_TO_NODE_OFFSET.scale(clientToSceneFactor.value),
+  )
   const screenPosition = translate.add(position).scale(nav.scale)
   const x = Math.round(screenPosition.x)
   const y = Math.round(screenPosition.y)
@@ -142,11 +154,8 @@ const transform = computed(() => {
 
 // === Input and Filtering ===
 
-const inputField = ref<HTMLInputElement>()
 const input = useComponentBrowserInput()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
-
-const isAIPromptMode = computed(() => input.context.value.type === 'aiPrompt')
 
 const currentFiltering = computed(() => {
   const currentModule = projectStore.modulePath
@@ -171,65 +180,44 @@ watch(currentFiltering, () => {
   animatedHighlightHeight.skip()
 })
 
-function readInputFieldSelection() {
-  if (
-    inputField.value != null &&
-    inputField.value.selectionStart != null &&
-    inputField.value.selectionEnd != null
-  ) {
-    input.selection.value = {
-      start: inputField.value.selectionStart,
-      end: inputField.value.selectionEnd,
-    }
-  }
+const selfArgumentEdge = ref<UnconnectedEdge>()
+onUnmounted(() => {
+  cleanupEdge()
+})
+function cleanupEdge() {
+  if (graphStore.unconnectedEdge === selfArgumentEdge.value) graphStore.unconnectedEdge = undefined
+  selfArgumentEdge.value = undefined
 }
-// HTMLInputElement's same event is not supported in chrome yet. We just react for any
-// selectionchange in the document and check if the input selection changed.
-// BUT some operations like deleting does not emit 'selectionChange':
-// https://bugs.chromium.org/p/chromium/issues/detail?id=725890
-// Therefore we must also refresh selection after changing input.
-useEvent(document, 'selectionchange', readInputFieldSelection)
 
-watch(
-  input.selection,
-  (newPos) => {
-    if (inputField.value == null) return
-    // Do nothing if boundaries didn't change. We don't want to affect selection dir.
-    if (
-      inputField.value.selectionStart == newPos.start &&
-      inputField.value.selectionEnd == newPos.end
-    )
-      return
-    inputField.value.setSelectionRange(newPos.start, newPos.end)
-  },
-  // This update should be after any possible inputField content update.
-  { flush: 'post' },
-)
+// Compute `selfArgumentEdge`, except for the color. The color is set in a separate watch, as it changes more often.
+watchEffect(() => {
+  cleanupEdge()
+  const sourceIdent = input.selfArgument.value
+  if (!sourceIdent) return
+  const sourceNode = graphStore.db.getIdentDefiningNode(sourceIdent)
+  if (!sourceNode) return
+  const source = graphStore.db.getNodeFirstOutputPort(sourceNode)
+  const scenePos = originScenePos.value.add(
+    new Vec2(COMPONENT_EDITOR_PADDING + ICON_WIDTH / 2, 0).scale(clientToSceneFactor.value),
+  )
+  selfArgumentEdge.value = graphStore.unconnectedEdge = {
+    source,
+    target: undefined,
+    anchor: { type: 'fixed', scenePos },
+    belowNodes: true,
+  }
+})
 
 function handleDefocus(e: FocusEvent) {
-  const stillInside =
-    cbRoot.value != null &&
-    e.relatedTarget instanceof Node &&
-    cbRoot.value.contains(e.relatedTarget)
+  const stillInside = !isNodeOutside(e.relatedTarget, cbRoot.value)
   // We want to focus input even when relatedTarget == null, because sometimes defocus event is
   // caused by focused item being removed, for example an entry in visualization chooser.
   if (stillInside || e.relatedTarget == null) {
-    inputField.value?.focus({ preventScroll: true })
+    inputElement.value?.focus()
   }
 }
 
-/** Prevent default on an event if input is not its target.
- *
- * The mouse events emitted on other elements may make input selection disappear, what we want to
- * avoid.
- */
-function preventNonInputDefault(e: Event) {
-  if (inputField.value != null && e.target !== inputField.value) {
-    e.preventDefault()
-  }
-}
-
-const inputElement = ref<HTMLElement>()
+const inputElement = ref<ComponentInstance<typeof ComponentEditor>>()
 const inputSize = useResizeObserver(inputElement, false)
 
 // === Components List and Positions ===
@@ -289,6 +277,32 @@ const selectedSuggestion = computed(() => {
   return suggestionDbStore.entries.get(id) ?? null
 })
 
+const { getNodeColor } = injectNodeColors()
+const nodeColor = computed(() => {
+  if (props.usage.type === 'editNode') {
+    const override = graphStore.db.nodeIdToNode.get(props.usage.node)?.colorOverride
+    if (override) return override
+  }
+  if (selectedSuggestion.value?.groupIndex != null)
+    return groupColorStyle(
+      tryGetIndex(suggestionDbStore.groups, selectedSuggestion.value.groupIndex),
+    )
+  if (props.usage.type === 'editNode') {
+    const color = getNodeColor(props.usage.node)
+    if (color) return color
+  }
+  return 'var(--node-color-no-type)'
+})
+watchEffect(() => {
+  if (!selfArgumentEdge.value) return
+  selfArgumentEdge.value.color = nodeColor.value
+})
+
+const selectedSuggestionIcon = computed(() => {
+  if (!input.selfArgument.value) return undefined
+  return selectedSuggestion.value ? suggestionEntryToIcon(selectedSuggestion.value) : DEFAULT_ICON
+})
+
 watch(selectedPosition, (newPos) => {
   if (newPos == null) return
   highlightPosition.value = newPos
@@ -312,13 +326,14 @@ function selectWithoutScrolling(index: number) {
 
 type PreviewState = { expression: string; suggestionId?: SuggestionId }
 const previewed = debouncedGetter<PreviewState>(() => {
-  if (selectedSuggestionId.value == null || selectedSuggestion.value == null)
+  if (selectedSuggestionId.value == null || selectedSuggestion.value == null) {
     return { expression: input.code.value }
-  else
+  } else {
     return {
       expression: input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode,
       suggestionId: selectedSuggestionId.value,
     }
+  }
 }, 200)
 
 const previewedSuggestionReturnType = computed(() => {
@@ -328,7 +343,7 @@ const previewedSuggestionReturnType = computed(() => {
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
-  if (isAIPromptMode.value) return
+  if (input.isAiPrompt.value) return
   if (!previewed.value.expression.trim()) return
   if (!graphStore.methodAst) return
   const body = graphStore.methodAst.body
@@ -425,20 +440,19 @@ function acceptInput() {
 
 const handler = componentBrowserBindings.handler({
   applySuggestion() {
-    if (input.context.value.type === 'aiPrompt') return false
+    if (input.isAiPrompt.value) return false
     applySuggestion()
   },
   acceptSuggestion() {
-    if (input.context.value.type === 'aiPrompt') return false
+    if (input.isAiPrompt.value) return false
     acceptSuggestion()
   },
   acceptInput() {
-    if (input.context.value.type === 'aiPrompt') return false
+    if (input.isAiPrompt.value) return false
     acceptInput()
   },
   acceptAIPrompt() {
-    if (input.context.value.type !== 'aiPrompt') return false
-    input.applyAIPrompt()
+    if (input.isAiPrompt.value) input.applyAIPrompt()
   },
   moveUp() {
     if (selected.value != null && selected.value < components.value.length - 1) {
@@ -462,12 +476,13 @@ const handler = componentBrowserBindings.handler({
     ref="cbRoot"
     class="ComponentBrowser"
     :style="{ transform, '--list-height': listContentHeightPx }"
+    :data-self-argument="input.selfArgument.value"
     tabindex="-1"
     @focusout="handleDefocus"
     @keydown="handler"
-    @pointerdown.stop="preventNonInputDefault"
-    @pointerup.stop="preventNonInputDefault"
-    @click.stop="preventNonInputDefault"
+    @pointerdown.stop.prevent
+    @pointerup.stop.prevent
+    @click.stop.prevent
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
@@ -483,7 +498,7 @@ const handler = componentBrowserBindings.handler({
             <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
           </div>
         </div>
-        <div v-if="!isAIPromptMode" class="components-content">
+        <div v-if="!input.isAiPrompt.value" class="components-content">
           <div
             ref="scroller"
             class="list"
@@ -550,10 +565,10 @@ const handler = componentBrowserBindings.handler({
             </div>
           </div>
         </div>
-        <LoadingSpinner v-if="isAIPromptMode && input.processingAIPrompt" />
+        <LoadingSpinner v-if="input.isAiPrompt.value && input.processingAIPrompt" />
       </div>
       <div class="panel docs" :class="{ hidden: !docsVisible }">
-        <DocumentationPanel v-model:selectedEntry="docEntry" :aiMode="isAIPromptMode" />
+        <DocumentationPanel v-model:selectedEntry="docEntry" :aiMode="input.isAiPrompt.value" />
       </div>
     </div>
     <div class="bottom-panel">
@@ -572,15 +587,14 @@ const handler = componentBrowserBindings.handler({
         :currentType="previewedVisualizationId"
         @update:id="setVisualization($event)"
       />
-      <div ref="inputElement" class="CBInput">
-        <input
-          ref="inputField"
-          v-model="input.code.value"
-          name="cb-input"
-          autocomplete="off"
-          @input="readInputFieldSelection"
-        />
-      </div>
+      <ComponentEditor
+        ref="inputElement"
+        v-model="input.content.value"
+        :navigator="props.navigator"
+        :icon="selectedSuggestionIcon"
+        :nodeColor="nodeColor"
+        class="component-editor"
+      />
     </div>
   </div>
 </template>
@@ -589,6 +603,7 @@ const handler = componentBrowserBindings.handler({
 .ComponentBrowser {
   --list-height: 0px;
   --radius-default: 20px;
+  --background-color: #eaeaea;
   width: fit-content;
   color: rgba(0, 0, 0, 0.6);
   font-size: 11.5px;
@@ -607,7 +622,7 @@ const handler = componentBrowserBindings.handler({
   height: 380px;
   border: none;
   border-radius: var(--radius-default);
-  background-color: #eaeaea;
+  background-color: var(--background-color);
 }
 
 .components {
@@ -676,7 +691,7 @@ const handler = componentBrowserBindings.handler({
   width: 100%;
   height: 40px;
   padding: 4px;
-  background-color: #eaeaea;
+  background-color: var(--background-color);
   border-radius: var(--radius-default);
   position: absolute;
   top: 0px;
@@ -708,24 +723,10 @@ const handler = componentBrowserBindings.handler({
 .bottom-panel {
   position: relative;
 }
-.CBInput {
-  border-radius: var(--radius-default);
-  background-color: #eaeaea;
-  width: 100%;
-  height: 40px;
-  padding: 12px;
-  display: flex;
-  flex-direction: row;
-  position: absolute;
 
-  & input {
-    border: none;
-    outline: none;
-    min-width: 0;
-    flex-grow: 1;
-    background: none;
-    font: inherit;
-  }
+.component-editor {
+  position: absolute;
+  --component-editor-padding: v-bind('cssComponentEditorPadding');
 }
 
 .visualization-preview {

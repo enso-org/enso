@@ -36,13 +36,15 @@ const navigator = injectGraphNavigator()
 const tree = injectWidgetTree()
 const selection = injectGraphSelection(true)
 
-const isHovered = computed(() => selection?.hoveredPort === props.input.portId)
-
 const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isCurrentEdgeHoverTarget = computed(
-  () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
+  () =>
+    graph.unconnectedEdge?.anchor.type === 'mouse' &&
+    graph.unconnectedEdge.target == null &&
+    selection?.hoveredPort === portId.value &&
+    graph.db.getPatternExpressionNodeId(graph.unconnectedEdge.source) !== tree.nodeId,
 )
-const isCurrentDisconectedEdgeTarget = computed(
+const isCurrentDisconnectedEdgeTarget = computed(
   () =>
     graph.unconnectedEdge?.disconnectedEdgeTarget === portId.value &&
     graph.unconnectedEdge?.target !== portId.value,
@@ -60,7 +62,7 @@ const connected = computed(
 )
 const isTarget = computed(
   () =>
-    (hasConnection.value && !isCurrentDisconectedEdgeTarget.value) ||
+    (hasConnection.value && !isCurrentDisconnectedEdgeTarget.value) ||
     isCurrentEdgeHoverTarget.value,
 )
 
@@ -221,8 +223,8 @@ export const widgetDefinition = defineWidget(
   position: relative;
   text-align: center;
   border-radius: 12px;
-  min-height: --node-port-height;
-  min-width: --node-port-height;
+  min-height: var(--node-port-height);
+  min-width: var(--node-port-height);
   box-sizing: border-box;
   padding: 0 var(--widget-port-extra-pad);
   margin: 0 calc(0px - var(--widget-port-extra-pad));

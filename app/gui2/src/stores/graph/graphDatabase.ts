@@ -1,5 +1,6 @@
+import { computeNodeColor } from '@/composables/nodeColors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
-import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
@@ -7,7 +8,6 @@ import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule, autospaced, subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst } from '@/util/ast/node'
-import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { Vec2 } from '@/util/data/vec2'
@@ -213,13 +213,10 @@ export class GraphDb {
 
   nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
     if (entry.colorOverride != null) return entry.colorOverride
-    const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
-    const group = tryGetIndex(this.groups.value, index)
-    if (group == null) {
-      const typename = this.getExpressionInfo(id)?.typename
-      return typename ? colorFromString(typename) : 'var(--node-color-no-type)'
-    }
-    return groupColorStyle(group)
+    return computeNodeColor(
+      () => tryGetIndex(this.groups.value, this.nodeMainSuggestion.lookup(id)?.groupIndex),
+      () => this.getExpressionInfo(id)?.typename,
+    )
   })
 
   getNodeFirstOutputPort(id: NodeId): AstId {

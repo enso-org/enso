@@ -45,7 +45,12 @@ export function registerAutoBlurHandler() {
 
 /** Returns true if the target of the event is outside the DOM subtree of the given `area` element. */
 export function targetIsOutside(e: Event, area: Opt<Element>): boolean {
-  return !!area && e.target instanceof Element && !area.contains(e.target)
+  return isNodeOutside(e.target, area)
+}
+
+/** Returns true if the `element` argument is a node outside the DOM subtree of the given `area`. */
+export function isNodeOutside(element: any, area: Opt<Node>): boolean {
+  return !!area && element instanceof Node && !area.contains(element)
 }
 
 /** Returns a new interaction based on the given `interaction`. The new interaction will be ended if a pointerdown event

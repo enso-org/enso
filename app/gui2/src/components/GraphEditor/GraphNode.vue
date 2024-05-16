@@ -453,6 +453,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
 
 <template>
   <div
+    v-show="!edited"
     ref="rootNode"
     class="GraphNode"
     :style="{
@@ -462,7 +463,6 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
     }"
     :class="{
-      edited: props.edited,
       selected,
       selectionVisible,
       visualizationVisible: isVisualizationVisible,
@@ -475,7 +475,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
   >
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
-        v-if="navigator"
+        v-if="navigator && !edited"
         :class="{ dragged: isDragged }"
         :nodePosition="props.node.position"
         :nodeSize="nodeSize"
@@ -702,10 +702,6 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
-}
-
-.GraphNode.edited {
-  display: none;
 }
 
 .content {

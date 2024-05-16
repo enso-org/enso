@@ -34,16 +34,8 @@ import type {
   VisualizationMetadata,
 } from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
-import {
-  computed,
-  markRaw,
-  reactive,
-  ref,
-  shallowReactive,
-  toRef,
-  watch,
-  type ShallowRef,
-} from 'vue'
+import type { ShallowRef } from 'vue'
+import { computed, markRaw, reactive, ref, shallowReactive, toRef, watch } from 'vue'
 
 const FALLBACK_BINDING_PREFIX = 'node'
 
@@ -204,30 +196,29 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  const edges = computed(() => {
-    const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
-    const edges = []
-    for (const [target, sources] of db.connections.allReverse()) {
-      if ((target as string as PortId) === disconnectedEdgeTarget) continue
-      for (const source of sources) {
-        edges.push({ source, target })
-      }
-    }
+  const connectedEdges = computed(() => {
+    const disconnectedTargets = new Set<PortId>()
     if (unconnectedEdge.value) {
-      edges.push({
-        source: unconnectedEdge.value.source,
-        target: unconnectedEdge.value.target,
-      })
+      const target = unconnectedEdge.value.disconnectedEdgeTarget
+      if (target) disconnectedTargets.add(target)
+    }
+    if (editedNodeInfo.value) {
+      const primarySubject = db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
+      if (primarySubject) disconnectedTargets.add(primarySubject)
+    }
+    const edges = new Array<ConnectedEdge>()
+    for (const [target, sources] of db.connections.allReverse()) {
+      if (!disconnectedTargets.has(target)) {
+        for (const source of sources) {
+          edges.push({ source, target })
+        }
+      }
     }
     return edges
   })
 
-  const connectedEdges = computed(() => {
-    return edges.value.filter<ConnectedEdge>(isConnected)
-  })
-
   function createEdgeFromOutput(source: Ast.AstId, event: PointerEvent | undefined) {
-    unconnectedEdge.value = { source, target: undefined, event }
+    unconnectedEdge.value = { source, target: undefined, event, anchor: { type: 'mouse' } }
   }
 
   function disconnectSource(edge: Edge, event: PointerEvent | undefined) {
@@ -237,6 +228,7 @@ export const useGraphStore = defineStore('graph', () => {
       target: edge.target,
       disconnectedEdgeTarget: edge.target,
       event,
+      anchor: { type: 'mouse' },
     }
   }
 
@@ -247,6 +239,7 @@ export const useGraphStore = defineStore('graph', () => {
       target: undefined,
       disconnectedEdgeTarget: edge.target,
       event,
+      anchor: { type: 'mouse' },
     }
   }
 
@@ -668,7 +661,6 @@ export const useGraphStore = defineStore('graph', () => {
     mockExpressionUpdate,
     editedNodeInfo,
     unconnectedEdge,
-    edges,
     connectedEdges,
     moduleSource,
     nodeRects,
@@ -718,13 +710,15 @@ export const useGraphStore = defineStore('graph', () => {
   }
 })
 
-/** An edge, which may be connected or unconnected. */
-export interface Edge {
+interface AnyEdge {
   source: AstId | undefined
   target: PortId | undefined
 }
 
-export interface ConnectedEdge extends Edge {
+/** An edge, which may be connected or unconnected. */
+export type Edge = ConnectedEdge | UnconnectedEdge
+
+export interface ConnectedEdge extends AnyEdge {
   source: AstId
   target: PortId
 }
@@ -733,12 +727,38 @@ export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
 }
 
-interface UnconnectedEdge extends Edge {
+type UnconnectedEdgeAnchor =
+  | {
+      type: 'mouse'
+    }
+  | {
+      type: 'fixed'
+      scenePos: Vec2
+    }
+
+interface AnyUnconnectedEdge extends AnyEdge {
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
   disconnectedEdgeTarget?: PortId
   /** A pointer event which caused the unconnected edge */
-  event: PointerEvent | undefined
+  event?: PointerEvent | undefined
+  /** Identifies what the disconnected end should be attached to. */
+  anchor: UnconnectedEdgeAnchor
+  /** Unless this is set, the edge will be rendered above nodes. */
+  belowNodes?: boolean
+  /** CSS value; if provided, overrides any color calculation. */
+  color?: string
 }
+interface UnconnectedSource extends AnyUnconnectedEdge {
+  source: undefined
+  target: PortId
+}
+interface UnconnectedTarget extends AnyUnconnectedEdge {
+  source: AstId
+  target: undefined
+  /** If true, the target end should be drawn as with a self-argument arrow. */
+  targetIsSelfArgument?: boolean
+}
+export type UnconnectedEdge = UnconnectedSource | UnconnectedTarget
 
 function getExecutedMethodAst(
   topLevel: Ast.BodyBlock,
