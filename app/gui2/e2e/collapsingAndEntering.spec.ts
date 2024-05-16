@@ -85,7 +85,7 @@ test('Collapsing nodes', async ({ page }) => {
   await expect(collapsedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'collapsed', 'five'])
   await mockCollapsedFunctionInfo(page, 'prod', 'collapsed')
 
-  await collapsedNode.dblclick()
+  await locate.graphNodeIcon(collapsedNode).dblclick()
   await expect(locate.graphNode(page)).toHaveCount(4)
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
   await expect(locate.graphNodeByBinding(page, 'sum')).toExist()

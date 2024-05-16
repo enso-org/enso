@@ -210,7 +210,6 @@ export const useGraphStore = defineStore('graph', () => {
         mapOk(proj.modulePath, normalizeQualifiedName)
       : Err('Uknown current module name')
     if (!modulePath?.ok) return modulePath
-    console.log(ptr.module, modulePath.value)
     const ptrModule = mapOk(tryQualifiedName(ptr.module), normalizeQualifiedName)
     const ptrDefinedOnType = mapOk(tryQualifiedName(ptr.definedOnType), normalizeQualifiedName)
     if (!ptrModule.ok) return ptrModule
