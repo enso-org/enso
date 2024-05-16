@@ -1,11 +1,11 @@
 import type { NodeCreation } from '@/composables/nodeCreation'
-import type { GraphSelection } from '@/providers/graphSelection'
-import type { Node } from '@/stores/graph'
+import type { Node, NodeId } from '@/stores/graph'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import type { ToValue } from '@/util/reactivity'
 import type { NodeMetadataFields } from 'shared/ast'
-import { computed } from 'vue'
+import { computed, toValue } from 'vue'
 
 // MIME type in *vendor tree*; see https://www.rfc-editor.org/rfc/rfc6838#section-3.2
 // The `web ` prefix is required by Chromium:
@@ -119,7 +119,7 @@ function getClipboard() {
 }
 
 export function useGraphEditorClipboard(
-  nodeSelection: GraphSelection,
+  selected: ToValue<Set<NodeId>>,
   createNodes: NodeCreation['createNodes'],
 ) {
   const graphStore = useGraphStore()
@@ -127,7 +127,7 @@ export function useGraphEditorClipboard(
   /** Copy the content of the selected node to the clipboard. */
   function copySelectionToClipboard() {
     const nodes = new Array<Node>()
-    for (const id of nodeSelection.selected) {
+    for (const id of toValue(selected)) {
       const node = graphStore.db.nodeIdToNode.get(id)
       if (!node) continue
       nodes.push(node)
