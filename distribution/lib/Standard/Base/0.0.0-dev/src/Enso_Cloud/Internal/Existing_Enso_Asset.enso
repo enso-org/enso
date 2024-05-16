@@ -91,7 +91,7 @@ type Existing_Enso_Asset
         ## Workaround to keep compatibility with old cloud API
            TODO remove it after https://github.com/enso-org/cloud-v2/pull/1236 has been deployed
         response = r.catch Enso_Cloud_Error error-> case error of
-            Enso_Cloud_Error.Unexpected_Service_Error status _ ->
+            Enso_Cloud_Error.Unexpected_Service_Error _ status _ ->
                 if status.code != 404 then r else
                     old_uri = (URI.from Utils.cloud_root_uri) / "path/resolve"
                     old_payload = JS_Object.from_pairs [["path", path]]
