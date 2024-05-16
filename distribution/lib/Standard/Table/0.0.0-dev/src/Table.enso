@@ -2246,7 +2246,9 @@ type Table
          tables are concatenated in the order they are specified, with `self`
          being the first one.
        - columns_to_keep: Specifies which columns to keep. Defaults to keeping
-         columns that are present in all tables.
+         columns that are present in any of the tables, reporting a warning for
+         columns that are not present in all tables and adding `Nothing` values
+         for them.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
@@ -2254,6 +2256,8 @@ type Table
            The names of each column come from the first table in which the given
            column appears in.
            The `List` option is not applicable when mapping columns by position.
+           Column names are taken from the first table if `In_All` and from the
+           first table that has the maximum number of columns if `In_Any`
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -2288,11 +2292,15 @@ type Table
            integers, thus if such large integers are mixed with floats, the
            resulting conversion to `Float` may cause a loss of precision.
            In that case, a `Loss_Of_Integer_Precision` problem is reported.
-         - If a column of dates is unified with a column of date-times, the
-           assumption of using the midnight time-of-day is arbitrary, hence
-           a `???` is reported.
+           This warning is only reported in the in-memory backend. Currently,
+           the Database backend proceeds without a warning about precision loss.
+         - If a column of dates is unified with a column of date-times, since
+           the assumption of using the midnight time-of-day is arbitrary,
+           a `Implicit_Date_As_Date_Time_Conversion` problem is reported.
+         - If an empty vector of tables is provided, an `Illegal_Argument` error
+           is raised.
          - If `columns_to_keep` is set to `In_All` or `List` and an expected
-           column is missing in some of the tables, a `Missing_Input_Columns`
+           column is missing in some of the tables, a `Unmatched_Columns`
            problem is reported. If this causes the output to contain no columns,
            a `No_Output_Columns` error is raised.
 
@@ -2931,7 +2939,9 @@ type Table
        - tables: A vector of tables to union  together. The
          tables are concatenated in the order they are specified.
        - columns_to_keep: Specifies which columns to keep. Defaults to keeping
-         columns that are present in all tables.
+         columns that are present in any of the tables, reporting a warning for
+         columns that are not present in all tables and adding `Nothing` values
+         for them.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.

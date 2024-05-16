@@ -1719,15 +1719,19 @@ type DB_Table
        - tables: A single table or a vector of tables to append to this one. The
          tables are concatenated in the order they are specified, with `self`
          being the first one.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in any of the tables, reporting a warning for
+         columns that are not present in all tables and adding `Nothing` values
+         for them.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
            The names of each column come from the first table in which the given
            column appears in.
-       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
-         columns that are present in all tables.
-         The `List` option is not applicable when mapping columns by position.
+           The `List` option is not applicable when mapping columns by position.
+           Column names are taken from the first table if `In_All` and from the
+           first table that has the maximum number of columns if `In_Any`
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -1762,11 +1766,15 @@ type DB_Table
            integers, thus if such large integers are mixed with floats, the
            resulting conversion to `Float` may cause a loss of precision.
            In that case, a `Loss_Of_Integer_Precision` problem is reported.
-         - If a column of dates is unified with a column of date-times, the
-           assumption of using the midnight time-of-day is arbitrary, hence
-           a `???` is reported.
+           This warning is only reported in the in-memory backend. Currently,
+           the Database backend proceeds without a warning about precision loss.
+         - If a column of dates is unified with a column of date-times, since
+           the assumption of using the midnight time-of-day is arbitrary,
+           a `Implicit_Date_As_Date_Time_Conversion` problem is reported.
+         - If an empty vector of tables is provided, an `Illegal_Argument` error
+           is raised.
          - If `columns_to_keep` is set to `In_All` or `List` and an expected
-           column is missing in some of the tables, a `Missing_Input_Columns`
+           column is missing in some of the tables, a `Unmatched_Columns`
            problem is reported. If this causes the output to contain no columns,
            a `No_Output_Columns` error is raised.
 
@@ -1779,7 +1787,7 @@ type DB_Table
          the first table, they are appended to the end of the resulting table in
          the order they appear in the input.
     union : (DB_Table | Vector DB_Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> DB_Table
-    union self tables:(DB_Table | Vector) (match_columns : Match_Columns = Match_Columns.By_Name) (columns_to_keep : Columns_To_Keep = ..In_All) (on_problems : Problem_Behavior = Report_Warning) =
+    union self tables:(DB_Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> DB_Table.from t)
             single_table -> [self, single_table]
