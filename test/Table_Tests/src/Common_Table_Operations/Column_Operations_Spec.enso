@@ -1779,12 +1779,13 @@ add_specs suite_builder setup =
             setup.table_builder cols connection=data.connection
 
         group_builder.specify "Arithmetic" <|
-            t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123E50"]], ["z", [Decimal.new "125E50"]], ["w", [2]]]
+            t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123E50"]], ["z", [Decimal.new "125E50"]], ["w", [2]], ["ww", [7513]]]
             (t.at "x" + t.at "y").to_vector . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
             (t.at "x" - t.at "y").to_vector . should_equal [Decimal.new "-12299999999999999999999999999999999999999976742754654.654654655"]
             (t.at "x" * t.at "y").to_vector . should_equal [Decimal.new "2.860641177477477477435E+62"]
             (t.at "x" / t.at "z").to_vector . should_equal [Decimal.new "1.8605796276276276276E-42"]
             (t.at "x" ^ t.at "w").to_vector . should_equal [Decimal.new "540899461053587731859.956601457313169025"]
+            (t.at "x" % t.at "ww").to_vector . should_equal [Decimal.new "2545.345345345"]
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
