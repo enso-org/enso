@@ -158,7 +158,7 @@ export interface User extends UserInfo {
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
   readonly profilePicture?: HttpsUrl
-  readonly userGroups: UserGroupId[] | null
+  readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
   readonly plan?: Plan
 }

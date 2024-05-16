@@ -63,6 +63,14 @@ export async function mockApi({ page }: MockParams) {
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
   }
+  const defaultOrganization: backend.OrganizationInfo = {
+    id: defaultOrganizationId,
+    name: defaultOrganizationName,
+    address: null,
+    email: null,
+    picture: null,
+    website: null,
+  }
   let currentUser: backend.User | null = defaultUser
   let currentProfilePicture: string | null = null
   let currentPassword = defaultPassword
@@ -74,6 +82,11 @@ export async function mockApi({ page }: MockParams) {
   const labels: backend.Label[] = []
   const labelsByValue = new Map<backend.LabelName, backend.Label>()
   const labelMap = new Map<backend.TagId, backend.Label>()
+  const users: backend.User[] = [defaultUser]
+  const usersMap = new Map<backend.UserId, backend.User>()
+  const userGroups: backend.UserGroupInfo[] = []
+
+  usersMap.set(defaultUser.userId, defaultUser)
 
   const addAsset = <T extends backend.AnyAsset>(asset: T) => {
     assets.push(asset)
@@ -82,11 +95,15 @@ export async function mockApi({ page }: MockParams) {
   }
 
   const deleteAsset = (assetId: backend.AssetId) => {
+    const alreadyDeleted = deletedAssets.has(assetId)
     deletedAssets.add(assetId)
+    return !alreadyDeleted
   }
 
   const undeleteAsset = (assetId: backend.AssetId) => {
+    const wasDeleted = deletedAssets.has(assetId)
     deletedAssets.delete(assetId)
+    return wasDeleted
   }
 
   const createDirectory = (
@@ -207,6 +224,83 @@ export async function mockApi({ page }: MockParams) {
       if (asset != null) {
         object.unsafeMutable(asset).labels = newLabels
       }
+    }
+  }
+
+  const addUser = (name: string, rest: Partial<backend.User> = {}) => {
+    const organizationId = currentOrganization?.id ?? defaultOrganizationId
+    const user: backend.User = {
+      userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
+      name,
+      email: backend.EmailAddress(`${name}@example.org`),
+      organizationId,
+      rootDirectoryId: backend.DirectoryId(organizationId.replace(/^organization-/, 'directory-')),
+      isEnabled: true,
+      userGroups: null,
+      ...rest,
+    }
+    users.push(user)
+    usersMap.set(user.userId, user)
+    return user
+  }
+
+  const deleteUser = (userId: backend.UserId) => {
+    usersMap.delete(userId)
+    const index = users.findIndex(user => user.userId === userId)
+    if (index === -1) {
+      return false
+    } else {
+      users.splice(index, 1)
+      return true
+    }
+  }
+
+  const addUserGroup = (name: string, rest: Partial<backend.UserGroupInfo>) => {
+    const userGroup: backend.UserGroupInfo = {
+      id: backend.UserGroupId(`usergroup-${uniqueString.uniqueString()}`),
+      groupName: name,
+      organizationId: currentOrganization?.id ?? defaultOrganizationId,
+      ...rest,
+    }
+    userGroups.push(userGroup)
+    return userGroup
+  }
+
+  const deleteUserGroup = (userGroupId: backend.UserGroupId) => {
+    const index = userGroups.findIndex(userGroup => userGroup.id === userGroupId)
+    if (index === -1) {
+      return false
+    } else {
+      users.splice(index, 1)
+      return true
+    }
+  }
+
+  // addPermission,
+  // deletePermission,
+  // addUserGroupToUser,
+  // deleteUserGroupFromUser,
+  const addUserGroupToUser = (userId: backend.UserId, userGroupId: backend.UserGroupId) => {
+    const user = usersMap.get(userId)
+    if (user == null || user.userGroups?.includes(userGroupId) === true) {
+      // The user does not exist, or they are already in this group.
+      return false
+    } else {
+      const newUserGroups = object.unsafeMutable(user.userGroups ?? [])
+      newUserGroups.push(userGroupId)
+      object.unsafeMutable(user).userGroups = newUserGroups
+      return true
+    }
+  }
+
+  const removeUserGroupFromUser = (userId: backend.UserId, userGroupId: backend.UserGroupId) => {
+    const user = usersMap.get(userId)
+    if (user?.userGroups?.includes(userGroupId) !== true) {
+      // The user does not exist, or they are already not in this group.
+      return false
+    } else {
+      object.unsafeMutable(user.userGroups).splice(user.userGroups.indexOf(userGroupId), 1)
+      return true
     }
   }
 
@@ -343,7 +437,7 @@ export async function mockApi({ page }: MockParams) {
     )
     await get(remoteBackendPaths.LIST_USERS_PATH + '*', async route => {
       if (currentUser != null) {
-        return []
+        return { users } satisfies remoteBackend.ListUsersResponseBody
       } else {
         await route.fulfill({ status: HTTP_STATUS_BAD_REQUEST })
         return
@@ -713,6 +807,7 @@ export async function mockApi({ page }: MockParams) {
   return {
     defaultEmail,
     defaultName: defaultUsername,
+    defaultOrganization,
     defaultOrganizationId,
     defaultOrganizationName,
     defaultUser,
@@ -743,5 +838,14 @@ export async function mockApi({ page }: MockParams) {
     createLabel,
     addLabel,
     setLabels,
+    addUser,
+    deleteUser,
+    addUserGroup,
+    deleteUserGroup,
+    // TODO:
+    // addPermission,
+    // deletePermission,
+    addUserGroupToUser,
+    removeUserGroupFromUser,
   }
 }

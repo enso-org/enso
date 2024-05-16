@@ -1,8 +1,6 @@
 /** @file Test the organization settings tab. */
 import * as test from '@playwright/test'
 
-import type * as backend from '#/services/Backend'
-
 import * as actions from './actions'
 
 test.test('organization settings', async ({ page }) => {
@@ -10,15 +8,7 @@ test.test('organization settings', async ({ page }) => {
   const localActions = actions.settings.organization
 
   // Setup
-  const initialOrganization: backend.OrganizationInfo = {
-    id: api.defaultOrganizationId,
-    name: api.defaultOrganizationName,
-    address: null,
-    email: null,
-    picture: null,
-    website: null,
-  }
-  api.setCurrentOrganization(initialOrganization)
+  api.setCurrentOrganization(api.defaultOrganization)
   await test.test.step('initial state', () => {
     test.expect(api.currentOrganization()?.name).toBe(api.defaultOrganizationName)
     test.expect(api.currentOrganization()?.email).toBe(null)

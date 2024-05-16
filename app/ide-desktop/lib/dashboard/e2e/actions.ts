@@ -604,12 +604,20 @@ export namespace settings {
         return page.getByRole('button', { name: 'Organization' }).getByText('Organization')
       }
     }
+    export namespace members {
+      /** Find a "members" tab button. */
+      export function locate(page: test.Page) {
+        return page.getByRole('button', { name: 'Members', exact: true }).getByText('Members')
+      }
+    }
   }
 
   export namespace userAccount {
     /** Navigate so that the "user account" settings section is visible. */
     export async function go(page: test.Page) {
-      await press(page, 'Mod+,')
+      await test.test.step("Go to 'user account' settings section", async () => {
+        await press(page, 'Mod+,')
+      })
     }
 
     /** Find a "user account" settings section. */
@@ -626,7 +634,9 @@ export namespace settings {
   export namespace changePassword {
     /** Navigate so that the "change password" settings section is visible. */
     export async function go(page: test.Page) {
-      await press(page, 'Mod+,')
+      await test.test.step("Go to 'change password' settings section", async () => {
+        await press(page, 'Mod+,')
+      })
     }
 
     /** Find a "change password" settings section. */
@@ -658,7 +668,9 @@ export namespace settings {
   export namespace profilePicture {
     /** Navigate so that the "profile picture" settings section is visible. */
     export async function go(page: test.Page) {
-      await press(page, 'Mod+,')
+      await test.test.step("Go to 'profile picture' settings section", async () => {
+        await press(page, 'Mod+,')
+      })
     }
 
     /** Find a "profile picture" settings section. */
@@ -675,8 +687,10 @@ export namespace settings {
   export namespace organization {
     /** Navigate so that the "organization" settings section is visible. */
     export async function go(page: test.Page) {
-      await press(page, 'Mod+,')
-      await settings.tab.organization.locate(page).click()
+      await test.test.step("Go to 'organization' settings section", async () => {
+        await press(page, 'Mod+,')
+        await settings.tab.organization.locate(page).click()
+      })
     }
 
     /** Find an "organization" settings section. */
@@ -709,8 +723,10 @@ export namespace settings {
   export namespace organizationProfilePicture {
     /** Navigate so that the "organization profile picture" settings section is visible. */
     export async function go(page: test.Page) {
-      await press(page, 'Mod+,')
-      await settings.tab.organization.locate(page).click()
+      await test.test.step("Go to 'organization profile picture' settings section", async () => {
+        await press(page, 'Mod+,')
+        await settings.tab.organization.locate(page).click()
+      })
     }
 
     /** Find an "organization profile picture" settings section. */
@@ -721,6 +737,26 @@ export namespace settings {
     /** Find a "profile picture" input. */
     export function locateInput(page: test.Page) {
       return locate(page).locator('label')
+    }
+  }
+
+  export namespace members {
+    /** Navigate so that the "members" settings section is visible. */
+    export async function go(page: test.Page, force = false) {
+      await test.test.step("Go to 'members' settings section", async () => {
+        await press(page, 'Mod+,')
+        await settings.tab.members.locate(page).click({ force })
+      })
+    }
+
+    /** Find a "members" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Members')).locator('..')
+    }
+
+    /** Find all rows representing members of the current organization. */
+    export function locateMembersRows(page: test.Page) {
+      return locate(page).locator('tbody').getByRole('row')
     }
   }
 }
@@ -833,19 +869,21 @@ export async function modModifier(page: test.Page) {
 /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
  * on all other platforms. */
 export async function press(page: test.Page, keyOrShortcut: string) {
-  if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
-    let userAgent = ''
-    await test.test.step('Detect browser OS', async () => {
-      userAgent = await page.evaluate(() => navigator.userAgent)
-    })
-    const isMacOS = /\bMac OS\b/i.test(userAgent)
-    const ctrlKey = isMacOS ? 'Meta' : 'Control'
-    const deleteKey = isMacOS ? 'Backspace' : 'Delete'
-    const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
-    await test.test.step(`Press '${shortcut}'`, () => page.keyboard.press(shortcut))
-  } else {
-    await page.keyboard.press(keyOrShortcut)
-  }
+  await test.test.step(`Press '${keyOrShortcut}'`, async () => {
+    if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
+      let userAgent = ''
+      await test.test.step('Detect browser OS', async () => {
+        userAgent = await page.evaluate(() => navigator.userAgent)
+      })
+      const isMacOS = /\bMac OS\b/i.test(userAgent)
+      const ctrlKey = isMacOS ? 'Meta' : 'Control'
+      const deleteKey = isMacOS ? 'Backspace' : 'Delete'
+      const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
+      await page.keyboard.press(shortcut)
+    } else {
+      await page.keyboard.press(keyOrShortcut)
+    }
+  })
 }
 
 // =============
@@ -860,11 +898,13 @@ export async function login(
   email = 'email@example.com',
   password = VALID_PASSWORD
 ) {
-  await page.goto('/')
-  await locateEmailInput(page).fill(email)
-  await locatePasswordInput(page).fill(password)
-  await locateLoginButton(page).click()
-  await locateToastCloseButton(page).click()
+  await test.test.step('Login', async () => {
+    await page.goto('/')
+    await locateEmailInput(page).fill(email)
+    await locatePasswordInput(page).fill(password)
+    await locateLoginButton(page).click()
+    await locateToastCloseButton(page).click()
+  })
 }
 
 // ==============================
@@ -954,11 +994,13 @@ export const mockApi = apiModule.mockApi
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAll({ page }: MockParams) {
-  const api = await mockApi({ page })
-  await mockIsInPlaywrightTest({ page })
-  await mockDate({ page })
-  await mockIDEContainer({ page })
-  return { api }
+  return await test.test.step('Execute all mocks', async () => {
+    const api = await mockApi({ page })
+    await mockIsInPlaywrightTest({ page })
+    await mockDate({ page })
+    await mockIDEContainer({ page })
+    return { api }
+  })
 }
 
 // =======================
@@ -969,13 +1011,15 @@ export async function mockAll({ page }: MockParams) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAllAndLogin({ page }: MockParams) {
-  const mocks = await mockAll({ page })
-  await login({ page })
-  // This MUST run after login because the element's styles are reset when the browser
-  // is navigated to another page.
-  await mockIDEContainer({ page })
-  // This MUST also run after login because globals are reset when the browser
-  // is navigated to another page.
-  await mockIsInPlaywrightTest({ page })
-  return mocks
+  return await test.test.step('Execute all mocks and login', async () => {
+    const mocks = await mockAll({ page })
+    await login({ page })
+    // This MUST run after login because the element's styles are reset when the browser
+    // is navigated to another page.
+    await mockIDEContainer({ page })
+    // This MUST also run after login because globals are reset when the browser
+    // is navigated to another page.
+    await mockIsInPlaywrightTest({ page })
+    return mocks
+  })
 }
