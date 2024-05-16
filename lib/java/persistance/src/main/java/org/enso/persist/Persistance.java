@@ -236,7 +236,13 @@ public abstract class Persistance<T> implements Cloneable {
       var value =
           switch (this) {
             case PerMemoryReference m -> m.value();
-            case PerBufferReference<T> b -> b.readObject(expectedType);
+            case PerBufferReference<T> b -> {
+              try {
+                yield b.readObject(expectedType);
+              } catch (IOException e) {
+                throw raise(RuntimeException.class, e);
+              }
+            }
           };
       return expectedType.cast(value);
     }

@@ -1,5 +1,6 @@
 package org.enso.persist;
 
+import java.io.IOException;
 import org.enso.persist.PerInputImpl.InputCache;
 import org.enso.persist.Persistance.Reference;
 
@@ -15,7 +16,7 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
   }
 
   @SuppressWarnings(value = "unchecked")
-  final <T> T readObject(Class<T> clazz) {
+  final <T> T readObject(Class<T> clazz) throws IOException {
     if (p != null) {
       if (clazz.isAssignableFrom(p.clazz)) {
         clazz = (Class) p.clazz;

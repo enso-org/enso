@@ -31,21 +31,41 @@ final class PerInputImpl implements Input {
       }
     }
     var version = buf.getInt(4);
-    var cache = new InputCache(buf, readResolve);
-    if (version != cache.map().versionStamp) {
+    var map = PerMap.create();
+    if (version != map.versionStamp) {
       throw new IOException(
           "Incompatible version "
               + Integer.toHexString(version)
               + " != "
-              + Integer.toHexString(cache.map().versionStamp));
+              + Integer.toHexString(map.versionStamp));
     }
-    var at = buf.getInt(8);
 
-    return PerBufferReference.from(cache, at);
+    var tableAt = buf.getInt(8);
+    buf.position(tableAt);
+    var count = buf.getInt();
+    assert count > 0 : "There is always the main object in the table: " + count;
+    var refs = new int[count];
+    for (var i = 0; i < count; i++) {
+      refs[i] = buf.getInt();
+    }
+
+    var cache =
+        new InputCache(
+            buf,
+            readResolve == null ? Function.identity() : readResolve,
+            new HashMap<>(),
+            map,
+            refs);
+    return PerBufferReference.from(cache, refs[0]);
   }
 
   @Override
-  public <T> T readInline(Class<T> clazz) {
+  public <T> T readInline(Class<T> clazz) throws IOException {
+    if (clazz == Persistance.Reference.class) {
+      var refId = readInt();
+      var ref = PerBufferReference.from(cache, cache.refs()[refId]);
+      return clazz.cast(ref);
+    }
     Persistance<T> p = cache.map().forType(clazz);
     T res = p.readWith(this);
     var resolve = cache.readResolve().apply(res);
@@ -245,13 +265,6 @@ final class PerInputImpl implements Input {
       ByteBuffer buf,
       Function<Object, Object> readResolve,
       Map<Integer, Object> cache,
-      PerMap map) {
-    InputCache(ByteBuffer buf, Function<Object, Object> readResolve) {
-      this(
-          buf,
-          readResolve == null ? Function.identity() : readResolve,
-          new HashMap<>(),
-          PerMap.create());
-    }
-  }
+      PerMap map,
+      int[] refs) {}
 }

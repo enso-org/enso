@@ -1,19 +1,16 @@
-package org.enso.compiler.core;
+package org.enso.persist;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.enso.persist.Persistable;
-import org.enso.persist.Persistance;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
-import scala.collection.Seq;
-import scala.collection.Seq$;
-import scala.jdk.javaapi.CollectionConverters$;
 
 public class PersistanceTest {
   @Test
@@ -175,6 +172,7 @@ public class PersistanceTest {
   // @start region="self-annotation"
   @Persistable(id = 432436)
   public record ServiceSupply(Service supply) {}
+
   // @end region="self-annotation"
 
   @Persistable(id = 432437)
@@ -197,7 +195,8 @@ public class PersistanceTest {
     obj.self = Persistance.Reference.of(obj);
 
     var loaded = serde(SelfLoop.class, obj, -1);
-    assertSame("The recreated object again points to itself", loaded, loaded.self.get(SelfLoop.class));
+    assertSame(
+        "The recreated object again points to itself", loaded, loaded.self.get(SelfLoop.class));
   }
 
   @Persistable(id = 432439)
