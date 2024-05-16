@@ -17,6 +17,7 @@ use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::npm_install_step;
 use ide_ci::actions::workflow::definition::setup_node_step;
+use ide_ci::actions::workflow::definition::setup_python_step;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -196,6 +197,7 @@ impl JobArchetype for JvmTests {
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| {
                 vec![
+                    setup_python_step(),
                     setup_node_step(),
                     npm_install_step(),
                     step,
@@ -438,7 +440,9 @@ impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Engine ({})", self.graal_edition);
         let mut job = RunStepsBuilder::new("backend ci-check")
-            .customize(move |step| vec![setup_node_step(), npm_install_step(), step])
+            .customize(move |step| {
+                vec![setup_python_step(), setup_node_step(), npm_install_step(), step]
+            })
             .build_job(job_name, target);
         match self.graal_edition {
             graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
