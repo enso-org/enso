@@ -11,12 +11,14 @@ import project.Enso_Cloud.Cloud_Caching_Settings
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Enso_User.Enso_User
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.URI.URI
 import project.Panic.Panic
 import project.Runtime.Context
 from project.Data.Boolean import Boolean, False, True
@@ -84,12 +86,17 @@ type Existing_Enso_Asset
         handle_not_found _ = if_not_found
         error_handlers = Map.from_vector [["resource_missing", handle_not_found]]
 
-        uri = Utils.cloud_root_uri+"path/resolve"
-        payload = JS_Object.from_pairs [["path", path]]
-
-        # TODO remove workaround - this should be a Get endpoint, not Post
-        response = Context.Output.with_enabled <|
-            Utils.http_request_as_json HTTP_Method.Post uri payload error_handlers=error_handlers
+        uri = ((URI.from Utils.cloud_root_uri) / "path/resolve") . add_query_argument "path" path
+        r = Utils.http_request_as_json HTTP_Method.Get uri error_handlers=error_handlers
+        ## Workaround to keep compatibility with old cloud API
+           TODO remove it after https://github.com/enso-org/cloud-v2/pull/1236 has been deployed
+        response = r.catch Enso_Cloud_Error error-> case error of
+            Enso_Cloud_Error.Unexpected_Service_Error status _ ->
+                if status.code != 404 then r else
+                    old_uri = (URI.from Utils.cloud_root_uri) / "path/resolve"
+                    old_payload = JS_Object.from_pairs [["path", path]]
+                    Context.Output.with_enabled <| Utils.http_request_as_json HTTP_Method.Post old_uri old_payload error_handlers=error_handlers
+            _ -> r
         Existing_Enso_Asset.from_json response
 
     ## PRIVATE
