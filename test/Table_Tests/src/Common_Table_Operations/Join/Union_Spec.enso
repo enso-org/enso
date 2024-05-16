@@ -90,34 +90,36 @@ run_union_tests group_builder setup call_union =
         problems2 = [Unmatched_Columns.Error ["A", "D"]]
         Problems.test_problem_handling action2 problems2 tester2
 
-    group_builder.specify "should drop unmatched columns if asked to" <|
+    group_builder.specify "should fill unmatched columns with nulls with no warning, if In_Any is explicitly chosen" <|
+        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+        t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
+        t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+
+        table = call_union [t1, t2, t3] columns_to_match=..In_Any on_problems=Problem_Behavior.Report_Error
+        Problem_Behavior.assume_no_problems table
+        expect_column_names ["A", "B", "C", "D"] table
+        table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, Nothing]
+        table.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+        table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
+        table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
+
+    group_builder.specify "should drop unmatched columns and warn, if In_All is selected" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
         t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
 
-        t4 = call_union [t1, t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Report_Error
-        Problems.assume_no_problems t4
+        t4 = call_union [t1, t2, t3] columns_to_match=..In_All
+        w = Problems.expect_only_warning Unmatched_Columns
+        w.column_names.should_equal ["B", "C"]
         expect_column_names ["A"] t4
         t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
-
-    group_builder.specify "should keep unmatched columns without errors if asked to" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-        t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
-        t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
-
-        t4 = call_union [t1, t2, t3] keep_unmatched_columns=True on_problems=Problem_Behavior.Report_Error
-        Problems.assume_no_problems t4
-        expect_column_names ["A", "B", "C"] t4
-        t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
-        t4.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-        t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
 
     group_builder.specify "should fail if asked to drop unmatched columns but the set of common columns is empty" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
         t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
 
-        t4 = call_union [t1, t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Ignore
+        t4 = call_union [t1, t2, t3] columns_to_match=..In_All on_problems=Problem_Behavior.Ignore
         t4.should_fail_with No_Output_Columns
         t4.catch.to_display_text . should_equal "No columns in the result, because of another problem: Unmatched columns are set to be dropped, but no common column names were found."
 

@@ -2245,15 +2245,15 @@ type Table
        - tables: A single table or a vector of tables to append to this one. The
          tables are concatenated in the order they are specified, with `self`
          being the first one.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in all tables.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
            The names of each column come from the first table in which the given
            column appears in.
-       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
-         columns that are present in all tables.
-         The `List` option is not applicable when mapping columns by position.
+           The `List` option is not applicable when mapping columns by position.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -2304,9 +2304,9 @@ type Table
          they appear in that table. If there are columns that do not appear in
          the first table, they are appended to the end of the resulting table in
          the order they appear in the input.
-    union : (Table | Vector Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> Table
-    union self tables:(Table | Vector) (match_columns : Match_Columns = Match_Columns.By_Name) (columns_to_keep : Columns_To_Keep = ..In_All) (on_problems : Problem_Behavior = Report_Warning) =
-        Table.from_union ([self] + Vector.unify_vector_or_element tables) match_columns columns_to_keep on_problems
+    union : (Table | Vector Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> Table
+    union self tables:(Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
+        Table.from_union ([self] + Vector.unify_vector_or_element tables) columns_to_keep match_columns on_problems
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
@@ -2930,15 +2930,15 @@ type Table
        Arguments:
        - tables: A vector of tables to union  together. The
          tables are concatenated in the order they are specified.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in all tables.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
            The names of each column come from the first table in which the given
            column appears in.
-       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
-         columns that are present in all tables.
-         The `List` option is not applicable when mapping columns by position.
+           The `List` option is not applicable when mapping columns by position.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -2979,7 +2979,7 @@ type Table
          - If an empty vector of tables is provided, an `Illegal_Argument` error
            is raised.
          - If `columns_to_keep` is set to `In_All` or `List` and an expected
-           column is missing in some of the tables, a `Missing_Input_Columns`
+           column is missing in some of the tables, a `Unmatched_Columns`
            problem is reported. If this causes the output to contain no columns,
            a `No_Output_Columns` error is raised.
 
@@ -2991,8 +2991,8 @@ type Table
          they appear in that table. If there are columns that do not appear in
          the first table, they are appended to the end of the resulting table in
          the order they appear in the input.
-    from_union : (Vector Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> Table
-    from_union tables:(Vector) (match_columns : Match_Columns = Match_Columns.By_Name) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (on_problems : Problem_Behavior = Report_Warning) =
+    from_union : (Vector Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> Table ! No_Output_Columns | Illegal_Argument
+    from_union tables:(Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = (tables.map t-> Table.from t)
         all_tables.if_not_error <|
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
