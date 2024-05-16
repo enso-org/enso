@@ -147,42 +147,6 @@ type Vector a
     fill length item =
         Vector.new length _->item
 
-    ## PRIVATE
-       ADVANCED
-
-       Creates a new vector builder instance.
-
-       `Vector.build` is the preferred way to build `Vector`s.
-
-       A vector `Builder` is a mutable data structure, that allows for gathering
-       a number of elements and then converting them into a vector. This is
-       particularly useful when the number of elements is not known upfront.
-
-       A vector allows to store an arbitrary number of elements in linear
-       memory. It is the recommended data structure for most applications.
-
-       The `Vector.build` method is preferred over `.new_builder`, since it
-       automatically closes and returns the finished `Vector`. The `new_builder`
-       approach requires the caller to call `to_vector` at the end, which can be
-       more flexible within imperative code.
-
-       Arguments:
-       - capacity: Initial capacity of the Vector.Builder
-
-       > Example
-         Construct a vector using a builder that contains the items 1 to 5.
-
-             example_new_builder =
-                  builder = Vector.new_builder 5
-                  do_build start stop =
-                      builder.append start
-                      if start >= stop then Nothing else
-                          @Tail_Call do_build start+1 stop
-                  do_build 1 5
-                  builder.to_vector
-    new_builder : Integer -> Builder
-    new_builder (capacity=10) = Builder.new capacity
-
     ## ADVANCED
        Creates a new `Vector` by passing a `Builder` to the provided function.
 
@@ -1276,7 +1240,6 @@ type Vector a
     to_list : List
     to_list self = Array_Like_Helpers.to_list self
 
-## PRIVATE
 type Builder
     ## PRIVATE
 
@@ -1291,9 +1254,9 @@ type Builder
        number of elements and then convert them to a vector. This is
        particularly useful when the number of elements is not known upfront.
 
-       There are two ways to create and use a `Builder`: `Vector.new_builder`
+       There are two ways to create and use a `Builder`: `Builder.new`
        and `Vector.build`. `.build` is the preferred approach.
-       - `Vector.new_builder`: creates a new `Builder`, which you have to
+       - `Builder.new`: creates a new `Builder`, which you have to
          "close" with `.to_vector` at the end to get your newly-created
          `Vector`.
        - `Vector.build`: takes a function which uses the `Builder`, and
@@ -1325,10 +1288,38 @@ type Builder
     private Value elements_java_builder warnings_java_builder
 
     ## PRIVATE
-       Creates a new builder.
+       ADVANCED
+
+       Creates a new vector builder instance.
+
+       `Vector.build` is the preferred way to build `Vector`s.
+
+       A vector `Builder` is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       A vector allows to store an arbitrary number of elements in linear
+       memory. It is the recommended data structure for most applications.
+
+       The `Vector.build` method is preferred over direct use of `Builder.new`,
+       since it automatically closes and returns the finished `Vector`. The
+       `Builder.new` approach requires the caller to explicitly call `to_vector`
+       at the end, which can be more flexible within imperative code.
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
+
+       > Example
+         Construct a vector using a builder that contains the items 1 to 5.
+
+             example_new_builder =
+                  builder = Builder.new 5
+                  do_build start stop =
+                      builder.append start
+                      if start >= stop then Nothing else
+                          @Tail_Call do_build start+1 stop
+                  do_build 1 5
+                  builder.to_vector
     new : Integer -> Builder
     new (capacity : Integer = 10) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
 
@@ -1341,13 +1332,14 @@ type Builder
        ? Appending Dataflow Errors
 
          If a dataflow error is added to the builder, the result depends on
-         whether the builder is being used from `new_builder` or `build`.
+         whether the `Builder` is being used from `.build` or created directly
+         with `new`.
 
-         - When using `build`: The dataflow error is re-thrown by the containing
+         - When using `.build`: The dataflow error is re-thrown by the containing
            invocation of `Vector.build`.  The error is not added to the builder.
 
-         - When using `new_builder`: The dataflow error is wrapped in a
-           `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not
+         - When using `Builder.new` directly : The dataflow error is wrapped in
+           a `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not
            added to the builder.
 
        > Example
@@ -1379,14 +1371,14 @@ type Builder
        ? Appending Dataflow Errors
 
          If a dataflow error is added to the builder, the result depends on
-         whether the builder is being used from `new_builder` or `build`. The
-         first dataflow error encountered in `vector` is thrown.
+         whether the `Builder` is being used from `.build` or created directly
+         with `new`.
 
-         - When using `build`: The dataflow error is re-thrown by the containing
+         - When using `.build`: The dataflow error is re-thrown by the containing
            invocation of `Vector.build`.  The error is not added to the builder.
 
-         - When using `new_builder`: The dataflow error is wrapped in a
-           `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not
+         - When using `Builder.new` directly : The dataflow error is wrapped in
+           a `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not
            added to the builder.
 
        > Example
