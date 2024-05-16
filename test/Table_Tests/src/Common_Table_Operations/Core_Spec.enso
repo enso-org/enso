@@ -369,36 +369,36 @@ add_specs suite_builder setup =
             Problems.assume_no_problems t2
 
         group_builder.specify "should allow to set the row limit" <|
-            t1 = data.t_big.read max_rows=23
+            t1 = data.t_big.read (..First_With_Warning 23)
             t1.row_count . should_equal 23
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 23
             w1.to_display_text . should_contain "some rows have been dropped"
 
-            t2 = data.t_big.read max_rows=1500
+            t2 = data.t_big.read (..First_With_Warning 1500)
             t2.row_count . should_equal 1500
             Problems.assume_no_problems t2
 
-            t3 = data.t_small.read max_rows=1
+            t3 = data.t_small.read (..First_With_Warning 1)
             t3.row_count . should_equal 1
             w3 = Problems.expect_only_warning Not_All_Rows_Downloaded t3
             w3.max_rows . should_equal 1
 
         group_builder.specify "should allow to have no row limit" <|
-            t1 = data.t_big.read max_rows=Nothing
+            t1 = data.t_big.read (..All_Rows)
             t1.row_count . should_equal 1500
             Problems.assume_no_problems t1
 
         group_builder.specify "should allow to turn off the warning" <|
-            t1 = data.t_big.read warn_if_more_rows=False
-            t1.row_count . should_equal (if has_default_row_limit then 1000 else 1500)
+            t1 = data.t_big.read (..First 1000)
+            t1.row_count . should_equal 1000
             Problems.assume_no_problems t1
 
-            t2 = data.t_big.read max_rows=123 warn_if_more_rows=False
+            t2 = data.t_big.read (..First 123)
             t2.row_count . should_equal 123
             Problems.assume_no_problems t2
 
-            t3 = data.t_big.read max_rows=12300 warn_if_more_rows=False
+            t3 = data.t_big.read (..First 12300)
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
@@ -419,15 +419,15 @@ add_specs suite_builder setup =
             # to_vector always downloads the whole column, even if its large
             c1.to_vector.length . should_equal 1500
 
-            r3 = c1.read max_rows=10
+            r3 = c1.read (..First_With_Warning 10)
             r3.length . should_equal 10
             Problems.expect_only_warning Not_All_Rows_Downloaded r3
 
-            r4 = c1.read max_rows=Nothing
+            r4 = c1.read (..All_Rows)
             r4.length . should_equal 1500
             Problems.assume_no_problems r4
 
-            r5 = c1.read max_rows=3 warn_if_more_rows=False
+            r5 = c1.read (..First 3)
             r5.length . should_equal 3
             Problems.assume_no_problems r5
 
@@ -439,16 +439,16 @@ add_specs suite_builder setup =
             w1 = Problems.expect_only_warning Not_All_Rows_Downloaded t1
             w1.max_rows . should_equal 1000
 
-            t2 = data.connection.read data.t_big.name limit=42
+            t2 = data.connection.read data.t_big.name (..First_With_Warning 42)
             t2.row_count . should_equal 42
             w2 = Problems.expect_only_warning Not_All_Rows_Downloaded t2
             w2.max_rows . should_equal 42
 
-            t3 = data.connection.read data.t_big.name limit=Nothing
+            t3 = data.connection.read data.t_big.name (..All_Rows)
             t3.row_count . should_equal 1500
             Problems.assume_no_problems t3
 
-            t4 = data.connection.read data.t_big.name warn_if_more_rows=False
+            t4 = data.connection.read data.t_big.name (..First 1000)
             t4.row_count . should_equal 1000
             Problems.assume_no_problems t4
 

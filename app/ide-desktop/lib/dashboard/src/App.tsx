@@ -52,9 +52,10 @@ import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
-import ModalProvider from '#/providers/ModalProvider'
+import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
+import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
@@ -74,6 +75,7 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
 import * as rootComponent from '#/components/Root'
 
+import AboutModal from '#/modals/AboutModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 
 import type Backend from '#/services/Backend'
@@ -197,7 +199,9 @@ export default function App(props: AppProps) {
       />
       <Router basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
-          <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+          <ModalProvider>
+            <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+          </ModalProvider>
         </LocalStorageProvider>
       </Router>
     </reactQuery.QueryClientProvider>
@@ -226,6 +230,7 @@ function AppRouter(props: AppRouterProps) {
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { setModal } = modalProvider.useSetModal()
   const navigator2D = navigator2DProvider.useNavigator2D()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -319,6 +324,14 @@ function AppRouter(props: AppRouterProps) {
       : // This is SAFE, because the backend is always set by the authentication flow.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         null!
+
+  React.useEffect(() => {
+    if ('menuApi' in window) {
+      window.menuApi.setShowAboutModalHandler(() => {
+        setModal(<AboutModal />)
+      })
+    }
+  }, [/* should never change */ setModal])
 
   React.useEffect(() => {
     const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
@@ -438,8 +451,12 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
   let result = routes
+  result = (
+    <SupportsLocalBackendProvider supportsLocalBackend={supportsLocalBackend}>
+      {result}
+    </SupportsLocalBackendProvider>
+  )
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = <ModalProvider>{result}</ModalProvider>
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}

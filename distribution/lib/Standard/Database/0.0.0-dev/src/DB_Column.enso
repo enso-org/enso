@@ -11,6 +11,7 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Sort_Column, Table, Value_Type
 from Standard.Table.Column import default_date_period
 from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
@@ -105,18 +106,16 @@ type DB_Column
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Nothing | Integer) -> Boolean -> Column
-    read self (max_rows : Nothing | Integer = 1000) (warn_if_more_rows:Boolean = True) =
-        self.to_table.read max_rows warn_if_more_rows . at 0
+    @max_rows Rows_To_Read.default_widget
+    read : Rows_To_Read -> Column
+    read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) =
+        self.to_table.read max_rows . at 0
 
     ## GROUP Standard.Base.Conversions
        ICON convert
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
-    to_vector self = self.read max_rows=Nothing . to_vector
+    to_vector self = self.read (..All_Rows) . to_vector
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -154,7 +153,7 @@ type DB_Column
              example_at = Examples.integer_column.get 0 -1
     get : Integer -> Any -> Any | Nothing
     get self (index : Integer) (~default=Nothing) =
-        self.read index+1 . get index default
+        self.read (..First index+1) . get index default
 
     ## GROUP Standard.Base.Metadata
        Returns the `Value_Type` associated with that column.

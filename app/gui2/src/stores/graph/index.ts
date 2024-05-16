@@ -363,12 +363,16 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  function overrideNodeColor(nodeId: NodeId, color: string) {
+  function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
     const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) => {
       metadata.set('colorOverride', color)
     })
+  }
+
+  function getNodeColorOverride(node: NodeId) {
+    return db.nodeIdToNode.get(node)?.colorOverride ?? undefined
   }
 
   function normalizeVisMetadata(
@@ -379,6 +383,7 @@ export const useGraphStore = defineStore('graph', () => {
       visible: false,
       fullscreen: false,
       width: null,
+      height: null,
     }
     const vis: VisualizationMetadata = { ...empty, ...partial }
     if (visMetadataEquals(vis, empty)) return undefined
@@ -394,6 +399,7 @@ export const useGraphStore = defineStore('graph', () => {
         visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
         fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
         width: vis.width ?? metadata.get('visualization')?.width ?? null,
+        height: vis.height ?? metadata.get('visualization')?.height ?? null,
       }
       metadata.set('visualization', normalizeVisMetadata(data))
     })
@@ -675,6 +681,7 @@ export const useGraphStore = defineStore('graph', () => {
     ensureCorrectNodeOrder,
     batchEdits,
     overrideNodeColor,
+    getNodeColorOverride,
     setNodeContent,
     setNodePosition,
     setNodeVisualization,

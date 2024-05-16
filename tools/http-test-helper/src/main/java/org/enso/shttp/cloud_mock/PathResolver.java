@@ -1,6 +1,5 @@
 package org.enso.shttp.cloud_mock;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.regex.Pattern;
@@ -27,8 +26,19 @@ public class PathResolver implements CloudHandler {
 
   @Override
   public void handleCloudAPI(CloudExchange exchange) throws IOException {
-    JsonNode root = jsonMapper.readTree(exchange.decodeBodyAsText());
-    String path = root.get("path").asText();
+    String queryString = exchange.getHttpExchange().getRequestURI().getQuery();
+    if (queryString == null) {
+      exchange.sendResponse(400, "Missing `path` parameter in query string (empty).");
+      return;
+    }
+
+    String prefix = "path=";
+    if (!queryString.startsWith(prefix)) {
+      exchange.sendResponse(400, "Missing `path` parameter in query string: `" + queryString + "`");
+      return;
+    }
+
+    String path = queryString.substring(prefix.length());
     var matcher = pathPattern.matcher(path);
     if (!matcher.matches()) {
       exchange.sendResponse(400, "Invalid path: " + path);
