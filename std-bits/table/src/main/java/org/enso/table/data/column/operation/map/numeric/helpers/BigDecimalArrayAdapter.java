@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
@@ -13,7 +14,7 @@ public interface BigDecimalArrayAdapter {
 
   int size();
 
-  static BigDecimalArrayAdapter fromStorage(BigDecimalStorage storage) {
+  static BigDecimalArrayAdapter fromStorage(SpecializedStorage<BigDecimal> storage) {
     return new BigDecimalStorageAsBigDecimal(storage);
   }
 
@@ -42,9 +43,9 @@ public interface BigDecimalArrayAdapter {
 
 
   class BigDecimalStorageAsBigDecimal implements BigDecimalArrayAdapter {
-    private final BigDecimalStorage storage;
+    private final SpecializedStorage<BigDecimal> storage;
 
-    private BigDecimalStorageAsBigDecimal(BigDecimalStorage storage) {
+    private BigDecimalStorageAsBigDecimal(SpecializedStorage<BigDecimal> storage) {
       this.storage = storage;
     }
 

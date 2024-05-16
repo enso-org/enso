@@ -2,41 +2,44 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import java.math.BigDecimal;
 
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
+import org.enso.table.data.column.operation.map.numeric.helpers.IntegerArrayAdapter;
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.graalvm.polyglot.Context;
 
-public class BigDecimalPowerOp extends BinaryMapOperation<BigDecimal, BigDecimalStorage> {
+public class BigDecimalPowerOp extends BinaryMapOperation<BigDecimal, SpecializedStorage<BigDecimal>> {
   public BigDecimalPowerOp() {
-    super("/");
+    super("^");
   }
 
   @Override
   public Storage<?> runBinaryMap(
-      BigDecimalStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+      SpecializedStorage<BigDecimal> storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     throw new UnsupportedOperationException("");
   }
 
   @Override
-  public abstract Storage<?> runZip(
-      BigDecimalStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-    BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(storage);)
-    BigDecimalArrayAdapter right = switch(arg) {
-        case AbstractLongStorage lhs -> BigDecimalArrayAdapter.fromStorage(lhs);
-        case BigIntegerStorage lhs -> BigDecimalArrayAdapter.fromStorage(lhs);
+  public Storage<?> runZip(
+      SpecializedStorage<BigDecimal> storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
+    BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(storage);
+    IntegerArrayAdapter right = switch(arg) {
+        case AbstractLongStorage lhs -> IntegerArrayAdapter.fromStorage(lhs);
+        case BigIntegerStorage lhs -> IntegerArrayAdapter.fromStorage(lhs);
         default -> throw new IllegalStateException(
             "Unsupported storage: " + arg.getClass().getCanonicalName());
-    }
-    return runBigDecimalZip((left, right, problemAggregator)
+    };
+    return runBigDecimalZip(left, right, problemAggregator);
   }
 
-  protected BigDecimalStorage runBigDecimalZip(
+  private BigDecimalStorage runBigDecimalZip(
       BigDecimalArrayAdapter a,
-      BigDecimalArrayAdapter b,
+      IntegerArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     int n = a.size();
@@ -44,9 +47,9 @@ public class BigDecimalPowerOp extends BinaryMapOperation<BigDecimal, BigDecimal
     BigDecimal[] out = new BigDecimal[n];
     for (int i = 0; i < m; i++) {
       BigDecimal x = a.getItem(i);
-      BigDecimal y = b.getItem(i);
+      Integer y = b.getItemAsInteger(i, problemAggregator);
       if (x != null && y != null) {
-        BigDecimal r = doBigDecimal(x, y, i, problemAggregator);
+        BigDecimal r = x.pow(y);
         out[i] = r;
       }
       context.safepoint();

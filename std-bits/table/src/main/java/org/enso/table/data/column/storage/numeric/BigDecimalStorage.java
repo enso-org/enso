@@ -34,7 +34,7 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
         .add(new SubOp<>())
         .add(new MulOp<>())
         .add(new DivideOp<>())
-        .add(new BigDecimalPowerOp<>())
+        .add(new BigDecimalPowerOp())
         .add(new ModOp<>())
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())
