@@ -50,7 +50,7 @@ type Enso_Cloud_Error
         Enso_Cloud_Error.Invalid_Response_Payload cause ->
             "Internal error: A response from Enso Cloud could not be parsed: " + cause.to_display_text
         Enso_Cloud_Error.Unauthorized ->
-            "Enso Cloud credentials file was found, but the service responded with 401 Unauthorized. You may try logging in again and restarting the workflow."
+            "Enso Cloud credentials file was found, but the service responded with Unauthorized. You may try logging in again and restarting the workflow."
         Enso_Cloud_Error.Connection_Error cause ->
             "Error connecting to Enso Cloud: " + cause.to_display_text
 
