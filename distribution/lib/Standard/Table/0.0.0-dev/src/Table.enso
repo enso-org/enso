@@ -2306,7 +2306,7 @@ type Table
          the order they appear in the input.
     union : (Table | Vector Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> Table
     union self tables:(Table | Vector) (match_columns : Match_Columns = Match_Columns.By_Name) (columns_to_keep : Columns_To_Keep = ..In_All) (on_problems : Problem_Behavior = Report_Warning) =
-        Table.from_union ([self] + Vector.unify_vector_or_element tables) match_columns keep_unmatched_columns allow_type_widening on_problems
+        Table.from_union ([self] + Vector.unify_vector_or_element tables) match_columns columns_to_keep on_problems
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
