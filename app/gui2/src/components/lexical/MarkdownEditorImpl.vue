@@ -56,32 +56,26 @@ useLexical(contentElement, 'MarkdownEditor', [markdownPlugin, markdownSyncPlugin
 </script>
 
 <template>
-  <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
+  <LexicalContent ref="contentElement" class="MarkdownEditor fullHeight" @wheel.stop @contextmenu.stop />
 </template>
 
 <style scoped>
 .fullHeight {
   height: 100%;
 }
-</style>
 
-<style>
-h1 {
+.MarkdownEditor :deep(h1) {
   font-weight: 700;
   font-size: 16px;
   line-height: 1.75;
 }
 
-h2,
-h3,
-h4,
-h5,
-h6 {
+.MarkdownEditor :deep(h2, h3, h4, h5, h6) {
   font-size: 14px;
   line-height: 2;
 }
 
-p + p {
+.MarkdownEditor :deep(p + p) {
   margin-bottom: 4px;
 }
 </style>
