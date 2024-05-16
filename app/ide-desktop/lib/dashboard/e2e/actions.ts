@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redeclare */
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
@@ -343,9 +344,7 @@ export function locateUpgradeButton(page: test.Locator | test.Page) {
   return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade')
 }
 
-/**
- * Find a not enabled stub view (if any) on the current page.
- */
+/** Find a not enabled stub view (if any) on the current page. */
 export function locateNotEnabledStub(page: test.Locator | test.Page) {
   return page.getByTestId('not-enabled-stub')
 }
@@ -415,11 +414,6 @@ export function locateHomePageIcon(page: test.Locator | test.Page) {
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
   return page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
-}
-
-/** Find an "editor page" icon (if any) on the current page. */
-export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Graph Editor') })
 }
 
 /** Find a "settings page" icon (if any) on the current page. */
@@ -594,7 +588,340 @@ export function locateAssetPanelPermissions(page: test.Page) {
   return locateAssetPanel(page).getByTestId('asset-panel-permissions').getByRole('button')
 }
 
-// === Settings locators ===
+/** Navigate to the "home" page. */
+async function goToHomePage(page: test.Page) {
+  await test.test.step("Go to 'home' page", async () => {
+    const homePageIcon = page.getByRole('button').filter({ has: page.getByAltText('Home') })
+    return homePageIcon.click()
+  })
+}
+
+/** Navigate to the "drive" page. */
+async function goToDrivePage(page: test.Page) {
+  await test.test.step("Go to 'drive' page", async () => {
+    const drivePageIcon = page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
+    return drivePageIcon.click()
+  })
+}
+
+/** Navigate to the settings page. */
+async function goToEditorPage(page: test.Page) {
+  await test.test.step("Go to 'editor' page", async () => {
+    const editorPageIcon = page
+      .getByRole('button')
+      .filter({ has: page.getByAltText('Graph Editor') })
+    return editorPageIcon.click()
+  })
+}
+
+/** Navigate to the "settings" page. */
+async function goToSettingsPage(page: test.Page) {
+  await test.test.step("Go to 'settings' page", async () => {
+    await press(page, 'Mod+,')
+  })
+}
+
+/** Actions for going to a different page. */
+interface GoToPageActions {
+  readonly goToHomePage: () => ActionsStateActionsForState<'homePage'>
+  readonly goToDrivePage: () => ActionsStateActionsForState<'drivePage'>
+  readonly goToEditorPage: () => ActionsStateActionsForState<'editorPage'>
+  readonly goToSettingsPage: () => ActionsStateActionsForState<'settingsPage'>
+}
+
+/** Generate actions for going to a different page. */
+function goToPageActions(page: test.Page, promise: Promise<void>): GoToPageActions {
+  return {
+    goToHomePage: () =>
+      actions(
+        page,
+        'homePage',
+        {},
+        thenStep(promise, 'Go to "home" page', () => goToHomePage(page))
+      ),
+    goToDrivePage: () =>
+      actions(
+        page,
+        'drivePage',
+        {},
+        thenStep(promise, 'Go to "drive" page', () => goToDrivePage(page))
+      ),
+    goToEditorPage: () =>
+      actions(
+        page,
+        'editorPage',
+        {},
+        thenStep(promise, 'Go to "editor" page', () => goToEditorPage(page))
+      ),
+    goToSettingsPage: () =>
+      actions(
+        page,
+        'settingsPage',
+        {},
+        thenStep(promise, 'Go to "settings" page', () => goToSettingsPage(page))
+      ),
+  }
+}
+
+// =====================
+// === State machine ===
+// =====================
+
+/** Valid states for the state machine. */
+// eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
+type ActionsState = keyof ActionsStateActions & keyof ActionsStateData
+
+/** State machine data. */
+interface ActionsStateData {}
+
+/** State machine actions. */
+interface ActionsStateActions {}
+
+/** Actions common to all {@link ActionsState}s. */
+interface ActionsStateBase {
+  readonly done: () => Promise<void>
+}
+
+/** Get the actual {@link ActionsStateActions} type for a specific {@link ActionsState}. */
+type ActionsStateActionsForState<State extends ActionsState> = ActionsStateActions[State] &
+  ActionsStateBase
+
+const ACTIONS: {
+  [K in ActionsState]: (
+    page: test.Page,
+    data: ActionsStateData[K],
+    promise: Promise<void>
+  ) => ActionsStateActions[K]
+  // eslint-disable-next-line no-restricted-syntax
+} = {} as never
+
+// ======================
+// === registerAction ===
+// ======================
+
+/** Register the set of actions possible for a given {@link ActionsState}. */
+function registerAction<State extends ActionsState>(
+  state: State,
+  makeActions: (
+    page: test.Page,
+    data: ActionsStateData[State],
+    promise: Promise<void>
+  ) => ActionsStateActions[State]
+) {
+  // @ts-expect-error This is correct due to the type definition of `ACTIONS`.
+  ACTIONS[state] = makeActions
+}
+
+// =======================
+// === internalActions ===
+// =======================
+
+/** Return the actions for a given state machine state. */
+function actions<State extends ActionsState>(
+  page: test.Page,
+  state: State,
+  data: ActionsStateData[State],
+  promise = Promise.resolve()
+) {
+  return { done: () => promise, ...ACTIONS[state](page, data, promise) }
+}
+
+/** Return an actions object for the home page. */
+function loggedInActions(page: test.Page) {
+  return actions(page, 'homePage', {})
+}
+
+/** Return an actions object for the login page. */
+function loggedOutActions(page: test.Page) {
+  // FIXME: switch to loginPage once implemented
+  return actions(page, 'homePage', {})
+}
+
+// ================
+// === homePage ===
+// ================
+
+/** Data for the "home page" state. */
+interface HomePageData {}
+
+/** Actions for the "home page" state. */
+interface HomePageActions extends Omit<GoToPageActions, 'goToHomePage'> {
+  readonly openDataLinkModal: () => ActionsStateActionsForState<'newDataLinkModal'>
+}
+
+/** State machine data. */
+interface ActionsStateData {
+  readonly homePage: HomePageData
+}
+
+/** State machine actions. */
+interface ActionsStateActions {
+  readonly homePage: HomePageActions
+}
+
+registerAction('homePage', (page, _data, promise) => ({
+  ...goToPageActions(page, promise),
+  openDataLinkModal: () => {
+    const newPromise = thenStep(promise, 'Open "new data link" modal', async () => {
+      await page
+        .getByRole('button')
+        .filter({ has: page.getByAltText('New Data Link') })
+        .click()
+    })
+    return actions(page, 'newDataLinkModal', {}, newPromise)
+  },
+}))
+
+// =================
+// === drivePage ===
+// =================
+
+/** Data for the "drive page" state. */
+interface DrivePageData {}
+
+/** Actions for the "drive page" state. */
+interface DrivePageActions extends Omit<GoToPageActions, 'goToDrivePage'> {}
+
+/** State machine data. */
+interface ActionsStateData {
+  readonly drivePage: DrivePageData
+}
+
+/** State machine actions. */
+interface ActionsStateActions {
+  readonly drivePage: DrivePageActions
+}
+
+registerAction('drivePage', (page, _data, promise) => ({
+  ...goToPageActions(page, promise),
+}))
+
+// ==================
+// === editorPage ===
+// ==================
+
+/** Data for the "editor page" state. */
+interface EditorPageData {}
+
+/** Actions for the "editor page" state. */
+interface EditorPageActions extends Omit<GoToPageActions, 'goToEditorPage'> {}
+
+/** State machine data. */
+interface ActionsStateData {
+  readonly editorPage: EditorPageData
+}
+
+/** State machine actions. */
+interface ActionsStateActions {
+  readonly editorPage: EditorPageActions
+}
+
+registerAction('editorPage', (page, _data, promise) => ({
+  ...goToPageActions(page, promise),
+}))
+
+// ====================
+// === settingsPage ===
+// ====================
+
+/** Data for the "settings page" state. */
+interface SettingsPageData {}
+
+/** Actions for the "settings page" state. */
+interface SettingsPageActions extends Omit<GoToPageActions, 'goToSettingsPage'> {}
+
+/** State machine data. */
+interface ActionsStateData {
+  readonly settingsPage: SettingsPageData
+}
+
+/** State machine actions. */
+interface ActionsStateActions {
+  readonly settingsPage: SettingsPageActions
+}
+
+registerAction('settingsPage', (page, _data, promise) => ({
+  ...goToPageActions(page, promise),
+}))
+
+// ========================
+// === newDataLinkModal ===
+// ========================
+
+/** Locate the "new data link" modal. */
+function locateNewDataLinkModal(page: test.Page) {
+  return page.getByRole('heading').and(page.getByText('Create Data Link')).locator('..')
+}
+
+/** Data for the "new data link modal" state. */
+interface NewDataLinkModalData {}
+
+/** Actions for the "new data link modal" state. */
+interface NewDataLinkModalActions extends Pick<GoToPageActions, 'goToHomePage'> {
+  readonly withNameInput: (
+    callback: (input: test.Locator) => Promise<void>
+  ) => ActionsStateActionsForState<'newDataLinkModal'>
+}
+
+/** State machine data. */
+interface ActionsStateData {
+  readonly newDataLinkModal: NewDataLinkModalData
+}
+
+/** State machine actions. */
+interface ActionsStateActions {
+  readonly newDataLinkModal: NewDataLinkModalActions
+}
+
+/** Execute a {@link test.test.step} after the given {@link Promise} finishes. */
+function thenStep(promise: Promise<void>, step: string, callback: () => Promise<void>) {
+  return promise.then(() => test.test.step(step, callback))
+}
+
+registerAction('newDataLinkModal', (page, _data, promise) => ({
+  goToHomePage: () =>
+    actions(
+      page,
+      'homePage',
+      {},
+      thenStep(promise, 'Close "new data link" modal', () => press(page, 'Escape'))
+    ),
+  withNameInput: callback =>
+    actions(
+      page,
+      'newDataLinkModal',
+      {},
+      thenStep(promise, 'Interact with "name" input', () =>
+        callback(locateNewDataLinkModal(page).getByLabel('Name'))
+      )
+    ),
+}))
+
+// TODO: stop exporting all the actions - instead hide everything behind the state machine
+// TODO: use unique symbols to prevent forgery. do not export the unique symbols so that
+// it will be an error if `.finish()` is not called.
+
+/** Create an object which can be used to navigate around a "new Data Link" modal. */
+export function newDataLink(page: test.Page) {
+  return {
+    /** Find a "new Data Link" modal. */
+    locate() {
+      return page.getByRole('heading').and(page.getByText('Create Data Link')).locator('..')
+    },
+    /** Open a "new Data Link" modal. */
+    go() {
+      return this.locateOpenButton().click()
+    },
+    /** Find a "new Data Link" button. */
+    locateOpenButton() {
+      return page.getByRole('button').filter({ has: page.getByAltText('New Data Link') })
+    },
+    /** Find a "name" input. */
+    locateNameInput() {
+      return this.locate().getByLabel('Name')
+    },
+  }
+}
 
 export namespace settings {
   export namespace tab {
@@ -615,7 +942,7 @@ export namespace settings {
   export namespace userAccount {
     /** Navigate so that the "user account" settings section is visible. */
     export async function go(page: test.Page) {
-      await test.test.step("Go to 'user account' settings section", async () => {
+      await test.test.step('Go to "user account" settings section', async () => {
         await press(page, 'Mod+,')
       })
     }
@@ -634,7 +961,7 @@ export namespace settings {
   export namespace changePassword {
     /** Navigate so that the "change password" settings section is visible. */
     export async function go(page: test.Page) {
-      await test.test.step("Go to 'change password' settings section", async () => {
+      await test.test.step('Go to "change password" settings section', async () => {
         await press(page, 'Mod+,')
       })
     }
@@ -668,7 +995,7 @@ export namespace settings {
   export namespace profilePicture {
     /** Navigate so that the "profile picture" settings section is visible. */
     export async function go(page: test.Page) {
-      await test.test.step("Go to 'profile picture' settings section", async () => {
+      await test.test.step('Go to "profile picture" settings section', async () => {
         await press(page, 'Mod+,')
       })
     }
@@ -687,7 +1014,7 @@ export namespace settings {
   export namespace organization {
     /** Navigate so that the "organization" settings section is visible. */
     export async function go(page: test.Page) {
-      await test.test.step("Go to 'organization' settings section", async () => {
+      await test.test.step('Go to "organization" settings section', async () => {
         await press(page, 'Mod+,')
         await settings.tab.organization.locate(page).click()
       })
@@ -723,7 +1050,7 @@ export namespace settings {
   export namespace organizationProfilePicture {
     /** Navigate so that the "organization profile picture" settings section is visible. */
     export async function go(page: test.Page) {
-      await test.test.step("Go to 'organization profile picture' settings section", async () => {
+      await test.test.step('Go to "organization profile picture" settings section', async () => {
         await press(page, 'Mod+,')
         await settings.tab.organization.locate(page).click()
       })
@@ -743,7 +1070,7 @@ export namespace settings {
   export namespace members {
     /** Navigate so that the "members" settings section is visible. */
     export async function go(page: test.Page, force = false) {
-      await test.test.step("Go to 'members' settings section", async () => {
+      await test.test.step('Go to "members" settings section', async () => {
         await press(page, 'Mod+,')
         await settings.tab.members.locate(page).click({ force })
       })
@@ -999,7 +1326,7 @@ export async function mockAll({ page }: MockParams) {
     await mockIsInPlaywrightTest({ page })
     await mockDate({ page })
     await mockIDEContainer({ page })
-    return { api }
+    return { api, pageActions: loggedOutActions(page) }
   })
 }
 
@@ -1020,6 +1347,6 @@ export async function mockAllAndLogin({ page }: MockParams) {
     // This MUST also run after login because globals are reset when the browser
     // is navigated to another page.
     await mockIsInPlaywrightTest({ page })
-    return mocks
+    return { ...mocks, pageActions: loggedInActions(page) }
   })
 }
