@@ -2939,6 +2939,8 @@ type Table
            The names of each column come from the first table in which the given
            column appears in.
            The `List` option is not applicable when mapping columns by position.
+           Column names are taken from the first table if `In_All` and from the
+           first table that has the maximum number of columns if `In_Any`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 

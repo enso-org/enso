@@ -42,6 +42,11 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"Table.from_union" pending=db_pending group_builder->
         run_union_tests group_builder setup call_static_union
 
+        group_builder.specify "should fail if no tables are provided" <|
+            r = Table.from_union []
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "no tables"
+
 run_union_tests group_builder setup call_union =
     create_connection_fn = setup.create_connection_func
     data = Data.setup create_connection_fn
@@ -146,22 +151,22 @@ run_union_tests group_builder setup call_union =
         problems = [Column_Count_Mismatch.Error 3 1]
         Problems.test_problem_handling action problems tester
 
-    group_builder.specify "should keep the least number of columns with positional matching if asked to drop unmatched ones" <|
+    group_builder.specify "should keep the least number of columns with positional matching if In_All" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
         t3 = table_builder [["A2", [10, 20, 30]]]
 
-        t4 = call_union [t1, t2, t3] keep_unmatched_columns=False match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
+        t4 = call_union [t1, t2, t3] columns_to_match=..In_All match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
         Problems.assume_no_problems t4
         expect_column_names ["A"] t4
         t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
 
-    group_builder.specify "should keep the greatest number of columns with positional matching if asked to keep unmatched ones, filling missing values with null and reporting no problems" <|
+    group_builder.specify "should keep the greatest number of columns with positional matching if In_Any, reporting no problems" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
         t3 = table_builder [["A2", [10, 20, 30]]]
 
-        t4 = call_union [t1, t2, t3] match_columns=Match_Columns.By_Position keep_unmatched_columns=True on_problems=Problem_Behavior.Ignore
+        t4 = call_union [t1, t2, t3] columns_to_match=..In_Any keep_unmatched_columns=True on_problems=Problem_Behavior.Ignore
         Problems.assume_no_problems t4
         expect_column_names ["A1", "B1", "C"] t4
         t4.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
