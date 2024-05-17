@@ -295,7 +295,7 @@ export const useGraphStore = defineStore('graph', () => {
     addImports(edit.getVersion(topLevel), importsToAdd)
   }
 
-  function deleteNodes(ids: NodeId[]) {
+  function deleteNodes(ids: Iterable<NodeId>) {
     edit(
       (edit) => {
         for (const id of ids) {

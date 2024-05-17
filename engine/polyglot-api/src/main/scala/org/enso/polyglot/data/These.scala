@@ -25,7 +25,7 @@ object These {
 
   case class Here[+A](
     @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
+      use     = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.PROPERTY
     )
     here: A
@@ -33,7 +33,7 @@ object These {
 
   case class There[+B](
     @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
+      use     = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.PROPERTY
     )
     there: B
@@ -41,12 +41,12 @@ object These {
 
   case class Both[+A, +B](
     @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
+      use     = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.PROPERTY
     )
     here: A,
     @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
+      use     = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.PROPERTY
     )
     there: B
