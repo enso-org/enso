@@ -684,19 +684,15 @@ const handler = componentBrowserBindings.handler({
   gap: 12px;
   padding: 7px;
 
-  & svg {
+  & * {
     color: rgba(0, 0, 0, 0.18);
     transition: color 0.2s;
   }
   & .first-on-right {
     margin-left: auto;
   }
-  & > svg.toggledOn {
+  & > .toggledOn {
     color: rgba(0, 0, 0, 0.6);
-  }
-
-  & > svg:not(.toggledOn):hover {
-    color: rgba(0, 0, 0, 0.3);
   }
 }
 
