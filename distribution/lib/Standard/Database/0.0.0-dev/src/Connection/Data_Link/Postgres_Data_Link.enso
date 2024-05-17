@@ -48,7 +48,7 @@ type Postgres_Data_Link
             # TODO add related asset id here: https://github.com/enso-org/enso/issues/9869
             audit_mode = if Enso_User.is_logged_in then "cloud" else "local"
             default_options = Connection_Options.Value [["enso.internal.audit", audit_mode]]
-            connection = self.details.connect default_options
+            connection = self.details.connect default_options allow_data_links=False
             case self of
                 Postgres_Data_Link.Connection _ -> connection
                 Postgres_Data_Link.Table table_name _ ->

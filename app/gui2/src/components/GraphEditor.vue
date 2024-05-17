@@ -6,7 +6,6 @@ import {
   interactionBindings,
   undoBindings,
 } from '@/bindings'
-import AstDocumentation from '@/components/AstDocumentation.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
@@ -19,11 +18,13 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import TopBar from '@/components/TopBar.vue'
+import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import {
   keyboardBusy,
@@ -49,7 +50,7 @@ import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
-import { filterDefined } from '@/util/data/iterable'
+import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
@@ -79,9 +80,8 @@ useNavigatorStorage(graphNavigator, (enc) => {
 
 function selectionBounds() {
   if (!viewportNode.value) return
-  const allNodes = graphStore.db.nodeIdToNode
-  const validSelected = [...nodeSelection.selected].filter((id) => allNodes.has(id))
-  const nodesToCenter = validSelected.length === 0 ? allNodes.keys() : validSelected
+  const selected = nodeSelection.selected
+  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
   let bounds = Rect.Bounding()
   for (const id of nodesToCenter) {
     const rect = graphStore.visibleArea(id)
@@ -116,6 +116,7 @@ const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
   graphStore.isPortEnabled,
+  (id) => graphStore.db.nodeIdToNode.has(id),
   {
     onSelected(id) {
       graphStore.db.moveNodeToTop(id)
@@ -149,7 +150,7 @@ const { createNode, createNodes, placeNode } = provideNodeCreation(
 // === Clipboard Copy/Paste ===
 
 const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
-  nodeSelection,
+  toRef(nodeSelection, 'selected'),
   createNodes,
 )
 
@@ -204,17 +205,13 @@ const graphBindingsHandler = graphBindings.handler({
     projectStore.lsRpcConnection.profilingStop()
   },
   openComponentBrowser() {
-    if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
   deleteSelected,
-  zoomToSelected() {
-    zoomToSelected()
-  },
+  zoomToSelected,
   selectAll() {
-    if (keyboardBusy()) return
     nodeSelection.selectAll()
   },
   deselectAll() {
@@ -223,37 +220,33 @@ const graphBindingsHandler = graphBindings.handler({
     graphStore.undoManager.undoStackBoundary()
   },
   toggleVisualization() {
+    const selected = nodeSelection.selected
+    const allVisible = every(
+      selected,
+      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
+    )
     graphStore.transact(() => {
-      const allVisible = set
-        .toArray(nodeSelection.selected)
-        .every((id) => !(graphStore.db.nodeIdToNode.get(id)?.vis?.visible !== true))
-
-      for (const nodeId of nodeSelection.selected) {
+      for (const nodeId of selected) {
         graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
     })
   },
   copyNode() {
-    if (keyboardBusy()) return false
     copySelectionToClipboard()
   },
   pasteNode() {
-    if (keyboardBusy()) return false
     createNodesFromClipboard()
   },
   collapse() {
-    if (keyboardBusy()) return false
     collapseNodes()
   },
   enterNode() {
-    if (keyboardBusy()) return false
     const selectedNode = set.first(nodeSelection.selected)
     if (selectedNode) {
       stackNavigator.enterNode(selectedNode)
     }
   },
   exitNode() {
-    if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
   changeColorSelectedNodes() {
@@ -273,10 +266,8 @@ const { handleClick } = useDoubleClick(
 )
 
 function deleteSelected() {
-  graphStore.transact(() => {
-    graphStore.deleteNodes([...nodeSelection.selected])
-    nodeSelection.selected.clear()
-  })
+  graphStore.deleteNodes(nodeSelection.selected)
+  nodeSelection.deselectAll()
 }
 
 // === Code Editor ===
@@ -306,6 +297,8 @@ const rightDockWidth = ref<number>()
 const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
+
+const { documentation } = useAstDocumentation(() => graphStore.methodAst)
 
 // === Execution Mode ===
 
@@ -406,6 +399,7 @@ function addNodeAuto() {
 function fromSelection(): NewNodeOptions | undefined {
   if (graphStore.editedNodeInfo != null) return undefined
   const firstSelectedNode = set.first(nodeSelection.selected)
+  if (firstSelectedNode == null) return undefined
   return {
     placement: { type: 'source', node: firstSelectedNode },
     sourcePort: graphStore.db.getNodeFirstOutputPort(firstSelectedNode),
@@ -585,7 +579,7 @@ const groupColors = computed(() => {
         data-testid="rightDock"
       >
         <div class="scrollArea">
-          <AstDocumentation :ast="graphStore.methodAst" />
+          <MarkdownEditor v-model="documentation" />
         </div>
         <SvgIcon
           name="close"

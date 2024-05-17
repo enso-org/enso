@@ -5,7 +5,7 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { filterDefined } from '@/util/data/iterable'
 import { tryGetSoleValue } from 'shared/util/data/iterable'
-import { computed, ref, watch } from 'vue'
+import { ref } from 'vue'
 
 const emit = defineEmits<{
   close: []

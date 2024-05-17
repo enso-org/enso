@@ -1,6 +1,10 @@
 private
 
+import project.Any.Any
+import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
+import project.Data.Map.Map
+import project.Data.Text.Text
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
@@ -16,7 +20,11 @@ import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Data_Link_Helpers import data_link_encoding
+from project.Enso_Cloud.Public_Utils import get_required_field
 
 ## PRIVATE
 upload_file (local_file : File) (destination : Enso_File) (replace_existing : Boolean) -> Enso_File =
@@ -30,33 +38,57 @@ upload_file (local_file : File) (destination : Enso_File) (replace_existing : Bo
         if is_source_file_not_found then Error.throw (File_Error.Not_Found local_file) else result
 
 ## PRIVATE
-   `generate_request_body_and_result` should return a pair,
-   where the first element is the request body and the second element is the result to be returned.
-   It is executed lazily, only after all pre-conditions are successfully met.
-perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_request_body_and_result) =
+   A helper function that gathers the common logic for checking existence of
+   a created asset and its parent directory.
+
+   The `create_action` function is called with the existing asset for the parent
+   directory and for the file, if it already exists, or `Nothing` otherwise, and
+   with a mapping of error handlers that may be added to the request.
+generic_create_asset (destination : Enso_File) (allow_existing : Boolean) (create_action : Existing_Enso_Asset -> (Existing_Enso_Asset | Nothing) -> Any) -> Any =
     parent_directory = destination.parent
-    if parent_directory.is_nothing then Error.throw (Illegal_Argument.Error "The root directory cannot be a destination for upload. The destination must be a path to a file.") else
+    if parent_directory.is_nothing then Error.throw (Illegal_Argument.Error "Please provide an asset name inside of the root directory.") else
         parent_directory_asset = Existing_Enso_Asset.get_asset_reference_for parent_directory
         # If the parent directory does not exist, we fail.
         parent_directory_asset.if_not_error <|
             existing_asset = Existing_Enso_Asset.get_asset_reference_for destination
-                . catch File_Error _->Nothing
+                . catch File_Error error-> case error of
+                    File_Error.Not_Found _ -> Nothing
+                    _ -> Error.throw error
             if existing_asset.is_nothing.not && allow_existing.not then Error.throw (File_Error.Already_Exists destination) else
-                if existing_asset.is_nothing.not && existing_asset.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "The destination must be a path to a file, not "+existing_asset.asset_type.to_text+".") else
-                    existing_asset_id = existing_asset.if_not_nothing <| existing_asset.id
-                    file_name = destination.name
-                    base_uri = URI.from Utils.files_api
-                        . add_query_argument "parent_directory_id" parent_directory_asset.id
-                        . add_query_argument "file_name" file_name
-                    full_uri = case existing_asset_id of
-                        Nothing -> base_uri
-                        _ -> base_uri . add_query_argument "file_id" existing_asset_id
-                    pair = generate_request_body_and_result
-                    Asset_Cache.invalidate destination
-                    response = Utils.http_request HTTP_Method.Post full_uri pair.first
-                    response.if_not_error <|
-                        Asset_Cache.update destination (Existing_Enso_Asset.from_json response)
-                        pair.second
+                error_handlers = if existing_asset.is_nothing.not then Map.empty else
+                    ## Currently we just report the race condition and request the user to re-run.
+                       We don't retry automatically because it is harder than it seems - the `create_action` usually
+                       depends on some user code that is writing to a stream (the callback given to `with_output_stream`).
+                       This action is generally not expected to be run more than once, but a simple retry logic would do exactly that.
+                       If ever needed, we could implement a more sophisticated retry mechanism, that saves the payload
+                       into memory or a temporary file and relies on that for the retry.
+                       For now, reporting the race condition in a sane way seemed like the simplest choice.
+                       This situation should be very rare.
+                    Map.from_vector [["resource_already_exists", Error.throw (Illegal_State.Error "A race-condition has been encountered - another process has created a colliding resource at "+destination.path+". Please try re-running the operation.")]]
+                create_action parent_directory_asset existing_asset error_handlers
+
+## PRIVATE
+   `generate_request_body_and_result` should return a pair,
+   where the first element is the request body and the second element is the result to be returned.
+   It is executed lazily, only after all pre-conditions are successfully met.
+perform_upload (destination : Enso_File) (allow_existing : Boolean) (~generate_request_body_and_result) =
+    generic_create_asset destination allow_existing parent_directory_asset-> existing_asset->
+        if existing_asset.is_nothing.not && existing_asset.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "The destination must be a path to a file, not "+existing_asset.asset_type.to_text+".") else
+            existing_asset_id = existing_asset.if_not_nothing <| existing_asset.id
+            file_name = destination.name
+            base_uri = URI.from Utils.files_api
+                . add_query_argument "parent_directory_id" parent_directory_asset.id
+                . add_query_argument "file_name" file_name
+            full_uri = case existing_asset_id of
+                Nothing -> base_uri
+                _ -> base_uri . add_query_argument "file_id" existing_asset_id
+            pair = generate_request_body_and_result
+            Asset_Cache.invalidate destination
+            response = Utils.http_request_as_json HTTP_Method.Post full_uri pair.first
+            response.if_not_error <|
+                id = get_required_field "id" response expected_type=Text
+                Asset_Cache.update destination (Existing_Enso_Asset.from_id_and_title id file_name) . if_not_error <|
+                    pair.second
 
 ## PRIVATE
    Creates a directory at the given path, also creating parent directories if needed.
@@ -75,3 +107,26 @@ create_directory_with_parents (target : Enso_File) -> Existing_Enso_Asset =
         created_asset.if_not_error <|
             Asset_Cache.update target created_asset
             created_asset
+
+## PRIVATE
+create_datalink_from_stream_action (destination : Enso_File) (allow_existing : Boolean) (stream_action : Output_Stream -> Any) =
+    generic_create_asset destination allow_existing parent_directory_asset-> existing_asset->
+        if existing_asset.is_nothing.not && existing_asset.asset_type != Enso_Asset_Type.Data_Link then Error.throw (Illegal_Argument.Error "The destination must be a path to a Data Link, not "+existing_asset.asset_type.to_text+".") else
+            # TODO once path resolver is updated to automatically add .datalink extension, we should strip the extension from the name
+            title = destination.name
+            stream_result = Output_Stream.with_memory_stream stream_action
+            raw_bytes = stream_result.first
+            action_result = stream_result.second
+            raw_json = Text.from_bytes raw_bytes data_link_encoding . parse_json . catch Invalid_JSON error->
+                Error.throw (Illegal_Argument.Error "A datalink can be created only with a valid JSON payload, but the written payload was invalid: "+error.to_display_text cause=error)
+            stream_result.if_not_error <|
+                payload = JS_Object.from_pairs <|
+                    [["parentDirectoryId", parent_directory_asset.id], ["name", title], ["value", raw_json]]
+                        + (if existing_asset.is_nothing then [] else [["datalinkId", existing_asset.id]])
+
+                Asset_Cache.invalidate destination
+                response = Utils.http_request_as_json HTTP_Method.Post Utils.datalinks_api payload
+                response.if_not_error <|
+                    id = get_required_field "id" response expected_type=Text
+                    Asset_Cache.update destination (Existing_Enso_Asset.from_id_and_title id title) . if_not_error <|
+                        action_result
