@@ -9,7 +9,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
-from Standard.Table import Column, Value_Type, Auto, Bits
+from Standard.Table import Column, Table, Value_Type, Auto, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
 from Standard.Table.Text_Cleanse import all
 
@@ -59,3 +59,15 @@ add_specs suite_builder =
             expected = "It was the best  of  times  it was  the  worst  of  times"
             res = input.cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Trailing_Whitespace]
             res.should_equal expected
+    suite_builder.group "Table Text Cleanse" group_builder->
+        flight = ["Flight", [" BA0123", "BA0123 ", "  SG0456  ", "BA  0123", " S G 0 4 5 6 "]]
+        passenger = ["Passenger", ["   Albert Einstein", "Marie Curie   ", "   Isaac Newton   ", "Stephen   Hawking", " A d a Lovelace "]]
+        ticket_price = ["Ticket Price", [101, 576, 73, 112, 74]]
+        table = Table.new [flight, passenger, ticket_price]
+        group_builder.specify "should remove leading whitespace" <|
+            clean_flight = ["Flight", ["BA0123", "BA0123 ", "SG0456  ", "BA  0123", "S G 0 4 5 6 "]]
+            clean_passenger = ["Passenger", ["Albert Einstein", "Marie Curie   ", "Isaac Newton   ", "Stephen   Hawking", "A d a Lovelace "]]
+            expected_table = Table.new [clean_flight, clean_passenger, ticket_price]
+            res = table.text_cleanse [Text_Cleanse.Leading_Whitespace]
+            res.should_equal expected_table
+
