@@ -7,6 +7,16 @@ type Text_Cleanse
    Duplicate_Whitespace
    Leading_Whitespace
    Trailing_Whitespace
+   ##
+      All_Whitespace
+      Leading_Numbers
+      Trailing_Numbers
+      Punctuation
+      Numbers
+      Symbols
+      Non_ASCII
+      Tabs
+      Letters
 
    ## Apply the cleanse operation to the text.
    apply self input:Cleansable_Text -> Any =
@@ -31,9 +41,6 @@ Cleansable_Text.from (that:Text) = Cleansable_Text.Value that
 
 ## PRIVATE
 Cleansable_Text.from (that:Column) = Cleansable_Text.Value that
-
-   ##PRIVATE
-      Table.text_cleanse... (iterate over columns...)
 
 ## Extension method to add cleanse to Text.
 @remove Widget_Helpers.make_data_cleanse_vector_selector

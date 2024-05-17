@@ -41,6 +41,10 @@ add_specs suite_builder =
             expected_col = Column.from_vector "Test" ["It was", "the best", "of  times", "it was  the  worst  of  times"]
             res = test_col.text_cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Trailing_Whitespace]
             res.should_equal expected_col
+        group_builder.specify "should remove all whitespace" <|
+            expected_col = Column.from_vector "Test" ["Itwas", "thebest", "oftimes", "itwastheworstoftimes"]
+            res = test_col.text_cleanse [Text_Cleanse.All_Whitespace]
+            res.should_equal expected_col
     suite_builder.group "Text Cleanse" group_builder->
         input = "  It was the best  of  times  it was  the  worst  of  times  "
         group_builder.specify "should remove leading whitespace" <|
@@ -58,6 +62,10 @@ add_specs suite_builder =
         group_builder.specify "should remove leading and trailing whitespace" <|
             expected = "It was the best  of  times  it was  the  worst  of  times"
             res = input.cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Trailing_Whitespace]
+            res.should_equal expected
+        group_builder.specify "should remove all whitespace" <|
+            expected = "Itwasthebestoftimesitwastheworstoftimes"
+            res = input.cleanse [Text_Cleanse.All_Whitespace]
             res.should_equal expected
     suite_builder.group "Table Text Cleanse" group_builder->
         flight = ["Flight", [" BA0123", "BA0123 ", "  SG0456  ", "BA  0123", " S G 0 4 5 6 "]]
