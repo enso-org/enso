@@ -534,10 +534,10 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
 
 ## GROUP Text
    ICON text
-   Removes the specified cleansings from the text.
+   Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the text cleanings to remove from the text. The text cleansing are 
+   - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
       applied in the order they are provided. The same text cleansing can be used multiple
       times. The text cleansings are:
       - ..Leading_Whitespace: Removes all whitspace from the start of the string.

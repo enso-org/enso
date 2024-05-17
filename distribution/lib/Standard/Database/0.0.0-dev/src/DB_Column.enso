@@ -1453,10 +1453,10 @@ type DB_Column
 
     ## GROUP Standard.Base.Text
        ICON dataframe_map_column
-       Removes the specified cleansings from the text in each row.
-
+       Applies the specified cleansings to the text in each row.
+       
        Arguments:
-       - remove: A vector of the text cleanings to remove from the text. The text cleansing are 
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
           applied in the order they are provided. The same text cleansing can be used multiple
           times. The text cleansings are:
             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
