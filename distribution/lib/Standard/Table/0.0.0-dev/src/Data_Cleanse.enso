@@ -1,8 +1,0 @@
-from Standard.Base import all
-
-## Defines a Data_Cleanse operation
-type Data_Cleanse
-   Duplicate_Whitespace
-   Leading_Whitespace
-   Trailing_Whitespace
-   

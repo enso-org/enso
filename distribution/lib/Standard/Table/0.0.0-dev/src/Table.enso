@@ -25,7 +25,7 @@ import project.Column.Column
 import project.Column_Ref.Column_Ref
 import project.Constants.Previous_Value
 import project.Constants.Report_Unmatched
-import project.Data_Cleanse.Data_Cleanse
+import project.Text_Cleanse.Text_Cleanse
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Expression.Expression
@@ -3024,7 +3024,7 @@ type Table
 
     @remove Widget_Helpers.make_data_cleanse_vector_selector
     @from Widget_Helpers.make_column_name_multi_selector
-    data_cleansing : Vector Data_Cleanse -> Vector (Integer | Text | Regex) -> Table
+    data_cleansing : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> Table
     data_cleansing self remove from =
         self
         

@@ -1,0 +1,36 @@
+from Standard.Base import all
+
+## Defines a Text_Cleanse operation
+type Text_Cleanse
+   Duplicate_Whitespace
+   Leading_Whitespace
+   Trailing_Whitespace
+
+   ## Apply the cleanse operation to the text.
+   apply self input:Cleansable_Text -> Cleansable_Text =
+      case self of
+         Text_Cleanse.Leading_Whitespace -> input.replace "^\s+" ""
+         Text_Cleanse.Trailing_Whitespace -> input.replace "\s+$" ""
+         Text_Cleanse.Duplicate_Whitespace -> input.replace "\s+" ""
+
+## PRIVATE 
+   Defines the interface for cleansable object.
+type Cleansable_Text
+   Value backer
+
+   ## PRIVATE
+      replace self pattern:Regex -> Replacable_Text =
+         inner = self.backer.replace ..
+
+   ## PRIVATE
+      Cleansable_Text.from (that:Text) = Cleansable_Text.Value that
+
+      ## Extension method to add cleanse to Text.
+      Text.cleanse self = 
+
+      ## PRIVATE
+      Cleansable_Text.from (that:Column) = Cleansable_Text.Value that
+
+      Table.text_cleanse... (iterate over columns...)
+
+      Column.text_cleanse...

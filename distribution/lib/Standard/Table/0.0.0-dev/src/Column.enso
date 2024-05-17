@@ -13,6 +13,7 @@ import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Numeric_Input
 from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
+import project.Text_Cleanse.Text_Cleanse
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
 import project.Internal.Cast_Helpers
@@ -1461,6 +1462,15 @@ type Column
                     builder.append replaced
 
                 Column.from_storage new_name builder.seal
+
+    ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       TODO: Add description
+    @remove Widget_Helpers.make_data_cleanse_vector_selector
+    text_cleanse : Vector Text_Cleanse -> Column
+    text_cleanse self remove =
+      self
+
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
