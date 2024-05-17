@@ -45,6 +45,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
               BigIntegerArrayAdapter.fromStorage(s), rhs, problemAggregator);
           case BigIntegerStorage s -> runBigIntegerMap(
               BigIntegerArrayAdapter.fromStorage(s), rhs, problemAggregator);
+          case BigDecimalStorage s -> runBigDecimalMap(
+              BigDecimalArrayAdapter.fromStorage(s),
+              new BigDecimal(rhs),
+              problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, rhs.doubleValue(), problemAggregator);
           default -> throw new IllegalStateException(
               "Unsupported storage: " + storage.getClass().getCanonicalName());
@@ -57,6 +61,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
               BigIntegerArrayAdapter.fromStorage(s),
               BigInteger.valueOf(argAsLong),
               problemAggregator);
+          case BigDecimalStorage s -> runBigDecimalMap(
+            BigDecimalArrayAdapter.fromStorage(s),
+              BigDecimal.valueOf(argAsLong),
+              problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, (double) argAsLong, problemAggregator);
           default -> throw new IllegalStateException(
               "Unsupported storage: " + storage.getClass().getCanonicalName());
@@ -68,6 +76,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
               DoubleArrayAdapter.fromStorage(s), doubleArg, problemAggregator);
           case BigIntegerStorage s -> runDoubleMap(
               DoubleArrayAdapter.fromStorage(s), doubleArg, problemAggregator);
+          case BigDecimalStorage s -> runBigDecimalMap(
+              BigDecimalArrayAdapter.fromStorage(s),
+              BigDecimal.valueOf(doubleArg),
+              problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, doubleArg, problemAggregator);
           default -> throw new IllegalStateException(
               "Unsupported storage: " + storage.getClass().getCanonicalName());

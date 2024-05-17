@@ -18,6 +18,11 @@ import java.math.BigInteger;
  * want to be consistent with Enso's equality semantics where 2 == 2.0.
  */
 public class NumericConverter {
+  public static BigInteger INTEGER_MIN_VALUE_BIG_INTEGER = BigInteger.valueOf(Integer.MIN_VALUE);
+  public static BigInteger INTEGER_MAX_VALUE_BIG_INTEGER = BigInteger.valueOf(Integer.MAX_VALUE);
+  public static BigDecimal INTEGER_MIN_VALUE_BIG_DECIMAL = BigDecimal.valueOf(Integer.MIN_VALUE);
+  public static BigDecimal INTEGER_MAX_VALUE_BIG_DECIMAL = BigDecimal.valueOf(Integer.MAX_VALUE);
+
   /**
    * Coerces a number (possibly an integer) to a Double.
    *
@@ -118,6 +123,77 @@ public class NumericConverter {
       case Byte x -> x.doubleValue();
       case null, default -> null;
     };
+  }
+
+  /**
+   * Tries converting the value to an Integer.
+   *
+   * <p>Decimal number types are accepted, only if their fractional part is 0. It will return null
+   * if the object represented a non-integer value. Integer values must fit within the Integer range.
+   */
+  public static Integer tryConvertingToInteger(Object o) {
+    return switch (o) {
+      case Long x -> fitsInInt(x) ? x.intValue() : null;
+      case Integer x -> x;
+      case Short x -> (int) x;
+      case Byte x -> (int) x;
+      case Double x -> integralDoubleToInteger(x);
+      case Float x -> integralDoubleToInteger(x);
+      case BigDecimal x -> integralBigDecimalToInteger(x);
+      case BigInteger x -> integralBigIntegerToInteger(x);
+      case null, default -> null;
+    };
+  }
+
+  private static boolean fitsInInt(long x) {
+    return x >= Integer.MIN_VALUE && x <= Integer.MAX_VALUE;
+  }
+
+  private static boolean fitsInInt(BigInteger x) {
+    return x.compareTo(INTEGER_MIN_VALUE_BIG_INTEGER) >= 0 && x.compareTo(INTEGER_MAX_VALUE_BIG_INTEGER) <= 0;
+  }
+
+  private static boolean fitsInInt(BigDecimal x) {
+    return x.compareTo(INTEGER_MIN_VALUE_BIG_DECIMAL) >= 0 && x.compareTo(INTEGER_MAX_VALUE_BIG_DECIMAL) <= 0;
+  }
+
+  /**
+   * Converts a double to an Integer, if the value is integral and fits in the
+   * Integer range. Otherwise, returns null;
+   */
+  private static Integer integralDoubleToInteger(double x) {
+    if (x % 1.0 == 0.0) {
+      long l = (long) x;
+      if (fitsInInt(l)) {
+        return (int) l;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Converts a BigInteger to an Integer, if the value fits in the Integer
+   * range. Otherwise, returns null;
+   */
+  private static Integer integralBigIntegerToInteger(BigInteger x) {
+    if (fitsInInt(x)) {
+      return x.intValueExact();
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Converts a BigDecmal to an Integer, if the value is integral and fits in
+   * the Integer range. Otherwise, returns null;
+   */
+  private static Integer integralBigDecimalToInteger(BigDecimal x) {
+    if (x.remainder(BigDecimal.ZERO).equals(BigDecimal.ZERO)) {
+      if (fitsInInt(x)) {
+        return x.intValueExact();
+      }
+    }
+    return null;
   }
 
   /**

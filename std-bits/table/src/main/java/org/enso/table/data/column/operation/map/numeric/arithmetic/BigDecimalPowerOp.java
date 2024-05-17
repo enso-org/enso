@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import java.math.BigDecimal;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
@@ -11,6 +12,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
+import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
 public class BigDecimalPowerOp extends BinaryMapOperation<BigDecimal, SpecializedStorage<BigDecimal>> {
@@ -21,7 +23,12 @@ public class BigDecimalPowerOp extends BinaryMapOperation<BigDecimal, Specialize
   @Override
   public Storage<?> runBinaryMap(
       SpecializedStorage<BigDecimal> storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-    throw new UnsupportedOperationException("");
+    BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(storage);
+    Integer right = NumericConverter.tryConvertingToInteger(arg);
+    if (right == null) {
+        throw new UnexpectedTypeException("an Integer.");
+    }
+    return runBigDecimalMap(left, right, problemAggregator);
   }
 
   @Override
@@ -52,6 +59,26 @@ public class BigDecimalPowerOp extends BinaryMapOperation<BigDecimal, Specialize
         BigDecimal r = x.pow(y);
         out[i] = r;
       }
+      context.safepoint();
+    }
+
+    return new BigDecimalStorage(out, n);
+  }
+
+  protected BigDecimalStorage runBigDecimalMap(
+      BigDecimalArrayAdapter a, int b, MapOperationProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
+    int n = a.size();
+    BigDecimal[] out = new BigDecimal[n];
+    for (int i = 0; i < n; i++) {
+      BigDecimal x = a.getItem(i);
+      if (x == null) {
+        out[i] = null;
+      } else {
+        BigDecimal r = x.pow(b);
+        out[i] = r;
+      }
+
       context.safepoint();
     }
 

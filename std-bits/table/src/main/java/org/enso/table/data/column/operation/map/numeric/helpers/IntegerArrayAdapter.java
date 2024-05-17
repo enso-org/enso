@@ -1,15 +1,13 @@
 package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigInteger;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 
 public interface IntegerArrayAdapter {
-  static BigInteger INTEGER_MIN_VALUE_BIG_INTEGER = BigInteger.valueOf(Integer.MIN_VALUE);
-  static BigInteger INTEGER_MAX_VALUE_BIG_INTEGER = BigInteger.valueOf(Integer.MAX_VALUE);
-
   Integer getItemAsInteger(int i, MapOperationProblemAggregator problemAggregator);
 
   boolean isNothing(long i);
@@ -62,7 +60,7 @@ public interface IntegerArrayAdapter {
     @Override
     public Integer getItemAsInteger(int i, MapOperationProblemAggregator problemAggregator) {
       BigInteger x = storage.getItem(i);
-      if (x.compareTo(INTEGER_MAX_VALUE_BIG_INTEGER) > 0 || x.compareTo(INTEGER_MIN_VALUE_BIG_INTEGER) < 0) {
+      if (x.compareTo(NumericConverter.INTEGER_MAX_VALUE_BIG_INTEGER) > 0 || x.compareTo(NumericConverter.INTEGER_MIN_VALUE_BIG_INTEGER) < 0) {
         problemAggregator.reportIllegalArgumentError("The exponent in Decimal.pow (^) must be an Integer (between -2147483648 and 2147483647), but was "+x, i);
         return null;
       }
