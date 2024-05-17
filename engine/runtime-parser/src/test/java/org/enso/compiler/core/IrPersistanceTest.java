@@ -17,7 +17,6 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
 import scala.Option;
@@ -508,45 +507,5 @@ public class IrPersistanceTest {
     RefHolder(UUID id) {
       this(Persistance.Reference.of(id));
     }
-  }
-
-  @Persistable(id = 432877)
-  public static class Looper {
-    public Seq<Looper> seq;
-
-    public Seq<Looper> seq() {
-      return seq;
-    }
-
-    public Looper(Seq<Looper> seq) {
-      this.seq = seq;
-    }
-  }
-
-  @Ignore
-  @Test
-  public void testLoop1() throws Exception {
-    Looper looper = new Looper(null);
-    looper.seq = join(looper, nil());
-
-    Looper out = serde(Looper.class, looper, -1);
-    assertSame(out, out.seq().apply(0));
-  }
-
-  @Ignore
-  @Test
-  public void testLoop3() throws Exception {
-    Looper o1 = new Looper(null);
-    Looper o2 = new Looper(join(o1, nil()));
-    Looper o3 = new Looper(join(o2, nil()));
-    o1.seq = join(o3, nil());
-
-    Looper out1 = serde(Looper.class, o1, -1);
-    Looper r2 = out1.seq().apply(0);
-    Looper r3 = r2.seq().apply(0);
-    Looper r1 = r3.seq().apply(0);
-    assertSame(out1, r1);
-    assertNotSame(out1, r2);
-    assertNotSame(out1, r3);
   }
 }
