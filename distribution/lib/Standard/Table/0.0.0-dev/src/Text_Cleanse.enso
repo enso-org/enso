@@ -36,19 +36,14 @@ type Text_Cleanse
 ## PRIVATE 
    Defines the interface for cleansable object.
 type Cleansable_Text
-   Value backer
-
-   ## PRIVATE
-   replace self pattern:Text replace_with:Text -> Any =
-      case self.backer of 
-         _ : Column -> (self.backer.text_replace (regex pattern) replace_with).rename self.backer.name
-         _ : Text -> self.backer.replace (regex pattern) replace_with
+   Value replace
 
 ## PRIVATE
-Cleansable_Text.from (that:Text) = Cleansable_Text.Value that
+Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (regex pattern) replace_with)
 
 ## PRIVATE
-Cleansable_Text.from (that:Column) = Cleansable_Text.Value that
+Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)
+
 
 ## GROUP Text
    ICON text
