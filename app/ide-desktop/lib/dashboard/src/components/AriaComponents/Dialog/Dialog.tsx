@@ -9,6 +9,8 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
 
+import * as mergeRefs from '#/utilities/mergeRefs'
+
 import type * as types from './types'
 import * as variants from './variants'
 
@@ -59,16 +61,32 @@ export function Dialog(props: types.DialogProps) {
     hideCloseButton = false,
     className,
     onOpenChange = () => {},
-    modalProps,
+    modalProps = {},
     ...ariaDialogProps
   } = props
   const cleanupRef = React.useRef(() => {})
+  const dialogRef = React.useRef<HTMLDivElement>(null)
+  const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
 
   const root = portal.useStrictPortalContext()
-
   const shouldRenderTitle = typeof title === 'string'
-
   const dialogSlots = DIALOG_STYLES({ className, type })
+
+  aria.useInteractOutside({
+    ref: dialogRef,
+    onInteractOutside: () => {
+      if (isDismissable) {
+        overlayState.current?.close()
+      } else {
+        const duration = 200
+
+        dialogRef.current?.animate(
+          [{ transform: 'scale(1)' }, { transform: 'scale(1.015)' }, { transform: 'scale(1)' }],
+          { duration, iterations: 2, direction: 'alternate' }
+        )
+      }
+    },
+  })
 
   return (
     <aria.ModalOverlay
@@ -79,56 +97,64 @@ export function Dialog(props: types.DialogProps) {
       onOpenChange={onOpenChange}
       {...modalProps}
     >
-      <aria.Modal
-        className={MODAL_STYLES}
-        isDismissable={isDismissable}
-        isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-        UNSTABLE_portalContainer={root.current}
-        onOpenChange={onOpenChange}
-        {...modalProps}
-      >
-        <aria.Dialog
-          ref={element => {
-            cleanupRef.current()
-            if (element == null) {
-              cleanupRef.current = () => {}
-            } else {
-              const onClick = (event: Event) => {
-                event.stopPropagation()
-              }
-              element.addEventListener('click', onClick)
-              cleanupRef.current = () => {
-                element.removeEventListener('click', onClick)
-              }
-            }
-          }}
-          className={dialogSlots.base()} {...ariaDialogProps}>
-          {opts => (
-            <>
-              {shouldRenderTitle && (
-                <aria.Header className={dialogSlots.header()}>
-                  <ariaComponents.CloseButton
-                    className={clsx('mr-auto mt-0.5', { hidden: hideCloseButton })}
-                    onPress={opts.close}
-                  />
+      {values => {
+        overlayState.current = values.state
 
-                  <aria.Heading
-                    slot="title"
-                    level={2}
-                    className="text-m my-0 font-semibold leading-6"
-                  >
-                    {title}
-                  </aria.Heading>
-                </aria.Header>
+        return (
+          <aria.Modal
+            className={MODAL_STYLES}
+            isDismissable={isDismissable}
+            isKeyboardDismissDisabled={isKeyboardDismissDisabled}
+            UNSTABLE_portalContainer={root.current}
+            onOpenChange={onOpenChange}
+            {...modalProps}
+          >
+            <aria.Dialog
+              ref={mergeRefs.mergeRefs(element => {
+                cleanupRef.current()
+                if (element == null) {
+                  cleanupRef.current = () => {}
+                } else {
+                  const onClick = (event: Event) => {
+                    event.stopPropagation()
+                  }
+                  element.addEventListener('click', onClick)
+                  cleanupRef.current = () => {
+                    element.removeEventListener('click', onClick)
+                  }
+                }
+              }, dialogRef)}
+              className={dialogSlots.base()}
+              {...ariaDialogProps}
+            >
+              {opts => (
+                <>
+                  {shouldRenderTitle && (
+                    <aria.Header className={dialogSlots.header()}>
+                      <ariaComponents.CloseButton
+                        className={clsx('mr-auto mt-0.5', { hidden: hideCloseButton })}
+                        onPress={opts.close}
+                      />
+
+                      <aria.Heading
+                        slot="title"
+                        level={2}
+                        className="text-m my-0 font-semibold leading-6"
+                      >
+                        {title}
+                      </aria.Heading>
+                    </aria.Header>
+                  )}
+
+                  <div className="relative flex-auto overflow-y-auto p-3.5">
+                    {typeof children === 'function' ? children(opts) : children}
+                  </div>
+                </>
               )}
-
-              <div className="relative flex-auto overflow-y-auto p-3.5">
-                {typeof children === 'function' ? children(opts) : children}
-              </div>
-            </>
-          )}
-        </aria.Dialog>
-      </aria.Modal>
+            </aria.Dialog>
+          </aria.Modal>
+        )
+      }}
     </aria.ModalOverlay>
   )
 }
