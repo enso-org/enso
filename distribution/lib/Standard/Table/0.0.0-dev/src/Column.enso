@@ -1469,10 +1469,7 @@ type Column
     @remove Widget_Helpers.make_data_cleanse_vector_selector
     text_cleanse : Vector Text_Cleanse -> Column
     text_cleanse self remove =
-      ops = remove.map tc->(tc.apply _)
-      func = remove.fold _ (current-> tc-> tc.apply current)
-      func self
-
+      remove.fold self (current-> tc-> tc.apply current)
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
