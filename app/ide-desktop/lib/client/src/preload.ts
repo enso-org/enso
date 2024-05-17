@@ -201,3 +201,14 @@ const MENU_API = {
 }
 
 electron.contextBridge.exposeInMainWorld(MENU_API_KEY, MENU_API)
+
+// =============================
+// === Context menu handling ===
+// =============================
+
+const CONTEXT_MENU_API = {
+    openContextMenu: (event: PointerEvent) => {
+        electron.ipcRenderer.send(ipc.Channel.openContextMenu, event)
+    },
+}
+electron.contextBridge.exposeInMainWorld('contextMenuApi', CONTEXT_MENU_API)

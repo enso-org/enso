@@ -46,6 +46,7 @@ export const colorForMessageType: Record<MessageType, string> = {
   border-radius: var(--radius-full);
   color: var(--color-text-inversed);
   line-height: 20px;
+  user-select: text;
 }
 
 .icon {

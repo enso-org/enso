@@ -296,7 +296,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
         }
       },
       contextmenu(e: Event) {
-        e.preventDefault()
+        // e.preventDefault()
       },
     },
     translate,

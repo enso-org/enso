@@ -11,6 +11,7 @@ interface Document {
 
 interface Window {
   fileBrowserApi: FileBrowserApi
+  contextMenuApi: ContextMenuApi
 }
 
 /** `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
@@ -27,4 +28,9 @@ interface FileBrowserApi {
   readonly openFileBrowser: (
     kind: 'file' | 'directory' | 'default',
   ) => Promise<string[] | undefined>
+}
+
+interface ContextMenuApi {
+  /** Show a context menu at the given screen coordinates. */
+  readonly openContextMenu: (event: PoninterEvent) => void
 }

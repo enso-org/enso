@@ -457,6 +457,15 @@ class App {
                 }
             }
         )
+        electron.ipcMain.on(ipc.Channel.openContextMenu, async _event => {
+            const menu = new electron.Menu()
+            menu.append(new electron.MenuItem({ label: 'Item 1' }))
+            menu.append(new electron.MenuItem({ label: 'Item 2' }))
+            menu.append(new electron.MenuItem({ label: 'Item 3' }))
+            if (this.window != null) {
+                menu.popup({ window: this.window })
+            }
+        })
 
         // Handling navigation events from renderer process
         electron.ipcMain.on(ipc.Channel.goBack, () => {

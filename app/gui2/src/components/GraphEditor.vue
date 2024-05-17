@@ -176,6 +176,10 @@ useEvent(
     capture: true,
   },
 )
+useEvent(window, 'contextmenu', (e) => {
+  console.log('On context menu')
+  window.contextMenuApi.openContextMenu(e)
+})
 
 useEvent(
   window,

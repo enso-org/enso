@@ -28,4 +28,5 @@ export enum Channel {
     /** Channel for selecting files and directories using the system file browser. */
     openFileBrowser = 'open-file-browser',
     showAboutModal = 'show-about-modal',
+    openContextMenu = 'open-context-menu',
 }
