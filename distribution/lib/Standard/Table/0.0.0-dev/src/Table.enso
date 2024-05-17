@@ -2888,6 +2888,7 @@ type Table
               - ..Tabs: Removes all tab characters from the string.
               - ..Letters: Removes all letters from the string.
               - ..Numbers: Removes all numbers characters from the string.
+              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
         - from: The column(s) to cleanse.
 
         > Example

@@ -14,7 +14,8 @@ type Text_Cleanse
    Tabs
    Letters
    Numbers
-   ## Punctuation
+   Punctuation
+   ## 
      Symbols
 
    ## Apply the cleanse operation to the text.
@@ -30,8 +31,8 @@ type Text_Cleanse
          Text_Cleanse.Tabs -> input.replace "\t" ""
          Text_Cleanse.Letters -> input.replace "[a-zA-Z]" ""
          Text_Cleanse.Numbers -> input.replace "\d" ""
+         Text_Cleanse.Punctuation -> input.replace '[,.!?():;\'\"]' ""
          ##
-           Text_Cleanse.Punctuation -> input.replace "[^\w\s]" ""
            Text_Cleanse.Symbols -> input.replace "[^\w\s]" ""
 
 ## PRIVATE 
@@ -69,6 +70,7 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value that
       - ..Tabs: Removes all tab characters from the string.
       - ..Letters: Removes all letters from the string.
       - ..Numbers: Removes all numbers characters from the string.
+      - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
 
    > Example
    Remove leading and trailing spaces from text.

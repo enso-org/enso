@@ -1481,6 +1481,7 @@ type Column
             - ..Tabs: Removes all tab characters from the string.
             - ..Letters: Removes all letters from the string.
             - ..Numbers: Removes all numbers characters from the string.
+            - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
 
        > Example
          Remove leading and trailing spaces from cells.

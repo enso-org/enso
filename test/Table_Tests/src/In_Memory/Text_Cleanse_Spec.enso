@@ -71,6 +71,10 @@ add_specs suite_builder =
             res1.should_equal (Column.from_vector "Test" ["ABC", "DEF", "GHI", "JKL"])
             res2.should_equal (Column.from_vector "Test" ["1234", "5678", "9012", "3456"])
             res3.should_equal (Column.from_vector "Test" ["", "", "", ""])
+        group_builder.specify "should remove punctuation" <|
+            test_col_with_punctuation = Column.from_vector "Test" ['Hello, World!', 'How are you?', ',.!?():;\'"']
+            res = test_col_with_punctuation.text_cleanse [Text_Cleanse.Punctuation]
+            res.should_equal (Column.from_vector "Test" ["Hello World", "How are you", ""])
         group_builder.specify "should error if applied to non-text column" <|
             test_col_num = Column.from_vector "Test" [1, 2, 3, 4]
             test_col_num.text_cleanse [Text_Cleanse.Numbers] . should_fail_with Invalid_Value_Type
@@ -134,6 +138,10 @@ add_specs suite_builder =
             res5.should_equal "1234"
             res6 = input4.cleanse [Text_Cleanse.Letters, Text_Cleanse.Numbers]
             res6.should_equal ""
+        group_builder.specify "should remove punctuation" <|
+            input5 = 'Hello, World! How are you? ,.!?():;\'\"'
+            res5 = input5.cleanse [Text_Cleanse.Punctuation]
+            res5.should_equal "Hello World How are you "
         group_builder.specify "should apply the operations in order" <|
             input3 = "  11String with Leading Spaces then Leading Numbers"
             res1 = input3.cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
