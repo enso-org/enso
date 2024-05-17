@@ -33,7 +33,7 @@ import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
-import HttpClient, * as httpClient from '#/utilities/HttpClient'
+import HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
 import * as cognitoModule from '#/authentication/cognito'
