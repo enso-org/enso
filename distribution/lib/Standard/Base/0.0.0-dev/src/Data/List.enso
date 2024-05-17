@@ -58,7 +58,7 @@ type List
     length self = self.fold 0 (acc -> _ -> acc + 1)
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets an element from the list at a specified index (0-based).
 
        ! Computational Complexity
@@ -80,7 +80,8 @@ type List
     at self index =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-    ## Gets an element from the list at a specified index (0-based).
+    ## ICON parse3
+       Gets an element from the list at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
        ! Computational Complexity
@@ -107,7 +108,8 @@ type List
                     @Tail_Call loop xs (0.max count-1) new_lagged
             loop self -index self
 
-    ## Combines all the elements of the list, by iteratively applying the
+    ## ICON sigma
+       Combines all the elements of the list, by iteratively applying the
        passed function with next elements of the list.
 
        Arguments:
@@ -393,7 +395,7 @@ type List
     reverse self = self.fold Nil (l -> el -> Cons el l)
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Creates a new list with the first `count` elements at the start of `self`
        removed.
 
@@ -412,7 +414,7 @@ type List
         Cons _ b -> b.drop_start count-1
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Creates a new list consisting of the first `count` elements at the start
        of `self`.
 
@@ -483,7 +485,7 @@ type List
         a -> a
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the first element from the list.
 
        > Example
@@ -498,7 +500,7 @@ type List
         Cons a _ -> a
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the second element from the list.
 
        > Example
@@ -515,6 +517,7 @@ type List
             Cons b _ -> b
 
     ## GROUP Selections
+       ICON parse3
        Get the first element from the list.
 
        > Example
@@ -527,7 +530,7 @@ type List
     head self = self.first
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get all elements from the list except the first.
 
        > Example

@@ -45,7 +45,8 @@ type Nothing
     if_not_nothing : Any -> Any
     if_not_nothing self ~action = const Nothing action
 
-    ## Get a value for the key of the object.
+    ## ICON parse3
+       Get a value for the key of the object.
        As `Nothing` has no keys, returns `if_missing`.
 
        Arguments:

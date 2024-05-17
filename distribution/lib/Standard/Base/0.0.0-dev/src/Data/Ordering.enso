@@ -189,7 +189,8 @@ type Ordering
         Ordering.Greater -> 1
         Ordering.Equal -> 0
 
-    ## A lexicographical comparison.
+    ## ICON order
+       A lexicographical comparison.
     and_then : Ordering -> Ordering
     and_then self ~other = case self of
         Ordering.Less -> Ordering.Less

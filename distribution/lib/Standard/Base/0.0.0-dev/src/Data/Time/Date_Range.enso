@@ -111,14 +111,14 @@ type Date_Range
         JS_Object.from_pairs [["type", "Date_Range"], ["start", self.start.to_js_object], ["end", self.end.to_js_object], ["step", self.step.to_js_object], ["increasing", self.increasing]]
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the first element that is included within the range or `Nothing`
        if the range is empty.
     first : Integer ! Index_Out_Of_Bounds
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the second element that is included within the range or `Nothing`
        if the range has less than 2 element
     second : Integer ! Index_Out_Of_Bounds
@@ -144,7 +144,7 @@ type Date_Range
     length self = self.cached_length
 
     ## GROUP Selections
-       ICON date_and_time
+       ICON parse3
        Gets an element from the range at a specified index (0-based).
 
        Arguments:
@@ -165,7 +165,8 @@ type Date_Range
     at self index =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-    ## Gets an element from the range at a specified index (0-based).
+    ## ICON parse3
+       Gets an element from the range at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
        Arguments:
@@ -335,7 +336,8 @@ type Date_Range
         (0.up_to self.length).each_with_index ix->
             function ix (self.internal_at ix)
 
-    ## Combines all the elements of the range, by iteratively applying the
+    ## ICON sigma
+       Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
        Arguments:
