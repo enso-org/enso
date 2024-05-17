@@ -11,7 +11,7 @@ import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type, Auto, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
-from Standard.Table.Text_Cleanse import Text_Cleanse
+from Standard.Table.Text_Cleanse import all
 
 from Standard.Test import all
 
