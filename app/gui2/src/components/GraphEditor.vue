@@ -46,6 +46,7 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
@@ -373,19 +374,22 @@ function createWithComponentBrowser(options: NewNodeOptions) {
   )
 }
 
-function commitComponentBrowser(content: string, requiredImports: RequiredImport[]) {
+function commitComponentBrowser(
+  content: string,
+  requiredImports: RequiredImport[],
+  type: Typename | undefined,
+) {
   if (graphStore.editedNodeInfo) {
     // We finish editing a node.
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
   } else if (content != '') {
     // We finish creating a new node.
-    createNode(
-      { type: 'fixed', position: componentBrowserNodePosition.value },
-      content,
-      undefined,
-      undefined,
+    createNode({
+      placement: { type: 'fixed', position: componentBrowserNodePosition.value },
+      expression: content,
+      type,
       requiredImports,
-    )
+    })
   }
   hideComponentBrowser()
 }
@@ -534,7 +538,10 @@ async function handleFileDrop(event: DragEvent) {
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
-        createNode({ type: 'mouseEvent', position: pos }, uploadedExpression(uploadResult.value))
+        createNode({
+          placement: { type: 'mouseEvent', position: pos },
+          expression: uploadedExpression(uploadResult.value),
+        })
       } else {
         uploadResult.error.log(`Uploading file failed`)
       }
