@@ -179,10 +179,6 @@ const showColorPicker = ref(false)
   clip-path: var(--full-ring-path);
 }
 
-.toggledOff {
-  opacity: 30%;
-}
-
 .inactive {
   pointer-events: none;
   opacity: 10%;
@@ -242,7 +238,7 @@ const showColorPicker = ref(false)
 
 .below-slot5 {
   position: absolute;
-  top: calc(var(--outer-diameter) - 32px);
+  top: calc(var(--outer-diameter) - 24px);
   pointer-events: all;
 }
 

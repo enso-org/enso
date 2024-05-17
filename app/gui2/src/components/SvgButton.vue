@@ -9,8 +9,8 @@ const _props = defineProps<{
 </script>
 
 <template>
-  <button class="SvgButton">
-    <SvgIcon :name="name" />
+  <button class="SvgButton button">
+    <SvgIcon :name="name" draggable="false" />
   </button>
 </template>
 
@@ -22,8 +22,6 @@ const _props = defineProps<{
   align-items: center;
   padding: 4px;
   cursor: pointer;
-  /* width: calc(var(--scale) * 16px + 8px);
-  height: calc(var(--scale) * 16px + 8px); */
   margin: -4px -4px;
   border-radius: var(--radius-full);
   transition: background-color 0.3s;
