@@ -1,4 +1,5 @@
 from Standard.Base import all
+import project.Column.Column
 
 ## Defines a Text_Cleanse operation
 type Text_Cleanse
@@ -19,8 +20,8 @@ type Cleansable_Text
    Value backer
 
    ## PRIVATE
-      replace self pattern:Regex -> Replacable_Text =
-         inner = self.backer.replace ..
+   replace self pattern:Text replace_with:Text -> Column =
+      (self.backer.text_replace (regex pattern) replace_with).rename self.backer.name
 
    ## PRIVATE
       Cleansable_Text.from (that:Text) = Cleansable_Text.Value that
@@ -28,9 +29,10 @@ type Cleansable_Text
       ## Extension method to add cleanse to Text.
       Text.cleanse self = 
 
-      ## PRIVATE
-      Cleansable_Text.from (that:Column) = Cleansable_Text.Value that
+## PRIVATE
+Cleansable_Text.from (that:Column) = Cleansable_Text.Value that
 
+   ##PRIVATE
       Table.text_cleanse... (iterate over columns...)
 
       Column.text_cleanse...
