@@ -68,6 +68,6 @@ add_specs suite_builder =
             clean_flight = ["Flight", ["BA0123", "BA0123 ", "SG0456  ", "BA  0123", "S G 0 4 5 6 "]]
             clean_passenger = ["Passenger", ["Albert Einstein", "Marie Curie   ", "Isaac Newton   ", "Stephen   Hawking", "A d a Lovelace "]]
             expected_table = Table.new [clean_flight, clean_passenger, ticket_price]
-            res = table.text_cleanse [Text_Cleanse.Leading_Whitespace]
+            res = table.text_cleanse [Text_Cleanse.Leading_Whitespace] ["Flight", "Passenger"]
             res.should_equal expected_table
 

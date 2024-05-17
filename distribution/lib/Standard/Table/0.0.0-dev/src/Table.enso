@@ -3024,9 +3024,10 @@ type Table
 
     @remove Widget_Helpers.make_data_cleanse_vector_selector
     @from Widget_Helpers.make_column_name_multi_selector
-    data_cleansing : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> Table
-    data_cleansing self remove from =
-        self
+    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> Table
+    text_cleanse self remove from =
+        transformer col = col.text_cleanse remove
+        Table_Helpers.replace_columns_with_transformed_columns self from transformer
         
 
 ## PRIVATE
