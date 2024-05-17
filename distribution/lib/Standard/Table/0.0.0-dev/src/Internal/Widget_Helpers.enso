@@ -91,14 +91,6 @@ make_column_name_multi_selector table display:Display=Display.Always add_regex:B
     regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
     Multiple_Choice values=regex+names display=display
 
-make_data_cleanse_vector_selector : Table -> Display -> Widget
-make_data_cleanse_vector_selector table display:Display=Display.Always =
-    builder = Vector.new_builder
-    builder.append (Option "Duplicate_Whitespace" "..Duplicate_Whitespace")
-    builder.append (Option "Leading_Whitespace" "..Leading_Whitespace")
-    builder.append (Option "Trailing_Whitespace" "..Trailing_Whitespace")
-    Multiple_Choice values=builder.to_vector display=display
-
 ## PRIVATE
    Make a column reference by name selector.
 make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
