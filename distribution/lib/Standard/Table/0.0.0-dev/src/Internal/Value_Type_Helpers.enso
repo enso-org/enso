@@ -60,11 +60,12 @@ reconcile_types current new = case current of
     Value_Type.Integer size -> case new of
         Value_Type.Integer new_size ->
             Value_Type.Integer (max_size size new_size)
-        Value_Type.Byte    -> Value_Type.Integer size
+        Value_Type.Byte    -> current
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
-        Value_Type.Float _ -> Value_Type.Float
+        Value_Type.Float _     -> Value_Type.Float
         Value_Type.Decimal _ _ -> new
-        _                  -> Value_Type.Mixed
+        Value_Type.Boolean     -> current
+        _                      -> Value_Type.Mixed
     Value_Type.Float size -> case new of
         Value_Type.Float new_size ->
             Value_Type.Float (max_size size new_size)
@@ -72,14 +73,15 @@ reconcile_types current new = case current of
         Value_Type.Integer _   -> Value_Type.Float
         Value_Type.Byte        -> Value_Type.Float
         Value_Type.Decimal _ _ -> Value_Type.Float
+        Value_Type.Boolean     -> Value_Type.Float
         _                      -> Value_Type.Mixed
     Value_Type.Byte -> case new of
-        Value_Type.Byte    -> Value_Type.Byte
-        Value_Type.Integer size ->
-            Value_Type.Integer size
-        Value_Type.Float _ -> Value_Type.Float
+        Value_Type.Byte        -> Value_Type.Byte
+        Value_Type.Integer _   -> new
+        Value_Type.Float _     -> Value_Type.Float
         Value_Type.Decimal _ _ -> new
-        _                  -> Value_Type.Mixed
+        Value_Type.Boolean     -> current
+        _                      -> Value_Type.Mixed
     Value_Type.Decimal precision scale -> case new of
         Value_Type.Decimal new_precision new_scale ->
             if (precision == new_precision) && (scale == new_scale) then new else
@@ -88,10 +90,15 @@ reconcile_types current new = case current of
         Value_Type.Integer _ -> Value_Type.Decimal precision scale
         Value_Type.Byte      -> Value_Type.Decimal precision scale
         Value_Type.Float _   -> Value_Type.Float
+        Value_Type.Boolean   -> current
         _                    -> Value_Type.Mixed
     Value_Type.Boolean -> case new of
-        Value_Type.Boolean -> Value_Type.Boolean
-        _                  -> Value_Type.Mixed
+        Value_Type.Boolean     -> Value_Type.Boolean
+        Value_Type.Integer _   -> new
+        Value_Type.Byte        -> new
+        Value_Type.Float _     -> Value_Type.Float
+        Value_Type.Decimal _ _ -> new
+        _                      -> Value_Type.Mixed
     Value_Type.Char current_size current_variable -> case new of
         Value_Type.Char new_size new_variable ->
             result_variable = current_variable || new_variable || current_size != new_size

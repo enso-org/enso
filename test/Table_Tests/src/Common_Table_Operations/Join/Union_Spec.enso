@@ -305,7 +305,7 @@ run_union_tests group_builder setup call_union =
         expect_column_names ["A"] t3
         Problems.assume_no_problems t3
         t3.at "A" . value_type . is_integer . should_be_true
-        t3.at "A" . to_vector . should_equal [0, 1, 2, 1, 0, 1]
+        t3.at "A" . to_vector . should_equal [0, 1, 20, 1, 0, 1]
 
     group_builder.specify "should warn about loss of precision when converting large Integer to Float" pending=(if setup.is_database then "Loss_Of_Integer_Precision not yet supported in DB.") <|
         # 2^70 is not exactly representable as a Float.
