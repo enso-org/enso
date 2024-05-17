@@ -16,7 +16,8 @@ from project.Data.Boolean import Boolean, False, True
 from project.Network.Extensions import all
 
 type Request
-    ## Create new HTTP request.
+    ## ICON data_download
+       Create new HTTP request.
 
        Arguments:
        - method: The HTTP method represented by the request.
@@ -51,7 +52,8 @@ type Request
     options : (Text | URI) -> Vector -> Request
     options url (headers = []) = Request.new HTTP_Method.Options url headers
 
-    ## Create a Get request.
+    ## ICON data_input
+       Create a Get request.
 
        Arguments:
        - url: The address for the request.
@@ -67,7 +69,8 @@ type Request
     get : (Text | URI) -> Vector -> Request
     get url (headers = []) = Request.new HTTP_Method.Get url headers
 
-    ## Create a Head request.
+    ## ICON data_input
+       Create a Head request.
 
        Arguments:
        - url: The address for the request.

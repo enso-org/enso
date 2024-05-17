@@ -91,7 +91,8 @@ type Project_Description
     namespace : Text
     namespace self = self.prim_config.namespace
 
-## Returns the Enso project description for the project that the engine was
+## ICON enso_icon
+   Returns the Enso project description for the project that the engine was
    executed with, i.e., the project that contains the `main` method, or
    throws `Module_Not_In_Package_Error` if executing a single file.
 

@@ -51,7 +51,8 @@ type Model
             if x <= 0 then Panic.throw (Illegal_Argument.Error (series_name + " must be positive.")) else x.ln
         Panic.recover Illegal_Argument <| xs.map ln_with_panic
 
-## Use Least Squares to fit a line to the data.
+## ICON machine_learning
+   Use Least Squares to fit a line to the data.
 fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument | Fit_Error
 fit_least_squares known_xs known_ys model=Model.Linear =
     Illegal_Argument.handle_java_exception <| Fit_Error.handle_java_exception <| case model of
