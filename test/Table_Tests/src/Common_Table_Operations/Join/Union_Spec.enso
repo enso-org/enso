@@ -294,7 +294,7 @@ run_union_tests group_builder setup call_union =
         t3.at "A" . value_type . is_floating_point . should_be_true
         t3.at "A" . to_vector . should_equal [0, 1, 2, 1.0, 2.0, 2.5]
 
-    group_builder.specify "should find a common type that will fit the merged columns (Integer + Boolean)" <|
+    group_builder.specify "should find a common type that will fit the merged columns (numeric + Boolean)" <|
         t1 = table_builder [["A", [0, 1, 20]]]
         t2 = table_builder [["A", [True, False, True]]]
 
@@ -307,10 +307,17 @@ run_union_tests group_builder setup call_union =
         t3.at "A" . value_type . is_integer . should_be_true
         t3.at "A" . to_vector . should_equal [0, 1, 20, 1, 0, 1]
 
+        t4 = table_builder [["A", [1.5, 0.0, 2.0]]]
+        t5 = call_union [t2, t4]
+        Problems.assume_no_problems t5
+        t5.at "A" . value_type . is_floating_point . should_be_true
+        t5.at "A" . to_vector . should_equal [1.0, 0.0, 1.0, 1.5, 0.0, 2.0]
+
     group_builder.specify "should warn about loss of precision when converting large Integer to Float" pending=(if setup.is_database then "Loss_Of_Integer_Precision not yet supported in DB.") <|
         # 2^70 is not exactly representable as a Float.
         t1 = table_builder [["A", [2^70, 2^10, 2]]]
         t2 = table_builder [["A", [1.5, 2.0, 2.5]]]
+        # TODO decimal
         t1.at "A" . value_type . is_integer . should_be_true
         t2.at "A" . value_type . is_floating_point . should_be_true
 
