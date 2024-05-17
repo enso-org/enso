@@ -14,6 +14,7 @@ import org.graalvm.polyglot.io.IOAccess;
 
 public final class Ydoc implements AutoCloseable {
 
+  private static final String YDOC_EXECUTOR_THREAD_NAME = "Ydoc executor thread";
   private static final String YDOC_SERVER_PATH = "/ydocServer.js";
 
   private final ExecutorService executor;
@@ -23,7 +24,11 @@ public final class Ydoc implements AutoCloseable {
   private Context context;
 
   public Ydoc() {
-    executor = Executors.newSingleThreadExecutor();
+    executor = Executors.newSingleThreadExecutor(r -> {
+      var t = new Thread(r);
+      t.setName(YDOC_EXECUTOR_THREAD_NAME);
+      return t;
+    });
     parser = new ParserPolyfill();
     contextBuilder = WebEnvironment.createContext().allowIO(IOAccess.ALL);
   }
