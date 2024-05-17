@@ -737,7 +737,7 @@ type Decimal
     max : Decimal -> Decimal
     max self (that : Decimal) -> Decimal = if self > that then self else that
 
-    ## GROUP CONVERSIONS
+    ## GROUP Conversions
        Convert this to an `Integer`.
 
        Conversion to `Integer` uses truncation: the fractional portion is
@@ -757,7 +757,7 @@ type Decimal
         if self == i then i else
             Warning.attach (Loss_Of_Numeric_Precision.Warning self i) i
 
-    ## GROUP CONVERSIONS
+    ## GROUP Conversions
        Convert this to a `Float`.
 
        ? Precision Loss
