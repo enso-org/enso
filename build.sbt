@@ -1277,6 +1277,7 @@ lazy val `ydoc-server` = project
           Ydoc.generateJsBundle(
             (ThisBuild / baseDirectory).value,
             baseDirectory.value,
+            (Compile / resourceManaged).value,
             streams.value
           )
         )
