@@ -1,6 +1,7 @@
 /** @file Functions for manipulating Vue reactive objects. */
 
 import { defaultEquality } from '@/util/equals'
+import { toValue } from '@vueuse/core'
 import { nop } from 'lib0/function'
 import {
   callWithErrorHandling,
@@ -15,6 +16,7 @@ import {
   type MaybeRefOrGetter,
   type Ref,
   type WatchSource,
+  type WritableComputedRef,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -161,3 +163,17 @@ export function syncSet<T>(target: Set<T>, newState: Set<T>) {
 
 /** Type of the parameter of `toValue`. */
 export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+
+/**
+ * A writable proxy computed value that reads a fallback value in case the base is `undefined`.
+ * Useful for cases where we have a user-overridable behavior with a computed default.
+ */
+export function computedFallback<T>(
+  base: Ref<T | undefined>,
+  fallback: () => T,
+): WritableComputedRef<T> {
+  return computed({
+    get: () => base.value ?? fallback(),
+    set: (val: T) => (base.value = val),
+  })
+}

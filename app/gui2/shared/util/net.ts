@@ -23,6 +23,16 @@ export class AbortScope {
     this.onAbort(disposable.dispose.bind(disposable))
   }
 
+  /**
+   * Create a new abort scope with lifetime limited by this scope. It can be aborted earlier on its
+   * own, but it is guaranteed to be aborted whenever the parent scope aborts.
+   */
+  child(): AbortScope {
+    const child = new AbortScope()
+    this.handleDispose(child)
+    return child
+  }
+
   onAbort(listener: () => void) {
     if (this.signal.aborted) {
       setTimeout(listener, 0)

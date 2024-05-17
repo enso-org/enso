@@ -32,9 +32,9 @@ import {
   useEvent,
   useResizeObserver,
 } from '@/composables/events'
-import { useNavigatorStorage } from '@/composables/navigatorStorage'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
+import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
@@ -53,6 +53,7 @@ import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { computedFallback } from '@/util/reactivity'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
 import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
@@ -69,13 +70,49 @@ const suggestionDb = useSuggestionDbStore()
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
 const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
-useNavigatorStorage(graphNavigator, (enc) => {
-  // Navigator viewport needs to be stored separately for:
-  // - each project
-  // - each function within the project
-  encoding.writeVarString(enc, projectStore.name)
-  const methodPtr = graphStore.currentMethodPointer()
-  if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
+
+// === Client saved state ===
+
+const storedShowDocumentationEditor = ref()
+const rightDockWidth = ref<number>()
+
+interface GraphStoredState {
+  x: number
+  y: number
+  s: number
+  doc: boolean
+  rw: number | null
+}
+
+useSyncLocalStorage<GraphStoredState>({
+  storageKey: 'enso-graph-state',
+  mapKeyEncoder: (enc) => {
+    // Client graph state needs to be stored separately for:
+    // - each project
+    // - each function within the project
+    encoding.writeVarString(enc, projectStore.name)
+    const methodPtr = graphStore.currentMethodPointer()
+    if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
+  },
+  debounce: 200,
+  captureState() {
+    console.log('captureState')
+    return {
+      x: graphNavigator.targetCenter.x,
+      y: graphNavigator.targetCenter.y,
+      s: graphNavigator.targetScale,
+      doc: storedShowDocumentationEditor.value,
+      rw: rightDockWidth.value ?? null,
+    }
+  },
+  restoreState(restored) {
+    console.log('restoreState', restored)
+    const pos = restored ? new Vec2(restored.x ?? 0, restored.y ?? 0) : Vec2.Zero
+    const scale = restored?.s ?? 1
+    graphNavigator.setCenterAndScale(pos, scale)
+    storedShowDocumentationEditor.value = restored?.doc ?? undefined
+    rightDockWidth.value = restored?.rw ?? undefined
+  },
 })
 
 function selectionBounds() {
@@ -283,7 +320,12 @@ const codeEditorHandler = codeEditorBindings.handler({
 // === Documentation Editor ===
 
 const documentationEditorArea = ref<HTMLElement>()
-const showDocumentationEditor = ref(false)
+
+const hasDocumentation = computed(() => documentation.value)
+const showDocumentationEditor = computedFallback(
+  storedShowDocumentationEditor,
+  () => hasDocumentation.value,
+)
 
 const documentationEditorHandler = documentationEditorBindings.handler({
   toggle() {
@@ -293,7 +335,6 @@ const documentationEditorHandler = documentationEditorBindings.handler({
 
 const rightDockComputedSize = useResizeObserver(documentationEditorArea)
 const rightDockComputedBounds = computed(() => new Rect(Vec2.Zero, rightDockComputedSize.value))
-const rightDockWidth = ref<number>()
 const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
