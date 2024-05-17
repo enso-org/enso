@@ -11,11 +11,12 @@ type Text_Cleanse
    Leading_Numbers
    Trailing_Numbers
    Non_ASCII
+   Tabs
    ## Punctuation
      Numbers
      Symbols
      
-     Tabs
+     
      Letters
 
    ## Apply the cleanse operation to the text.
@@ -28,12 +29,13 @@ type Text_Cleanse
          Text_Cleanse.Leading_Numbers -> input.replace "^\d+" ""
          Text_Cleanse.Trailing_Numbers -> input.replace "\d+$" ""
          Text_Cleanse.Non_ASCII -> input.replace "[^\x00-\x7F]" ""
-         ## Text_Cleanse.Punctuation -> input.replace "[^\w\s]" ""
-           Text_Cleanse.Numbers -> input.replace "\d" ""
-           Text_Cleanse.Symbols -> input.replace "[^\w\s]" ""
+         Text_Cleanse.Tabs -> input.replace "\t" ""
+         ##
            
-           Text_Cleanse.Tabs -> input.replace "\t" ""
            Text_Cleanse.Letters -> input.replace "[a-zA-Z]" ""
+           Text_Cleanse.Numbers -> input.replace "\d" ""
+           Text_Cleanse.Punctuation -> input.replace "[^\w\s]" ""
+           Text_Cleanse.Symbols -> input.replace "[^\w\s]" ""
 
 ## PRIVATE 
    Defines the interface for cleansable object.

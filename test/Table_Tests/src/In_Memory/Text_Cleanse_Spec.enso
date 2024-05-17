@@ -58,6 +58,11 @@ add_specs suite_builder =
             expected_col = Column.from_vector "Test" ["  It was the ", "of  s", "  it was  the    of  s  "]
             res = test_col_with_non_ascii_chars.text_cleanse [Text_Cleanse.Non_ASCII]
             res.should_equal expected_col
+        group_builder.specify "should remove tabs" <|
+            test_col_with_tabs = Column.from_vector "Test" ['  It was\t the best', 'of  times  it was  the  worst\t  of  times  ']
+            expected_col = Column.from_vector "Test" ["  It was the best", "of  times  it was  the  worst  of  times  "]
+            res = test_col_with_tabs.text_cleanse [Text_Cleanse.Tabs]
+            res.should_equal expected_col
         group_builder.specify "should apply the operations in order" <|
             test_col_with_mixed_chars = Column.from_vector "Test" ["  11String with Leading Spaces then Leading Numbers", "22  String with Leading Numbers then Leading Spaces"]
             res1 = test_col_with_mixed_chars.text_cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
@@ -105,6 +110,11 @@ add_specs suite_builder =
             expected = "  It was the   of  s  it was  the  worst  of  s  "
             res = input_with_non_ascii_chars.cleanse [Text_Cleanse.Non_ASCII]
             res.should_equal expected
+        group_builder.specify "should remove tabs" <|
+            input3 = '  It was\t the best  of  times  it was  the  worst\t  of  times  '
+            expected3 = "  It was the best  of  times  it was  the  worst  of  times  "
+            res3 = input3.cleanse [Text_Cleanse.Tabs]
+            res3.should_equal expected3
         group_builder.specify "should apply the operations in order" <|
             input3 = "  11String with Leading Spaces then Leading Numbers"
             res1 = input3.cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
