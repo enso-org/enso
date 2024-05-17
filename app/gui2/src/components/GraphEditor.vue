@@ -229,7 +229,9 @@ const graphBindingsHandler = graphBindings.handler({
     }
   },
   deleteSelected,
-  zoomToSelected,
+  zoomToSelected() {
+    zoomToSelected()
+  },
   selectAll() {
     nodeSelection.selectAll()
   },
