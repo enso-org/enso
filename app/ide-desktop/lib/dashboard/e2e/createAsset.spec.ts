@@ -3,52 +3,61 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
-test.test.beforeEach(actions.mockAllAndLogin)
+// =================
+// === Constants ===
+// =================
 
-test.test('create folder', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
+/** The name of the uploaded file. */
+const FILE_NAME = 'foo.txt'
+/** The contents of the uploaded file. */
+const FILE_CONTENTS = 'hello world'
+/** The name of the created secret. */
+const SECRET_NAME = 'a secret name'
+/** The value of the created secret. */
+const SECRET_VALUE = 'a secret value'
 
-  await actions.locateNewFolderIcon(page).click()
-  // Assets: [0: Folder 1]
-  await test.expect(assetRows).toHaveCount(1)
-  await test.expect(assetRows.nth(0)).toBeVisible()
-  await test.expect(assetRows.nth(0)).toHaveText(/^New Folder 1/)
-})
+// =============
+// === Tests ===
+// =============
 
-test.test('create project', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
+test.test('create folder', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
+    pageActions.createFolder().driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveCount(1)
+      await test.expect(rows.nth(0)).toBeVisible()
+      await test.expect(rows.nth(0)).toHaveText(/^New Folder 1/)
+    })
+  )
+)
 
-  await actions.locateNewProjectButton(page).click()
-  // Assets: [0: Project 1]
-  await test.expect(assetRows).toHaveCount(1)
-  await test.expect(actions.locateEditor(page)).toBeVisible()
-})
+test.test('create project', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
+    pageActions
+      .createProject()
+      .goToDrivePage()
+      .driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+        await test.expect(actions.locateEditor(page)).toBeVisible()
+      })
+  )
+)
 
-test.test('upload file', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
+test.test('upload file', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
+    pageActions.uploadFile(FILE_NAME, FILE_CONTENTS).driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveCount(1)
+      await test.expect(rows.nth(0)).toBeVisible()
+      await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
+    })
+  )
+)
 
-  const fileChooserPromise = page.waitForEvent('filechooser')
-  await actions.locateUploadFilesIcon(page).click()
-  const fileChooser = await fileChooserPromise
-  const name = 'foo.txt'
-  const content = 'hello world'
-  await fileChooser.setFiles([{ name, buffer: Buffer.from(content), mimeType: 'text/plain' }])
-
-  await test.expect(assetRows).toHaveCount(1)
-  await test.expect(assetRows.nth(0)).toBeVisible()
-  await test.expect(assetRows.nth(0)).toHaveText(new RegExp('^' + name))
-})
-
-test.test('create secret', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewSecretIcon(page).click()
-  const name = 'a secret name'
-  const value = 'a secret value'
-  await actions.locateSecretNameInput(page).fill(name)
-  await actions.locateSecretValueInput(page).fill(value)
-  await actions.locateCreateButton(page).click()
-  await test.expect(assetRows).toHaveCount(1)
-  await test.expect(assetRows.nth(0)).toBeVisible()
-  await test.expect(assetRows.nth(0)).toHaveText(new RegExp('^' + name))
-})
+test.test('create secret', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
+    pageActions.createSecret(SECRET_NAME, SECRET_VALUE).driveTable.withRows(async rows => {
+      await test.expect(rows).toHaveCount(1)
+      await test.expect(rows.nth(0)).toBeVisible()
+      await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + name))
+    })
+  )
+)

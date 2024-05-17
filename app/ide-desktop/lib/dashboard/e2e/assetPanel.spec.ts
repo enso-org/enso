@@ -7,46 +7,69 @@ import * as permissions from '#/utilities/permissions'
 
 import * as actions from './actions'
 
-test.test('open and close asset panel', async ({ page }) => {
-  await actions.mockAllAndLogin({ page })
-  const assetRows = actions.locateAssetRows(page)
+// =================
+// === Constants ===
+// =================
 
-  await actions.locateNewFolderIcon(page).click()
-  await actions.clickAssetRow(assetRows.nth(0))
-  await test.expect(actions.locateAssetPanel(page)).not.toBeVisible()
-  await actions.locateAssetPanelIcon(page).click()
-  await test.expect(actions.locateAssetPanel(page)).toBeVisible()
-  await actions.locateAssetPanelIcon(page).click()
-  await test.expect(actions.locateAssetPanel(page)).not.toBeVisible()
-})
+/** An example description for the asset selected in the asset panel. */
+const DESCRIPTION = 'foo bar'
+/** An example owner username for the asset selected in the asset panel. */
+const USERNAME = 'baz quux'
+/** An example owner email for the asset selected in the asset panel. */
+const EMAIL = 'baz.quux@email.com'
 
-test.test('asset panel contents', async ({ page }) => {
-  const { api } = await actions.mockAll({ page })
-  const { defaultOrganizationId, defaultUserId } = api
-  const assetRows = actions.locateAssetRows(page)
-  const description = 'foo bar'
-  const username = 'baz quux'
-  const email = 'baz.quux@email.com'
-  api.addProject('project', {
-    description,
-    permissions: [
-      {
-        permission: permissions.PermissionAction.own,
-        user: {
-          organizationId: defaultOrganizationId,
-          userId: defaultUserId,
-          name: username,
-          email: backend.EmailAddress(email),
-        },
-      },
-    ],
-  })
-  await page.goto('/')
-  await actions.login({ page })
+// =============
+// === Tests ===
+// =============
 
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.locateAssetPanelIcon(page).click()
-  await test.expect(actions.locateAssetPanelDescription(page)).toHaveText(description)
-  // `getByText` is required so that this assertion works if there are multiple permissions.
-  await test.expect(actions.locateAssetPanelPermissions(page).getByText(username)).toBeVisible()
-})
+test.test('open and close asset panel', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
+    pageActions
+      .createFolder()
+      .driveTable.clickRow(0)
+      .withAssetPanel(async assetPanel => {
+        await test.expect(assetPanel).not.toBeVisible()
+      })
+      .toggleAssetPanel()
+      .withAssetPanel(async assetPanel => {
+        await test.expect(assetPanel).toBeVisible()
+      })
+      .toggleAssetPanel()
+      .withAssetPanel(async assetPanel => {
+        await test.expect(assetPanel).not.toBeVisible()
+      })
+  )
+)
+
+test.test('asset panel contents', ({ page }) =>
+  actions.mockAll({ page }).then(({ pageActions, api }) =>
+    pageActions
+      .do(() => {
+        const { defaultOrganizationId, defaultUserId } = api
+        api.addProject('project', {
+          description: DESCRIPTION,
+          permissions: [
+            {
+              permission: permissions.PermissionAction.own,
+              user: {
+                organizationId: defaultOrganizationId,
+                userId: defaultUserId,
+                name: USERNAME,
+                email: backend.EmailAddress(EMAIL),
+              },
+            },
+          ],
+        })
+      })
+      .login()
+      .driveTable.clickRow(0)
+      .toggleAssetPanel()
+      .do(async () => {
+        await test.expect(actions.locateAssetPanelDescription(page)).toHaveText(DESCRIPTION)
+        // `getByText` is required so that this assertion works if there are multiple permissions.
+        await test
+          .expect(actions.locateAssetPanelPermissions(page).getByText(USERNAME))
+          .toBeVisible()
+      })
+  )
+)

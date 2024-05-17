@@ -150,16 +150,6 @@ export function locateLabelsPanelLabels(page: test.Page) {
   )
 }
 
-/** Find a "home" button (if any) on the current page. */
-export function locateHomeButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Home' }).getByText('Home')
-}
-
-/** Find a "trash" button (if any) on the current page. */
-export function locateTrashButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Trash' }).getByText('Trash')
-}
-
 /** Find a tick button (if any) on the current page. */
 export function locateEditingTick(page: test.Locator | test.Page) {
   return page.getByAltText('Confirm Edit')
@@ -225,113 +215,11 @@ export function locateTrashCategory(page: test.Locator | test.Page) {
   return page.getByLabel('Trash').locator('visible=true')
 }
 
-// === Context menu buttons ===
-
-/** Find an "open" button (if any) on the current page. */
-export function locateOpenButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Open' }).getByText('Open')
-}
-
-/** Find an "upload to cloud" button (if any) on the current page. */
-export function locateUploadToCloudButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Upload To Cloud' }).getByText('Upload To Cloud')
-}
-
-/** Find a "rename" button (if any) on the current page. */
-export function locateRenameButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Rename' }).getByText('Rename')
-}
-
-/** Find a "snapshot" button (if any) on the current page. */
-export function locateSnapshotButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Snapshot' }).getByText('Snapshot')
-}
-
-/** Find a "move to trash" button (if any) on the current page. */
-export function locateMoveToTrashButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Move To Trash' }).getByText('Move To Trash')
-}
-
-/** Find a "move all to trash" button (if any) on the current page. */
-export function locateMoveAllToTrashButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Move All To Trash' }).getByText('Move All To Trash')
-}
-
-/** Find a "restore from trash" button (if any) on the current page. */
-export function locateRestoreFromTrashButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Restore From Trash' }).getByText('Restore From Trash')
-}
-
-/** Find a "restore all from trash" button (if any) on the current page. */
-export function locateRestoreAllFromTrashButton(page: test.Locator | test.Page) {
-  return page
-    .getByRole('button', { name: 'Restore All From Trash' })
-    .getByText('Restore All From Trash')
-}
-
-/** Find a "share" button (if any) on the current page. */
-export function locateShareButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Share' }).getByText('Share')
-}
-
-/** Find a "label" button (if any) on the current page. */
-export function locateLabelButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Label' }).getByText('Label')
-}
-
-/** Find a "duplicate" button (if any) on the current page. */
-export function locateDuplicateButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate')
-}
-
-/** Find a "copy" button (if any) on the current page. */
-export function locateCopyButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Copy' }).getByText('Copy')
-}
-
-/** Find a "cut" button (if any) on the current page. */
-export function locateCutButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Cut' }).getByText('Cut')
-}
-
-/** Find a "paste" button (if any) on the current page. */
-export function locatePasteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Paste' }).getByText('Paste')
-}
-
-/** Find a "download" button (if any) on the current page. */
-export function locateDownloadButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Download' }).getByText('Download')
-}
+// === Other buttons ===
 
 /** Find a "download app" button (if any) on the current page. */
 export function locateDownloadAppButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Download App' }).getByText('Download App')
-}
-
-/** Find an "upload files" button (if any) on the current page. */
-export function locateUploadFilesButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Upload Files' }).getByText('Upload Files')
-}
-
-/** Find a "new project" button (if any) on the current page. */
-export function locateNewProjectButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Project' }).getByText('New Project')
-}
-
-/** Find a "new folder" button (if any) on the current page. */
-export function locateNewFolderButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Folder' }).getByText('New Folder')
-}
-
-/** Find a "new secret" button (if any) on the current page. */
-export function locateNewSecretButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Secret' }).getByText('New Secret')
-}
-
-/** Find a "new data connector" button (if any) on the current page. */
-export function locateNewDataConnectorButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Data Connector' }).getByText('New Data Connector')
 }
 
 /** Find a "new label" button (if any) on the current page. */
@@ -359,18 +247,13 @@ export function locateNewSecretIcon(page: test.Locator | test.Page) {
   return page.getByRole('button').filter({ has: page.getByAltText('New Secret') })
 }
 
-/** Find an "upload files" icon (if any) on the current page. */
-export function locateUploadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Import') })
-}
-
 /** Find a "download files" icon (if any) on the current page. */
 export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
   return page.getByRole('button').filter({ has: page.getByAltText('Export') })
 }
 
 /** Find an icon to open or close the asset panel (if any) on the current page. */
-export function locateAssetPanelIcon(page: test.Locator | test.Page) {
+function locateAssetPanelIcon(page: test.Locator | test.Page) {
   return page.getByAltText('Asset Panel').locator('visible=true')
 }
 
@@ -404,22 +287,7 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
   return page.getByAltText('Sort Descending')
 }
 
-// === Page locators ===
-
-/** Find a "home page" icon (if any) on the current page. */
-export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Home') })
-}
-
-/** Find a "drive page" icon (if any) on the current page. */
-export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
-}
-
-/** Find a "settings page" icon (if any) on the current page. */
-export function locateSettingsPageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Settings') })
-}
+// === Heading locators ===
 
 /** Find a "name" column heading (if any) on the current page. */
 export function locateNameColumnHeading(page: test.Locator | test.Page) {
@@ -436,7 +304,7 @@ export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
 // === Container locators ===
 
 /** Find a drive view (if any) on the current page. */
-export function locateDriveView(page: test.Locator | test.Page) {
+function locateDriveView(page: test.Locator | test.Page) {
   // This has no identifying features.
   return page.getByTestId('drive-view')
 }
@@ -473,7 +341,7 @@ export function locateAssetsTable(page: test.Page) {
 }
 
 /** Find assets table rows (if any) on the current page. */
-export function locateAssetRows(page: test.Page) {
+function locateAssetRows(page: test.Page) {
   return locateAssetsTable(page).locator('tbody').getByRole('row')
 }
 
@@ -531,7 +399,7 @@ export function locateSetUsernamePanel(page: test.Page) {
 }
 
 /** Find a set of context menus (if any) on the current page. */
-export function locateContextMenus(page: test.Page) {
+function locateContextMenus(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('context-menus')
 }
@@ -588,84 +456,234 @@ export function locateAssetPanelPermissions(page: test.Page) {
   return locateAssetPanel(page).getByTestId('asset-panel-permissions').getByRole('button')
 }
 
-/** Navigate to the "home" page. */
-async function goToHomePage(page: test.Page) {
-  await test.test.step("Go to 'home' page", async () => {
-    const homePageIcon = page.getByRole('button').filter({ has: page.getByAltText('Home') })
-    return homePageIcon.click()
-  })
+// ==========================
+// === openUserMenuAction ===
+// ==========================
+
+/** The action for opening the user menu. */
+interface OpenUserMenuAction<State extends ActionsState> {
+  readonly openUserMenu: () => Actions<State>
 }
 
-/** Navigate to the "drive" page. */
-async function goToDrivePage(page: test.Page) {
-  await test.test.step("Go to 'drive' page", async () => {
-    const drivePageIcon = page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
-    return drivePageIcon.click()
-  })
+/** Generate the action for opening the user menu. */
+function openUserMenuAction<State extends ActionsState>(
+  page: test.Page,
+  promise: Promise<void>,
+  returnState: State,
+  returnStateData: ActionsStateData[State]
+): OpenUserMenuAction<State> {
+  const returnActions = (newPromise: Promise<void>) =>
+    actions(page, returnState, returnStateData, newPromise)
+  return {
+    openUserMenu: () => {
+      const newPromise = thenStep(promise, 'Open user menu', () =>
+        locateUserMenuButton(page).click()
+      )
+      return returnActions(newPromise)
+    },
+  }
 }
 
-/** Navigate to the settings page. */
-async function goToEditorPage(page: test.Page) {
-  await test.test.step("Go to 'editor' page", async () => {
-    const editorPageIcon = page
-      .getByRole('button')
-      .filter({ has: page.getByAltText('Graph Editor') })
-    return editorPageIcon.click()
-  })
-}
-
-/** Navigate to the "settings" page. */
-async function goToSettingsPage(page: test.Page) {
-  await test.test.step("Go to 'settings' page", async () => {
-    await press(page, 'Mod+,')
-  })
-}
+// =======================
+// === goToPageActions ===
+// =======================
 
 /** Actions for going to a different page. */
 interface GoToPageActions {
-  readonly goToHomePage: () => ActionsStateActionsForState<'homePage'>
-  readonly goToDrivePage: () => ActionsStateActionsForState<'drivePage'>
-  readonly goToEditorPage: () => ActionsStateActionsForState<'editorPage'>
-  readonly goToSettingsPage: () => ActionsStateActionsForState<'settingsPage'>
+  readonly goToHomePage: () => Actions<'homePage'>
+  readonly goToDrivePage: () => Actions<'drivePage'>
+  readonly goToEditorPage: () => Actions<'editorPage'>
+  readonly goToSettingsPage: () => Actions<'settingsPage'>
 }
 
 /** Generate actions for going to a different page. */
 function goToPageActions(page: test.Page, promise: Promise<void>): GoToPageActions {
   return {
-    goToHomePage: () =>
-      actions(
-        page,
-        'homePage',
-        {},
-        thenStep(promise, 'Go to "home" page', () => goToHomePage(page))
-      ),
-    goToDrivePage: () =>
-      actions(
-        page,
-        'drivePage',
-        {},
-        thenStep(promise, 'Go to "drive" page', () => goToDrivePage(page))
-      ),
-    goToEditorPage: () =>
-      actions(
-        page,
-        'editorPage',
-        {},
-        thenStep(promise, 'Go to "editor" page', () => goToEditorPage(page))
-      ),
-    goToSettingsPage: () =>
-      actions(
-        page,
-        'settingsPage',
-        {},
-        thenStep(promise, 'Go to "settings" page', () => goToSettingsPage(page))
-      ),
+    goToHomePage: () => {
+      const locator = page.getByRole('button').filter({ has: page.getByAltText('Home') })
+      const newPromise = thenStep(promise, 'Go to "Home" page', () => locator.click())
+      return actions(page, 'homePage', {}, newPromise)
+    },
+    goToDrivePage: () => {
+      const locator = page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
+      const newPromise = thenStep(promise, 'Go to "Drive" page', () => locator.click())
+      return actions(page, 'drivePage', {}, newPromise)
+    },
+    goToEditorPage: () => {
+      const locator = page.getByRole('button').filter({ has: page.getByAltText('Graph Editor') })
+      const newPromise = thenStep(promise, 'Go to "Graph Editor" page', () => locator.click())
+      return actions(page, 'editorPage', {}, newPromise)
+    },
+    goToSettingsPage: () => {
+      const newPromise = thenStep(promise, 'Go to "settings" page', () => press(page, 'Mod+,'))
+      return actions(page, 'settingsPage', {}, newPromise)
+    },
+  }
+}
+
+// ==========================
+// === contextMenuActions ===
+// ==========================
+
+/** Actions for the context menu. */
+interface ContextMenuActions<State extends ActionsState> {
+  readonly open: () => Actions<State>
+  readonly uploadToCloud: () => Actions<State>
+  readonly rename: () => Actions<State>
+  readonly snapshot: () => Actions<State>
+  readonly moveToTrash: () => Actions<State>
+  readonly moveAllToTrash: () => Actions<State>
+  readonly restoreFromTrash: () => Actions<State>
+  readonly restoreAllFromTrash: () => Actions<State>
+  readonly share: () => Actions<State>
+  readonly label: () => Actions<State>
+  readonly duplicate: () => Actions<State>
+  readonly copy: () => Actions<State>
+  readonly cut: () => Actions<State>
+  readonly paste: () => Actions<State>
+  readonly download: () => Actions<State>
+  readonly uploadFiles: () => Actions<State>
+  readonly newFolder: () => Actions<State>
+  readonly newSecret: () => Actions<State>
+  readonly newDataLink: () => Actions<State>
+}
+
+/** Generate actions for the context menu. */
+function contextMenuActions<State extends ActionsState>(
+  page: test.Page,
+  promise: Promise<void>,
+  returnState: State,
+  returnStateData: ActionsStateData[State]
+): ContextMenuActions<State> {
+  const returnActions = (newPromise: Promise<void>) =>
+    actions(page, returnState, returnStateData, newPromise)
+  return {
+    open: () => {
+      const locator = page.getByRole('button', { name: 'Open' }).getByText('Open')
+      const newPromise = thenStep(promise, 'Open (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    uploadToCloud: () => {
+      const locator = page
+        .getByRole('button', { name: 'Upload To Cloud' })
+        .getByText('Upload To Cloud')
+      const newPromise = thenStep(promise, 'Upload to cloud (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    rename: () => {
+      const locator = page.getByRole('button', { name: 'Rename' }).getByText('Rename')
+      const newPromise = thenStep(promise, 'Rename (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    snapshot: () => {
+      const locator = page.getByRole('button', { name: 'Snapshot' }).getByText('Snapshot')
+      const newPromise = thenStep(promise, 'Snapshot (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    moveToTrash: () => {
+      const locator = page.getByRole('button', { name: 'Move To Trash' }).getByText('Move To Trash')
+      const newPromise = thenStep(promise, 'Move to trash (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    moveAllToTrash: () => {
+      const locator = page
+        .getByRole('button', { name: 'Move All To Trash' })
+        .getByText('Move All To Trash')
+      const newPromise = thenStep(promise, 'Move all to trash (context menu)', () =>
+        locator.click()
+      )
+      return returnActions(newPromise)
+    },
+    restoreFromTrash: () => {
+      const locator = page
+        .getByRole('button', { name: 'Restore From Trash' })
+        .getByText('Restore From Trash')
+      const newPromise = thenStep(promise, 'Restore from trash (context menu)', () =>
+        locator.click()
+      )
+      return returnActions(newPromise)
+    },
+    restoreAllFromTrash: () => {
+      const locator = page
+        .getByRole('button', { name: 'Restore All From Trash' })
+        .getByText('Restore All From Trash')
+      const newPromise = thenStep(promise, 'Restore all from trash (context menu)', () =>
+        locator.click()
+      )
+      return returnActions(newPromise)
+    },
+    share: () => {
+      const locator = page.getByRole('button', { name: 'Share' }).getByText('Share')
+      const newPromise = thenStep(promise, 'Share (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    label: () => {
+      const locator = page.getByRole('button', { name: 'Label' }).getByText('Label')
+      const newPromise = thenStep(promise, 'Label (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    duplicate: () => {
+      const locator = page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate')
+      const newPromise = thenStep(promise, 'Duplicate (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    copy: () => {
+      const locator = page.getByRole('button', { name: 'Copy' }).getByText('Copy')
+      const newPromise = thenStep(promise, 'Copy (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    cut: () => {
+      const locator = page.getByRole('button', { name: 'Cut' }).getByText('Cut')
+      const newPromise = thenStep(promise, 'Cut (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    paste: () => {
+      const locator = page.getByRole('button', { name: 'Paste' }).getByText('Paste')
+      const newPromise = thenStep(promise, 'Paste (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    download: () => {
+      const locator = page.getByRole('button', { name: 'Download' }).getByText('Download')
+      const newPromise = thenStep(promise, 'Download (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    // TODO: Specify the files in parameters.
+    uploadFiles: () => {
+      const locator = page.getByRole('button', { name: 'Upload Files' }).getByText('Upload Files')
+      const newPromise = thenStep(promise, 'Upload files (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    newFolder: () => {
+      const locator = page.getByRole('button', { name: 'New Folder' }).getByText('New Folder')
+      const newPromise = thenStep(promise, 'New folder (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    newSecret: () => {
+      const locator = page.getByRole('button', { name: 'New Secret' }).getByText('New Secret')
+      const newPromise = thenStep(promise, 'New secret (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
+    newDataLink: () => {
+      const locator = page.getByRole('button', { name: 'New Data Link' }).getByText('New Data Link')
+      const newPromise = thenStep(promise, 'New Data Link (context menu)', () => locator.click())
+      return returnActions(newPromise)
+    },
   }
 }
 
 // =====================
 // === State machine ===
 // =====================
+
+/** A callback that performs actions on a {@link test.Page}. */
+interface PageCallback {
+  (input: test.Page): Promise<void> | void
+}
+
+/** A callback that performs actions on a {@link test.Locator}. */
+interface LocatorCallback {
+  (input: test.Locator): Promise<void> | void
+}
 
 /** Valid states for the state machine. */
 // eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
@@ -678,13 +696,13 @@ interface ActionsStateData {}
 interface ActionsStateActions {}
 
 /** Actions common to all {@link ActionsState}s. */
-interface ActionsStateBase {
-  readonly done: () => Promise<void>
+interface ActionsStateBase<State extends ActionsState> extends Promise<void> {
+  readonly do: (callback: PageCallback) => Actions<State>
+  readonly press: (keyOrShortcut: string) => Actions<State>
 }
 
 /** Get the actual {@link ActionsStateActions} type for a specific {@link ActionsState}. */
-type ActionsStateActionsForState<State extends ActionsState> = ActionsStateActions[State] &
-  ActionsStateBase
+type Actions<State extends ActionsState> = ActionsStateActions[State] & ActionsStateBase<State>
 
 const ACTIONS: {
   [K in ActionsState]: (
@@ -722,20 +740,62 @@ function actions<State extends ActionsState>(
   state: State,
   data: ActionsStateData[State],
   promise = Promise.resolve()
-) {
-  return { done: () => promise, ...ACTIONS[state](page, data, promise) }
+): Actions<State> {
+  const base: ActionsStateBase<State> = Object.assign(promise, {
+    do: (callback: PageCallback): Actions<State> => {
+      const newPromise = promise.then(() => callback(page))
+      return actions(page, state, data, newPromise)
+    },
+    press: (keyOrShortcut: string) => {
+      const newPromise = promise.then(() => press(page, keyOrShortcut))
+      return actions(page, state, data, newPromise)
+    },
+  })
+  return Object.assign(base, ACTIONS[state](page, data, promise))
 }
 
 /** Return an actions object for the home page. */
 function loggedInActions(page: test.Page) {
-  return actions(page, 'homePage', {})
+  return actions(page, 'drivePage', {})
 }
 
 /** Return an actions object for the login page. */
 function loggedOutActions(page: test.Page) {
-  // FIXME: switch to loginPage once implemented
-  return actions(page, 'homePage', {})
+  return actions(page, 'loginPage', {})
 }
+
+// =================
+// === loginPage ===
+// =================
+
+/** Data for the "login page" state. */
+interface LoginPageData {}
+
+/** Actions for the "login page" state. */
+interface LoginPageActions {
+  readonly login: (email?: string, password?: string) => Actions<'drivePage'>
+}
+
+/** State machine data. */
+interface ActionsStateData {
+  readonly loginPage: LoginPageData
+}
+
+/** State machine actions. */
+interface ActionsStateActions {
+  readonly loginPage: LoginPageActions
+}
+
+registerAction('loginPage', (page, _data, promise) => ({
+  login: (email = 'email@example.com', password = VALID_PASSWORD) => {
+    const newPromise = thenStep(promise, 'Login', () => login({ page }, email, password))
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  loginThatShouldFail: (email = 'email@example.com', password = VALID_PASSWORD) => {
+    const newPromise = thenStep(promise, 'Login', () => login({ page }, email, password))
+    return actions(page, 'loginPage', {}, newPromise)
+  },
+}))
 
 // ================
 // === homePage ===
@@ -745,8 +805,11 @@ function loggedOutActions(page: test.Page) {
 interface HomePageData {}
 
 /** Actions for the "home page" state. */
-interface HomePageActions extends Omit<GoToPageActions, 'goToHomePage'> {
-  readonly openDataLinkModal: () => ActionsStateActionsForState<'newDataLinkModal'>
+interface HomePageActions
+  extends Omit<GoToPageActions, 'goToHomePage'>,
+    OpenUserMenuAction<'homePage'> {
+  readonly createEmptyProject: () => Actions<'editorPage'>
+  readonly createProjectFromTemplate: (index: number) => Actions<'editorPage'>
 }
 
 /** State machine data. */
@@ -761,14 +824,20 @@ interface ActionsStateActions {
 
 registerAction('homePage', (page, _data, promise) => ({
   ...goToPageActions(page, promise),
-  openDataLinkModal: () => {
-    const newPromise = thenStep(promise, 'Open "new data link" modal', async () => {
-      await page
-        .getByRole('button')
-        .filter({ has: page.getByAltText('New Data Link') })
+  ...openUserMenuAction(page, promise, 'homePage', {}),
+  createEmptyProject: () => {
+    const newPromise = thenStep(promise, 'Create empty project', () =>
+      locateSamples(page).nth(0).click()
+    )
+    return actions(page, 'editorPage', {}, newPromise)
+  },
+  createProjectFromTemplate: (index: number) => {
+    const newPromise = thenStep(promise, `Create project from template #${index}`, () =>
+      locateSamples(page)
+        .nth(index + 1)
         .click()
-    })
-    return actions(page, 'newDataLinkModal', {}, newPromise)
+    )
+    return actions(page, 'editorPage', {}, newPromise)
   },
 }))
 
@@ -780,7 +849,44 @@ registerAction('homePage', (page, _data, promise) => ({
 interface DrivePageData {}
 
 /** Actions for the "drive page" state. */
-interface DrivePageActions extends Omit<GoToPageActions, 'goToDrivePage'> {}
+interface DrivePageActions
+  extends Omit<GoToPageActions, 'goToDrivePage'>,
+    OpenUserMenuAction<'drivePage'> {
+  readonly goToHomeCategory: () => Actions<'drivePage'>
+  readonly goToRecentCategory: () => Actions<'drivePage'>
+  readonly goToTrashCategory: () => Actions<'drivePage'>
+  readonly withDriveView: (callback: LocatorCallback) => Actions<'drivePage'>
+  readonly createProject: () => Actions<'editorPage'>
+  readonly createFolder: () => Actions<'drivePage'>
+  readonly uploadFile: (
+    name: string,
+    contents: WithImplicitCoercion<Uint8Array | string | readonly number[]>,
+    mimeType?: string
+  ) => Actions<'drivePage'>
+  // TODO: also add a lower level API for creating secrets so that we can test form validation
+  readonly createSecret: (name: string, value: string) => Actions<'drivePage'>
+  // This SHOULD NOT be split into `openAssetPanel` and `closeAssetPanel` because there are other
+  // ways to open the asset panel - e.g. double clicking a Data Link. While we can encode
+  // this state transition when clicking a Data Link, for now we want to avoid this
+  // as it would be very difficult to ensure that the state transitions match the real behavior.
+  readonly toggleAssetPanel: () => Actions<'drivePage'>
+  readonly withAssetPanel: (callback: LocatorCallback) => Actions<'drivePage'>
+  readonly openDataLinkModal: () => Actions<'newDataLinkModal'>
+  readonly withContextMenus: (callback: LocatorCallback) => Actions<'drivePage'>
+  readonly driveTable: DriveTableActions
+  readonly contextMenu: ContextMenuActions<'drivePage'>
+}
+
+/** Actions for the "drive table" element. */
+interface DriveTableActions {
+  readonly clickNameColumnHeading: () => Actions<'drivePage'>
+  readonly clickModifiedColumnHeading: () => Actions<'drivePage'>
+  readonly clickRow: (index: number) => Actions<'drivePage'>
+  readonly rightClickRow: (index: number) => Actions<'drivePage'>
+  readonly withRows: (callback: LocatorCallback) => Actions<'drivePage'>
+  readonly expectPlaceholderRow: () => Actions<'drivePage'>
+  readonly expectTrashPlaceholderRow: () => Actions<'drivePage'>
+}
 
 /** State machine data. */
 interface ActionsStateData {
@@ -794,6 +900,140 @@ interface ActionsStateActions {
 
 registerAction('drivePage', (page, _data, promise) => ({
   ...goToPageActions(page, promise),
+  ...openUserMenuAction(page, promise, 'drivePage', {}),
+  goToHomeCategory: () => {
+    const locator = page.getByRole('button', { name: 'Home' }).getByText('Home')
+    const newPromise = thenStep(promise, 'Go to "Home" category', () => locator.click())
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  goToRecentCategory: () => {
+    const locator = page.getByRole('button', { name: 'Recent' }).getByText('Recent')
+    const newPromise = thenStep(promise, 'Go to "Recent" category', () => locator.click())
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  goToTrashCategory: () => {
+    const locator = page.getByRole('button', { name: 'Trash' }).getByText('Trash')
+    const newPromise = thenStep(promise, 'Go to "Trash" category', () => locator.click())
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  withDriveView: (callback: LocatorCallback) => {
+    const locator = locateDriveView(page)
+    const newPromise = thenStep(promise, 'Interact with drive view', async () => {
+      await callback(locator)
+    })
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  createProject: () => {
+    const locator = page.getByRole('button', { name: 'New Project' }).getByText('New Project')
+    const newPromise = thenStep(promise, 'Create project', () => locator.click())
+    return actions(page, 'editorPage', {}, newPromise)
+  },
+  createFolder: () => {
+    const locator = page.getByRole('button').filter({ has: page.getByAltText('New Folder') })
+    const newPromise = thenStep(promise, 'Create folder', () => locator.click())
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  uploadFile: (
+    name: string,
+    contents: WithImplicitCoercion<Uint8Array | string | readonly number[]>,
+    mimeType = 'text/plain'
+  ) => {
+    const locator = page.getByRole('button').filter({ has: page.getByAltText('Import') })
+    const newPromise = thenStep(promise, `Upload file '${name}'`, async () => {
+      const fileChooserPromise = page.waitForEvent('filechooser')
+      await locator.click()
+      const fileChooser = await fileChooserPromise
+      await fileChooser.setFiles([{ name, buffer: Buffer.from(contents), mimeType }])
+    })
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  createSecret: (name: string, value: string) => {
+    const newPromise = thenStep(promise, `Create secret '${name}' = '${value}'`, async () => {
+      await locateNewSecretIcon(page).click()
+      await locateSecretNameInput(page).fill(name)
+      await locateSecretValueInput(page).fill(value)
+      await locateCreateButton(page).click()
+    })
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  toggleAssetPanel: () => {
+    const locator = locateAssetPanelIcon(page)
+    const newPromise = thenStep(promise, 'Toggle asset panel', () => locator.click())
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  withAssetPanel: (callback: LocatorCallback) => {
+    const locator = locateAssetPanelIcon(page)
+    const newPromise = thenStep(promise, 'Interact with asset panel', async () => {
+      await callback(locator)
+    })
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  openDataLinkModal: () => {
+    const locator = page.getByRole('button').filter({ has: page.getByAltText('New Data Link') })
+    const newPromise = thenStep(promise, 'Open "new data link" modal', () => locator.click())
+    return actions(page, 'newDataLinkModal', {}, newPromise)
+  },
+  withContextMenus: (callback: LocatorCallback) => {
+    const locator = locateContextMenus(page)
+    const newPromise = thenStep(promise, 'Interact with context menus', async () => {
+      await callback(locator)
+    })
+    return actions(page, 'drivePage', {}, newPromise)
+  },
+  driveTable: {
+    clickNameColumnHeading: () => {
+      const locator = page.getByLabel('Sort by name').or(page.getByLabel('Stop sorting by name'))
+      const newPromise = thenStep(promise, 'Click "name" column heading', () => locator.click())
+      return actions(page, 'drivePage', {}, newPromise)
+    },
+    clickModifiedColumnHeading: () => {
+      const locator = page
+        .getByLabel('Sort by modification date')
+        .or(page.getByLabel('Stop sorting by modification date'))
+      const newPromise = thenStep(promise, 'Click "modified" column heading', () => locator.click())
+      return actions(page, 'drivePage', {}, newPromise)
+    },
+    clickRow: (index: number) => {
+      const locator = locateAssetRows(page).nth(index)
+      const newPromise = thenStep(promise, 'Click drive table row', () => locator.click())
+      return actions(page, 'drivePage', {}, newPromise)
+    },
+    rightClickRow: (index: number) => {
+      const locator = locateAssetRows(page).nth(index)
+      const newPromise = thenStep(promise, 'Click drive table row', () =>
+        locator.click({ button: 'right' })
+      )
+      return actions(page, 'drivePage', {}, newPromise)
+    },
+    withRows: (callback: LocatorCallback) => {
+      const locator = locateAssetRows(page)
+      const newPromise = thenStep(promise, 'Interact with drive table rows', async () => {
+        await callback(locator)
+      })
+      return actions(page, 'drivePage', {}, newPromise)
+    },
+    /** A test assertion to confirm that there is only one row visible, and that row is the
+     * placeholder row displayed when there are no assets to show. */
+    expectPlaceholderRow: () => {
+      const newPromise = thenStep(promise, 'Expect placeholder row', async () => {
+        const assetRows = locateAssetRows(page)
+        await test.expect(assetRows).toHaveCount(1)
+        await test.expect(assetRows).toHaveText(/You have no files/)
+      })
+      return actions(page, 'drivePage', {}, newPromise)
+    },
+    /** A test assertion to confirm that there is only one row visible, and that row is the
+     * placeholder row displayed when there are no assets in Trash. */
+    expectTrashPlaceholderRow: () => {
+      const newPromise = thenStep(promise, 'Expect trash placeholder row', async () => {
+        const assetRows = locateAssetRows(page)
+        await test.expect(assetRows).toHaveCount(1)
+        await test.expect(assetRows).toHaveText(/Your trash is empty/)
+      })
+      return actions(page, 'drivePage', {}, newPromise)
+    },
+  },
+  contextMenu: contextMenuActions(page, promise, 'drivePage', {}),
 }))
 
 // ==================
@@ -804,7 +1044,9 @@ registerAction('drivePage', (page, _data, promise) => ({
 interface EditorPageData {}
 
 /** Actions for the "editor page" state. */
-interface EditorPageActions extends Omit<GoToPageActions, 'goToEditorPage'> {}
+interface EditorPageActions
+  extends Omit<GoToPageActions, 'goToEditorPage'>,
+    OpenUserMenuAction<'editorPage'> {}
 
 /** State machine data. */
 interface ActionsStateData {
@@ -818,6 +1060,7 @@ interface ActionsStateActions {
 
 registerAction('editorPage', (page, _data, promise) => ({
   ...goToPageActions(page, promise),
+  ...openUserMenuAction(page, promise, 'editorPage', {}),
 }))
 
 // ====================
@@ -828,7 +1071,9 @@ registerAction('editorPage', (page, _data, promise) => ({
 interface SettingsPageData {}
 
 /** Actions for the "settings page" state. */
-interface SettingsPageActions extends Omit<GoToPageActions, 'goToSettingsPage'> {}
+interface SettingsPageActions
+  extends Omit<GoToPageActions, 'goToSettingsPage'>,
+    OpenUserMenuAction<'settingsPage'> {}
 
 /** State machine data. */
 interface ActionsStateData {
@@ -842,6 +1087,7 @@ interface ActionsStateActions {
 
 registerAction('settingsPage', (page, _data, promise) => ({
   ...goToPageActions(page, promise),
+  ...openUserMenuAction(page, promise, 'settingsPage', {}),
 }))
 
 // ========================
@@ -858,9 +1104,7 @@ interface NewDataLinkModalData {}
 
 /** Actions for the "new data link modal" state. */
 interface NewDataLinkModalActions extends Pick<GoToPageActions, 'goToHomePage'> {
-  readonly withNameInput: (
-    callback: (input: test.Locator) => Promise<void>
-  ) => ActionsStateActionsForState<'newDataLinkModal'>
+  readonly withNameInput: (callback: LocatorCallback) => Actions<'newDataLinkModal'>
 }
 
 /** State machine data. */
@@ -874,8 +1118,9 @@ interface ActionsStateActions {
 }
 
 /** Execute a {@link test.test.step} after the given {@link Promise} finishes. */
-function thenStep(promise: Promise<void>, step: string, callback: () => Promise<void>) {
-  return promise.then(() => test.test.step(step, callback))
+async function thenStep(promise: Promise<void>, step: string, callback: () => Promise<void>) {
+  await promise
+  await test.test.step(step, callback)
 }
 
 registerAction('newDataLinkModal', (page, _data, promise) => ({
@@ -891,9 +1136,10 @@ registerAction('newDataLinkModal', (page, _data, promise) => ({
       page,
       'newDataLinkModal',
       {},
-      thenStep(promise, 'Interact with "name" input', () =>
-        callback(locateNewDataLinkModal(page).getByLabel('Name'))
-      )
+      thenStep(promise, 'Interact with "name" input', async () => {
+        const locator = locateNewDataLinkModal(page).getByLabel('Name')
+        await callback(locator)
+      })
     ),
 }))
 
@@ -1128,30 +1374,6 @@ export async function expectTransparent(locator: test.Locator) {
   })
 }
 
-// ============================
-// === expectPlaceholderRow ===
-// ============================
-
-/** A test assertion to confirm that there is only one row visible, and that row is the
- * placeholder row displayed when there are no assets to show. */
-export async function expectPlaceholderRow(page: test.Page) {
-  const assetRows = locateAssetRows(page)
-  await test.test.step('Expect placeholder row', async () => {
-    await test.expect(assetRows).toHaveCount(1)
-    await test.expect(assetRows).toHaveText(/You have no files/)
-  })
-}
-
-/** A test assertion to confirm that there is only one row visible, and that row is the
- * placeholder row displayed when there are no assets in Trash. */
-export async function expectTrashPlaceholderRow(page: test.Page) {
-  const assetRows = locateAssetRows(page)
-  await test.test.step('Expect trash placeholder row', async () => {
-    await test.expect(assetRows).toHaveCount(1)
-    await test.expect(assetRows).toHaveText(/Your trash is empty/)
-  })
-}
-
 // =======================
 // === Mouse utilities ===
 // =======================
@@ -1220,11 +1442,7 @@ export async function press(page: test.Page, keyOrShortcut: string) {
 /** Perform a successful login. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function login(
-  { page }: MockParams,
-  email = 'email@example.com',
-  password = VALID_PASSWORD
-) {
+async function login({ page }: MockParams, email = 'email@example.com', password = VALID_PASSWORD) {
   await test.test.step('Login', async () => {
     await page.goto('/')
     await locateEmailInput(page).fill(email)

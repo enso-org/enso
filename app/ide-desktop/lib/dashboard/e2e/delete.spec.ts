@@ -3,48 +3,50 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
-test.test.beforeEach(actions.mockAllAndLogin)
+test.test('delete and restore', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
+    pageActions
+      .createFolder()
+      .driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+      })
+      .driveTable.rightClickRow(0)
+      .contextMenu.moveToTrash()
+      .driveTable.expectPlaceholderRow()
+      .goToTrashCategory()
+      .driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+      })
+      .driveTable.rightClickRow(0)
+      .contextMenu.restoreFromTrash()
+      .driveTable.expectTrashPlaceholderRow()
+      .goToHomeCategory()
+      .driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+      })
+  )
+)
 
-test.test('delete and restore', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-  const contextMenu = actions.locateContextMenus(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  await test.expect(assetRows).toHaveCount(1)
-
-  await assetRows.nth(0).click({ button: 'right' })
-  await actions.locateMoveToTrashButton(contextMenu).click()
-
-  await actions.expectPlaceholderRow(page)
-
-  await actions.locateTrashButton(page).click()
-  await test.expect(assetRows).toHaveCount(1)
-
-  await assetRows.nth(0).click({ button: 'right' })
-  await actions.locateRestoreFromTrashButton(contextMenu).click()
-  await actions.expectTrashPlaceholderRow(page)
-
-  await actions.locateHomeButton(page).click()
-  await test.expect(assetRows).toHaveCount(1)
-})
-
-test.test('delete and restore (keyboard)', async ({ page }) => {
-  const assetRows = actions.locateAssetRows(page)
-
-  await actions.locateNewFolderIcon(page).click()
-  await test.expect(assetRows).toHaveCount(1)
-
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.press(page, 'Delete')
-  await actions.expectPlaceholderRow(page)
-
-  await actions.locateTrashButton(page).click()
-  await test.expect(assetRows).toHaveCount(1)
-
-  await actions.clickAssetRow(assetRows.nth(0))
-  await actions.press(page, 'Mod+R')
-  await actions.expectTrashPlaceholderRow(page)
-
-  await actions.locateHomeButton(page).click()
-  await test.expect(assetRows).toHaveCount(1)
-})
+test.test('delete and restore (keyboard)', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
+    pageActions
+      .createFolder()
+      .driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+      })
+      .driveTable.clickRow(0)
+      .press('Delete')
+      .driveTable.expectPlaceholderRow()
+      .goToTrashCategory()
+      .driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+      })
+      .driveTable.clickRow(0)
+      .press('Mod+R')
+      .driveTable.expectTrashPlaceholderRow()
+      .goToHomeCategory()
+      .driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+      })
+  )
+)
