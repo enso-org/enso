@@ -65,13 +65,16 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
       const trimValue = value.trim()
       const { entries } = getEmailsFromInput(value)
 
-      CSS.highlights.delete('field-wrong-email')
-
-      let offset = 0
-
-      const wrongEmailsRanges: Range[] = []
-
+      // We wrap the code in a try-catch block to prevent the app from crashing
+      // if the browser does not support the CSS.highlights API.
+      // Currently, only Firefox doesn't support it.
       try {
+        CSS.highlights.delete('field-wrong-email')
+
+        let offset = 0
+
+        const wrongEmailsRanges: Range[] = []
+
         for (const entry of entries) {
           const emailIndex = trimValue.indexOf(entry.email, offset)
 
@@ -186,7 +189,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
       <ariaComponents.Button
         type="submit"
         variant="tertiary"
-        rounding="medium"
+        rounded="medium"
         size="medium"
         loading={inviteUserMutation.isPending}
         fullWidth

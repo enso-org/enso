@@ -34,7 +34,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
       )
     } else {
       return (
-        <ariaComponents.Dialog title={getText('invite')} isDismissible>
+        <ariaComponents.Dialog title={getText('invite')} isDismissable>
           {({ close }) => (
             <InviteUsersModalContent organizationId={user.organizationId} onClose={close} />
           )}

@@ -67,7 +67,7 @@ export default function MembersSettingsTab() {
                 <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                   <div className="flex flex-col">
                     {getText('active')}
-                    <ariaComponents.ButtonGroup gap="small">
+                    <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
                       <RemoveMemberButton backend={backend} email={member.email} />
                     </ariaComponents.ButtonGroup>
                   </div>
@@ -83,7 +83,7 @@ export default function MembersSettingsTab() {
                 <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                   <div className="flex flex-col">
                     {getText('pendingInvitation')}
-                    <ariaComponents.ButtonGroup gap="small">
+                    <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
                       <ariaComponents.CopyButton
                         size="custom"
                         copyText={`enso://auth/registration?organization_id=${invitation.organizationId}`}

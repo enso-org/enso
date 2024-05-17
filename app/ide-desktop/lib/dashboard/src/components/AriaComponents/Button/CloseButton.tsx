@@ -48,7 +48,7 @@ export function CloseButton(props: CloseButtonProps) {
       tooltip={tooltip}
       showIconOnHover
       size="custom"
-      rounding="full"
+      rounded="full"
       icon={icon}
       aria-label={ariaLabel}
       {...buttonProps}

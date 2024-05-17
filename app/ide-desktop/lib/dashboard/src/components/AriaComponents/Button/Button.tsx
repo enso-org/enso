@@ -73,7 +73,7 @@ export const BUTTON_STYLES = twv.tv({
       xxsmall: 'px-1.5 py-0.5 text-xs',
     },
     iconOnly: { true: '' },
-    rounding: {
+    rounded: {
       full: 'rounded-full',
       large: 'rounded-lg',
       medium: 'rounded-md',
@@ -94,6 +94,7 @@ export const BUTTON_STYLES = twv.tv({
         content: 'w-full h-full',
         icon: 'w-fit h-fit',
       },
+
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline:
         'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',
@@ -149,7 +150,7 @@ export const Button = React.forwardRef(function Button(
     iconPosition,
     size,
     fullWidth,
-    rounding,
+    rounded,
     tooltip,
     onPress = () => {},
     ...ariaProps
@@ -193,7 +194,7 @@ export const Button = React.forwardRef(function Button(
     loading: isLoading,
     fullWidth,
     size,
-    rounding,
+    rounded,
     variant,
     iconPosition,
     showIconOnHover,

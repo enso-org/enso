@@ -19,7 +19,7 @@ export default function MembersSettingsTabBar() {
   return (
     <HorizontalMenuBar>
       <ariaComponents.DialogTrigger>
-        <ariaComponents.Button variant="cancel" rounding="full" size="small">
+        <ariaComponents.Button variant="cancel" rounded="full" size="small">
           {getText('inviteMembers')}
         </ariaComponents.Button>
 
