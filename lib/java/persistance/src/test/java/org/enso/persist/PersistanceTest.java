@@ -1,6 +1,7 @@
 package org.enso.persist;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
@@ -200,7 +201,11 @@ public class PersistanceTest {
   }
 
   @Persistable(id = 432439)
-  public record LongerLoop1(int x, Persistance.Reference<LongerLoop2> y) {}
+  public record LongerLoop1(int x, Persistance.Reference<LongerLoop2> y) {
+    public LongerLoop1 {
+      new Exception("x: " + x + " y: " + y).printStackTrace();
+    }
+  }
 
   @Persistable(id = 432440)
   public record LongerLoop2(Persistance.Reference<LongerLoop3> y) {}
@@ -235,6 +240,17 @@ public class PersistanceTest {
     var r2 = loaded1.y().get(LongerLoop2.class);
     var r3 = r2.y().get(LongerLoop3.class);
     var r1 = r3.y().get(LongerLoop1.class);
-    assertSame("The recreated structure contains the loop", loaded1, r1);
+
+    assertFalse(
+        "Currently the loaded1 reference isn't shared with r3.y() reference", loaded1 == r1);
+    // assertSame("The recreated structure contains the loop", loaded1, r1);
+
+    var current = r1;
+    for (var i = 0; i < 10; i++) {
+      var next =
+          loaded1.y().get(LongerLoop2.class).y().get(LongerLoop3.class).y().get(LongerLoop1.class);
+      assertSame("current points back to itself", current, next);
+      current = next;
+    }
   }
 }

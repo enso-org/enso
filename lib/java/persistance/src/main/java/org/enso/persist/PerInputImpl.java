@@ -48,7 +48,6 @@ final class PerInputImpl implements Input {
     for (var i = 0; i < count; i++) {
       refs[i] = buf.getInt();
     }
-
     var cache =
         new InputCache(
             buf,
@@ -63,7 +62,7 @@ final class PerInputImpl implements Input {
   public <T> T readInline(Class<T> clazz) throws IOException {
     if (clazz == Persistance.Reference.class) {
       var refId = readInt();
-      var ref = PerBufferReference.from(cache, cache.refs()[refId]);
+      var ref = PerBufferReference.cached(null, cache, cache.refs()[refId]);
       return clazz.cast(ref);
     }
     Persistance<T> p = cache.map().forType(clazz);
