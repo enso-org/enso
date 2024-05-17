@@ -85,9 +85,7 @@ export const ResizableContentEditableInput = React.forwardRef(
         <div
           className={base()}
           onClick={event => {
-            if (event.target !== inputRef.current && inputRef.current) {
-              inputRef.current.focus({ preventScroll: true })
-            }
+            inputRef.current?.focus({ preventScroll: true })
           }}
         >
           <div className={inputContainer()}>

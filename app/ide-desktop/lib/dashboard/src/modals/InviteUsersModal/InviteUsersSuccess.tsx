@@ -55,13 +55,14 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
   return (
     <result.Result
       icon={false}
-      title={
+      subtitle={
         emails.length > MANY_EMAILS
           ? getText('inviteManyUsersSuccess', emails.length)
           : getText('inviteSuccess', emailListFormatter.format(emails))
       }
-      subtitle={'You can share the invite link with others to join the team.'}
     >
+      <p className="mb-4 text-sm text-primary">{getText('inviteUserLinkCopyDescription')}</p>
+
       <ariaComponents.CopyBlock
         copyText={invitationLink}
         className="mb-6"

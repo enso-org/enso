@@ -335,6 +335,7 @@
   "couldNotInviteUser": "Could not invite user $0",
   "inviteFormDescription": "Invite users to join your organization by entering their email addresses below.",
   "inviteSuccess": "You've invited $0 to join Enso!",
+  "inviteUserLinkCopyDescription": "You can also copy the invite link to send it directly",
   "inviteSubmit": "Send invites",
   "inviteEmailFieldPlaceholder": "Enter email addresses",
   "inviteEmailFieldLabel": "Email addresses",

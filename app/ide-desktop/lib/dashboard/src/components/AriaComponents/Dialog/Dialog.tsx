@@ -9,8 +9,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
 
-import * as mergeRefs from '#/utilities/mergeRefs'
-
 import type * as types from './types'
 import * as variants from './variants'
 
@@ -64,7 +62,6 @@ export function Dialog(props: types.DialogProps) {
     modalProps = {},
     ...ariaDialogProps
   } = props
-  const cleanupRef = React.useRef(() => {})
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
 
@@ -78,7 +75,7 @@ export function Dialog(props: types.DialogProps) {
       if (isDismissable) {
         overlayState.current?.close()
       } else {
-        const duration = 200
+        const duration = 200 // 200ms
 
         dialogRef.current?.animate(
           [{ transform: 'scale(1)' }, { transform: 'scale(1.015)' }, { transform: 'scale(1)' }],
@@ -109,24 +106,7 @@ export function Dialog(props: types.DialogProps) {
             onOpenChange={onOpenChange}
             {...modalProps}
           >
-            <aria.Dialog
-              ref={mergeRefs.mergeRefs(element => {
-                cleanupRef.current()
-                if (element == null) {
-                  cleanupRef.current = () => {}
-                } else {
-                  const onClick = (event: Event) => {
-                    event.stopPropagation()
-                  }
-                  element.addEventListener('click', onClick)
-                  cleanupRef.current = () => {
-                    element.removeEventListener('click', onClick)
-                  }
-                }
-              }, dialogRef)}
-              className={dialogSlots.base()}
-              {...ariaDialogProps}
-            >
+            <aria.Dialog ref={dialogRef} className={dialogSlots.base()} {...ariaDialogProps}>
               {opts => (
                 <>
                   {shouldRenderTitle && (
