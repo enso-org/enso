@@ -24,7 +24,6 @@ main filter=Nothing =
 add_specs suite_builder =
     suite_builder.group "Column Text Cleanse" group_builder->
         test_col = Column.from_vector "Test" ["  It was", "the best  ", "of  times", "  it was  the  worst  of  times  "]
-
         group_builder.specify "should remove leading whitespace" <|
             expected_col = Column.from_vector "Test" ["It was", "the best  ", "of  times", "it was  the  worst  of  times  "]
             res = test_col.text_cleanse [Text_Cleanse.Leading_Whitespace]
@@ -44,6 +43,15 @@ add_specs suite_builder =
         group_builder.specify "should remove all whitespace" <|
             expected_col = Column.from_vector "Test" ["Itwas", "thebest", "oftimes", "itwastheworstoftimes"]
             res = test_col.text_cleanse [Text_Cleanse.All_Whitespace]
+            res.should_equal expected_col
+        test_col_with_nums = Column.from_vector "Test" ["1It was", "the best2", "3of  times4", " 1984 it was  the  worst  of  times  72"]
+        group_builder.specify "should remove leading numbers" <|
+            expected_col = Column.from_vector "Test" ["It was", "the best2", "of  times4", " 1984 it was  the  worst  of  times  72"]
+            res = test_col_with_nums.text_cleanse [Text_Cleanse.Leading_Numbers]
+            res.should_equal expected_col
+        group_builder.specify "should remove trailing numbers" <|
+            expected_col = Column.from_vector "Test" ["1It was", "the best", "3of  times", " 1984 it was  the  worst  of  times  "]
+            res = test_col_with_nums.text_cleanse [Text_Cleanse.Trailing_Numbers]
             res.should_equal expected_col
     suite_builder.group "Text Cleanse" group_builder->
         input = "  It was the best  of  times  it was  the  worst  of  times  "
@@ -66,6 +74,15 @@ add_specs suite_builder =
         group_builder.specify "should remove all whitespace" <|
             expected = "Itwasthebestoftimesitwastheworstoftimes"
             res = input.cleanse [Text_Cleanse.All_Whitespace]
+            res.should_equal expected
+        input2 = "1922  It was the best  of  times  it was  the  worst  of  times  1804"
+        group_builder.specify "should remove leading numbers" <|
+            expected = "  It was the best  of  times  it was  the  worst  of  times  1804"
+            res = input2.cleanse [Text_Cleanse.Leading_Numbers]
+            res.should_equal expected
+        group_builder.specify "should remove trailing numbers" <|
+            expected = "1922  It was the best  of  times  it was  the  worst  of  times  "
+            res = input2.cleanse [Text_Cleanse.Trailing_Numbers]
             res.should_equal expected
     suite_builder.group "Table Text Cleanse" group_builder->
         flight = ["Flight", [" BA0123", "BA0123 ", "  SG0456  ", "BA  0123", " S G 0 4 5 6 "]]
