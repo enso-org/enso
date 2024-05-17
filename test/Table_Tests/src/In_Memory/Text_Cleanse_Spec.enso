@@ -149,7 +149,7 @@ add_specs suite_builder =
         group_builder.specify "should remove symbols" <|
             input6 = 'Hello, World123! How_are_you? ,.!?():;\'" 🥇🕒🕒'
             res6 = input6.cleanse [Text_Cleanse.Symbols]
-            res6.should_equal "Hello World123 Howareyou "
+            res6.should_equal "Hello World123 Howareyou  "
         group_builder.specify "should apply the operations in order" <|
             input3 = "  11String with Leading Spaces then Leading Numbers"
             res1 = input3.cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
