@@ -12,7 +12,7 @@ type Text_Cleanse
       case self of
          Text_Cleanse.Leading_Whitespace -> input.replace "^\s+" ""
          Text_Cleanse.Trailing_Whitespace -> input.replace "\s+$" ""
-         Text_Cleanse.Duplicate_Whitespace -> input.replace "\s+" ""
+         Text_Cleanse.Duplicate_Whitespace -> input.replace "(\s)+" "$1"
 
 ## PRIVATE 
    Defines the interface for cleansable object.
