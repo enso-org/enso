@@ -100,8 +100,8 @@ run_union_tests group_builder setup call_union =
         t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
         t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
 
-        table = call_union [t1, t2, t3] columns_to_match=..In_Any on_problems=Problem_Behavior.Report_Error
-        Problem_Behavior.assume_no_problems table
+        table = call_union [t1, t2, t3] columns_to_keep=..In_Any on_problems=Problem_Behavior.Report_Error
+        Problems.assume_no_problems table
         expect_column_names ["A", "B", "C", "D"] table
         table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, Nothing]
         table.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
@@ -113,7 +113,7 @@ run_union_tests group_builder setup call_union =
         t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
         t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
 
-        t4 = call_union [t1, t2, t3] columns_to_match=..In_All
+        t4 = call_union [t1, t2, t3] columns_to_keep=..In_All
         w = Problems.expect_only_warning Unmatched_Columns
         w.column_names.should_equal ["B", "C"]
         expect_column_names ["A"] t4
@@ -124,7 +124,7 @@ run_union_tests group_builder setup call_union =
         t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
         t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
 
-        t4 = call_union [t1, t2, t3] columns_to_match=..In_All on_problems=Problem_Behavior.Ignore
+        t4 = call_union [t1, t2, t3] columns_to_keep=..In_All on_problems=Problem_Behavior.Ignore
         t4.should_fail_with No_Output_Columns
         t4.catch.to_display_text . should_equal "No columns in the result, because of another problem: Unmatched columns are set to be dropped, but no common column names were found."
 
@@ -132,7 +132,7 @@ run_union_tests group_builder setup call_union =
         t1 = table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
         t2 = table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
 
-        t3 = call_union [t1, t2] columns_to_match=(..In_List ["B", "A"])
+        t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "A"])
         expect_column_names ["B", "A"] t3
         t3.at "B" . to_vector . should_equal ["a", "b"]
         t3.at "A" . to_vector . should_equal [1, 4]
@@ -141,7 +141,7 @@ run_union_tests group_builder setup call_union =
         t1 = table_builder [["A", [1]], ["X", [2]]]
         t2 = table_builder [["Z", [4]], ["A", [5]]]
 
-        t3 = call_union [t1, t2] columns_to_match=(..In_List ["B", "A"])
+        t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "A"])
         expect_column_names ["B", "A"] t3
         t3.at "B" . to_vector . should_equal [Nothing, Nothing]
         t3.at "A" . to_vector . should_equal [1, 5]
@@ -149,14 +149,14 @@ run_union_tests group_builder setup call_union =
     group_builder.specify "does not allow an empty list in In_List" <|
         t1 = table_builder [["A", [1]], ["X", [2]]]
         t2 = table_builder [["Z", [4]], ["A", [5]]]
-        r = call_union [t1, t2] columns_to_match=(..In_List [])
+        r = call_union [t1, t2] columns_to_keep=(..In_List [])
         r.should_fail_with Illegal_Argument
 
     group_builder.specify "does not error if duplicate entries appear in the In_List" <|
         t1 = table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
         t2 = table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
 
-        t3 = call_union [t1, t2] columns_to_match=(..In_List ["B", "B", "A", "A", "B"])
+        t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "B", "A", "A", "B"])
         expect_column_names ["B", "A"] t3
 
     group_builder.specify "should ignore column names when matching by position" <|
@@ -187,7 +187,7 @@ run_union_tests group_builder setup call_union =
         t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
         t3 = table_builder [["A2", [10, 20, 30]]]
 
-        t4 = call_union [t1, t2, t3] columns_to_match=..In_All match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
+        t4 = call_union [t1, t2, t3] columns_to_keep=..In_All match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
         Problems.assume_no_problems t4
         expect_column_names ["A"] t4
         t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
@@ -197,7 +197,7 @@ run_union_tests group_builder setup call_union =
         t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
         t3 = table_builder [["A2", [10, 20, 30]]]
 
-        t4 = call_union [t1, t2, t3] columns_to_match=..In_Any keep_unmatched_columns=True on_problems=Problem_Behavior.Ignore
+        t4 = call_union [t1, t2, t3] columns_to_keep=..In_Any on_problems=Problem_Behavior.Ignore
         Problems.assume_no_problems t4
         expect_column_names ["A1", "B1", "C"] t4
         t4.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
@@ -207,7 +207,7 @@ run_union_tests group_builder setup call_union =
     group_builder.specify "does not allow In_List with positional matching" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
-        r = call_union [t1, t2] columns_to_match=(..In_List ["A", "B"]) match_columns=Match_Columns.By_Position
+        r = call_union [t1, t2] columns_to_keep=(..In_List ["A", "B"]) match_columns=Match_Columns.By_Position
         r.should_fail_with Illegal_Argument
 
     group_builder.specify "should use column names from the first table that has enough columns in positional matching mode" <|
@@ -223,10 +223,6 @@ run_union_tests group_builder setup call_union =
         within_table t3 <|
             check t3
         Problems.get_attached_warnings t3 . should_equal [Column_Count_Mismatch.Error 2 1]
-
-        t4 = call_union [t1, t2] match_columns=Match_Columns.By_Position keep_unmatched_columns=True
-        within_table t4 <|
-            check t4
 
         t5 = table_builder [["Y", [7, 8, 9]], ["A", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
         t6 = table_builder [["W", [0]]]
@@ -260,11 +256,13 @@ run_union_tests group_builder setup call_union =
         check_same <| call_union [t1]
         check_same <| call_union [t1] match_columns=Match_Columns.By_Position
 
-        check_same <| call_union [t1] keep_unmatched_columns=False
-        check_same <| call_union [t1] match_columns=Match_Columns.By_Position keep_unmatched_columns=False
+        check_same <| call_union [t1] columns_to_keep=..In_All
+        check_same <| call_union [t1] match_columns=Match_Columns.By_Position columns_to_keep=..In_All
 
-        check_same <| call_union [t1] keep_unmatched_columns=True
-        check_same <| call_union [t1] match_columns=Match_Columns.By_Position keep_unmatched_columns=True
+        check_same <| call_union [t1] columns_to_keep=..In_Any
+        check_same <| call_union [t1] match_columns=Match_Columns.By_Position columns_to_keep=..In_Any
+
+        check_same <| call_union [t1] columns_to_keep=(..In_List ["A"])
 
     group_builder.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
         t1 = (table_builder [["A", ["a", "b", "c"]]]) . cast "A" (Value_Type.Char size=1 variable_length=False)

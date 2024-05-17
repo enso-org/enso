@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.State
 from Standard.Base.Runtime import assert
 
@@ -43,6 +44,7 @@ match_columns tables matching_mode columns_to_keep problem_builder =
 match_columns_by_name tables columns_to_keep problem_builder = case columns_to_keep of
     Columns_To_Keep.In_List output_column_names ->
         column_counts = find_column_counts tables
+        all_tables_count = tables.length
         unmatched_column_names = output_column_names.filter name->
             column_counts.get name 0 < all_tables_count
         if unmatched_column_names.not_empty then
@@ -50,14 +52,14 @@ match_columns_by_name tables columns_to_keep problem_builder = case columns_to_k
         build_column_set_by_name tables output_column_names
     Columns_To_Keep.In_All ->
         column_counts = find_column_counts tables
-
         # This will only include columns that were present in all tables.
+        all_tables_count = tables.length
         common_column_names = tables.first.column_names.filter name->
-            column_counts.at name == tables.length
+            column_counts.at name == all_tables_count
         if common_column_names.is_empty then Error.throw (No_Output_Columns.Error "Unmatched columns are set to be dropped, but no common column names were found.") else
             dropped_column_names = tables.map .column_names
                 . flatten
-                . filter (name-> column_counts.at name < tables.length)
+                . filter (name-> column_counts.at name < all_tables_count)
                 . distinct
             if dropped_column_names.not_empty then
                 problem_builder.report_other_warning (Unmatched_Columns.Error dropped_column_names)
