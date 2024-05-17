@@ -7,8 +7,9 @@ type Text_Cleanse
    Duplicate_Whitespace
    Leading_Whitespace
    Trailing_Whitespace
+   All_Whitespace
    ##
-      All_Whitespace
+      
       Leading_Numbers
       Trailing_Numbers
       Punctuation
@@ -24,6 +25,7 @@ type Text_Cleanse
          Text_Cleanse.Leading_Whitespace -> input.replace "^\s+" ""
          Text_Cleanse.Trailing_Whitespace -> input.replace "\s+$" ""
          Text_Cleanse.Duplicate_Whitespace -> input.replace "(\s)+" "$1"
+         Text_Cleanse.All_Whitespace -> input.replace "\s+" ""
 
 ## PRIVATE 
    Defines the interface for cleansable object.
