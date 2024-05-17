@@ -3011,7 +3011,7 @@ type Table
     from_union : (Vector Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> Table ! No_Output_Columns | Illegal_Argument
     from_union tables:(Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = (tables.map t-> Table.from t)
-        all_tables.if_not_error <|
+        if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
                we only want to add a cause coming from unification; matching reports problems that would not fit this error.
             problem_builder_for_matching = Problem_Builder.new

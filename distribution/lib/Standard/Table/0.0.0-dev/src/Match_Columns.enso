@@ -42,7 +42,8 @@ match_columns tables matching_mode columns_to_keep problem_builder =
 
 ## PRIVATE
 match_columns_by_name tables columns_to_keep problem_builder = case columns_to_keep of
-    Columns_To_Keep.In_List output_column_names ->
+    Columns_To_Keep.In_List list -> if list.is_empty then Error.throw (Illegal_Argument.Error "The list of columns to keep cannot be empty.") else
+        output_column_names = list.distinct
         column_counts = find_column_counts tables
         all_tables_count = tables.length
         unmatched_column_names = output_column_names.filter name->
