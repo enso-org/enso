@@ -325,4 +325,24 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
 
     return new BigDecimalStorage(out, n);
   }
+
+  protected BigDecimalStorage runBigDecimalMap(
+      BigDecimalArrayAdapter a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
+    int n = a.size();
+    BigDecimal[] out = new BigDecimal[n];
+    for (int i = 0; i < n; i++) {
+      BigDecimal x = a.getItem(i);
+      if (x == null || b == null) {
+        out[i] = null;
+      } else {
+        BigDecimal r = doBigDecimal(x, b, i, problemAggregator);
+        out[i] = r;
+      }
+
+      context.safepoint();
+    }
+
+    return new BigDecimalStorage(out, n);
+  }
 }

@@ -59,6 +59,25 @@ public class NumericConverter {
     }
   }
 
+  /**
+   * Coerces a number to a BigDecimal.
+   *
+   * <p>Will throw an exception if the object is not a number.
+   */
+  public static BigDecimal coerceToBigDecimal(Object o) {
+    return switch (o) {
+      case Double x -> BigDecimal.valueOf(x);
+      case BigDecimal x -> x;
+      case Float x -> BigDecimal.valueOf(x);
+      case BigInteger x -> new BigDecimal(x);
+      case Long x -> BigDecimal.valueOf(x);
+      case Integer x -> BigDecimal.valueOf(x);
+      case Short x -> BigDecimal.valueOf(x);
+      case Byte x -> BigDecimal.valueOf(x);
+      default -> throw new UnsupportedOperationException("Cannot coerce " + o + " to a BigDecimal.");
+    };
+  }
+
   /** Returns true if the object is any supported number. */
   public static boolean isCoercibleToDouble(Object o) {
     return isFloatLike(o)|| isCoercibleToLong(o) || o instanceof BigInteger;

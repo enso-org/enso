@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.BigDecimalPowerOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.BigDecimalDivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
@@ -27,13 +27,17 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
     super(data, size, buildOps());
   }
 
+  public static BigDecimalStorage makeEmpty(int size) {
+    return new BigDecimalStorage(new BigDecimal[size], size);
+  }
+
   private static MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> buildOps() {
     MapOperationStorage<BigDecimal, SpecializedStorage<BigDecimal>> ops =
         ObjectStorage.buildObjectOps();
     return ops.add(new AddOp<>())
         .add(new SubOp<>())
         .add(new MulOp<>())
-        .add(new DivideOp<>())
+        .add(new BigDecimalDivideOp<>())
         .add(new BigDecimalPowerOp())
         .add(new ModOp<>())
         .add(new LessComparison<>())
