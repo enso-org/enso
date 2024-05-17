@@ -15,8 +15,7 @@ type Text_Cleanse
    Letters
    Numbers
    Punctuation
-   ## 
-     Symbols
+   Symbols
 
    ## Apply the cleanse operation to the text.
    apply self input:Cleansable_Text -> Any =
@@ -32,8 +31,7 @@ type Text_Cleanse
          Text_Cleanse.Letters -> input.replace "[a-zA-Z]" ""
          Text_Cleanse.Numbers -> input.replace "\d" ""
          Text_Cleanse.Punctuation -> input.replace '[,.!?():;\'\"]' ""
-         ##
-           Text_Cleanse.Symbols -> input.replace "[^\w\s]" ""
+         Text_Cleanse.Symbols -> input.replace "[^a-zA-Z\d\s]" ""
 
 ## PRIVATE 
    Defines the interface for cleansable object.
@@ -71,6 +69,7 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value that
       - ..Letters: Removes all letters from the string.
       - ..Numbers: Removes all numbers characters from the string.
       - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+      - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
 
    > Example
    Remove leading and trailing spaces from text.

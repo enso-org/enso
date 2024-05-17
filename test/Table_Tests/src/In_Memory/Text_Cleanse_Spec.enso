@@ -75,6 +75,10 @@ add_specs suite_builder =
             test_col_with_punctuation = Column.from_vector "Test" ['Hello, World!', 'How are you?', ',.!?():;\'"']
             res = test_col_with_punctuation.text_cleanse [Text_Cleanse.Punctuation]
             res.should_equal (Column.from_vector "Test" ["Hello World", "How are you", ""])
+        group_builder.specify "should remove symbols" <|
+            test_col_with_symbols = Column.from_vector "Test" ['Hello, World123!', 'How_are_you?', ',.!?():;\'"', '🥇🕒🕒']
+            res = test_col_with_symbols.text_cleanse [Text_Cleanse.Symbols]
+            res.should_equal (Column.from_vector "Test" ["Hello World123", "Howareyou", "", ""])
         group_builder.specify "should error if applied to non-text column" <|
             test_col_num = Column.from_vector "Test" [1, 2, 3, 4]
             test_col_num.text_cleanse [Text_Cleanse.Numbers] . should_fail_with Invalid_Value_Type
@@ -142,6 +146,10 @@ add_specs suite_builder =
             input5 = 'Hello, World! How are you? ,.!?():;\'\"'
             res5 = input5.cleanse [Text_Cleanse.Punctuation]
             res5.should_equal "Hello World How are you "
+        group_builder.specify "should remove symbols" <|
+            input6 = 'Hello, World123! How_are_you? ,.!?():;\'" 🥇🕒🕒'
+            res6 = input6.cleanse [Text_Cleanse.Symbols]
+            res6.should_equal "Hello World123 Howareyou "
         group_builder.specify "should apply the operations in order" <|
             input3 = "  11String with Leading Spaces then Leading Numbers"
             res1 = input3.cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
