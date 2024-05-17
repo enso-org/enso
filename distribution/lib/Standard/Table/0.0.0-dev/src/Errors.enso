@@ -524,6 +524,13 @@ type No_Common_Type
         suffix_mixed = " If you want to have mixed types instead, please cast one of the columns to `Mixed` beforehand."
         prefix + location + suffix_type + suffix_mixed
 
+    ## PRIVATE
+    to_text self -> Text =
+        ctor = case self of
+            No_Common_Type.Error -> "Error"
+            No_Common_Type.Warning -> "Warning"
+        "No_Common_Type."+ctor+" "+self.types.to_text+" "+self.related_column_name.to_text
+
 type Unmatched_Columns
     ## PRIVATE
 

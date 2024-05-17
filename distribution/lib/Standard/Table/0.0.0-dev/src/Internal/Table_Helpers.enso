@@ -528,23 +528,6 @@ is_column obj =
     known_types.contains (Meta.get_qualified_type_name obj)
 
 ## PRIVATE
-   A helper method that resolves what should be the result type of a particular
-   column set based on the union settings.
-
-   It will return `Nothing` for a column set that contains no columns
-   (this is possible of a requested column name from `In_List` has no matches).
-unify_result_type_for_union column_set all_tables problem_builder =
-    columns = column_set.resolve_columns all_tables
-        . filter Filter_Condition.Not_Nothing
-    types = columns.map .value_type
-    if types.is_empty then Nothing else
-        common_type = Value_Type_Helpers.find_common_type types strict=True
-        if common_type.is_nothing.not then common_type else
-            # If no common type was found for the columns, we report a problem and convert everything to text.
-            problem_builder.report_other_warning (No_Common_Type.Error types related_column_name=column_set.name)
-            Value_Type.Char
-
-## PRIVATE
    Replace a set of columns in the table with a new set of columns. The old
    columns must all exist in the table, and the list of new columns must be the
    same length and have the same names.

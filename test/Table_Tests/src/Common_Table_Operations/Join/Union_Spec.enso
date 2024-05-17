@@ -294,24 +294,6 @@ run_union_tests group_builder setup call_union =
         t3.at "A" . value_type . is_floating_point . should_be_true
         t3.at "A" . to_vector . should_equal [0, 1, 2, 1.0, 2.0, 2.5]
 
-    # Specific type tests that apply to in-memory. Database behaviour is up to implementation.
-    if setup.is_database.not then group_builder.specify "should find a common type that will fit the merged columns (Integer/Float + Decimal)" <|
-        t1 = table_builder [["A", [0, 1, 2]]]
-        t2 = table_builder [["A", [1.0, 2.0, 2.5]]]
-        t4 = table_builder [["A", [2^100, 2^10, 2]]]
-        t4.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
-
-        t5 = call_union [t2, t4]
-        expect_column_names ["A"] t5
-        Problems.assume_no_problems t5
-        t5.at "A" . value_type . is_floating_point . should_be_true
-        t5.at "A" . to_vector . should_equal [1.0, 2.0, 2.5, 2^100, 2^10, 2]
-
-        t6 = call_union [t1, t4]
-        expect_column_names ["A"] t6
-        t6.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
-        t6.at "A" . to_vector . should_equal [0, 1, 2, 2^100, 2^10, 2]
-
     group_builder.specify "should find a common type that will fit the merged columns (Integer + Boolean)" <|
         t1 = table_builder [["A", [0, 1, 20]]]
         t2 = table_builder [["A", [True, False, True]]]

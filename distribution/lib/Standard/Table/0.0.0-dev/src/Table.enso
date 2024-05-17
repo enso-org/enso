@@ -51,6 +51,7 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
@@ -3019,11 +3020,17 @@ type Table
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
-                case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
-                    Nothing ->
-                        Column.from_repeated_item column_set.name Nothing result_row_count
-                    result_type : Value_Type ->
-                        concat_columns column_set all_tables result_type result_row_count on_problems
+                columns = column_set.resolve_columns all_tables
+                    . filter Filter_Condition.Not_Nothing
+                types = columns.map .value_type
+                if types.is_empty then Column.from_repeated_item column_set.name Nothing result_row_count else
+                    common_type = Value_Type_Helpers.find_common_type types strict=True
+                    case common_type of
+                        Nothing ->
+                            problem_builder_for_unification.report_other_warning (No_Common_Type.Warning types related_column_name=column_set.name)
+                            concat_columns column_set all_tables Value_Type.Char result_row_count needs_cast=True on_problems
+                        _ : Value_Type ->
+                            concat_columns column_set all_tables common_type result_row_count needs_cast=False on_problems
             problem_builder_for_matching.attach_problems_before on_problems <|
                 problem_builder_for_unification.attach_problems_before on_problems <|
                     if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
@@ -3046,7 +3053,7 @@ make_join_helpers left_table right_table =
 
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.
-concat_columns column_set all_tables result_type result_row_count on_problems =
+concat_columns column_set all_tables result_type result_row_count needs_cast on_problems =
     Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
         storage_builder = make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
         column_set.column_indices.zip all_tables i-> parent_table->
@@ -3055,7 +3062,9 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
                     null_row_count = parent_table.row_count
                     storage_builder.appendNulls null_row_count
                 _ : Integer ->
-                    storage = parent_table.at i . java_column . getStorage
+                    column = parent_table.at i
+                    converted = if needs_cast then column.cast result_type on_problems=Report_Error else column
+                    storage = converted.java_column.getStorage
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal
         Column.from_storage column_set.name sealed_storage
