@@ -3009,7 +3009,7 @@ type Table
          the order they appear in the input.
     @columns_to_keep Columns_To_Keep.default_widget
     from_union : (Vector Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> Table ! No_Output_Columns | Illegal_Argument
-    from_union tables:(Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
+    from_union (tables : Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = (tables.map t-> Table.from t)
         if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
@@ -3020,14 +3020,14 @@ type Table
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
                 case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
-                    Nothing -> Nothing
+                    Nothing ->
+                        Column.from_repeated_item column_set.name Nothing result_row_count
                     result_type : Value_Type ->
                         concat_columns column_set all_tables result_type result_row_count on_problems
-            good_columns = merged_columns.filter Filter_Condition.Not_Nothing
             problem_builder_for_matching.attach_problems_before on_problems <|
                 problem_builder_for_unification.attach_problems_before on_problems <|
-                    if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
-                        Table.new good_columns
+                    if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                        Table.new merged_columns
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.

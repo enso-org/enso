@@ -171,22 +171,21 @@ public class Column {
 
     Object converted = Polyglot_Utils.convertPolyglotValue(item);
 
-    Builder builder;
     if (converted == null) {
-      builder = new MixedBuilder(repeat);
+      Builder builder = new MixedBuilder(repeat);
+      builder.appendNulls(repeat);
+      return new Column(name, builder.seal());
     } else {
       StorageType storageType = StorageType.forBoxedItem(converted);
-      builder = Builder.getForType(storageType, repeat, problemAggregator);
+      Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
+      Context context = Context.getCurrent();
+      for (int i = 0; i < repeat; i++) {
+        builder.appendNoGrow(converted);
+        context.safepoint();
+      }
+
+      return new Column(name, builder.seal());
     }
-
-    Context context = Context.getCurrent();
-
-    for (int i = 0; i < repeat; i++) {
-      builder.appendNoGrow(converted);
-      context.safepoint();
-    }
-
-    return new Column(name, builder.seal());
   }
 
   /**

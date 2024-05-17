@@ -530,32 +530,19 @@ is_column obj =
 ## PRIVATE
    A helper method that resolves what should be the result type of a particular
    column set based on the union settings.
+
+   It will return `Nothing` for a column set that contains no columns
+   (this is possible of a requested column name from `In_List` has no matches).
 unify_result_type_for_union column_set all_tables problem_builder =
-    # TODO remove `allow_type_widening`
-    allow_type_widening = True
     columns = column_set.resolve_columns all_tables
-    case allow_type_widening of
-        True ->
-            types = columns.filter Filter_Condition.Not_Nothing . map .value_type
-            common_type = Value_Type_Helpers.find_common_type types strict=True
-            if common_type.is_nothing then
-                problem_builder.report_other_warning (No_Common_Type.Error types related_column_name=column_set.name)
-            common_type
-        False ->
-            is_not_nothing c = case c of
-                Nothing -> False
-                _ -> True
-            first_column = columns.find is_not_nothing
-            first_type = first_column.value_type
-            if first_type == Value_Type.Mixed then Value_Type.Mixed else
-                first_wrong_column = columns.find if_missing=Nothing col->
-                    is_not_nothing col && col.value_type != first_type
-                case first_wrong_column of
-                    Nothing -> first_type
-                    _ ->
-                        got_type = first_wrong_column.value_type
-                        problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name first_type got_type)
-                        Nothing
+        . filter Filter_Condition.Not_Nothing
+    types = columns.map .value_type
+    if types.is_empty then Nothing else
+        common_type = Value_Type_Helpers.find_common_type types strict=True
+        if common_type.is_nothing.not then common_type else
+            # If no common type was found for the columns, we report a problem and convert everything to text.
+            problem_builder.report_other_warning (No_Common_Type.Error types related_column_name=column_set.name)
+            Value_Type.Char
 
 ## PRIVATE
    Replace a set of columns in the table with a new set of columns. The old

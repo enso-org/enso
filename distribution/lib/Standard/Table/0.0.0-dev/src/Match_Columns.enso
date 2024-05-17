@@ -107,11 +107,11 @@ match_columns_by_position tables columns_to_keep problem_builder = case columns_
             Columns_To_Keep.In_Any_Warn_On_Missing -> max
         has_unmatched_columns = min != max
         if has_unmatched_columns then
-            # TODO should we rephrase the wording of the error? should it depend on In_Any_Warn_On_Missing vs In_All?
             should_report_unmatched = case columns_to_keep of
                 Columns_To_Keep.In_All -> True
                 Columns_To_Keep.In_Any -> False
                 Columns_To_Keep.In_Any_Warn_On_Missing -> True
+            # TODO should we rephrase the wording of the error? should it depend on In_Any_Warn_On_Missing vs In_All?
             if should_report_unmatched then
                 problem_builder.report_other_warning (Column_Count_Mismatch.Error max min)
 
