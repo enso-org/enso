@@ -20,8 +20,9 @@ type Cleansable_Text
    Value backer
 
    ## PRIVATE
-   replace self pattern:Text replace_with:Text -> Column =
-      (self.backer.text_replace (regex pattern) replace_with).rename self.backer.name
+   replace self pattern:Text replace_with:Text -> Any =
+      case self.backer of 
+         _ : Column -> (self.backer.text_replace (regex pattern) replace_with).rename self.backer.name
 
    ## PRIVATE
       Cleansable_Text.from (that:Text) = Cleansable_Text.Value that
