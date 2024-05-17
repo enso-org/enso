@@ -15,6 +15,7 @@ import java.util.Set;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.polyglot.TopScope;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.Matcher;
 import org.junit.Rule;
@@ -68,20 +69,7 @@ public class ExtensionMethodResolutionTest extends TestBase {
     var projDir = createProject("Proj", mainSrc, tempFolder);
     var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
     Files.writeString(modSrcFile, modSrc);
-    try {
-      String[] ret = new String[] {""};
-      testProjectRun(
-          projDir,
-          (res) -> {
-            ret[0] = res.asString();
-          });
-      fail("Expected compilation error during first run, instead got: " + ret[0]);
-    } catch (PolyglotException e) {
-      assertThat(
-          "Not_Invokable is not a proper error message for this case",
-          e.getMessage(),
-          not(containsString("Not_Invokable")));
-    }
+    expectRuntimeError(projDir, not(containsString("Not_Invokable")));
   }
 
   @Test
@@ -99,13 +87,15 @@ public class ExtensionMethodResolutionTest extends TestBase {
         # Make sure we import also the extension method from Mod
         from project.Mod import all
         T.foo x y = x + y
+        main = 42
         """;
     var projDir = createProject("Proj", mainSrc, tempFolder);
     var tSrcFile = projDir.resolve("src").resolve("T.enso");
     Files.writeString(tSrcFile, tSrc);
     var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
     Files.writeString(modSrcFile, modSrc);
-    testProjectCompilationFailure(projDir, methodsOverloadErrorMessageMatcher);
+    expectRuntimeError(projDir,
+        allOf(containsString("Method"), containsString("already defined")));
   }
 
   @Test
@@ -118,9 +108,11 @@ public class ExtensionMethodResolutionTest extends TestBase {
     var mainSrc = """
         from local.Lib import T
         T.foo x y = x + y
+        main = 42
         """;
     var mainProjDir = createProject("Main", mainSrc, tempFolder);
-    testProjectCompilationFailure(mainProjDir, methodsOverloadErrorMessageMatcher);
+    expectRuntimeError(mainProjDir,
+        allOf(containsString("Method"), containsString("already defined")));
   }
 
   @Test
@@ -217,6 +209,21 @@ public class ExtensionMethodResolutionTest extends TestBase {
         });
   }
 
+  private void expectRuntimeError(Path projDir,
+      Matcher<String> runtimeErrMsgMatcher) {
+    try {
+      String[] ret = new String[1];
+      testProjectRun(
+          projDir,
+          (res) -> ret[0] = res.toString());
+      fail("Expected runtime error during first run, instead got: " + ret[0]);
+    } catch (PolyglotException e) {
+      assertThat(
+          e.getMessage(),
+          runtimeErrMsgMatcher);
+    }
+  }
+
   private void testProjectCompilationFailure(String mainSrc, Matcher<String> errorMessageMatcher)
       throws IOException {
     var projDir = createProject("Proj", mainSrc, tempFolder);
@@ -235,8 +242,9 @@ public class ExtensionMethodResolutionTest extends TestBase {
             .err(out)
             .build()) {
       var polyCtx = new PolyglotContext(ctx);
+      TopScope topScope = polyCtx.getTopScope();
       try {
-        polyCtx.getTopScope().compile(true);
+        topScope.compile(true);
         fail("Expected compilation error: " + out);
       } catch (PolyglotException e) {
         assertThat(e.isSyntaxError(), is(true));
