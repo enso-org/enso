@@ -16,7 +16,7 @@ import * as varants from './variants'
 const CONTENT_EDITABLE_STYLES = twv.tv({
   extend: varants.INPUT_STYLES,
   base: '',
-  slots: { placeholder: 'text-primary/25 absolute inset-0' },
+  slots: { placeholder: 'text-primary/25 absolute inset-0 pointer-events-none' },
 })
 
 /**
@@ -70,8 +70,6 @@ export const ResizableContentEditableInput = React.forwardRef(
         document.execCommand('insertHTML', false, text)
       }
     )
-
-    React.useLayoutEffect(() => {}, [value])
 
     const {
       base,

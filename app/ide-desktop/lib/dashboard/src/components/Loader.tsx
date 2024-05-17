@@ -11,14 +11,14 @@ import Spinner, * as spinnerModule from '#/components/Spinner'
  */
 export interface LoaderProps extends twv.VariantProps<typeof STYLES> {
   readonly className?: string
-  readonly size?: Sizes | number
+  readonly size?: Size | number
   readonly state?: spinnerModule.SpinnerState
 }
 
 /**
  * The possible sizes for a {@link Loader}.
  */
-export type Sizes = 'large' | 'medium' | 'small'
+export type Size = 'large' | 'medium' | 'small'
 
 const STYLES = twv.tv({
   base: 'animate-appear-delayed flex h-full w-full items-center justify-center duration-200',
@@ -46,7 +46,7 @@ const STYLES = twv.tv({
   },
 })
 
-const SIZE_MAP: Record<Sizes, number> = {
+const SIZE_MAP: Record<Size, number> = {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   large: 64,
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers

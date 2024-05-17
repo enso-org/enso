@@ -255,7 +255,6 @@ export default class RemoteBackend extends Backend {
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
     const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
-
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'inviteUserBackendError', body.userEmail)
     } else {

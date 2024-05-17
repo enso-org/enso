@@ -89,7 +89,7 @@ export const BUTTON_STYLES = twv.tv({
       cancel: 'bg-selected-frame opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       delete: 'bg-delete text-white focus-visible:outline-offset-2',
       icon: {
-        base: 'opacity-70 hover:opacity-100 focus-visible:outline-offset-0',
+        base: 'opacity-70 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-offset-0',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         icon: 'w-fit h-fit',
@@ -119,7 +119,7 @@ export const BUTTON_STYLES = twv.tv({
     loading: false,
     fullWidth: false,
     size: 'xsmall',
-    rounding: 'large',
+    rounded: 'large',
     variant: 'primary',
     iconPosition: 'start',
     showIconOnHover: false,

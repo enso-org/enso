@@ -17,6 +17,13 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 /**
+ * The number of emails to display in the success message.
+ * If the number of emails is greater than this number, the message will be
+ * x emails have been invited instead of listing all the emails.
+ */
+const MANY_EMAILS = 4
+
+/**
  * Props for the InviteUsersSuccess component.
  */
 export interface InviteUsersSuccessProps {
@@ -24,13 +31,6 @@ export interface InviteUsersSuccessProps {
   readonly emails: string[]
   readonly invitationLink: string
 }
-
-/**
- * The number of emails to display in the success message.
- * If the number of emails is greater than this number, the message will be
- * x emails have been invited instead of listing all the emails.
- */
-const MANY_EMAILS = 4
 
 /**
  * Success screen for the invite users modal.
@@ -83,11 +83,7 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
             </ariaComponents.Button>
           )}
 
-          <ariaComponents.Button
-            variant="primary"
-            size={isUserOnMembersPage ? 'medium' : 'medium'}
-            onPress={onClose}
-          >
+          <ariaComponents.Button variant="primary" size="medium" onPress={onClose}>
             {getText('closeModalShortcut')}
           </ariaComponents.Button>
         </ariaComponents.ButtonGroup>

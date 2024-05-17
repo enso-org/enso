@@ -23,7 +23,7 @@ export default function MembersSettingsTabBar() {
           {getText('inviteMembers')}
         </ariaComponents.Button>
 
-        <InviteUsersModal relativeToTrigger />
+        <InviteUsersModal />
       </ariaComponents.DialogTrigger>
     </HorizontalMenuBar>
   )

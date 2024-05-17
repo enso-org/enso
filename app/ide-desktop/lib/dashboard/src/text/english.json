@@ -338,7 +338,7 @@
   "inviteSubmit": "Send invites",
   "inviteEmailFieldPlaceholder": "Enter email addresses",
   "inviteEmailFieldLabel": "Email addresses",
-  "inviteEmailFieldDescription": "Separate multiple email addresses with Spaces.",
+  "inviteEmailFieldDescription": "Separate email addresses with spaces, commas, or semicolons.",
   "inviteManyUsersSuccess": "You've invited $0 users to join Enso!",
   "copyInviteLink": "Copy invite link",
   "clickForNewQuestion": "New question? Click to start a new thread!",
