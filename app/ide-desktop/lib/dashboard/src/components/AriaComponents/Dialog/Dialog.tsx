@@ -119,7 +119,7 @@ export function Dialog(props: types.DialogProps) {
                       <aria.Heading
                         slot="title"
                         level={2}
-                        className="text-m my-0 font-semibold leading-6"
+                        className="my-0 text-base font-semibold leading-6"
                       >
                         {title}
                       </aria.Heading>
