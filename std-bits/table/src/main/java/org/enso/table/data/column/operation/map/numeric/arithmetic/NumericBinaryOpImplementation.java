@@ -84,6 +84,8 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           default -> throw new IllegalStateException(
               "Unsupported storage: " + storage.getClass().getCanonicalName());
         };
+      } else if (arg instanceof BigDecimal bd) {
+          return runBigDecimalMap(BigDecimalArrayAdapter.fromAnyStorage(storage), bd, problemAggregator);
       } else {
         throw new UnexpectedTypeException("a Number.");
       }

@@ -25,6 +25,7 @@ most_specific_value_type : Any -> Boolean -> Value_Type
 most_specific_value_type value use_smallest=False =
     case value of
         _ : Float       -> Value_Type.Float Bits.Bits_64
+        _ : Decimal     -> Value_Type.Decimal
         _ : Boolean     -> Value_Type.Boolean
         _ : Date        -> Value_Type.Date
         _ : Time_Of_Day -> Value_Type.Time

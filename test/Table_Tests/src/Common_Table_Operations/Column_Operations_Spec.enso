@@ -1778,14 +1778,40 @@ add_specs suite_builder setup =
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
-        group_builder.specify "Arithmetic" <|
-            t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123E50"]], ["z", [Decimal.new "125E50"]], ["w", [2]], ["ww", [7513]]]
+        group_builder.specify "arithmetic (column and column)" <|
+            t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123e50"]], ["z", [Decimal.new "125e50"]], ["w", [2]], ["ww", [7513]]]
             (t.at "x" + t.at "y").to_vector . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
             (t.at "x" - t.at "y").to_vector . should_equal [Decimal.new "-12299999999999999999999999999999999999999976742754654.654654655"]
             (t.at "x" * t.at "y").to_vector . should_equal [Decimal.new "2.860641177477477477435E+62"]
             (t.at "x" / t.at "z").to_vector . should_equal [Decimal.new "1.8605796276276276276E-42"]
             (t.at "x" ^ t.at "w").to_vector . should_equal [Decimal.new "540899461053587731859.956601457313169025"]
             (t.at "x" % t.at "ww").to_vector . should_equal [Decimal.new "2545.345345345"]
+
+        group_builder.specify "arithmetic (column and scalar)" <|
+            t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "944548245.68648775"]]]
+
+            (t.at "x" + 10) . to_vector . should_equal [Decimal.new "23257245355.345345345"]
+            (t.at "x" - 10) . to_vector . should_equal [Decimal.new "23257245335.345345345"]
+            (t.at "x" * 10) . to_vector . should_equal [Decimal.new "232572453453.45345345"]
+            (t.at "x" / 10) . to_vector . should_equal [Decimal.new "2325724534.5345345345"]
+            (t.at "x" ^ 2) . to_vector . should_equal [Decimal.new "540899461053587731859.956601457313169025"]
+
+            (t.at "x" + 10.1) . to_vector . should_equal [Decimal.new "23257245355.445345345"]
+            (t.at "x" - 10.1) . to_vector . should_equal [Decimal.new "23257245335.245345345"]
+            (t.at "x" * 10.1) . to_vector . should_equal [Decimal.new "234898177987.9879879845"]
+            (t.at "y" / 16.5) . to_vector . should_equal [Decimal.new "57245348.2234235"]
+            (t.at "x" ^ 2.0) . to_vector . should_equal [Decimal.new "540899461053587731859.956601457313169025"]
+
+            (t.at "x" + 2^80) . to_vector . should_equal [Decimal.new "1208925819614652431951521.345345345"]
+            (t.at "x" - 2^80) . to_vector . should_equal [Decimal.new "-1208925819614605917460830.654654655"]
+            (t.at "x" * 2^80) . to_vector . should_equal [Decimal.new "28116284391100140971590625398136689.624350720"]
+            (t.at "y" / 2^80) . to_vector . should_equal [Decimal.new "0.0000000000000007813119964528366172913694049826337229003314632791443727910518646240234375"]
+
+            (t.at "x" + (Decimal.new "10.1")) . to_vector . should_equal [Decimal.new "23257245355.445345345"]
+            (t.at "x" - (Decimal.new "10.1")) . to_vector . should_equal [Decimal.new "23257245335.245345345"]
+            (t.at "x" * (Decimal.new "10.1")) . to_vector . should_equal [Decimal.new "234898177987.9879879845"]
+            (t.at "y" / (Decimal.new "16.5")) . to_vector . should_equal [Decimal.new "57245348.2234235"]
+            (t.at "x" ^ (Decimal.new "2.0")) . to_vector . should_equal [Decimal.new "540899461518732638866.863508357313169025"]
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
