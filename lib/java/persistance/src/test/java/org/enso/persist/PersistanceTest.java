@@ -1,7 +1,6 @@
 package org.enso.persist;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
@@ -199,7 +198,7 @@ public class PersistanceTest {
     var next = loaded.self.get(SelfLoop.class);
     var next2 = next.self.get(SelfLoop.class);
     assertSame("The recreated object again points to itself", next, next2);
-    assertFalse("The loaded and next reference aren't shared yet", loaded == next);
+    assertSame("The recreated object again points to itself", loaded, next);
   }
 
   @Persistable(id = 432439)
@@ -239,9 +238,7 @@ public class PersistanceTest {
     var r3 = r2.y().get(LongerLoop3.class);
     var r1 = r3.y().get(LongerLoop1.class);
 
-    assertFalse(
-        "Currently the loaded1 reference isn't shared with r3.y() reference", loaded1 == r1);
-    // assertSame("The recreated structure contains the loop", loaded1, r1);
+    assertSame("The recreated structure contains the loop", loaded1, r1);
 
     var current = r1;
     for (var i = 0; i < 10; i++) {

@@ -49,7 +49,7 @@ final class PerInputImpl implements Input {
       refs[i] = buf.getInt();
     }
     var cache = new InputCache(buf, readResolve, map, refs);
-    return PerBufferReference.from(cache, refs[0]);
+    return cache.getRef(0);
   }
 
   @Override
@@ -268,7 +268,11 @@ final class PerInputImpl implements Input {
       this.map = map;
       this.refs = new Reference[refs.length];
       for (var i = 0; i < refs.length; i++) {
-        this.refs[i] = PerBufferReference.cached(null, this, refs[i]);
+        if (refs[i] < 0) {
+          this.refs[i] = this.refs[0];
+        } else {
+          this.refs[i] = PerBufferReference.cached(null, this, refs[i]);
+        }
       }
     }
 

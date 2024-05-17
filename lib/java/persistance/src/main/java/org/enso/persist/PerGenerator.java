@@ -149,8 +149,12 @@ final class PerGenerator {
           });
       pendingReferences.clear();
       for (var entry : round) {
-        var at = writeObject(entry.getKey());
         count++;
+        if (obj == entry.getKey()) {
+          refsData.writeInt(-1);
+          continue;
+        }
+        var at = writeObject(entry.getKey());
         assert count == entry.getValue() : "Expecting " + count + " got " + entry.getValue();
         refsData.writeInt(at);
       }
