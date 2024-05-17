@@ -1465,7 +1465,27 @@ type Column
 
     ## GROUP Standard.Base.Text
        ICON dataframe_map_column
-       TODO: Add description
+       Removes the specified cleansings from the text in each row.
+
+       Arguments:
+       - remove: A vector of the text cleanings to remove from the text. The text cleansing are 
+          applied in the order they are provided. The same text cleansing can be used multiple
+          times. The text cleansings are:
+            - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+            - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+            - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+            - ..All_Whitespace: Removes all whitspace from the string.
+            - ..Leading_Numbers: Removes all numbers from the start of the string.
+            - ..Trailing_Numbers: Removes all numbers from the end of the string.
+            - ..Non_ASCII: Removes all non-ascii characters from the string.
+            - ..Tabs: Removes all tab characters from the string.
+            - ..Letters: Removes all letters from the string.
+            - ..Numbers: Removes all numbers characters from the string.
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove Widget_Helpers.make_data_cleanse_vector_selector
     text_cleanse : Vector Text_Cleanse -> Column
     text_cleanse self remove =

@@ -2869,6 +2869,38 @@ type Table
         transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
+    ## GROUP Standard.Base.Text
+       ICON dataframe_map_column 
+       Removes the specified cleansings from the text in each
+       row of the specified columns
+
+        Arguments:
+        - remove: A vector of the text cleanings to remove from the text. The text cleansing are 
+            applied in the order they are provided. The same text cleansing can be used multiple
+            times. The text cleansings are:
+              - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+              - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+              - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+              - ..All_Whitespace: Removes all whitspace from the string.
+              - ..Leading_Numbers: Removes all numbers from the start of the string.
+              - ..Trailing_Numbers: Removes all numbers from the end of the string.
+              - ..Non_ASCII: Removes all non-ascii characters from the string.
+              - ..Tabs: Removes all tab characters from the string.
+              - ..Letters: Removes all letters from the string.
+              - ..Numbers: Removes all numbers characters from the string.
+        - from: The column(s) to cleanse.
+
+        > Example
+          Remove leading and trailing spaces from cells.
+
+              table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+    @remove Widget_Helpers.make_data_cleanse_vector_selector
+    @from Widget_Helpers.make_column_name_multi_selector
+    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> Table
+    text_cleanse self remove from =
+        transformer col = col.text_cleanse remove
+        Table_Helpers.replace_columns_with_transformed_columns self from transformer
+
     ## ALIAS cumulative
        GROUP Standard.Base.Values
        ICON dataframe_map_column
@@ -3021,14 +3053,6 @@ type Table
                 problem_builder_for_unification.attach_problems_before on_problems <|
                     if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
                         Table.new good_columns
-
-    @remove Widget_Helpers.make_data_cleanse_vector_selector
-    @from Widget_Helpers.make_column_name_multi_selector
-    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> Table
-    text_cleanse self remove from =
-        transformer col = col.text_cleanse remove
-        Table_Helpers.replace_columns_with_transformed_columns self from transformer
-        
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
