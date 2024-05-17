@@ -58,6 +58,17 @@ add_specs suite_builder =
             expected_col = Column.from_vector "Test" ["  It was the ", "of  s", "  it was  the    of  s  "]
             res = test_col_with_non_ascii_chars.text_cleanse [Text_Cleanse.Non_ASCII]
             res.should_equal expected_col
+        group_builder.specify "should apply the operations in order" <|
+            test_col_with_mixed_chars = Column.from_vector "Test" ["  11String with Leading Spaces then Leading Numbers", "22  String with Leading Numbers then Leading Spaces"]
+            res1 = test_col_with_mixed_chars.text_cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
+            res2 = test_col_with_mixed_chars.text_cleanse [Text_Cleanse.Leading_Numbers, Text_Cleanse.Leading_Whitespace]
+            res3 = test_col_with_mixed_chars.text_cleanse [Text_Cleanse.Leading_Numbers, Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
+            expected_col1 = Column.from_vector "Test" ["String with Leading Spaces then Leading Numbers", "  String with Leading Numbers then Leading Spaces"]
+            expected_col2 = Column.from_vector "Test" ["11String with Leading Spaces then Leading Numbers", "String with Leading Numbers then Leading Spaces"]
+            expected_col3 = Column.from_vector "Test" ["String with Leading Spaces then Leading Numbers", "String with Leading Numbers then Leading Spaces"]
+            res1.should_equal expected_col1
+            res2.should_equal expected_col2
+            res3.should_equal expected_col3
     suite_builder.group "Text Cleanse" group_builder->
         input = "  It was the best  of  times  it was  the  worst  of  times  "
         group_builder.specify "should remove leading whitespace" <|
@@ -94,6 +105,12 @@ add_specs suite_builder =
             expected = "  It was the   of  s  it was  the  worst  of  s  "
             res = input_with_non_ascii_chars.cleanse [Text_Cleanse.Non_ASCII]
             res.should_equal expected
+        group_builder.specify "should apply the operations in order" <|
+            input3 = "  11String with Leading Spaces then Leading Numbers"
+            res1 = input3.cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
+            res2 = input3.cleanse [Text_Cleanse.Leading_Numbers, Text_Cleanse.Leading_Whitespace]
+            res1.should_equal "String with Leading Spaces then Leading Numbers"
+            res2.should_equal "11String with Leading Spaces then Leading Numbers"
     suite_builder.group "Table Text Cleanse" group_builder->
         flight = ["Flight", [" BA0123", "BA0123 ", "  SG0456  ", "BA  0123", " S G 0 4 5 6 "]]
         passenger = ["Passenger", ["   Albert Einstein", "Marie Curie   ", "   Isaac Newton   ", "Stephen   Hawking", " A d a Lovelace "]]
