@@ -246,13 +246,13 @@ const transform = computed(() => {
 })
 
 const startEpochMs = ref(0)
-let significantMove = false
+const significantMove = ref(false)
 
 const dragPointer = usePointer(
   (pos, event, type) => {
     if (type !== 'start') {
       if (
-        !significantMove &&
+        !significantMove.value &&
         (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
           pos.relative.lengthSquared() >= MAXIMUM_CLICK_DISTANCE_SQ)
       ) {
@@ -260,7 +260,7 @@ const dragPointer = usePointer(
         // prevent `click` on widgets.
         if (event.currentTarget instanceof Element)
           event.currentTarget.setPointerCapture?.(event.pointerId)
-        significantMove = true
+        significantMove.value = true
       }
       const fullOffset = pos.relative
       emit('dragging', fullOffset)
@@ -268,7 +268,7 @@ const dragPointer = usePointer(
     switch (type) {
       case 'start':
         startEpochMs.value = Number(new Date())
-        significantMove = false
+        significantMove.value = false
         break
       case 'stop': {
         startEpochMs.value = 0
@@ -280,6 +280,7 @@ const dragPointer = usePointer(
   // is not going to be a node drag.
   { pointerCapturedBy: 'target' },
 )
+const isDragged = computed(() => dragPointer.dragging && significantMove)
 
 const isRecordingOverridden = computed({
   get() {
@@ -371,13 +372,13 @@ const handlePortClick = useDoubleClick(
 
 const handleNodeClick = useDoubleClick(
   (e: MouseEvent) => {
-    if (!significantMove) {
+    if (!significantMove.value) {
       nodeSelection?.handleSelectionOf(e, new Set([nodeId.value]))
       nodeEditHandler(e)
     }
   },
   () => {
-    if (!significantMove) emit('doubleClick')
+    if (!significantMove.value) emit('doubleClick')
   },
 ).handleClick
 
@@ -475,7 +476,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator"
-        :class="dragPointer.dragging ? 'dragged' : 'draggable'"
+        :class="{ dragged: isDragged }"
         :nodePosition="props.node.position"
         :nodeSize="nodeSize"
         :selected
@@ -542,8 +543,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
     <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
     <div
       ref="contentNode"
-      class="content"
-      :class="dragPointer.dragging ? 'dragged' : 'draggable'"
+      :class="{ content: true, dragged: isDragged }"
       v-on="dragPointer.events"
       @click="handleNodeClick"
     >

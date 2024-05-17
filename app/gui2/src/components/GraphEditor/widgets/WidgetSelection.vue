@@ -406,6 +406,7 @@ declare module '@/providers/widgetRegistry' {
   align-items: center;
   position: relative;
   min-height: var(--node-port-height);
+  cursor: pointer;
 }
 
 .arrow {
