@@ -8,7 +8,7 @@ import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
@@ -18,11 +18,6 @@ const props = defineProps<{
   /** If true, the visualization should display below the toolbar buttons. */
   belowToolbar?: boolean
 }>()
-
-/** The minimum width must be at least the total width of:
- * - both of toolbars that are always visible (32px + 60px), and
- * - the 4px flex gap between the toolbars. */
-const MIN_WIDTH_PX = 200
 
 const config = useVisualizationConfig()
 
@@ -53,17 +48,17 @@ function blur(event: Event) {
 
 const contentNode = ref<HTMLElement>()
 
-onMounted(() => (config.width = MIN_WIDTH_PX))
-
 function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
 }
 
 const realSize = useResizeObserver(contentNode)
 
+// Because ResizeHandles are applying the screen mouse movements, the bouds must be in `screen`
+// space.
 const clientBounds = computed({
   get() {
-    return new Rect(Vec2.Zero, realSize.value)
+    return new Rect(Vec2.Zero, realSize.value.scale(config.scale))
   },
   set(value) {
     if (resizing.left || resizing.right) config.width = value.width / config.scale

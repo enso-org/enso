@@ -1,4 +1,4 @@
-import { ensoColor, formatCssColor } from '@/util/colors'
+import { ensoColor, formatCssColor, normalizeHue } from '@/util/colors'
 import { Resumable } from 'shared/util/data/iterable'
 
 export interface FixedRange {
@@ -19,10 +19,6 @@ function normalizeRangeInputs(inputs: Iterable<number>, radius: number) {
   sortedInputs.forEach((value) => normalizedInputs.add(value))
   if (firstInput != null && firstInput < radius) normalizedInputs.add(firstInput + 1)
   return normalizedInputs
-}
-
-export function normalizeHue(value: number) {
-  return ((value % 1) + 1) % 1
 }
 
 export function seminormalizeHue(value: number) {

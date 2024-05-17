@@ -15,9 +15,10 @@ import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import type { ToValue } from '@/util/reactivity'
 import { assert, assertNever } from 'shared/util/assert'
 import { mustExtend } from 'shared/util/types'
-import { toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
+import { toValue } from 'vue'
 
 export type NodeCreation = ReturnType<typeof useNodeCreation>
 
@@ -48,8 +49,6 @@ export interface NodeCreationOptions<Placement extends PlacementStrategy = Place
   metadata?: Ast.NodeMetadataFields | undefined
   requiredImports?: RequiredImport[] | undefined
 }
-
-type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
 
 export function useNodeCreation(
   viewport: ToValue<GraphNavigator['viewport']>,

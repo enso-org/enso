@@ -11,6 +11,8 @@ import {
   queuePostFlushCb,
   shallowRef,
   watch,
+  type ComputedRef,
+  type MaybeRefOrGetter,
   type Ref,
   type WatchSource,
 } from 'vue'
@@ -157,3 +159,6 @@ export function syncSet<T>(target: Set<T>, newState: Set<T>) {
   for (const oldKey of target) if (!newState.has(oldKey)) target.delete(oldKey)
   for (const newKey of newState) if (!target.has(newKey)) target.add(newKey)
 }
+
+/** Type of the parameter of `toValue`. */
+export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>

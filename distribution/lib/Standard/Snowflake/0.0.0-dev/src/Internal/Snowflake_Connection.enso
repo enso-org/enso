@@ -6,6 +6,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
 from Standard.Table import Table
+import Standard.Table.Rows_To_Read.Rows_To_Read
 
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
@@ -185,9 +186,6 @@ type Snowflake_Connection
          If supplied as `Text`, the name is checked against the `tables` list to
          determine if it is a table or a query.
        - limit: the maximum number of rows to read.
-         If set to `Nothing`, all rows will be returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `limit`.
 
        ? Side Effects
 
@@ -197,9 +195,10 @@ type Snowflake_Connection
          `execute_update` for DML queries, or if they are supposed to return
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Table ! Table_Not_Found
-    read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
-        self.connection.read query limit warn_if_more_rows
+    @limit Rows_To_Read.default_widget
+    read : Text | SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.connection.read query limit
 
     ## GROUP Standard.Base.Output
        ICON data_output

@@ -566,6 +566,7 @@ const handler = componentBrowserBindings.handler({
         :isFullscreen="false"
         :isFocused="true"
         :width="null"
+        :height="null"
         :dataSource="previewDataSource"
         :typename="previewedSuggestionReturnType"
         :currentType="previewedVisualizationId"
