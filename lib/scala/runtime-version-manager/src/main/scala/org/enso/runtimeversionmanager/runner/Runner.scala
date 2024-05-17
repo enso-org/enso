@@ -222,7 +222,11 @@ class Runner(
         else Seq()
 
       val command = Seq(javaCommand.executableName) ++
-        jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
+        Seq(
+          "-XX:ActiveProcessorCount=2",
+          "-Xmx8192m"
+          //"-agentlib:jdwp=transport=dt_socket,server=y,address=localhost:5005,suspend=y"
+        ) ++ jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
       val distributionSettings =
         distributionManager.getEnvironmentToInheritSettings

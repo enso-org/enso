@@ -42,25 +42,34 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     var logger = ctx.executionService().getLogger();
-    ctx.jobControlPlane().abortJobs(contextId);
     var contextLockTimestamp = ctx.locking().acquireContextLock(contextId);
+
     try {
-      var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
-      try {
-        Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
-        ctx.executionService()
-            .getContext()
-            .setExecutionEnvironment(ExecutionEnvironment.forName(executionEnvironment.name()));
-        CacheInvalidation.invalidateAll(stack);
-        ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
-        reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
-      } finally {
-        ctx.locking().releaseWriteCompilationLock();
+      var oldEnvironment = ctx.executionService().getContext().getExecutionEnvironment();
+      if (!oldEnvironment.getName().equals(executionEnvironment.name())) {
+        ctx.jobControlPlane().abortJobs(contextId);
+        var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
+        try {
+          Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
+          ctx.executionService()
+              .getContext()
+              .setExecutionEnvironment(ExecutionEnvironment.forName(executionEnvironment.name()));
+          CacheInvalidation.invalidateAll(stack);
+          ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
+          reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
+        } finally {
+          ctx.locking().releaseWriteCompilationLock();
+          logger.log(
+              Level.FINEST,
+              "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
+                  + (System.currentTimeMillis() - writeLockTimestamp)
+                  + " milliseconds");
+        }
+      } else {
         logger.log(
             Level.FINEST,
-            "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
-                + (System.currentTimeMillis() - writeLockTimestamp)
-                + " milliseconds");
+            "Requested environment is the same as the current one. Request has no effect");
+        reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
       }
     } finally {
       ctx.locking().releaseContextLock(contextId);

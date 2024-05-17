@@ -168,9 +168,12 @@ type JS_Object
             pairs.map pair->
                 case pair.first of
                     text : Text ->
-                        jackson_value_node = to_json_node pair.second.to_js_object
-                        new_object.set text jackson_value_node
-                        builder.append text
+                        ## Ensure that any dataflow errors that could be stored in `pair.second` are propagated.
+                           Potential errors in `pair.first` are propagated thanks to the case-of above.
+                        pair.second.if_not_error <|
+                            jackson_value_node = to_json_node pair.second.to_js_object
+                            new_object.set text jackson_value_node
+                            builder.append text
                     _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
         JS_Object.Value new_object keys
 
