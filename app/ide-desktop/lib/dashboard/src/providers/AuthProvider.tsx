@@ -280,16 +280,6 @@ export default function AuthProvider(props: AuthProviderProps) {
     [onSessionError, /* should never change */ goOffline]
   )
 
-  React.useEffect(() => {
-    const onFetchError = () => {
-      void goOffline()
-    }
-    document.addEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
-    return () => {
-      document.removeEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
-    }
-  }, [/* should never change */ goOffline])
-
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
    * When invoked, retrieves the access token (if available) from the storage method chosen when

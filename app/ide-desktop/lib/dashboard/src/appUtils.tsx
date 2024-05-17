@@ -28,7 +28,6 @@ export const RESET_PASSWORD_PATH = '/password-reset'
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = '/set-username'
 /** Path to the offline mode entrypoint. */
-export const ENTER_OFFLINE_MODE_PATH = '/offline'
 /** Path to page in which the currently active payment plan can be managed. */
 export const SUBSCRIBE_PATH = '/subscribe'
 export const SUBSCRIBE_SUCCESS_PATH = '/subscribe/success'
@@ -36,7 +35,7 @@ export const SUBSCRIBE_SUCCESS_PATH = '/subscribe/success'
 export const ALL_PATHS_REGEX = new RegExp(
   `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
     `${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|${SET_USERNAME_PATH}|${RESTORE_USER_PATH}|` +
-    `${ENTER_OFFLINE_MODE_PATH}|${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH})$`
+    `${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH})$`
 )
 
 // ===========
