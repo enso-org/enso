@@ -196,16 +196,14 @@ public class PersistanceTest {
     obj.self = Persistance.Reference.of(obj);
 
     var loaded = serde(SelfLoop.class, obj, -1);
-    assertSame(
-        "The recreated object again points to itself", loaded, loaded.self.get(SelfLoop.class));
+    var next = loaded.self.get(SelfLoop.class);
+    var next2 = next.self.get(SelfLoop.class);
+    assertSame("The recreated object again points to itself", next, next2);
+    assertFalse("The loaded and next reference aren't shared yet", loaded == next);
   }
 
   @Persistable(id = 432439)
-  public record LongerLoop1(int x, Persistance.Reference<LongerLoop2> y) {
-    public LongerLoop1 {
-      new Exception("x: " + x + " y: " + y).printStackTrace();
-    }
-  }
+  public record LongerLoop1(int x, Persistance.Reference<LongerLoop2> y) {}
 
   @Persistable(id = 432440)
   public record LongerLoop2(Persistance.Reference<LongerLoop3> y) {}
