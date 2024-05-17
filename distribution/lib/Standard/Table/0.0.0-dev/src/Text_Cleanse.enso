@@ -41,10 +41,6 @@ type Cleansable_Text
 ## PRIVATE
 Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (regex pattern) replace_with)
 
-## PRIVATE
-Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)
-
-
 ## GROUP Text
    ICON text
    Removes the specified cleansings from the text.
