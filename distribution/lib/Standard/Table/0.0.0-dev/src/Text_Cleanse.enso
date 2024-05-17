@@ -8,7 +8,7 @@ type Text_Cleanse
    Trailing_Whitespace
 
    ## Apply the cleanse operation to the text.
-   apply self input:Cleansable_Text -> Cleansable_Text =
+   apply self input:Cleansable_Text -> Any =
       case self of
          Text_Cleanse.Leading_Whitespace -> input.replace "^\s+" ""
          Text_Cleanse.Trailing_Whitespace -> input.replace "\s+$" ""
