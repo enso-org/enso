@@ -96,7 +96,6 @@ useSyncLocalStorage<GraphStoredState>({
   },
   debounce: 200,
   captureState() {
-    console.log('captureState')
     return {
       x: graphNavigator.targetCenter.x,
       y: graphNavigator.targetCenter.y,
@@ -106,7 +105,6 @@ useSyncLocalStorage<GraphStoredState>({
     }
   },
   restoreState(restored) {
-    console.log('restoreState', restored)
     const pos = restored ? new Vec2(restored.x ?? 0, restored.y ?? 0) : Vec2.Zero
     const scale = restored?.s ?? 1
     graphNavigator.setCenterAndScale(pos, scale)
@@ -321,10 +319,10 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 const documentationEditorArea = ref<HTMLElement>()
 
-const hasDocumentation = computed(() => documentation.value)
 const showDocumentationEditor = computedFallback(
   storedShowDocumentationEditor,
-  () => hasDocumentation.value,
+  // Sshow documenation editor when documentation exists on first graph visit.
+  () => !!documentation.value,
 )
 
 const documentationEditorHandler = documentationEditorBindings.handler({

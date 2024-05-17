@@ -1,7 +1,6 @@
 /** @file Functions for manipulating Vue reactive objects. */
 
 import { defaultEquality } from '@/util/equals'
-import { toValue } from '@vueuse/core'
 import { nop } from 'lib0/function'
 import {
   callWithErrorHandling,
