@@ -71,6 +71,9 @@ add_specs suite_builder =
             res1.should_equal (Column.from_vector "Test" ["ABC", "DEF", "GHI", "JKL"])
             res2.should_equal (Column.from_vector "Test" ["1234", "5678", "9012", "3456"])
             res3.should_equal (Column.from_vector "Test" ["", "", "", ""])
+        group_builder.specify "should error if applied to non-text column" <|
+            test_col_num = Column.from_vector "Test" [1, 2, 3, 4]
+            test_col_num.text_cleanse [Text_Cleanse.Numbers] . should_fail_with Invalid_Value_Type
         group_builder.specify "should apply the operations in order" <|
             test_col_with_mixed_chars = Column.from_vector "Test" ["  11String with Leading Spaces then Leading Numbers", "22  String with Leading Numbers then Leading Spaces"]
             res1 = test_col_with_mixed_chars.text_cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
@@ -148,4 +151,6 @@ add_specs suite_builder =
             expected_table = Table.new [clean_flight, clean_passenger, ticket_price]
             res = table.text_cleanse [Text_Cleanse.Leading_Whitespace] ["Flight", "Passenger"]
             res.should_equal expected_table
+        group_builder.specify "should error if applied to non-text column" <|
+            table.text_cleanse [Text_Cleanse.Leading_Whitespace] ["Flight", "Passenger", "Ticket Price"] . should_fail_with Invalid_Value_Type
 
