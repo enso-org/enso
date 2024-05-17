@@ -8,5 +8,5 @@ module org.enso.ydoc {
   requires org.graalvm.polyglot;
   requires org.slf4j;
 
-  exports org.enso.ydoc.polyfill.web;
+  opens org.enso.ydoc.polyfill.web;
 }

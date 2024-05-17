@@ -434,6 +434,7 @@ val commons = Seq(
 )
 
 // === Helidon ================================================================
+val jakartaVersion = "2.0.1"
 val helidonVersion = "4.0.8"
 val helidon = Seq(
   "io.helidon"                 % "helidon"                     % helidonVersion,
@@ -468,7 +469,7 @@ val helidon = Seq(
   "io.helidon.webserver"       % "helidon-webserver"           % helidonVersion,
   "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
   "io.helidon.websocket"       % "helidon-websocket"           % helidonVersion,
-  "jakarta.inject"             % "jakarta.inject-api"          % "2.0.1"
+  "jakarta.inject"             % "jakarta.inject-api"          % jakartaVersion
 )
 
 // === Jackson ================================================================
