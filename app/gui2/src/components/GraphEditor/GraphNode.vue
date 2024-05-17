@@ -475,6 +475,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator"
+        :class="dragPointer.dragging ? 'dragged' : 'draggable'"
         :nodePosition="props.node.position"
         :nodeSize="nodeSize"
         :selected
@@ -539,7 +540,13 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
       @createNodes="emit('createNodes', $event)"
     />
     <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
-    <div ref="contentNode" class="content" v-on="dragPointer.events" @click="handleNodeClick">
+    <div
+      ref="contentNode"
+      class="content"
+      :class="dragPointer.dragging ? 'dragged' : 'draggable'"
+      v-on="dragPointer.events"
+      @click="handleNodeClick"
+    >
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
@@ -801,5 +808,13 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
   height: 100%;
   right: 100%;
   margin-right: 4px;
+}
+
+.draggable {
+  cursor: grab;
+}
+
+.dragged {
+  cursor: grabbing;
 }
 </style>
