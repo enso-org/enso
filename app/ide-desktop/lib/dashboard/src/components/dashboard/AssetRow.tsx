@@ -230,7 +230,7 @@ export default function AssetRow(props: AssetRowProps) {
             }
             case backendModule.AssetType.project:
             case backendModule.AssetType.secret:
-            case backendModule.AssetType.dataLink:
+            case backendModule.AssetType.datalink:
             case backendModule.AssetType.specialLoading:
             case backendModule.AssetType.specialEmpty: {
               // Ignored.
@@ -422,7 +422,7 @@ export default function AssetRow(props: AssetRowProps) {
         case AssetEventType.newProject:
         case AssetEventType.newFolder:
         case AssetEventType.uploadFiles:
-        case AssetEventType.newDataLink:
+        case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
         case AssetEventType.updateFiles:
         case AssetEventType.openProject:
@@ -509,9 +509,9 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                   break
                 }
-                case backendModule.AssetType.dataLink: {
+                case backendModule.AssetType.datalink: {
                   try {
-                    const value = await backend.getDataLink(asset.id, asset.title)
+                    const value = await backend.getDatalink(asset.id, asset.title)
                     const fileName = `${asset.title}.datalink`
                     download.download(
                       URL.createObjectURL(
@@ -522,7 +522,7 @@ export default function AssetRow(props: AssetRowProps) {
                       fileName
                     )
                   } catch (error) {
-                    toastAndLog('downloadDataLinkError', error, asset.title)
+                    toastAndLog('downloadDatalinkError', error, asset.title)
                   }
                   break
                 }
@@ -687,7 +687,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.directory:
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
-    case backendModule.AssetType.dataLink:
+    case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
       const innerProps: AssetRowInnerProps = {
         key,

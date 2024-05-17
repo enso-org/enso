@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
-import DataLinkIcon from 'enso-assets/datalink.svg'
+import DatalinkIcon from 'enso-assets/datalink.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 import KeyIcon from 'enso-assets/key.svg'
 import NetworkIcon from 'enso-assets/network.svg'
@@ -32,8 +32,8 @@ export default function AssetIcon(props: AssetIconProps) {
     case backend.AssetType.file: {
       return <SvgMask src={fileIcon.fileIcon()} className={className} />
     }
-    case backend.AssetType.dataLink: {
-      return <SvgMask src={DataLinkIcon} className={className} />
+    case backend.AssetType.datalink: {
+      return <SvgMask src={DatalinkIcon} className={className} />
     }
     case backend.AssetType.secret: {
       return <SvgMask src={KeyIcon} className={className} />

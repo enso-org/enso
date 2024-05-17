@@ -732,42 +732,42 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a Data Link.
+  /** Return a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createDataLink(
-    body: backend.CreateDataLinkRequestBody
-  ): Promise<backend.DataLinkInfo> {
-    const path = remoteBackendPaths.CREATE_DATA_LINK_PATH
-    const response = await this.post<backend.DataLinkInfo>(path, body)
+  override async createDatalink(
+    body: backend.CreateDatalinkRequestBody
+  ): Promise<backend.DatalinkInfo> {
+    const path = remoteBackendPaths.CREATE_DATALINK_PATH
+    const response = await this.post<backend.DatalinkInfo>(path, body)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createDataLinkBackendError', body.name)
+      return await this.throw(response, 'createDatalinkBackendError', body.name)
     } else {
       return await response.json()
     }
   }
 
-  /** Return a Data Link.
+  /** Return a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getDataLink(
-    datalinkId: backend.DataLinkId,
+  override async getDatalink(
+    datalinkId: backend.DatalinkId,
     title: string
-  ): Promise<backend.DataLink> {
-    const path = remoteBackendPaths.getDataLinkPath(datalinkId)
-    const response = await this.get<backend.DataLink>(path)
+  ): Promise<backend.Datalink> {
+    const path = remoteBackendPaths.getDatalinkPath(datalinkId)
+    const response = await this.get<backend.Datalink>(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'getDataLinkBackendError', title)
+      return await this.throw(response, 'getDatalinkBackendError', title)
     } else {
       return await response.json()
     }
   }
 
-  /** Delete a Data Link.
+  /** Delete a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteDataLink(datalinkId: backend.DataLinkId, title: string): Promise<void> {
-    const path = remoteBackendPaths.getDataLinkPath(datalinkId)
+  override async deleteDatalink(datalinkId: backend.DatalinkId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getDatalinkPath(datalinkId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'deleteDataLinkBackendError', title)
+      return await this.throw(response, 'deleteDatalinkBackendError', title)
     } else {
       return
     }

@@ -43,7 +43,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   uploadFiles: 'uploadFilesShortcut',
   newProject: 'newProjectShortcut',
   newFolder: 'newFolderShortcut',
-  newDataLink: 'newDataLinkShortcut',
+  newDatalink: 'newDatalinkShortcut',
   newSecret: 'newSecretShortcut',
   useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
