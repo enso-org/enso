@@ -97,15 +97,8 @@ object NativeImage {
     .task {
       val log = state.value.log
 
-      def nativeImagePath(path: Path): Path = {
-        val base = path.resolve("bin")
-        if (Platform.isWindows)
-          base.resolve("native-image.cmd")
-        else base.resolve("native-image")
-      }
-
-      def nativeImagePathSmallJdk(path: Path): Path = {
-        val base = path.resolve(Paths.get("lib", "svm", "bin"))
+      def nativeImagePath(prefix: Path)(path: Path): Path = {
+        val base = path.resolve(prefix)
         if (Platform.isWindows)
           base.resolve("native-image.cmd")
         else base.resolve("native-image")
@@ -113,10 +106,15 @@ object NativeImage {
 
       val (javaHome: Path, nativeImagePathResolver) =
         smallJdk.value
-          .map(f => (f.toPath(), nativeImagePathSmallJdk _))
+          .map(f =>
+            (f.toPath(), nativeImagePath(Path.of("lib", "svm", "bin")) _)
+          )
           .filter { case (p, resolver) => resolver(p).toFile.exists() }
           .getOrElse(
-            (Paths.get(System.getProperty("java.home")), nativeImagePath _)
+            (
+              Paths.get(System.getProperty("java.home")),
+              nativeImagePath(Path.of("bin")) _
+            )
           )
 
       log.info("Native image JAVA_HOME: " + javaHome)
