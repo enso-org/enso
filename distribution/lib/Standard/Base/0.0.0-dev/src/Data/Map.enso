@@ -118,7 +118,8 @@ type Map key value
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## ICON metadata
+    ## GROUP Metadata
+       ICON metadata
        Returns the number of entries in this map.
     size : Integer
     size self = @Builtin_Method "Map.size"

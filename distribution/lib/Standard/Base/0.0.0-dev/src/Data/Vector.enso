@@ -1501,6 +1501,9 @@ type Builder
         predicate = unify_condition_or_predicate condition
         0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
+    ## GROUP Conversions
+       ICON convert
+       Clones the builder into a Vector.
     to_vector : Vector Any
     to_vector self =
         ## This creates a fresh copy of the builders storage, so any future
