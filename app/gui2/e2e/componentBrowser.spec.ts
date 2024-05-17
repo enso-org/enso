@@ -86,7 +86,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await locate.graphNodeByBinding(page, 'final').click()
   await page.mouse.move(100, 80)
   await page.mouse.down({ button: 'middle' })
-  await page.mouse.move(100, 700)
+  await page.mouse.move(100, 1200)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'final')).not.toBeInViewport()
   await locate.graphEditor(page).press('Enter')
