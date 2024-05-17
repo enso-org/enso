@@ -1470,7 +1470,7 @@ type Column
     text_cleanse : Vector Text_Cleanse -> Column
     text_cleanse self remove =
       ops = remove.map tc->(tc.apply _)
-      func = ops.fold _ (current-> fun-> fun current)
+      func = remove.fold _ (current-> tc-> tc.apply current)
       func self
 
 
