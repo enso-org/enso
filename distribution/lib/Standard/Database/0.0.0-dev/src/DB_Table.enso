@@ -272,7 +272,7 @@ type DB_Table
         new_columns = helper.select_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS drop fields, drop_columns, remove fields
+    ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
@@ -326,7 +326,7 @@ type DB_Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## ALIAS remove fields by type
+    ## ALIAS remove fields by type, select columns by type, select fields by type
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
@@ -370,7 +370,7 @@ type DB_Table
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         self.updated_columns new_columns
 
-    ## ALIAS drop_missing_columns, drop_na
+    ## ALIAS drop_missing_columns, drop_na, select_blank_fields, select_missing_columns, select_na, select_blank_columns
        GROUP Standard.Base.Selections
        ICON select_column
 
