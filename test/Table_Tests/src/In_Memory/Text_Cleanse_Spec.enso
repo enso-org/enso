@@ -29,3 +29,11 @@ add_specs suite_builder =
             expexted_col = Column.from_vector "Test" ["It was", "the best  ", "of  times", "it was  the  worst  of  times  "]
             res = test_col.text_cleanse [Text_Cleanse.Leading_Whitespace]
             res.should_equal expexted_col
+        group_builder.specify "should remove trailing whitespace" <|
+            expexted_col = Column.from_vector "Test" ["  It was", "the best", "of  times", "  it was  the  worst  of  times"]
+            res = test_col.text_cleanse [Text_Cleanse.Trailing_Whitespace]
+            res.should_equal expexted_col
+        group_builder.specify "should remove duplicate whitespace" <|
+            expexted_col = Column.from_vector "Test" [" It was", "the best ", "of times", " it was the worst of times "]
+            res = test_col.text_cleanse [Text_Cleanse.Duplicate_Whitespace]
+            res.should_equal expexted_col
