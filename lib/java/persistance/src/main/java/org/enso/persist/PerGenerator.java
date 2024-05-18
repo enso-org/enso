@@ -183,13 +183,10 @@ final class PerGenerator {
     @Override
     public <T> void writeInline(Class<T> clazz, T t) throws IOException {
       if (Persistance.Reference.class == clazz) {
-        if (t instanceof Persistance.Reference<?> ref) {
-          var id = this.generator.registerReference(ref);
-          writeInt(id);
-          return;
-        } else {
-          throw new ClassCastException("Expecting Refernece");
-        }
+        Persistance.Reference<?> ref = (Persistance.Reference<?>) t;
+        var id = this.generator.registerReference(ref);
+        writeInt(id);
+        return;
       }
       var obj = generator.writeReplace.apply(t);
       var p = generator.map.forType(clazz);
