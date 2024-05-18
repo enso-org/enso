@@ -2433,6 +2433,7 @@ lazy val `engine-runner` = project
             // "-g",
             // "-H:+SourceLevelDebug",
             // "-H:-DeleteLocalSymbols",
+            // "--trace-class-initialization=org.enso.syntax2.Parser",
             "-Dnic=nic"
           ),
           mainClass = Some("org.enso.runner.Main"),
@@ -2474,6 +2475,7 @@ lazy val `engine-runner` = project
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
   .dependsOn(`edition-updater`)
+  .dependsOn(`runtime-parser`)
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`polyglot-api`)
