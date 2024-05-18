@@ -134,6 +134,7 @@ final class PerGenerator {
    * @return location of the table {@code int size and then int[size]}
    */
   private int writeObjectAndReferences(Object obj) throws IOException {
+    pendingReferences.put(obj, 0);
     var objAt = writeObject(obj);
 
     var refsOut = new ByteArrayOutputStream();
@@ -141,22 +142,21 @@ final class PerGenerator {
     refsData.writeInt(-1); // space for size of references
     refsData.writeInt(objAt); // the main object
     var count = 1;
-    while (!pendingReferences.isEmpty()) {
-      var round = new ArrayList<>(pendingReferences.entrySet());
-      round.sort(
+    for (; ; ) {
+      var all = new ArrayList<>(pendingReferences.entrySet());
+      all.sort(
           (e1, e2) -> {
             return e1.getValue() - e2.getValue();
           });
-      pendingReferences.clear();
+      var round = all.subList(count, all.size());
+      if (round.isEmpty()) {
+        break;
+      }
       for (var entry : round) {
         count++;
-        if (obj == entry.getKey()) {
-          refsData.writeInt(Persistance.Reference.ROOT_OBJECT_REFERENCE);
-        } else {
-          var at = writeObject(entry.getKey());
-          assert count == entry.getValue() : "Expecting " + count + " got " + entry.getValue();
-          refsData.writeInt(at);
-        }
+        var at = writeObject(entry.getKey());
+        assert count == entry.getValue() : "Expecting " + count + " got " + entry.getValue();
+        refsData.writeInt(at);
       }
     }
     refsData.flush();
