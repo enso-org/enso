@@ -73,14 +73,14 @@ object GraalVM {
       "org.graalvm.shadowed" % "xz"                 % version
     )
 
-  private val jsPkgs =
+  val jsPkgs =
     Seq(
       "org.graalvm.js"       % "js-language" % version,
       "org.graalvm.regex"    % "regex"       % version,
       "org.graalvm.shadowed" % "icu4j"       % version
     )
 
-  private val chromeInspectorPkgs = Seq(
+  val chromeInspectorPkgs = Seq(
     "org.graalvm.tools"    % "chromeinspector-tool" % version,
     "org.graalvm.shadowed" % "json"                 % version,
     "org.graalvm.tools"    % "profiler-tool"        % version
