@@ -8,6 +8,18 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
   private final Persistance<T> p;
   private final PerInputImpl.InputCache cache;
   private final int offset;
+
+  /**
+   * References can be cached, or loaded again every time.
+   *
+   * <p>If {@code cached} is set to {@code this}, then the caching is disabled and {@link
+   * #get(Class<V>)} will always load a new instance of the object. This is the mode one gets when
+   * using an API method {@link Persistance.Input#readReference(Class<T>)}.
+   *
+   * <p>In other cases the {@code cached} value can be {@code null} meaning <em>not yet loaded</em>
+   * or non-{@code null} holding the cached value to be returned from the {@link #get(Class<V>)}
+   * method until this reference instance is GCed.
+   */
   private Object cached;
 
   private PerBufferReference(
@@ -30,7 +42,7 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
         throw new ClassCastException();
       }
     }
-    org.enso.persist.PerInputImpl in = new PerInputImpl(cache, offset);
+    var in = new PerInputImpl(cache, offset);
     T obj = in.readInline(clazz);
     if (cached != this) {
       cached = obj;

@@ -134,7 +134,8 @@ public abstract class Persistance<T> implements Cloneable {
     /**
      * Reads a reference to an object written down by {@link Output#writeObject(Object)} but without
      * reading the object itself. The object can then be obtained <em>"later"</em> via the {@link
-     * Reference#get(Class)} method.
+     * Reference#get(Class)} method. The object is <b>not cached</b> and is loaded again and again
+     * whenever the {@link Reference#get(Class)} method is called.
      *
      * @param <T> the type to read
      * @param clazz the expected type of the object to read
