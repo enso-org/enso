@@ -151,12 +151,12 @@ final class PerGenerator {
       for (var entry : round) {
         count++;
         if (obj == entry.getKey()) {
-          refsData.writeInt(-1);
-          continue;
+          refsData.writeInt(Persistance.Reference.ROOT_OBJECT_REFERENCE);
+        } else {
+          var at = writeObject(entry.getKey());
+          assert count == entry.getValue() : "Expecting " + count + " got " + entry.getValue();
+          refsData.writeInt(at);
         }
-        var at = writeObject(entry.getKey());
-        assert count == entry.getValue() : "Expecting " + count + " got " + entry.getValue();
-        refsData.writeInt(at);
       }
     }
     refsData.flush();

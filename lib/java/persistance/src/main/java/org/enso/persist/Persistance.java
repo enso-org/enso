@@ -209,6 +209,11 @@ public abstract class Persistance<T> implements Cloneable {
    * @see Input#readReference
    */
   public abstract static sealed class Reference<T> permits PerBufferReference, PerMemoryReference {
+    /** Constant to identify reference to the root of serialized graph.
+     * The root is the object passed to {@link Persistance#write(Object, Function<Object, Object>).
+     */
+    static final int ROOT_OBJECT_REFERENCE = -1;
+
     Reference() {}
 
     /**

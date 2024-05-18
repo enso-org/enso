@@ -268,7 +268,7 @@ final class PerInputImpl implements Input {
       this.map = map;
       this.refs = new Reference[refs.length];
       for (var i = 0; i < refs.length; i++) {
-        if (refs[i] < 0) {
+        if (refs[i] == Persistance.Reference.ROOT_OBJECT_REFERENCE) {
           this.refs[i] = this.refs[0];
         } else {
           this.refs[i] = PerBufferReference.cached(null, this, refs[i]);
