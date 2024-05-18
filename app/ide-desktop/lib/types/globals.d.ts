@@ -103,6 +103,7 @@ interface VersionInfo {
 declare global {
     // Documentation is already inherited.
     /** */
+    // eslint-disable-next-line no-restricted-syntax
     interface Window {
         readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
@@ -110,6 +111,7 @@ declare global {
         readonly navigationApi: NavigationApi
         readonly menuApi: MenuApi
         readonly versionInfo?: VersionInfo
+        toggleDevtools: () => void
     }
 
     namespace NodeJS {

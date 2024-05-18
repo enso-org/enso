@@ -89,6 +89,8 @@ import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
 
+import * as reactQueryDevtools from './ReactQueryDevtools'
+
 // ============================
 // === Global configuration ===
 // ============================
@@ -204,6 +206,8 @@ export default function App(props: AppProps) {
           </ModalProvider>
         </LocalStorageProvider>
       </Router>
+
+      <reactQueryDevtools.ReactQueryDevtools />
     </reactQuery.QueryClientProvider>
   )
 }

@@ -12,8 +12,8 @@ import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.Input_Stream.Input_Stream
 from project.System.Input_Stream import close_stream
 
-polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import java.io.ByteArrayOutputStream
+polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import org.enso.base.Encoding_Utils
 

@@ -21,6 +21,8 @@ polyglot java import org.opencv.core.Scalar
 ## UNSTABLE
 type Image
     ## UNSTABLE
+       GROUP Standard.Base.Conversions
+       ICON convert
 
        Create an image from the array of values.
 
@@ -124,7 +126,8 @@ type Image
        Pixel values are normalized in a range [0.0 .. 1.0].
     Value opencv_mat
 
-    ## Return the number of image rows.
+    ## ICON image
+       Return the number of image rows.
 
        > Example
          Get the number of rows from an image.
@@ -135,7 +138,8 @@ type Image
     rows : Integer
     rows self = self.opencv_mat.rows
 
-    ## Return the number of image columns.
+    ## ICON image
+       Return the number of image columns.
 
        > Example
          Get the number of columns from an image.
@@ -146,7 +150,8 @@ type Image
     columns : Integer
     columns self = self.opencv_mat.cols
 
-    ## Return the number of image channels.
+    ## ICON image
+       Return the number of image channels.
 
        > Example
          Get the number of channels from an image.
@@ -157,7 +162,8 @@ type Image
     channels : Integer
     channels self = self.opencv_mat.channels
 
-    ## Get the pixel value indexed by row and column.
+    ## ICON image
+       Get the pixel value indexed by row and column.
 
        Arguments:
        - row: the row index.
@@ -177,6 +183,7 @@ type Image
                 Vector.from_polyglot_array arr
 
     ## GROUP Standard.Base.Operators
+       ICON operators
        Calculates the per-element sum of an image and a scalar or a matrix.
 
        Arguments:
@@ -227,6 +234,7 @@ type Image
     + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.add _ _ _)) . catch Any core_op_handler
 
     ## GROUP Standard.Base.Operators
+       ICON operators
        Calculates the per-element difference between an image and a scalar or a matrix.
 
        Arguments:
@@ -378,7 +386,9 @@ type Image
     / : (Number | Vector | Matrix) -> Image ! Matrix_Error
     / self value = Panic.recover Any (core_op self.opencv_mat value (Java_Image.divide _ _ _)) . catch Any core_op_handler
 
-    ## Convert the image to a vector.
+    ## GROUP Standard.Base.Conversions
+       ICON convert
+       Convert the image to a vector.
 
        > Example
          Convert an image to a vector.
@@ -405,7 +415,9 @@ type Image
         base64 = Java_Image.to_base64 self.opencv_mat
         JS_Object.from_pairs [["mediaType", "image/png"], ["base64", base64]]
 
-    ## Convert the image to a Matrix.
+    ## GROUP Standard.Base.Conversions
+       ICON convert
+       Convert the image to a Matrix.
 
        > Example
          Convert an image to a matrix.
@@ -416,7 +428,8 @@ type Image
     to_matrix : Matrix
     to_matrix self = Matrix.from_vector self.to_vector self.rows self.channels
 
-    ## Create a histogram for the specified channel of the image.
+    ## ICON image
+       Create a histogram for the specified channel of the image.
 
        Arguments:
        - channel: the channel number.

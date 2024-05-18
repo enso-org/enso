@@ -9,8 +9,13 @@ import scala.collection.immutable.Seq
 /** A collection of utility methods for everything related to the GraalVM and Truffle.
   */
 object GraalVM {
+
+  /** Has the user requested to use Espresso for Java interop? */
+  private def isEspressoMode(): Boolean =
+    "espresso".equals(System.getenv("ENSO_JAVA"))
+
   // Keep in sync with graalMavenPackagesVersion in build.sbt
-  val version: String = "24.0.0"
+  private val version: String = "24.0.0"
 
   /** The list of modules that are included in the `component` directory in engine distribution.
     * When invoking the `java` command, these modules need to be put on the module-path.
@@ -26,7 +31,7 @@ object GraalVM {
     "org.graalvm.truffle"  % "truffle-compiler" % version
   )
 
-  val sdkPkgs = Seq(
+  private val sdkPkgs = Seq(
     "org.graalvm.sdk" % "polyglot-tck" % version,
     "org.graalvm.sdk" % "nativeimage"  % version,
     "org.graalvm.sdk" % "word"         % version,
@@ -34,11 +39,11 @@ object GraalVM {
     "org.graalvm.sdk" % "collections"  % version
   )
 
-  val polyglotPkgs = Seq(
+  private val polyglotPkgs = Seq(
     "org.graalvm.polyglot" % "polyglot" % version
   )
 
-  val trufflePkgs = Seq(
+  private val trufflePkgs = Seq(
     "org.graalvm.truffle" % "truffle-api"           % version,
     "org.graalvm.truffle" % "truffle-runtime"       % version,
     "org.graalvm.truffle" % "truffle-compiler"      % version,
@@ -51,35 +56,37 @@ object GraalVM {
     * into engine distribution build, so we have to maintain these manually.
     */
 
-  val pythonPkgs = Seq(
-    "org.graalvm.python"   % "python-language"    % version,
-    "org.graalvm.python"   % "python-resources"   % version,
-    "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
-    "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
-    "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
-    "org.graalvm.llvm"     % "llvm-api"           % version,
-    "org.graalvm.truffle"  % "truffle-nfi"        % version,
-    "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
-    "org.graalvm.regex"    % "regex"              % version,
-    "org.graalvm.tools"    % "profiler-tool"      % version,
-    "org.graalvm.shadowed" % "json"               % version,
-    "org.graalvm.shadowed" % "icu4j"              % version,
-    "org.graalvm.shadowed" % "xz"                 % version
-  )
+  private val pythonPkgs =
+    Seq(
+      "org.graalvm.python"   % "python-language"    % version,
+      "org.graalvm.python"   % "python-resources"   % version,
+      "org.bouncycastle"     % "bcutil-jdk18on"     % "1.76",
+      "org.bouncycastle"     % "bcpkix-jdk18on"     % "1.76",
+      "org.bouncycastle"     % "bcprov-jdk18on"     % "1.76",
+      "org.graalvm.llvm"     % "llvm-api"           % version,
+      "org.graalvm.truffle"  % "truffle-nfi"        % version,
+      "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
+      "org.graalvm.regex"    % "regex"              % version,
+      "org.graalvm.tools"    % "profiler-tool"      % version,
+      "org.graalvm.shadowed" % "json"               % version,
+      "org.graalvm.shadowed" % "icu4j"              % version,
+      "org.graalvm.shadowed" % "xz"                 % version
+    )
 
-  val jsPkgs = Seq(
-    "org.graalvm.js"       % "js-language" % version,
-    "org.graalvm.regex"    % "regex"       % version,
-    "org.graalvm.shadowed" % "icu4j"       % version
-  )
+  private val jsPkgs =
+    Seq(
+      "org.graalvm.js"       % "js-language" % version,
+      "org.graalvm.regex"    % "regex"       % version,
+      "org.graalvm.shadowed" % "icu4j"       % version
+    )
 
-  val chromeInspectorPkgs = Seq(
+  private val chromeInspectorPkgs = Seq(
     "org.graalvm.tools"    % "chromeinspector-tool" % version,
     "org.graalvm.shadowed" % "json"                 % version,
     "org.graalvm.tools"    % "profiler-tool"        % version
   )
 
-  val debugAdapterProtocolPkgs = Seq(
+  private val debugAdapterProtocolPkgs = Seq(
     "org.graalvm.tools" % "dap-tool" % version
   )
 
@@ -87,19 +94,23 @@ object GraalVM {
     "org.graalvm.tools" % "insight-tool" % version
   )
 
-  val espressoPkgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
+  private val espressoPkgs =
     Seq(
+      "org.graalvm.truffle"  % "truffle-nfi"                            % version,
+      "org.graalvm.truffle"  % "truffle-nfi-libffi"                     % version,
       "org.graalvm.espresso" % "espresso-language"                      % version,
       "org.graalvm.espresso" % "espresso-libs-resources-linux-amd64"    % version,
       "org.graalvm.espresso" % "espresso-runtime-resources-linux-amd64" % version
     )
-  } else {
-    Seq()
-  }
 
   val toolsPkgs = chromeInspectorPkgs ++ debugAdapterProtocolPkgs ++ insightPkgs
 
-  val langsPkgs = jsPkgs ++ pythonPkgs ++ espressoPkgs
+  val langsPkgs =
+    if (isEspressoMode()) {
+      espressoPkgs
+    } else {
+      jsPkgs ++ pythonPkgs
+    }
 
   private val allowedJavaVendors = Seq(
     "GraalVM Community",

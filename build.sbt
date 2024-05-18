@@ -18,6 +18,7 @@ import src.main.scala.licenses.{
 import JPMSPlugin.autoImport._
 
 import java.io.File
+import java.nio.file.Paths
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -283,6 +284,7 @@ lazy val enso = (project in file("."))
     `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
+    yaml,
     pkg,
     cli,
     `task-progress-notifications`,
@@ -750,6 +752,15 @@ lazy val `syntax-rust-definition` = project
     Compile / javaSource := baseDirectory.value / "generate-java" / "java"
   )
 
+lazy val yaml = (project in file("lib/java/yaml"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-yaml" % circeYamlVersion % "provided"
+    )
+  )
+
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
@@ -1078,6 +1089,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     Test / javaOptions ++= testLogProviderOptions
   )
   .settings(
+    NativeImage.smallJdk := None,
+    NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
@@ -2305,6 +2318,9 @@ lazy val `runtime-fat-jar` =
           MergeStrategy.concat
         case PathList("module-info.class") =>
           MergeStrategy.preferProject
+        // remove once https://github.com/snakeyaml/snakeyaml/pull/12 gets integrated
+        case PathList("org", "yaml", "snakeyaml", "introspector", xs @ _*) =>
+          MergeStrategy.preferProject
         case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
           MergeStrategy.discard
         case _ => MergeStrategy.first
@@ -2316,6 +2332,7 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
     .dependsOn(`ydoc-server`)
+    .dependsOn(yaml)
     .dependsOn(LocalProject("runtime"))
 
 /* Note [Unmanaged Classpath]
@@ -2374,6 +2391,9 @@ lazy val `engine-runner` = project
         MergeStrategy.concat
       case "reference.conf" =>
         MergeStrategy.concat
+      // remove once https://github.com/snakeyaml/snakeyaml/pull/12 gets integrated
+      case PathList("org", "yaml", "snakeyaml", "introspector", xs @ _*) =>
+        MergeStrategy.preferProject
       case PathList(xs @ _*) if xs.last.contains("module-info") =>
         // runner.jar must not be a JPMS module
         MergeStrategy.discard
@@ -2396,6 +2416,69 @@ lazy val `engine-runner` = project
     run / connectInput := true
   )
   .settings(
+    NativeImage.smallJdk := Some(buildSmallJdk.value),
+    NativeImage.additionalCp := {
+      val core = Seq(
+        "runtime.jar",
+        "runner.jar"
+      )
+      core ++ `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+    },
+    buildSmallJdk := {
+      val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
+      if (smallJdkDirectory.exists()) {
+        IO.delete(smallJdkDirectory)
+      }
+      val JS_MODULES =
+        "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
+      val DEBUG_MODULES  = "jdk.jdwp.agent"
+      val PYTHON_MODULES = "jdk.security.auth,java.naming"
+
+      val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
+      val (jlink, modules, libDirs) = javaHome match {
+        case None =>
+          throw new RuntimeException("Missing java.home variable")
+        case Some(jh) =>
+          val exec = jh.resolve("bin").resolve("jlink")
+          val moduleJars = List(
+            "lib/svm/bin/../../graalvm/svm-driver.jar",
+            "lib/svm/bin/../builder/native-image-base.jar",
+            "lib/svm/bin/../builder/objectfile.jar",
+            "lib/svm/bin/../builder/pointsto.jar",
+            "lib/svm/bin/../builder/svm-enterprise.jar",
+            "lib/svm/bin/../builder/svm.jar",
+            "lib/svm/bin/../library-support.jar"
+          )
+          val targetLibDirs = List("graalvm", "svm", "static", "truffle")
+          (
+            exec,
+            moduleJars.map(jar => jh.resolve(jar).toString),
+            targetLibDirs.map(d => jh.resolve("lib").resolve(d))
+          )
+      }
+
+      val exec =
+        s"$jlink --module-path ${modules.mkString(":")} --output $smallJdkDirectory --add-modules $JS_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
+      val exitCode = scala.sys.process.Process(exec).!
+
+      if (exitCode != 0) {
+        throw new RuntimeException(s"Cannot execute smalljdk.sh")
+      }
+      libDirs.foreach(libDir =>
+        IO.copyDirectory(
+          libDir.toFile,
+          smallJdkDirectory.toPath
+            .resolve("lib")
+            .resolve(libDir.toFile.getName)
+            .toFile
+        )
+      )
+      assert(
+        smallJdkDirectory.exists(),
+        "Directory of small JDK " + smallJdkDirectory + " is not present"
+      )
+      smallJdkDirectory
+    },
     assembly := assembly
       .dependsOn(`runtime-fat-jar` / assembly)
       .value,
@@ -2407,16 +2490,13 @@ lazy val `engine-runner` = project
           additionalOptions = Seq(
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
             "-H:IncludeResources=.*Main.enso$",
+            // useful perf & debug switches:
             // "-g",
-            //          "-H:+DashboardAll",
-            //          "-H:DashboardDump=runner.bgv"
+            // "-H:+SourceLevelDebug",
+            // "-H:-DeleteLocalSymbols",
             "-Dnic=nic"
           ),
           mainClass = Some("org.enso.runner.Main"),
-          additionalCp = Seq(
-            "runtime.jar",
-            "runner.jar"
-          ),
           initializeAtRuntime = Seq(
             "org.jline.nativ.JLineLibrary",
             "org.jline.terminal.impl.jna",
@@ -2434,7 +2514,12 @@ lazy val `engine-runner` = project
             "akka.http"
           )
         )
+        .dependsOn(NativeImage.additionalCp)
+        .dependsOn(NativeImage.smallJdk)
         .dependsOn(assembly)
+        .dependsOn(
+          buildEngineDistribution
+        )
         .value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
@@ -2444,6 +2529,7 @@ lazy val `engine-runner` = project
       .value
   )
   .dependsOn(`version-output`)
+  .dependsOn(yaml)
   .dependsOn(pkg)
   .dependsOn(cli)
   .dependsOn(`library-manager`)
@@ -2452,6 +2538,9 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`polyglot-api`)
+
+lazy val buildSmallJdk =
+  taskKey[File]("Build a minimal JDK used for native image generation")
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -2467,6 +2556,8 @@ lazy val launcher = project
     )
   )
   .settings(
+    NativeImage.smallJdk := None,
+    NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "enso",

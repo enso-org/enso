@@ -330,6 +330,7 @@ type Enso_File
 
     ## UNSTABLE
        GROUP Output
+       ICON trash
        Deletes the file or directory.
 
        Arguments:

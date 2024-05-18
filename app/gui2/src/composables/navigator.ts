@@ -76,6 +76,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     rect: Rect,
     minScale = PAN_AND_ZOOM_DEFAULT_SCALE_RANGE[0],
     maxScale = PAN_AND_ZOOM_DEFAULT_SCALE_RANGE[1],
+    skipAnimation = false,
   ) {
     if (!viewportNode.value) return
     targetScale.value = Math.max(
@@ -87,6 +88,10 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
       ),
     )
     targetCenter.value = rect.center().finiteOrZero()
+    if (skipAnimation) {
+      scale.skip()
+      center.skip()
+    }
   }
 
   /** Pan to include the given prioritized list of coordinates.

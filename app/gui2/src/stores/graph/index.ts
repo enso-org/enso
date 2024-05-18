@@ -45,6 +45,8 @@ import {
   type ShallowRef,
 } from 'vue'
 
+const FALLBACK_BINDING_PREFIX = 'node'
+
 export type {
   Node,
   NodeDataFromAst,
@@ -191,9 +193,13 @@ export const useGraphStore = defineStore('graph', () => {
     return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
   }
 
-  function generateUniqueIdent() {
-    for (;;) {
-      const ident = randomIdent()
+  function generateLocallyUniqueIdent(prefix?: string | undefined) {
+    // FIXME: This implementation is not robust in the context of a synchronized document,
+    // as the same name can likely be assigned by multiple clients.
+    // Consider implementing a mechanism to repair the document in case of name clashes.
+    for (let i = 1; ; i++) {
+      const ident = (prefix ?? FALLBACK_BINDING_PREFIX) + i
+      assert(isIdentifier(ident))
       if (!db.identifierUsed(ident)) return ident
     }
   }
@@ -671,7 +677,7 @@ export const useGraphStore = defineStore('graph', () => {
     visibleArea,
     unregisterNodeRect,
     methodAst,
-    generateUniqueIdent,
+    generateLocallyUniqueIdent,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
@@ -711,12 +717,6 @@ export const useGraphStore = defineStore('graph', () => {
     },
   }
 })
-
-function randomIdent() {
-  const ident = 'operator' + Math.round(Math.random() * 100000)
-  assert(isIdentifier(ident))
-  return ident
-}
 
 /** An edge, which may be connected or unconnected. */
 export interface Edge {

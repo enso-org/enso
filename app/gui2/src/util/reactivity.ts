@@ -53,8 +53,9 @@ export class LazySyncEffectSet {
         let cleanup: (() => void) | null = null
         const callCleanup = () => {
           if (cleanup != null) {
-            callWithErrorHandling(cleanup, null, 4 /* ErrorCodes.WATCH_CLEANUP */)
+            const tmpCleanup = cleanup
             cleanup = null
+            callWithErrorHandling(tmpCleanup, null, 4 /* ErrorCodes.WATCH_CLEANUP */)
           }
         }
         function onCleanup(fn: () => void) {
