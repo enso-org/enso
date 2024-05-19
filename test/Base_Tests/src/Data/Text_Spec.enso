@@ -62,7 +62,7 @@ add_specs suite_builder =
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
 
-    suite_builder.group "Text" group_builder->
+    suite_builder.group "Text.general" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
@@ -1354,7 +1354,7 @@ add_specs suite_builder =
             txt.find "a[bc]" . text 0 . should_equal "ab"
             txt.find_all "a[bc]" . map (match-> match.text 0) . should_equal ["ab", "ac"]
 
-    suite_builder.group "Regex: find and find_all" group_builder->
+    suite_builder.group "Text.Regex: find and find_all" group_builder->
         group_builder.specify "should be possible on text" <|
             "My Text: Goes Here".find "^My Text: (.+)$" . text 0 . should_equal "My Text: Goes Here"
 
@@ -1476,7 +1476,7 @@ add_specs suite_builder =
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.match 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
-    suite_builder.group "Regex splitting" group_builder->
+    suite_builder.group "Text.Regex splitting" group_builder->
         group_builder.specify "should be possible on text" <|
             splits = "abcde".split "[bd]" use_regex=True
             splits.length . should_equal 3
@@ -1498,7 +1498,7 @@ add_specs suite_builder =
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
 
-    suite_builder.group "Regex tokenizing" group_builder->
+    suite_builder.group "Text.Regex tokenizing" group_builder->
         group_builder.specify "can tokenize with simple regexes without capturing groups"
             "1-800-regex-yes" . tokenize "[a-z]+" . should_equal ["regex", "yes"]
             "1-800-REGEX-YES" . tokenize "[a-z]+" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["REGEX", "YES"]
