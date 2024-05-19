@@ -11,9 +11,10 @@ import * as reactHookForm from 'react-hook-form'
 import * as ariaComponents from '#/components/AriaComponents'
 
 /**
- * Props for the Submit component.
+ * Additional props for the Submit component.
  */
-export type SubmitProps = Omit<ariaComponents.ButtonProps, 'loading'> & {
+interface SubmitButtonBaseProps {
+  readonly variant?: ariaComponents.ButtonProps['variant']
   /**
    * Connects the submit button to a form.
    * If not provided, the button will use the nearest form context.
@@ -24,6 +25,12 @@ export type SubmitProps = Omit<ariaComponents.ButtonProps, 'loading'> & {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: reactHookForm.UseFormReturn<any>
 }
+
+/**
+ * Props for the Submit component.
+ */
+export type SubmitProps = Omit<ariaComponents.ButtonProps, 'loading' | 'variant'> &
+  SubmitButtonBaseProps
 
 /**
  * Submit button for forms.

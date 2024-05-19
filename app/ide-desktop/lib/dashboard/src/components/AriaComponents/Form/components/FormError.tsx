@@ -45,11 +45,11 @@ export function FormError<
   /**
    * Get the error message.
    */
-  const getErrorMessage = (): string | null => {
+  const getSubmitError = (): string | null => {
     const formErrors = errors.root
 
     if (formErrors) {
-      const submitError = formErrors.submitError
+      const submitError = formErrors.submit
 
       if (submitError) {
         return (
@@ -64,9 +64,11 @@ export function FormError<
     }
   }
 
-  const errorMessage = getErrorMessage()
+  const errorMessage = getSubmitError()
 
   return errorMessage != null ? (
-    <reactAriaComponents.Alert size={size} variant={variant} {...alertProps} />
+    <reactAriaComponents.Alert size={size} variant={variant} {...alertProps}>
+      {errorMessage}
+    </reactAriaComponents.Alert>
   ) : null
 }
