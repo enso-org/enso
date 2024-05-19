@@ -247,7 +247,13 @@ impl JobArchetype for StandardLibraryTests {
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                         crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                     );
-                vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
+                vec![
+                    setup_python_step(),
+                    setup_node_step(),
+                    npm_install_step(),
+                    main_step,
+                    step::stdlib_test_reporter(target, graal_edition),
+                ]
             })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
