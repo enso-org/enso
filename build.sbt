@@ -2433,6 +2433,7 @@ lazy val `engine-runner` = project
             // "-g",
             // "-H:+SourceLevelDebug",
             // "-H:-DeleteLocalSymbols",
+            // you may need to set smallJdk := None to use following flags:
             // "--trace-class-initialization=org.enso.syntax2.Parser",
             "-Dnic=nic"
           ),
@@ -2441,7 +2442,6 @@ lazy val `engine-runner` = project
             "org.jline.nativ.JLineLibrary",
             "org.jline.terminal.impl.jna",
             "io.methvin.watchservice.jna.CarbonAPI",
-            "org.enso.syntax2.Parser",
             "zio.internal.ZScheduler$$anon$4",
             "org.enso.runner.Main$",
             "sun.awt",
