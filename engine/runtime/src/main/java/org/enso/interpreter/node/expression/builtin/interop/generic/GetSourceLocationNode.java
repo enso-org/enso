@@ -23,8 +23,7 @@ public class GetSourceLocationNode extends Node {
 
   Object execute(Object value) {
     try {
-      return EnsoContext.get(this)
-          .asGuestValue(new EnsoSourceSection(library.getSourceLocation(value)));
+      return new EnsoSourceSection(library.getSourceLocation(value));
     } catch (UnsupportedMessageException e) {
       err.enter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();
