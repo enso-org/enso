@@ -14,7 +14,6 @@ import project.Test_Result.Test_Result
 
 polyglot java import java.lang.StringBuilder
 polyglot java import java.lang.System as Java_System
-polyglot java import java.io.PrintStream
 
 ## PRIVATE
    Write the JUnit XML header.
@@ -194,12 +193,11 @@ print_progress current_progress total_count status_text =
     truncated_line = if line.length <= progress_width then line else
         line.take (progress_width - 3) + '...'
 
-    ps = Java_System.out : PrintStream
-    ps.print '\r'
-    ps.print (' ' * progress_width)
-    ps.print '\r'
-    ps.print truncated_line
-    ps.print '\r'
+    Java_System.out.print '\r'
+    Java_System.out.print (' ' * progress_width)
+    Java_System.out.print '\r'
+    Java_System.out.print truncated_line
+    Java_System.out.print '\r'
 
 ## PRIVATE
 clear_progress =

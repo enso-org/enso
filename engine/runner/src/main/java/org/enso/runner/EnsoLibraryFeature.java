@@ -27,6 +27,22 @@ public final class EnsoLibraryFeature implements Feature {
       }
     }
 
+    /*
+      To run Standard.Test one shall analyze its polyglot/java files. But there are none
+      to include on classpath as necessary test classes are included in Standard.Base!
+      We can locate the Test library by following code or we can make sure all necessary
+      imports are already mentioned in Standard.Base itself.
+
+    if (!libs.isEmpty()) {
+      var f = libs.iterator().next();
+      var stdTest = f.getParent().getParent().resolve("Test").resolve(f.getFileName());
+      if (stdTest.toFile().exists()) {
+        libs.add(stdTest);
+      }
+      System.err.println("Testing library: " + stdTest);
+    }
+    */
+
     var classes = new TreeSet<String>();
     try (var parser = new org.enso.compiler.core.EnsoParser()) {
       for (var p : libs) {
