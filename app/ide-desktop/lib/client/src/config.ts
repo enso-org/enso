@@ -313,6 +313,16 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                         value: false,
                         description: 'Run the application in development mode.',
                     }),
+                    profile: new contentConfig.Option({
+                        passToWebApplication: false,
+                        value: false,
+                        description: 'Start backend profiler on startup and log data to a profiling.npss file',
+                    }),
+                    profileTime: new contentConfig.Option({
+                        passToWebApplication: false,
+                        value: 120,
+                        description: 'Time since backend startup for which profiling data will be collected, if enabled',
+                    }),
                 },
             }),
             chrome: new contentConfig.Group({
