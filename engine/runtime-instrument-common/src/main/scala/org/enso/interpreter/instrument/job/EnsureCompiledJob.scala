@@ -1,6 +1,5 @@
 package org.enso.interpreter.instrument.job
 
-import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.common.CompilationStage
 import org.enso.compiler.CompilerResult
@@ -282,19 +281,24 @@ final class EnsureCompiledJob(
   private def compile(
     module: Module
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
-    Either.catchNonFatal {
+    try {
       val compilationStage = module.getCompilationStage
       if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
         val result = ctx.executionService.getContext.getCompiler
           .run(module.asCompilerModule())
-        result.copy(compiledModules =
-          result.compiledModules.filter(_.getName != module.getName)
+        Right(
+          result.copy(compiledModules =
+            result.compiledModules.filter(_.getName != module.getName)
+          )
         )
       } else {
-        CompilerResult.empty
+        Right(CompilerResult.empty)
       }
+    } catch {
+      case e: Throwable =>
+        Left(e)
     }
 
   /** Apply pending edits to the file.
