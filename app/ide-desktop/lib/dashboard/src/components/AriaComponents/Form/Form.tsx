@@ -7,78 +7,11 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as reactHookForm from 'react-hook-form'
-import type * as z from 'zod'
+
+import * as textProvider from '#/providers/TextProvider'
 
 import * as components from './components'
 import type * as types from './types'
-
-/**
- * Props for the Form component
- */
-export type FormProps<
-  TFieldValues extends components.FieldValues,
-  // This type is defined on library level and we can't change it
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends components.FieldValues | undefined = undefined,
-> = BaseFormProps<TFieldValues, TTransformedValues> &
-  (FormPropsWithOptions<TFieldValues> | FormPropsWithParentForm<TFieldValues, TTransformedValues>)
-
-/**
- * Base props for the Form component.
- */
-interface BaseFormProps<
-  TFieldValues extends components.FieldValues,
-  // This type is defined on library level and we can't change it
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends components.FieldValues | undefined = undefined,
-> extends Omit<
-    React.HTMLProps<HTMLFormElement>,
-    'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
-  > {
-  readonly className?: string | ((props: types.FormStateRenderProps<TFieldValues>) => string)
-  readonly onSubmit: (
-    values: TFieldValues,
-    form: components.UseFormReturn<TFieldValues, TTransformedValues>
-  ) => unknown
-  readonly style?:
-    | React.CSSProperties
-    | ((props: types.FormStateRenderProps<TFieldValues>) => React.CSSProperties)
-  readonly children:
-    | React.ReactNode
-    | ((props: types.FormStateRenderProps<TFieldValues>) => React.ReactNode)
-  readonly formRef?: React.MutableRefObject<
-    components.UseFormReturn<TFieldValues, TTransformedValues>
-  >
-
-  readonly onSubmitFailed?: (error: unknown) => Promise<void> | void
-  readonly onSubmitSuccess?: () => Promise<void> | void
-  readonly onSubmitted?: () => Promise<void> | void
-}
-
-/**
- * Props for the Form component with parent form
- * or if form is passed as a prop.
- */
-interface FormPropsWithParentForm<
-  TFieldValues extends components.FieldValues,
-  // This type is defined on library level and we can't change it
-  // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends components.FieldValues | undefined = undefined,
-> {
-  readonly form: components.UseFormReturn<TFieldValues, TTransformedValues>
-  readonly schema?: never
-  readonly formOptions?: never
-}
-
-/**
- * Props for the Form component with schema and form options.
- * Creates a new form instance. This is the default way to use the form.
- */
-interface FormPropsWithOptions<TFieldValues extends components.FieldValues> {
-  readonly form?: never
-  readonly schema?: z.ZodObject<TFieldValues>
-  readonly formOptions: Omit<components.UseFormProps<TFieldValues>, 'resolver'>
-}
 
 /**
  * Form component. It wraps the form and provides the form context.
@@ -92,10 +25,10 @@ interface FormPropsWithOptions<TFieldValues extends components.FieldValues> {
 // eslint-disable-next-line no-restricted-syntax
 export const Form = React.forwardRef(function Form<
   TFieldValues extends reactHookForm.FieldValues,
-  // This type
+  // This type is defined on library level and we can't change it
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends reactHookForm.FieldValues | undefined = undefined,
->(props: FormProps<TFieldValues, TTransformedValues>, ref: React.Ref<HTMLFormElement>) {
+>(props: types.FormProps<TFieldValues, TTransformedValues>, ref: React.Ref<HTMLFormElement>) {
   const formId = React.useId()
 
   const {
@@ -114,6 +47,8 @@ export const Form = React.forwardRef(function Form<
     ...formProps
   } = props
 
+  const { getText } = textProvider.useText()
+
   const innerForm = components.useForm<TFieldValues, TTransformedValues>(
     form ?? {
       ...formOptions,
@@ -129,17 +64,11 @@ export const Form = React.forwardRef(function Form<
       try {
         await onSubmit(fieldValues, innerForm)
       } catch (error) {
-        const defaultErrorMessage = 'An error occurred while submitting the form.'
-
-        if (error instanceof Error) {
-          innerForm.setError('root.submit', { message: error.message })
-        } else {
-          innerForm.setError('root.submit', { message: defaultErrorMessage })
-        }
-
+        innerForm.setError('root.submit', {
+          message: error instanceof Error ? error.message : getText('arbitraryFormErrorMessage'),
+        })
         // TODO: Should we throw the error here?
         // Or should we just log it?
-        // What's about sentry?
         // eslint-disable-next-line no-restricted-syntax
         throw error
       }
@@ -167,6 +96,7 @@ export const Form = React.forwardRef(function Form<
       onSubmit={formOnSubmit}
       className={typeof className === 'function' ? className(formStateRenderProps) : className}
       style={typeof style === 'function' ? style(formStateRenderProps) : style}
+      noValidate
       {...formProps}
     >
       <reactHookForm.FormProvider {...innerForm}>
@@ -180,24 +110,22 @@ export const Form = React.forwardRef(function Form<
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends reactHookForm.FieldValues | undefined = undefined,
 >(
-  props: FormProps<TFieldValues, TTransformedValues> & React.RefAttributes<HTMLFormElement>
+  props: React.RefAttributes<HTMLFormElement> & types.FormProps<TFieldValues, TTransformedValues>
   // eslint-disable-next-line no-restricted-syntax
 ) => React.JSX.Element) & {
-  useForm: typeof components.useForm
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  Submit: typeof components.Submit
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  Reset: typeof components.Reset
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  FormError: typeof components.FormError
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  useFormSchema: typeof components.useFormSchema
+  /* eslint-disable @typescript-eslint/naming-convention */
   schema: typeof components.schema
+  useForm: typeof components.useForm
+  Submit: typeof components.Submit
+  Reset: typeof components.Reset
+  FormError: typeof components.FormError
+  useFormSchema: typeof components.useFormSchema
+  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-Form.Submit = components.Submit
+Form.schema = components.schema
 Form.useForm = components.useForm
+Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
 Form.useFormSchema = components.useFormSchema
-Form.schema = components.schema
