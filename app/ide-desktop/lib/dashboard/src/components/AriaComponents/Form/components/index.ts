@@ -6,3 +6,5 @@
 export * from './Submit'
 export * from './Reset'
 export * from './useForm'
+export * from './FormError'
+export * from './types'

@@ -8,10 +8,7 @@ import * as React from 'react'
 import * as reactHookForm from 'react-hook-form'
 import invariant from 'tiny-invariant'
 
-/**
- * Props for the useForm hook.
- */
-export type UseFormProps<T extends Record<string, unknown>> = reactHookForm.UseFormProps<T>
+import type * as types from './types'
 
 /**
  * A hook that returns a form instance.
@@ -25,9 +22,13 @@ export type UseFormProps<T extends Record<string, unknown>> = reactHookForm.UseF
  * But be careful, You should not switch between the two types of arguments.
  * Otherwise you'll be fired
  */
-export function useForm<T extends Record<string, unknown>>(
-  optionsOrFormInstance: reactHookForm.UseFormProps<T> | reactHookForm.UseFormReturn<T>
-): reactHookForm.UseFormReturn<T> {
+export function useForm<
+  T extends types.FieldValues,
+  // eslint-disable-next-line no-restricted-syntax
+  TTransformedValues extends types.FieldValues | undefined = undefined,
+>(
+  optionsOrFormInstance: types.UseFormProps<T> | types.UseFormReturn<T, TTransformedValues>
+): types.UseFormReturn<T, TTransformedValues> {
   const initialTypePassed = React.useRef(getArgsType(optionsOrFormInstance))
 
   const argsType = getArgsType(optionsOrFormInstance)
@@ -35,23 +36,25 @@ export function useForm<T extends Record<string, unknown>>(
   invariant(
     initialTypePassed.current === argsType,
     `
-    Found a switch between form options and form instance. This is not allowed. Please use either form options or form instance. And stick to it.
-    Initially passed: ${initialTypePassed.current}, Currently passed: ${argsType} \n\n
+    Found a switch between form options and form instance. This is not allowed. Please use either form options or form instance and stick to it.\n\n
+    Initially passed: ${initialTypePassed.current}, Currently passed: ${argsType}.
     `
   )
 
   if ('formState' in optionsOrFormInstance) {
     return optionsOrFormInstance
   } else {
-    return reactHookForm.useForm<T>(optionsOrFormInstance)
+    return reactHookForm.useForm(optionsOrFormInstance)
   }
 }
 
 /**
  * Get the type of arguments passed to the useForm hook
  */
-function getArgsType<T extends Record<string, unknown>>(
-  args: reactHookForm.UseFormReturn<T> | UseFormProps<T>
-) {
+function getArgsType<
+  T extends Record<string, unknown>,
+  // eslint-disable-next-line no-restricted-syntax
+  TTransformedValues extends Record<string, unknown> | undefined = undefined,
+>(args: types.UseFormProps<T> | types.UseFormReturn<T, TTransformedValues>) {
   return 'formState' in args ? 'formInstance' : 'formOptions'
 }

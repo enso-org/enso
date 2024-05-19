@@ -14,15 +14,15 @@ import type * as types from './types'
  * Props for the Form component
  */
 export interface FormProps<
-  TFieldValues extends reactHookForm.FieldValues,
+  TFieldValues extends components.FieldValues,
   // This type
   // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends reactHookForm.FieldValues | undefined = undefined,
+  TTransformedValues extends components.FieldValues | undefined = undefined,
 > extends Omit<
     React.HTMLProps<HTMLFormElement>,
     'children' | 'className' | 'form' | 'onSubmit' | 'style'
   > {
-  readonly form?: reactHookForm.UseFormReturn<TFieldValues, TTransformedValues>
+  readonly form?: components.UseFormReturn<TFieldValues, TTransformedValues>
   readonly className?: string | ((props: types.FormStateRenderProps<TFieldValues>) => string)
   readonly onSubmit: (values: TFieldValues) => Promise<void> | void
   readonly style?:
@@ -31,12 +31,14 @@ export interface FormProps<
   readonly children:
     | React.ReactNode
     | ((props: types.FormStateRenderProps<TFieldValues>) => React.ReactNode)
-  readonly formRef?: React.MutableRefObject<reactHookForm.UseFormReturn<TFieldValues>>
-  readonly formOptions?: reactHookForm.UseFormProps<TFieldValues, TTransformedValues>
+  readonly formRef?: React.MutableRefObject<
+    components.UseFormReturn<TFieldValues, TTransformedValues>
+  >
+  readonly formOptions?: components.UseFormProps<TFieldValues>
 }
 
 /**
- *
+ * Form component
  */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
@@ -56,25 +58,49 @@ export const Form = React.forwardRef(function Form<
     style,
     ...formProps
   } = props
-  const innerForm = components.useForm<TFieldValues>(form ?? formOptions)
+  const innerForm = components.useForm(form ?? formOptions)
 
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
+
+  // There is no way to avoid type casting here
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, no-restricted-syntax
+  const formOnSubmit = innerForm.handleSubmit((async () => {
+    try {
+      // eslint-disable-next-line no-restricted-syntax
+      return onSubmit(innerForm.getValues())
+    } catch (error) {
+      const defaultErrorMessage = 'An error occurred while submitting the form.'
+
+      if (error instanceof Error) {
+        innerForm.setError('root.submit', { message: error.message })
+      } else {
+        innerForm.setError('root.submit', { message: defaultErrorMessage })
+      }
+
+      // TODO: Should we throw the error here?
+      // Or should we just log it?
+      // What's about sentry?
+      throw error
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) as any)
+
+  const formStateRenderProps = {
+    formState: innerForm.formState,
+    register: innerForm.register,
+    unregister: innerForm.unregister,
+  }
 
   return (
     <form
       ref={ref}
-      className={
-        typeof className === 'function' ? className({ formState: innerForm.formState }) : className
-      }
-      style={typeof style === 'function' ? style({ formState: innerForm.formState }) : style}
-      onSubmit={innerForm.handleSubmit(async (data, event) => {
-        event?.preventDefault()
-        return onSubmit(data)
-      })}
+      onSubmit={formOnSubmit}
+      className={typeof className === 'function' ? className(formStateRenderProps) : className}
+      style={typeof style === 'function' ? style(formStateRenderProps) : style}
       {...formProps}
     >
       <reactHookForm.FormProvider {...innerForm}>
-        {typeof children === 'function' ? children({ formState: innerForm.formState }) : children}
+        {typeof children === 'function' ? children(formStateRenderProps) : children}
       </reactHookForm.FormProvider>
     </form>
   )
@@ -92,8 +118,11 @@ export const Form = React.forwardRef(function Form<
   Submit: typeof components.Submit
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Reset: typeof components.Reset
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  FormError: typeof components.FormError
 }
 
 Form.Submit = components.Submit
 Form.useForm = components.useForm
 Form.Reset = components.Reset
+Form.FormError = components.FormError
