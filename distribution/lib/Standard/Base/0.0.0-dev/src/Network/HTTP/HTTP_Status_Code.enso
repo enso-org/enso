@@ -9,7 +9,8 @@ type HTTP_Status_Code
     continue : HTTP_Status_Code
     continue = HTTP_Status_Code.Value 100
 
-    ## 101 Switching Protocols.
+    ## ICON data_download
+       101 Switching Protocols.
     switching_protocols : HTTP_Status_Code
     switching_protocols = HTTP_Status_Code.Value 101
 
@@ -58,7 +59,8 @@ type HTTP_Status_Code
     moved_permanently : HTTP_Status_Code
     moved_permanently = HTTP_Status_Code.Value 301
 
-    ## 302 Found.
+    ## ICON data_download
+       302 Found.
     found : HTTP_Status_Code
     found = HTTP_Status_Code.Value 302
 
@@ -97,7 +99,8 @@ type HTTP_Status_Code
     payment_required : HTTP_Status_Code
     payment_required = HTTP_Status_Code.Value 402
 
-    ## 403 Forbidden.
+    ## ICON data_download
+       403 Forbidden.
     forbidden : HTTP_Status_Code
     forbidden = HTTP_Status_Code.Value 403
 
@@ -131,7 +134,8 @@ type HTTP_Status_Code
     conflict : HTTP_Status_Code
     conflict = HTTP_Status_Code.Value 409
 
-    ## 410 Gone.
+    ## ICON data_download
+       410 Gone.
     gone : HTTP_Status_Code
     gone = HTTP_Status_Code.Value 410
 
@@ -165,11 +169,13 @@ type HTTP_Status_Code
     requested_range_not_satisfiable : HTTP_Status_Code
     requested_range_not_satisfiable = HTTP_Status_Code.Value 416
 
-    ## 417 Expectation Failed.
+    ## ICON data_download
+       417 Expectation Failed.
     expectation_failed : HTTP_Status_Code
     expectation_failed = HTTP_Status_Code.Value 417
 
-    ## 500 Internal Server Error.
+    ## ICON data_download
+       500 Internal Server Error.
     internal_server_error : HTTP_Status_Code
     internal_server_error = HTTP_Status_Code.Value 500
 

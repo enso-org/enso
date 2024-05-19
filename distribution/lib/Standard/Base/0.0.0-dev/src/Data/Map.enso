@@ -118,7 +118,8 @@ type Map key value
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## ICON metadata
+    ## GROUP Metadata
+       ICON metadata
        Returns the number of entries in this map.
     size : Integer
     size self = @Builtin_Method "Map.size"
@@ -178,7 +179,7 @@ type Map key value
             Error.throw (No_Such_Key.Error self key)
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets the value associated with `key` in this map, or throws a
        `No_Such_Key.Error` if `key` is not present.
 
@@ -197,7 +198,8 @@ type Map key value
     at : Any -> Any ! No_Such_Key
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
-    ## Gets the value associated with `key` in this map, or returns
+    ## ICON parse3
+       Gets the value associated with `key` in this map, or returns
        `if_missing` if it isn't present.
 
        This method has a constant time complexity.
@@ -327,7 +329,8 @@ type Map key value
                     Error.throw (Illegal_Argument.Error new_message error.cause)
                 False -> new_map
 
-    ## Combines the values in the map.
+    ## ICON sigma
+       Combines the values in the map.
 
        Arguments:
        - init: The initial value for the fold.
@@ -343,7 +346,8 @@ type Map key value
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function = self.values.fold init function
 
-    ## Combines the key-value pairs in the map.
+    ## ICON sigma
+       Combines the key-value pairs in the map.
 
        Arguments:
        - init: The initial value for the fold.

@@ -2093,7 +2093,7 @@ type Column
     count self = self.length - self.count_nothing
 
     ## GROUP Standard.Base.Selections
-       ICON select_column
+       ICON parse3
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -2114,7 +2114,7 @@ type Column
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -2212,7 +2212,7 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
-    ## ALIAS metadata, field info, column type
+    ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this column's contents and type.
@@ -2282,7 +2282,7 @@ type Column
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -2295,7 +2295,7 @@ type Column
 
     ## ALIAS skip
        GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Creates a new Column from the input with the specified range of rows
        removed.
 
@@ -2316,7 +2316,7 @@ type Column
         Column.Value (self.java_column.slice offset limit)
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error

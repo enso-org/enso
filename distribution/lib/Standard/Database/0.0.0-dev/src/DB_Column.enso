@@ -50,11 +50,14 @@ type DB_Column
        able to be combined.
     private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
 
-    ## The name of the column.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       The name of the column.
     name : Text
     name self = self.internal_name
 
-    ## The name of the SQL Dialect used by the table.
+    ## ICON metadata
+       The name of the SQL Dialect used by the table.
     dialect_name : Text
     dialect_name self = self.connection.dialect.name
 
@@ -91,7 +94,7 @@ type DB_Column
     to_table self =
         DB_Table.Value self.name self.connection [self.as_internal] self.context
 
-    ## ALIAS metadata, field info, column type
+    ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this column's contents and type.
@@ -118,7 +121,7 @@ type DB_Column
     to_vector self = self.read (..All_Rows) . to_vector
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -138,7 +141,7 @@ type DB_Column
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -156,6 +159,7 @@ type DB_Column
         self.read (..First index+1) . get index default
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the `Value_Type` associated with that column.
 
        The value type determines what type of values the column is storing and
@@ -176,7 +180,8 @@ type DB_Column
     inferred_precise_value_type self =
         self.value_type
 
-    ## Returns an SQL statement that will be used for materializing this column.
+    ## ICON convert
+       Returns an SQL statement that will be used for materializing this column.
     to_sql : SQL_Statement
     to_sql self = self.to_table.to_sql
 
@@ -241,17 +246,20 @@ type DB_Column
         self.make_op op_kind [] effective_new_name
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the length of this column.
     length : Integer
     length self = self.to_table.row_count
 
     ## GROUP Standard.Base.Metadata
+       ICON sigma
        Returns the number of missing items in this column.
     count_nothing : Integer
     count_nothing self =
         self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
     ## GROUP Standard.Base.Metadata
+       ICON sigma
        Returns the number of non-null items in this column.
     count : Integer
     count self =
@@ -1191,7 +1199,7 @@ type DB_Column
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -1203,7 +1211,7 @@ type DB_Column
 
     ## ALIAS skip
        GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Creates a new column from the input with the specified range of rows
        removed.
 

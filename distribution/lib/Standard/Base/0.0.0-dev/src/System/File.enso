@@ -660,7 +660,7 @@ type File
                  file.write_text "hello"
                  file.delete
     delete : Boolean -> Nothing ! File_Error
-    delete self (recursive : Boolean = False) -> Nothing =
+    delete self (recursive : Boolean = False) -> Nothing ! File_Error =
         Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
             File_Error.handle_java_exceptions self (self.delete_builtin recursive)
 

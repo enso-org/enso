@@ -46,6 +46,7 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
@@ -54,9 +55,19 @@ import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computedFallback } from '@/util/reactivity'
+import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
+import {
+  computed,
+  getCurrentInstance,
+  onMounted,
+  ref,
+  shallowRef,
+  toRef,
+  watch,
+  withCtx,
+} from 'vue'
 
 const keyboard = provideKeyboard()
 const graphStore = useGraphStore()
@@ -84,6 +95,15 @@ interface GraphStoredState {
   rw: number | null
 }
 
+const visibleAreasReady = computed(() => {
+  const nodesCount = graphStore.db.nodeIdToNode.size
+  const visibleNodeAreas = graphStore.visibleNodeAreas
+  console.log('nodesCount', nodesCount, 'visibleNodeAreas', visibleNodeAreas)
+  return nodesCount > 0 && visibleNodeAreas.length == nodesCount
+})
+
+const waitForVisibleAreas = withCtx(() => until(visibleAreasReady).toBe(true), getCurrentInstance())
+
 useSyncLocalStorage<GraphStoredState>({
   storageKey: 'enso-graph-state',
   mapKeyEncoder: (enc) => {
@@ -104,30 +124,46 @@ useSyncLocalStorage<GraphStoredState>({
       rw: rightDockWidth.value ?? null,
     }
   },
-  restoreState(restored) {
-    const pos = restored ? new Vec2(restored.x ?? 0, restored.y ?? 0) : Vec2.Zero
-    const scale = restored?.s ?? 1
-    graphNavigator.setCenterAndScale(pos, scale)
-    storedShowDocumentationEditor.value = restored?.doc ?? undefined
-    rightDockWidth.value = restored?.rw ?? undefined
+  async restoreState(restored, abort) {
+    if (restored) {
+      const pos = new Vec2(restored.x ?? 0, restored.y ?? 0)
+      const scale = restored.s ?? 1
+      graphNavigator.setCenterAndScale(pos, scale)
+      storedShowDocumentationEditor.value = restored.doc ?? undefined
+      rightDockWidth.value = restored.rw ?? undefined
+    } else {
+      await waitForVisibleAreas()
+      if (!abort.aborted) zoomToAll(true)
+    }
   },
 })
 
-function selectionBounds() {
-  if (!viewportNode.value) return
-  const selected = nodeSelection.selected
-  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+function nodesBounds(nodeIds: Iterable<NodeId>) {
   let bounds = Rect.Bounding()
-  for (const id of nodesToCenter) {
+  for (const id of nodeIds) {
     const rect = graphStore.visibleArea(id)
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
   if (bounds.isFinite()) return bounds
 }
 
-function zoomToSelected() {
+function selectionBounds() {
+  const selected = nodeSelection.selected
+  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+  return nodesBounds(nodesToCenter)
+}
+
+function zoomToSelected(skipAnimation: boolean = false) {
   const bounds = selectionBounds()
-  if (bounds) graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
+  if (bounds)
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
+}
+
+function zoomToAll(skipAnimation: boolean = false) {
+  const bounds = nodesBounds(graphStore.db.nodeIdToNode.keys())
+  console.log('zoomToAll', bounds)
+  if (bounds)
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
 
 function panToSelected() {
@@ -245,7 +281,9 @@ const graphBindingsHandler = graphBindings.handler({
     }
   },
   deleteSelected,
-  zoomToSelected,
+  zoomToSelected() {
+    zoomToSelected()
+  },
   selectAll() {
     nodeSelection.selectAll()
   },
@@ -391,19 +429,22 @@ function createWithComponentBrowser(options: NewNodeOptions) {
   )
 }
 
-function commitComponentBrowser(content: string, requiredImports: RequiredImport[]) {
+function commitComponentBrowser(
+  content: string,
+  requiredImports: RequiredImport[],
+  type: Typename | undefined,
+) {
   if (graphStore.editedNodeInfo) {
     // We finish editing a node.
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
   } else if (content != '') {
     // We finish creating a new node.
-    createNode(
-      { type: 'fixed', position: componentBrowserNodePosition.value },
-      content,
-      undefined,
-      undefined,
+    createNode({
+      placement: { type: 'fixed', position: componentBrowserNodePosition.value },
+      expression: content,
+      type,
       requiredImports,
-    )
+    })
   }
   hideComponentBrowser()
 }
@@ -552,7 +593,10 @@ async function handleFileDrop(event: DragEvent) {
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
-        createNode({ type: 'mouseEvent', position: pos }, uploadedExpression(uploadResult.value))
+        createNode({
+          placement: { type: 'mouseEvent', position: pos },
+          expression: uploadedExpression(uploadResult.value),
+        })
       } else {
         uploadResult.error.log(`Uploading file failed`)
       }
