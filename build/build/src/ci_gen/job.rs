@@ -322,7 +322,11 @@ pub struct BuildBackend;
 
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Build Backend", "backend get")
+        RunStepsBuilder::new("backend get")
+            .customize(move |step| {
+                vec![setup_python_step(), setup_node_step(), npm_install_step(), step]
+            })
+            .build_job("Build Backend", target)
     }
 }
 
