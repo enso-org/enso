@@ -58,16 +58,7 @@ import { computedFallback } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import {
-  computed,
-  getCurrentInstance,
-  onMounted,
-  ref,
-  shallowRef,
-  toRef,
-  watch,
-  withCtx,
-} from 'vue'
+import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
 
 const keyboard = provideKeyboard()
 const graphStore = useGraphStore()
@@ -98,11 +89,8 @@ interface GraphStoredState {
 const visibleAreasReady = computed(() => {
   const nodesCount = graphStore.db.nodeIdToNode.size
   const visibleNodeAreas = graphStore.visibleNodeAreas
-  console.log('nodesCount', nodesCount, 'visibleNodeAreas', visibleNodeAreas)
   return nodesCount > 0 && visibleNodeAreas.length == nodesCount
 })
-
-const waitForVisibleAreas = withCtx(() => until(visibleAreasReady).toBe(true), getCurrentInstance())
 
 useSyncLocalStorage<GraphStoredState>({
   storageKey: 'enso-graph-state',
@@ -132,7 +120,7 @@ useSyncLocalStorage<GraphStoredState>({
       storedShowDocumentationEditor.value = restored.doc ?? undefined
       rightDockWidth.value = restored.rw ?? undefined
     } else {
-      await waitForVisibleAreas()
+      await until(visibleAreasReady).toBe(true)
       if (!abort.aborted) zoomToAll(true)
     }
   },
@@ -161,7 +149,6 @@ function zoomToSelected(skipAnimation: boolean = false) {
 
 function zoomToAll(skipAnimation: boolean = false) {
   const bounds = nodesBounds(graphStore.db.nodeIdToNode.keys())
-  console.log('zoomToAll', bounds)
   if (bounds)
     graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
@@ -356,10 +343,9 @@ const codeEditorHandler = codeEditorBindings.handler({
 // === Documentation Editor ===
 
 const documentationEditorArea = ref<HTMLElement>()
-
 const showDocumentationEditor = computedFallback(
   storedShowDocumentationEditor,
-  // Sshow documenation editor when documentation exists on first graph visit.
+  // Show documenation editor when documentation exists on first graph visit.
   () => !!documentation.value,
 )
 

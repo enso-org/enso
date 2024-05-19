@@ -4,7 +4,7 @@ import { encoding } from 'lib0'
 import { xxHash128 } from 'shared/ast/ffi'
 import { assert } from 'shared/util/assert'
 import { AbortScope } from 'shared/util/net'
-import { computed, ref, watch } from 'vue'
+import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
 
 export interface SyncLocalStorageOptions<StoredState> {
   /**
@@ -48,6 +48,13 @@ export function useSyncLocalStorage<StoredState extends Object>(
   options: SyncLocalStorageOptions<StoredState>,
 ) {
   const graphViewportStorageKey = computed(() => xxHash128(encoding.encode(options.mapKeyEncoder)))
+
+  // Ensure that restoreState function is run within component's context, allowing for temporary
+  // watchers to be created for async/await purposes.
+  const restoreStateInCtx = withCtx(
+    options.restoreState,
+    getCurrentInstance(),
+  ) as typeof options.restoreState
 
   const storageMap = useLocalStorage<Map<string, StoredState>>(options.storageKey, new Map())
 
@@ -124,7 +131,7 @@ export function useSyncLocalStorage<StoredState extends Object>(
     })
 
     try {
-      await options.restoreState(restored, restoreAbort.signal)
+      await restoreStateInCtx(restored, restoreAbort.signal)
     } catch (e) {
       // Ignore promise rejections caused by aborted scope. Those are expected to happen.
       if (!restoreAbort.signal.aborted) throw e
