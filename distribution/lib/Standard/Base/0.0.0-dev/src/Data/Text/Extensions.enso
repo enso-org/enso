@@ -45,6 +45,8 @@ polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.text.Utf16Span
+polyglot java import org.enso.base.text.GraphemeSpan
 
 ## GROUP Text
    ICON text
@@ -392,7 +394,8 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                         start = if i == 0 then 0 else
                             delimiters.at i-1 . codeunit_end
                         end = if i == delimiters.length then (Text_Utils.char_length self) else
-                            delimiters.at i . codeunit_start
+                            span = delimiters.at i
+                            (span : Utf16Span) . codeunit_start
                         Text_Utils.substring self start end
                 True -> case delimiter of
                     _ : Text ->
@@ -1312,7 +1315,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
             case Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last of
                 Nothing -> Nothing
                 grapheme_span ->
-                    Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
+                    Span.Value ((grapheme_span:GraphemeSpan).grapheme_start.up_to grapheme_span.grapheme_end) self
 
 ## ALIAS index_of_all, position_of_all, span_of_all
    GROUP Text
