@@ -24,11 +24,13 @@ public final class Ydoc implements AutoCloseable {
   private Context context;
 
   public Ydoc() {
-    executor = Executors.newSingleThreadExecutor(r -> {
-      var t = new Thread(r);
-      t.setName(YDOC_EXECUTOR_THREAD_NAME);
-      return t;
-    });
+    executor =
+        Executors.newSingleThreadExecutor(
+            r -> {
+              var t = new Thread(r);
+              t.setName(YDOC_EXECUTOR_THREAD_NAME);
+              return t;
+            });
     parser = new ParserPolyfill();
     contextBuilder = WebEnvironment.createContext().allowIO(IOAccess.ALL);
   }
