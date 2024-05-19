@@ -66,8 +66,7 @@ export const Form = React.forwardRef(function Form<
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, no-restricted-syntax
   const formOnSubmit = innerForm.handleSubmit((async () => {
     try {
-      // eslint-disable-next-line no-restricted-syntax
-      return onSubmit(innerForm.getValues())
+      await onSubmit(innerForm.getValues())
     } catch (error) {
       const defaultErrorMessage = 'An error occurred while submitting the form.'
 
@@ -80,6 +79,7 @@ export const Form = React.forwardRef(function Form<
       // TODO: Should we throw the error here?
       // Or should we just log it?
       // What's about sentry?
+      // eslint-disable-next-line no-restricted-syntax
       throw error
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
