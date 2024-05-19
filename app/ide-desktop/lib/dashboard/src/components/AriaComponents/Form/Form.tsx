@@ -5,7 +5,6 @@
  */
 import * as React from 'react'
 
-import * as zodResolver from '@hookform/resolvers/zod'
 import * as reactQuery from '@tanstack/react-query'
 import * as reactHookForm from 'react-hook-form'
 import type * as z from 'zod'
@@ -16,19 +15,31 @@ import type * as types from './types'
 /**
  * Props for the Form component
  */
-export interface FormProps<
+export type FormProps<
   TFieldValues extends components.FieldValues,
-  // This type
+  // This type is defined on library level and we can't change it
+  // eslint-disable-next-line no-restricted-syntax
+  TTransformedValues extends components.FieldValues | undefined = undefined,
+> = BaseFormProps<TFieldValues, TTransformedValues> &
+  (FormPropsWithOptions<TFieldValues> | FormPropsWithParentForm<TFieldValues, TTransformedValues>)
+
+/**
+ * Base props for the Form component.
+ */
+interface BaseFormProps<
+  TFieldValues extends components.FieldValues,
+  // This type is defined on library level and we can't change it
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues | undefined = undefined,
 > extends Omit<
     React.HTMLProps<HTMLFormElement>,
     'children' | 'className' | 'form' | 'onSubmit' | 'onSubmitCapture' | 'style'
   > {
-  readonly schema?: z.ZodObject<TFieldValues>
-  readonly form?: components.UseFormReturn<TFieldValues, TTransformedValues>
   readonly className?: string | ((props: types.FormStateRenderProps<TFieldValues>) => string)
-  readonly onSubmit: (values: TFieldValues) => unknown
+  readonly onSubmit: (
+    values: TFieldValues,
+    form: components.UseFormReturn<TFieldValues, TTransformedValues>
+  ) => unknown
   readonly style?:
     | React.CSSProperties
     | ((props: types.FormStateRenderProps<TFieldValues>) => React.CSSProperties)
@@ -38,14 +49,44 @@ export interface FormProps<
   readonly formRef?: React.MutableRefObject<
     components.UseFormReturn<TFieldValues, TTransformedValues>
   >
-  readonly formOptions?: Omit<components.UseFormProps<TFieldValues>, 'resolver'>
+
   readonly onSubmitFailed?: (error: unknown) => Promise<void> | void
   readonly onSubmitSuccess?: () => Promise<void> | void
   readonly onSubmitted?: () => Promise<void> | void
 }
 
 /**
- * Form component
+ * Props for the Form component with parent form
+ * or if form is passed as a prop.
+ */
+interface FormPropsWithParentForm<
+  TFieldValues extends components.FieldValues,
+  // This type is defined on library level and we can't change it
+  // eslint-disable-next-line no-restricted-syntax
+  TTransformedValues extends components.FieldValues | undefined = undefined,
+> {
+  readonly form: components.UseFormReturn<TFieldValues, TTransformedValues>
+  readonly schema?: never
+  readonly formOptions?: never
+}
+
+/**
+ * Props for the Form component with schema and form options.
+ * Creates a new form instance. This is the default way to use the form.
+ */
+interface FormPropsWithOptions<TFieldValues extends components.FieldValues> {
+  readonly form?: never
+  readonly schema?: z.ZodObject<TFieldValues>
+  readonly formOptions: Omit<components.UseFormProps<TFieldValues>, 'resolver'>
+}
+
+/**
+ * Form component. It wraps the form and provides the form context.
+ * It also handles the form submission.
+ * Provides better error handling and form state management.
+ * And serves a better UX out of the box.
+ *
+ * ## Component is in BETA and will be improved in the future.
  */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
@@ -76,7 +117,7 @@ export const Form = React.forwardRef(function Form<
   const innerForm = components.useForm<TFieldValues, TTransformedValues>(
     form ?? {
       ...formOptions,
-      ...(schema && { resolver: zodResolver.zodResolver(schema) }),
+      ...(schema ? { schema } : {}),
     }
   )
 
@@ -84,9 +125,9 @@ export const Form = React.forwardRef(function Form<
 
   const formMutation = reactQuery.useMutation({
     mutationKey: ['FormSubmit', id],
-    mutationFn: async () => {
+    mutationFn: async (fieldValues: TFieldValues) => {
       try {
-        await onSubmit(innerForm.getValues())
+        await onSubmit(fieldValues, innerForm)
       } catch (error) {
         const defaultErrorMessage = 'An error occurred while submitting the form.'
 
@@ -139,7 +180,7 @@ export const Form = React.forwardRef(function Form<
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends reactHookForm.FieldValues | undefined = undefined,
 >(
-  props: FormProps<TFieldValues, TTransformedValues>
+  props: FormProps<TFieldValues, TTransformedValues> & React.RefAttributes<HTMLFormElement>
   // eslint-disable-next-line no-restricted-syntax
 ) => React.JSX.Element) & {
   useForm: typeof components.useForm

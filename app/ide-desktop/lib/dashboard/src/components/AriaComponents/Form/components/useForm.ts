@@ -5,6 +5,7 @@
  */
 import * as React from 'react'
 
+import * as zodResolver from '@hookform/resolvers/zod'
 import * as reactHookForm from 'react-hook-form'
 import invariant from 'tiny-invariant'
 
@@ -44,7 +45,12 @@ export function useForm<
   if ('formState' in optionsOrFormInstance) {
     return optionsOrFormInstance
   } else {
-    return reactHookForm.useForm(optionsOrFormInstance)
+    const { schema, ...options } = optionsOrFormInstance
+
+    return reactHookForm.useForm({
+      ...options,
+      ...(schema ? { resolver: zodResolver.zodResolver(schema) } : {}),
+    })
   }
 }
 
