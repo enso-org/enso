@@ -48,7 +48,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from project.Mod import T
             """);
     var projDir = createProject(Set.of(importedMod, mainMod));
-    var modsToCompile = runImportResolution(projDir, mainModName);
+    var modsToCompile = runImportResolution(projDir);
     assertThat(modsToCompile.size(), is(2));
     assertThat(
         "Imported module must be the first to compile. modNamesToCompile = " + modsToCompile,
@@ -74,7 +74,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from project.Mod2 import T2
             """);
     var projDir = createProject(Set.of(mod1, mod2, mainMod));
-    var modNamesToCompile = runImportResolution(projDir, mainModName);
+    var modNamesToCompile = runImportResolution(projDir);
     assertThat(modNamesToCompile.size(), is(3));
     assertThat(
         "Main module should be compile as the last one. modNamesToCompile = " + modNamesToCompile,
@@ -106,7 +106,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from project.Mod2 import T2
             """);
     var projDir = createProject(Set.of(mod1, mod2, mainMod));
-    var modNamesToCompile = runImportResolution(projDir, mainModName);
+    var modNamesToCompile = runImportResolution(projDir);
     assertThat(modNamesToCompile.size(), is(3));
     assertThat(
         "Main module should be compile as the last one. modNamesToCompile = " + modNamesToCompile,
@@ -124,7 +124,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from Standard.Base import all
             """);
     var projDir = createProject(Set.of(mainMod));
-    var modsToCompile = runImportResolution(projDir, mainModName);
+    var modsToCompile = runImportResolution(projDir);
     assertThat(modsToCompile.size(), is(greaterThan(1)));
     var lastModToCompile = modsToCompile.get(modsToCompile.size() - 1);
     assertThat(
@@ -145,10 +145,9 @@ public class ImportResolutionOrderTest extends TestBase {
    * the invocation of {@link ImportResolver#mapImports(Module, boolean)}.
    *
    * @param projDir Root directory of the project.
-   * @param startModName FQN of a module from which the import resolution should start.
    * @return List of module names to compile in the topological order.
    */
-  private static List<String> runImportResolution(Path projDir, String startModName) {
+  private static List<String> runImportResolution(Path projDir) {
     assert projDir.toFile().exists() && projDir.toFile().isDirectory();
     var out = new ByteArrayOutputStream();
     List<Module> modulesToCompile = List.of();
@@ -162,7 +161,7 @@ public class ImportResolutionOrderTest extends TestBase {
             .build()) {
       var ensoCtx = leakContext(ctx);
       var compiler = ensoCtx.getCompiler();
-      var mainMod = compiler.getModule(startModName).get();
+      var mainMod = compiler.getModule(mainModName).get();
       var impResolver = new ImportResolver(compiler);
       var res = impResolver.mapImports(mainMod, false);
       modulesToCompile = ScalaConversions.asJava(res._1);
