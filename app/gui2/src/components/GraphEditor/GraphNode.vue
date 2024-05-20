@@ -67,6 +67,7 @@ const emit = defineEmits<{
   'update:visualizationVisible': [visible: boolean]
   'update:visualizationFullscreen': [fullscreen: boolean]
   'update:visualizationWidth': [width: number]
+  'update:visualizationHeight': [height: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -220,6 +221,7 @@ function openFullMenu() {
 
 const isDocsVisible = ref(false)
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
+const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
@@ -244,13 +246,13 @@ const transform = computed(() => {
 })
 
 const startEpochMs = ref(0)
-let significantMove = false
+const significantMove = ref(false)
 
 const dragPointer = usePointer(
   (pos, event, type) => {
     if (type !== 'start') {
       if (
-        !significantMove &&
+        !significantMove.value &&
         (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
           pos.relative.lengthSquared() >= MAXIMUM_CLICK_DISTANCE_SQ)
       ) {
@@ -258,7 +260,7 @@ const dragPointer = usePointer(
         // prevent `click` on widgets.
         if (event.currentTarget instanceof Element)
           event.currentTarget.setPointerCapture?.(event.pointerId)
-        significantMove = true
+        significantMove.value = true
       }
       const fullOffset = pos.relative
       emit('dragging', fullOffset)
@@ -266,7 +268,7 @@ const dragPointer = usePointer(
     switch (type) {
       case 'start':
         startEpochMs.value = Number(new Date())
-        significantMove = false
+        significantMove.value = false
         break
       case 'stop': {
         startEpochMs.value = 0
@@ -278,6 +280,7 @@ const dragPointer = usePointer(
   // is not going to be a node drag.
   { pointerCapturedBy: 'target' },
 )
+const isDragged = computed(() => dragPointer.dragging && significantMove)
 
 const isRecordingOverridden = computed({
   get() {
@@ -369,13 +372,13 @@ const handlePortClick = useDoubleClick(
 
 const handleNodeClick = useDoubleClick(
   (e: MouseEvent) => {
-    if (!significantMove) {
+    if (!significantMove.value) {
       nodeSelection?.handleSelectionOf(e, new Set([nodeId.value]))
       nodeEditHandler(e)
     }
   },
   () => {
-    if (!significantMove) emit('doubleClick')
+    if (!significantMove.value) emit('doubleClick')
   },
 ).handleClick
 
@@ -444,7 +447,8 @@ function portGroupStyle(port: PortData) {
 
 const editingComment = ref(false)
 
-const { getNodeColor, visibleNodeColors } = injectNodeColors()
+const { getNodeColor, getNodeColors } = injectNodeColors()
+const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
 </script>
 
 <template>
@@ -472,6 +476,7 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator"
+        :class="{ dragged: isDragged }"
         :nodePosition="props.node.position"
         :nodeSize="nodeSize"
         :selected
@@ -502,7 +507,7 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
       :isVisualizationVisible="isVisualizationVisible"
       :isFullMenuVisible="menuVisible && menuFull"
       :nodeColor="getNodeColor(nodeId)"
-      :visibleNodeColors="visibleNodeColors"
+      :matchableNodeColors="matchableNodeColors"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -524,17 +529,24 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
+      :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
       @update:rect="emit('update:visualizationRect', $event)"
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
+      @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
     />
     <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
-    <div ref="contentNode" class="content" v-on="dragPointer.events" @click="handleNodeClick">
+    <div
+      ref="contentNode"
+      :class="{ content: true, dragged: isDragged }"
+      v-on="dragPointer.events"
+      @click="handleNodeClick"
+    >
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
@@ -796,5 +808,13 @@ const { getNodeColor, visibleNodeColors } = injectNodeColors()
   height: 100%;
   right: 100%;
   margin-right: 4px;
+}
+
+.draggable {
+  cursor: grab;
+}
+
+.dragged {
+  cursor: grabbing;
 }
 </style>

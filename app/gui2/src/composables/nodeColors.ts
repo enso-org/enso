@@ -17,14 +17,18 @@ export function useNodeColors(getCssValue: (variable: string) => string) {
     }
   }
 
-  const visibleNodeColors = computed(() => {
-    const colors = new Set<string>()
-    for (const node of graphStore.db.nodeIds()) {
-      const color = getNodeColor(node)
-      if (color) colors.add(color)
-    }
-    return colors
-  })
+  function getNodeColors(filter?: (node: NodeId) => boolean) {
+    return computed(() => {
+      const colors = new Set<string>()
+      for (const node of graphStore.db.nodeIds()) {
+        if (filter?.(node) !== false) {
+          const color = getNodeColor(node)
+          if (color) colors.add(color)
+        }
+      }
+      return colors
+    })
+  }
 
-  return { getNodeColor, visibleNodeColors }
+  return { getNodeColor, getNodeColors }
 }

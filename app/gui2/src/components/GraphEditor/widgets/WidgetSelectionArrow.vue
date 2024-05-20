@@ -24,17 +24,15 @@ onUnmounted(() => info && (info.handled = false))
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  WidgetInput.isAstOrPlaceholder,
+  [WidgetInput.isAstOrPlaceholder, WidgetInput.isToken],
   {
     priority: 105,
     score: (props) => {
       const info = injectSelectionArrow(true)
       if (info == null) return Score.Mismatch
 
-      // This is needed because the id of the rhs in PropertyAccess chain is TokenId, not AstId.
-      if (props.input.value instanceof Ast.Ident && props.input.value.token.id === info?.id)
+      if (props.input.value instanceof Ast.Token && props.input.value.id === info?.id)
         return Score.Perfect
-
       if (props.input.value instanceof Ast.Ast && props.input.value.id === info?.id)
         return Score.Perfect
       if (props.input.portId === info?.id) return Score.Perfect
@@ -63,6 +61,6 @@ export const widgetDefinition = defineWidget(
   display: flex;
   flex-direction: row;
   align-items: center;
-  min-height: --node-port-height;
+  min-height: var(--node-port-height);
 }
 </style>

@@ -1,4 +1,4 @@
-/** @file A dynamic wizard for creating an arbitrary type of Data Link. */
+/** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import * as React from 'react'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -31,7 +31,7 @@ export interface JSONSchemaInputProps {
   readonly setValue: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
 }
 
-/** A dynamic wizard for creating an arbitrary type of Data Link. */
+/** A dynamic wizard for creating an arbitrary type of Datalink. */
 export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { dropdownTitle, readOnly = false, defs, schema, path, getValidator } = props
   const { value: valueRaw, setValue: setValueRaw } = props

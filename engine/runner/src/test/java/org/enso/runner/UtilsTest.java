@@ -7,6 +7,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.graalvm.polyglot.SourceSection;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -15,6 +19,48 @@ public class UtilsTest {
   @Rule public TemporaryFolder folder = new TemporaryFolder();
 
   public UtilsTest() {}
+
+  @Test
+  public void printStackTrace1() throws Exception {
+    var f = folder.newFile("p.enso");
+    var code =
+        """
+    from Standard.Base import all
+
+    a = b
+    b = c
+    c = Panic.throw "foo"
+
+    main = a
+    """;
+    Files.writeString(f.toPath(), code);
+
+    var lines = new ArrayList<String>();
+
+    var stack =
+        List.of(
+            new MockFrame("enso", "Panic", "throw", "Internal", -1, -1, -1),
+            new MockFrame("enso", "p", "c", "p.enso", 5, 5, 21),
+            new MockFrame("enso", "m", "main", "p.enso", 20, 4, 8));
+
+    Utils.printStackTrace(
+        stack,
+        false,
+        "foo",
+        new File("/"),
+        lines::add,
+        MockFrame::lang,
+        MockFrame::method,
+        MockFrame::section);
+
+    assertEquals(
+        """
+      Execution finished with an error: foo
+              at <enso> throw(Internal)
+              at <enso> c(Internal)
+              at <enso> main(Internal)""",
+        lines.stream().collect(Collectors.joining("\n")));
+  }
 
   @Test
   public void detectParentProject() throws Exception {
@@ -99,5 +145,18 @@ public class UtilsTest {
     assertFalse("No project mode for a source file", found._1());
     assertEquals("Source detected", src, found._2());
     assertEquals("No project folder detected without src dir", "", found._3());
+  }
+
+  private static record MockFrame(
+      String lang,
+      String type,
+      String method,
+      String src,
+      int line,
+      int startColumn,
+      int endColumn) {
+    SourceSection section() {
+      return null;
+    }
   }
 }

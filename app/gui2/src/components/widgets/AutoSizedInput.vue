@@ -82,7 +82,6 @@ defineExpose({
   height: 24px;
   appearance: textfield;
   -moz-appearance: textfield;
-  cursor: default;
   user-select: all;
   box-sizing: content-box;
   &:focus {

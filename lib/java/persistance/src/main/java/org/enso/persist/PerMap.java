@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.enso.persist.Persistance.Reference;
 import org.openide.util.lookup.Lookups;
 
 final class PerMap {
@@ -17,7 +16,6 @@ final class PerMap {
     var loader = PerMap.class.getClassLoader();
     var lookup = Lookups.metaInfServices(loader);
     var all = new ArrayList<Persistance>();
-    all.add(ReferencePersitance.INSTANCE);
     all.addAll(lookup.lookupAll(Persistance.class));
     ALL = all;
   }
@@ -99,24 +97,5 @@ final class PerMap {
       throw PerUtils.raise(RuntimeException.class, new IOException("No persistance for " + id));
     }
     return p;
-  }
-
-  private static class ReferencePersitance extends Persistance<Persistance.Reference> {
-    private static final ReferencePersitance INSTANCE = new ReferencePersitance();
-
-    private ReferencePersitance() {
-      super(Reference.class, true, 60941);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    protected void writeObject(Reference obj, Output out) throws IOException {
-      out.writeObject(obj.get(Object.class));
-    }
-
-    @Override
-    protected Reference readObject(Input in) throws IOException, ClassNotFoundException {
-      return in.readReference(Object.class);
-    }
   }
 }

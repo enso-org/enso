@@ -34,8 +34,6 @@ export default function Modal(props: ModalProps) {
     <FocusRoot active={!hidden}>
       {innerProps => (
         <div
-          // The name comes from a third-party API and cannot be changed.
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
           style={style}
           className={`inset z-1 ${centered ? 'size-screen fixed grid place-items-center' : ''} ${

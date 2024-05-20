@@ -1,6 +1,7 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Spec.Spec
@@ -12,7 +13,7 @@ type Group_Builder
 
        Arguments:
        - teardown_ref: A reference to a teardown method.
-    Impl (builder = Vector.new_builder) (teardown_ref = Ref.new (_ -> Nothing))
+    Impl (builder = Builder.new) (teardown_ref = Ref.new (_ -> Nothing))
 
     ## Specifies a single test.
 

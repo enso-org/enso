@@ -77,7 +77,8 @@ type Any
     to_text : Text
     to_text self = @Builtin_Method "Any.to_text"
 
-    ## Generic conversion of an arbitrary Enso value to a corresponding human-readable
+    ## ICON convert
+       Generic conversion of an arbitrary Enso value to a corresponding human-readable
        representation.
 
        > Example
@@ -332,6 +333,7 @@ type Any
     if_not_nothing self ~action = action
 
     ## GROUP Errors
+       ICON error
        Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
@@ -398,6 +400,7 @@ type Any
         const self f
 
     ## GROUP Errors
+       ICON error
        Checks if `self` is an error.
 
        > Example
@@ -481,6 +484,7 @@ type Any
         False
 
     ## GROUP Errors
+       ICON warning
        Remove the warnings (either all or of a specified type) attached to the value.
 
        Arguments:
@@ -491,6 +495,7 @@ type Any
         self
 
     ## GROUP Errors
+       ICON error
        Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:

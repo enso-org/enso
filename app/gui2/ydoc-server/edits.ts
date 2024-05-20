@@ -113,6 +113,7 @@ function translateVisualizationToFile(
     show: vis.visible,
     fullscreen: vis.fullscreen,
     width: vis.width ?? undefined,
+    height: vis.height ?? undefined,
     ...(project == null || vis.identifier == null ?
       {}
     : {
@@ -144,6 +145,7 @@ export function translateVisualizationFromFile(
     visible: vis.show,
     fullscreen: vis.fullscreen ?? false,
     width: vis.width ?? null,
+    height: vis.height ?? null,
   }
 }
 

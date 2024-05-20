@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.No_Such_Method
@@ -215,7 +216,7 @@ add_specs suite_builder = suite_builder.group "Range" group_builder->
         vec . should_equal [1, 2, 3, 4, 5]
 
     group_builder.specify "should allow iteration, with error propagation and early exit" <|
-        vec_mut = Vector.new_builder
+        vec_mut = Builder.new
         result = 1.up_to 6 . each_propagate i->
             if i >= 3 then Error.throw (Illegal_Argument.Error "dummy") else
               vec_mut.append i

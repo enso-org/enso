@@ -240,8 +240,8 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
-        // Playwright build cache.
-        ignores: ['**/.cache/**', '**/playwright-report', 'dist'],
+        // Playwright build cache and Vite build directory.
+        ignores: ['**/.cache/**', '**/playwright-report', '**/dist'],
     },
     {
         settings: {
@@ -334,7 +334,7 @@ export default [
                     format: ['camelCase', 'PascalCase'],
                 },
                 {
-                    selector: ['parameter', 'property', 'method'],
+                    selector: ['parameter', 'method'],
                     format: ['camelCase'],
                 },
                 {
@@ -342,6 +342,14 @@ export default [
                     modifiers: ['unused'],
                     format: ['camelCase'],
                     leadingUnderscore: 'require',
+                },
+                {
+                    selector: ['property'],
+                    format: ['camelCase'],
+                    filter: {
+                        regex: '^(?:data-testid)$',
+                        match: false,
+                    },
                 },
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',
