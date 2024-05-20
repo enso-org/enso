@@ -1,24 +1,8 @@
 package org.enso.base;
 
 import java.util.HashMap;
-import org.graalvm.polyglot.Context;
 
 public class Environment_Utils {
-  private static final boolean isEspresso;
-
-  static {
-    var name = System.getProperty("java.vm.name");
-    isEspresso = name != null && name.startsWith("Espresso");
-  }
-
-  private Environment_Utils() {}
-
-  public static void safepoint() {
-    if (!isEspresso) {
-      Context.getCurrent().safepoint();
-    }
-  }
-
   /** Gets the environment variable, including any overrides. */
   public static String get_environment_variable(String name) {
     String override = overrides.get(name);

@@ -1,6 +1,6 @@
 package org.enso.base.statistics;
 
-import org.enso.base.Environment_Utils;
+import org.graalvm.polyglot.Context;
 
 /** Class to compute covariance and correlations between series. */
 public class CorrelationStatistics {
@@ -120,6 +120,7 @@ public class CorrelationStatistics {
   public static CorrelationStatistics[][] computeMatrix(Double[][] data) {
     int len = data[0].length;
 
+    Context context = Context.getCurrent();
     CorrelationStatistics[][] output = new CorrelationStatistics[data.length][];
     for (int i = 0; i < data.length; i++) {
       if (data[i].length != len) {
@@ -133,7 +134,7 @@ public class CorrelationStatistics {
           output[i][j] = compute(data[i], data[j]);
         }
 
-        Environment_Utils.safepoint();
+        context.safepoint();
       }
     }
     return output;
@@ -142,10 +143,11 @@ public class CorrelationStatistics {
   public static double spearmanRankCorrelation(Double[] x, Double[] y) {
     double[][] pairedRanks = Rank.pairedRanks(x, y, Rank.Method.AVERAGE);
 
+    Context context = Context.getCurrent();
     CorrelationStatistics computation = new CorrelationStatistics();
     for (int i = 0; i < pairedRanks[0].length; i++) {
       computation.append(pairedRanks[0][i], pairedRanks[1][i]);
-      Environment_Utils.safepoint();
+      context.safepoint();
     }
     return computation.pearsonCorrelation();
   }

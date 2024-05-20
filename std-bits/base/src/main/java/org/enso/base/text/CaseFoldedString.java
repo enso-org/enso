@@ -4,8 +4,8 @@ import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.CaseMap;
 import com.ibm.icu.text.CaseMap.Fold;
 import java.util.Locale;
-import org.enso.base.Environment_Utils;
 import org.enso.base.arrays.IntArrayBuilder;
+import org.graalvm.polyglot.Context;
 
 /**
  * Represents a string transformed using Unicode Case Folding which can be used for case insensitive
@@ -128,6 +128,8 @@ public class CaseFoldedString {
     IntArrayBuilder codeunit_start_mapping = new IntArrayBuilder(charSequence.length() + 1);
     IntArrayBuilder codeunit_end_mapping = new IntArrayBuilder(charSequence.length() + 1);
 
+    Context context = Context.getCurrent();
+
     // We rely on the fact that ICU Case Folding is _not_ context-sensitive, i.e. the mapping of
     // each grapheme cluster is independent of surrounding ones. Regular casing is
     // context-sensitive.
@@ -142,12 +144,12 @@ public class CaseFoldedString {
         grapheme_mapping.add(grapheme_index);
         codeunit_start_mapping.add(current);
         codeunit_end_mapping.add(next);
-        Environment_Utils.safepoint();
+        context.safepoint();
       }
 
       grapheme_index++;
       current = next;
-      Environment_Utils.safepoint();
+      context.safepoint();
     }
 
     // The mapping should also be able to handle a {@code str.length()} query, so we add one more
