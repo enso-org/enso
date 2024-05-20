@@ -15,6 +15,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import org.enso.compiler.context.CompilerContext.Module;
+import org.enso.compiler.phase.ExportCycleException;
+import org.enso.compiler.phase.ExportsResolution;
 import org.enso.compiler.phase.ImportResolver;
 import org.enso.interpreter.test.TestBase;
 import org.enso.interpreter.util.ScalaConversions;
@@ -31,7 +33,7 @@ import org.junit.rules.TemporaryFolder;
  * modules). Tests {@link ImportResolver#mapImports(Module, boolean)} that should return a list of
  * modules to be compiled in a topological order.
  */
-public class ImportResolutionOrderTest extends TestBase {
+public class ImportExportResolutionOrderTest extends TestBase {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
   private static final String mainModName = "local.Proj.Main";
 
@@ -48,7 +50,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from project.Mod import T
             """);
     var projDir = createProject(Set.of(importedMod, mainMod));
-    var modsToCompile = runImportResolution(projDir);
+    var modsToCompile = runImportExportResolution(projDir);
     assertThat(modsToCompile.size(), is(2));
     assertThat(
         "Imported module must be the first to compile. modNamesToCompile = " + modsToCompile,
@@ -74,7 +76,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from project.Mod2 import T2
             """);
     var projDir = createProject(Set.of(mod1, mod2, mainMod));
-    var modNamesToCompile = runImportResolution(projDir);
+    var modNamesToCompile = runImportExportResolution(projDir);
     assertThat(modNamesToCompile.size(), is(3));
     assertThat(
         "Main module should be compile as the last one. modNamesToCompile = " + modNamesToCompile,
@@ -106,7 +108,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from project.Mod2 import T2
             """);
     var projDir = createProject(Set.of(mod1, mod2, mainMod));
-    var modNamesToCompile = runImportResolution(projDir);
+    var modNamesToCompile = runImportExportResolution(projDir);
     assertThat(modNamesToCompile.size(), is(3));
     assertThat(
         "Main module should be compile as the last one. modNamesToCompile = " + modNamesToCompile,
@@ -124,7 +126,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from Standard.Base import all
             """);
     var projDir = createProject(Set.of(mainMod));
-    var modsToCompile = runImportResolution(projDir);
+    var modsToCompile = runImportExportResolution(projDir);
     assertThat(modsToCompile.size(), is(greaterThan(1)));
     var lastModToCompile = modsToCompile.get(modsToCompile.size() - 1);
     assertThat(
@@ -141,13 +143,14 @@ public class ImportResolutionOrderTest extends TestBase {
   }
 
   /**
-   * Runs import resolution on the given project, starting from the given module name. Just wraps
-   * the invocation of {@link ImportResolver#mapImports(Module, boolean)}.
+   * This method emulates the behavior of {@link Compiler#runImportsAndExportsResolution(Module,
+   * boolean)} for the main module from the given project.
    *
    * @param projDir Root directory of the project.
-   * @return List of module names to compile in the topological order.
+   * @return List of modules to compile in the topological order. As returned by {@link
+   *     ExportsResolution#run(scala.collection.immutable.List)}.
    */
-  private static List<String> runImportResolution(Path projDir) {
+  private static List<String> runImportExportResolution(Path projDir) {
     assert projDir.toFile().exists() && projDir.toFile().isDirectory();
     var out = new ByteArrayOutputStream();
     List<Module> modulesToCompile = List.of();
@@ -162,13 +165,20 @@ public class ImportResolutionOrderTest extends TestBase {
       var ensoCtx = leakContext(ctx);
       var compiler = ensoCtx.getCompiler();
       var mainMod = compiler.getModule(mainModName).get();
+      // Import resolution
       var impResolver = new ImportResolver(compiler);
       var res = impResolver.mapImports(mainMod, false);
-      modulesToCompile = ScalaConversions.asJava(res._1);
+      var requiredModules = res._1;
       var modsFromBindingsCache = ScalaConversions.asJava(res._2);
       assertThat("bindingsCaching is disabled", modsFromBindingsCache.isEmpty(), is(true));
+      // Export resolution
+      var exportsResolution = new ExportsResolution(compiler.context());
+      var modsToCompileScala = exportsResolution.run(requiredModules);
+      modulesToCompile = ScalaConversions.asJava(modsToCompileScala);
     } catch (PolyglotException e) {
-      fail("Import resolution should succeed. Instead got exception: " + e.getMessage());
+      fail("Import/export resolution should succeed. Instead got exception: " + e.getMessage());
+    } catch (ExportCycleException e) {
+      fail("Got unexpected ExportCycleException: " + e.getMessage());
     }
     return modulesToCompile.stream().map(m -> m.getName().toString()).toList();
   }
