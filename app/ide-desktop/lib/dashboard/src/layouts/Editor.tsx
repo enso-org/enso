@@ -83,17 +83,7 @@ export default function Editor(props: EditorProps) {
         } else if (binaryAddress == null) {
           toastAndLog('noBinaryEndpointError')
         } else {
-          let ydocAddress: URL
-          if (ydocUrl == null) {
-            ydocAddress = new URL(location.origin)
-            ydocAddress.protocol = location.protocol.replace(/^http/, 'ws')
-          } else if (URL.canParse(ydocUrl)) {
-            ydocAddress = new URL(ydocUrl)
-          } else {
-            ydocAddress = new URL(jsonAddress)
-            ydocAddress.port = '1234'
-          }
-          ydocAddress.pathname = '/project'
+          const ydocAddress = ydocUrl ?? ''
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {
@@ -115,7 +105,7 @@ export default function Editor(props: EditorProps) {
             const engineConfig = {
               rpcUrl: jsonAddress,
               dataUrl: binaryAddress,
-              ydocUrl: ydocAddress.toString(),
+              ydocUrl: ydocAddress,
             }
             const originalUrl = window.location.href
             if (backendType === backendModule.BackendType.remote) {
