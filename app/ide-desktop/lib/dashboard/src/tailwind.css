@@ -1,6 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
-@import "./enso.css";
 
 /* Scoped to `.enso-dashboard, .enso-chat` in tailwind config. */
 @tailwind base;
