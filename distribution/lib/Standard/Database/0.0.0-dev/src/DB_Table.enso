@@ -48,6 +48,7 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.DB_Column_Helpers
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
@@ -1805,7 +1806,21 @@ type DB_Table
                 columns = column_set.resolve_columns all_tables
                     . filter Filter_Condition.Not_Nothing
                 types = columns.map .value_type
-                if types.is_empty then Column.from_repeated_item column_set.name Nothing result_row_count else
+                if types.is_empty then DB_Column_Helpers.make_null_column column_set.name else
+                    common_type = Value_Type_Helpers.find_common_type types strict=True
+                    case common_type of
+                        Nothing ->
+                            problem_builder_for_unification.report_other_warning (No_Common_Type.Warning types related_column_name=column_set.name)
+                            concat_columns column_set all_tables Value_Type.Char result_row_count needs_cast=True on_problems
+                        _ : Value_Type ->
+                            #sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Report_Error
+                            #sql_type.catch Inexact_Type_Coercion error->
+                            #    Panic.throw <|
+                            #        Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                            #[column_set, sql_type, result_type]
+
+                            concat_columns column_set all_tables common_type result_row_count needs_cast=False on_problems
+
                 # TODO!
                 case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
                     Nothing -> Nothing
