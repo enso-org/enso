@@ -71,6 +71,7 @@ export async function mockApi({ page }: MockParams) {
     picture: null,
     website: null,
   }
+  let isOnline = true
   let currentUser: backend.User | null = defaultUser
   let currentProfilePicture: string | null = null
   let currentPassword = defaultPassword
@@ -802,6 +803,12 @@ export async function mockApi({ page }: MockParams) {
       })
       return json
     })
+
+    await page.route('*', (route, request) => {
+      if (!isOnline) {
+        route.abort('connectionfailed')
+      }
+    })
   })
 
   return {
@@ -813,6 +820,12 @@ export async function mockApi({ page }: MockParams) {
     defaultUser,
     defaultUserId,
     rootDirectoryId: defaultDirectoryId,
+    goOffline: () => {
+      isOnline = false
+    },
+    goOnline: () => {
+      isOnline = true
+    },
     currentUser: () => currentUser,
     setCurrentUser: (user: backend.User | null) => {
       currentUser = user
