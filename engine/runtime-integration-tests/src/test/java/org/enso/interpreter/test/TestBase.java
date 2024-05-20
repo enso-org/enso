@@ -250,7 +250,7 @@ prefer-local-libraries: true
   }
 
   /** A simple structure corresponding to an Enso module. */
-  protected record SourceModule(QualifiedName name, String code) {}
+  public record SourceModule(QualifiedName name, String code) {}
 
   /**
    * An artificial RootNode. Used for tests of nodes that need to be adopted. Just create this root
