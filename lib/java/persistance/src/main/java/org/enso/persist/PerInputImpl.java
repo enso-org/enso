@@ -31,24 +31,37 @@ final class PerInputImpl implements Input {
       }
     }
     var version = buf.getInt(4);
-    var cache = new InputCache(buf, readResolve);
-    if (version != cache.map().versionStamp) {
+    var map = PerMap.create();
+    if (version != map.versionStamp) {
       throw new IOException(
           "Incompatible version "
               + Integer.toHexString(version)
               + " != "
-              + Integer.toHexString(cache.map().versionStamp));
+              + Integer.toHexString(map.versionStamp));
     }
-    var at = buf.getInt(8);
 
-    return PerBufferReference.from(cache, at);
+    var tableAt = buf.getInt(8);
+    buf.position(tableAt);
+    var count = buf.getInt();
+    assert count > 0 : "There is always the main object in the table: " + count;
+    var refs = new int[count];
+    for (var i = 0; i < count; i++) {
+      refs[i] = buf.getInt();
+    }
+    var cache = new InputCache(buf, readResolve, map, refs);
+    return cache.getRef(0);
   }
 
   @Override
-  public <T> T readInline(Class<T> clazz) {
+  public <T> T readInline(Class<T> clazz) throws IOException {
+    if (clazz == Persistance.Reference.class) {
+      var refId = readInt();
+      var ref = cache.getRef(refId);
+      return clazz.cast(ref);
+    }
     Persistance<T> p = cache.map().forType(clazz);
     T res = p.readWith(this);
-    var resolve = cache.readResolve().apply(res);
+    var resolve = cache.resolveObject(res);
     return clazz.cast(resolve);
   }
 
@@ -193,14 +206,14 @@ final class PerInputImpl implements Input {
     var id = in.readInt();
     var p = map.forId(id);
 
-    if (cache.cache().get(at) instanceof Object res) {
+    if (cache.getObjectAt(at) instanceof Object res) {
       return p.clazz.cast(res);
     }
 
     var inData = new PerInputImpl(cache, at);
     var res = p.readWith(inData);
-    res = cache.readResolve().apply(res);
-    var prev = cache.cache().put(at, res);
+    res = cache.resolveObject(res);
+    var prev = cache.putObjectAt(at, res);
     if (prev != null) {
       var bothObjectsAreTheSame = Objects.equals(res, prev);
       var sb = new StringBuilder();
@@ -241,17 +254,51 @@ final class PerInputImpl implements Input {
     }
   }
 
-  static final record InputCache(
-      ByteBuffer buf,
-      Function<Object, Object> readResolve,
-      Map<Integer, Object> cache,
-      PerMap map) {
-    InputCache(ByteBuffer buf, Function<Object, Object> readResolve) {
-      this(
-          buf,
-          readResolve == null ? Function.identity() : readResolve,
-          new HashMap<>(),
-          PerMap.create());
+  static final class InputCache {
+    private final Map<Integer, Object> cache = new HashMap<>();
+    private final Function<Object, Object> readResolve;
+    private final PerMap map;
+    private final ByteBuffer buf;
+    private final Reference[] refs;
+
+    private InputCache(
+        ByteBuffer buf, Function<Object, Object> readResolve, PerMap map, int[] refs) {
+      this.buf = buf;
+      this.readResolve = readResolve;
+      this.map = map;
+      this.refs = new Reference[refs.length];
+      for (var i = 0; i < refs.length; i++) {
+        this.refs[i] = PerBufferReference.cached(null, this, refs[i]);
+      }
+    }
+
+    final Object resolveObject(Object res) {
+      if (readResolve != null) {
+        return readResolve.apply(res);
+      } else {
+        return res;
+      }
+    }
+
+    final Object getObjectAt(int at) {
+      return cache.get(at);
+    }
+
+    final Object putObjectAt(int at, Object obj) {
+      return cache.put(at, obj);
+    }
+
+    final PerMap map() {
+      return map;
+    }
+
+    final ByteBuffer buf() {
+      return buf;
+    }
+
+    @SuppressWarnings("unchecked")
+    final <T> Reference<T> getRef(int index) {
+      return refs[index];
     }
   }
 }
