@@ -62,7 +62,7 @@ add_specs suite_builder =
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
 
-    suite_builder.group "Text.general" group_builder->
+    suite_builder.group "Text - general" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
