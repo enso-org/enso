@@ -83,7 +83,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       switch (event.type) {
         case AssetEventType.newProject:
         case AssetEventType.uploadFiles:
-        case AssetEventType.newDataLink:
+        case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
         case AssetEventType.openProject:
         case AssetEventType.updateFiles:
