@@ -12,7 +12,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 /**
  * Props for the Reset component.
  */
-export type ResetProps = Omit<ariaComponents.ButtonProps, 'loading'> & {
+export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> {
   /**
    * Connects the submit button to a form.
    * If not provided, the button will use the nearest form context.
