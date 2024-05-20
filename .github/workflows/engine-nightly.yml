@@ -42,7 +42,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend ci-check
@@ -91,7 +91,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend ci-check
@@ -138,7 +138,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend ci-check
@@ -186,7 +186,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend ci-check
@@ -234,7 +234,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend ci-check
@@ -282,7 +282,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test jvm
@@ -342,7 +342,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test jvm
@@ -400,7 +400,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test jvm
@@ -459,7 +459,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test jvm
@@ -518,7 +518,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test jvm
@@ -577,7 +577,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test standard-library
@@ -640,7 +640,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test standard-library
@@ -701,7 +701,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test standard-library
@@ -763,7 +763,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test standard-library
@@ -825,7 +825,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: runner.os == 'Windows'
+      - if: "'1' == '2'"
         name: Setup Python
         uses: actions/setup-python@v5
       - run: ./run backend test standard-library
