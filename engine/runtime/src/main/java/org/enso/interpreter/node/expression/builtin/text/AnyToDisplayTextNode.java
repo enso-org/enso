@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.text;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -26,15 +27,12 @@ public abstract class AnyToDisplayTextNode extends Node {
 
   abstract Text execute(Object self);
 
-  @Specialization(guards = {"displays.isException(self)", "displays.hasExceptionMessage(self)"})
-  Text showExceptions(
-      Object self,
-      @CachedLibrary(limit = "3") InteropLibrary strings,
-      @CachedLibrary(limit = "3") InteropLibrary displays) {
+  @Specialization(guards = {"iop.isException(self)", "iop.hasExceptionMessage(self)"})
+  Text showExceptions(Object self, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
-      return Text.create(strings.asString(displays.getExceptionMessage(self)));
+      return Text.create(iop.asString(iop.getExceptionMessage(self)));
     } catch (UnsupportedMessageException e) {
-      throw EnsoContext.get(strings).raiseAssertionPanic(strings, null, e);
+      throw EnsoContext.get(iop).raiseAssertionPanic(iop, null, e);
     }
   }
 
@@ -83,6 +81,16 @@ public abstract class AnyToDisplayTextNode extends Node {
   @Specialization
   Text convertType(Type self) {
     return Text.create(self.getName());
+  }
+
+  @Specialization(
+      guards = {"iop.isMetaObject(self)"},
+      rewriteOn = UnsupportedMessageException.class)
+  Text convertMetaObject(Object self, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    var maybeName = iop.getMetaQualifiedName(self);
+    var name = iop.asString(maybeName);
+    return Text.create(name);
   }
 
   @CompilerDirectives.TruffleBoundary
