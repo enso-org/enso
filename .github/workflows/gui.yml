@@ -44,12 +44,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,12 +89,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -141,12 +135,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -99,6 +99,7 @@ pub fn setup_python_step() -> Step {
     Step {
         name: Some("Setup Python".into()),
         uses: Some("actions/setup-python@v5".into()),
+        r#if: Some(is_windows_runner()),
         ..default()
     }
 }

@@ -53,7 +53,7 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
     const dataUrl = engine.dataUrl
     const rpcUrl = engine.rpcUrl
 
-    let ydocUrl: URL;
+    let ydocUrl: URL
     if (engine.ydocUrl == '') {
       ydocUrl = new URL(location.origin)
       ydocUrl.protocol = location.protocol.replace(/^http/, 'ws')

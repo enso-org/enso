@@ -56,12 +56,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -106,12 +103,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -157,12 +151,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -208,12 +199,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -269,12 +257,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -331,12 +316,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -393,12 +375,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -457,12 +436,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
@@ -522,12 +498,9 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Python
+      - if: runner.os == 'Windows'
+        name: Setup Python
         uses: actions/setup-python@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Run npm install
-        run: npm install
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
