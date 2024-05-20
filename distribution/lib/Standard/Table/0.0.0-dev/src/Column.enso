@@ -11,7 +11,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Numeric_Input
-from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget, make_data_cleanse_vector_selector
+from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter

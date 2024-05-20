@@ -15,7 +15,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Runtime import assert
-from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser, make_data_cleanse_vector_selector
+from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import Standard.Table.Column_Operation.Column_Operation
 import Standard.Table.Expression.Expression
@@ -370,7 +370,7 @@ type DB_Table
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         self.updated_columns new_columns
 
-    ## ALIAS drop_missing_columns, drop_na, select_blank_fields, select_missing_columns, select_na, select_blank_columns
+    ## ALIAS drop_missing_columns, drop_na, select_blank_columns, select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
        ICON select_column
 
