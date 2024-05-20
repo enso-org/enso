@@ -346,7 +346,8 @@ run_union_tests group_builder setup call_union =
                 t12.at "X" . to_vector . should_equal [0, 1, 2, 3, 4, 5]
                 t12.at "Y" . to_vector . should_equal ['aa', 'bb', 'cc', 'x', 'y', 'z']
 
-    group_builder.specify "should warn when converting a Date to Date_Time" <|
+    date_time_pending = if setup.test_selection.date_time.not then "Date/Time operations are not supported."
+    group_builder.specify "should warn when converting a Date to Date_Time" pending=date_time_pending <|
         # TODO will Postgres handle this? may need to be less specific about timezone in the test
         t1 = table_builder [["D", [Date_Time.new 2024 5 16 16 48 23]]]
         t2 = table_builder [["D", [Date.new 2019 10 23, Date.new 2020]]]
@@ -421,7 +422,7 @@ run_union_tests group_builder setup call_union =
                     [["Char", "Integer"], ["Boolean", "Char"]].should_contain types
         Problems.test_advanced_problem_handling action error_checker warnings_checker result_checker
 
-    group_builder.specify "if no common type can be found, will fall back to converting all types to text and warn (Date+Time)" pending=(if setup.test_selection.date_time.not then "Date/Time operations are not supported.") <|
+    group_builder.specify "if no common type can be found, will fall back to converting all types to text and warn (Date+Time)" pending=date_time_pending <|
         t1 = table_builder [["D", [Time_Of_Day.new 12, Time_Of_Day.new 13, Time_Of_Day.new 14]]]
         t2 = table_builder [["D", [Date.new 2019, Date.new 2020, Date.new 2021]]]
 

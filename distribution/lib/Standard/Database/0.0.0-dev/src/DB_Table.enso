@@ -48,7 +48,6 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
-import project.Internal.DB_Column_Helpers
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
@@ -1806,51 +1805,41 @@ type DB_Table
                 columns = column_set.resolve_columns all_tables
                     . filter Filter_Condition.Not_Nothing
                 types = columns.map .value_type
-                if types.is_empty then DB_Column_Helpers.make_null_column column_set.name else
-                    common_type = Value_Type_Helpers.find_common_type types strict=True
-                    case common_type of
+                # If the column is all nulls, we still need to give it some type. For DB a portable type to use is Char.
+                if types.is_empty then [column_set, SQL_Type.null, Value_Type.Char] else
+                    result_type = case Value_Type_Helpers.find_common_type types strict=True of
                         Nothing ->
                             problem_builder_for_unification.report_other_warning (No_Common_Type.Warning types related_column_name=column_set.name)
-                            concat_columns column_set all_tables Value_Type.Char result_row_count needs_cast=True on_problems
-                        _ : Value_Type ->
-                            #sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Report_Error
-                            #sql_type.catch Inexact_Type_Coercion error->
-                            #    Panic.throw <|
-                            #        Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                            #[column_set, sql_type, result_type]
+                            Value_Type.Char
+                        common_type : Value_Type -> common_type
 
-                            concat_columns column_set all_tables common_type result_row_count needs_cast=False on_problems
+                    sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Report_Error
+                    sql_type.catch Inexact_Type_Coercion error->
+                        Panic.throw <|
+                            Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                    [column_set, sql_type, result_type]
 
-                # TODO!
-                case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
-                    Nothing -> Nothing
-                    result_type : Value_Type ->
-                        sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Report_Error
-                        sql_type.catch Inexact_Type_Coercion error->
-                            Panic.throw <|
-                                Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                        [column_set, sql_type, result_type]
-            good_columns = merged_columns.filter r-> r.is_nothing.not
             problem_builder_for_matching.attach_problems_before on_problems <| problem_builder_for_unification.attach_problems_before on_problems <|
-                if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
                     queries = all_tables.map_with_index i-> t->
-                        columns_to_select = good_columns.map description->
+                        columns_to_select = merged_columns.map description->
                             column_set = description.first
                             sql_type = description.second
                             column_name = column_set.name
                             case column_set.column_indices.at i of
+                                corresponding_column_index : Integer ->
+                                    t.at corresponding_column_index . as_internal . rename column_name
                                 Nothing ->
                                     typ = SQL_Type_Reference.from_constant SQL_Type.null
                                     expr = SQL_Expression.Literal "NULL"
                                     null_column = Internal_Column.Value column_name typ expr
-                                    ## We assume that the type for this
-                                       expression will never be queried - it is
-                                       just used internally to build the Union
-                                       operation and never exposed externally.
-                                    infer_return_type _ = SQL_Type_Reference.null
-                                    dialect.make_cast null_column sql_type infer_return_type
-                                corresponding_column_index : Integer ->
-                                    t.at corresponding_column_index . as_internal . rename column_name
+                                    if sql_type == SQL_Type.null then null_column else
+                                        ## We assume that the type for this
+                                           expression will never be queried - it is
+                                           just used internally to build the Union
+                                           operation and never exposed externally.
+                                        infer_return_type _ = SQL_Type_Reference.null
+                                        dialect.make_cast null_column sql_type infer_return_type
                         pairs = columns_to_select.map c->
                             [c.name, c.expression]
                         Query.Select pairs t.context
@@ -1867,7 +1856,7 @@ type DB_Table
                        See #6118.
                     infer_return_type expression =
                         SQL_Type_Reference.new self.connection new_ctx expression
-                    new_columns = good_columns.map description->
+                    new_columns = merged_columns.map description->
                         column_set = description.first
                         result_type = description.at 2
                         name = column_set.name
