@@ -29,14 +29,8 @@ import * as eventModule from '#/utilities/event'
 // === Login ===
 // =============
 
-/** Props for a {@link Login}. */
-export interface LoginProps {
-  readonly supportsLocalBackend: boolean
-}
-
 /** A form for users to log in. */
-export default function Login(props: LoginProps) {
-  const { supportsLocalBackend } = props
+export default function Login() {
   const location = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
@@ -61,13 +55,6 @@ export default function Login(props: LoginProps) {
             icon={CreateAccountIcon}
             text={getText('dontHaveAnAccount')}
           />
-          {supportsLocalBackend && (
-            <Link
-              to={appUtils.ENTER_OFFLINE_MODE_PATH}
-              icon={ArrowRightIcon}
-              text={getText('continueWithoutCreatingAnAccount')}
-            />
-          )}
         </>
       }
     >
