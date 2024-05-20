@@ -1802,6 +1802,11 @@ type DB_Table
             dialect = self.connection.dialect
             type_mapping = dialect.get_type_mapping
             merged_columns = matched_column_sets.map column_set->
+                columns = column_set.resolve_columns all_tables
+                    . filter Filter_Condition.Not_Nothing
+                types = columns.map .value_type
+                if types.is_empty then Column.from_repeated_item column_set.name Nothing result_row_count else
+                # TODO!
                 case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
                     Nothing -> Nothing
                     result_type : Value_Type ->

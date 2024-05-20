@@ -3023,6 +3023,7 @@ type Table
                 columns = column_set.resolve_columns all_tables
                     . filter Filter_Condition.Not_Nothing
                 types = columns.map .value_type
+                # TODO probably need to merge logic with DB somehow
                 if types.is_empty then Column.from_repeated_item column_set.name Nothing result_row_count else
                     common_type = Value_Type_Helpers.find_common_type types strict=True
                     case common_type of
