@@ -35,7 +35,7 @@ type Text_Cleanse
     ## All punctuation characters are removed.
     Punctuation
 
-    ## All symbols are removed. Symbols are not letters, digits or whitespace.
+    ## All symbols are removed. Symbols are everything other than letters, digits or whitespace.
     Symbols
 
     ## Apply the cleanse operation to the text.
