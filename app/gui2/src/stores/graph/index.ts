@@ -203,8 +203,8 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  function getMethodAst(ptr: MethodPointer, module?: Ast.Module): Result<Ast.Function> {
-    const topLevel = (module ?? syncModule.value)?.root()
+  function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.Function> {
+    const topLevel = (edit ?? syncModule.value)?.root()
     if (!topLevel) return Err('Module unavailable')
     assert(topLevel instanceof Ast.BodyBlock)
     const modulePath =

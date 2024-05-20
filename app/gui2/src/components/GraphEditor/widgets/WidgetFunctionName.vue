@@ -30,7 +30,7 @@ watchEffect(() => (displayedName.value = name.value.code()))
 
 function newNameAccepted(name: string | undefined) {
   if (!name) return
-  renameFunction(name).then((result) => renameError.reportError(result))
+  renameFunction(name).then((result) => result.ok || renameError.reportError(result.error))
 }
 
 async function renameFunction(newName: string): Promise<Result> {
@@ -41,7 +41,6 @@ async function renameFunction(newName: string): Promise<Result> {
     newName,
   )
   if (!refactorResult.ok) return refactorResult
-  displayedName.value = refactorResult.value.newName
   return Ok()
 }
 </script>
