@@ -188,7 +188,7 @@ public class NumericConverter {
    * the Integer range. Otherwise, returns null;
    */
   private static Integer integralBigDecimalToInteger(BigDecimal x) {
-    if (x.remainder(BigDecimal.ZERO).equals(BigDecimal.ZERO)) {
+    if (x.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) == 0) {
       if (fitsInInt(x)) {
         return x.intValueExact();
       }

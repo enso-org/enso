@@ -1811,7 +1811,7 @@ add_specs suite_builder setup =
             (t.at "x" - (Decimal.new "10.1")) . to_vector . should_equal [Decimal.new "23257245335.245345345"]
             (t.at "x" * (Decimal.new "10.1")) . to_vector . should_equal [Decimal.new "234898177987.9879879845"]
             (t.at "y" / (Decimal.new "16.5")) . to_vector . should_equal [Decimal.new "57245348.2234235"]
-            (t.at "x" ^ (Decimal.new "2.0")) . to_vector . should_equal [Decimal.new "540899461518732638866.863508357313169025"]
+            (t.at "x" ^ (Decimal.new "2.0")) . to_vector . should_equal [Decimal.new "540899461053587731859.956601457313169025"]
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
