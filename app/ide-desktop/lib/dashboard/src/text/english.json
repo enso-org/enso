@@ -577,6 +577,7 @@
   "tryAgain": "Try again",
   "arbitraryErrorTitle": "An error occurred",
   "arbitraryErrorSubtitle": "Please try again or contact the administrators.",
+  "arbitraryFormErrorMessage": "Something went wrong while submitting the form. Please try again or contact the administrators.",
 
   "subscribeSubmit": "Subscribe",
   "BankCardLabel": "Bank Card",
