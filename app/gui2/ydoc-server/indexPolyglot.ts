@@ -12,8 +12,8 @@ declare global {
     start(): void
   }
 
-  var YDOC_HOST: string | undefined
-  var YDOC_PORT: number | undefined
+  const YDOC_HOST: string | undefined
+  const YDOC_PORT: number | undefined
 }
 
 const host = YDOC_HOST ?? 'localhost'
