@@ -474,6 +474,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: (DEBUG) Start Language Server
+        run: ./built-distribution/enso-engine*/enso*/bin/enso.bat --server --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 --path ./ --rpc-port 30616 --data-port 30617 --log-level trace
+        env:
+          ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test standard-library
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
