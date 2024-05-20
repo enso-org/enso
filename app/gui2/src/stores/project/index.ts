@@ -43,23 +43,16 @@ import * as Y from 'yjs'
 interface LsUrls {
   rpcUrl: string
   dataUrl: string
-  ydocUrl: URL
+  ydocUrl: string
 }
 
 function resolveLsUrl(config: GuiConfig): LsUrls {
   const engine = config.engine
   if (engine == null) throw new Error('Missing engine configuration')
-  if (engine.rpcUrl != null && engine.dataUrl != null) {
+  if (engine.rpcUrl != null && engine.dataUrl != null && engine.ydocUrl != null) {
     const dataUrl = engine.dataUrl
     const rpcUrl = engine.rpcUrl
-    let ydocUrl
-    if (engine.ydocUrl === 'undefined') {
-      ydocUrl = new URL(location.origin)
-      ydocUrl.protocol = location.protocol.replace(/^http/, 'ws')
-    } else {
-      ydocUrl = new URL(engine.ydocUrl)
-    }
-    ydocUrl.pathname = '/project'
+    const ydocUrl = engine.ydocUrl
 
     return {
       rpcUrl,
@@ -143,10 +136,11 @@ export const useProjectStore = defineStore('project', () => {
     return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
   })
 
+  let ydocUrl = new URL(lsUrls.ydocUrl)
   let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
     yDocsProvider = attachProvider(
-      lsUrls.ydocUrl.href,
+      ydocUrl.href,
       'index',
       { ls: lsUrls.rpcUrl },
       doc,
