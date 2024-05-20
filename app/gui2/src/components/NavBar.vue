@@ -16,12 +16,14 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
     <div class="breadcrumbs-controls">
       <SvgIcon
         name="arrow_left"
+        draggable="false"
         class="icon button"
         :class="{ inactive: !props.allowNavigationLeft }"
         @click.stop="emit('back')"
       />
       <SvgIcon
         name="arrow_right"
+        draggable="false"
         class="icon button"
         :class="{ inactive: !props.allowNavigationRight }"
         @click.stop="emit('forward')"

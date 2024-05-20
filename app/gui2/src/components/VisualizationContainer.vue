@@ -316,17 +316,4 @@ const nodeShortType = computed(() =>
 .VisualizationContainer :deep(> .toolbars > .toolbar > *) {
   position: relative;
 }
-
-/* .image-button.active {
-  opacity: 80%;
-}
-
-.image-button > * {
-  vertical-align: top;
-}
-
-.image-button:hover {
-  opacity: unset;
-  background-color: aqua;
-} */
 </style>
