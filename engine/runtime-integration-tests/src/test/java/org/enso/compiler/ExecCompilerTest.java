@@ -422,4 +422,26 @@ public class ExecCompilerTest {
       assertEquals("Compile error: NO_FIELD is not visible in this scope.", ex.getMessage());
     }
   }
+
+  @Test
+  public void testPropertlyIdentifyNameOfJavaClassInError() throws Exception {
+    var module =
+        ctx.eval(
+            "enso",
+            """
+    from Standard.Base.Errors.Common import all
+    polyglot java import java.lang.Runnable
+
+    run value =
+        Runnable.invoke value
+    """);
+    var run = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "run");
+    try {
+      var never = run.execute(-1);
+      fail("Unexpected result: " + never);
+    } catch (PolyglotException ex) {
+      assertEquals(
+          "Method `invoke` of type java.lang.Runnable could not be found.", ex.getMessage());
+    }
+  }
 }
