@@ -11,7 +11,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Numeric_Input
-from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
+from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget, make_data_cleanse_vector_selector
 
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
@@ -1462,6 +1462,36 @@ type Column
 
                 Column.from_storage new_name builder.seal
 
+    ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       Applies the specified cleansings to the text in each row.
+
+       Arguments:
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
+          applied in the order they are provided. The same text cleansing can be used multiple
+          times. The text cleansings are:
+            - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+            - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+            - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+            - ..All_Whitespace: Removes all whitspace from the string.
+            - ..Leading_Numbers: Removes all numbers from the start of the string.
+            - ..Trailing_Numbers: Removes all numbers from the end of the string.
+            - ..Non_ASCII: Removes all non-ascii characters from the string.
+            - ..Tabs: Removes all tab characters from the string.
+            - ..Letters: Removes all letters from the string.
+            - ..Numbers: Removes all numbers characters from the string.
+            - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+            - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+    @remove make_data_cleanse_vector_selector
+    text_cleanse : Vector Text_Cleanse -> Column
+    text_cleanse self remove =
+      remove.fold self (current-> tc-> tc.apply current)
+
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
        Gets the year as a number from the date stored in the column.
@@ -2689,6 +2719,9 @@ Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_v
 ## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector
+
+## PRIVATE
+Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)
 
 ## PRIVATE
    Applies a UnaryOperation to a column.
