@@ -94,8 +94,7 @@ public class ExtensionMethodResolutionTest extends TestBase {
     Files.writeString(tSrcFile, tSrc);
     var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
     Files.writeString(modSrcFile, modSrc);
-    expectRuntimeError(projDir,
-        allOf(containsString("Method"), containsString("already defined")));
+    expectRuntimeError(projDir, allOf(containsString("Method"), containsString("already defined")));
   }
 
   @Test
@@ -105,14 +104,15 @@ public class ExtensionMethodResolutionTest extends TestBase {
             foo x = x
         """;
     createProject("Lib", libSrc, tempFolder);
-    var mainSrc = """
+    var mainSrc =
+        """
         from local.Lib import T
         T.foo x y = x + y
         main = 42
         """;
     var mainProjDir = createProject("Main", mainSrc, tempFolder);
-    expectRuntimeError(mainProjDir,
-        allOf(containsString("Method"), containsString("already defined")));
+    expectRuntimeError(
+        mainProjDir, allOf(containsString("Method"), containsString("already defined")));
   }
 
   @Test
@@ -209,18 +209,13 @@ public class ExtensionMethodResolutionTest extends TestBase {
         });
   }
 
-  private void expectRuntimeError(Path projDir,
-      Matcher<String> runtimeErrMsgMatcher) {
+  private void expectRuntimeError(Path projDir, Matcher<String> runtimeErrMsgMatcher) {
     try {
       String[] ret = new String[1];
-      testProjectRun(
-          projDir,
-          (res) -> ret[0] = res.toString());
+      testProjectRun(projDir, (res) -> ret[0] = res.toString());
       fail("Expected runtime error during first run, instead got: " + ret[0]);
     } catch (PolyglotException e) {
-      assertThat(
-          e.getMessage(),
-          runtimeErrMsgMatcher);
+      assertThat(e.getMessage(), runtimeErrMsgMatcher);
     }
   }
 
