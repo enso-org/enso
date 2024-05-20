@@ -111,6 +111,16 @@ reconcile_types current new = case current of
             result_size = max_size current_size new_size
             Value_Type.Binary result_size result_variable
         _ -> Value_Type.Mixed
+    Value_Type.Date_Time current_has_zone -> case new of
+        Value_Type.Date_Time new_has_zone -> Value_Type.Date_Time (current_has_zone || new_has_zone)
+        ## If merging Date and Date_Time, we settle on Date_Time with a warning.
+           The warning will be handled by the ???
+        Value_Type.Date                   -> current
+        _                                 -> Value_Type.Mixed
+    Value_Type.Date -> case new of
+        Value_Type.Date        -> Value_Type.Date
+        Value_Type.Date_Time _ -> new
+        _                      -> Value_Type.Mixed
     _ ->
         if current == new then current else Value_Type.Mixed
 
