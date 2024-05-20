@@ -650,7 +650,7 @@ pub async fn runner_sanity_test(
         "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
     );
     let test_base = Command::new(&repo_root.runner)
-        .args(["--run", repo_root.test.join("Base_Tests").as_str(), "Test\\."])
+        .args(["--run", repo_root.test.join("Base_Tests").as_str(), "^Text"])
         .set_env_opt(ENSO_JAVA, enso_java)?
         .set_env(ENSO_DATA_DIRECTORY, engine_package)?
         .run_stdout()
