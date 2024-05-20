@@ -273,7 +273,7 @@ test('Component browser handling of overridden record-mode', async ({ page }) =>
 
   // Enable record mode for the node.
   await locate.graphNodeIcon(node).hover()
-  await expect(recordModeToggle).not.toHaveClass(/recording-overridden/)
+  await expect(recordModeToggle).toHaveClass(/toggledOff/)
   await recordModeToggle.click()
   // TODO[ao]: The simple move near top-left corner not always works i.e. not always
   //  `pointerleave` event is emitted. Investigated in https://github.com/enso-org/enso/issues/9478
@@ -282,7 +282,7 @@ test('Component browser handling of overridden record-mode', async ({ page }) =>
   await page.mouse.move(700, 1200, { steps: 20 })
   await expect(recordModeIndicator).toBeVisible()
   await locate.graphNodeIcon(node).hover()
-  await expect(recordModeToggle).toHaveClass(/recording-overridden/)
+  await expect(recordModeToggle).toHaveClass(/toggledOn/)
   // Ensure editing in the component browser doesn't display the override expression.
   await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
   await expect(locate.componentBrowser(page)).toBeVisible()

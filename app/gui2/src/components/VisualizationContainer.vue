@@ -284,6 +284,7 @@ const nodeShortType = computed(() =>
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: -1;
     border-radius: var(--radius-full);
     background: var(--color-app-bg);
     backdrop-filter: var(--blur-app-bg);

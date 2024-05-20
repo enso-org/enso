@@ -1,5 +1,5 @@
 <script lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
@@ -573,12 +573,8 @@ useEvent(document, 'scroll', endBrushing)
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @click="zoomToSelected(false)" />
-      </button>
-      <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected(true)" />
-      </button>
+      <SvgButton name="show_all" alt="Fit all" @click="zoomToSelected(false)" />
+      <SvgButton name="find" alt="Zoom to selected" @click="zoomToSelected(true)" />
     </template>
     <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">

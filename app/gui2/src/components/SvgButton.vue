@@ -34,5 +34,13 @@ const _props = defineProps<{
     transform: var(--icon-transform);
     transform-origin: var(--icon-transform-origin);
   }
+
+  &.disabled {
+    opacity: 0.3;
+
+    &:hover {
+      background-color: unset;
+    }
+  }
 }
 </style>
