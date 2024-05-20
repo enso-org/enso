@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
-from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
+from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget, make_data_cleanse_vector_selector
 
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
@@ -50,11 +50,14 @@ type DB_Column
        able to be combined.
     private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_Expression context:Context
 
-    ## The name of the column.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       The name of the column.
     name : Text
     name self = self.internal_name
 
-    ## The name of the SQL Dialect used by the table.
+    ## ICON metadata
+       The name of the SQL Dialect used by the table.
     dialect_name : Text
     dialect_name self = self.connection.dialect.name
 
@@ -91,7 +94,7 @@ type DB_Column
     to_table self =
         DB_Table.Value self.name self.connection [self.as_internal] self.context
 
-    ## ALIAS metadata, field info, column type
+    ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this column's contents and type.
@@ -118,7 +121,7 @@ type DB_Column
     to_vector self = self.read (..All_Rows) . to_vector
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -138,7 +141,7 @@ type DB_Column
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -156,6 +159,7 @@ type DB_Column
         self.read (..First index+1) . get index default
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the `Value_Type` associated with that column.
 
        The value type determines what type of values the column is storing and
@@ -176,7 +180,8 @@ type DB_Column
     inferred_precise_value_type self =
         self.value_type
 
-    ## Returns an SQL statement that will be used for materializing this column.
+    ## ICON convert
+       Returns an SQL statement that will be used for materializing this column.
     to_sql : SQL_Statement
     to_sql self = self.to_table.to_sql
 
@@ -241,17 +246,20 @@ type DB_Column
         self.make_op op_kind [] effective_new_name
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the length of this column.
     length : Integer
     length self = self.to_table.row_count
 
     ## GROUP Standard.Base.Metadata
+       ICON sigma
        Returns the number of missing items in this column.
     count_nothing : Integer
     count_nothing self =
         self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
     ## GROUP Standard.Base.Metadata
+       ICON sigma
        Returns the number of non-null items in this column.
     count : Integer
     count self =
@@ -1191,7 +1199,7 @@ type DB_Column
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -1203,7 +1211,7 @@ type DB_Column
 
     ## ALIAS skip
        GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Creates a new column from the input with the specified range of rows
        removed.
 
@@ -1450,6 +1458,36 @@ type DB_Column
                     _ -> term
                 new_name = self.naming_helper.function_name "replace" [self, raw_term, new_text]
                 self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
+
+    ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       Applies the specified cleansings to the text in each row.
+       
+       Arguments:
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
+          applied in the order they are provided. The same text cleansing can be used multiple
+          times. The text cleansings are:
+            - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+            - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+            - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+            - ..All_Whitespace: Removes all whitspace from the string.
+            - ..Leading_Numbers: Removes all numbers from the start of the string.
+            - ..Trailing_Numbers: Removes all numbers from the end of the string.
+            - ..Non_ASCII: Removes all non-ascii characters from the string.
+            - ..Tabs: Removes all tab characters from the string.
+            - ..Letters: Removes all letters from the string.
+            - ..Numbers: Removes all numbers characters from the string.
+            - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+            - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+    @remove make_data_cleanse_vector_selector
+    text_cleanse : Vector Text_Cleanse -> DB_Column ! Unsupported_Database_Operation
+    text_cleanse self remove =
+      remove.fold self (current-> tc-> tc.apply current)
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1926,3 +1964,6 @@ Column.from (that:DB_Column) =
 Vector.from (that:DB_Column) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "To convert from a Database column to a vector you must first call `read` on the column.")
+
+## PRIVATE
+Cleansable_Text.from (that:DB_Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)

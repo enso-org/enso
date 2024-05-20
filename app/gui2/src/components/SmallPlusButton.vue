@@ -40,6 +40,5 @@ function addNode() {
   margin: 8px;
   padding: 0;
   border: none;
-  opacity: 30%;
 }
 </style>

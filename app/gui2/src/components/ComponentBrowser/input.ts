@@ -89,6 +89,7 @@ export function useComponentBrowserInput(
   const imports = ref<RequiredImport[]>([])
   const processingAIPrompt = ref(false)
   const toastError = useToast.error()
+  const firstAppliedReturnType = ref<Typename>()
 
   // Code Model to being edited externally (by user).
   //
@@ -287,6 +288,7 @@ export function useComponentBrowserInput(
   function applySuggestion(id: SuggestionId) {
     const entry = suggestionDb.get(id)
     if (!entry) return
+    if (firstAppliedReturnType.value == null) firstAppliedReturnType.value = entry.returnType
     const { newCode, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
     code.value = newCode
     selection.value = { start: newCursorPos, end: newCursorPos }
@@ -535,7 +537,7 @@ export function useComponentBrowserInput(
     context,
     /** The filter deduced from code and selection. */
     filter,
-    /** Flag indicating that we should autoselect first component after last update */
+    /** Flag indicating that we should autoselect first component after last update. */
     autoSelectFirstComponent,
     /** Flag indincating that we're waiting for AI's answer for user's prompt. */
     processingAIPrompt,
@@ -543,11 +545,13 @@ export function useComponentBrowserInput(
     reset,
     /** Apply given suggested entry to the input. */
     applySuggestion,
-    /** Apply the currently written AI prompt */
+    /** Apply the currently written AI prompt. */
     applyAIPrompt,
     /** Return input after applying given suggestion, without changing state. */
     inputAfterApplyingSuggestion,
-    /** A list of imports to add when the suggestion is accepted */
+    /** A list of imports to add when the suggestion is accepted. */
     importsToAdd,
+    /** The return type of the first applied suggestion. */
+    firstAppliedReturnType,
   }
 }

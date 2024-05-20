@@ -53,6 +53,7 @@ type Response
         URI.parse uri_string
 
     ## GROUP Metadata
+       ICON metadata
        Get the response headers.
 
        It returns a vector of Header objects and not a mapping, because the

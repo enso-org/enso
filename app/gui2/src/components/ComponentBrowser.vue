@@ -16,7 +16,7 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
@@ -59,7 +59,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
+  accepted: [
+    searcherExpression: string,
+    requiredImports: RequiredImport[],
+    firstAppliedReturnType: Typename | undefined,
+  ]
   canceled: []
 }>()
 
@@ -408,7 +412,12 @@ function acceptSuggestion(component: Opt<Component> = null) {
 }
 
 function acceptInput() {
-  emit('accepted', input.code.value.trim(), input.importsToAdd())
+  emit(
+    'accepted',
+    input.code.value.trim(),
+    input.importsToAdd(),
+    input.firstAppliedReturnType.value,
+  )
   interaction.ended(cbOpen)
 }
 
@@ -684,19 +693,15 @@ const handler = componentBrowserBindings.handler({
   gap: 12px;
   padding: 7px;
 
-  & svg {
+  & * {
     color: rgba(0, 0, 0, 0.18);
     transition: color 0.2s;
   }
   & .first-on-right {
     margin-left: auto;
   }
-  & > svg.toggledOn {
+  & > .toggledOn {
     color: rgba(0, 0, 0, 0.6);
-  }
-
-  & > svg:not(.toggledOn):hover {
-    color: rgba(0, 0, 0, 0.3);
   }
 }
 

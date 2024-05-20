@@ -37,7 +37,8 @@ from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
-from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
+from project.Data.Text.Text_Cleanse import Text_Cleanse, Cleansable_Text
+from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector, make_data_cleanse_vector_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -530,6 +531,39 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
         _ : Regex ->
             updated_regex = term.recompile case_sensitivity
             updated_regex.replace self replacement only_first
+
+## GROUP Text
+   ICON text
+   Applies the specified cleansings to the text.
+
+   Arguments:
+   - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
+      applied in the order they are provided. The same text cleansing can be used multiple
+      times. The text cleansings are:
+      - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+      - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+      - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+      - ..All_Whitespace: Removes all whitspace from the string.
+      - ..Leading_Numbers: Removes all numbers from the start of the string.
+      - ..Trailing_Numbers: Removes all numbers from the end of the string.
+      - ..Non_ASCII: Removes all non-ascii characters from the string.
+      - ..Tabs: Removes all tab characters from the string.
+      - ..Letters: Removes all letters from the string.
+      - ..Numbers: Removes all numbers characters from the string.
+      - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+      - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+
+   > Example
+   Remove leading and trailing spaces from text.
+
+         text.cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+@remove make_data_cleanse_vector_selector
+Text.cleanse : Vector Text_Cleanse -> Text
+Text.cleanse self remove =
+   remove.fold self (current-> tc-> tc.apply current)
+
+## PRIVATE
+Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (Regex.compile pattern) replace_with)
 
 ## ALIAS get words
    GROUP Text

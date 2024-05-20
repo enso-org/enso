@@ -1251,6 +1251,8 @@ lazy val `ydoc-server` = project
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
     version := "0.1",
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
