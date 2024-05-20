@@ -543,7 +543,7 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
       <SvgButton
         name="find"
         alt="Zoom to selected"
-        :class="{ disabled: brushExtent == null }"
+        :disabled="brushExtent == null"
         @click.stop="zoomToSelected"
       />
     </template>

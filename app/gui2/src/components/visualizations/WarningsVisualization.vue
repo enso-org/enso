@@ -33,7 +33,7 @@ const config = useVisualizationConfig()
         name="not_exclamation"
         data-testid="remove-warnings-button"
         alt="Remove warnings"
-        :class="{ disabled: props.data.length === 0 }"
+        :disabled="props.data.length === 0"
         @click="config.createNodes({ content: removeWarnings, commit: true })"
       />
     </template>

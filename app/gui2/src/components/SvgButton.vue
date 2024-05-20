@@ -5,11 +5,12 @@ import type { Icon } from '@/util/iconName'
 
 const _props = defineProps<{
   name: Icon | URLString
+  disabled?: boolean
 }>()
 </script>
 
 <template>
-  <button class="SvgButton button">
+  <button class="SvgButton button" :class="{ disabled }" :disabled="disabled ?? false">
     <SvgIcon :name="name" draggable="false" />
   </button>
 </template>
