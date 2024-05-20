@@ -3,8 +3,6 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
-test.test.beforeEach(actions.mockAllAndLogin)
-
 test.test('page switcher', ({ page }) =>
   actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
     pageActions
@@ -12,7 +10,6 @@ test.test('page switcher', ({ page }) =>
       .createProject()
       .goToDrivePage()
       .do(async thePage => {
-        // TODO: completely remove global locators
         await test.expect(actions.locateDriveView(thePage)).toBeVisible()
         await test.expect(actions.locateSamplesList(thePage)).not.toBeVisible()
         await test.expect(actions.locateEditor(thePage)).not.toBeVisible()

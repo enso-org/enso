@@ -60,7 +60,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
           alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
           src={SortAscendingIcon}
           className={`transition-all duration-arrow ${
-            isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
+            isSortActive ? 'selectable active' : 'invisible group-hover:selectable'
           } ${isDescending ? 'rotate-180' : ''}`}
         />
       </UnstyledButton>

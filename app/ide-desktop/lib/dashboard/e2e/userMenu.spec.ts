@@ -13,12 +13,7 @@ test.test('user menu', ({ page }) =>
 
 test.test('download app', ({ page }) =>
   actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
-    pageActions.openUserMenu().do(async thePage => {
-      // TODO: the "download app" button should probably not be a global.
-      await actions.locateUserMenuButton(thePage).click()
-      const downloadPromise = thePage.waitForEvent('download')
-      await actions.locateDownloadAppButton(thePage).click()
-      const download = await downloadPromise
+    pageActions.openUserMenu().userMenu.downloadApp(async download => {
       await download.cancel()
       test.expect(download.url()).toMatch(/^https:[/][/]objects.githubusercontent.com/)
     })

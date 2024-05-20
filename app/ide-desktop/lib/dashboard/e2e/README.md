@@ -34,3 +34,17 @@ test.test("test name here", ({ page }) =>
   ),
 );
 ```
+
+### Perform arbitrary actions (e.g. actions on the API)
+
+```ts
+test.test("test name here", ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(({ pageActions, api }) =>
+    pageActions.do(() => {
+      api.foo();
+      api.bar();
+      test.expect(api.baz()?.quux).toEqual("bar");
+    }),
+  ),
+);
+```

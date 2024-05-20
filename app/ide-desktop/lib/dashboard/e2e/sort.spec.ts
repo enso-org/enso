@@ -7,9 +7,17 @@ import * as actions from './actions'
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 
+// =================
+// === Constants ===
+// =================
+
 const START_DATE_EPOCH_MS = 1.7e12
 /** The number of milliseconds in a minute. */
 const MIN_MS = 60_000
+
+// =============
+// === Tests ===
+// =============
 
 test.test('sort', async ({ page }) => {
   const { api } = await actions.mockAll({ page })
@@ -46,9 +54,9 @@ test.test('sort', async ({ page }) => {
 
   // By default, assets should be grouped by type.
   // Assets in each group are ordered by insertion order.
-  await actions.expectTransparent(actions.locateSortAscendingIcon(nameHeading))
+  await test.expect(actions.locateSortAscendingIcon(nameHeading)).not.toBeVisible()
   await test.expect(actions.locateSortDescendingIcon(nameHeading)).not.toBeVisible()
-  await actions.expectTransparent(actions.locateSortAscendingIcon(modifiedHeading))
+  await test.expect(actions.locateSortAscendingIcon(modifiedHeading)).not.toBeVisible()
   await test.expect(actions.locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^a directory/)
   await test.expect(assetRows.nth(1)).toHaveText(/^G directory/)
@@ -61,7 +69,7 @@ test.test('sort', async ({ page }) => {
 
   // Sort by name ascending.
   await nameHeading.click()
-  await actions.expectNotTransparent(actions.locateSortAscendingIcon(nameHeading))
+  await test.expect(actions.locateSortAscendingIcon(nameHeading)).toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^a directory/)
   await test.expect(assetRows.nth(1)).toHaveText(/^b project/)
   await test.expect(assetRows.nth(2)).toHaveText(/^C project/)
@@ -73,7 +81,7 @@ test.test('sort', async ({ page }) => {
 
   // Sort by name descending.
   await nameHeading.click()
-  await actions.expectNotTransparent(actions.locateSortDescendingIcon(nameHeading))
+  await test.expect(actions.locateSortDescendingIcon(nameHeading)).toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^H secret/)
   await test.expect(assetRows.nth(1)).toHaveText(/^G directory/)
   await test.expect(assetRows.nth(2)).toHaveText(/^f secret/)
@@ -86,7 +94,7 @@ test.test('sort', async ({ page }) => {
   // Sorting should be unset.
   await nameHeading.click()
   await page.mouse.move(0, 0)
-  await actions.expectTransparent(actions.locateSortAscendingIcon(nameHeading))
+  await test.expect(actions.locateSortAscendingIcon(nameHeading)).not.toBeVisible()
   await test.expect(actions.locateSortDescendingIcon(nameHeading)).not.toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^a directory/)
   await test.expect(assetRows.nth(1)).toHaveText(/^G directory/)
@@ -99,7 +107,7 @@ test.test('sort', async ({ page }) => {
 
   // Sort by date ascending.
   await modifiedHeading.click()
-  await actions.expectNotTransparent(actions.locateSortAscendingIcon(modifiedHeading))
+  await test.expect(actions.locateSortAscendingIcon(modifiedHeading)).toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^b project/)
   await test.expect(assetRows.nth(1)).toHaveText(/^H secret/)
   await test.expect(assetRows.nth(2)).toHaveText(/^f secret/)
@@ -111,7 +119,7 @@ test.test('sort', async ({ page }) => {
 
   // Sort by date descending.
   await modifiedHeading.click()
-  await actions.expectNotTransparent(actions.locateSortDescendingIcon(modifiedHeading))
+  await test.expect(actions.locateSortDescendingIcon(modifiedHeading)).toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^d file/)
   await test.expect(assetRows.nth(1)).toHaveText(/^C project/)
   await test.expect(assetRows.nth(2)).toHaveText(/^G directory/)
@@ -124,7 +132,7 @@ test.test('sort', async ({ page }) => {
   // Sorting should be unset.
   await modifiedHeading.click()
   await page.mouse.move(0, 0)
-  await actions.expectTransparent(actions.locateSortAscendingIcon(modifiedHeading))
+  await test.expect(actions.locateSortAscendingIcon(modifiedHeading)).not.toBeVisible()
   await test.expect(actions.locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^a directory/)
   await test.expect(assetRows.nth(1)).toHaveText(/^G directory/)

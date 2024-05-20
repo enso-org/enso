@@ -100,13 +100,8 @@ export function locateRegisterButton(page: test.Locator | test.Page) {
 }
 
 /** Find a user menu button (if any) on the current locator. */
-export function locateUserMenuButton(page: test.Locator | test.Page) {
+function locateUserMenuButton(page: test.Locator | test.Page) {
   return page.getByAltText('Open user menu').locator('visible=true')
-}
-
-/** Find a "sign out" button (if any) on the current locator. */
-export function locateLogoutButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Logout' }).getByText('Logout')
 }
 
 /** Find a "set username" button (if any) on the current page. */
@@ -217,11 +212,6 @@ export function locateTrashCategory(page: test.Locator | test.Page) {
 
 // === Other buttons ===
 
-/** Find a "download app" button (if any) on the current page. */
-export function locateDownloadAppButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Download App' }).getByText('Download App')
-}
-
 /** Find a "new label" button (if any) on the current page. */
 export function locateNewLabelButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'new label' }).getByText('new label')
@@ -272,6 +262,11 @@ export function locateSearchBarSuggestions(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-suggestion')
 }
 
+/** Find a "home page" icon (if any) on the current page. */
+export function locateHomePageIcon(page: test.Locator | test.Page) {
+  return page.getByRole('button').filter({ has: page.getByAltText('Home') })
+}
+
 // === Icon locators ===
 
 // These are specifically icons that are not also buttons.
@@ -304,7 +299,7 @@ export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
 // === Container locators ===
 
 /** Find a drive view (if any) on the current page. */
-function locateDriveView(page: test.Locator | test.Page) {
+export function locateDriveView(page: test.Locator | test.Page) {
   // This has no identifying features.
   return page.getByTestId('drive-view')
 }
@@ -341,7 +336,7 @@ export function locateAssetsTable(page: test.Page) {
 }
 
 /** Find assets table rows (if any) on the current page. */
-function locateAssetRows(page: test.Page) {
+export function locateAssetRows(page: test.Page) {
   return locateAssetsTable(page).locator('tbody').getByRole('row')
 }
 
@@ -399,7 +394,7 @@ export function locateSetUsernamePanel(page: test.Page) {
 }
 
 /** Find a set of context menus (if any) on the current page. */
-function locateContextMenus(page: test.Page) {
+export function locateContextMenus(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('context-menus')
 }
@@ -419,7 +414,7 @@ export function locateLabelsList(page: test.Page) {
 /** Find an asset panel (if any) on the current page. */
 export function locateAssetPanel(page: test.Page) {
   // This has no identifying features.
-  return page.getByTestId('asset-panel')
+  return page.getByTestId('asset-panel').locator('visible=true')
 }
 
 /** Find a search bar (if any) on the current page. */
@@ -480,6 +475,57 @@ function openUserMenuAction<State extends ActionsState>(
         locateUserMenuButton(page).click()
       )
       return returnActions(newPromise)
+    },
+  }
+}
+
+// =======================
+// === userMenuActions ===
+// =======================
+
+/** Actions for the user menu. */
+interface UserMenuActions<State extends ActionsState> {
+  readonly downloadApp: (
+    callback: (download: test.Download) => Promise<void> | void
+  ) => Actions<State>
+  readonly goToSettingsPage: () => Actions<'settingsPage'>
+  readonly logout: () => Actions<'loginPage'>
+  readonly goToLoginPage: () => Actions<'loginPage'>
+}
+
+/** Generate actions for the user menu. */
+function userMenuActions<State extends ActionsState>(
+  page: test.Page,
+  promise: Promise<void>,
+  returnState: State,
+  returnStateData: ActionsStateData[State]
+): UserMenuActions<State> {
+  const returnActions = (newPromise: Promise<void>) =>
+    actions(page, returnState, returnStateData, newPromise)
+  return {
+    downloadApp: (callback: (download: test.Download) => Promise<void> | void) => {
+      const locator = page.getByRole('button', { name: 'Download App' }).getByText('Download App')
+      const newPromise = thenStep(promise, 'Download app (user menu)', async () => {
+        const downloadPromise = page.waitForEvent('download')
+        await locator.click()
+        await callback(await downloadPromise)
+      })
+      return returnActions(newPromise)
+    },
+    goToSettingsPage: () => {
+      const locator = page.getByRole('button', { name: 'Settings' }).getByText('Settings')
+      const newPromise = thenStep(promise, 'Go to Settings (user menu)', () => locator.click())
+      return actions(page, 'settingsPage', {}, newPromise)
+    },
+    logout: () => {
+      const locator = page.getByRole('button', { name: 'Logout' }).getByText('Logout')
+      const newPromise = thenStep(promise, 'Logout (user menu)', () => locator.click())
+      return actions(page, 'loginPage', {}, newPromise)
+    },
+    goToLoginPage: () => {
+      const locator = page.getByRole('button', { name: 'Login', exact: true }).getByText('Login')
+      const newPromise = thenStep(promise, 'Login (user menu)', () => locator.click())
+      return actions(page, 'loginPage', {}, newPromise)
     },
   }
 }
@@ -774,6 +820,8 @@ interface LoginPageData {}
 /** Actions for the "login page" state. */
 interface LoginPageActions {
   readonly login: (email?: string, password?: string) => Actions<'drivePage'>
+  readonly loginAsNewUser: (email?: string, password?: string) => Actions<'setUsernamePage'>
+  readonly loginThatShouldFail: (email?: string, password?: string) => Actions<'loginPage'>
 }
 
 /** State machine data. */
@@ -791,9 +839,45 @@ registerAction('loginPage', (page, _data, promise) => ({
     const newPromise = thenStep(promise, 'Login', () => login({ page }, email, password))
     return actions(page, 'drivePage', {}, newPromise)
   },
+  loginAsNewUser: (email = 'email@example.com', password = VALID_PASSWORD) => {
+    const newPromise = thenStep(promise, 'Login', () => login({ page }, email, password))
+    return actions(page, 'setUsernamePage', {}, newPromise)
+  },
   loginThatShouldFail: (email = 'email@example.com', password = VALID_PASSWORD) => {
     const newPromise = thenStep(promise, 'Login', () => login({ page }, email, password))
     return actions(page, 'loginPage', {}, newPromise)
+  },
+}))
+
+// =======================
+// === setUsernamePage ===
+// =======================
+
+/** Data for the "setUsername page" state. */
+interface SetUsernamePageData {}
+
+/** Actions for the "setUsername page" state. */
+interface SetUsernamePageActions {
+  readonly setUsername: (username: string) => Actions<'drivePage'>
+}
+
+/** State machine data. */
+interface ActionsStateData {
+  readonly setUsernamePage: SetUsernamePageData
+}
+
+/** State machine actions. */
+interface ActionsStateActions {
+  readonly setUsernamePage: SetUsernamePageActions
+}
+
+registerAction('setUsernamePage', (page, _data, promise) => ({
+  setUsername: (username: string) => {
+    const newPromise = thenStep(promise, '', async () => {
+      await locateUsernameInput(page).fill(username)
+      await locateSetUsernameButton(page).click()
+    })
+    return actions(page, 'drivePage', {}, newPromise)
   },
 }))
 
@@ -810,6 +894,7 @@ interface HomePageActions
     OpenUserMenuAction<'homePage'> {
   readonly createEmptyProject: () => Actions<'editorPage'>
   readonly createProjectFromTemplate: (index: number) => Actions<'editorPage'>
+  readonly userMenu: UserMenuActions<'homePage'>
 }
 
 /** State machine data. */
@@ -839,6 +924,7 @@ registerAction('homePage', (page, _data, promise) => ({
     )
     return actions(page, 'editorPage', {}, newPromise)
   },
+  userMenu: userMenuActions(page, promise, 'homePage', {}),
 }))
 
 // =================
@@ -875,6 +961,7 @@ interface DrivePageActions
   readonly withContextMenus: (callback: LocatorCallback) => Actions<'drivePage'>
   readonly driveTable: DriveTableActions
   readonly contextMenu: ContextMenuActions<'drivePage'>
+  readonly userMenu: UserMenuActions<'drivePage'>
 }
 
 /** Actions for the "drive table" element. */
@@ -962,7 +1049,7 @@ registerAction('drivePage', (page, _data, promise) => ({
     return actions(page, 'drivePage', {}, newPromise)
   },
   withAssetPanel: (callback: LocatorCallback) => {
-    const locator = locateAssetPanelIcon(page)
+    const locator = locateAssetPanel(page)
     const newPromise = thenStep(promise, 'Interact with asset panel', async () => {
       await callback(locator)
     })
@@ -995,13 +1082,15 @@ registerAction('drivePage', (page, _data, promise) => ({
     },
     clickRow: (index: number) => {
       const locator = locateAssetRows(page).nth(index)
-      const newPromise = thenStep(promise, 'Click drive table row', () => locator.click())
+      const newPromise = thenStep(promise, 'Click drive table row', () =>
+        locator.click({ position: ASSET_ROW_SAFE_POSITION })
+      )
       return actions(page, 'drivePage', {}, newPromise)
     },
     rightClickRow: (index: number) => {
       const locator = locateAssetRows(page).nth(index)
       const newPromise = thenStep(promise, 'Click drive table row', () =>
-        locator.click({ button: 'right' })
+        locator.click({ button: 'right', position: ASSET_ROW_SAFE_POSITION })
       )
       return actions(page, 'drivePage', {}, newPromise)
     },
@@ -1034,6 +1123,7 @@ registerAction('drivePage', (page, _data, promise) => ({
     },
   },
   contextMenu: contextMenuActions(page, promise, 'drivePage', {}),
+  userMenu: userMenuActions(page, promise, 'drivePage', {}),
 }))
 
 // ==================
@@ -1046,7 +1136,9 @@ interface EditorPageData {}
 /** Actions for the "editor page" state. */
 interface EditorPageActions
   extends Omit<GoToPageActions, 'goToEditorPage'>,
-    OpenUserMenuAction<'editorPage'> {}
+    OpenUserMenuAction<'editorPage'> {
+  readonly userMenu: UserMenuActions<'editorPage'>
+}
 
 /** State machine data. */
 interface ActionsStateData {
@@ -1061,6 +1153,7 @@ interface ActionsStateActions {
 registerAction('editorPage', (page, _data, promise) => ({
   ...goToPageActions(page, promise),
   ...openUserMenuAction(page, promise, 'editorPage', {}),
+  userMenu: userMenuActions(page, promise, 'editorPage', {}),
 }))
 
 // ====================
@@ -1073,7 +1166,9 @@ interface SettingsPageData {}
 /** Actions for the "settings page" state. */
 interface SettingsPageActions
   extends Omit<GoToPageActions, 'goToSettingsPage'>,
-    OpenUserMenuAction<'settingsPage'> {}
+    OpenUserMenuAction<'settingsPage'> {
+  readonly userMenu: UserMenuActions<'settingsPage'>
+}
 
 /** State machine data. */
 interface ActionsStateData {
@@ -1088,6 +1183,7 @@ interface ActionsStateActions {
 registerAction('settingsPage', (page, _data, promise) => ({
   ...goToPageActions(page, promise),
   ...openUserMenuAction(page, promise, 'settingsPage', {}),
+  userMenu: userMenuActions(page, promise, 'settingsPage', {}),
 }))
 
 // ========================
@@ -1356,24 +1452,6 @@ export async function expectClassSelected(locator: test.Locator) {
   })
 }
 
-/** A test assertion to confirm that the element has the class `selected`. */
-export async function expectNotTransparent(locator: test.Locator) {
-  await test.test.step('expect.not.transparent', async () => {
-    await test.expect
-      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
-      .not.toBe('0')
-  })
-}
-
-/** A test assertion to confirm that the element has the class `selected`. */
-export async function expectTransparent(locator: test.Locator) {
-  await test.test.step('expect.transparent', async () => {
-    await test.expect
-      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
-      .toBe('0')
-  })
-}
-
 // =======================
 // === Mouse utilities ===
 // =======================
@@ -1442,7 +1520,11 @@ export async function press(page: test.Page, keyOrShortcut: string) {
 /** Perform a successful login. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-async function login({ page }: MockParams, email = 'email@example.com', password = VALID_PASSWORD) {
+export async function login(
+  { page }: MockParams,
+  email = 'email@example.com',
+  password = VALID_PASSWORD
+) {
   await test.test.step('Login', async () => {
     await page.goto('/')
     await locateEmailInput(page).fill(email)

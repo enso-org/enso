@@ -3,7 +3,7 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
-test.test('drive iew', ({ page }) =>
+test.test('drive view', ({ page }) =>
   actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
     pageActions
       .withDriveView(async view => {

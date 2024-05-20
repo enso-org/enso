@@ -34,10 +34,12 @@ test.test('create project', ({ page }) =>
   actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
     pageActions
       .createProject()
+      .do(async thePage => {
+        await test.expect(actions.locateEditor(thePage)).toBeVisible()
+      })
       .goToDrivePage()
       .driveTable.withRows(async rows => {
         await test.expect(rows).toHaveCount(1)
-        await test.expect(actions.locateEditor(page)).toBeVisible()
       })
   )
 )
@@ -57,7 +59,7 @@ test.test('create secret', ({ page }) =>
     pageActions.createSecret(SECRET_NAME, SECRET_VALUE).driveTable.withRows(async rows => {
       await test.expect(rows).toHaveCount(1)
       await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + name))
+      await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + SECRET_NAME))
     })
   )
 )
