@@ -475,7 +475,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: (DEBUG) Start Language Server
-        run: ./distribution/bin/enso.bat --server --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 --path ./ --rpc-port 30616 --data-port 30617 --log-level trace
+        run: ./distribution/bin/enso --server --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 --path ./ --rpc-port 30616 --data-port 30617 --log-level trace
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
