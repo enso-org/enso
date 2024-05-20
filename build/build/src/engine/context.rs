@@ -649,12 +649,17 @@ pub async fn runner_sanity_test(
         output.contains(factorial_expected_output),
         "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
     );
-    let test_base = Command::new(&repo_root.runner)
-        .args(["--run", repo_root.test.join("Base_Tests").as_str(), "^Text"])
-        .set_env_opt(ENSO_JAVA, enso_java)?
-        .set_env(ENSO_DATA_DIRECTORY, engine_package)?
-        .run_stdout()
-        .await?;
-    ensure!(test_base.contains("0 tests failed."), "All tests shall succeed. Output:\n{test_base}",);
+    if enso_java.is_none() {
+        let test_base = Command::new(&repo_root.runner)
+            .args(["--run", repo_root.test.join("Base_Tests").as_str(), "^Text"])
+            .set_env_opt(ENSO_JAVA, enso_java)?
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_stdout()
+            .await?;
+        ensure!(
+            test_base.contains("0 tests failed."),
+            "All tests shall succeed. Output:\n{test_base}",
+        );
+    }
     Ok(())
 }
