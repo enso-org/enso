@@ -405,7 +405,7 @@ run_union_tests group_builder setup call_union =
             table.at "C" . to_vector . should_equal ["True", "False", Nothing, "x", "Y", "Z"]
             table.at "C" . value_type . is_text . should_be_true
 
-        error_checker error = error.should_be_a No_Common_Type
+        error_checker result = result.should_fail_with No_Common_Type
         warnings_checker warnings =
             warnings.map w->
                 w.should_be_a No_Common_Type
@@ -439,7 +439,7 @@ run_union_tests group_builder setup call_union =
         expect_column_names ["A"] r1
         r1.at "A" . value_type . is_text . should_be_true
         r1.at "A" . to_vector . should_equal ["1", "a"]
-        w = Problem_Behavior.expect_only_warning No_Common_Type r1
+        w = Problems.expect_only_warning No_Common_Type r1
         w.related_column_name.should_equal "A"
 
     group_builder.specify "should gracefully handle tables from different backends" <|
