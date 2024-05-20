@@ -29,7 +29,7 @@ from project.Data.Range.Extensions import all
 @Builtin_Type
 type Array
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets an element from the array at a specified index (0-based).
 
        Arguments:
@@ -151,7 +151,7 @@ type Array
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Selections
-       ICON select_row
+       ICON parse3
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -167,7 +167,7 @@ type Array
 
     ## ALIAS skip
        GROUP Selections
-       ICON select_row
+       ICON parse3
        Creates a new `Vector`, removing any elements from the specified range.
 
        Arguments:
@@ -213,7 +213,7 @@ type Array
     remove self at=-1 = Array_Like_Helpers.remove self at
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
 
@@ -225,7 +225,7 @@ type Array
     first self = self.at 0
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the second element from the array, or a `Index_Out_Of_Bounds` if the
        array doesn't have a second element.
 
@@ -342,6 +342,26 @@ type Array
              [Pair 1 "a", Pair 2 "b", Pair 1 "c"].to_array . distinct (on = _.first) == [Pair 1 "a", Pair 2 "b"].to_array
     distinct : (Any -> Any) -> Vector Any
     distinct self (on = x->x) = Array_Like_Helpers.distinct self on
+
+    ## ALIAS duplicates
+       GROUP Selections
+       ICON preparation
+       Returns only non-unique elements within the array.
+
+       Arguments:
+       - on: A projection from the element type to the value of that element
+             which determines the uniqueness criteria.
+
+       The returned duplicate elements are kept in the same order as the
+       first duplicate appeared in the input.
+
+       > Example
+         Removing repeating entries.
+
+             [1, 3, 1, 2, 2, 1].to_array . duplicates == [1, 2].to_array
+    duplicates : (Any -> Any) -> Vector Any
+    duplicates self (on = x->x) =
+        Array_Like_Helpers.duplicates self on
 
     ## ICON dataframe_map_column
        Applies a function to each element of the array, returning the `Vector` of
@@ -705,7 +725,7 @@ type Array
     find self (condition : Filter_Condition | (Any -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         Array_Like_Helpers.find self condition start if_missing
 
-    ## ICON select_row
+    ## ICON parse3
        Gets an element from the array at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 

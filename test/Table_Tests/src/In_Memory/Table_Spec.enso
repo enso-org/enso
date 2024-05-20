@@ -61,7 +61,7 @@ type Data
         Data.Value make_varied_type_table
 
 add_specs suite_builder =
-    suite_builder.group "Construction" group_builder->
+    suite_builder.group "Table Construction" group_builder->
         data = Data.setup
 
         group_builder.specify "should allow creating a table from rows" <|
@@ -177,6 +177,20 @@ add_specs suite_builder =
 
             col_3 = Column.from_vector 'z' [False, True, False]
             col_3.to_vector.map .not . should_equal [True, False, True]
+
+    suite_builder.group "Table Display" group_builder->
+        group_builder.specify "should be able to display a table" <|
+            t = Table.new [["foo", [10, 20, 30]], ["bar", [False, True, False]]]
+            raw_expected_text = """
+                   | foo | bar
+                ---+-----+-------
+                 0 | 10  | False
+                 1 | 20  | True
+                 2 | 30  | False
+            expected_text = raw_expected_text.lines.map .trim . join '\n'
+            raw_got_text = t.display
+            got_text = raw_got_text.lines.map .trim . join '\n'
+            got_text . should_equal expected_text
 
     suite_builder.group "Mapping Operations" group_builder->
         group_builder.specify "should allow mapping a function over a column" <|
@@ -889,7 +903,7 @@ add_specs suite_builder =
 
             r = t.join db_table
             r.should_fail_with Illegal_Argument
-            r.catch.message . contains "cross-backend" . should_be_true
+            r.catch.message . should_contain "materialize"
 
     suite_builder.group "[In-Memory-specific] Table.set" group_builder->
         group_builder.specify "should allow using vector and range for a new column" <|

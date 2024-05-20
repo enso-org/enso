@@ -4,12 +4,15 @@ import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
+import project.Enso_Cloud.Errors.Not_Logged_In
+import project.Enso_Cloud.Internal.Authentication
 import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
@@ -29,11 +32,16 @@ type Enso_User
 
     ## ICON people
        Fetch the current user.
-    current : Enso_User
-    current =
+    current -> Enso_User =
         Utils.get_cached "users/me" cache_duration=(Duration.new minutes=120) <|
             json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users/me")
             Enso_User.from json
+
+    ## PRIVATE
+       Checks if the user is logged in.
+    is_logged_in -> Boolean =
+        Panic.catch Not_Logged_In handler=(_->False) <|
+            Authentication.get_access_token.is_error.not
 
     ## ICON people
        Lists all known users.
@@ -43,7 +51,8 @@ type Enso_User
         users = get_required_field "users" json
         users.map (user-> Enso_User.from user)
 
-    ## Flushes all cloud caches.
+    ## ICON trash
+       Flushes all cloud caches.
        For example, it will flush cached secrets, ensuring that new values will
        be fetched the next time the secrets are accessed.
     flush_caches : Nothing

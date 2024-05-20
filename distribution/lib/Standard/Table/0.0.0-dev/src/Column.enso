@@ -11,7 +11,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Numeric_Input
-from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
+from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget, make_data_cleanse_vector_selector
 
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
@@ -24,13 +24,13 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Storage
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
+import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Column_Names, Invalid_Value_Type, No_Index_Set_Error
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
-from project.Table import print_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
@@ -155,19 +155,7 @@ type Column
              example_display = Examples.integer_column.display
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        java_col = self.java_column
-        col_name = normalize_string_for_display java_col.getName
-        storage = java_col.getStorage
-        num_rows = java_col.getSize
-        display_rows = num_rows.min show_rows
-        items = Vector.new display_rows num->
-            row = if storage.isNothing num then "Nothing" else
-                get_item_string storage num
-            [num.to_text, row]
-        table = print_table ["", col_name] items 1 format_terminal
-        if num_rows - display_rows <= 0 then table else
-            missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
-            table + missing
+        self.to_table.display show_rows format_terminal
 
     ## PRIVATE
        ADVANCED
@@ -1474,6 +1462,36 @@ type Column
 
                 Column.from_storage new_name builder.seal
 
+    ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       Applies the specified cleansings to the text in each row.
+
+       Arguments:
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
+          applied in the order they are provided. The same text cleansing can be used multiple
+          times. The text cleansings are:
+            - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+            - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+            - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+            - ..All_Whitespace: Removes all whitspace from the string.
+            - ..Leading_Numbers: Removes all numbers from the start of the string.
+            - ..Trailing_Numbers: Removes all numbers from the end of the string.
+            - ..Non_ASCII: Removes all non-ascii characters from the string.
+            - ..Tabs: Removes all tab characters from the string.
+            - ..Letters: Removes all letters from the string.
+            - ..Numbers: Removes all numbers characters from the string.
+            - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+            - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+    @remove make_data_cleanse_vector_selector
+    text_cleanse : Vector Text_Cleanse -> Column
+    text_cleanse self remove =
+      remove.fold self (current-> tc-> tc.apply current)
+
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
        Gets the year as a number from the date stored in the column.
@@ -2105,7 +2123,7 @@ type Column
     count self = self.length - self.count_nothing
 
     ## GROUP Standard.Base.Selections
-       ICON select_column
+       ICON parse3
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -2126,7 +2144,7 @@ type Column
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -2153,13 +2171,11 @@ type Column
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Nothing | Integer) -> Boolean -> Column
-    read self (max_rows : Nothing | Integer = Nothing) (warn_if_more_rows:Boolean = True) =
+    @max_rows Rows_To_Read.default_widget
+    read : Rows_To_Read -> Column
+    read self (max_rows : Rows_To_Read = ..All_Rows) =
         if max_rows.is_nothing then self else
-            self.to_table.read max_rows warn_if_more_rows . at 0
+            self.to_table.read max_rows . at 0
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2226,7 +2242,7 @@ type Column
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
 
-    ## ALIAS metadata, field info, column type
+    ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this column's contents and type.
@@ -2296,7 +2312,7 @@ type Column
 
     ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Creates a new Column with the specified range of rows from the input
        Column.
 
@@ -2309,7 +2325,7 @@ type Column
 
     ## ALIAS skip
        GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Creates a new Column from the input with the specified range of rows
        removed.
 
@@ -2330,7 +2346,7 @@ type Column
         Column.Value (self.java_column.slice offset limit)
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
@@ -2703,6 +2719,9 @@ Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_v
 ## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector
+
+## PRIVATE
+Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)
 
 ## PRIVATE
    Applies a UnaryOperation to a column.

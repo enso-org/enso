@@ -6,6 +6,7 @@ import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Value_Type
 
 import project.Column_Description.Column_Description
@@ -15,6 +16,7 @@ import project.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
+import project.Internal.Postgres.Postgres_Data_Link_Setup.Postgres_Data_Link_Setup
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
@@ -32,8 +34,8 @@ type Postgres_Connection
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
        - make_new: A function that returns a new connection.
-    create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Connection
-    create url properties make_new =
+    create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Data_Link_Setup -> Postgres_Connection
+    create url properties make_new data_link_setup =
         jdbc_connection = JDBC_Connection.create url properties
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
 
@@ -43,7 +45,7 @@ type Postgres_Connection
            Our generator is supposed to always quote identifiers
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
 
-        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new
+        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new data_link_setup
 
     ## PRIVATE
 
@@ -52,7 +54,7 @@ type Postgres_Connection
        Arguments:
        - connection: the underlying connection.
        - make_new: a function that returns a new connection.
-    Value connection make_new
+    private Value (connection:Connection) (make_new : Text -> Text -> Postgres_Connection) (data_link_setup : Postgres_Data_Link_Setup)
 
     ## ICON data_input
        Closes the connection releasing the underlying database resources
@@ -167,9 +169,6 @@ type Postgres_Connection
          If supplied as `Text`, the name is checked against the `tables` list to
          determine if it is a table or a query.
        - limit: the maximum number of rows to read.
-         If set to `Nothing`, all rows will be returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `limit`.
 
        ? Side Effects
 
@@ -179,9 +178,10 @@ type Postgres_Connection
          `execute_update` for DML queries, or if they are supposed to return
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Table ! Table_Not_Found
-    read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
-        self.connection.read query limit warn_if_more_rows
+    @limit Rows_To_Read.default_widget
+    read : Text | SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.connection.read query limit
 
     ## GROUP Standard.Base.Output
        ICON data_output
@@ -281,6 +281,12 @@ type Postgres_Connection
     base_connection : Connection
     base_connection self = self.connection
 
+    ## Creates a Data Link that will open the same connection.
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = Existing_File_Behavior.Error) =
+        self.data_link_setup.save_as_data_link destination on_existing_file
+
+
 ## PRIVATE
 get_encoding_name : JDBC_Connection.JDBC_Connection -> Text
 get_encoding_name jdbc_connection =
@@ -320,4 +326,3 @@ parse_postgres_encoding encoding_name =
         fallback.catch Any _->
             warning = Unsupported_Database_Encoding.Warning "The database is using an encoding ("+encoding_name.to_display_text+") that is currently not supported by Enso. Falling back to UTF-8. Column/table names may not be mapped correctly if they contain unsupported characters."
             Warning.attach warning Encoding.utf_8
-

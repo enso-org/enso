@@ -332,6 +332,32 @@ class App {
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
+                const oldMenu = electron.Menu.getApplicationMenu()
+                if (oldMenu != null) {
+                    const items = oldMenu.items.map(item => {
+                        if (item.role !== 'help') {
+                            return item
+                        } else {
+                            // `click` is a property that is intentionally removed from this
+                            // destructured object, in order to satisfy TypeScript.
+                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                            const { click, ...passthrough } = item
+                            return new electron.MenuItem({
+                                ...passthrough,
+                                submenu: electron.Menu.buildFromTemplate([
+                                    new electron.MenuItem({
+                                        label: `About ${common.PRODUCT_NAME}`,
+                                        click: () => {
+                                            window.webContents.send(ipc.Channel.showAboutModal)
+                                        },
+                                    }),
+                                ]),
+                            })
+                        }
+                    })
+                    const newMenu = electron.Menu.buildFromTemplate(items)
+                    electron.Menu.setApplicationMenu(newMenu)
+                }
 
                 if (this.args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()

@@ -29,7 +29,7 @@ interface AssetEvents {
   readonly newFolder: AssetNewFolderEvent
   readonly uploadFiles: AssetUploadFilesEvent
   readonly updateFiles: AssetUpdateFilesEvent
-  readonly newDataLink: AssetNewDataLinkEvent
+  readonly newDatalink: AssetNewDatalinkEvent
   readonly newSecret: AssetNewSecretEvent
   readonly openProject: AssetOpenProjectEvent
   readonly closeProject: AssetCloseProjectEvent
@@ -63,7 +63,7 @@ type SanityCheck<
 export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
   readonly placeholderId: backend.ProjectId
   readonly templateId: string | null
-  readonly datalinkId: backend.ConnectorId | null
+  readonly datalinkId: backend.DatalinkId | null
   readonly originalId: backend.ProjectId | null
   readonly versionId: backend.S3ObjectVersionId | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
@@ -84,9 +84,9 @@ export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.upd
   readonly files: ReadonlyMap<backend.AssetId, File>
 }
 
-/** A signal to create a Data Link. */
-export interface AssetNewDataLinkEvent extends AssetBaseEvent<AssetEventType.newDataLink> {
-  readonly placeholderId: backend.ConnectorId
+/** A signal to create a Datalink. */
+export interface AssetNewDatalinkEvent extends AssetBaseEvent<AssetEventType.newDatalink> {
+  readonly placeholderId: backend.DatalinkId
   readonly value: unknown
 }
 

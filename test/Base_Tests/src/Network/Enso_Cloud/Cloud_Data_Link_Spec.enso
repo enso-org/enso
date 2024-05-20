@@ -16,30 +16,44 @@ import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 from project.Network.Enso_Cloud.Cloud_Tests_Setup import create_local_datalink_to
 
 
-add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
+add_specs suite_builder setup:Cloud_Tests_Setup =
     suite_builder.group "DataLinks in Enso Cloud" pending=setup.real_cloud_pending group_builder->
+        test_root = Temporary_Directory.make "DataLinks-in-Cloud"
+        group_builder.teardown test_root.cleanup
+
         group_builder.specify "should be able to access an example HTTP data-link" <|
-            ## We assume that the cloud has a sample data-link called `TestDataLink` present
-               TODO in future iterations this file will be created by the test suite itself, to make it self-contained
-            assets = Enso_File.root.list
-            datalink = assets.find a-> a.name.starts_with "TestDataLink-HTTP"
+            datalink = test_root.get / "TestDataLink-HTTP.datalink"
+            datalink.exists.should_be_false
+            Data_Link.write_raw_config datalink http_data_link_content . should_succeed
+            datalink.exists.should_be_true
+
             datalink.should_be_a Enso_File
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
 
-            # We assume that the datalink points to https://raw.githubusercontent.com/enso-org/enso/develop/test/Base_Tests/data/sample.txt
-            r = datalink.read
-            r.should_be_a Text
-            r.should_contain "Cupcake"
+            # Currently metadata is not available on datalinks
+            datalink.size.should_fail_with Illegal_Argument
+            datalink.creation_time.should_fail_with Illegal_Argument
+
+            Test.with_retries <|
+                # We assume that the datalink points to
+                r = datalink.read
+                r.should_be_a Text
+                r.should_contain "Cupcake"
 
         group_builder.specify "will report which library is missing if a datalink relying on other library is accessed" <|
-            assets = Enso_File.root.list
-            datalink = assets.find a-> a.name.starts_with "TestDataLink-S3"
+            datalink = test_root.get / "TestDataLink-S3.datalink"
+            Data_Link.write_raw_config datalink s3_data_link_content . should_succeed
+            datalink.exists.should_be_true
+
             datalink.should_be_a Enso_File
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
 
             r = datalink.read
             r.should_fail_with Missing_Data_Link_Library
             r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
+
+            # But we can still read the raw Data Link config:
+            Data_Link.read_raw_config datalink . should_contain '{'
 
         group_builder.specify "does not allow to use  Data_Link to read/write regular files" <|
             temp_file = File.create_temporary_file "not-a-datalink" ".txt"
@@ -49,18 +63,20 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
                 Data_Link.read_raw_config temp_file
 
     suite_builder.group "DataLinks to Enso Cloud" pending=setup.real_cloud_pending group_builder->
-        test_root = Temporary_Directory.make "DataLinks"
+        test_root = Temporary_Directory.make "DataLinks-to-Cloud"
         group_builder.teardown test_root.cleanup
 
         group_builder.specify "should be able to read a local datalink to an Enso File" <|
+            my_target_enso_file = "Hello Enso Cloud File!".write (test_root.get / "my-file.txt") . should_succeed
             datalink = transform_datalink (enso_project.data / "datalinks" / "example-enso-file.datalink") content->
-                content.replace "PLACEHOLDER_ORG_NAME" Enso_User.current.organization_name
-            datalink.read . should_equal "Hello Another!"
+                content.replace "enso://PLACEHOLDER_ORG_NAME/PLACEHOLDER_PATH" my_target_enso_file.path
+            datalink.read . should_equal "Hello Enso Cloud File!"
 
         group_builder.specify "should be able to read a datalink in the Cloud to Enso File" <|
-            # TODO currently this link is created manually, later we should be generating it as part of the test
-            datalink = Enso_File.new "enso://"+Enso_User.current.organization_name+"/TestDataLink-EnsoFile"
-            datalink.read . should_equal "Hello Another!"
+            my_target_enso_file = "Hello Enso Cloud File!".write (test_root.get / "my-file.txt") . should_succeed
+            datalink = test_root.get / "TestDataLink-EnsoFile.datalink"
+            Data_Link.write_raw_config datalink (enso_file_data_link_content.replace "<PATH>" my_target_enso_file.path) . should_succeed
+            datalink.read . should_equal "Hello Enso Cloud File!"
 
         group_builder.specify "should be able to write Text to a data link pointing to a Cloud file" <|
             datalink = create_local_datalink_to (test_root.get / "my-file1.txt")
@@ -137,3 +153,35 @@ transform_datalink base_file transform =
     new_content = transform content
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
     Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+
+replace_placeholder_path datalink_file target_file =
+    content = Data_Link.read_raw_config datalink_file
+    new_content = content.replace "enso://PLACEHOLDER_ORG_NAME/PLACEHOLDER_PATH" target_file.path
+    temp_file = File.create_temporary_file prefix=datalink_file.name suffix=datalink_file.extension
+    Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
+
+http_data_link_content = """
+    {
+        "type": "HTTP",
+        "libraryName": "Standard.Base",
+        "method": "GET",
+        "uri": "https://raw.githubusercontent.com/enso-org/enso/develop/test/Base_Tests/data/sample.txt"
+    }
+
+s3_data_link_content = """
+    {
+      "type": "S3",
+      "libraryName": "Standard.AWS",
+      "uri": "s3://enso-data-samples/examples/folder 2/hello.txt",
+      "auth": {
+        "type": "aws_auth",
+        "subType": "default"
+      }
+    }
+
+enso_file_data_link_content = """
+    {
+        "type": "Enso_File",
+        "libraryName": "Standard.Base",
+        "path": "<PATH>"
+    }

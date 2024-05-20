@@ -72,6 +72,7 @@ test('Opening Component Browser with small plus buttons', async ({ page }) => {
 
   // Small (+) button shown when node is sole selection
   await page.keyboard.press('Escape')
+  await page.mouse.move(300, 300)
   await expect(locate.smallPlusButton(page)).not.toBeVisible()
   await locate.graphNodeByBinding(page, 'selected').click()
   await expect(locate.smallPlusButton(page)).toBeVisible()
@@ -86,7 +87,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await locate.graphNodeByBinding(page, 'final').click()
   await page.mouse.move(100, 80)
   await page.mouse.down({ button: 'middle' })
-  await page.mouse.move(100, 700)
+  await page.mouse.move(100, 1200)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'final')).not.toBeInViewport()
   await locate.graphEditor(page).press('Enter')

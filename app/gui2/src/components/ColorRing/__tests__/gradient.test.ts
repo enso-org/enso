@@ -1,7 +1,8 @@
+import { normalizeHue } from '@/util/colors'
 import { fc, test as fcTest } from '@fast-check/vitest'
 import { expect } from 'vitest'
 import type { FixedRange, GradientPoint } from '../gradient'
-import { gradientPoints, normalizeHue, rangesForInputs } from '../gradient'
+import { gradientPoints, rangesForInputs } from '../gradient'
 
 /** Check value ranges and internal consistency. */
 function validateRange({ start, end }: FixedRange) {
@@ -41,7 +42,7 @@ function angularStops(points: Iterable<GradientPoint>) {
   return stops
 }
 
-function stopSpans(stops: Iterable<AngularStop>, radius: number) {
+function stopSpans(stops: Iterable<AngularStop>) {
   const spans = new Array<{ start: number; end: number; hue: number }>()
   let prev: AngularStop | undefined = undefined
   for (const stop of stops) {
@@ -78,7 +79,7 @@ function testGradients({ hues, radius }: { hues: number[]; radius: number }) {
   const stops = angularStops(points)
   expect(stops[0]?.angle).toBe(0)
   expect(stops[stops.length - 1]?.angle).toBe(1)
-  const spans = stopSpans(stops, radius)
+  const spans = stopSpans(stops)
   for (const span of spans) {
     expect(approximateHues).toContain(approximate(span.hue))
     if (span.start < span.end) {

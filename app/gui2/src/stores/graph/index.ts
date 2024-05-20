@@ -45,6 +45,8 @@ import {
   type ShallowRef,
 } from 'vue'
 
+const FALLBACK_BINDING_PREFIX = 'node'
+
 export type {
   Node,
   NodeDataFromAst,
@@ -73,7 +75,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   proj.setObservedFileName('Main.enso')
 
-  const syncModule = computed(() => proj.module && new MutableModule(proj.module.doc.ydoc))
+  const syncModule = computed(() => proj.module && markRaw(new MutableModule(proj.module.doc.ydoc)))
 
   const nodeRects = reactive(new Map<NodeId, Rect>())
   const vizRects = reactive(new Map<NodeId, Rect>())
@@ -191,9 +193,13 @@ export const useGraphStore = defineStore('graph', () => {
     return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
   }
 
-  function generateUniqueIdent() {
-    for (;;) {
-      const ident = randomIdent()
+  function generateLocallyUniqueIdent(prefix?: string | undefined) {
+    // FIXME: This implementation is not robust in the context of a synchronized document,
+    // as the same name can likely be assigned by multiple clients.
+    // Consider implementing a mechanism to repair the document in case of name clashes.
+    for (let i = 1; ; i++) {
+      const ident = (prefix ?? FALLBACK_BINDING_PREFIX) + i
+      assert(isIdentifier(ident))
       if (!db.identifierUsed(ident)) return ident
     }
   }
@@ -248,10 +254,6 @@ export const useGraphStore = defineStore('graph', () => {
     unconnectedEdge.value = undefined
   }
 
-  const method = computed(() =>
-    syncModule.value ? methodAstInModule(syncModule.value) : undefined,
-  )
-
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
   function addMissingImports(
     edit: MutableModule,
@@ -299,7 +301,7 @@ export const useGraphStore = defineStore('graph', () => {
     addImports(edit.getVersion(topLevel), importsToAdd)
   }
 
-  function deleteNodes(ids: NodeId[]) {
+  function deleteNodes(ids: Iterable<NodeId>) {
     edit(
       (edit) => {
         for (const id of ids) {
@@ -344,8 +346,16 @@ export const useGraphStore = defineStore('graph', () => {
     syncModule.value!.transact(fn)
   }
 
-  function stopCapturingUndo() {
-    proj.stopCapturingUndo()
+  const undoManager = {
+    undo() {
+      proj.module?.undoManager.undo()
+    },
+    redo() {
+      proj.module?.undoManager.redo()
+    },
+    undoStackBoundary() {
+      proj.module?.undoManager.stopCapturing()
+    },
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
@@ -359,12 +369,16 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  function overrideNodeColor(nodeId: NodeId, color: string) {
+  function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
     const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) => {
       metadata.set('colorOverride', color)
     })
+  }
+
+  function getNodeColorOverride(node: NodeId) {
+    return db.nodeIdToNode.get(node)?.colorOverride ?? undefined
   }
 
   function normalizeVisMetadata(
@@ -375,6 +389,7 @@ export const useGraphStore = defineStore('graph', () => {
       visible: false,
       fullscreen: false,
       width: null,
+      height: null,
     }
     const vis: VisualizationMetadata = { ...empty, ...partial }
     if (visMetadataEquals(vis, empty)) return undefined
@@ -390,6 +405,7 @@ export const useGraphStore = defineStore('graph', () => {
         visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
         fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
         width: vis.width ?? metadata.get('visualization')?.width ?? null,
+        height: vis.height ?? metadata.get('visualization')?.height ?? null,
       }
       metadata.set('visualization', normalizeVisMetadata(data))
     })
@@ -661,21 +677,21 @@ export const useGraphStore = defineStore('graph', () => {
     visibleArea,
     unregisterNodeRect,
     methodAst,
-    generateUniqueIdent,
+    generateLocallyUniqueIdent,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
     clearUnconnected,
     moduleRoot,
-    method,
     deleteNodes,
     ensureCorrectNodeOrder,
     batchEdits,
     overrideNodeColor,
+    getNodeColorOverride,
     setNodeContent,
     setNodePosition,
     setNodeVisualization,
-    stopCapturingUndo,
+    undoManager,
     topLevel,
     updateNodeRect,
     updateVizRect,
@@ -701,12 +717,6 @@ export const useGraphStore = defineStore('graph', () => {
     },
   }
 })
-
-function randomIdent() {
-  const ident = 'operator' + Math.round(Math.random() * 100000)
-  assert(isIdentifier(ident))
-  return ident
-}
 
 /** An edge, which may be connected or unconnected. */
 export interface Edge {

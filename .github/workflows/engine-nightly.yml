@@ -270,7 +270,7 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -327,7 +327,7 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -382,7 +382,7 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -438,7 +438,7 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -494,7 +494,7 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -553,7 +553,7 @@ jobs:
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
           ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Standard Library Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -613,7 +613,7 @@ jobs:
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
           ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Standard Library Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -671,7 +671,7 @@ jobs:
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
           ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Standard Library Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -730,7 +730,7 @@ jobs:
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
           ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Standard Library Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -789,7 +789,7 @@ jobs:
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
           ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
+      - if: (success() || failure()) && github.event.pull_request.head.repo.full_name == github.repository
         name: Standard Library Test Reporter
         uses: dorny/test-reporter@v1
         with:

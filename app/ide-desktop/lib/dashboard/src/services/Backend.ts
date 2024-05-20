@@ -51,9 +51,9 @@ export const FileId = newtype.newtypeConstructor<FileId>()
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
-/** Unique identifier for a Data Link. */
-export type ConnectorId = newtype.Newtype<string, 'ConnectorId'>
-export const ConnectorId = newtype.newtypeConstructor<ConnectorId>()
+/** Unique identifier for a Datalink. */
+export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
+export const DatalinkId = newtype.newtypeConstructor<DatalinkId>()
 
 /** Unique identifier for a version of an S3 object. */
 export type S3ObjectVersionId = newtype.Newtype<string, 'S3ObjectVersionId'>
@@ -344,12 +344,12 @@ export interface SecretInfo {
   readonly path: string
 }
 
-/** A Data Link. */
-export type Connector = newtype.Newtype<unknown, 'Connector'>
+/** A Datalink. */
+export type Datalink = newtype.Newtype<unknown, 'Datalink'>
 
-/** Metadata uniquely identifying a Data Link. */
-export interface ConnectorInfo {
-  readonly id: ConnectorId
+/** Metadata uniquely identifying a Datalink. */
+export interface DatalinkInfo {
+  readonly id: DatalinkId
 }
 
 /** A label. */
@@ -659,7 +659,7 @@ export enum AssetType {
   project = 'project',
   file = 'file',
   secret = 'secret',
-  dataLink = 'connector',
+  datalink = 'datalink',
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
@@ -672,7 +672,7 @@ export enum AssetType {
 export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
-  readonly [AssetType.dataLink]: ConnectorId
+  readonly [AssetType.datalink]: DatalinkId
   readonly [AssetType.secret]: SecretId
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
@@ -688,7 +688,7 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.directory]: 0,
   [AssetType.project]: 1,
   [AssetType.file]: 2,
-  [AssetType.dataLink]: 3,
+  [AssetType.datalink]: 3,
   [AssetType.secret]: 4,
   [AssetType.specialLoading]: 999,
   [AssetType.specialEmpty]: 1000,
@@ -730,8 +730,8 @@ export interface ProjectAsset extends Asset<AssetType.project> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
 export interface FileAsset extends Asset<AssetType.file> {}
 
-/** A convenience alias for {@link Asset}<{@link AssetType.dataLink}>. */
-export interface DataLinkAsset extends Asset<AssetType.dataLink> {}
+/** A convenience alias for {@link Asset}<{@link AssetType.datalink}>. */
+export interface DatalinkAsset extends Asset<AssetType.datalink> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export interface SecretAsset extends Asset<AssetType.secret> {}
@@ -842,7 +842,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  | DataLinkAsset
+  | DatalinkAsset
   | DirectoryAsset
   | FileAsset
   | ProjectAsset
@@ -879,8 +879,8 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       result = FileId(id)
       break
     }
-    case AssetType.dataLink: {
-      result = ConnectorId(id)
+    case AssetType.datalink: {
+      result = DatalinkId(id)
       break
     }
     case AssetType.secret: {
@@ -907,8 +907,8 @@ export function createPlaceholderAssetId<Type extends AssetType>(
 export const assetIsProject = assetIsType(AssetType.project)
 /** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
 export const assetIsDirectory = assetIsType(AssetType.directory)
-/** A type guard that returns whether an {@link Asset} is a {@link DataLinkAsset}. */
-export const assetIsDataLink = assetIsType(AssetType.dataLink)
+/** A type guard that returns whether an {@link Asset} is a {@link DatalinkAsset}. */
+export const assetIsDatalink = assetIsType(AssetType.datalink)
 /** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
@@ -1038,7 +1038,7 @@ export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName?: string
   readonly parentDirectoryId?: DirectoryId
-  readonly datalinkId?: ConnectorId
+  readonly datalinkId?: DatalinkId
 }
 
 /** HTTP request body for the "update project" endpoint.
@@ -1072,12 +1072,12 @@ export interface UpdateSecretRequestBody {
   readonly value: string
 }
 
-/** HTTP request body for the "create connector" endpoint. */
-export interface CreateConnectorRequestBody {
+/** HTTP request body for the "create datalink" endpoint. */
+export interface CreateDatalinkRequestBody {
   readonly name: string
   readonly value: unknown
   readonly parentDirectoryId: DirectoryId | null
-  readonly connectorId: ConnectorId | null
+  readonly datalinkId: DatalinkId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
@@ -1094,6 +1094,7 @@ export interface CreateUserGroupRequestBody {
 /** HTTP request body for the "create checkout session" endpoint. */
 export interface CreateCheckoutSessionRequestBody {
   readonly plan: Plan
+  readonly paymentMethodId: string
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -1121,6 +1122,14 @@ export interface UploadPictureRequestParams {
 export interface ListVersionsRequestParams {
   readonly versionType: VersionType
   readonly default: boolean
+}
+
+/**
+ * POST request body for the "create checkout session" endpoint.
+ */
+export interface CreateCheckoutSessionRequestParams {
+  readonly plan: Plan
+  readonly paymentMethodId: string
 }
 
 // ==============================
@@ -1327,12 +1336,12 @@ export default abstract class Backend {
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
-  /** Create a Data Link. */
-  abstract createConnector(body: CreateConnectorRequestBody): Promise<ConnectorInfo>
-  /** Return a Data Link. */
-  abstract getConnector(connectorId: ConnectorId, title: string | null): Promise<Connector>
-  /** Delete a Data Link. */
-  abstract deleteConnector(connectorId: ConnectorId, title: string | null): Promise<void>
+  /** Create a Datalink. */
+  abstract createDatalink(body: CreateDatalinkRequestBody): Promise<DatalinkInfo>
+  /** Return a Datalink. */
+  abstract getDatalink(datalinkId: DatalinkId, title: string | null): Promise<Datalink>
+  /** Delete a Datalink. */
+  abstract deleteDatalink(datalinkId: DatalinkId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
@@ -1362,7 +1371,9 @@ export default abstract class Backend {
   /** Return a list of backend or IDE versions. */
   abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
   /** Create a payment checkout session. */
-  abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
+  abstract createCheckoutSession(
+    params: CreateCheckoutSessionRequestParams
+  ): Promise<CheckoutSession>
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */

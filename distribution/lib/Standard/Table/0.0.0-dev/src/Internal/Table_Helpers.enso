@@ -284,6 +284,21 @@ type Table_Column_Helper
             Error.throw (No_Output_Columns.Error message)
 
 ## PRIVATE
+   A helper function which takes a Table like object and a Table for a name
+   mapping and returns a new Table with the columns renamed according to the
+   mapping.
+read_name_map_from_table : Table -> Vector | Map ! Illegal_Argument
+read_name_map_from_table column_map:Table = case column_map.column_count of
+    1 ->
+        col = column_map.first_column
+        if col.value_type.is_text then col.to_vector else
+            Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
+    2 ->
+        if column_map.first_column.value_type.is_text && column_map.second_column.value_type.is_text then Map.from_vector column_map.rows else
+            Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
+    _ -> Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
+
+## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
    implementations of various Table variants. See the documentation for the
    Table type for details.
@@ -311,10 +326,18 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
     is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)
     case is_vec_pairs of
         True ->
-            ## Attempt to treat as Map
-            map = Map.from_vector mapping
-            if map.is_error then Error.throw (Illegal_Argument.Error "A mapping Vector must be either a list of names or a list of pairs (old name to new name).") else
-                rename_columns naming_helper internal_columns map case_sensitivity error_on_missing_columns on_problems
+            ## Check all pairs (Integer | Text | Regex => Text )
+            is_valid_row r = r.is_a Vector || r.is_a Pair
+            is_valid_key k = k.is_a Integer || k.is_a Text || k.is_a Regex
+            all_pairs = mapping.all p-> (is_valid_row p) && p.length == 2 && (is_valid_key p.first) && p.second.is_a Text
+            if all_pairs.not then Error.throw (Illegal_Argument.Error "mapping is not a Vector of old name to new name.") else
+                ## Attempt to treat as Map
+                map = Map.from_vector mapping error_on_duplicates=False
+                if map.length == mapping.length then rename_columns naming_helper internal_columns map case_sensitivity error_on_missing_columns on_problems else
+                    duplicates = mapping.duplicates on=_.first . map p->p.first.to_text
+                    duplicate_text = if duplicates.length < 5 then duplicates.to_vector . join ", " else
+                        duplicates.take 3 . to_vector . join ", " + (", ... " + (duplicates.length - 3).to_text + " others")
+                    Error.throw (Illegal_Argument.Error "duplicate old name mappings ("+duplicate_text+").")
         False ->
             unique = naming_helper.create_unique_name_strategy
             problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns

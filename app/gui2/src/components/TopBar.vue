@@ -8,6 +8,8 @@ import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
 const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
+const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
+const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
 const props = defineProps<{
   breadcrumbs: BreadcrumbItem[]
   recordMode: boolean
@@ -25,9 +27,7 @@ const emit = defineEmits<{
   fitToAllClicked: []
   zoomIn: []
   zoomOut: []
-  toggleCodeEditor: []
   collapseNodes: []
-  setNodeColor: [color: string]
   removeNodes: []
 }>()
 
@@ -65,15 +65,15 @@ const barStyle = computed(() => {
         :selectedComponents="componentsSelected"
         @collapseNodes="emit('collapseNodes')"
         @removeNodes="emit('removeNodes')"
-        @setNodeColor="emit('setNodeColor', $event)"
       />
     </Transition>
     <ExtendedMenu
+      v-model:showCodeEditor="showCodeEditor"
+      v-model:showDocumentationEditor="showDocumentationEditor"
       :zoomLevel="props.zoomLevel"
       @fitToAllClicked="emit('fitToAllClicked')"
       @zoomIn="emit('zoomIn')"
       @zoomOut="emit('zoomOut')"
-      @toggleCodeEditor="emit('toggleCodeEditor')"
     />
   </div>
 </template>

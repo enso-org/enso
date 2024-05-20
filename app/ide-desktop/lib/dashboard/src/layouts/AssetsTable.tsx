@@ -181,9 +181,9 @@ const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
     deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['file'] }),
   },
   {
-    render: () => 'type:connector',
-    addToQuery: query => query.addToLastTerm({ negativeTypes: ['connector'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['connector'] }),
+    render: () => 'type:datalink',
+    addToQuery: query => query.addToLastTerm({ negativeTypes: ['datalink'] }),
+    deleteFromQuery: query => query.deleteFromLastTerm({ negativeTypes: ['datalink'] }),
   },
 ]
 
@@ -232,7 +232,7 @@ function insertArbitraryAssetTreeNodeChildren(
     [backendModule.AssetType.directory]: [],
     [backendModule.AssetType.project]: [],
     [backendModule.AssetType.file]: [],
-    [backendModule.AssetType.dataLink]: [],
+    [backendModule.AssetType.datalink]: [],
     [backendModule.AssetType.secret]: [],
     [backendModule.AssetType.specialLoading]: [],
     [backendModule.AssetType.specialEmpty]: [],
@@ -449,7 +449,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const assetType =
           node.item.type === backendModule.AssetType.directory
             ? 'folder'
-            : node.item.type === backendModule.AssetType.dataLink
+            : node.item.type === backendModule.AssetType.datalink
               ? 'datalink'
               : String(node.item.type)
         const assetExtension =
@@ -918,7 +918,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               return (
                 node?.item.type === backendModule.AssetType.project ||
                 node?.item.type === backendModule.AssetType.file ||
-                node?.item.type === backendModule.AssetType.dataLink
+                node?.item.type === backendModule.AssetType.datalink
               )
             })
         )
@@ -1230,7 +1230,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
               }
-              case backendModule.AssetType.dataLink: {
+              case backendModule.AssetType.datalink: {
                 event.preventDefault()
                 event.stopPropagation()
                 setIsAssetPanelTemporarilyVisible(true)
@@ -1655,10 +1655,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         break
       }
-      case AssetListEventType.newDataLink: {
-        const placeholderItem: backendModule.DataLinkAsset = {
-          type: backendModule.AssetType.dataLink,
-          id: backendModule.ConnectorId(uniqueString.uniqueString()),
+      case AssetListEventType.newDatalink: {
+        const placeholderItem: backendModule.DatalinkAsset = {
+          type: backendModule.AssetType.datalink,
+          id: backendModule.DatalinkId(uniqueString.uniqueString()),
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
@@ -1670,7 +1670,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
         insertAssets([placeholderItem], event.parentKey, event.parentId)
         dispatchAssetEvent({
-          type: AssetEventType.newDataLink,
+          type: AssetEventType.newDatalink,
           placeholderId: placeholderItem.id,
           value: event.value,
         })

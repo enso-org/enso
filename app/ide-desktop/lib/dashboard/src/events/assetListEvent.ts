@@ -29,7 +29,7 @@ interface AssetListEvents {
   readonly newProject: AssetListNewProjectEvent
   readonly uploadFiles: AssetListUploadFilesEvent
   readonly newSecret: AssetListNewSecretEvent
-  readonly newDataLink: AssetListNewDataLinkEvent
+  readonly newDatalink: AssetListNewDatalinkEvent
   readonly insertAssets: AssetListInsertAssetsEvent
   readonly duplicateProject: AssetListDuplicateProjectEvent
   readonly closeFolder: AssetListCloseFolderEvent
@@ -63,7 +63,7 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly templateId: string | null
-  readonly datalinkId: backend.ConnectorId | null
+  readonly datalinkId: backend.DatalinkId | null
   readonly preferredName: string | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
@@ -76,7 +76,7 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
 }
 
 /** A signal to create a new secret. */
-interface AssetListNewDataLinkEvent extends AssetListBaseEvent<AssetListEventType.newDataLink> {
+interface AssetListNewDatalinkEvent extends AssetListBaseEvent<AssetListEventType.newDatalink> {
   readonly parentKey: backend.DirectoryId
   readonly parentId: backend.DirectoryId
   readonly name: string

@@ -440,9 +440,9 @@ public class EnsoParserTest {
     parseTest(
         """
       from_java_set java_set =
-        owner = Vector.new_builder
-        group = Vector.new_builder
-        others = Vector.new_builder
+        owner = Builder.new
+        group = Builder.new
+        others = Builder.new
         """);
   }
 
