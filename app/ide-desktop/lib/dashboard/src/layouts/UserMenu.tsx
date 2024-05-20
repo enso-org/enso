@@ -66,7 +66,7 @@ export default function UserMenu(props: UserMenuProps) {
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className={`right-top-bar-margin top-top-bar-margin absolute flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'p-profile-picture size-row-h'}`}
+        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
         onClick={event => {
           event.stopPropagation()
         }}
@@ -76,10 +76,10 @@ export default function UserMenu(props: UserMenuProps) {
             <div
               className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
             >
-              <div className="size-profile-picture flex shrink-0 items-center overflow-clip rounded-full">
+              <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
-                  className="size-profile-picture pointer-events-none"
+                  className="pointer-events-none size-profile-picture"
                 />
               </div>
               <aria.Text className="text">{user.name}</aria.Text>
@@ -133,7 +133,7 @@ export default function UserMenu(props: UserMenuProps) {
           </>
         ) : (
           <>
-            <div className="h-profile-picture flex items-center">
+            <div className="flex h-profile-picture items-center">
               <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
             </div>
             <div className="flex flex-col">
