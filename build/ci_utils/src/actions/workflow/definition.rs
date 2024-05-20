@@ -85,30 +85,6 @@ pub fn setup_wasm_pack_step() -> Step {
     }
 }
 
-/// Step that sets up a specific version of Node.js.
-pub fn setup_node_step() -> Step {
-    Step {
-        name: Some("Setup Node.js".into()),
-        uses: Some("actions/setup-node@v4".into()),
-        ..default()
-    }
-}
-
-/// Step that sets up a specific version of Python.
-pub fn setup_python_step() -> Step {
-    Step {
-        name: Some("Setup Python".into()),
-        uses: Some("actions/setup-python@v5".into()),
-        r#if: Some("'1' == '2'".into()),
-        ..default()
-    }
-}
-
-/// Step that installs npm dependencies with caching.
-pub fn npm_install_step() -> Step {
-    Step { name: Some("Run npm install".into()), run: Some("npm install".into()), ..default() }
-}
-
 /// Step that executes a given [GitHub Script](https://github.com/actions/github-script).
 pub fn github_script_step(name: impl Into<String>, script: impl Into<String>) -> Step {
     Step {

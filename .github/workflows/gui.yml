@@ -44,9 +44,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "'1' == '2'"
-        name: Setup Python
-        uses: actions/setup-python@v5
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -89,9 +86,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "'1' == '2'"
-        name: Setup Python
-        uses: actions/setup-python@v5
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -135,9 +129,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "'1' == '2'"
-        name: Setup Python
-        uses: actions/setup-python@v5
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
