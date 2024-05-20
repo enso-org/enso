@@ -498,6 +498,7 @@
   "goBackShortcut": "Go Back",
   "goForwardShortcut": "Go Forward",
   "aboutThisAppShortcut": "About Enso",
+  "openedLinkInBrowser": "Opened link in browser.",
 
   "moveToTrashShortcut": "Move To Trash",
   "moveAllToTrashShortcut": "Move All To Trash",
