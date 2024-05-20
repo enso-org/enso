@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 from Standard.Base.Errors.Common import Uninitialized_State
 from Standard.Base.Runtime import State
 
@@ -19,7 +20,7 @@ type Test
     ## Construct a Test Suite object
     build : (Suite_Builder -> Any) -> Suite
     build fn =
-        b = Vector.new_builder
+        b = Builder.new
         fn (Suite_Builder.Impl b)
         groups_vec = b.to_vector
         Suite.Impl groups_vec

@@ -22,6 +22,7 @@ type Matrix
     Value opencv_mat
 
     ## UNSTABLE
+       ICON data_input
 
        Create a matrix with all elements set to zero.
 
@@ -41,6 +42,7 @@ type Matrix
         Matrix.Value (Java_Matrix.zeros rows columns channels)
 
     ## UNSTABLE
+       ICON data_input
 
        Create a matrix with all elements set to one.
 
@@ -60,6 +62,7 @@ type Matrix
         Matrix.Value (Java_Matrix.ones rows columns channels)
 
     ## UNSTABLE
+       ICON data_input
 
        Create an identity matrix containing ones on a main diagonal.
 
@@ -96,7 +99,8 @@ type Matrix
     from_vector values rows=1 channels=1 =
         Matrix.Value (Java_Matrix.from_vector values channels rows)
 
-    ## Return the number of matrix rows.
+    ## ICON image
+       Return the number of matrix rows.
 
        > Example
          Get the number of rows in this matrix.
@@ -107,7 +111,8 @@ type Matrix
     rows : Integer
     rows self = self.opencv_mat.rows
 
-    ## Return the number of matrix columns.
+    ## ICON image
+       Return the number of matrix columns.
 
        > Example
          Get the number of columns in this matrix.
@@ -118,7 +123,8 @@ type Matrix
     columns : Integer
     columns self = self.opencv_mat.cols
 
-    ## Return the number of matrix channels.
+    ## ICON image
+       Return the number of matrix channels.
 
        > Example
          Get the number of channels in this matrix.
@@ -129,7 +135,8 @@ type Matrix
     channels : Integer
     channels self = self.opencv_mat.channels
 
-    ## Get the matrix value at the specified row and column.
+    ## ICON image
+       Get the matrix value at the specified row and column.
 
        Arguments:
        - row: the row index.
@@ -148,7 +155,9 @@ type Matrix
                 arr = Java_Matrix.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
-    ## Reshape the matrix specifying new number of rows and channels.
+    ## GROUP Standard.Base.Calculations
+       ICON image
+       Reshape the matrix specifying new number of rows and channels.
 
        Arguments:
        - rows: the new number of rows.
@@ -167,6 +176,7 @@ type Matrix
             _ -> Matrix.Value (self.opencv_mat.reshape channels rows)
 
     ## GROUP Standard.Base.Operators
+       ICON operators
        Calculates the per-element sum of two matrices or a matrix and a scalar.
 
        Arguments:
@@ -204,6 +214,7 @@ type Matrix
     + self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.add _ _ _)) . catch core_op_handler
 
     ## GROUP Standard.Base.Operators
+       ICON operators
        Calculates the per-element difference of two matrices or of a matrix and
        a scalar.
 
@@ -323,7 +334,8 @@ type Matrix
     / : (Number | Vector | Matrix) -> Matrix ! Matrix_Error
     / self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.divide _ _ _)) . catch core_op_handler
 
-    ## Normalize the matrix into a range of [min_value .. max_value] so that the
+    ## ICON image
+       Normalize the matrix into a range of [min_value .. max_value] so that the
        minimum value of the matrix becomes `min_value` and the maximum value of
        the matrix becomes `max_value`.
 
@@ -355,7 +367,9 @@ type Matrix
     normalize self min_value=0.0 max_value=1.0 =
         Matrix.Value (Java_Matrix.normalize self.opencv_mat min_value max_value)
 
-    ## Convert this matrix to an image.
+    ## GROUP Standard.Base.Conversions
+       ICON convert
+       Convert this matrix to an image.
 
        > Example
          Convert a matrix to an image.
@@ -366,7 +380,9 @@ type Matrix
     to_image : Image
     to_image self = Image (Image.from_vector self.normalize.to_vector self.rows self.channels)
 
-    ## Get the elements of this matrix as a vector.
+    ## GROUP Standard.Base.Conversions
+       ICON convert
+       Get the elements of this matrix as a vector.
 
        > Example
          Convert a matrix to a vector.

@@ -17,7 +17,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import Display, make_single_choice, Widget
-from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
+from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser, make_data_cleanse_vector_selector
 
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
@@ -403,7 +403,7 @@ type Table
         new_columns = self.columns_helper.select_by_type types strict
         Table.new new_columns
 
-    ## ALIAS drop_columns, drop fields, remove fields
+    ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
@@ -457,7 +457,7 @@ type Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
-    ## ALIAS remove fields by type
+    ## ALIAS remove fields by type, select columns by type, select fields by type
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
@@ -474,7 +474,7 @@ type Table
         new_columns = self.columns_helper.remove_by_type types strict
         Table.new new_columns
 
-    ## ALIAS select_missing_columns, select_na, select_blank_fields
+    ## ALIAS select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -500,7 +500,7 @@ type Table
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         Table.new new_columns
 
-    ## ALIAS drop_missing_columns, drop_na
+    ## ALIAS drop_missing_columns, drop_na, select_blank_fields, select_missing_columns, select_na, select_blank_columns
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -610,7 +610,8 @@ type Table
         new_columns = Table_Helpers.sort_columns self.columns order text_ordering
         Table.new new_columns
 
-    ## GROUP Standard.Base.Metadata
+    ## ALIAS rename_fields, select_columns, select_fields
+       GROUP Standard.Base.Metadata
        ICON table_edit
        Returns a new table with the columns renamed based on either a mapping
        from the old name to the new or a positional list of new names.
@@ -1805,7 +1806,8 @@ type Table
     make_temp_column_name : Text
     make_temp_column_name self = self.column_naming_helper.make_temp_column_name self.column_names
 
-    ## Returns the vector of columns contained in this table.
+    ## ICON convert
+       Returns the vector of columns contained in this table.
 
        > Examples
          Get a vector containing the columns in the table.
@@ -2381,7 +2383,7 @@ type Table
                 Problem_Behavior.Report_Warning.attach_problem_after truncated <|
                     Not_All_Rows_Downloaded.Warning n
 
-    ## ALIAS metadata, field info, column types
+    ## ALIAS column types, field info, metadata
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this table's contents.
@@ -2867,6 +2869,39 @@ type Table
         resolved_new_text = table_ref.resolve new_text
         transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
+
+    ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       Applies the specified cleansings to the text in each row of the specified columns.
+
+        Arguments:
+        - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
+            applied in the order they are provided. The same text cleansing can be used multiple
+            times. The text cleansings are:
+              - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+              - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+              - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+              - ..All_Whitespace: Removes all whitspace from the string.
+              - ..Leading_Numbers: Removes all numbers from the start of the string.
+              - ..Trailing_Numbers: Removes all numbers from the end of the string.
+              - ..Non_ASCII: Removes all non-ascii characters from the string.
+              - ..Tabs: Removes all tab characters from the string.
+              - ..Letters: Removes all letters from the string.
+              - ..Numbers: Removes all numbers characters from the string.
+              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+              - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+        - from: The column(s) to cleanse.
+
+        > Example
+          Remove leading and trailing spaces from cells.
+
+              table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+    @remove make_data_cleanse_vector_selector
+    @from (Widget_Helpers.make_column_name_multi_selector use_regex=True)
+    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> Table
+    text_cleanse self remove from =
+        transformer col = col.text_cleanse remove
+        Table_Helpers.replace_columns_with_transformed_columns self from transformer
 
     ## ALIAS cumulative
        GROUP Standard.Base.Values

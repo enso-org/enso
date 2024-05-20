@@ -1,0 +1,38 @@
+from Standard.Base import all
+
+## Defines a Text_Cleanse operation
+type Text_Cleanse
+   Duplicate_Whitespace
+   Leading_Whitespace
+   Trailing_Whitespace
+   All_Whitespace
+   Leading_Numbers
+   Trailing_Numbers
+   Non_ASCII
+   Tabs
+   Letters
+   Numbers
+   Punctuation
+   Symbols
+
+   ## Apply the cleanse operation to the text.
+   apply self input:Cleansable_Text -> Any =
+      case self of
+         Text_Cleanse.Leading_Whitespace -> input.replace "^\s+" ""
+         Text_Cleanse.Trailing_Whitespace -> input.replace "\s+$" ""
+         Text_Cleanse.Duplicate_Whitespace -> input.replace "(\s)+" "$1"
+         Text_Cleanse.All_Whitespace -> input.replace "\s+" ""
+         Text_Cleanse.Leading_Numbers -> input.replace "^\d+" ""
+         Text_Cleanse.Trailing_Numbers -> input.replace "\d+$" ""
+         Text_Cleanse.Non_ASCII -> input.replace "[^\x00-\x7F]" ""
+         Text_Cleanse.Tabs -> input.replace "\t" ""
+         Text_Cleanse.Letters -> input.replace "[a-zA-Z]" ""
+         Text_Cleanse.Numbers -> input.replace "\d" ""
+         Text_Cleanse.Punctuation -> input.replace '[,.!?():;\'\"]' ""
+         Text_Cleanse.Symbols -> input.replace "[^a-zA-Z\d\s]" ""
+
+## PRIVATE 
+   Defines the interface for cleansable object.
+type Cleansable_Text
+   Value replace
+
