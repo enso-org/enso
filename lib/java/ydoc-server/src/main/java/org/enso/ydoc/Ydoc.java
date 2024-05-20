@@ -25,7 +25,12 @@ public final class Ydoc implements AutoCloseable {
 
   private Context context;
 
-  public Ydoc(ExecutorService executor, ParserPolyfill parser, Context.Builder contextBuilder, String hostname, int port) {
+  public Ydoc(
+      ExecutorService executor,
+      ParserPolyfill parser,
+      Context.Builder contextBuilder,
+      String hostname,
+      int port) {
     this.executor = executor;
     this.parser = parser;
     this.contextBuilder = contextBuilder;
