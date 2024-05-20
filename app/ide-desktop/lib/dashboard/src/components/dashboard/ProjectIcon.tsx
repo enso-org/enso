@@ -226,7 +226,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.newFolder:
       case AssetEventType.newProject:
       case AssetEventType.uploadFiles:
-      case AssetEventType.newDataLink:
+      case AssetEventType.newDatalink:
       case AssetEventType.newSecret:
       case AssetEventType.copy:
       case AssetEventType.updateFiles:

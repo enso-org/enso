@@ -1,6 +1,6 @@
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { expect, test, vi } from 'vitest'
-import { nextTick, reactive } from 'vue'
+import { computed, nextTick, reactive } from 'vue'
 
 test('Basic add/remove', () => {
   const db = new ReactiveDb()
@@ -13,6 +13,56 @@ test('Basic add/remove', () => {
   db.delete('Key 1')
   expect(db.size).toEqual(1)
   expect(db.get('Key 1')).toBeUndefined()
+})
+
+test('Indexing does not cause spurious reactive updates', async () => {
+  const db = new ReactiveDb<number, { name: string }>()
+  const map = reactive(new Map<string, string>())
+  map.set('Key 1', 'v1')
+  map.set('Key 2', 'v1')
+  map.set('Key 3', 'v3')
+  const index = new ReactiveIndex(db, (id, entry) => {
+    const mappedName = map.get(entry.name)
+    return mappedName ? [[mappedName, id]] : []
+  })
+  const indexWriteSpy = vi.spyOn(index, 'writeToIndex')
+  const allKeysInMap = computed(() => [...index.allForward()].map(([k, _]) => k))
+
+  // Adding some values to the DB, resulting in index writes.
+  db.set(10, { name: 'Key 1' })
+  db.set(20, { name: 'Key 1' })
+  db.set(30, { name: 'Key 3' })
+  // Index is flushed only when any lookup function is called.
+  index.allForward()
+  // 3 index writes for the 3 entries in the DB.
+  expect(indexWriteSpy).toHaveBeenCalledTimes(3)
+  expect(indexWriteSpy).toHaveBeenNthCalledWith(1, 'v1', 10)
+  expect(indexWriteSpy).toHaveBeenNthCalledWith(2, 'v1', 20)
+  expect(indexWriteSpy).toHaveBeenNthCalledWith(3, 'v3', 30)
+  expect(allKeysInMap.value).toEqual(['v1', 'v3'])
+
+  // Changing the reactive mapping, we trigger changes in the index.
+  map.set('Key 1', 'v2')
+  // Updates are scheduled for the next tick.
+  expect(indexWriteSpy).toHaveBeenCalledTimes(3)
+  await nextTick()
+  // 2 more index writes for the 2 updated entries.
+  expect(indexWriteSpy).toHaveBeenCalledTimes(5)
+  expect(indexWriteSpy).toHaveBeenNthCalledWith(4, 'v2', 10)
+  expect(indexWriteSpy).toHaveBeenNthCalledWith(5, 'v2', 20)
+  // Important: we check that no spurious updates were triggered,
+  // e.g. we’re not getting into an infinite loop of updates.
+  expect(indexWriteSpy).toHaveBeenCalledTimes(5)
+  // The computed value depending on the index is updated correctly.
+  expect(allKeysInMap.value).toEqual(['v3', 'v2'])
+  // Update of the mapping causes index to recalculate…
+  map.delete('Key 3')
+  // … but it is scheduled for the next tick.
+  await nextTick()
+  // Important: deleting a key triggers update of dependent reactive values.
+  expect(allKeysInMap.value).toEqual(['v2'])
+  // Finally, no spurious updates.
+  expect(indexWriteSpy).toHaveBeenCalledTimes(5)
 })
 
 test('Indexing is efficient', () => {
@@ -76,6 +126,22 @@ test('Name to id index', () => {
   db.set(3, { name: 'qdr' })
   expect(index.lookup('abc')).toEqual(new Set())
   expect(index.lookup('qdr')).toEqual(new Set([3]))
+})
+
+// Regression test for a bug when the API built on top of ReactiveIndex
+// considered an empty set as an existing key value pair.
+test('Typical usage of index when looking up if a key exists', () => {
+  const db = new ReactiveDb<number, { name: string }>()
+  const index = new ReactiveIndex(db, (id, entry) => [[entry.name, id]])
+  const allNames = () => [...index.allForward()].map(([name, _]) => name)
+  db.set(1, { name: 'abc' })
+  db.set(2, { name: 'xyz' })
+  db.set(3, { name: 'abc' })
+  expect(allNames()).toEqual(['abc', 'xyz'])
+  db.delete(2)
+
+  expect(index.hasKey('xyz')).toBe(false)
+  expect(allNames()).toEqual(['abc'])
 })
 
 test('Parent index', async () => {

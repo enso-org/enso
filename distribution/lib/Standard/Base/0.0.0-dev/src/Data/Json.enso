@@ -168,9 +168,12 @@ type JS_Object
             pairs.map pair->
                 case pair.first of
                     text : Text ->
-                        jackson_value_node = to_json_node pair.second.to_js_object
-                        new_object.set text jackson_value_node
-                        builder.append text
+                        ## Ensure that any dataflow errors that could be stored in `pair.second` are propagated.
+                           Potential errors in `pair.first` are propagated thanks to the case-of above.
+                        pair.second.if_not_error <|
+                            jackson_value_node = to_json_node pair.second.to_js_object
+                            new_object.set text jackson_value_node
+                            builder.append text
                     _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
         JS_Object.Value new_object keys
 
@@ -183,7 +186,7 @@ type JS_Object
     contains_key : Text -> Boolean
     contains_key self key:Text = self.object_node.has key
 
-    ## ICON select_row
+    ## ICON parse3
        Get a value for a key of the object, or a default value if that key is not present.
 
        Arguments:
@@ -197,7 +200,7 @@ type JS_Object
             make_enso (read_json_node child)
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get a value for a key of the object.
        If the key is not found, throws a `No_Such_Key` error.
 
@@ -224,7 +227,8 @@ type JS_Object
         kv_func = _ -> function
         self.map_with_key kv_func
 
-    ## Maps a function over each field-value pair in the object.
+    ## ICON dataframe_map_column
+       Maps a function over each field-value pair in the object.
 
        Arguments:
        - function: The function to apply to each key and value in the map,
@@ -316,7 +320,8 @@ type JS_Object
                             Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" - the constructor "+constructor.name+"'s fields "+missing_fields.to_display_text+" not found in the source object.")
                     _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
 
-    ## Modify a field of a JSON object, returning a new updated object.
+    ## ICON edit
+       Modify a field of a JSON object, returning a new updated object.
 
        Arguments:
        - key: the name of the field to modify.

@@ -28,7 +28,6 @@ const emit = defineEmits<{
   zoomIn: []
   zoomOut: []
   collapseNodes: []
-  setNodeColor: [color: string]
   removeNodes: []
 }>()
 
@@ -66,7 +65,6 @@ const barStyle = computed(() => {
         :selectedComponents="componentsSelected"
         @collapseNodes="emit('collapseNodes')"
         @removeNodes="emit('removeNodes')"
-        @setNodeColor="emit('setNodeColor', $event)"
       />
     </Transition>
     <ExtendedMenu

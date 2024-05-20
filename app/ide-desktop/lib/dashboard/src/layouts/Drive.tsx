@@ -285,10 +285,10 @@ export default function Drive(props: DriveProps) {
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
   )
 
-  const doCreateDataLink = React.useCallback(
+  const doCreateDatalink = React.useCallback(
     (name: string, value: unknown) => {
       dispatchAssetListEvent({
-        type: AssetListEventType.newDataLink,
+        type: AssetListEventType.newDatalink,
         parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
         parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
         name,
@@ -370,7 +370,7 @@ export default function Drive(props: DriveProps) {
             doUploadFiles={doUploadFiles}
             doCreateDirectory={doCreateDirectory}
             doCreateSecret={doCreateSecret}
-            doCreateDataLink={doCreateDataLink}
+            doCreateDatalink={doCreateDatalink}
             dispatchAssetEvent={dispatchAssetEvent}
           />
           <div className="flex flex-1 gap-drive overflow-hidden">

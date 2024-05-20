@@ -30,7 +30,7 @@ import type Backend from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
-import HttpClient, * as httpClient from '#/utilities/HttpClient'
+import HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
 import * as cognitoModule from '#/authentication/cognito'
@@ -259,16 +259,6 @@ export default function AuthProvider(props: AuthProviderProps) {
       }),
     [onSessionError, /* should never change */ goOffline]
   )
-
-  React.useEffect(() => {
-    const onFetchError = () => {
-      void goOffline()
-    }
-    document.addEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
-    return () => {
-      document.removeEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
-    }
-  }, [/* should never change */ goOffline])
 
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
