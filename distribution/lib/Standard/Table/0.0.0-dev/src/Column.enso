@@ -685,8 +685,9 @@ type Column
              example_div = Examples.decimal_column ^ Examples.integer_column
     ^ : Column | Any -> Column
     ^ self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            run_vectorized_binary_op self Java_Storage.Maps.POWER other
+        Illegal_Argument.handle_java_exception <|
+            Value_Type_Helpers.check_binary_numeric_op self other <|
+                run_vectorized_binary_op self Java_Storage.Maps.POWER other
 
     ## ALIAS and
        GROUP Standard.Base.Operators

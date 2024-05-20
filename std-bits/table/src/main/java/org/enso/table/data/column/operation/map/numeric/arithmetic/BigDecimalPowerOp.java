@@ -26,7 +26,7 @@ public class BigDecimalPowerOp extends BinaryMapOperation<BigDecimal, Specialize
     BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(storage);
     Integer right = NumericConverter.tryConvertingToInteger(arg);
     if (right == null) {
-        throw new UnexpectedTypeException("an Integer.");
+        throw new IllegalArgumentException("Exponent must be an Integer.");
     }
     return runBigDecimalMap(left, right, problemAggregator);
   }

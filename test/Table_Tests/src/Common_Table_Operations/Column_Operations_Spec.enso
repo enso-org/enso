@@ -15,7 +15,6 @@ import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
 
-
 import enso_dev.Base_Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -1778,14 +1777,31 @@ add_specs suite_builder setup =
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
-        group_builder.specify "arithmetic (column and column)" <|
-            t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123e50"]], ["z", [Decimal.new "125e50"]], ["w", [2]], ["ww", [7513]]]
+        group_builder.specify "arithmetic (decimal column and decimal column)" <|
+            t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123e50"]], ["z", [Decimal.new "125e50"]], ["w", [7513]]]
             (t.at "x" + t.at "y").to_vector . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]
             (t.at "x" - t.at "y").to_vector . should_equal [Decimal.new "-12299999999999999999999999999999999999999976742754654.654654655"]
             (t.at "x" * t.at "y").to_vector . should_equal [Decimal.new "2.860641177477477477435E+62"]
             (t.at "x" / t.at "z").to_vector . should_equal [Decimal.new "1.8605796276276276276E-42"]
-            (t.at "x" ^ t.at "w").to_vector . should_equal [Decimal.new "540899461053587731859.956601457313169025"]
-            (t.at "x" % t.at "ww").to_vector . should_equal [Decimal.new "2545.345345345"]
+            (t.at "x" % t.at "w").to_vector . should_equal [Decimal.new "2545.345345345"]
+
+        group_builder.specify "arithmetic (decimal column and non-decimal column)" <|
+            t = table_builder [["x", [101.25]], ["y", [30]], ["z", [40.5]], ["w", [2]], ["wf", [2.0]]]
+
+            (t.at "x" + t.at "y").to_vector . should_equal [Decimal.new "131.25"]
+            (t.at "x" - t.at "y").to_vector . should_equal [Decimal.new "71.25"]
+            (t.at "x" * t.at "y").to_vector . should_equal [Decimal.new "3037.5"]
+            (t.at "x" / t.at "y").to_vector . should_equal [Decimal.new "3.375"]
+            (t.at "x" % t.at "y").to_vector . should_equal [Decimal.new "11.25"]
+
+            (t.at "x" + t.at "z").to_vector . should_equal [Decimal.new "141.75"]
+            (t.at "x" - t.at "z").to_vector . should_equal [Decimal.new "60.75"]
+            (t.at "x" * t.at "z").to_vector . should_equal [Decimal.new "4100.625"]
+            (t.at "x" / t.at "z").to_vector . should_equal [Decimal.new "2.5"]
+            (t.at "x" % t.at "z").to_vector . should_equal [Decimal.new "20.25"]
+
+            (t.at "x" ^ t.at "w").to_vector . should_equal [Decimal.new "10251.5625"]
+            (t.at "x" ^ t.at "wf").to_vector . should_equal [Decimal.new "10251.5625"]
 
         group_builder.specify "arithmetic (column and scalar)" <|
             t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "944548245.68648775"]]]
@@ -1812,6 +1828,28 @@ add_specs suite_builder setup =
             (t.at "x" * (Decimal.new "10.1")) . to_vector . should_equal [Decimal.new "234898177987.9879879845"]
             (t.at "y" / (Decimal.new "16.5")) . to_vector . should_equal [Decimal.new "57245348.2234235"]
             (t.at "x" ^ (Decimal.new "2.0")) . to_vector . should_equal [Decimal.new "540899461053587731859.956601457313169025"]
+
+        group_builder.specify "exponent non-integral or out of range (scalar)" <|
+            t = table_builder [["x", [Decimal.new "23257245345.345345345"]]]
+
+            (t.at "x" ^ 2147483650) . to_vector . should_fail_with Illegal_Argument
+            (t.at "x" ^ (2^80)) . to_vector . should_fail_with Illegal_Argument
+            (t.at "x" ^ 2.1) . to_vector . should_fail_with Illegal_Argument
+
+        group_builder.specify "exponent non-integral or out of range (column)" <|
+            bads = [Decimal.new "1.2", 1.2, 2147483650]
+            bads.map bad->
+                t = table_builder [["x", [Decimal.new "1.21"]], ["y", [bad]]]
+                r = (t.at "x" ^ t.at "y")
+                r.to_vector . should_equal [Nothing]
+                Problems.expect_warning Illegal_Argument r
+
+        group_builder.specify "exponent non-integral or out of range (mixed column)" <|
+            bads = [Decimal.new "1.2", 1.2, 2147483650]
+            t = table_builder [["x", [Decimal.new "1.21"]], ["y", bads]]
+            r = (t.at "x" ^ t.at "y")
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
+            Problems.expect_warning Illegal_Argument r
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
