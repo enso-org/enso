@@ -2,31 +2,28 @@
 CHANGELOG.md
 
 # The repository settings
-/.github/ @mwu-tow
+/.github/
 /.github/CODEOWNERS @jdunkerley @jaroslavtulach @farmaazon @AdRiley @PabloBuchu @wdanilo
 
 # Build script & utilities
-/run @mwu-tow
-/run.bat @mwu-tow
-/build @mwu-tow
+/run
+/run.bat
+/build
 
 # Rust Libraries and Related Files
-rust-toolchain.toml @vitvakatu @Frizi @kazcw @farmaazon @mwu-tow
-rustfmt.toml @mwu-tow @farmaazon @vitvakatu @Frizi @kazcw 
+rust-toolchain.toml @vitvakatu @Frizi @kazcw @farmaazon
+rustfmt.toml @farmaazon @vitvakatu @Frizi @kazcw 
 Cargo.lock
 Cargo.toml
-/lib/rust/ @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi
-/lib/rust/parser/ @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach
+/lib/rust/ @farmaazon @kazcw @vitvakatu @Frizi
+/lib/rust/parser/ @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach
 /integration-test/ @farmaazon @kazcw @vitvakatu @Frizi
-/tools/build-performance/ @kazcw @mwu-tow @Akirathan
+/tools/build-performance/ @kazcw @Akirathan
 
 # Scala Libraries
 /lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # GUI
-/app/gui/ @farmaazon @mwu-tow @kazcw @vitvakatu @Frizi
-/app/gui/view/ @farmaazon @kazcw @vitvakatu @Frizi
-/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @farmaazon @kazcw @jdunkerley @vitvakatu @Frizi
 /app/gui2/ @Frizi @farmaazon @vitvakatu @kazcw
 
 # Engine (old)
