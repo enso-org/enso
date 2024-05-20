@@ -435,7 +435,7 @@ public class ExecCompilerTest {
     run value =
         Runnable.invoke value
     """);
-    var run = module.invokeMember("eval_expression", "run");
+    var run = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "run");
     try {
       var never = run.execute(-1);
       fail("Unexpected result: " + never);
