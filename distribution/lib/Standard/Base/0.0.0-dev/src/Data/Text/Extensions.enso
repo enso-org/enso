@@ -37,7 +37,7 @@ from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
-from project.Data.Text.Text_Cleanse import Text_Cleanse, Cleansable_Text
+from project.Data.Text.Text_Cleanse import Named_Pattern, Text_Cleanse, Cleansable_Text
 from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector, make_data_cleanse_vector_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -537,13 +537,13 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
    Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
-      applied in the order they are provided. The same text cleansing can be used multiple
-      times. The text cleansings are:
-      - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-      - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-      - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-      - ..All_Whitespace: Removes all whitspace from the string.
+   - remove: A vector of the named patterns to cleanse from the text. The named patterns are 
+      applied in the order they are provided. The same named pattern can be used multiple
+      times. The named patterns are:
+      - ..Leading_Whitespace: Removes all whitespace from the start of the string.
+      - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
+      - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
+      - ..All_Whitespace: Removes all whitespace from the string.
       - ..Leading_Numbers: Removes all numbers from the start of the string.
       - ..Trailing_Numbers: Removes all numbers from the end of the string.
       - ..Non_ASCII: Removes all non-ascii characters from the string.
@@ -558,9 +558,9 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
 
          text.cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
 @remove make_data_cleanse_vector_selector
-Text.cleanse : Vector Text_Cleanse -> Text
+Text.cleanse : Vector Named_Pattern -> Text
 Text.cleanse self remove =
-   remove.fold self (current-> tc-> tc.apply current)
+   remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
 ## PRIVATE
 Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (Regex.compile pattern) replace_with)

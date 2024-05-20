@@ -127,16 +127,16 @@ make_format_chooser include_number:Boolean=True include_date:Boolean=True includ
 make_data_cleanse_vector_selector : Display -> Widget
 make_data_cleanse_vector_selector display:Display=Display.Always =
     builder = Vector.new_builder
-    builder.append (Option "Leading_Whitespace" "Text_Cleanse.Leading_Whitespace")
-    builder.append (Option "Trailing_Whitespace" "Text_Cleanse.Trailing_Whitespace")
-    builder.append (Option "Duplicate_Whitespace" "Text_Cleanse.Duplicate_Whitespace")
-    builder.append (Option "All_Whitespace" "Text_Cleanse.All_Whitespace")
-    builder.append (Option "Leading_Numbers" "Text_Cleanse.Leading_Numbers")
-    builder.append (Option "Trailing_Numbers" "Text_Cleanse.Trailing_Numbers")
-    builder.append (Option "Non_ASCII" "Text_Cleanse.Non_ASCII")
-    builder.append (Option "Tabs" "Text_Cleanse.Tabs")
-    builder.append (Option "Letters" "Text_Cleanse.Letters")
-    builder.append (Option "Numbers" "Text_Cleanse.Numbers")
-    builder.append (Option "Punctuation" "Text_Cleanse.Punctuation")
-    builder.append (Option "Symbols" "Text_Cleanse.Symbols")
+    builder.append (Option "Leading_Whitespace" "Named_Pattern.Leading_Whitespace")
+    builder.append (Option "Trailing_Whitespace" "Named_Pattern.Trailing_Whitespace")
+    builder.append (Option "Duplicate_Whitespace" "Named_Pattern.Duplicate_Whitespace")
+    builder.append (Option "All_Whitespace" "Named_Pattern.All_Whitespace")
+    builder.append (Option "Leading_Numbers" "Named_Pattern.Leading_Numbers")
+    builder.append (Option "Trailing_Numbers" "Named_Pattern.Trailing_Numbers")
+    builder.append (Option "Non_ASCII" "Named_Pattern.Non_ASCII")
+    builder.append (Option "Tabs" "Named_Pattern.Tabs")
+    builder.append (Option "Letters" "Named_Pattern.Letters")
+    builder.append (Option "Numbers" "Named_Pattern.Numbers")
+    builder.append (Option "Punctuation" "Named_Pattern.Punctuation")
+    builder.append (Option "Symbols" "Named_Pattern.Symbols")
     Multiple_Choice values=builder.to_vector display=display

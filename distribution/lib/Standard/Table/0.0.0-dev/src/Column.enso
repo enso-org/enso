@@ -1488,9 +1488,9 @@ type Column
 
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
-    text_cleanse : Vector Text_Cleanse -> Column
+    text_cleanse : Vector Named_Pattern -> Column
     text_cleanse self remove =
-      remove.fold self (current-> tc-> tc.apply current)
+      remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time

@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-## Defines a Text_Cleanse operation
-type Text_Cleanse
+type Named_Pattern
    Duplicate_Whitespace
    Leading_Whitespace
    Trailing_Whitespace
@@ -15,24 +14,30 @@ type Text_Cleanse
    Punctuation
    Symbols
 
+## Defines a Text_Cleanse operation
+type Text_Cleanse
+   Value named_pattern:Named_Pattern
+   
    ## Apply the cleanse operation to the text.
    apply self input:Cleansable_Text -> Any =
-      case self of
-         Text_Cleanse.Leading_Whitespace -> input.replace "^\s+" ""
-         Text_Cleanse.Trailing_Whitespace -> input.replace "\s+$" ""
-         Text_Cleanse.Duplicate_Whitespace -> input.replace "(\s)+" "$1"
-         Text_Cleanse.All_Whitespace -> input.replace "\s+" ""
-         Text_Cleanse.Leading_Numbers -> input.replace "^\d+" ""
-         Text_Cleanse.Trailing_Numbers -> input.replace "\d+$" ""
-         Text_Cleanse.Non_ASCII -> input.replace "[^\x00-\x7F]" ""
-         Text_Cleanse.Tabs -> input.replace "\t" ""
-         Text_Cleanse.Letters -> input.replace "[a-zA-Z]" ""
-         Text_Cleanse.Numbers -> input.replace "\d" ""
-         Text_Cleanse.Punctuation -> input.replace '[,.!?():;\'\"]' ""
-         Text_Cleanse.Symbols -> input.replace "[^a-zA-Z\d\s]" ""
+      case self.named_pattern of
+         Named_Pattern.Leading_Whitespace -> input.replace "^\s+" ""
+         Named_Pattern.Trailing_Whitespace -> input.replace "\s+$" ""
+         Named_Pattern.Duplicate_Whitespace -> input.replace "(\s)+" "$1"
+         Named_Pattern.All_Whitespace -> input.replace "\s+" ""
+         Named_Pattern.Leading_Numbers -> input.replace "^\d+" ""
+         Named_Pattern.Trailing_Numbers -> input.replace "\d+$" ""
+         Named_Pattern.Non_ASCII -> input.replace "[^\x00-\x7F]" ""
+         Named_Pattern.Tabs -> input.replace "\t" ""
+         Named_Pattern.Letters -> input.replace "[a-zA-Z]" ""
+         Named_Pattern.Numbers -> input.replace "\d" ""
+         Named_Pattern.Punctuation -> input.replace '[,.!?():;\'\"]' ""
+         Named_Pattern.Symbols -> input.replace "[^a-zA-Z\d\s]" ""
 
 ## PRIVATE 
    Defines the interface for cleansable object.
 type Cleansable_Text
    Value replace
+
+
 
