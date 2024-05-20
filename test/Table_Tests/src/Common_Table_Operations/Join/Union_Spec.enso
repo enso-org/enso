@@ -403,8 +403,13 @@ run_union_tests group_builder setup call_union =
             # If mixed, they are converted to text representation:
             table.at "B" . to_vector . should_equal ["a", "b", "c", "1", "2", "3"]
             table.at "B" . value_type . is_text . should_be_true
+
+            v = table.at "C" . to_vector
+            # The check needs to be case insensitive because various database backends may represent Booleans with lower or uppercase.
+            v.take 2 . map (t -> t.to_case Case.Lower) . should_equal ["true", "false"]
             # Nothing is preserved, not converted to text because we want to preserve the meaning of 'missing value':
-            table.at "C" . to_vector . should_equal ["True", "False", Nothing, "x", "Y", "Z"]
+            v.drop 2 . should_equal [Nothing, "x", "Y", "Z"]
+
             table.at "C" . value_type . is_text . should_be_true
 
         error_checker result = result.should_fail_with No_Common_Type
