@@ -39,7 +39,7 @@ public class YdocTest {
   public void setup() {
     webServerExecutor = Executors.newSingleThreadExecutor();
     ls = startWebSocketServer(webServerExecutor);
-    ydoc = new Ydoc();
+    ydoc = new Ydoc.Builder().build();
   }
 
   @After

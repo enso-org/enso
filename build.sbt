@@ -1475,6 +1475,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,
       "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
       "commons-io"                  % "commons-io"           % commonsIoVersion,
+      "com.github.pureconfig"      %% "pureconfig"           % pureconfigVersion,
       akkaTestkit                   % Test,
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion           % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,

@@ -50,6 +50,7 @@ import org.enso.logger.masking.Masking
 import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
 import org.enso.common.HostAccessFactory
+import org.enso.languageserver.boot.config.ApplicationConfig
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
@@ -82,6 +83,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     serverConfig,
     logLevel
   )
+
+  private val applicationConfig = ApplicationConfig.load()
 
   private val utcClock = Clock.systemUTC()
 
@@ -460,7 +463,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
 
   val secureConfig = SecureConnectionConfig
-    .fromApplicationConfig(applicationConfig())
+    .fromApplicationConfig(akkaHttpsConfig())
     .fold(
       v => v.flatMap(msg => { log.warn(s"invalid secure config: $msg"); None }),
       Some(_)
@@ -493,7 +496,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
-  private val ydoc = new Ydoc()
+  private val ydoc = new Ydoc.Builder()
+    .hostname(applicationConfig.ydoc.hostname)
+    .port(applicationConfig.ydoc.port)
+    .build()
   ydoc.start()
   log.trace("Started Ydoc server.")
 
@@ -510,7 +516,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Closed Language Server main module.")
   }
 
-  private def applicationConfig(): com.typesafe.config.Config = {
+  private def akkaHttpsConfig(): com.typesafe.config.Config = {
     val empty = ConfigFactory.empty().atPath("akka.https")
     ConfigFactory
       .load()

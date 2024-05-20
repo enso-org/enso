@@ -11,9 +11,15 @@ declare global {
     onconnect: ((socket: any, url: any) => any) | null
     start(): void
   }
+
+  var YDOC_HOST: string | undefined
+  var YDOC_PORT: number | undefined
 }
 
-const wss = new WebSocketServer({ host: 'localhost', port: 1234 })
+const host = YDOC_HOST ?? 'localhost'
+const port = YDOC_PORT ?? 1234
+
+const wss = new WebSocketServer({ host, port })
 
 wss.onconnect = (socket, url) => {
   const doc = docName(url.pathname)

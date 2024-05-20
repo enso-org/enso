@@ -20,19 +20,86 @@ public final class Ydoc implements AutoCloseable {
   private final ExecutorService executor;
   private final ParserPolyfill parser;
   private final Context.Builder contextBuilder;
+  private final String hostname;
+  private final int port;
 
   private Context context;
 
-  public Ydoc() {
-    executor =
-        Executors.newSingleThreadExecutor(
-            r -> {
-              var t = new Thread(r);
-              t.setName(YDOC_EXECUTOR_THREAD_NAME);
-              return t;
-            });
-    parser = new ParserPolyfill();
-    contextBuilder = WebEnvironment.createContext().allowIO(IOAccess.ALL);
+  public Ydoc(ExecutorService executor, ParserPolyfill parser, Context.Builder contextBuilder, String hostname, int port) {
+    this.executor = executor;
+    this.parser = parser;
+    this.contextBuilder = contextBuilder;
+    this.hostname = hostname;
+    this.port = port;
+  }
+
+  public static class Builder {
+
+    private static final String DEFAULT_HOSTNAME = "localhost";
+    private static final int DEFAULT_PORT = 1234;
+
+    private ExecutorService executor;
+    private ParserPolyfill parser;
+    private Context.Builder contextBuilder;
+    private String hostname;
+    private int port = -1;
+
+    public Builder() {}
+
+    public Builder executor(ExecutorService executor) {
+      this.executor = executor;
+      return this;
+    }
+
+    public Builder parser(ParserPolyfill parser) {
+      this.parser = parser;
+      return this;
+    }
+
+    public Builder contextBuilder(Context.Builder contextBuilder) {
+      this.contextBuilder = contextBuilder;
+      return this;
+    }
+
+    public Builder hostname(String hostname) {
+      this.hostname = hostname;
+      return this;
+    }
+
+    public Builder port(int port) {
+      this.port = port;
+      return this;
+    }
+
+    public Ydoc build() {
+      if (executor == null) {
+        executor =
+            Executors.newSingleThreadExecutor(
+                r -> {
+                  var t = new Thread(r);
+                  t.setName(YDOC_EXECUTOR_THREAD_NAME);
+                  return t;
+                });
+      }
+
+      if (parser == null) {
+        parser = new ParserPolyfill();
+      }
+
+      if (contextBuilder == null) {
+        contextBuilder = WebEnvironment.createContext().allowIO(IOAccess.ALL);
+      }
+
+      if (hostname == null) {
+        hostname = DEFAULT_HOSTNAME;
+      }
+
+      if (port == -1) {
+        port = DEFAULT_PORT;
+      }
+
+      return new Ydoc(executor, parser, contextBuilder, hostname, port);
+    }
   }
 
   public Context.Builder getContextBuilder() {
@@ -55,6 +122,11 @@ public final class Ydoc implements AutoCloseable {
                   var ctx = contextBuilder.build();
                   WebEnvironment.initialize(ctx, executor);
                   parser.initialize(ctx);
+
+                  var bindings = ctx.getBindings("js");
+                  bindings.putMember("YDOC_HOST", hostname);
+                  bindings.putMember("YDOC_PORT", port);
+
                   ctx.eval(ydocJs);
 
                   return ctx;
