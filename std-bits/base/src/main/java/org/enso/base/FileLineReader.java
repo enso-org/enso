@@ -16,7 +16,6 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.enso.base.arrays.LongArrayList;
-import org.graalvm.polyglot.Context;
 
 /** A reader for reading lines from a file one at a time. */
 public class FileLineReader {
@@ -132,7 +131,7 @@ public class FileLineReader {
     while (moreToRead(c, buffer)) {
       result.write(c);
       c = readByte(buffer);
-      Context.getCurrent().safepoint();
+      Environment_Utils.safepoint();
     }
     return c != -1 && (c != '\r' || buffer.hasRemaining());
   }
@@ -145,7 +144,7 @@ public class FileLineReader {
     int c = readByte(buffer);
     while (moreToRead(c, buffer)) {
       c = readByte(buffer);
-      Context.getCurrent().safepoint();
+      Environment_Utils.safepoint();
     }
     return c != -1 && (c != '\r' || buffer.hasRemaining());
   }

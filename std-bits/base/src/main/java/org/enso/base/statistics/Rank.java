@@ -3,8 +3,8 @@ package org.enso.base.statistics;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import org.enso.base.Environment_Utils;
 import org.enso.base.ObjectComparator;
-import org.graalvm.polyglot.Context;
 
 public class Rank {
   private static final Comparator<Object> DOUBLE_COMPARATOR =
@@ -39,7 +39,6 @@ public class Rank {
       throw new IllegalArgumentException("Left and right lengths are not the same.");
     }
 
-    Context context = Context.getCurrent();
     List<ValueWithIndex> x_tuples = new ArrayList<>(x.length);
     List<ValueWithIndex> y_tuples = new ArrayList<>(y.length);
     for (int i = 0; i < x.length; i++) {
@@ -50,7 +49,7 @@ public class Rank {
       x_tuples.add(new ValueWithIndex(x[i], x_tuples.size()));
       y_tuples.add(new ValueWithIndex(y[i], y_tuples.size()));
 
-      context.safepoint();
+      Environment_Utils.safepoint();
     }
 
     return new double[][] {
@@ -71,7 +70,6 @@ public class Rank {
 
     double[] output = new double[tuples.size()];
 
-    Context context = Context.getCurrent();
     int index = 0;
     int dense = 0;
     while (index < tuples.size()) {
@@ -98,7 +96,7 @@ public class Rank {
         output[tuples.get(i).index] = rank;
       }
 
-      context.safepoint();
+      Environment_Utils.safepoint();
     }
 
     return output;

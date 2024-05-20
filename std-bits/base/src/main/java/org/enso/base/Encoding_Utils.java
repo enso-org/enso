@@ -18,7 +18,6 @@ import java.util.function.IntFunction;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.base.encoding.ReportingStreamEncoder;
 import org.enso.base.text.ResultWithWarnings;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 public class Encoding_Utils {
@@ -47,7 +46,6 @@ public class Encoding_Utils {
     CharBuffer in = CharBuffer.wrap(str.toCharArray());
     ByteBuffer out = ByteBuffer.allocate((int) (in.remaining() * encoder.averageBytesPerChar()));
 
-    Context context = Context.getCurrent();
     StringBuilder warnings = null;
     while (in.hasRemaining()) {
       CoderResult cr = encoder.encode(in, out, true);
@@ -78,7 +76,7 @@ public class Encoding_Utils {
         out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
       }
 
-      context.safepoint();
+      Environment_Utils.safepoint();
     }
 
     out.flip();
@@ -106,8 +104,6 @@ public class Encoding_Utils {
     if (bytes == null || bytes.length == 0) {
       return new ResultWithWarnings<>("");
     }
-
-    Context context = Context.getCurrent();
 
     CharsetDecoder decoder =
         charset
@@ -149,7 +145,7 @@ public class Encoding_Utils {
         out = resize(out, CharBuffer::allocate, CharBuffer::put);
       }
 
-      context.safepoint();
+      Environment_Utils.safepoint();
     }
 
     out.flip();
