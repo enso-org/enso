@@ -35,6 +35,7 @@ public class VectorBenchmarks {
     var benchmarkName = SrcUtil.findName(params);
     var code =
         """
+        import Standard.Base.Data.Vector.Builder
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy
 
@@ -44,7 +45,7 @@ public class VectorBenchmarks {
             (sum 0 0) / arr.length
 
         fibarr size modulo =
-            b = Vector.new_builder size
+            b = Builder.new size
             b.append 1
             b.append 1
 

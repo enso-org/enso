@@ -115,7 +115,7 @@ Note that for convenience, you can run the launcher/engine runner via
 `bin/enso`, e.g.
 
 ```bash
-env JAVA_OPTS="-agentlib:native-image-agent=config-merge-dir=./engine/runner-native/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
+env JAVA_OPTS="-agentlib:native-image-agent=config-merge-dir=./engine/runner/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
 ```
 
 The command may need to be re-run with different arguments to ensure that all
@@ -210,7 +210,7 @@ sbt> engine-runner/buildNativeImage
 and execute the binary on a sample factorial test program
 
 ```bash
-> runner --run engine/runner-native/src/test/resources/Factorial.enso 6
+> runner --run engine/runner/src/test/resources/Factorial.enso 6
 ```
 
 The task that generates the Native Image, along with all the necessary

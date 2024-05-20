@@ -1,5 +1,6 @@
 
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.State
 from Standard.Base.Runtime import assert
@@ -84,7 +85,7 @@ type Suite
             False ->
                 Test_Reporter.Ignore_Progress_Reporter
 
-        all_results_bldr = Vector.new_builder
+        all_results_bldr = Builder.new
         junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
             matching_specs.each p->

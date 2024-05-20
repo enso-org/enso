@@ -57,7 +57,6 @@ import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ErrorScreen from '#/pages/authentication/ErrorScreen'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
@@ -87,6 +86,8 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
+
+import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
 // === Global configuration ===
@@ -203,6 +204,8 @@ export default function App(props: AppProps) {
           </ModalProvider>
         </LocalStorageProvider>
       </Router>
+
+      <reactQueryDevtools.ReactQueryDevtools />
     </reactQuery.QueryClientProvider>
   )
 }
@@ -433,7 +436,6 @@ function AppRouter(props: AppRouterProps) {
       <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
       <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
       <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-      <router.Route path={appUtils.ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
 
       {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
       <router.Route element={<authProvider.ProtectedLayout />}>

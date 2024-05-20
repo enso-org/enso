@@ -663,6 +663,9 @@
 - [Added `Vector.duplicates`.][9917]
 - [Log operations performed on a Postgres database connection obtained through a
   Data Link.][9873]
+- [Added `Text.cleanse` `Column.Text_Cleanse` and `Table.Text_Cleanse`][9879]
+- [Added ability to save an existing Postgres connection as a Data Link in Enso
+  Cloud.][9957]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -973,6 +976,8 @@
 [9766]: https://github.com/enso-org/enso/pull/9766
 [9917]: https://github.com/enso-org/enso/pull/9917
 [9873]: https://github.com/enso-org/enso/pull/9873
+[9879]: https://github.com/enso-org/enso/pull/9879
+[9957]: https://github.com/enso-org/enso/pull/9957
 
 #### Enso Compiler
 

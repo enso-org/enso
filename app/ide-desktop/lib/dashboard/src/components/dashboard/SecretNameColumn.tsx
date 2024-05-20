@@ -63,7 +63,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         case AssetEventType.newProject:
         case AssetEventType.newFolder:
         case AssetEventType.uploadFiles:
-        case AssetEventType.newDataLink:
+        case AssetEventType.newDatalink:
         case AssetEventType.openProject:
         case AssetEventType.updateFiles:
         case AssetEventType.closeProject:

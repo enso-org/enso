@@ -90,7 +90,7 @@
   --context-menu-macos-width: 14.375rem;
   --context-menu-entry-padding-x: 0.75rem;
   --separator-margin-y: 0.125rem;
-  /* The vertical gap between entries in a Data Link input. */
+  /* The vertical gap between entries in a Datalink input. */
   --json-schema-gap: 0.25rem;
   --json-schema-text-input-width: 10rem;
   --json-schema-object-input-padding: 0.5rem;

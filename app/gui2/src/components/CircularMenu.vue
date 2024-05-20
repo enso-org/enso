@@ -2,7 +2,7 @@
 import ColorRing from '@/components/ColorRing.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { ref } from 'vue'
 
@@ -13,7 +13,7 @@ const props = defineProps<{
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
-  visibleNodeColors: Set<string>
+  matchableNodeColors: Set<string>
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
@@ -37,45 +37,44 @@ const showColorPicker = ref(false)
       :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`"
     >
       <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
-      <SvgIcon
+      <SvgButton
         v-if="isFullMenuVisible"
         name="comment"
-        class="icon-container button slot2"
+        class="slot2"
         :alt="`Edit comment`"
         @click.stop="emit('startEditingComment')"
       />
-      <SvgIcon
+      <SvgButton
         v-if="isFullMenuVisible"
         name="paint_palette"
-        class="icon-container button slot3"
+        class="slot3"
         :alt="`Choose color`"
         @click.stop="showColorPicker = true"
       />
-      <SvgIcon
+      <SvgButton
         v-if="isFullMenuVisible"
         name="trash2"
-        class="icon-container button slot4"
+        class="slot4"
         :alt="`Delete component`"
         @click.stop="emit('delete')"
       />
       <ToggleIcon
         icon="eye"
-        class="icon-container button slot5"
+        class="slot5"
         :alt="`${props.isVisualizationVisible ? 'Hide' : 'Show'} visualization`"
         :modelValue="props.isVisualizationVisible"
         @update:modelValue="emit('update:isVisualizationVisible', $event)"
       />
-      <SvgIcon
+      <SvgButton
         name="edit"
-        class="icon-container button slot6"
+        class="slot6"
         data-testid="edit-button"
         @click.stop="emit('startEditing')"
       />
       <ToggleIcon
         icon="record"
-        class="icon-container button slot7"
+        class="overrideRecordingButton slot7"
         data-testid="overrideRecordingButton"
-        :class="{ 'recording-overridden': props.isRecordingOverridden }"
         :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
@@ -84,7 +83,8 @@ const showColorPicker = ref(false)
     <div v-if="showColorPicker" class="circle">
       <ColorRing
         v-model="nodeColor"
-        :matchableColors="visibleNodeColors"
+        :matchableColors="matchableNodeColors"
+        :initialColorAngle="90"
         @close="showColorPicker = false"
       />
     </div>
@@ -179,27 +179,19 @@ const showColorPicker = ref(false)
   clip-path: var(--full-ring-path);
 }
 
-.icon-container {
-  display: inline-flex;
-  background: none;
-  padding: 0;
-  border: none;
-  opacity: 30%;
-  pointer-events: all;
-}
-
-.toggledOn {
-  opacity: unset;
-}
-
 .inactive {
   pointer-events: none;
   opacity: 10%;
 }
 
-.recording-overridden {
-  opacity: 100%;
-  color: red;
+.overrideRecordingButton {
+  &.toggledOn {
+    opacity: 100%;
+    color: red;
+  }
+  &.toggledOff {
+    opacity: unset;
+  }
 }
 
 /**
@@ -246,7 +238,7 @@ const showColorPicker = ref(false)
 
 .below-slot5 {
   position: absolute;
-  top: calc(var(--outer-diameter) - 32px);
+  top: calc(var(--outer-diameter) - 24px);
   pointer-events: all;
 }
 

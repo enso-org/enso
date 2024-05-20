@@ -60,7 +60,7 @@ type Range
                 Range.Between self.start self.end self.step.signum*new_step
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the first element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range is empty.
@@ -68,7 +68,7 @@ type Range
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the second element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range has less than two elements.
@@ -103,7 +103,7 @@ type Range
         if exact_fit then steps else steps+1
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets an element from the Range at a specified index (0-based).
 
        Arguments:
@@ -124,7 +124,8 @@ type Range
     at self index =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-    ## Gets an element from the Range at a specified index (0-based).
+    ## ICON parse3
+       Gets an element from the Range at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
        Arguments:
@@ -300,7 +301,8 @@ type Range
                     @Tail_Call go ix+1 current+self.step
             go 0 self.start
 
-    ## Combines all the elements of the range, by iteratively applying the
+    ## ICON sigma
+       Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
        Arguments:

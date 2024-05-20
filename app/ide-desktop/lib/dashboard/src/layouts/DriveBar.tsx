@@ -2,7 +2,7 @@
  * the current directory and some configuration options. */
 import * as React from 'react'
 
-import AddConnectorIcon from 'enso-assets/add_connector.svg'
+import AddDatalinkIcon from 'enso-assets/add_datalink.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
@@ -27,7 +27,7 @@ import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
+import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import type * as backend from '#/services/Backend'
@@ -53,7 +53,7 @@ export interface DriveBarProps {
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
-  readonly doCreateDataLink: (name: string, value: unknown) => void
+  readonly doCreateDatalink: (name: string, value: unknown) => void
   readonly doUploadFiles: (files: File[]) => void
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
@@ -63,7 +63,7 @@ export interface DriveBarProps {
 export default function DriveBar(props: DriveBarProps) {
   const { query, setQuery, labels, suggestions, category, canDownload } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
-  const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
+  const { doCreateSecret, doCreateDatalink, doUploadFiles, dispatchAssetEvent } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -163,10 +163,10 @@ export default function DriveBar(props: DriveBarProps) {
               {isCloud && (
                 <Button
                   active
-                  image={AddConnectorIcon}
-                  alt={getText('newDataLink')}
+                  image={AddDatalinkIcon}
+                  alt={getText('newDatalink')}
                   onPress={() => {
-                    setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
+                    setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
                   }}
                 />
               )}

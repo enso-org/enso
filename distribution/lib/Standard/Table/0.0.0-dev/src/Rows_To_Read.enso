@@ -1,8 +1,8 @@
 from Standard.Base import all
 from Standard.Base.Metadata import make_single_choice, Widget
 
-import project.Table.Table
 import project.Errors.Not_All_Rows_Downloaded
+import project.Table.Table
 
 ## PRIVATE
 type Rows_To_Read

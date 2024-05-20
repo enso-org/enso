@@ -12,7 +12,6 @@ import LockIcon from 'enso-assets/lock.svg'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
@@ -35,7 +34,6 @@ export default function Login() {
   const location = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
-  const localBackend = backendProvider.useLocalBackend()
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
@@ -57,13 +55,6 @@ export default function Login() {
             icon={CreateAccountIcon}
             text={getText('dontHaveAnAccount')}
           />
-          {localBackend != null && (
-            <Link
-              to={appUtils.ENTER_OFFLINE_MODE_PATH}
-              icon={ArrowRightIcon}
-              text={getText('continueWithoutCreatingAnAccount')}
-            />
-          )}
         </>
       }
     >
