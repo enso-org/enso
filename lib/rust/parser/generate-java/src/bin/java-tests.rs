@@ -28,6 +28,7 @@ fn main() {
     println!("import java.nio.ByteOrder;");
     println!();
     println!("class GeneratedFormatTests {{");
+    println!("    private static final Object INIT = {package}.Parser.create();");
     println!("    private static java.util.Vector<byte[]> accept;");
     println!("    private static java.util.Vector<byte[]> reject;");
     for (i, case) in cases.accept.iter().enumerate() {
