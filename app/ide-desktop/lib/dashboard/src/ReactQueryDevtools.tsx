@@ -20,10 +20,10 @@ const ReactQueryDevtoolsProduction = React.lazy(() =>
  */
 export function ReactQueryDevtools() {
   const [showDevtools, setShowDevtools] = React.useState(false)
-  // It's safitier to pass the client directly to the devtools
-  // Since there might be a chance that we might have multiple versions if react-query
-  // in case if we forgot to update the devtools or if npm messed up with the versions
-  // or hoising issues.
+  // It's safer to pass the client directly to the devtools
+  // since there might be a chance that we have multiple versions of react-query,
+  // in case we forgot to update the devtools, npm messed up the versions,
+  // or there are hoisting issues.
   const client = reactQuery.useQueryClient()
 
   React.useEffect(() => {
