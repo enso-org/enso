@@ -56,6 +56,26 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.module.jackson-module-scala_2.13-2.15.2`.
 
 
+'pureconfig-core_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the engine.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-core_2.13-0.17.4`.
+
+
+'pureconfig-generic-base_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the engine.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-generic-base_2.13-0.17.4`.
+
+
+'pureconfig-generic_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the engine.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-generic_2.13-0.17.4`.
+
+
+'pureconfig_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the engine.
+The license file can be found at `licenses/Mozilla Public License, version 2.0.html`.
+Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig_2.13-0.17.4`.
+
+
 'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.flatbuffers.flatbuffers-java-24.3.25`.
