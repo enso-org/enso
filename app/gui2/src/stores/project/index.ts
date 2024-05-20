@@ -136,7 +136,7 @@ export const useProjectStore = defineStore('project', () => {
     return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
   })
 
-  let ydocUrl = new URL(lsUrls.ydocUrl)
+  const ydocUrl = new URL(lsUrls.ydocUrl)
   let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
     yDocsProvider = attachProvider(
