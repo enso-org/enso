@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
@@ -48,11 +49,10 @@ public class ImportResolutionOrderTest extends TestBase {
             """);
     var projDir = createProject(Set.of(importedMod, mainMod));
     var modsToCompile = runImportResolution(projDir, mainModName);
-    var modNames = modsToCompile.stream().map(m -> m.getName().toString()).toList();
-    assertThat(modNames.size(), is(2));
+    assertThat(modsToCompile.size(), is(2));
     assertThat(
-        "Imported module must be the first to compile. modNamesToCompile = " + modNames,
-        modNames,
+        "Imported module must be the first to compile. modNamesToCompile = " + modsToCompile,
+        modsToCompile,
         contains(Arrays.asList(containsString("Mod"), containsString("Main"))));
   }
 
@@ -74,10 +74,7 @@ public class ImportResolutionOrderTest extends TestBase {
             from project.Mod2 import T2
             """);
     var projDir = createProject(Set.of(mod1, mod2, mainMod));
-    var modNamesToCompile =
-        runImportResolution(projDir, mainModName).stream()
-            .map(m -> m.getName().toString())
-            .toList();
+    var modNamesToCompile = runImportResolution(projDir, mainModName);
     assertThat(modNamesToCompile.size(), is(3));
     assertThat(
         "Main module should be compile as the last one. modNamesToCompile = " + modNamesToCompile,
@@ -87,6 +84,51 @@ public class ImportResolutionOrderTest extends TestBase {
                 anyOf(containsString("Mod1"), containsString("Mod2")),
                 anyOf(containsString("Mod1"), containsString("Mod2")),
                 containsString("Main"))));
+  }
+
+  @Test
+  public void twoImportedModulesAreCompiledBeforeMainTransitivelly() {
+    var mod1 =
+        new SourceModule(QualifiedName.fromString("Mod1"), """
+            type T1
+            """);
+    var mod2 =
+        new SourceModule(
+            QualifiedName.fromString("Mod2"),
+            """
+            from project.Mod1 import T1
+            type T2
+            """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            from project.Mod2 import T2
+            """);
+    var projDir = createProject(Set.of(mod1, mod2, mainMod));
+    var modNamesToCompile = runImportResolution(projDir, mainModName);
+    assertThat(modNamesToCompile.size(), is(3));
+    assertThat(
+        "Main module should be compile as the last one. modNamesToCompile = " + modNamesToCompile,
+        modNamesToCompile,
+        contains(
+            Arrays.asList(containsString("Mod1"), containsString("Mod2"), containsString("Main"))));
+  }
+
+  @Test
+  public void allStdBaseModulesAreCompiledBeforeMain() {
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            from Standard.Base import all
+            """);
+    var projDir = createProject(Set.of(mainMod));
+    var modsToCompile = runImportResolution(projDir, mainModName);
+    assertThat(modsToCompile.size(), is(greaterThan(1)));
+    var lastModToCompile = modsToCompile.get(modsToCompile.size() - 1);
+    assertThat(
+        "Main module should be compiled as the last one", lastModToCompile, containsString("Main"));
   }
 
   private Path createProject(Set<SourceModule> modules) {
@@ -104,8 +146,9 @@ public class ImportResolutionOrderTest extends TestBase {
    *
    * @param projDir Root directory of the project.
    * @param startModName FQN of a module from which the import resolution should start.
+   * @return List of module names to compile in the topological order.
    */
-  private static List<Module> runImportResolution(Path projDir, String startModName) {
+  private static List<String> runImportResolution(Path projDir, String startModName) {
     assert projDir.toFile().exists() && projDir.toFile().isDirectory();
     var out = new ByteArrayOutputStream();
     List<Module> modulesToCompile = List.of();
@@ -128,6 +171,6 @@ public class ImportResolutionOrderTest extends TestBase {
     } catch (PolyglotException e) {
       fail("Import resolution should succeed. Instead got exception: " + e.getMessage());
     }
-    return modulesToCompile;
+    return modulesToCompile.stream().map(m -> m.getName().toString()).toList();
   }
 }
