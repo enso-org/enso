@@ -50,6 +50,7 @@ import project.Internal.Replace_Helpers
 import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
+import project.Internal.Table_Helpers.Union_Result_Type
 import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
@@ -3020,18 +3021,13 @@ type Table
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
-                columns = column_set.resolve_columns all_tables
-                    . filter Filter_Condition.Not_Nothing
-                types = columns.map .value_type
-                # TODO probably need to merge logic with DB somehow
-                if types.is_empty then Column.from_repeated_item column_set.name Nothing result_row_count else
-                    common_type = Value_Type_Helpers.find_common_type types strict=True
-                    case common_type of
-                        Nothing ->
-                            problem_builder_for_unification.report_other_warning (No_Common_Type.Warning types related_column_name=column_set.name)
-                            concat_columns column_set all_tables Value_Type.Char result_row_count needs_cast=True on_problems
-                        _ : Value_Type ->
-                            concat_columns column_set all_tables common_type result_row_count needs_cast=False on_problems
+                case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
+                    Union_Result_Type.Common_Type common_type ->
+                        concat_columns column_set all_tables common_type result_row_count needs_cast=False on_problems
+                    Union_Result_Type.Fallback_To_Text ->
+                        concat_columns column_set all_tables Value_Type.Char result_row_count needs_cast=True on_problems
+                    Union_Result_Type.No_Types_To_Unify ->
+                        Column.from_repeated_item column_set.name Nothing result_row_count
             problem_builder_for_matching.attach_problems_before on_problems <|
                 problem_builder_for_unification.attach_problems_before on_problems <|
                     if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else

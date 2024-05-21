@@ -10,6 +10,7 @@ import project.Expression.Expression
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Value_Type_Helpers
+import project.Match_Columns.Column_Set
 import project.Position.Position
 import project.Set_Mode.Set_Mode
 import project.Sort_Column.Sort_Column
@@ -526,6 +527,39 @@ filter_blank_rows table when treat_nans_as_blank =
 is_column obj =
     known_types = ["Standard.Table.Column.Column", "Standard.Database.DB_Column.DB_Column"]
     known_types.contains (Meta.get_qualified_type_name obj)
+
+## PRIVATE
+   A helper method that resolves what should be the result type of a particular
+   column set based on the union settings.
+unify_result_type_for_union (column_set : Column_Set) (all_tables : Vector) (problem_builder : Problem_Builder) -> Union_Result_Type =
+    columns = column_set.resolve_columns all_tables
+        . filter Filter_Condition.Not_Nothing
+    types = columns.map .value_type
+
+    if types.is_empty then Union_Result_Type.No_Types_To_Unify else
+        ## First we check if we can find a generic common type.
+           This includes widening numeric column sizes, or converting Integer to Float.
+        common_type = Value_Type_Helpers.find_common_type types strict=True
+        if common_type.is_nothing.not then Union_Result_Type.Common_Type common_type else
+            ## Union has less strict requirements than other operations relying on `find_common_type`,
+               so if the common type was not found, we still check some fallbacks.
+            common_date_type = Value_Type_Helpers.find_common_date_types types column_set.name problem_builder
+            if common_date_type.is_nothing.not then Union_Result_Type.Common_Type common_date_type else
+                problem_builder.report_other_warning (No_Common_Type.Warning types column_set.name)
+                Union_Result_Type.Fallback_To_Text
+
+## PRIVATE
+type Union_Result_Type
+    ## PRIVATE
+    Common_Type (value_type : Value_Type)
+
+    ## PRIVATE
+    Fallback_To_Text
+
+    ## PRIVATE
+       This case is returned if the requested column was missing from _all_ tables,
+       so there were no types to unify. An all-null column should be created.
+    No_Types_To_Unify
 
 ## PRIVATE
    Replace a set of columns in the table with a new set of columns. The old

@@ -134,7 +134,7 @@ type Column_Set
     Value (name : Text) (column_indices : Vector Integer)
 
     ## PRIVATE
-    resolve_columns self all_tables = self.column_indices.zip all_tables i-> parent_table->
+    resolve_columns self (all_tables : Vector) = self.column_indices.zip all_tables i-> parent_table->
         case i of
             Nothing -> Nothing
             _ : Integer -> parent_table.at i

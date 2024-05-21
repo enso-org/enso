@@ -1,13 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Runtime import assert
 
 import project.Column.Column
+import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Storage
 import project.Value_Type.Auto
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
-from project.Errors import Invalid_Value_Type, No_Common_Type
+from project.Errors import Invalid_Value_Type, Mixing_Date_Time_Types, No_Common_Type
 from project.Internal.Table_Helpers import is_column
 
 polyglot java import org.enso.base.polyglot.NumericConverter
@@ -111,16 +113,6 @@ reconcile_types current new = case current of
             result_size = max_size current_size new_size
             Value_Type.Binary result_size result_variable
         _ -> Value_Type.Mixed
-    Value_Type.Date_Time current_has_zone -> case new of
-        Value_Type.Date_Time new_has_zone -> Value_Type.Date_Time (current_has_zone || new_has_zone)
-        ## If merging Date and Date_Time, we settle on Date_Time with a warning.
-           The warning will be handled by the ???
-        Value_Type.Date                   -> current
-        _                                 -> Value_Type.Mixed
-    Value_Type.Date -> case new of
-        Value_Type.Date        -> Value_Type.Date
-        Value_Type.Date_Time _ -> new
-        _                      -> Value_Type.Mixed
     _ ->
         if current == new then current else Value_Type.Mixed
 
@@ -141,16 +133,44 @@ max_size a b =
      If `False`, if no common type can be found, `Mixed` is used as a generic fallback.
      If `True`, `Nothing` is returned if no common type can be found and `Mixed`
      is only returned if any of the input types was already `Mixed`.
-find_common_type : Vector Value_Type -> Boolean -> Value_Type | Nothing
-find_common_type types strict =
+find_common_type (types : Vector Value_Type) (strict : Boolean) -> Value_Type | Nothing =
+    assert types.not_empty
     most_generic_type = (types.drop 1).fold types.first reconcile_types
-    most_generic_type_without_warnings = Warning.clear most_generic_type
-    warnings = Warning.get_all most_generic_type
     if strict.not || most_generic_type != Value_Type.Mixed then most_generic_type else
         ## We return the Mixed type only if the input contained Mixed.
            Otherwise we report failure to find common type.
         if types.contains Value_Type.Mixed then Value_Type.Mixed else
             Nothing
+
+## PRIVATE
+   An extra helper function that reconciles Date_Time types with varying timezone
+   setting, as well as Date type, reporting any warnings.
+   It can be used as a fallback after `find_common_type` does not find a simple common type.
+   If non-date types are provided, it will fail by returning `Nothing`. It will not report any warnings in that case.
+   It assumes that the list of `types` is not empty.
+find_common_date_types (types : Vector Value_Type) (related_column_name : Text | Nothing) (problem_builder : Problem_Builder) -> Value_Type | Nothing =
+    assert types.not_empty
+    all_date = types.all typ-> case typ of
+        Value_Type.Date        -> True
+        Value_Type.Date_Time _ -> True
+        _                      -> False
+    if all_date.not then Nothing else
+        has_date = types.contains Value_Type.Date
+        has_date_time_with_tz = types.contains (Value_Type.Date_Time True)
+        has_date_time_without_tz = types.contains (Value_Type.Date_Time False)
+
+        # The common type is the 'largest' one.
+        common_type = if has_date_time_with_tz then Value_Type.Date_Time True else
+            if has_date_time_without_tz then Value_Type.Date_Time False else
+                Value_Type.Date
+
+        if has_date && (common_type != Value_Type.Date) then
+            problem_builder.report_other_warning (Mixing_Date_Time_Types.Date_To_Date_Time related_column_name)
+
+        if has_date_time_without_tz && (common_type != Value_Type.Date_Time False) then
+            problem_builder.report_other_warning (Mixing_Date_Time_Types.Implicit_Time_Zone related_column_name)
+
+        common_type
 
 ## PRIVATE
    Finds the type of an argument to a column operation.

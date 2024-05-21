@@ -853,13 +853,22 @@ type Nothing_Value_In_Filter_Condition
     to_display_text self =
         "Using `Nothing` as an argument to a `"+self.filter_condition.to_text+"` cannot match anything."
 
-## Indicates that an automatic conversion from Date to Date_Time has been performed.
+## Indicates that different Date_Time (with or without timezone) or Date types
+   are mixed in the result, causing implicit coercions.
 
    This is a warning, because using the `00:00` time and default time-zone may
    not always be the expected choice, so the user should be aware of this.
-type Implicit_Date_As_Date_Time_Conversion
+type Mixing_Date_Time_Types
     ## PRIVATE
-    Warning
+    Date_To_Date_Time (related_column_name : Text | Nothing)
+
+    ## PRIVATE
+    Implicit_Time_Zone (related_column_name : Text | Nothing)
 
     to_display_text self -> Text =
-        "Mixing Date and Date_Time values: the Date values have been automatically converted to Date_Time by adding a time of 00:00 in the default time-zone."
+        location = if self.related_column_name.is_nothing then "" else " (in column ["+self.related_column_name+"])"
+        case self of
+            Mixing_Date_Time_Types.Date_To_Date_Time _ ->
+                "Mixing Date and Date_Time values"+location+": the Date values have been automatically converted to Date_Time by adding a time of 00:00 in the default time-zone."
+            Mixing_Date_Time_Types.Implicit_Time_Zone _ ->
+                "Mixing Date_Time values with and without timezone"+location+". A default timezone has been assumed where it was missing."
