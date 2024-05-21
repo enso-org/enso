@@ -56,19 +56,22 @@ public class ExtensionMethodResolutionTest extends TestBase {
 
   @Test
   public void extensionMethodAndNormalMethodConflictInDifferentModules() throws IOException {
-    var modSrc = """
-        type T
-            foo = "Mod.T.foo"
-        """;
-    var mainSrc =
-        """
-        from project.Mod import T
-        T.foo = "Main.T.foo"
-        main = T.foo
-        """;
-    var projDir = createProject("Proj", mainSrc, tempFolder);
-    var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
-    Files.writeString(modSrcFile, modSrc);
+    var mod =
+        new SourceModule(
+            QualifiedName.fromString("Mod"),
+            """
+            type T
+                foo = "Mod.T.foo"
+            """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            from project.Mod import T
+            T.foo = "Main.T.foo"
+            main = T.foo
+            """);
+    var projDir = createProject("Proj", Set.of(mod, mainMod), tempFolder);
     expectRuntimeError(projDir, not(containsString("Not_Invokable")));
   }
 
@@ -87,14 +90,20 @@ public class ExtensionMethodResolutionTest extends TestBase {
         # Make sure we import also the extension method from Mod
         from project.Mod import all
         T.foo x y = x + y
-        main = 42
+        main = T.foo
         """;
     var projDir = createProject("Proj", mainSrc, tempFolder);
     var tSrcFile = projDir.resolve("src").resolve("T.enso");
     Files.writeString(tSrcFile, tSrc);
     var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
     Files.writeString(modSrcFile, modSrc);
-    expectRuntimeError(projDir, allOf(containsString("Method"), containsString("already defined")));
+    expectRuntimeError(
+        projDir,
+        allOf(
+            containsString("Ambiguous method"),
+            containsString("T.foo"),
+            containsString("Main.enso"),
+            containsString("Mod.enso")));
   }
 
   @Test
@@ -108,7 +117,7 @@ public class ExtensionMethodResolutionTest extends TestBase {
         """
         from local.Lib import T
         T.foo x y = x + y
-        main = 42
+        main = T.foo
         """;
     var mainProjDir = createProject("Main", mainSrc, tempFolder);
     expectRuntimeError(
