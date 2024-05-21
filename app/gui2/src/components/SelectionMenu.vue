@@ -2,6 +2,7 @@
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import SvgButton from './SvgButton.vue'
 
 const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
 const _props = defineProps<{ selectedComponents: number }>()
@@ -16,31 +17,18 @@ const emit = defineEmits<{
     <span
       v-text="`${selectedComponents} component${selectedComponents === 1 ? '' : 's'} selected`"
     />
-    <SvgIcon
-      name="group"
-      draggable="false"
-      class="icon button"
-      alt="Group components"
-      @click.stop="emit('collapseNodes')"
-    />
+    <SvgButton name="group" alt="Group components" @click.stop="emit('collapseNodes')" />
     <ToggleIcon
       v-model="showColorPicker"
       :alt="`${showColorPicker ? 'Hide' : 'Show'} the component color chooser`"
       icon="paint_palette"
-      class="toggle button"
       :class="{
         // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
         // picker is open, so that it isn't toggled back open.
         disableInput: showColorPicker,
       }"
     />
-    <SvgIcon
-      name="trash"
-      draggable="false"
-      class="icon button"
-      alt="Delete components"
-      @click.stop="emit('removeNodes')"
-    />
+    <SvgButton name="trash" alt="Delete components" @click.stop="emit('removeNodes')" />
     <ColorPickerMenu v-if="showColorPicker" class="submenu" @close="showColorPicker = false" />
   </div>
 </template>
@@ -69,12 +57,8 @@ const emit = defineEmits<{
   backdrop-filter: var(--blur-app-bg);
 }
 
-.toggle {
+.toggledOff {
   opacity: 0.6;
-}
-
-.toggledOn {
-  opacity: unset;
 }
 
 .disableInput {

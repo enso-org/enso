@@ -35,8 +35,8 @@ export project.Data.Text.Matching_Mode.Matching_Mode
 export project.Data.Text.Normalization.Normalization
 export project.Data.Text.Regex.Regex
 export project.Data.Text.Text
-export project.Data.Text.Text_Cleanse.Text_Cleanse
 export project.Data.Text.Text_Cleanse.Cleansable_Text
+export project.Data.Text.Text_Cleanse.Text_Cleanse
 export project.Data.Text.Text_Ordering.Text_Ordering
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
