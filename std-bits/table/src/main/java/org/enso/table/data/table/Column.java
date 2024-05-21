@@ -175,17 +175,17 @@ public class Column {
       Builder builder = new MixedBuilder(repeat);
       builder.appendNulls(repeat);
       return new Column(name, builder.seal());
-    } else {
-      StorageType storageType = StorageType.forBoxedItem(converted);
-      Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
-      Context context = Context.getCurrent();
-      for (int i = 0; i < repeat; i++) {
-        builder.appendNoGrow(converted);
-        context.safepoint();
-      }
-
-      return new Column(name, builder.seal());
     }
+
+    StorageType storageType = StorageType.forBoxedItem(converted);
+    Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < repeat; i++) {
+      builder.appendNoGrow(converted);
+      context.safepoint();
+    }
+
+    return new Column(name, builder.seal());
   }
 
   /**
