@@ -859,7 +859,7 @@ type Nothing_Value_In_Filter_Condition
    not always be the expected choice, so the user should be aware of this.
 type Implicit_Date_As_Date_Time_Conversion
     ## PRIVATE
-    Warning related_column_name:Text
+    Warning
 
     to_display_text self -> Text =
-        "When unifying date and date-time columns (column "+self.related_column_name+" in the output), the date values have been automatically converted to date-time by adding a time of 00:00 and the default time-zone."
+        "Mixing Date and Date_Time values: the Date values have been automatically converted to Date_Time by adding a time of 00:00 in the default time-zone."

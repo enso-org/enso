@@ -135,16 +135,20 @@ max_size a b =
 ## PRIVATE
    Finds the most specific value type that will fit all the provided types.
 
-   If `strict` is `True`, it is implemented as specified in the note
-   "Unifying Column Types" in `Table.union`. In that case, if no common type
-   is found, `Nothing` is returned.
-
-   It assumes that the `types` vector is not empty.
+   Arguments:
+   - types: a vector of types to unify. It must not be empty.
+   - strict: A flag determining how strict the unification is.
+     If `False`, if no common type can be found, `Mixed` is used as a generic fallback.
+     If `True`, `Nothing` is returned if no common type can be found and `Mixed`
+     is only returned if any of the input types was already `Mixed`.
 find_common_type : Vector Value_Type -> Boolean -> Value_Type | Nothing
 find_common_type types strict =
     most_generic_type = (types.drop 1).fold types.first reconcile_types
+    most_generic_type_without_warnings = Warning.clear most_generic_type
+    warnings = Warning.get_all most_generic_type
     if strict.not || most_generic_type != Value_Type.Mixed then most_generic_type else
-        # Double check if Mixed was really allowed to come out.
+        ## We return the Mixed type only if the input contained Mixed.
+           Otherwise we report failure to find common type.
         if types.contains Value_Type.Mixed then Value_Type.Mixed else
             Nothing
 
