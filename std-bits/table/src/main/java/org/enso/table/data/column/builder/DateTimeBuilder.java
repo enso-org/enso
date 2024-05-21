@@ -1,5 +1,8 @@
 package org.enso.table.data.column.builder;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
@@ -8,10 +11,6 @@ import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
-
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 /** A builder for string columns. */
 public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
@@ -30,7 +29,8 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   /**
-   * TODO DRY {@link org.enso.table.data.column.operation.cast.ToDateTimeStorageConverter} convertDate.
+   * TODO DRY {@link org.enso.table.data.column.operation.cast.ToDateTimeStorageConverter}
+   * convertDate.
    */
   private ZonedDateTime convertDate(LocalDate date) {
     return date.atStartOfDay().atZone(ZoneId.systemDefault());
@@ -45,7 +45,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
       data[currentSize++] = convertDate(date);
     } else if (o == null) {
       data[currentSize++] = null;
-    }else {
+    } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
   }
