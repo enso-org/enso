@@ -22,11 +22,12 @@ export interface SvgMaskProps {
   // underlying `div`.
   // eslint-disable-next-line no-restricted-syntax
   readonly className?: string | undefined
+  readonly role?: string
 }
 
 /** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
 export default function SvgMask(props: SvgMaskProps) {
-  const { invert = false, alt, src, style, color, className } = props
+  const { invert = false, alt, src, style, color, className, role } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
 
@@ -52,7 +53,7 @@ export default function SvgMask(props: SvgMaskProps) {
       className={tailwindMerge.twMerge('inline-block h-max w-max', className)}
     >
       {/* This is required for this component to have the right size. */}
-      <img alt={alt} src={src} className="transparent" draggable={false} />
+      <img alt={alt} src={src} className="transparent" draggable={false} role={role} />
     </div>
   )
 }

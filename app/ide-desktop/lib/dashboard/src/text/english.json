@@ -439,6 +439,7 @@
   "editorPageAltText": "Graph Editor",
   "settingsPageAltText": "Settings",
 
+  "freePlanName": "Free",
   "soloPlanName": "Solo",
   "soloPlanSubtitle": "For individuals",
   "soloPlanPricing": "$60 per user / month",
@@ -614,5 +615,12 @@
   "contactSalesDescription": "Contact our sales team to learn more about our Enterprise plan.",
   "ContactSalesButtonLabel": "Contact Us",
 
-  "setOrgNameTitle": "Set your organization name"
+  "setOrgNameTitle": "Set your organization name",
+
+  "paywallScreenTitle": "Unlock the full potential of Enso",
+  "paywallScreenDescription": "Upgrade to $0 to unlock additional features and get access to priority support.",
+  "paywallAvailabilityLevel": "Available on $0 plan",
+
+  "userGroupsFeatureLabel": "User Groups",
+  "userGroupsFeatureBulletPoints": "Create user groups to manage permissions;Assign user groups to assets;Assign user groups to users"
 }

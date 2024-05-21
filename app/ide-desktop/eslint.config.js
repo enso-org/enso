@@ -88,10 +88,6 @@ const RESTRICTED_SYNTAXES = [
         message: `Don't prefix modules with \`${NAME}\``,
     },
     {
-        selector: 'TSTypeLiteral',
-        message: 'No object types - use interfaces instead',
-    },
-    {
         selector: 'ForOfStatement > .left[kind=let]',
         message: 'Use `for (const x of xs)`, not `for (let x of xs)`',
     },
@@ -136,14 +132,6 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `TSAsExpression:not(:has(TSTypeReference > Identifier[name=const]))`,
         message: 'Avoid `as T`. Consider using a type annotation instead.',
-    },
-    {
-        selector: `:matches(\
-            TSUndefinedKeyword,\
-            Identifier[name=undefined],\
-            UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined])\
-        )`,
-        message: 'Use `null` instead of `undefined`, `void 0`, or `typeof x === "undefined"`',
     },
     {
         selector: 'ExportNamedDeclaration > VariableDeclaration[kind=let]',
@@ -460,11 +448,6 @@ export default [
                 {
                     selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
-                },
-                {
-                    selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
-                    message:
-                        'Use `export default` on the declaration, instead of as a separate statement',
                 },
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.

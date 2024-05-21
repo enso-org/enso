@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as billingHooks from '#/hooks/billing'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -27,14 +28,10 @@ import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
-// =============================
-// === UserGroupsSettingsTab ===
-// =============================
-
 /** Settings tab for viewing and editing organization members. */
-export default function UserGroupsSettingsTab() {
+export function UserGroupsSettingsTabContent() {
   const { backend } = backendProvider.useBackend()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -223,14 +220,12 @@ export default function UserGroupsSettingsTab() {
                     event={position}
                     userGroups={userGroups}
                     onSubmit={groupName => {
-                      if (user != null) {
-                        const id = placeholderId
-                        const { organizationId } = user
-                        setUserGroups(oldUserGroups => [
-                          ...(oldUserGroups ?? []),
-                          { organizationId, id, groupName },
-                        ])
-                      }
+                      const id = placeholderId
+                      const { organizationId } = user
+                      setUserGroups(oldUserGroups => [
+                        ...(oldUserGroups ?? []),
+                        { organizationId, id, groupName },
+                      ])
                     }}
                     onSuccess={newUserGroup => {
                       setUserGroups(
@@ -318,6 +313,7 @@ export default function UserGroupsSettingsTab() {
           </div>
         </SettingsSection>
       </div>
+
       <SettingsSection noFocusArea title={getText('users')} className="h-2/5 lg:h-[unset]">
         <MembersTable draggable populateWithSelf />
       </SettingsSection>
