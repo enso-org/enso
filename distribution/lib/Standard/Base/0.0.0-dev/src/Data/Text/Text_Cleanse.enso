@@ -2,37 +2,59 @@ from Standard.Base import all
 
 ## Defines a Text_Cleanse operation
 type Text_Cleanse
-   Duplicate_Whitespace
-   Leading_Whitespace
-   Trailing_Whitespace
-   All_Whitespace
-   Leading_Numbers
-   Trailing_Numbers
-   Non_ASCII
-   Tabs
-   Letters
-   Numbers
-   Punctuation
-   Symbols
+    ## More than one whitespace character is replaced with a first character.
+    Duplicate_Whitespace
 
-   ## Apply the cleanse operation to the text.
-   apply self input:Cleansable_Text -> Any =
-      case self of
-         Text_Cleanse.Leading_Whitespace -> input.replace "^\s+" ""
-         Text_Cleanse.Trailing_Whitespace -> input.replace "\s+$" ""
-         Text_Cleanse.Duplicate_Whitespace -> input.replace "(\s)+" "$1"
-         Text_Cleanse.All_Whitespace -> input.replace "\s+" ""
-         Text_Cleanse.Leading_Numbers -> input.replace "^\d+" ""
-         Text_Cleanse.Trailing_Numbers -> input.replace "\d+$" ""
-         Text_Cleanse.Non_ASCII -> input.replace "[^\x00-\x7F]" ""
-         Text_Cleanse.Tabs -> input.replace "\t" ""
-         Text_Cleanse.Letters -> input.replace "[a-zA-Z]" ""
-         Text_Cleanse.Numbers -> input.replace "\d" ""
-         Text_Cleanse.Punctuation -> input.replace '[,.!?():;\'\"]' ""
-         Text_Cleanse.Symbols -> input.replace "[^a-zA-Z\d\s]" ""
+    ## Whitespace at the start of the value is removed.
+    Leading_Whitespace
+
+    ## Whitespace at the end of the value is removed.
+    Trailing_Whitespace
+
+    ## All whitespace characters are removed.
+    All_Whitespace
+
+    ## Number at the beginning of the value is removed.
+    Leading_Numbers
+
+    ## Number at the end of the value is removed.
+    Trailing_Numbers
+
+    ## Characters outside of the ASCII range (0-127) are removed.
+    Non_ASCII
+
+    ## All tab characters are removed.
+    Tabs
+
+    ## All letters are removed.
+    Letters
+
+    ## All digits are removed.
+    Numbers
+
+    ## All punctuation characters are removed.
+    Punctuation
+
+    ## All symbols are removed. Symbols are everything other than letters, digits or whitespace.
+    Symbols
+
+    ## Apply the cleanse operation to the text.
+    apply self input:Cleansable_Text -> Any = case self of
+        Text_Cleanse.Leading_Whitespace -> input.replace "^\s+" ""
+        Text_Cleanse.Trailing_Whitespace -> input.replace "\s+$" ""
+        Text_Cleanse.Duplicate_Whitespace -> input.replace "(\s)+" "$1"
+        Text_Cleanse.All_Whitespace -> input.replace "\s+" ""
+        Text_Cleanse.Leading_Numbers -> input.replace "^\d+" ""
+        Text_Cleanse.Trailing_Numbers -> input.replace "\d+$" ""
+        Text_Cleanse.Non_ASCII -> input.replace "[^\x00-\x7F]" ""
+        Text_Cleanse.Tabs -> input.replace "\t" ""
+        Text_Cleanse.Letters -> input.replace "[a-zA-Z]" ""
+        Text_Cleanse.Numbers -> input.replace "\d" ""
+        Text_Cleanse.Punctuation -> input.replace '[,.!?():;\'\"]' ""
+        Text_Cleanse.Symbols -> input.replace "[^a-zA-Z\d\s]" ""
 
 ## PRIVATE 
    Defines the interface for cleansable object.
 type Cleansable_Text
-   Value replace
-
+    ## PRIVATE
+    Value replace

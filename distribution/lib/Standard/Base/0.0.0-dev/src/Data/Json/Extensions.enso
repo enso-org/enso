@@ -163,6 +163,7 @@ Map.to_js_object self =
     map_vector.map p-> [p.first.to_js_object, p.second.to_js_object]
 
 ## PRIVATE
+   ICON convert
    Extension for Text to allow use.
    Deprecated: The `parse_json` method uses a faster implementation now by default
 Text.parse_fast_json : Nothing | Boolean | Number | Text | Vector | JS_Object
