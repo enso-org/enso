@@ -72,7 +72,7 @@ export function PaywallButton(props: PaywallButtonProps) {
             size="medium"
             rounding="xlarge"
             className="mt-2"
-            href={appUtils.SUBSCRIBE_PATH}
+            href={appUtils.SUBSCRIBE_PATH + '?plan=' + level.name}
           >
             {isEnterprise ? getText('contactSales') : getText('learnMore')}
           </ariaComponents.Button>

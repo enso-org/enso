@@ -21,7 +21,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
 import { PaywallBulletPoints } from './PaywallBulletPoints'
-import { PaywallButton } from './PaywallButton'
 
 /**
  * Props for a {@link PaywallScreen}.
@@ -43,6 +42,8 @@ export function PaywallScreen(props: PaywallScreenProps) {
   const { bulletPointsTextId, level } = getFeature(feature)
   const levelLabel = getText(level.label)
 
+  const isEnterprise = level === billingHooks.PAYWALL_LEVELS.enterprise
+
   return (
     <div className={tw.twMerge('flex flex-col items-start', className)}>
       <div className="mb-1 flex flex-col items-center justify-center">
@@ -62,15 +63,14 @@ export function PaywallScreen(props: PaywallScreenProps) {
         {getText('paywallScreenDescription', levelLabel)}
       </p>
 
-      <PaywallButton
-        feature={feature}
+      <ariaComponents.Button
         variant="primary"
         size="medium"
         className="mt-3"
-        // href={appUtils.SUBSCRIBE_PATH + '?plan=' + level.name}
+        href={appUtils.SUBSCRIBE_PATH + '?plan=' + level.name}
       >
-        {getText('upgradeTo', levelLabel)}
-      </PaywallButton>
+        {isEnterprise ? getText('contactSales') : getText('upgradeTo', levelLabel)}
+      </ariaComponents.Button>
     </div>
   )
 }
