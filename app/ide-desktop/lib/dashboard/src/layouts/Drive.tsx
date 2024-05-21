@@ -77,6 +77,7 @@ export interface DriveProps {
   readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly doOpenEditor: (
@@ -91,7 +92,7 @@ export interface DriveProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
   const { hidden, initialProjectName, query, setQuery } = props
-  const { labels, setLabels, setSuggestions, projectStartupInfo } = props
+  const { labels, setLabels, setSuggestions, projectStartupInfo, setProjectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
@@ -398,6 +399,7 @@ export default function Drive(props: DriveProps) {
               query={query}
               setQuery={setQuery}
               setCanDownload={setCanDownload}
+              setProjectStartupInfo={setProjectStartupInfo}
               category={category}
               allLabels={allLabels}
               setSuggestions={setSuggestions}

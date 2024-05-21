@@ -73,6 +73,7 @@ export interface ProjectIconProps {
   readonly item: backendModule.ProjectAsset
   readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly assetEvents: assetEvent.AssetEvent[]
+  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   /** Called when the project is opened via the {@link ProjectIcon}. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
   readonly doCloseEditor: () => void
@@ -81,13 +82,15 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, setItem, assetEvents, doOpenManually } = props
+  const { backend, item, setItem, assetEvents, setProjectStartupInfo, doOpenManually } = props
   const { doCloseEditor, doOpenEditor } = props
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
+  const itemRef = React.useRef(item)
+  itemRef.current = item
   const state = item.projectState.type
   const setState = React.useCallback(
     (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -111,7 +114,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [user, /* should never change */ setItem]
+    [/* should never change */ user, /* should never change */ setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
@@ -119,27 +122,19 @@ export default function ProjectIcon(props: ProjectIconProps) {
     item.projectState.executeAsync ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
-  const [toastId, setToastId] = React.useState<toast.Id | null>(null)
-  const [openProjectAbortController, setOpenProjectAbortController] =
-    React.useState<AbortController | null>(null)
-  const [closeProjectAbortController, setCloseProjectAbortController] =
-    React.useState<AbortController | null>(null)
+  const toastId: toast.Id = React.useId()
+  const isOpening = backendModule.IS_OPENING[item.projectState.type]
   const isCloud = backend.type !== backendModule.BackendType.local
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
-      closeProjectAbortController?.abort()
-      setCloseProjectAbortController(null)
       setState(backendModule.ProjectState.openInProgress)
       try {
         switch (backend.type) {
           case backendModule.BackendType.remote: {
             if (state !== backendModule.ProjectState.opened) {
-              if (!shouldRunInBackground) {
-                setToastId(toast.toast.loading(LOADING_MESSAGE))
-              }
               await backend.openProject(
                 item.id,
                 {
@@ -148,17 +143,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
                   cognitoCredentials: session,
                 },
                 item.title
-              )
-            }
-            const abortController = new AbortController()
-            setOpenProjectAbortController(abortController)
-            await remoteBackend.waitUntilProjectIsReady(backend, item, abortController)
-            setToastId(null)
-            if (!abortController.signal.aborted) {
-              setState(oldState =>
-                oldState === backendModule.ProjectState.openInProgress
-                  ? backendModule.ProjectState.opened
-                  : oldState
               )
             }
             break
@@ -192,7 +176,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
       state,
       backend,
       item,
-      closeProjectAbortController,
       session,
       toastAndLog,
       /* should never change */ setState,
@@ -201,14 +184,35 @@ export default function ProjectIcon(props: ProjectIconProps) {
   )
 
   React.useEffect(() => {
-    if (toastId != null) {
+    if (isOpening) {
+      const abortController = new AbortController()
+      if (!isRunningInBackground) {
+        toast.toast.loading(LOADING_MESSAGE, { toastId })
+      }
+      void (async () => {
+        await remoteBackend.waitUntilProjectIsReady(backend, itemRef.current, abortController)
+        if (!abortController.signal.aborted) {
+          toast.toast.dismiss(toastId)
+          setState(oldState =>
+            backendModule.IS_OPENING_OR_OPENED[oldState]
+              ? backendModule.ProjectState.opened
+              : oldState
+          )
+        }
+      })()
       return () => {
-        toast.toast.dismiss(toastId)
+        abortController.abort()
       }
     } else {
       return
     }
-  }, [toastId])
+  }, [
+    isOpening,
+    isRunningInBackground,
+    /* should never change */ backend,
+    /* should never change */ setState,
+    /* should never change */ toastId,
+  ])
 
   React.useEffect(() => {
     // Ensure that the previous spinner state is visible for at least one frame.
@@ -262,6 +266,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
           setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
           setIsRunningInBackground(event.runInBackground)
           void openProject(event.runInBackground)
+          void backend.getProjectDetails(item.id, item.parentId, item.title).then(project => {
+            setProjectStartupInfo({
+              project,
+              projectAsset: item,
+              setProjectAsset: setItem,
+              backendType: backend.type,
+              accessToken: session?.accessToken ?? null,
+            })
+          })
         }
         break
       }
@@ -290,13 +303,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     if (triggerOnClose) {
       doCloseEditor()
     }
-    setToastId(null)
+    toast.toast.dismiss(toastId)
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)
-    openProjectAbortController?.abort()
-    setOpenProjectAbortController(null)
-    const abortController = new AbortController()
-    setCloseProjectAbortController(abortController)
     if (backendModule.IS_OPENING_OR_OPENED[state]) {
       try {
         if (
@@ -307,15 +316,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
           // This is the only way to wait until the project is open.
           await backend.openProject(item.id, null, item.title)
         }
-        try {
-          await backend.closeProject(item.id, item.title)
-        } catch {
-          // Ignored. The project is already closed.
-        }
-      } finally {
-        if (!abortController.signal.aborted) {
-          setState(backendModule.ProjectState.closed)
-        }
+        await backend.closeProject(item.id, item.title)
+      } catch {
+        // Ignored.
       }
     }
   }

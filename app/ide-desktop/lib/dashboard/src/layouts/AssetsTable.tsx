@@ -311,6 +311,7 @@ export interface AssetsTableState {
   readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -356,6 +357,7 @@ export interface AssetsTableProps {
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
   readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
@@ -382,7 +384,8 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, setCanDownload, category, allLabels } = props
+  const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category, allLabels } =
+    props
   const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
@@ -1915,6 +1918,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setSortInfo,
       query,
       setQuery,
+      setProjectStartupInfo,
       assetEvents,
       dispatchAssetEvent,
       dispatchAssetListEvent,
@@ -1953,6 +1957,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       /* should never change */ hideColumn,
       /* should never change */ setAssetPanelProps,
       /* should never change */ setIsAssetPanelTemporarilyVisible,
+      /* should never change */ setProjectStartupInfo,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ dispatchAssetListEvent,

@@ -410,6 +410,7 @@ export default function Dashboard(props: DashboardProps) {
             setLabels={setLabels}
             setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
+            setProjectStartupInfo={setProjectStartupInfo}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}
