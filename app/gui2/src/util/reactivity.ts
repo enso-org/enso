@@ -1,6 +1,7 @@
 /** @file Functions for manipulating Vue reactive objects. */
 
 import { defaultEquality } from '@/util/equals'
+import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
 import {
   callWithErrorHandling,
@@ -135,23 +136,23 @@ export function cachedGetter<T>(
 
 /**
  * Same as `cachedGetter`, except that any changes will be not applied immediately, but only after
- * the timer set for `delayMs` milliseconds will expire. If any further update arrives in that
- * time, the timer is restarted
+ * the timer set for `debounce` milliseconds will expire. If any further update arrives in that
+ * time, the timer is restarted.
  */
 export function debouncedGetter<T>(
   getter: () => T,
-  delayMs: number,
+  debounce: number,
   equalFn: (a: T, b: T) => boolean = defaultEquality,
 ): Ref<T> {
   const valueRef = shallowRef<T>(getter())
-  let currentTimer: ReturnType<typeof setTimeout> | undefined
-  watch(getter, (newValue) => {
-    clearTimeout(currentTimer)
-    currentTimer = setTimeout(() => {
+  debouncedWatch(
+    getter,
+    (newValue) => {
       const oldValue = valueRef.value
       if (!equalFn(oldValue, newValue)) valueRef.value = newValue
-    }, delayMs)
-  })
+    },
+    { debounce },
+  )
   return valueRef
 }
 

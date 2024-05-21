@@ -78,12 +78,23 @@ const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
 const storedShowDocumentationEditor = ref()
 const rightDockWidth = ref<number>()
 
+/**
+ * JSON serializable representation of graph state saved in localStorage. The names of fields here
+ * are kept relatively short, because it will be common to store hundreds of them within one big
+ * JSON object, and serialize it quite often whenever the state is modified. Shorter keys end up
+ * costing less localStorage space and slightly reduce serialization overhead.
+ */
 interface GraphStoredState {
+  /** Navigator position X */
   x: number
+  /** Navigator position Y */
   y: number
+  /** Navigator scale */
   s: number
+  /** Whether or not the documentation panel is open. */
   doc: boolean
-  rw: number | null
+  /** Width of the right dock. */
+  rwidth: number | null
 }
 
 const visibleAreasReady = computed(() => {
@@ -109,7 +120,7 @@ useSyncLocalStorage<GraphStoredState>({
       y: graphNavigator.targetCenter.y,
       s: graphNavigator.targetScale,
       doc: storedShowDocumentationEditor.value,
-      rw: rightDockWidth.value ?? null,
+      rwidth: rightDockWidth.value ?? null,
     }
   },
   async restoreState(restored, abort) {
@@ -118,7 +129,7 @@ useSyncLocalStorage<GraphStoredState>({
       const scale = restored.s ?? 1
       graphNavigator.setCenterAndScale(pos, scale)
       storedShowDocumentationEditor.value = restored.doc ?? undefined
-      rightDockWidth.value = restored.rw ?? undefined
+      rightDockWidth.value = restored.rwidth ?? undefined
     } else {
       await until(visibleAreasReady).toBe(true)
       if (!abort.aborted) zoomToAll(true)
