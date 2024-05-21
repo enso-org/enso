@@ -1383,11 +1383,11 @@ type Table
        ICON split_text
        Expand a column of objects to a new set of columns.
 
-        Arguments:
-        - column: The column to expand.
-        - fields: The set fields to expand. If `Nothing` then all fields are added.
-        - prefix: Prefix to add to the column names. If `Nothing` then the column
-          name is used.
+       Arguments:
+       - column: The column to expand.
+       - fields: The set fields to expand. If `Nothing` then all fields are added.
+       - prefix: Prefix to add to the column names. If `Nothing` then the column
+         name is used.
     @column Widget_Helpers.make_column_name_selector
     expand_column : Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
@@ -1809,7 +1809,7 @@ type Table
     ## ICON convert
        Returns the vector of columns contained in this table.
 
-       > Examples
+       > Example
          Get a vector containing the columns in the table.
 
              import Standard.Examples
@@ -2874,28 +2874,28 @@ type Table
        ICON dataframe_map_column
        Applies the specified cleansings to the text in each row of the specified columns.
 
-        Arguments:
-        - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
-            applied in the order they are provided. The same text cleansing can be used multiple
-            times. The text cleansings are:
-              - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-              - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-              - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-              - ..All_Whitespace: Removes all whitspace from the string.
-              - ..Leading_Numbers: Removes all numbers from the start of the string.
-              - ..Trailing_Numbers: Removes all numbers from the end of the string.
-              - ..Non_ASCII: Removes all non-ascii characters from the string.
-              - ..Tabs: Removes all tab characters from the string.
-              - ..Letters: Removes all letters from the string.
-              - ..Numbers: Removes all numbers characters from the string.
-              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
-              - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
-        - from: The column(s) to cleanse.
+       Arguments:
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are
+           applied in the order they are provided. The same text cleansing can be used multiple
+           times. The text cleansings are:
+             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+             - ..All_Whitespace: Removes all whitspace from the string.
+             - ..Leading_Numbers: Removes all numbers from the start of the string.
+             - ..Trailing_Numbers: Removes all numbers from the end of the string.
+             - ..Non_ASCII: Removes all non-ascii characters from the string.
+             - ..Tabs: Removes all tab characters from the string.
+             - ..Letters: Removes all letters from the string.
+             - ..Numbers: Removes all numbers characters from the string.
+             - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+             - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+       - from: The column(s) to cleanse.
 
-        > Example
-          Remove leading and trailing spaces from cells.
+       > Example
+         Remove leading and trailing spaces from cells.
 
-              table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+             table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
     @from (Widget_Helpers.make_column_name_multi_selector use_regex=True)
     text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> Table

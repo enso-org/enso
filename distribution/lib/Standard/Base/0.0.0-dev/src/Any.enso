@@ -453,7 +453,7 @@ type Any
        GROUP Operators
        Applies the function on the right hand side to the argument on the left.
 
-       Arguments
+       Arguments:
        - function: The function to apply to `self`.
 
        ? `|>` or `.`?
