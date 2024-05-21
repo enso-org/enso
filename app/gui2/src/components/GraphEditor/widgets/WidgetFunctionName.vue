@@ -7,7 +7,7 @@ import { Ast } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import { PropertyAccess } from 'shared/ast'
-import type { ExpressionId } from 'shared/languageServerTypes'
+import type { ExpressionId, MethodPointer } from 'shared/languageServerTypes'
 import { computed, ref, watchEffect } from 'vue'
 import NodeWidget from '../NodeWidget.vue'
 
@@ -28,9 +28,12 @@ const name = computed(() =>
 )
 watchEffect(() => (displayedName.value = name.value.code()))
 
-function newNameAccepted(name: string | undefined) {
-  if (!name) return
-  renameFunction(name).then((result) => result.ok || renameError.reportError(result.error))
+function newNameAccepted(newName: string | undefined) {
+  if (!newName) {
+    displayedName.value = name.value.code()
+  } else {
+    renameFunction(newName).then((result) => result.ok || renameError.reportError(result.error))
+  }
 }
 
 async function renameFunction(newName: string): Promise<Result> {
@@ -50,7 +53,9 @@ export const FunctionName: unique symbol = Symbol('FunctionName')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [FunctionName]?: {
-      calledFunction: SuggestionEntry
+      /** Id of expression which is accepted by Lanugage Server's
+       * [`refactoring/renameSymbol` method](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#refactoringrenamesymbol)
+       */
       editableName: ExpressionId
     }
   }
@@ -58,7 +63,7 @@ declare module '@/providers/widgetRegistry' {
 
 function isFunctionName(
   input: WidgetInput,
-): input is WidgetInput & { value: Ast.Ast; [FunctionName]: SuggestionEntry } {
+): input is WidgetInput & { value: Ast.Ast; [FunctionName]: { editableName: ExpressionId } } {
   return WidgetInput.isAst(input) && FunctionName in input
 }
 

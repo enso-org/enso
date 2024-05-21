@@ -470,6 +470,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     return this.request('runtime/getComponentGroups', {})
   }
 
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#refactoringrenamesymbol) */
   renameSymbol(
     module: string,
     expressionId: ExpressionId,

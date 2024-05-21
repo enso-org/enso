@@ -33,6 +33,7 @@ import type { Opt } from '@/util/data/opt'
 import { isIdentifier } from '@/util/qualifiedName.ts'
 import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
+import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -101,9 +102,17 @@ const application = computed(() => {
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
     return application.value.toWidgetInput()
-  } else {
-    return props.input
+  } else if (methodCallInfo.value) {
+    const definition = graph.getMethodAst(methodCallInfo.value.methodCall.methodPointer)
+    if (definition.ok)
+      return {
+        ...props.input,
+        [FunctionName]: {
+          editableName: definition.value.name.externalId,
+        },
+      }
   }
+  return props.input
 })
 
 const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
@@ -312,10 +321,13 @@ export const widgetDefinition = defineWidget(
   {
     priority: 200,
     score: (props, db) => {
+      console.log('---- CONSIDERING ---')
+      console.log(props.input)
       // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
       if (props.input[ArgumentApplicationKey]) return Score.Mismatch
       const ast = props.input.value
       if (ast.id == null) return Score.Mismatch
+      console.log(ast.id)
       const prevFunctionState = injectFunctionInfo(true)
 
       // It is possible to try to render the same function application twice, e.g. when detected an
@@ -324,10 +336,13 @@ export const widgetDefinition = defineWidget(
       // and to resolve the infix call as its own application.
       // We only render the function widget on the application chain’s top-level.
       if (prevFunctionState?.prefixCalls.has(ast.id)) return Score.Mismatch
+      console.log(prevFunctionState)
 
       if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
+      console.log(ast)
 
       const info = getMethodCallInfoRecursively(ast, db)
+      console.log(info)
       return info != null ? Score.Perfect : Score.Mismatch
     },
   },

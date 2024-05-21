@@ -25,7 +25,6 @@ const targetMaybePort = computed(() => {
     const definition = graph.getMethodAst(ptr)
     if (!definition.ok) return input
     input[FunctionName] = {
-      calledFunction: application.value.calledFunction,
       editableName: definition.value.name.externalId,
     }
     return input
