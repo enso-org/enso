@@ -25,8 +25,8 @@ const emits = defineEmits<{
 const MIN_DRAG_MOVE = 10
 
 const editingEdge: Interaction = {
-  cancel: () => graph.mouseEditedEdge = undefined,
-  end: () => graph.mouseEditedEdge = undefined,
+  cancel: () => (graph.mouseEditedEdge = undefined),
+  end: () => (graph.mouseEditedEdge = undefined),
   pointerdown: (_e: PointerEvent, graphNavigator: GraphNavigator) =>
     edgeInteractionClick(graphNavigator),
   pointerup: (e: PointerEvent, graphNavigator: GraphNavigator) => {
