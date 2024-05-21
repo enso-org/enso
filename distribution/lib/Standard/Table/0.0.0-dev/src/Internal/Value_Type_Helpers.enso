@@ -66,7 +66,6 @@ reconcile_types current new = case current of
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Float _     -> Value_Type.Float
         Value_Type.Decimal _ _ -> new
-        Value_Type.Boolean     -> current
         _                      -> Value_Type.Mixed
     Value_Type.Float size -> case new of
         Value_Type.Float new_size ->
@@ -75,14 +74,12 @@ reconcile_types current new = case current of
         Value_Type.Integer _   -> Value_Type.Float
         Value_Type.Byte        -> Value_Type.Float
         Value_Type.Decimal _ _ -> Value_Type.Float
-        Value_Type.Boolean     -> Value_Type.Float
         _                      -> Value_Type.Mixed
     Value_Type.Byte -> case new of
         Value_Type.Byte        -> Value_Type.Byte
         Value_Type.Integer _   -> new
         Value_Type.Float _     -> Value_Type.Float
         Value_Type.Decimal _ _ -> new
-        Value_Type.Boolean     -> current
         _                      -> Value_Type.Mixed
     Value_Type.Decimal precision scale -> case new of
         Value_Type.Decimal new_precision new_scale ->
@@ -92,15 +89,7 @@ reconcile_types current new = case current of
         Value_Type.Integer _ -> Value_Type.Decimal precision scale
         Value_Type.Byte      -> Value_Type.Decimal precision scale
         Value_Type.Float _   -> Value_Type.Float
-        Value_Type.Boolean   -> current
         _                    -> Value_Type.Mixed
-    Value_Type.Boolean -> case new of
-        Value_Type.Boolean     -> Value_Type.Boolean
-        Value_Type.Integer _   -> new
-        Value_Type.Byte        -> new
-        Value_Type.Float _     -> Value_Type.Float
-        Value_Type.Decimal _ _ -> new
-        _                      -> Value_Type.Mixed
     Value_Type.Char current_size current_variable -> case new of
         Value_Type.Char new_size new_variable ->
             result_variable = current_variable || new_variable || current_size != new_size
@@ -171,6 +160,25 @@ find_common_date_types (types : Vector Value_Type) (related_column_name : Text |
             problem_builder.report_other_warning (Mixing_Date_Time_Types.Implicit_Time_Zone related_column_name)
 
         common_type
+
+## PRIVATE
+   An extra helper function that reconciles numeric and boolean types.
+   Unifying Boolean and numeric types is not expected by all operations, but
+   some may want to opt-in to it. This method allows to do so.
+
+   If non-numeric or non-boolean types are provided, it will fail by returning
+   `Nothing`.
+
+   No warnings are reported, as coercing boolean to integer is harmless, it was
+   just chosen not to be done by default.
+find_common_numeric_boolean_type (types : Vector Value_Type) -> Value_Type | Nothing =
+    assert types.not_empty
+    all_numeric_or_boolean = types.all typ-> typ.is_numeric || (typ == Value_Type.Boolean)
+    if all_numeric_or_boolean.not then Nothing else
+        ## We just find a common type again, ignoring the boolean types: the
+           boolean will fit any numeric type that we get out of this.
+        without_boolean = types.filter typ-> typ != Value_Type.Boolean
+        find_common_type without_boolean strict=True
 
 ## PRIVATE
    Finds the type of an argument to a column operation.

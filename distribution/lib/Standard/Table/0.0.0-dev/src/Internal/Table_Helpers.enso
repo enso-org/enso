@@ -543,10 +543,13 @@ unify_result_type_for_union (column_set : Column_Set) (all_tables : Vector) (pro
         if common_type.is_nothing.not then Union_Result_Type.Common_Type common_type else
             ## Union has less strict requirements than other operations relying on `find_common_type`,
                so if the common type was not found, we still check some fallbacks.
-            common_date_type = Value_Type_Helpers.find_common_date_types types column_set.name problem_builder
-            if common_date_type.is_nothing.not then Union_Result_Type.Common_Type common_date_type else
-                problem_builder.report_other_warning (No_Common_Type.Warning types column_set.name)
-                Union_Result_Type.Fallback_To_Text
+            common_numeric_boolean = Value_Type_Helpers.find_common_numeric_boolean_type types
+            if common_numeric_boolean.is_nothing.not then Union_Result_Type.Common_Type common_numeric_boolean else
+                common_date_type = Value_Type_Helpers.find_common_date_types types column_set.name problem_builder
+                if common_date_type.is_nothing.not then Union_Result_Type.Common_Type common_date_type else
+                    # Lastly, we fall back to text, reporting a warning.
+                    problem_builder.report_other_warning (No_Common_Type.Warning types column_set.name)
+                    Union_Result_Type.Fallback_To_Text
 
 ## PRIVATE
 type Union_Result_Type
