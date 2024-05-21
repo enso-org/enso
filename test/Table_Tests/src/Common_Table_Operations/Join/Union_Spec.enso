@@ -353,12 +353,11 @@ run_union_tests group_builder setup call_union =
 
         action = call_union [t1, t2] on_problems=_
         tester table =
-            IO.println ""
-            table.print
             expect_column_names ["D"] table
             table.at "D" . value_type . should_equal Value_Type.Date_Time
             table.at "D" . to_vector . should_equal_tz_agnostic [Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0]
         problems = [Mixing_Date_Time_Types.Date_To_Date_Time "D"]
+        problems.first.to_display_text . should_contain "[D]"
         Problems.test_problem_handling action problems tester
 
     # Database backends are not required to support Mixed types.
