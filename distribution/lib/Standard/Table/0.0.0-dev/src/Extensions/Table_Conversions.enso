@@ -112,13 +112,13 @@ Text.parse_to_table self (pattern : Text | Regex) case_sensitivity=Case_Sensitiv
    ADVANCED
    Implements the `Table.write` for this `JSON_File`.
 
-    Arguments:
-    - file: The file to write to.
-    - table: The table to write.
-    - on_existing_file: What to do if the file already exists.
-    - match_columns: How to match columns between the table and the file.
-      Not used for JSON.
-    - on_problems: What to do if there are problems reading the file.
+   Arguments:
+   - file: The file to write to.
+   - table: The table to write.
+   - on_existing_file: What to do if the file already exists.
+   - match_columns: How to match columns between the table and the file.
+     Not used for JSON.
+   - on_problems: What to do if there are problems reading the file.
 JSON_Format.write_table : Writable_File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
 JSON_Format.write_table self file:Writable_File table on_existing_file match_columns on_problems =
     _ = match_columns
