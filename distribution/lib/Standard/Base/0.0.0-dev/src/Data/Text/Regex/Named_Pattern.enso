@@ -1,0 +1,30 @@
+from Standard.Base import all
+
+type Named_Pattern
+   Duplicate_Whitespace
+   Leading_Whitespace
+   Trailing_Whitespace
+   All_Whitespace
+   Leading_Numbers
+   Trailing_Numbers
+   Non_ASCII
+   Tabs
+   Letters
+   Numbers
+   Punctuation
+   Symbols
+
+   ## PRIVATE
+   regex_pattern self = case self of
+      Named_Pattern.Leading_Whitespace -> "^\s+"
+      Named_Pattern.Trailing_Whitespace -> "\s+$"
+      Named_Pattern.Duplicate_Whitespace -> "(?<=\s)\s+"
+      Named_Pattern.All_Whitespace -> "\s+"
+      Named_Pattern.Leading_Numbers -> "^\d+"
+      Named_Pattern.Trailing_Numbers -> "\d+$"
+      Named_Pattern.Non_ASCII -> "[^\x00-\x7F]"
+      Named_Pattern.Tabs -> "\t"
+      Named_Pattern.Letters -> "[a-zA-Z]"
+      Named_Pattern.Numbers -> "\d"
+      Named_Pattern.Punctuation -> '[,.!?():;\'\"]'
+      Named_Pattern.Symbols -> "[^a-zA-Z\d\s]"
