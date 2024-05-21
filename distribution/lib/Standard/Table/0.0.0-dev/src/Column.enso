@@ -2671,7 +2671,7 @@ wrap_text_argument_as_value_provider val =
 
 ## PRIVATE
 wrap_text_or_regex_argument_as_value_provider val =
-    if val.is_a Regex then (_-> val) else wrap_text_argument_as_value_provider val
+    if val.is_a Regex then (_-> val) else if val.is_a Named_Pattern then (_-> (Regex.compile val.regex_pattern)) else wrap_text_argument_as_value_provider val
 
 ## PRIVATE
    Cast a column to a `Value_Type`, unless it already has that type.

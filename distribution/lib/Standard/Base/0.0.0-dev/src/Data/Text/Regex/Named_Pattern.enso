@@ -28,3 +28,6 @@ type Named_Pattern
       Named_Pattern.Numbers -> "\d"
       Named_Pattern.Punctuation -> '[,.!?():;\'\"]'
       Named_Pattern.Symbols -> "[^a-zA-Z\d\s]"
+
+## PRIVATE
+Regex.from (that:Named_Pattern) = that.regex_pattern

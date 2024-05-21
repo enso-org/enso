@@ -25,7 +25,21 @@ make_text_secret_selector =
    Creates a Regex / Text Widget for search and replace.
 make_regex_text_widget : Widget
 make_regex_text_widget =
-    make_single_choice [["<Text Value>", '""'], ["<Regular Expression>", '(regex "^$")']]
+    builder = Vector.new_builder
+    builder.append (Option "<Text Value>" '""')
+    builder.append (Option "<Regular Expression>" '(regex "^$")')
+    builder.append (Option "Leading_Whitespace" "Named_Pattern.Leading_Whitespace")
+    builder.append (Option "Trailing_Whitespace" "Named_Pattern.Trailing_Whitespace")
+    builder.append (Option "All_Whitespace" "Named_Pattern.All_Whitespace")
+    builder.append (Option "Leading_Numbers" "Named_Pattern.Leading_Numbers")
+    builder.append (Option "Trailing_Numbers" "Named_Pattern.Trailing_Numbers")
+    builder.append (Option "Non_ASCII" "Named_Pattern.Non_ASCII")
+    builder.append (Option "Tabs" "Named_Pattern.Tabs")
+    builder.append (Option "Letters" "Named_Pattern.Letters")
+    builder.append (Option "Numbers" "Named_Pattern.Numbers")
+    builder.append (Option "Punctuation" "Named_Pattern.Punctuation")
+    builder.append (Option "Symbols" "Named_Pattern.Symbols")
+    make_single_choice values=builder.to_vector
 
 ## PRIVATE
    Creates a Single_Choice Widget for delimiters.
