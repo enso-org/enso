@@ -321,13 +321,10 @@ export const widgetDefinition = defineWidget(
   {
     priority: 200,
     score: (props, db) => {
-      console.log('---- CONSIDERING ---')
-      console.log(props.input)
       // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
       if (props.input[ArgumentApplicationKey]) return Score.Mismatch
       const ast = props.input.value
       if (ast.id == null) return Score.Mismatch
-      console.log(ast.id)
       const prevFunctionState = injectFunctionInfo(true)
 
       // It is possible to try to render the same function application twice, e.g. when detected an
@@ -336,13 +333,10 @@ export const widgetDefinition = defineWidget(
       // and to resolve the infix call as its own application.
       // We only render the function widget on the application chain’s top-level.
       if (prevFunctionState?.prefixCalls.has(ast.id)) return Score.Mismatch
-      console.log(prevFunctionState)
 
       if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
-      console.log(ast)
 
       const info = getMethodCallInfoRecursively(ast, db)
-      console.log(info)
       return info != null ? Score.Perfect : Score.Mismatch
     },
   },
