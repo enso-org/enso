@@ -622,5 +622,5 @@
   "paywallAvailabilityLevel": "Available on $0 plan",
 
   "userGroupsFeatureLabel": "User Groups",
-  "userGroupsFeatureBulletPoints": "Create user groups to manage permissions;Assign user groups to assets;Assign user groups to users"
+  "userGroupsFeatureBulletPoints": "Create user groups to manage permissions;Assign user groups to assets;Assign users to groups"
 }
