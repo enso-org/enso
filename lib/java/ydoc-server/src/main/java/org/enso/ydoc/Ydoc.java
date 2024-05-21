@@ -119,7 +119,7 @@ public final class Ydoc implements AutoCloseable {
               + " not found in resources. You probably need to first built it with: "
               + "`npm --workspace=enso-gui2 run build-ydoc-server-polyglot`");
     }
-    var ydocJs = Source.newBuilder("js", ydoc).mimeType("application/javascript+module").build();
+    var ydocJs = Source.newBuilder("js", ydoc).build();
 
     context =
         CompletableFuture.supplyAsync(
