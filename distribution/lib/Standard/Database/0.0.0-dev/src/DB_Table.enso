@@ -879,7 +879,7 @@ type DB_Table
        Specifically, applying further filters will still apply to the whole
        result set and the limit will be taken after applying these filters.
 
-       > For example:
+       > Example
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.

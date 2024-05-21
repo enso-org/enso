@@ -67,7 +67,8 @@ JS_Object.to_table self fields=Nothing =
    - fields: a Vector of Text representing the names of fields to look up.
      If `Nothing` then all fields found are added.
 
-   > Example Converts a set of objects into a table using the provided headers.
+   > Example
+     Converts a set of objects into a table using the provided headers.
 
          from Standard.Table import Table
          import Standard.Examples

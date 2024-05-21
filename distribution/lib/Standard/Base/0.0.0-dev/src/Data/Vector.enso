@@ -34,18 +34,18 @@ from project.Runtime import assert
 
 polyglot java import java.lang.IndexOutOfBoundsException
 
-##  The basic, immutable, vector type.
-    A vector allows to store an arbitrary number of elements, in linear memory.
-    It is the recommended data structure for most applications.
+## The basic, immutable, vector type.
+   A vector allows to store an arbitrary number of elements, in linear memory.
+   It is the recommended data structure for most applications.
 
-    > Example
-      A vector containing the elements `1`, `2`, and `3`, in this order is:
-          [1, 2, 3]
+   > Example
+     A vector containing the elements `1`, `2`, and `3`, in this order is:
+         [1, 2, 3]
 
-    > Example
-      A vector containing 50 elements, each being the number `42`, can be
-      created by:
-          Vector.fill length=50 item=42
+   > Example
+     A vector containing 50 elements, each being the number `42`, can be
+     created by:
+         Vector.fill length=50 item=42
 
 @Builtin_Type
 type Vector a
