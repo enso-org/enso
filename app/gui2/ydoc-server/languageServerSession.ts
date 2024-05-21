@@ -108,7 +108,7 @@ export class LanguageServerSession {
     const fileModified = async (event: { path: Path }) => {
       const path = event.path.segments.join('/')
       // TODO[ao]: for debugging #9960
-      // console.log('FILE MODIFIED', path)
+      console.log('FILE MODIFIED', path)
       const result = await exponentialBackoff(
         async () => this.tryGetExistingModuleModel(event.path)?.reload() ?? Ok(),
         printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
@@ -118,7 +118,7 @@ export class LanguageServerSession {
     this.ls.on('text/fileModifiedOnDisk', fileModified)
     this.ls.on('text/didChange', (event) => {
       // TODO[ao]: for debugging #9960
-      //console.log('DID CHANGE', JSON.stringify(event))
+      console.log('DID CHANGE', JSON.stringify(event))
       for (const edit of event.edits) {
         fileModified(edit)
       }
@@ -507,29 +507,28 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const execute = newCode != null || newIdMap != null
     const edit: FileEdit = { path: this.path, edits, oldVersion: this.syncedVersion, newVersion }
     const apply = this.ls.applyEdit(edit, execute)
-    const promise = apply.then(
-      () => {
-        this.syncedContent = newContent
-        this.syncedVersion = newVersion
-        if (newMetadata) this.syncedMeta.ide.node = newMetadata
-        if (newCode) this.syncedCode = newCode
-        if (newIdMapJson) this.syncedIdMap = newIdMapJson
-        if (newMetadataJson) this.syncedMetaJson = newMetadataJson
-        this.setState(LsSyncState.Synchronized)
-      },
-      (error) => {
-        console.error('Could not apply edit:', error)
-        // Try to recover by reloading the file.
-        // Drop the attempted updates, since applying them have failed.
-        this.setState(LsSyncState.WriteError)
-        this.syncedContent = null
-        this.syncedVersion = null
-        this.syncedCode = null
-        this.syncedIdMap = null
-        this.syncedMetaJson = null
-        return this.reload()
-      },
-    )
+    const handleError = (error: unknown) => {
+      console.error('Could not apply edit:', error)
+      // Try to recover by reloading the file.
+      // Drop the attempted updates, since applying them have failed.
+      this.setState(LsSyncState.WriteError)
+      this.syncedContent = null
+      this.syncedVersion = null
+      this.syncedCode = null
+      this.syncedIdMap = null
+      this.syncedMetaJson = null
+      return this.reload()
+    }
+    const promise = apply.then((result) => {
+      if (!result.ok) return handleError(result.error)
+      this.syncedContent = newContent
+      this.syncedVersion = newVersion
+      if (newMetadata) this.syncedMeta.ide.node = newMetadata
+      if (newCode) this.syncedCode = newCode
+      if (newIdMapJson) this.syncedIdMap = newIdMapJson
+      if (newMetadataJson) this.syncedMetaJson = newMetadataJson
+      this.setState(LsSyncState.Synchronized)
+    }, handleError)
     this.setLastAction(promise)
     return promise
   }
@@ -545,6 +544,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       let parsedSpans
       const syncModule = new Ast.MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
+        console.log('syncing code')
         const syncRoot = syncModule.root()
         if (syncRoot) {
           const edit = syncModule.edit()
@@ -561,19 +561,26 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const astRoot = syncModule.root()
       if (!astRoot) return
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
-        const idMap = deserializeIdMap(idMapJson)
+        console.log('syncing IdMap')
         const spans = parsedSpans ?? Ast.print(astRoot).info
-        const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
-        const numberOfAsts = astCount(astRoot)
-        const idsNotSetByMap = numberOfAsts - idsAssigned
-        if (idsNotSetByMap > 0) {
-          if (code !== this.syncedCode) {
-            unsyncedIdMap = Ast.spanMapToIdMap(spans)
-          } else {
-            console.warn(
-              `The LS sent an IdMap-only edit that is missing ${idsNotSetByMap} of our expected ASTs.`,
-            )
+        if (idMapJson !== this.syncedIdMap) {
+          const idMap = deserializeIdMap(idMapJson)
+          const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
+          const numberOfAsts = astCount(astRoot)
+          const idsNotSetByMap = numberOfAsts - idsAssigned
+          if (idsNotSetByMap > 0) {
+            if (code !== this.syncedCode) {
+              unsyncedIdMap = Ast.spanMapToIdMap(spans)
+            } else {
+              console.warn(
+                `The LS sent an IdMap-only edit that is missing ${idsNotSetByMap} of our expected ASTs.`,
+              )
+            }
           }
+        } else {
+          // If only code was externally changed, treat it as a text edit: the old idmap should
+          // be replaced with updated AST.
+          unsyncedIdMap = Ast.spanMapToIdMap(spans)
         }
       }
       if (
@@ -582,6 +589,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           metadataJson !== this.syncedMetaJson) &&
         nodeMeta.length !== 0
       ) {
+        console.log('syncing metadata?')
         const externalIdToAst = new Map<ExternalId, Ast.Ast>()
         astRoot.visitRecursiveAst((ast) => {
           if (!externalIdToAst.has(ast.externalId)) externalIdToAst.set(ast.externalId, ast)
@@ -676,17 +684,14 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           }
           case LsSyncState.Synchronized: {
             return this.withState(LsSyncState.Reloading, async () => {
-              const promise = Promise.all([
-                this.ls.readFile(this.path),
-                this.ls.fileChecksum(this.path),
-              ])
+              const promise = this.ls.readFile(this.path)
               this.setLastAction(promise)
-              const [contents, checksum] = await promise
+              const contents = await promise
               if (!contents.ok) return contents
-              if (!checksum.ok) return checksum
+              const checksum = computeTextChecksum(contents.value.contents)
               // TODO[ao]: for debugging #9960
-              // console.log(contents.value, checksum)
-              this.syncFileContents(contents.value.contents, checksum.value.checksum)
+              console.log(contents.value, checksum)
+              this.syncFileContents(contents.value.contents, checksum)
               return Ok()
             })
           }
