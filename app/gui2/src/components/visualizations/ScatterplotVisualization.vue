@@ -1,5 +1,5 @@
 <script lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
@@ -539,12 +539,13 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @click.stop="zoomToSelected(false)" />
-      </button>
-      <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @click.stop="zoomToSelected" />
-      </button>
+      <SvgButton name="show_all" alt="Fit all" @click.stop="zoomToSelected(false)" />
+      <SvgButton
+        name="find"
+        alt="Zoom to selected"
+        :disabled="brushExtent == null"
+        @click.stop="zoomToSelected"
+      />
     </template>
     <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">

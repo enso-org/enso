@@ -280,7 +280,7 @@ const dragPointer = usePointer(
   // is not going to be a node drag.
   { pointerCapturedBy: 'target' },
 )
-const isDragged = computed(() => dragPointer.dragging && significantMove)
+const isDragged = computed(() => dragPointer.dragging && significantMove.value)
 
 const isRecordingOverridden = computed({
   get() {

@@ -1,13 +1,12 @@
 <script setup lang="ts">
 /**
- * A toggleable `SvgIcon`.
+ * A toggleable `SvgButton`.
  *
- * Clicking the icon will add `toggledOn` css class on its root `svg` element. The component
- * does not have any style by itself, so the `toggledOn` style should be specified in the usage
- * place.
+ * Clicking the icon will switch between `toggledOn` and `toggledOff` css classes on its root `svg`
+ * element.
  */
 
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import type { Icon } from '@/util/iconName'
 
 const props = withDefaults(defineProps<{ icon: Icon; modelValue?: boolean }>(), {
@@ -19,9 +18,16 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <SvgIcon
-    :name="props.icon"
-    :class="{ toggledOn: modelValue }"
+  <SvgButton
+    :name="icon"
+    class="ToggleIcon"
+    :class="{ toggledOn: modelValue, toggledOff: !modelValue }"
     @click.stop="emit('update:modelValue', !modelValue)"
   />
 </template>
+
+<style scoped>
+.toggledOff {
+  opacity: 0.4;
+}
+</style>
