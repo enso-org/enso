@@ -313,8 +313,6 @@ run_union_tests group_builder setup call_union =
         t5.at "A" . value_type . is_floating_point . should_be_true
         t5.at "A" . to_vector . should_equal [1.0, 0.0, 1.0, 1.5, 0.0, 2.0]
 
-    ## TODO once the https://github.com/enso-org/enso/issues/8355 is implemented, the behaviour of this test will probably change:
-       When merging Float and big Integers, maybe we shall convert to BigDecimal, not to Float?
     group_builder.specify "should warn about loss of precision when converting large Integer to Float" pending=(if setup.is_database then "Loss_Of_Integer_Precision not yet supported in DB.") <|
         # 2^70 is not exactly representable as a Float.
         t1 = table_builder [["A", [2^70, 2^10, 2]]]
@@ -436,7 +434,7 @@ run_union_tests group_builder setup call_union =
             expect_column_names ["D"] table
             table.at "D" . to_vector . should_equal ["12:00:00", "13:00:00", "14:00:00", "2019-01-01", "2020-01-01", "2021-01-01"]
             table.at "D" . value_type . is_text . should_be_true
-        problems = [No_Common_Type.Warning [Value_Type.Time, Value_Type.Date] "D"]
+        problems = [No_Common_Type.Warning_Convert_To_Text [Value_Type.Time, Value_Type.Date] "D"]
         Problems.test_problem_handling action problems tester
 
     group_builder.specify "will use the _output_ column name in the warnings when matching by position (so input names may differ)" <|

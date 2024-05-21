@@ -506,7 +506,7 @@ type No_Common_Type
     ## PRIVATE
        A warning indicating that no common type could be found, so the operation
        had to fall back to converting all values to text.
-    Warning (types : Vector Value_Type) (related_column_name:Text)
+    Warning_Convert_To_Text  (types : Vector Value_Type) (related_column_name:Text)
 
     ## PRIVATE
 
@@ -520,7 +520,7 @@ type No_Common_Type
             _ -> ""
         suffix_type = case self of
             No_Common_Type.Error _ _ -> "."
-            No_Common_Type.Warning _ _ -> ", so the values were converted to text."
+            No_Common_Type.Warning_Convert_To_Text _ _ -> ", so the values were converted to text."
         suffix_mixed = " If you want to have mixed types instead, please cast one of the columns to `Mixed` beforehand."
         prefix + location + suffix_type + suffix_mixed
 
@@ -528,7 +528,7 @@ type No_Common_Type
     to_text self -> Text =
         ctor = case self of
             No_Common_Type.Error _ _ -> "Error"
-            No_Common_Type.Warning _ _ -> "Warning"
+            No_Common_Type.Warning_Convert_To_Text  _ _ -> "Warning_Convert_To_Text"
         "No_Common_Type."+ctor+" "+self.types.to_text+" "+self.related_column_name.to_text
 
 type Unmatched_Columns

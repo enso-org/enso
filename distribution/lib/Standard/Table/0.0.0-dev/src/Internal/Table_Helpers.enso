@@ -548,7 +548,7 @@ unify_result_type_for_union (column_set : Column_Set) (all_tables : Vector) (pro
                 common_date_type = Value_Type_Helpers.find_common_date_types types column_set.name problem_builder
                 if common_date_type.is_nothing.not then Union_Result_Type.Common_Type common_date_type else
                     # Lastly, we fall back to text, reporting a warning.
-                    problem_builder.report_other_warning (No_Common_Type.Warning types column_set.name)
+                    problem_builder.report_other_warning (No_Common_Type.Warning_Convert_To_Text types column_set.name)
                     Union_Result_Type.Fallback_To_Text
 
 ## PRIVATE
