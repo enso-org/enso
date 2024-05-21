@@ -339,7 +339,7 @@ type Excel_Workbook
                         new_column_name = unique.make_unique "Sheet Name"
 
                         with_names = tables.zip sheet_names tbl->name-> if tbl == Nothing then Nothing else tbl.set name new_column_name . reorder_columns [new_column_name]
-                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) match keep_unmatched_columns=True
+                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) match_columns=match
 
                         problem_builder = Problem_Builder.new
                         problem_builder.report_unique_name_strategy unique
