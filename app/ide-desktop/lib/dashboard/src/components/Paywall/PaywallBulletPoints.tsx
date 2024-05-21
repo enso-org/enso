@@ -4,13 +4,17 @@ import * as tw from 'tailwind-merge'
 
 import Check from 'enso-assets/check_mark.svg'
 
+import type * as text from '#/text'
+
+import * as textProvider from '#/providers/TextProvider'
+
 import SvgMask from '#/components/SvgMask'
 
 /**
  *
  */
 export interface PaywallBulletPointsProps {
-  readonly bulletPoints: string[]
+  readonly bulletPointsTextId: text.TextId
   readonly className?: string
 }
 
@@ -18,7 +22,12 @@ export interface PaywallBulletPointsProps {
  *
  */
 export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
-  const { bulletPoints, className } = props
+  const { bulletPointsTextId, className } = props
+
+  const { getText } = textProvider.useText()
+  const bulletPoints = getText(bulletPointsTextId)
+    .split(';')
+    .map(bulletPoint => bulletPoint.trim())
 
   if (bulletPoints.length === 0) {
     return null

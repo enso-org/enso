@@ -622,5 +622,6 @@
   "paywallAvailabilityLevel": "Available on $0 plan",
 
   "userGroupsFeatureLabel": "User Groups",
-  "userGroupsFeatureBulletPoints": "Create user groups to manage permissions;Assign user groups to assets;Assign users to groups"
+  "userGroupsFeatureBulletPoints": "Create user groups to manage permissions;Assign user groups to assets;Assign users to groups",
+  "userGroupsFeatureDescription": "Get fine-grained control over who can access your assets by creating user groups and assigning them to assets. Assign users to groups to manage their permissions."
 }

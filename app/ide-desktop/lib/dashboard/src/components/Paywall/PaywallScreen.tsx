@@ -21,6 +21,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
 import { PaywallBulletPoints } from './PaywallBulletPoints'
+import { PaywallButton } from './PaywallButton'
 
 /**
  * Props for a {@link PaywallScreen}.
@@ -55,23 +56,21 @@ export function PaywallScreen(props: PaywallScreenProps) {
         {getText('paywallScreenTitle')}
       </aria.Text>
 
-      <PaywallBulletPoints
-        bulletPoints={getText(bulletPointsTextId).split(';')}
-        className="mb-6 mt-4"
-      />
+      <PaywallBulletPoints bulletPointsTextId={bulletPointsTextId} className="mb-6 mt-4" />
 
       <p className="text-sm font-normal text-gray-600">
         {getText('paywallScreenDescription', levelLabel)}
       </p>
 
-      <ariaComponents.Button
+      <PaywallButton
+        feature={feature}
         variant="primary"
         size="medium"
         className="mt-3"
-        href={appUtils.SUBSCRIBE_PATH + '?plan=' + level.name}
+        // href={appUtils.SUBSCRIBE_PATH + '?plan=' + level.name}
       >
         {getText('upgradeTo', levelLabel)}
-      </ariaComponents.Button>
+      </PaywallButton>
     </div>
   )
 }

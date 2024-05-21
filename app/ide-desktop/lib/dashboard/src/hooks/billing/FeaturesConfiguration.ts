@@ -68,13 +68,7 @@ const PAYWALL_FEATURES_LABELS: Record<PaywallFeatureName, text.TextId> = {
 interface BasicFeatureConfiguration {
   readonly level: PaywallLevel
   readonly bulletPointsTextId: `${PaywallFeatureName}FeatureBulletPoints`
-}
-
-/**
- * Plan configuration.
- */
-interface PlanConfiguration<T extends BasicFeatureConfiguration> {
-  readonly features: Record<PaywallFeatureName, T>
+  readonly descriptionTextId: `${PaywallFeatureName}FeatureDescription`
 }
 
 /**
@@ -90,6 +84,7 @@ const PAYWALL_CONFIGURATION: Record<PaywallFeatureName, BasicFeatureConfiguratio
   userGroups: {
     level: PAYWALL_LEVELS.solo,
     bulletPointsTextId: 'userGroupsFeatureBulletPoints',
+    descriptionTextId: 'userGroupsFeatureDescription',
   },
 }
 
