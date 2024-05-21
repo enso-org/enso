@@ -33,8 +33,7 @@ import * as pageSwitcher from '#/layouts/PageSwitcher'
 import Settings from '#/layouts/Settings'
 import TopBar from '#/layouts/TopBar'
 
-import TheModal from '#/components/dashboard/TheModal'
-import Portal from '#/components/Portal'
+import Page from '#/components/Page'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
@@ -327,18 +326,6 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [page, /* should never change */ localStorage])
 
-  React.useEffect(() => {
-    const onClick = () => {
-      if (getSelection()?.type !== 'Range') {
-        unsetModal()
-      }
-    }
-    document.addEventListener('click', onClick)
-    return () => {
-      document.removeEventListener('click', onClick)
-    }
-  }, [/* should never change */ unsetModal])
-
   React.useEffect(
     () =>
       inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -490,7 +477,7 @@ export default function Dashboard(props: DashboardProps) {
   }, [page, setPage])
 
   return (
-    <>
+    <Page hideInfoBar>
       <div
         className={`flex text-xs text-primary ${
           page === pageSwitcher.Page.editor ? 'pointer-events-none cursor-none' : ''
@@ -594,11 +581,6 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
       </div>
-      <Portal>
-        <div className="select-none text-xs text-primary">
-          <TheModal />
-        </div>
-      </Portal>
-    </>
+    </Page>
   )
 }

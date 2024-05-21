@@ -287,9 +287,7 @@
   </symbol>
 
   <symbol id="eye" viewBox="0 0 16 16" width="16" height="16" fill="none">
-    <g opacity="0.54">
-      <path fill-rule="evenodd" clip-rule="evenodd" d="M16 8C14 5.25 11.5 2.5 8 2.5C4.5 2.5 2 5.25 0 8C2 10.75 4.5 13.5 8 13.5C11.5 13.5 14 10.75 16 8ZM5.5 8C5.5 9.38071 6.61929 10.5 8 10.5C9.38071 10.5 10.5 9.38071 10.5 8C10.5 6.61929 9.38071 5.5 8 5.5C6.61929 5.5 5.5 6.61929 5.5 8Z" fill="currentColor"></path>
-    </g>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M16 8C14 5.25 11.5 2.5 8 2.5C4.5 2.5 2 5.25 0 8C2 10.75 4.5 13.5 8 13.5C11.5 13.5 14 10.75 16 8ZM5.5 8C5.5 9.38071 6.61929 10.5 8 10.5C9.38071 10.5 10.5 9.38071 10.5 8C10.5 6.61929 9.38071 5.5 8 5.5C6.61929 5.5 5.5 6.61929 5.5 8Z" fill="currentColor"></path>
   </symbol>
 
   <symbol id="find" viewBox="0 0 16 16" width="16" height="16" fill="none">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { isTriggeredByKeyboard, useResizeObserver } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
@@ -141,37 +141,25 @@ const contentStyle = computed(() => {
             hidden: config.fullscreen,
           }"
         >
-          <button class="image-button active" @click.stop="config.hide()">
-            <SvgIcon class="icon" name="eye" alt="Hide visualization" />
-          </button>
+          <SvgButton name="eye" alt="Hide visualization" @click.stop="config.hide()" />
         </div>
         <div class="toolbar">
-          <button
-            class="image-button active"
+          <SvgButton
+            :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
+            :alt="config.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
             @click.stop.prevent="(config.fullscreen = !config.fullscreen), blur($event)"
-          >
-            <SvgIcon
-              class="icon"
-              :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
-              :alt="config.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
-            />
-          </button>
+          />
           <div class="icon-container">
-            <button
-              class="image-button active"
+            <SvgButton
+              :name="config.icon ?? 'columns_increasing'"
+              :alt="
+                isSelectorVisible ? 'Hide visualization selector' : 'Show visualization selector'
+              "
               @click.stop.prevent="
                 (!isSelectorVisible || isTriggeredByKeyboard($event)) &&
                   (isSelectorVisible = !isSelectorVisible)
               "
-            >
-              <SvgIcon
-                class="icon"
-                :name="config.icon ?? 'columns_increasing'"
-                :alt="
-                  isSelectorVisible ? 'Hide visualization selector' : 'Show visualization selector'
-                "
-              />
-            </button>
+            />
             <Suspense>
               <VisualizationSelector
                 v-if="isSelectorVisible"
@@ -298,6 +286,7 @@ const contentStyle = computed(() => {
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: -1;
     border-radius: var(--radius-full);
     background: var(--color-app-bg);
     backdrop-filter: var(--blur-app-bg);
@@ -329,20 +318,5 @@ const contentStyle = computed(() => {
 
 .VisualizationContainer :deep(> .toolbars > .toolbar > *) {
   position: relative;
-}
-
-:deep(.image-button) {
-  background: none;
-  padding: 0;
-  border: none;
-  opacity: 30%;
-}
-
-:deep(.image-button.active) {
-  opacity: unset;
-}
-
-:deep(.image-button > *) {
-  vertical-align: top;
 }
 </style>

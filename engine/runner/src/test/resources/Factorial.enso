@@ -1,13 +1,12 @@
+import Standard.Base.Data.Numbers
+import Standard.Base.IO
+
 fac n =
-    facacc n v = if int_lte n 1 then v else @Tail_Call facacc (int_minus n 1) (int_mul n v)
+    facacc n v = if n <= 1 then v else @Tail_Call facacc n-1 n*v
 
     res = facacc n 1
     res
 
-int_lte a b = @Builtin_Method "Integer.<="
-int_minus a b = @Builtin_Method "Integer.-"
-int_mul a b = @Builtin_Method "Integer.*"
-
-main number =
-    ## Note: This assumes that number is of type Integer already
-    fac number
+main number=5 =
+    v = fac number
+    IO.println v

@@ -6,7 +6,6 @@ import {
   interactionBindings,
   undoBindings,
 } from '@/bindings'
-import AstDocumentation from '@/components/AstDocumentation.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
@@ -19,11 +18,13 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import TopBar from '@/components/TopBar.vue'
+import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import {
   keyboardBusy,
@@ -45,18 +46,29 @@ import { provideGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { provideProjectStore } from '@/stores/project'
 import { groupColorVar, provideSuggestionDbStore } from '@/stores/suggestionDatabase'
+import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
-import { filterDefined } from '@/util/data/iterable'
+import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
 import { isDevMode } from 'shared/util/detect'
-import { computed, onMounted, onUnmounted, ref, shallowRef, toRaw, toRef, watch } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  shallowRef,
+  toRaw,
+  toRef,
+  watch,
+  watchEffect,
+} from 'vue'
 
 const keyboard = provideKeyboard()
 const projectStore = provideProjectStore()
@@ -82,20 +94,37 @@ onUnmounted(() => {
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
 const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
-useNavigatorStorage(graphNavigator, (enc) => {
-  // Navigator viewport needs to be stored separately for:
-  // - each project
-  // - each function within the project
-  encoding.writeVarString(enc, projectStore.name)
-  const methodPtr = graphStore.currentMethodPointer()
-  if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
-})
+useNavigatorStorage(
+  graphNavigator,
+  (enc) => {
+    // Navigator viewport needs to be stored separately for:
+    // - each project
+    // - each function within the project
+    encoding.writeVarString(enc, projectStore.name)
+    const methodPtr = graphStore.currentMethodPointer()
+    if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
+  },
+  waitInitializationAndPanToAll,
+)
+
+let stopInitialization: (() => void) | undefined
+function waitInitializationAndPanToAll() {
+  stopInitialization?.()
+  stopInitialization = watchEffect(() => {
+    const nodesCount = graphStore.db.nodeIdToNode.size
+    const visibleNodeAreas = graphStore.visibleNodeAreas
+    if (nodesCount > 0 && visibleNodeAreas.length == nodesCount) {
+      zoomToSelected(true)
+      stopInitialization?.()
+      stopInitialization = undefined
+    }
+  })
+}
 
 function selectionBounds() {
   if (!viewportNode.value) return
-  const allNodes = graphStore.db.nodeIdToNode
-  const validSelected = [...nodeSelection.selected].filter((id) => allNodes.has(id))
-  const nodesToCenter = validSelected.length === 0 ? allNodes.keys() : validSelected
+  const selected = nodeSelection.selected
+  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
   let bounds = Rect.Bounding()
   for (const id of nodesToCenter) {
     const rect = graphStore.visibleArea(id)
@@ -104,9 +133,10 @@ function selectionBounds() {
   if (bounds.isFinite()) return bounds
 }
 
-function zoomToSelected() {
+function zoomToSelected(skipAnimation: boolean = false) {
   const bounds = selectionBounds()
-  if (bounds) graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
+  if (bounds)
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
 
 function panToSelected() {
@@ -130,6 +160,7 @@ const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
   graphStore.isPortEnabled,
+  (id) => graphStore.db.nodeIdToNode.has(id),
   {
     onSelected(id) {
       graphStore.db.moveNodeToTop(id)
@@ -165,7 +196,7 @@ const { createNode, createNodes, placeNode } = provideNodeCreation(
 
 const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
   graphStore,
-  nodeSelection,
+  toRef(nodeSelection, 'selected'),
   createNodes,
 )
 
@@ -220,7 +251,6 @@ const graphBindingsHandler = graphBindings.handler({
     projectStore.lsRpcConnection.profilingStop()
   },
   openComponentBrowser() {
-    if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
@@ -230,7 +260,6 @@ const graphBindingsHandler = graphBindings.handler({
     zoomToSelected()
   },
   selectAll() {
-    if (keyboardBusy()) return
     nodeSelection.selectAll()
   },
   deselectAll() {
@@ -239,37 +268,33 @@ const graphBindingsHandler = graphBindings.handler({
     graphStore.undoManager.undoStackBoundary()
   },
   toggleVisualization() {
+    const selected = nodeSelection.selected
+    const allVisible = every(
+      selected,
+      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
+    )
     graphStore.transact(() => {
-      const allVisible = set
-        .toArray(nodeSelection.selected)
-        .every((id) => !(graphStore.db.nodeIdToNode.get(id)?.vis?.visible !== true))
-
-      for (const nodeId of nodeSelection.selected) {
+      for (const nodeId of selected) {
         graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
     })
   },
   copyNode() {
-    if (keyboardBusy()) return false
     copySelectionToClipboard()
   },
   pasteNode() {
-    if (keyboardBusy()) return false
     createNodesFromClipboard()
   },
   collapse() {
-    if (keyboardBusy()) return false
     collapseNodes()
   },
   enterNode() {
-    if (keyboardBusy()) return false
     const selectedNode = set.first(nodeSelection.selected)
     if (selectedNode) {
       stackNavigator.enterNode(selectedNode)
     }
   },
   exitNode() {
-    if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
   changeColorSelectedNodes() {
@@ -289,10 +314,8 @@ const { handleClick } = useDoubleClick(
 )
 
 function deleteSelected() {
-  graphStore.transact(() => {
-    graphStore.deleteNodes([...nodeSelection.selected])
-    nodeSelection.selected.clear()
-  })
+  graphStore.deleteNodes(nodeSelection.selected)
+  nodeSelection.deselectAll()
 }
 
 // === Code Editor ===
@@ -322,6 +345,8 @@ const rightDockWidth = ref<number>()
 const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
+
+const { documentation } = useAstDocumentation(() => graphStore.methodAst)
 
 // === Execution Mode ===
 
@@ -375,19 +400,22 @@ function createWithComponentBrowser(options: NewNodeOptions) {
   )
 }
 
-function commitComponentBrowser(content: string, requiredImports: RequiredImport[]) {
+function commitComponentBrowser(
+  content: string,
+  requiredImports: RequiredImport[],
+  type: Typename | undefined,
+) {
   if (graphStore.editedNodeInfo) {
     // We finish editing a node.
     graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
   } else if (content != '') {
     // We finish creating a new node.
-    createNode(
-      { type: 'fixed', position: componentBrowserNodePosition.value },
-      content,
-      undefined,
-      undefined,
+    createNode({
+      placement: { type: 'fixed', position: componentBrowserNodePosition.value },
+      expression: content,
+      type,
       requiredImports,
-    )
+    })
   }
   hideComponentBrowser()
 }
@@ -422,6 +450,7 @@ function addNodeAuto() {
 function fromSelection(): NewNodeOptions | undefined {
   if (graphStore.editedNodeInfo != null) return undefined
   const firstSelectedNode = set.first(nodeSelection.selected)
+  if (firstSelectedNode == null) return undefined
   return {
     placement: { type: 'source', node: firstSelectedNode },
     sourcePort: graphStore.db.getNodeFirstOutputPort(firstSelectedNode),
@@ -535,7 +564,10 @@ async function handleFileDrop(event: DragEvent) {
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
-        createNode({ type: 'mouseEvent', position: pos }, uploadedExpression(uploadResult.value))
+        createNode({
+          placement: { type: 'mouseEvent', position: pos },
+          expression: uploadedExpression(uploadResult.value),
+        })
       } else {
         uploadResult.error.log(`Uploading file failed`)
       }
@@ -601,7 +633,7 @@ const groupColors = computed(() => {
         data-testid="rightDock"
       >
         <div class="scrollArea">
-          <AstDocumentation :ast="graphStore.methodAst" />
+          <MarkdownEditor v-model="documentation" />
         </div>
         <SvgIcon
           name="close"
@@ -642,7 +674,6 @@ const groupColors = computed(() => {
       @zoomIn="graphNavigator.stepZoom(+1)"
       @zoomOut="graphNavigator.stepZoom(-1)"
       @collapseNodes="collapseNodes"
-      @setNodeColor="setSelectedNodesColor"
       @removeNodes="deleteSelected"
     />
     <PlusButton @click.stop="addNodeAuto()" />

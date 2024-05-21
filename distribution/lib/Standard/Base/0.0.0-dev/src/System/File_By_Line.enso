@@ -50,7 +50,7 @@ type File_By_Line
     Reader file:File encoding:Encoding limit_lines:(Integer|Nothing) filter_func row_map file_end=file.size
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Reads a specific line from the file.
 
        Arguments
@@ -60,13 +60,13 @@ type File_By_Line
         read_line self line
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Reads the first line
     first : Text
     first self = self.get 0
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Reads the first line
     second : Text
     second self = self.get 1
@@ -156,7 +156,7 @@ type File_By_Line
         File_By_Line.Reader self.file self.encoding new_limit self.filter_func (create_row_map self lines) self.file_end
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Limits a file to a specific number of lines.
 
        Arguments

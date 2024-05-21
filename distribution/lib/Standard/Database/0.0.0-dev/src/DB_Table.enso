@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -14,7 +15,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Runtime import assert
-from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
+from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import Standard.Table.Column_Operation.Column_Operation
 import Standard.Table.Expression.Expression
@@ -35,6 +36,7 @@ import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Row.Row
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
@@ -79,11 +81,14 @@ type DB_Table
        - context: The context associated with this table.
     private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
 
-    ## The name of the table.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       The name of the table.
     name : Text
     name self = self.internal_name
 
-    ## The name of the SQL Dialect used by the table.
+    ## ICON metadata
+       The name of the SQL Dialect used by the table.
     dialect_name : Text
     dialect_name self = self.connection.dialect.name
 
@@ -96,7 +101,7 @@ type DB_Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        data_fragment_with_warning = self.read max_rows=show_rows warn_if_more_rows=True
+        data_fragment_with_warning = self.read (..First_With_Warning show_rows)
         has_more_rows = data_fragment_with_warning.has_warnings warning_type=Not_All_Rows_Downloaded
         data_fragment_cleared = data_fragment_with_warning.remove_warnings Not_All_Rows_Downloaded
         # `row_count` means another Database query is performed, so we only do it if we need to.
@@ -267,7 +272,7 @@ type DB_Table
         new_columns = helper.select_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS drop_columns, drop fields, remove fields
+    ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
@@ -321,7 +326,7 @@ type DB_Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## ALIAS remove fields by type
+    ## ALIAS remove fields by type, select columns by type, select fields by type
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
@@ -339,7 +344,7 @@ type DB_Table
         new_columns = helper.remove_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS select_missing_columns, select_na, select_blank_fields
+    ## ALIAS select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -365,7 +370,7 @@ type DB_Table
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         self.updated_columns new_columns
 
-    ## ALIAS drop_missing_columns, drop_na
+    ## ALIAS drop_missing_columns, drop_na, select_blank_columns, select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -484,6 +489,9 @@ type DB_Table
        - column_map: Mapping from old column names to new or a vector of new
          column names to apply by position. `Regex` objects can be used
          within the mapping to do pattern based renaming.
+         Can also be supplied as a `Table` either with a single column of new
+         names or two columns with old (first column) and new names (second
+         column).
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - error_on_missing_columns: Specifies if a missing input column should
@@ -539,10 +547,14 @@ type DB_Table
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
-        Warning.with_suspended new_names names->
-            self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
+    rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) = case column_map of
+        _ : Table ->
+            resolved = Table_Helpers.read_name_map_from_table column_map
+            self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
+        _ ->
+            new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+            Warning.with_suspended new_names names->
+                self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
     ## GROUP Standard.Base.Metadata
        ICON table_edit
@@ -844,6 +856,7 @@ type DB_Table
 
     ## UNSTABLE
        GROUP Standard.Base.Selections
+       ICON select_row
 
        Returns a new Table that will include at most `max_rows` rows from the
        original Table.
@@ -1102,7 +1115,8 @@ type DB_Table
         self.with_temporary_column predicate_column name-> table->
             table.filter name Filter_Condition.Is_True
 
-    ## Returns the vector of columns contained in this table.
+    ## ICON convert
+       Returns the vector of columns contained in this table.
     columns : Vector DB_Column
     columns self = Vector.from_polyglot_array <|
         Array_Proxy.new self.internal_columns.length i->
@@ -1123,26 +1137,24 @@ type DB_Table
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    rows : Integer | Nothing -> Boolean -> Vector Row
-    rows self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
-        self.read max_rows=max_rows warn_if_more_rows=warn_if_more_rows . rows
+    @max_rows Rows_To_Read.default_widget
+    rows : Rows_To_Read -> Vector Row
+    rows self (max_rows : Rows_To_Read = (..First_With_Warning 1000)) =
+        self.read max_rows . rows
 
     ## GROUP Standard.Base.Selections
        ICON select_row
        Returns the first row of the table.
     first_row : Row ! Index_Out_Of_Bounds
     first_row self =
-        self.read max_rows=1 warn_if_more_rows=False . rows . first
+        self.read (..First 1) . rows . first
 
     ## GROUP Standard.Base.Selections
        ICON select_row
        Returns the second row of the table.
     second_row : Row ! Index_Out_Of_Bounds
     second_row self =
-        self.read max_rows=2 warn_if_more_rows=False . rows . second
+        self.read (..First 2) . rows . second
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -2540,40 +2552,36 @@ type DB_Table
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Integer | Nothing) -> Boolean -> Table
-    read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
-        preprocessed = if max_rows.is_nothing then self else
-            if warn_if_more_rows then self.limit max_rows+1 else self.limit max_rows
-        case preprocessed.internal_columns.is_empty of
-            True ->
-                Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
-            False ->
-                sql = preprocessed.to_sql
-                column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
-                materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
-                    Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
+    @max_rows Rows_To_Read.default_widget
+    read : Rows_To_Read -> Table
+    read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) =
+        if self.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
+            preprocessed = case max_rows of
+                Rows_To_Read.All_Rows -> self
+                Rows_To_Read.First n -> self.limit n
+                Rows_To_Read.First_With_Warning n -> self.limit n+1
 
-                warnings_builder = Vector.new_builder
-                expected_types = self.columns.map .value_type
-                actual_types = materialized_table.columns.map .value_type
-                expected_types.zip actual_types expected_type-> actual_type->
-                    if expected_type == actual_type then Nothing else
-                        expected_type_kind = Meta.meta expected_type . constructor
-                        actual_type_kind = Meta.meta actual_type . constructor
-                        ## We ignore simple approximations that our in-memory backend does - things like adding default
-                           timezone (because we do not have Date_Time without timezone in-memory),
-                           or changing Float32 to Float64 are silently ignored.
-                           However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
-                        if expected_type_kind == actual_type_kind then Nothing else
-                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
-                result = if max_rows.is_nothing || materialized_table.row_count <= max_rows then materialized_table else
-                    assert warn_if_more_rows "We may get more rows than we asked for _only_ if warn_if_more_rows=True"
-                    warnings_builder.append (Not_All_Rows_Downloaded.Warning max_rows)
-                    materialized_table.take max_rows
-                Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+            sql = preprocessed.to_sql
+            column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
+            materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
+                Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
+
+            warnings_builder = Builder.new
+            expected_types = self.columns.map .value_type
+            actual_types = materialized_table.columns.map .value_type
+            expected_types.zip actual_types expected_type-> actual_type->
+                if expected_type == actual_type then Nothing else
+                    expected_type_kind = Meta.meta expected_type . constructor
+                    actual_type_kind = Meta.meta actual_type . constructor
+                    ## We ignore simple approximations that our in-memory backend does - things like adding default
+                       timezone (because we do not have Date_Time without timezone in-memory),
+                       or changing Float32 to Float64 are silently ignored.
+                       However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
+                    if expected_type_kind == actual_type_kind then Nothing else
+                        warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+
+            result = max_rows.attach_warning materialized_table
+            Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
 
     ## PRIVATE
        Creates a query corresponding to this table.
@@ -2583,11 +2591,12 @@ type DB_Table
         assert cols.not_empty
         Query.Select cols self.context
 
-    ## Returns an SQL statement that will be used for materializing this table.
+    ## ICON convert
+       Returns an SQL statement that will be used for materializing this table.
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## ALIAS metadata, field info, column types
+    ## ALIAS column types, field info, metadata
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this table's contents.
@@ -2873,6 +2882,39 @@ type DB_Table
         transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
+    ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       Applies the specified cleansings to the text in each row of the specified columns
+
+        Arguments:
+        - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
+            applied in the order they are provided. The same text cleansing can be used multiple
+            times. The text cleansings are:
+              - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+              - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+              - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+              - ..All_Whitespace: Removes all whitspace from the string.
+              - ..Leading_Numbers: Removes all numbers from the start of the string.
+              - ..Trailing_Numbers: Removes all numbers from the end of the string.
+              - ..Non_ASCII: Removes all non-ascii characters from the string.
+              - ..Tabs: Removes all tab characters from the string.
+              - ..Letters: Removes all letters from the string.
+              - ..Numbers: Removes all numbers characters from the string.
+              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+              - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+        - from: The column(s) to cleanse.
+
+        > Example
+          Remove leading and trailing spaces from cells.
+
+              table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+    @remove make_data_cleanse_vector_selector
+    @from (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> DB_Table
+    text_cleanse self remove from =
+        transformer col = col.text_cleanse remove
+        Table_Helpers.replace_columns_with_transformed_columns self from transformer
+
     ## ALIAS cumulative
        GROUP Standard.Base.Values
        ICON data_input
@@ -2954,7 +2996,7 @@ default_join_condition table join_kind = case join_kind of
 ## PRIVATE
 Table.from (that:DB_Table) =
     _ = [that]
-    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+    Error.throw (Illegal_Argument.Error "This operation requires the data to be in-memory, materialize the table using `.read`.")
 
 ## PRIVATE
 DB_Table.from (that:Table) =

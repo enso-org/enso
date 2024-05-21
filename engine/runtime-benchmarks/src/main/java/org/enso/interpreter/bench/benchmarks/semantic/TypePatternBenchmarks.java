@@ -35,6 +35,7 @@ public class TypePatternBenchmarks {
     var code =
         """
         from Standard.Base import Integer, Vector, Any, Float
+        import Standard.Base.Data.Vector.Builder
 
         avg arr =
             sum acc i = if i == arr.length then acc else
@@ -45,7 +46,7 @@ public class TypePatternBenchmarks {
             avg (arr.map (pattern _))
 
         gen_vec size value =
-            b = Vector.new_builder size
+            b = Builder.new size
             b.append value
             b.append value
             add_more n = if n == size then b else

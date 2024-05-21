@@ -51,7 +51,7 @@ public class ImportStandardLibrariesBenchmark {
           "True",
           "False",
           "Vector",
-          "Vector.new_builder",
+          "Vector.build",
           // from Table
           "Table",
           "Column.from_vector",

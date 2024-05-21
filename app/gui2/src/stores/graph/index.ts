@@ -46,6 +46,8 @@ import {
   type ShallowRef,
 } from 'vue'
 
+const FALLBACK_BINDING_PREFIX = 'node'
+
 export type {
   Node,
   NodeDataFromAst,
@@ -194,9 +196,13 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
     }
 
-    function generateUniqueIdent() {
-      for (;;) {
-        const ident = randomIdent()
+    function generateLocallyUniqueIdent(prefix?: string | undefined) {
+      // FIXME: This implementation is not robust in the context of a synchronized document,
+      // as the same name can likely be assigned by multiple clients.
+      // Consider implementing a mechanism to repair the document in case of name clashes.
+      for (let i = 1; ; i++) {
+        const ident = (prefix ?? FALLBACK_BINDING_PREFIX) + i
+        assert(isIdentifier(ident))
         if (!db.identifierUsed(ident)) return ident
       }
     }
@@ -370,7 +376,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       }
     }
 
-    function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
+    function overrideNodeColor(nodeId: NodeId, color: string) {
       const nodeAst = syncModule.value?.tryGet(nodeId)
       if (!nodeAst) return
       editNodeMetadata(nodeAst, (metadata) => {
@@ -670,7 +676,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return db.connections.reverseLookup(portId as AstId).size > 0
     }
 
-    return proxyRefs({
+    return {
       transact,
       db: markRaw(db),
       mockExpressionUpdate,
@@ -685,7 +691,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       visibleArea,
       unregisterNodeRect,
       methodAst,
-      generateUniqueIdent,
+      generateLocallyUniqueIdent,
       createEdgeFromOutput,
       disconnectSource,
       disconnectTarget,
@@ -722,15 +728,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
         if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
         return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
       },
-    })
+    }
   },
 )
-
-function randomIdent() {
-  const ident = 'operator' + Math.round(Math.random() * 100000)
-  assert(isIdentifier(ident))
-  return ident
-}
 
 /** An edge, which may be connected or unconnected. */
 export interface Edge {

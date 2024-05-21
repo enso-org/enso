@@ -195,7 +195,7 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
     }
 
     fn text(&mut self, text: Span<'_, L>) {
-        self.current_body.push_str(text.as_ref());
+        self.current_body.push_str(&escape(text.as_ref()));
     }
 
     fn start_list(&mut self) {
@@ -253,4 +253,23 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
             ScopeType::Raw => self.current_body.push_str("</div>"),
         }
     }
+}
+
+// === HTML escaping ===
+
+/// Escape `<`, `>` and `&` characters to make them safe for embedding into HTML.
+///
+/// Note: we don’t need to escape single and double quotes, as we never produce them inside HTML
+/// tags.
+fn escape(input: &str) -> String {
+    let mut result = String::with_capacity(input.len());
+    for c in input.chars() {
+        match c {
+            '<' => result.push_str("&lt;"),
+            '>' => result.push_str("&gt;"),
+            '&' => result.push_str("&amp;"),
+            _ => result.push(c),
+        }
+    }
+    result
 }

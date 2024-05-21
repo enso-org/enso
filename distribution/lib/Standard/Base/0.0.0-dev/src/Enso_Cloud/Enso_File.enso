@@ -72,7 +72,7 @@ type Enso_File
         Enso_File.Value (Enso_Path.parse path)
 
     ## PRIVATE
-    Value (enso_path : Enso_Path)
+    private Value (enso_path : Enso_Path)
 
     ## ICON folder
        Represents the root folder of the current users.
@@ -103,7 +103,10 @@ type Enso_File
        Checks if the folder or file exists
     exists : Boolean
     exists self =
-        Existing_Enso_Asset.get_asset_reference_for self . is_error . not
+        r = Existing_Enso_Asset.get_asset_reference_for self . if_not_error True
+        r.catch File_Error error-> case error of
+            File_Error.Not_Found _ -> False
+            _ -> r
 
     ## GROUP Metadata
        ICON metadata
@@ -111,7 +114,7 @@ type Enso_File
     size : Integer
     size self -> Integer =
         asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
+        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
             get_required_field "size" metadata expected_type=Integer
 
@@ -121,7 +124,7 @@ type Enso_File
     creation_time : Date_Time
     creation_time self -> Date_Time =
         asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_directory then Unimplemented.throw "Enso_File.creation_time is not implemented yet for directories." else
+        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`creation_time` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
             Date_Time.parse (get_required_field "created_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
                 . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
@@ -132,7 +135,7 @@ type Enso_File
     last_modified_time : Date_Time
     last_modified_time self =
         asset = Existing_Enso_Asset.get_asset_reference_for self
-        if asset.is_directory then Unimplemented.throw "Enso_File.last_modified_time is not implemented yet for directories." else
+        if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`last_modified_time` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
             Date_Time.parse (get_required_field "modified_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
                 . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
@@ -186,16 +189,20 @@ type Enso_File
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action =
         Context.Output.if_enabled disabled_message="Writing to an Enso_File is forbidden as the Output context is disabled." panic=False <|
-            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+            is_data_link = Data_Link.is_data_link self
+            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && is_data_link
             if open_as_data_link then Data_Link_Helpers.write_data_link_as_stream self open_options action else
                 if open_options.contains File_Access.Append then Unimplemented.throw "Enso_File currently does not support appending to a file. Instead you may read it, modify and then write the new contents." else
                     File_Access.ensure_only_allowed_options "with_output_stream" [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create, Data_Link_Access.No_Follow] open_options <|
                         allow_existing = open_options.contains File_Access.Create_New . not
-                        tmp_file = File.create_temporary_file "enso-cloud-write-tmp"
-                        Panic.with_finalizer tmp_file.delete <|
-                            perform_upload self allow_existing <|
-                                result = tmp_file.with_output_stream [File_Access.Write] action
-                                result.if_not_error [tmp_file, result]
+                        case is_data_link of
+                            False ->
+                                tmp_file = File.create_temporary_file "enso-cloud-write-tmp"
+                                Panic.with_finalizer tmp_file.delete <|
+                                    perform_upload self allow_existing <|
+                                        result = tmp_file.with_output_stream [File_Access.Write] action
+                                        result.if_not_error [tmp_file, result]
+                            True -> create_datalink_from_stream_action self allow_existing action
 
     ## PRIVATE
        ADVANCED
@@ -216,14 +223,14 @@ type Enso_File
         if open_as_data_link then Data_Link_Helpers.read_data_link_as_stream self open_options action else
             File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
                 asset = Existing_Enso_Asset.get_asset_reference_for self
-                uri = case asset.asset_type of
-                    Enso_Asset_Type.File -> asset.get_download_url
+                response = case asset.asset_type of
+                    Enso_Asset_Type.File ->
+                        HTTP.fetch asset.get_download_url HTTP_Method.Get
                     Enso_Asset_Type.Data_Link ->
                         Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
-                        asset.internal_uri
+                        Utils.http_request HTTP_Method.Get asset.internal_uri
                     _ ->
                         Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
-                response = HTTP.fetch uri HTTP_Method.Get []
                 response.if_not_error <| response.body.with_stream action
 
     ## ALIAS load, open
@@ -323,6 +330,7 @@ type Enso_File
 
     ## UNSTABLE
        GROUP Output
+       ICON trash
        Deletes the file or directory.
 
        Arguments:
@@ -432,13 +440,13 @@ Enso_Asset_Type.from (that:Text) = case that of
     "file" -> Enso_Asset_Type.File
     "directory" -> Enso_Asset_Type.Directory
     "secret" -> Enso_Asset_Type.Secret
-    "connector" -> Enso_Asset_Type.Data_Link
+    "datalink" -> Enso_Asset_Type.Data_Link
     _ -> Error.throw (Illegal_Argument.Error "Invalid asset type: "+that.pretty+".")
 
 ## PRIVATE
 File_Format_Metadata.from (that:Enso_File) =
     asset_type = that.asset_type.catch File_Error _->Nothing
-    if asset_type == Enso_Asset_Type.Data_Link then File_Format_Metadata.Value path=that.path name=that.name content_type=Data_Link.data_link_content_type else
+    if asset_type == Enso_Asset_Type.Data_Link then File_Format_Metadata.Value path=that.path name=that.name content_type=Data_Link_Helpers.data_link_content_type else
         File_Format_Metadata.Value path=that.path name=that.name extension=(that.extension.catch _->Nothing)
 
 ## PRIVATE

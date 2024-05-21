@@ -52,13 +52,13 @@ import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
-import ModalProvider from '#/providers/ModalProvider'
+import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import RemoteBackendProvider from '#/providers/RemoteBackendProvider'
 import SessionProvider from '#/providers/SessionProvider'
+import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ErrorScreen from '#/pages/authentication/ErrorScreen'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
@@ -75,6 +75,7 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
 import * as rootComponent from '#/components/Root'
 
+import AboutModal from '#/modals/AboutModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 
 import type Backend from '#/services/Backend'
@@ -89,6 +90,7 @@ import * as object from '#/utilities/object'
 import * as authServiceModule from '#/authentication/service'
 
 import * as types from '../../types/types'
+import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
 // === Global configuration ===
@@ -200,9 +202,13 @@ export default function App(props: AppProps) {
       />
       <Router basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
-          <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+          <ModalProvider>
+            <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+          </ModalProvider>
         </LocalStorageProvider>
       </Router>
+
+      <reactQueryDevtools.ReactQueryDevtools />
     </reactQuery.QueryClientProvider>
   )
 }
@@ -229,6 +235,7 @@ function AppRouter(props: AppRouterProps) {
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { setModal } = modalProvider.useSetModal()
   const navigator2D = navigator2DProvider.useNavigator2D()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
@@ -324,6 +331,14 @@ function AppRouter(props: AppRouterProps) {
         null!
 
   React.useEffect(() => {
+    if ('menuApi' in window) {
+      window.menuApi.setShowAboutModalHandler(() => {
+        setModal(<AboutModal />)
+      })
+    }
+  }, [/* should never change */ setModal])
+
+  React.useEffect(() => {
     const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
     document.addEventListener('keydown', onKeyDown)
     return () => {
@@ -376,10 +391,7 @@ function AppRouter(props: AppRouterProps) {
       {/* Login & registration pages are visible to unauthenticated users. */}
       <router.Route element={<authProvider.GuestLayout />}>
         <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-        <router.Route
-          path={appUtils.LOGIN_PATH}
-          element={<Login supportsLocalBackend={supportsLocalBackend} />}
-        />
+        <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
       </router.Route>
 
       {/* Protected pages are visible to authenticated users. */}
@@ -427,7 +439,6 @@ function AppRouter(props: AppRouterProps) {
       <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
       <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
       <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-      <router.Route path={appUtils.ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
 
       {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
       <router.Route element={<authProvider.ProtectedLayout />}>
@@ -441,8 +452,12 @@ function AppRouter(props: AppRouterProps) {
     </router.Routes>
   )
   let result = routes
+  result = (
+    <SupportsLocalBackendProvider supportsLocalBackend={supportsLocalBackend}>
+      {result}
+    </SupportsLocalBackendProvider>
+  )
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = <ModalProvider>{result}</ModalProvider>
   result = <RemoteBackendProvider>{result}</RemoteBackendProvider>
   result = (
     <AuthProvider

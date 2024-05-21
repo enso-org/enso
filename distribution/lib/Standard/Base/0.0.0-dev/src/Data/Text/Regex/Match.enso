@@ -94,7 +94,9 @@ type Match
         span = self.span group
         if span.is_nothing then Nothing else span.start
 
-    ## Returns the end grapheme index, plus one, of a group.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the end grapheme index, plus one, of a group.
 
        ! What is a Character?
          A character is defined as an Extended Grapheme Cluster, see Unicode
@@ -289,7 +291,8 @@ type Match
         Map.from_vector <|
             pattern_named_groups.map name-> [name, self.text name default=default]
 
-    ## Gets the grapheme span matched by the group with the provided index, or
+    ## ICON split_text
+       Gets the grapheme span matched by the group with the provided index, or
        a default value if the group did not participate in the match.
        If the identifier is invalid then `if_missing` is returned.
 
