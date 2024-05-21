@@ -180,31 +180,26 @@ watch(currentFiltering, () => {
   animatedHighlightHeight.skip()
 })
 
-const selfArgumentEdge = ref<UnconnectedEdge>()
 onUnmounted(() => {
-  cleanupEdge()
+  graphStore.cbEditedEdge = undefined
 })
-function cleanupEdge() {
-  if (graphStore.unconnectedEdge === selfArgumentEdge.value) graphStore.unconnectedEdge = undefined
-  selfArgumentEdge.value = undefined
-}
 
-// Compute `selfArgumentEdge`, except for the color. The color is set in a separate watch, as it changes more often.
+// Compute edge, except for the color. The color is set in a separate watch, as it changes more often.
 watchEffect(() => {
-  cleanupEdge()
   const sourceIdent = input.selfArgument.value
-  if (!sourceIdent) return
-  const sourceNode = graphStore.db.getIdentDefiningNode(sourceIdent)
-  if (!sourceNode) return
+  const sourceNode = sourceIdent != null && graphStore.db.getIdentDefiningNode(sourceIdent)
+  if (!sourceNode) {
+    graphStore.cbEditedEdge = undefined
+    return
+  }
   const source = graphStore.db.getNodeFirstOutputPort(sourceNode)
   const scenePos = originScenePos.value.add(
     new Vec2(COMPONENT_EDITOR_PADDING + ICON_WIDTH / 2, 0).scale(clientToSceneFactor.value),
   )
-  selfArgumentEdge.value = graphStore.unconnectedEdge = {
+  graphStore.cbEditedEdge = {
     source,
     target: undefined,
     anchor: { type: 'fixed', scenePos },
-    belowNodes: true,
   }
 })
 
@@ -294,8 +289,8 @@ const nodeColor = computed(() => {
   return 'var(--node-color-no-type)'
 })
 watchEffect(() => {
-  if (!selfArgumentEdge.value) return
-  selfArgumentEdge.value.color = nodeColor.value
+  if (!graphStore.cbEditedEdge) return
+  graphStore.cbEditedEdge.color = nodeColor.value
 })
 
 const selectedSuggestionIcon = computed(() => {

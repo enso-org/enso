@@ -19,6 +19,7 @@ import type { AstId } from '@/util/ast/abstract'
 import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
+import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { map, set } from 'lib0'
@@ -90,7 +91,8 @@ export const useGraphStore = defineStore('graph', () => {
   const editedNodeInfo = ref<NodeEditInfo>()
   const methodAst = ref<Ast.Function>()
 
-  const unconnectedEdge = ref<UnconnectedEdge>()
+  const mouseEditedEdge = ref<UnconnectedEdge & MouseEditedEdge>()
+  const cbEditedEdge = ref<UnconnectedTarget>()
 
   const moduleSource = reactive(SourceDocument.Empty())
   const moduleRoot = ref<Ast.Ast>()
@@ -196,19 +198,26 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  const connectedEdges = computed(() => {
-    const disconnectedTargets = new Set<PortId>()
-    if (unconnectedEdge.value) {
-      const target = unconnectedEdge.value.disconnectedEdgeTarget
-      if (target) disconnectedTargets.add(target)
+  const unconnectedEdges = computed(
+    () => new Set(filterDefined([cbEditedEdge.value, mouseEditedEdge.value])),
+  )
+
+  const disconnectedEdgeTargets = computed(() => {
+    const targets = new Set<PortId>()
+    for (const edge of unconnectedEdges.value) {
+      if (edge.disconnectedEdgeTarget) targets.add(edge.disconnectedEdgeTarget)
     }
     if (editedNodeInfo.value) {
       const primarySubject = db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
-      if (primarySubject) disconnectedTargets.add(primarySubject)
+      if (primarySubject) targets.add(primarySubject)
     }
+    return targets
+  })
+
+  const connectedEdges = computed(() => {
     const edges = new Array<ConnectedEdge>()
     for (const [target, sources] of db.connections.allReverse()) {
-      if (!disconnectedTargets.has(target)) {
+      if (!disconnectedEdgeTargets.value.has(target)) {
         for (const source of sources) {
           edges.push({ source, target })
         }
@@ -218,12 +227,12 @@ export const useGraphStore = defineStore('graph', () => {
   })
 
   function createEdgeFromOutput(source: Ast.AstId, event: PointerEvent | undefined) {
-    unconnectedEdge.value = { source, target: undefined, event, anchor: { type: 'mouse' } }
+    mouseEditedEdge.value = { source, target: undefined, event, anchor: { type: 'mouse' } }
   }
 
   function disconnectSource(edge: Edge, event: PointerEvent | undefined) {
     if (!edge.target) return
-    unconnectedEdge.value = {
+    mouseEditedEdge.value = {
       source: undefined,
       target: edge.target,
       disconnectedEdgeTarget: edge.target,
@@ -234,17 +243,13 @@ export const useGraphStore = defineStore('graph', () => {
 
   function disconnectTarget(edge: Edge, event: PointerEvent | undefined) {
     if (!edge.source || !edge.target) return
-    unconnectedEdge.value = {
+    mouseEditedEdge.value = {
       source: edge.source,
       target: undefined,
       disconnectedEdgeTarget: edge.target,
       event,
       anchor: { type: 'mouse' },
     }
-  }
-
-  function clearUnconnected() {
-    unconnectedEdge.value = undefined
   }
 
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
@@ -660,7 +665,9 @@ export const useGraphStore = defineStore('graph', () => {
     db: markRaw(db),
     mockExpressionUpdate,
     editedNodeInfo,
-    unconnectedEdge,
+    mouseEditedEdge,
+    cbEditedEdge,
+    disconnectedEdgeTargets,
     connectedEdges,
     moduleSource,
     nodeRects,
@@ -673,7 +680,6 @@ export const useGraphStore = defineStore('graph', () => {
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,
-    clearUnconnected,
     moduleRoot,
     deleteNodes,
     ensureCorrectNodeOrder,
@@ -739,12 +745,8 @@ type UnconnectedEdgeAnchor =
 interface AnyUnconnectedEdge extends AnyEdge {
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
   disconnectedEdgeTarget?: PortId
-  /** A pointer event which caused the unconnected edge */
-  event?: PointerEvent | undefined
   /** Identifies what the disconnected end should be attached to. */
   anchor: UnconnectedEdgeAnchor
-  /** Unless this is set, the edge will be rendered above nodes. */
-  belowNodes?: boolean
   /** CSS value; if provided, overrides any color calculation. */
   color?: string
 }
@@ -759,6 +761,11 @@ interface UnconnectedTarget extends AnyUnconnectedEdge {
   targetIsSelfArgument?: boolean
 }
 export type UnconnectedEdge = UnconnectedSource | UnconnectedTarget
+
+interface MouseEditedEdge {
+  /** A pointer event which caused the unconnected edge */
+  event: PointerEvent | undefined
+}
 
 function getExecutedMethodAst(
   topLevel: Ast.BodyBlock,

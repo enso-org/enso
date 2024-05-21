@@ -419,7 +419,7 @@ watchEffect(() => {
           () =>
             (
               outputHovered.value === port ||
-              graph.unconnectedEdge?.target === port ||
+              graph.disconnectedEdgeTargets.has(port) ||
               selectionVisible.value
             ) ?
               1

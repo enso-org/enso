@@ -577,7 +577,7 @@ const groupColors = computed(() => {
   <div
     ref="viewportNode"
     class="GraphEditor viewport"
-    :class="{ draggingEdge: graphStore.unconnectedEdge?.anchor.type === 'mouse' }"
+    :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
     v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"

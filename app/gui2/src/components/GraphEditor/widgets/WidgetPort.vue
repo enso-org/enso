@@ -39,15 +39,14 @@ const selection = injectGraphSelection(true)
 const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isCurrentEdgeHoverTarget = computed(
   () =>
-    graph.unconnectedEdge?.anchor.type === 'mouse' &&
-    graph.unconnectedEdge.target == null &&
+    graph.mouseEditedEdge?.source != null &&
     selection?.hoveredPort === portId.value &&
-    graph.db.getPatternExpressionNodeId(graph.unconnectedEdge.source) !== tree.nodeId,
+    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.nodeId,
 )
 const isCurrentDisconnectedEdgeTarget = computed(
   () =>
-    graph.unconnectedEdge?.disconnectedEdgeTarget === portId.value &&
-    graph.unconnectedEdge?.target !== portId.value,
+    graph.mouseEditedEdge?.disconnectedEdgeTarget === portId.value &&
+    graph.mouseEditedEdge?.target !== portId.value,
 )
 const isSelfArgument = computed(
   () =>
