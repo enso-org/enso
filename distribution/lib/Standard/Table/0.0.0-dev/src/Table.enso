@@ -1809,7 +1809,7 @@ type Table
     ## ICON convert
        Returns the vector of columns contained in this table.
 
-       > Examples
+       > Example
          Get a vector containing the columns in the table.
 
              import Standard.Examples

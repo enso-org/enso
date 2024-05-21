@@ -1121,7 +1121,6 @@ type Vector a
 
        By default, elements are sorted in ascending order.
 
-
        This is a stable sort, meaning that items that compare the same will not
        have their order changed by the sorting process.
 
