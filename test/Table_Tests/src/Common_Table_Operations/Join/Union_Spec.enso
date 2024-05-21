@@ -9,7 +9,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_E
 
 from Standard.Test import all
 
-from project.Common_Table_Operations.Util import expect_column_names, run_default_backend, within_table
+from project.Common_Table_Operations.Util import all
 import project.Util
 
 main filter=Nothing = run_default_backend add_specs filter
@@ -356,7 +356,7 @@ run_union_tests group_builder setup call_union =
         tester table =
             expect_column_names ["D"] table
             table.at "D" . value_type . should_equal Value_Type.Date_Time
-            table.at "D" . to_vector . should_equal [Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0]
+            table.at "D" . to_vector . should_equal_tz_agnostic [Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0]
         problems = [Implicit_Date_As_Date_Time_Conversion.Warning "D"]
         Problems.test_problem_handling action problems tester
 
