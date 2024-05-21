@@ -107,8 +107,6 @@ export class LanguageServerSession {
     })
     const fileModified = async (event: { path: Path }) => {
       const path = event.path.segments.join('/')
-      // TODO[ao]: for debugging #9960
-      console.log('FILE MODIFIED', path)
       const result = await exponentialBackoff(
         async () => this.tryGetExistingModuleModel(event.path)?.reload() ?? Ok(),
         printingCallbacks(`reloaded file '${path}'`, `reload file '${path}'`),
@@ -117,8 +115,6 @@ export class LanguageServerSession {
     }
     this.ls.on('text/fileModifiedOnDisk', fileModified)
     this.ls.on('text/didChange', (event) => {
-      // TODO[ao]: for debugging #9960
-      console.log('DID CHANGE', JSON.stringify(event))
       for (const edit of event.edits) {
         fileModified(edit)
       }
@@ -544,7 +540,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       let parsedSpans
       const syncModule = new Ast.MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
-        console.log('syncing code')
         const syncRoot = syncModule.root()
         if (syncRoot) {
           const edit = syncModule.edit()
@@ -561,7 +556,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const astRoot = syncModule.root()
       if (!astRoot) return
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
-        console.log('syncing IdMap')
         const spans = parsedSpans ?? Ast.print(astRoot).info
         if (idMapJson !== this.syncedIdMap) {
           const idMap = deserializeIdMap(idMapJson)
@@ -589,7 +583,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           metadataJson !== this.syncedMetaJson) &&
         nodeMeta.length !== 0
       ) {
-        console.log('syncing metadata?')
         const externalIdToAst = new Map<ExternalId, Ast.Ast>()
         astRoot.visitRecursiveAst((ast) => {
           if (!externalIdToAst.has(ast.externalId)) externalIdToAst.set(ast.externalId, ast)
@@ -689,8 +682,6 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
               const contents = await promise
               if (!contents.ok) return contents
               const checksum = computeTextChecksum(contents.value.contents)
-              // TODO[ao]: for debugging #9960
-              console.log(contents.value, checksum)
               this.syncFileContents(contents.value.contents, checksum)
               return Ok()
             })
