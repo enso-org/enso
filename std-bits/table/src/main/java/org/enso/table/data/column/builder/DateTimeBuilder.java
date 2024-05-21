@@ -1,10 +1,5 @@
 package org.enso.table.data.column.builder;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-
-import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
@@ -13,6 +8,10 @@ import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 /** A builder for string columns. */
 public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
@@ -44,7 +43,9 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
     } else if (o instanceof LocalDate date) {
       // TODO warning here or upper level?
       data[currentSize++] = convertDate(date);
-    } else {
+    } else if (o == null) {
+      data[currentSize++] = null;
+    }else {
       throw new ValueTypeMismatchException(getType(), o);
     }
   }
