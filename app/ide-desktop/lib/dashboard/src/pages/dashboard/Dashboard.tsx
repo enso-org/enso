@@ -373,6 +373,7 @@ export default function Dashboard(props: DashboardProps) {
             labels={labels}
             setLabels={setLabels}
             projectStartupInfo={projectStartupInfo}
+            setProjectStartupInfo={setProjectStartupInfo}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}

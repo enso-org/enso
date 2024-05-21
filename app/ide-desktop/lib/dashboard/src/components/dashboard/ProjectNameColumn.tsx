@@ -44,7 +44,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state, isEditable } = props
   const { backend, selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
+  const { nodeMap, setProjectStartupInfo, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
@@ -307,6 +307,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           item={object.merge(asset, { projectState })}
           setItem={setAsset}
           assetEvents={assetEvents}
+          setProjectStartupInfo={setProjectStartupInfo}
           doOpenManually={doOpenManually}
           doOpenEditor={switchPage => {
             doOpenEditor(asset, setAsset, switchPage)

@@ -71,6 +71,7 @@ export async function waitUntilProjectIsReady(
     await remoteBackend.openProject(item.id, null, item.title)
   }
   let nextCheckTimestamp = 0
+  console.log(abortController.signal.aborted, project.state.type)
   while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
     await new Promise<void>(resolve => {
       const delayMs = nextCheckTimestamp - Number(new Date())

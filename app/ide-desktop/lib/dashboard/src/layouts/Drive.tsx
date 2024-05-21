@@ -75,6 +75,7 @@ export interface DriveProps {
   readonly labels: backendModule.Label[]
   readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly doOpenEditor: (
     backend: Backend,
     project: backendModule.ProjectAsset,
@@ -88,7 +89,7 @@ export interface DriveProps {
 export default function Drive(props: DriveProps) {
   const { hidden, initialProjectName, labels, setLabels, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { doOpenEditor, doCloseEditor, category, setCategory } = props
+  const { setProjectStartupInfo, doOpenEditor, doCloseEditor, category, setCategory } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -417,6 +418,7 @@ export default function Drive(props: DriveProps) {
                 query={query}
                 setQuery={setQuery}
                 setCanDownload={setCanDownload}
+                setProjectStartupInfo={setProjectStartupInfo}
                 category={category}
                 allLabels={allLabels}
                 setSuggestions={setSuggestions}

@@ -73,7 +73,10 @@ export default function Editor(props: EditorProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     hasEffectRun = true
-    if (projectStartupInfo != null) {
+    if (
+      projectStartupInfo != null &&
+      projectStartupInfo.project.state.type === backendModule.ProjectState.opened
+    ) {
       const { project, backendType, accessToken } = projectStartupInfo
       void (async () => {
         const jsonAddress = project.jsonAddress
