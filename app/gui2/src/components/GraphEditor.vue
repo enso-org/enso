@@ -710,6 +710,8 @@ const groupColors = computed(() => {
   contain: layout;
   overflow: clip;
   user-select: none;
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior-x: none;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
 }
