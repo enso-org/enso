@@ -115,14 +115,15 @@ export function useNodeCreation(
     }
     const created = new Set<NodeId>()
     graphStore.edit((edit) => {
-      const bodyBlock = edit.getVersion(methodAst).bodyAsBlock()
+      const statements = new Array<Ast.Owned>()
       for (const options of placedNodes) {
         const { rootExpression, id } = newAssignmentNode(edit, options)
-        bodyBlock.push(rootExpression)
+        statements.push(rootExpression)
         created.add(id)
         assert(options.metadata?.position != null, 'Node should already be placed')
         graphStore.nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
       }
+      insertNodeStatements(edit.getVersion(methodAst).bodyAsBlock(), statements)
     })
     onCreated(created)
   }
@@ -185,4 +186,18 @@ function typeToPrefix(type: Typename): string {
   } else {
     return type.toLowerCase()
   }
+}
+
+/** Insert the given statements into the given block, at a location appropriate for new nodes.
+ *
+ * The location will be after any statements in the block that bind identifiers; if the block ends in an expression
+ * statement, the location will be before it so that the value of the block will not be affected.
+ */
+export function insertNodeStatements(bodyBlock: Ast.MutableBodyBlock, statements: Ast.Owned[]) {
+  const lines = bodyBlock.lines
+  const index =
+    lines[lines.length - 1]?.expression?.node.isBindingStatement !== false ?
+      lines.length
+    : lines.length - 1
+  bodyBlock.insert(index, ...statements)
 }
