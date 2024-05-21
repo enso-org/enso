@@ -33,6 +33,7 @@ import {
   useResizeObserver,
 } from '@/composables/events'
 import { useNavigatorStorage } from '@/composables/navigatorStorage'
+import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -45,7 +46,7 @@ import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
-import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
@@ -576,7 +577,7 @@ const groupColors = computed(() => {
   <div
     ref="viewportNode"
     class="GraphEditor viewport"
-    :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
+    :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
     v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"

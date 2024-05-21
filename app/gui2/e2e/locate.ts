@@ -178,7 +178,7 @@ export function componentBrowserEntryByLabel(page: Locator | Page, label: string
 }
 
 export const navBreadcrumb = componentLocator('NavBreadcrumb')
-export const componentBrowserInput = componentLocator('CBInput')
+export const componentBrowserInput = componentLocator('ComponentEditor')
 export const jsonVisualization = componentLocator('JSONVisualization')
 export const tableVisualization = componentLocator('TableVisualization')
 export const scatterplotVisualization = componentLocator('ScatterplotVisualization')
