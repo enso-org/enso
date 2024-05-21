@@ -232,7 +232,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
           }`}
         >
           <div
-            className={`relative max-h-autocomplete-suggestions w-full overflow-auto rounded-default ${
+            className={`relative max-h-autocomplete-suggestions w-full overflow-y-auto overflow-x-hidden rounded-default ${
               isDropdownVisible && matchingItems.length !== 0 ? '' : 'h'
             }`}
           >

@@ -67,6 +67,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps {
+  readonly icon?: string
   readonly hidden?: boolean
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
@@ -80,11 +81,12 @@ export interface MenuEntryProps {
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-  const { hidden = false, action, label, isDisabled = false, title } = props
+  const { hidden = false, action, label, isDisabled = false, title, icon } = props
   const { isContextMenuEntry = false, doAction } = props
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
+
   React.useEffect(() => {
     // This is slower (but more convenient) than registering every shortcut in the context menu
     // at once.
@@ -109,9 +111,10 @@ export default function MenuEntry(props: MenuEntryProps) {
         }`}
       >
         <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-          <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
+          <SvgMask src={icon ?? info.icon ?? BlankIcon} color={info.color} className="h-4 w-4" />
           <aria.Text slot="label">{label ?? getText(ACTION_TO_TEXT_ID[action])}</aria.Text>
         </div>
+
         <KeyboardShortcut action={action} />
       </div>
     </UnstyledButton>

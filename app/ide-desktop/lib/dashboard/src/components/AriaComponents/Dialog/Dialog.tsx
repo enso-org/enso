@@ -2,7 +2,6 @@
  * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
 
-import clsx from 'clsx'
 import * as twv from 'tailwind-variants'
 
 import * as aria from '#/components/aria'
@@ -48,10 +47,14 @@ const DIALOG_STYLES = twv.tv({
       modal: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
       fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
     },
+    hideCloseButton: { true: { closeButton: 'hidden' } },
   },
   slots: {
     header:
-      'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 px-3.5 py-2 text-primary',
+      'sticky grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 px-3.5 pt-1.5 pb-0.5',
+    closeButton: 'col-start-1 col-end-1 mr-auto',
+    heading: 'col-start-2 col-end-2 my-0',
+    content: 'relative flex-auto overflow-y-auto p-3.5',
   },
 })
 
@@ -83,7 +86,7 @@ export function Dialog(props: DialogProps) {
 
   const root = portal.useStrictPortalContext()
   const shouldRenderTitle = typeof title === 'string'
-  const dialogSlots = DIALOG_STYLES({ className, type, rounded })
+  const dialogSlots = DIALOG_STYLES({ className, type, rounded, hideCloseButton })
 
   utlities.useInteractOutside({
     ref: dialogRef,
@@ -151,23 +154,21 @@ export function Dialog(props: DialogProps) {
                     {shouldRenderTitle && (
                       <aria.Header className={dialogSlots.header()}>
                         <ariaComponents.CloseButton
-                          className={clsx('col-start-1 col-end-1 mr-auto mt-0.5', {
-                            hidden: hideCloseButton,
-                          })}
+                          className={dialogSlots.closeButton()}
                           onPress={opts.close}
                         />
 
-                        <aria.Heading
+                        <ariaComponents.Text.Heading
                           slot="title"
                           level={2}
-                          className="col-start-2 col-end-2 my-0 text-base font-semibold leading-6"
+                          className={dialogSlots.heading()}
                         >
                           {title}
-                        </aria.Heading>
+                        </ariaComponents.Text.Heading>
                       </aria.Header>
                     )}
 
-                    <div className="relative flex-auto overflow-y-auto p-3.5">
+                    <div className={dialogSlots.content()}>
                       <errorBoundary.ErrorBoundary>
                         <React.Suspense fallback={<loader.Loader minHeight="h32" />}>
                           {typeof children === 'function' ? children(opts) : children}

@@ -31,7 +31,7 @@ export interface PopoverProps
 
 export const POPOVER_STYLES = twv.tv({
   extend: variants.DIALOG_BACKGROUND,
-  base: 'shadow-2xl w-full',
+  base: 'shadow-2xl w-full overflow-clip',
   variants: {
     isEntering: {
       true: 'animate-in fade-in placement-bottom:slide-in-from-top-1 placement-top:slide-in-from-bottom-1 placement-left:slide-in-from-right-1 placement-right:slide-in-from-left-1 ease-out duration-200',
@@ -40,11 +40,11 @@ export const POPOVER_STYLES = twv.tv({
       true: 'animate-out fade-out placement-bottom:slide-out-to-top-1 placement-top:slide-out-to-bottom-1 placement-left:slide-out-to-right-1 placement-right:slide-out-to-left-1 ease-in duration-150',
     },
     size: {
-      xsmall: { base: 'max-w-xs', content: 'p-2.5' },
-      small: { base: 'max-w-sm', content: 'p-3.5' },
-      medium: { base: 'max-w-md', content: 'p-3.5' },
-      large: { base: 'max-w-lg', content: 'px-4 py-4' },
-      hero: { base: 'max-w-xl', content: 'px-6 py-5' },
+      xsmall: { base: 'max-w-xs', dialog: 'p-2.5' },
+      small: { base: 'max-w-sm', dialog: 'p-3.5' },
+      medium: { base: 'max-w-md', dialog: 'p-3.5' },
+      large: { base: 'max-w-lg', dialog: 'px-4 py-4' },
+      hero: { base: 'max-w-xl', dialog: 'px-6 py-5' },
     },
     rounded: {
       none: '',
@@ -57,7 +57,7 @@ export const POPOVER_STYLES = twv.tv({
     },
   },
   slots: {
-    content: 'flex-auto overflow-y-auto',
+    dialog: 'max-h-[inherit] overflow-y-auto',
   },
   defaultVariants: { rounded: 'xxlarge', size: 'small' },
 })
@@ -106,20 +106,36 @@ export function Popover(props: PopoverProps) {
     >
       {opts => (
         <dialogStackProvider.DialogStackRegistrar id={dialogId} type="popover">
-          <aria.Dialog id={dialogId} ref={dialogRef}>
+          <aria.Dialog
+            id={dialogId}
+            ref={dialogRef}
+            className={POPOVER_STYLES({
+              ...opts,
+              size,
+              rounded,
+              className:
+                typeof className === 'function'
+                  ? className({
+                      placement: opts.placement,
+                      isExiting: opts.isExiting,
+                      isEntering: opts.isEntering,
+                      trigger: opts.trigger,
+                      defaultClassName: undefined,
+                    })
+                  : className,
+            }).dialog()}
+          >
             {({ close }) => {
               closeRef.current = close
 
               return (
-                <div className={POPOVER_STYLES({ ...opts, size, rounded }).content()}>
-                  <dialogProvider.DialogProvider value={{ close, dialogId }}>
-                    <errorBoundary.ErrorBoundary>
-                      <React.Suspense fallback={<loader.Loader minHeight="h16" />}>
-                        {typeof children === 'function' ? children({ ...opts, close }) : children}
-                      </React.Suspense>
-                    </errorBoundary.ErrorBoundary>
-                  </dialogProvider.DialogProvider>
-                </div>
+                <dialogProvider.DialogProvider value={{ close, dialogId }}>
+                  <errorBoundary.ErrorBoundary>
+                    <React.Suspense fallback={<loader.Loader minHeight="h16" />}>
+                      {typeof children === 'function' ? children({ ...opts, close }) : children}
+                    </React.Suspense>
+                  </errorBoundary.ErrorBoundary>
+                </dialogProvider.DialogProvider>
               )
             }}
           </aria.Dialog>

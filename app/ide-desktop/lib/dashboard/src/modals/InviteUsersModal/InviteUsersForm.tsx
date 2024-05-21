@@ -4,13 +4,16 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import isEmail from 'validator/es/lib/isEmail'
 
+import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import * as paywallComponents from '#/components/Paywall'
 
 import type * as backendModule from '#/services/Backend'
 
@@ -39,22 +42,45 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
   const { onSubmitted, organizationId } = props
   const { getText } = textProvider.useText()
 
+  const { user } = authProvider.useFullUserSession()
+  const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
   const [inputValue, setInputValue] = React.useState('')
 
   const { backend } = backendProvider.useStrictBackend()
   const inputRef = React.useRef<HTMLDivElement>(null)
   const formRef = React.useRef<HTMLFormElement>(null)
 
-  const queryClient = reactQuery.useQueryClient()
-
   const inviteUserMutation = reactQuery.useMutation({
     mutationKey: ['inviteUser'],
-    mutationFn: async (params: InviteUsersMutationParams) =>
+    mutationFn: (params: InviteUsersMutationParams) =>
       backend.inviteUser({ organizationId: params.organizationId, userEmail: params.email }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['listInvitations'] })
+    meta: {
+      invalidates: [['listInvitations']],
+      awaitInvalidates: true,
     },
   })
+
+  const [{ data: usersCount }, { data: invitationsCount }] = reactQuery.useSuspenseQueries({
+    queries: [
+      {
+        queryKey: ['listInvitations'],
+        queryFn: async () => backend.listInvitations(),
+        select: (invitations: backendModule.Invitation[]) => invitations.length,
+      },
+      {
+        queryKey: ['listUsers'],
+        queryFn: async () => backend.listUsers(),
+        select: (users: backendModule.User[]) => users.length,
+      },
+    ],
+  })
+
+  const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
+  const feature = getFeature('inviteUser')
+
+  const seatsLeft = isUnderPaywall
+    ? Math.max(feature.meta.maxSeats - (usersCount + invitationsCount), 0)
+    : Infinity
 
   const getEmailsFromInput = eventCallbackHooks.useEventCallback((value: string) => {
     return parserUserEmails.parseUserEmails(value)
@@ -103,10 +129,14 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
     if (trimmedValue === '' || entries.length === 0) {
       return getText('emailIsRequired')
     } else {
-      for (const entry of entries) {
-        if (!isEmail(entry.email)) {
-          // eslint-disable-next-line no-restricted-syntax
-          return getText('emailIsInvalid')
+      if (entries.length > seatsLeft) {
+        return getText('inviteFormSeatsLeftError', entries.length - seatsLeft)
+      } else {
+        for (const entry of entries) {
+          if (!isEmail(entry.email)) {
+            // eslint-disable-next-line no-restricted-syntax
+            return getText('emailIsInvalid')
+          }
         }
       }
 
@@ -156,13 +186,11 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         }
       }}
     >
-      <aria.Text className="mb-2 text-sm text-primary">
-        {getText('inviteFormDescription')}
-      </aria.Text>
+      <ariaComponents.Text className="mb-2">{getText('inviteFormDescription')}</ariaComponents.Text>
 
       <ariaComponents.ResizableContentEditableInput
         ref={inputRef}
-        className="mb-4"
+        className="mb-2"
         name="email"
         aria-label={getText('inviteEmailFieldLabel')}
         placeholder={getText('inviteEmailFieldPlaceholder')}
@@ -182,15 +210,24 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
       {inviteUserMutation.isError && (
         <ariaComponents.Alert variant="error" className="mb-4">
           {/* eslint-disable-next-line no-restricted-syntax */}
-          {getText('arbitraryErrorTitle')}. {getText('arbitraryErrorSubtitle')}
+          {getText('arbitraryErrorTitle')}.{'&nbsp;'}
+          {getText('arbitraryErrorSubtitle')}
         </ariaComponents.Alert>
+      )}
+
+      {isUnderPaywall && (
+        <paywallComponents.PaywallAlert
+          className="mb-4"
+          feature="inviteUserFull"
+          label={getText('inviteFormSeatsLeft', seatsLeft)}
+        />
       )}
 
       <ariaComponents.Button
         type="submit"
         variant="tertiary"
-        rounded="medium"
-        size="medium"
+        rounded="xlarge"
+        size="large"
         loading={inviteUserMutation.isPending}
         fullWidth
       >

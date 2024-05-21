@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as billingHooks from '#/hooks/billing'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -16,10 +17,11 @@ import UserGroupRow from '#/layouts/Settings/UserGroupRow'
 import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import * as paywallComponents from '#/components/Paywall'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
@@ -27,14 +29,10 @@ import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
-// =============================
-// === UserGroupsSettingsTab ===
-// =============================
-
 /** Settings tab for viewing and editing organization members. */
-export default function UserGroupsSettingsTab() {
+export function UserGroupsSettingsTabContent() {
   const { backend } = backendProvider.useStrictBackend()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -47,6 +45,12 @@ export default function UserGroupsSettingsTab() {
     () => new Map((users ?? []).map(otherUser => [otherUser.userId, otherUser])),
     [users]
   )
+
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+
+  const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
+  const userGroupsLeft = isUnderPaywall ? 1 - (userGroups?.length ?? 0) : Infinity
+  const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
 
   const usersByGroup = React.useMemo(() => {
     const map = new Map<backendModule.UserGroupId, backendModule.User[]>()
@@ -212,48 +216,71 @@ export default function UserGroupsSettingsTab() {
       <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
         <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
           <HorizontalMenuBar>
-            <UnstyledButton
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-              onPress={event => {
-                const placeholderId = backendModule.newPlaceholderUserGroupId()
-                const rect = event.target.getBoundingClientRect()
-                const position = { pageX: rect.left, pageY: rect.top }
-                setModal(
-                  <NewUserGroupModal
-                    event={position}
-                    userGroups={userGroups}
-                    onSubmit={groupName => {
-                      if (user != null) {
-                        const id = placeholderId
-                        const { organizationId } = user
-                        setUserGroups(oldUserGroups => [
-                          ...(oldUserGroups ?? []),
-                          { organizationId, id, groupName },
-                        ])
-                      }
-                    }}
-                    onSuccess={newUserGroup => {
-                      setUserGroups(
-                        oldUserGroups =>
-                          oldUserGroups?.map(userGroup =>
-                            userGroup.id !== placeholderId ? userGroup : newUserGroup
-                          ) ?? null
-                      )
-                    }}
-                    onFailure={() => {
-                      setUserGroups(
-                        oldUserGroups =>
-                          oldUserGroups?.filter(userGroup => userGroup.id !== placeholderId) ?? null
-                      )
-                    }}
-                  />
-                )
-              }}
-            >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('newUserGroup')}
-              </aria.Text>
-            </UnstyledButton>
+            <div className="flex items-center gap-2">
+              {shouldDisplayPaywall && (
+                <paywallComponents.PaywallDialogButton
+                  feature="userGroupsFull"
+                  variant="cancel"
+                  size="medium"
+                  rounded="full"
+                  iconPosition="end"
+                  tooltip={getText('userGroupsPaywallMessage')}
+                >
+                  {getText('newUserGroup')}
+                </paywallComponents.PaywallDialogButton>
+              )}
+              {!shouldDisplayPaywall && (
+                <ariaComponents.Button
+                  variant="cancel"
+                  rounded="full"
+                  size="medium"
+                  onPress={event => {
+                    const placeholderId = backendModule.newPlaceholderUserGroupId()
+                    const rect = event.target.getBoundingClientRect()
+                    const position = { pageX: rect.left, pageY: rect.top }
+                    setModal(
+                      <NewUserGroupModal
+                        event={position}
+                        userGroups={userGroups}
+                        onSubmit={groupName => {
+                          const id = placeholderId
+                          const { organizationId } = user
+                          setUserGroups(oldUserGroups => [
+                            ...(oldUserGroups ?? []),
+                            { organizationId, id, groupName },
+                          ])
+                        }}
+                        onSuccess={newUserGroup => {
+                          setUserGroups(
+                            oldUserGroups =>
+                              oldUserGroups?.map(userGroup =>
+                                userGroup.id !== placeholderId ? userGroup : newUserGroup
+                              ) ?? null
+                          )
+                        }}
+                        onFailure={() => {
+                          setUserGroups(
+                            oldUserGroups =>
+                              oldUserGroups?.filter(userGroup => userGroup.id !== placeholderId) ??
+                              null
+                          )
+                        }}
+                      />
+                    )
+                  }}
+                >
+                  {getText('newUserGroup')}
+                </ariaComponents.Button>
+              )}
+
+              {isUnderPaywall && (
+                <span className="text-xs">
+                  {userGroupsLeft <= 0
+                    ? getText('userGroupsPaywallMessage')
+                    : getText('userGroupsLimitMessage', userGroupsLeft)}
+                </span>
+              )}
+            </div>
           </HorizontalMenuBar>
           <div
             ref={rootRef}
@@ -318,6 +345,7 @@ export default function UserGroupsSettingsTab() {
           </div>
         </SettingsSection>
       </div>
+
       <SettingsSection noFocusArea title={getText('users')} className="h-2/5 lg:h-[unset]">
         <MembersTable draggable populateWithSelf />
       </SettingsSection>

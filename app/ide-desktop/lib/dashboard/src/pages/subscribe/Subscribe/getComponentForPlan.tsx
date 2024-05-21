@@ -9,6 +9,7 @@ import type * as stripeJs from '@stripe/stripe-js'
 
 import OpenInNewTabIcon from 'enso-assets/open.svg'
 
+import * as appUtils from '#/appUtils'
 import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -77,6 +78,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
           target="_blank"
           icon={OpenInNewTabIcon}
           iconPosition="end"
+          size="medium"
         >
           {getText('learnMore')}
         </ariaComponents.Button>
@@ -89,7 +91,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
 
       return (
         <ariaComponents.DialogTrigger defaultOpen={defaultOpen}>
-          <ariaComponents.Button variant={'outline'} fullWidth size="medium" rounded="full">
+          <ariaComponents.Button variant={'outline'} fullWidth size="large" rounded="full">
             {getText('subscribe')}
           </ariaComponents.Button>
 
@@ -114,6 +116,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
           target="_blank"
           icon={OpenInNewTabIcon}
           iconPosition="end"
+          size="medium"
         >
           {getText('learnMore')}
         </ariaComponents.Button>
@@ -129,7 +132,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
 
       return (
         <ariaComponents.DialogTrigger defaultOpen={defaultOpen}>
-          <ariaComponents.Button variant={'submit'} fullWidth size="medium" rounded="full">
+          <ariaComponents.Button variant={'submit'} fullWidth size="large" rounded="full">
             {getText('subscribe')}
           </ariaComponents.Button>
 
@@ -151,6 +154,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
           target="_blank"
           icon={OpenInNewTabIcon}
           iconPosition="end"
+          size="medium"
         >
           {getText('learnMore')}
         </ariaComponents.Button>
@@ -166,10 +170,10 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
         <ariaComponents.Button
           fullWidth
           variant="primary"
-          size="medium"
+          size="large"
           rounded="full"
           target="_blank"
-          href="mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan"
+          href={appUtils.getContactSalesURL()}
         >
           {getText('contactSales')}
         </ariaComponents.Button>

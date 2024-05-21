@@ -70,6 +70,7 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
+import * as paywall from '#/components/Paywall'
 import * as rootComponent from '#/components/Root'
 
 import AboutModal from '#/modals/AboutModal'
@@ -88,7 +89,6 @@ import * as object from '#/utilities/object'
 import * as authServiceModule from '#/authentication/service'
 
 import type * as types from '../../types/types'
-import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
 // === Global configuration ===
@@ -176,7 +176,7 @@ export default function App(props: AppProps) {
   const routerFuture: Partial<router.FutureConfig> = {
     /* we want to use startTransition to enable concurrent rendering */
     /* eslint-disable-next-line @typescript-eslint/naming-convention */
-    v7_startTransition: true,
+    v7_startTransition: false,
   }
 
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
@@ -200,8 +200,6 @@ export default function App(props: AppProps) {
           </ModalProvider>
         </LocalStorageProvider>
       </router.BrowserRouter>
-
-      <reactQueryDevtools.ReactQueryDevtools />
     </>
   )
 }
@@ -486,6 +484,9 @@ function AppRouter(props: AppRouterProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  if (detect.IS_DEV_MODE) {
+    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
+  }
   result = (
     <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
       {result}

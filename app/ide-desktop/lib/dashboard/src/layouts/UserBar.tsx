@@ -6,6 +6,8 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
 
+import * as billing from '#/hooks/billing'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -16,6 +18,7 @@ import UserMenu from '#/layouts/UserMenu'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import * as paywall from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -50,20 +53,29 @@ export default function UserBar(props: UserBarProps) {
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
+
+  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user?.plan })
+
   const self =
     user != null
       ? projectAsset?.permissions?.find(
           backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
         ) ?? null
       : null
+
   const shouldShowShareButton =
     backend.type === backendModule.BackendType.remote &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
+
+  const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
+
   const shouldShowInviteButton =
-    sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
+    sessionType === authProvider.UserSessionType.full &&
+    !shouldShowShareButton &&
+    !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -83,6 +95,17 @@ export default function UserBar(props: UserBarProps) {
             }}
           />
 
+          {shouldShowUpgradeButton && (
+            <paywall.PaywallDialogButton
+              feature={'inviteUser'}
+              rounded="full"
+              size="xsmall"
+              variant="tertiary"
+            >
+              {getText('invite')}
+            </paywall.PaywallDialogButton>
+          )}
+
           {shouldShowInviteButton && (
             <ariaComponents.DialogTrigger>
               <ariaComponents.Button rounded="full" size="xsmall" variant="tertiary">
@@ -101,6 +124,7 @@ export default function UserBar(props: UserBarProps) {
           >
             {getText('upgrade')}
           </ariaComponents.Button>
+
           {shouldShowShareButton && (
             <UnstyledButton
               className="text my-auto rounded-full bg-share px-button-x text-inversed"

@@ -3,6 +3,9 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
+import * as billingHooks from '#/hooks/billing'
+
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -15,6 +18,8 @@ import SettingsSection from '#/components/styled/settings/SettingsSection'
 import type * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
+import * as paywallSettingsLayout from './withPaywall'
+
 // ==========================
 // === MembersSettingsTab ===
 // ==========================
@@ -22,9 +27,16 @@ import type Backend from '#/services/Backend'
 const LIST_USERS_STALE_TIME = 60_000
 
 /** Settings tab for viewing and editing organization members. */
-export default function MembersSettingsTab() {
+
+/**
+ * Settings tab for viewing and editing organization members.
+ */
+function MembersSettingsTab() {
   const { getText } = textProvider.useText()
   const { backend } = backendProvider.useStrictBackend()
+  const { user } = authProvider.useFullUserSession()
+
+  const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
 
   const [{ data: members }, { data: invitations }] = reactQuery.useSuspenseQueries({
     queries: [
@@ -41,10 +53,21 @@ export default function MembersSettingsTab() {
     ],
   })
 
+  const isUnderPaywall = isFeatureUnderPaywall('inviteUserFull')
+  const feature = getFeature('inviteUser')
+
+  const seatsLeft = isUnderPaywall
+    ? feature.meta.maxSeats - (members.length + invitations.length)
+    : null
+
   return (
     <SettingsPage>
       <SettingsSection noFocusArea title={getText('members')} className="overflow-hidden">
-        <MembersSettingsTabBar />
+        <MembersSettingsTabBar
+          seatsLeft={seatsLeft}
+          seatsTotal={feature.meta.maxSeats}
+          feature="inviteUserFull"
+        />
 
         <table className="table-fixed self-start rounded-rows">
           <thead>
@@ -57,6 +80,7 @@ export default function MembersSettingsTab() {
               </th>
             </tr>
           </thead>
+
           <tbody className="select-text">
             {members.map(member => (
               <tr key={member.email} className="group h-row rounded-rows-child">
@@ -157,17 +181,12 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { email } = props
   const { getText } = textProvider.useText()
 
-  const queryClient = reactQuery.useQueryClient()
-
   const removeMutation = reactQuery.useMutation({
     mutationKey: ['removeUser', email],
     mutationFn: async () => {
       // TODO: Implement remove member mutation
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ['listUsers'],
-      }),
+    meta: { invalidates: [['listUsers']], awaitInvalidates: true },
   })
 
   return (
@@ -188,15 +207,11 @@ function RemoveInvitationButton(props: RemoveMemberButtonProps) {
   const { backend, email } = props
 
   const { getText } = textProvider.useText()
-  const queryClient = reactQuery.useQueryClient()
 
   const removeMutation = reactQuery.useMutation({
     mutationKey: ['resendInvitation', email],
     mutationFn: () => backend.deleteInvitation(email),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ['listInvitations'],
-      }),
+    meta: { invalidates: [['listInvitations']], awaitInvalidates: true },
   })
 
   return (
@@ -212,3 +227,5 @@ function RemoveInvitationButton(props: RemoveMemberButtonProps) {
     </ariaComponents.Button>
   )
 }
+
+export default paywallSettingsLayout.withPaywall(MembersSettingsTab, { feature: 'inviteUser' })

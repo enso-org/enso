@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import * as billingHooks from '#/hooks/billing'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -22,6 +23,7 @@ import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
 import type * as assetRow from '#/components/dashboard/AssetRow'
+import * as paywall from '#/components/Paywall'
 import Separator from '#/components/styled/Separator'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -74,6 +76,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
+
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user?.plan })
+  const isUnderPaywall = isFeatureUnderPaywall('share')
+
   const isCloud = backend.type === backendModule.BackendType.remote
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
@@ -310,28 +316,38 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && <Separator hidden={hidden} />}
+
         {isCloud && managesThisAsset && self != null && (
-          <ContextMenuEntry
-            hidden={hidden}
-            action="share"
-            doAction={() => {
-              setModal(
-                <ManagePermissionsModal
-                  item={asset}
-                  setItem={setAsset}
-                  self={self}
-                  eventTarget={eventTarget}
-                  doRemoveSelf={() => {
-                    dispatchAssetEvent({
-                      type: AssetEventType.removeSelf,
-                      id: asset.id,
-                    })
-                  }}
-                />
-              )
-            }}
-          />
+          <>
+            {isUnderPaywall && (
+              <paywall.ContextMenuEntry feature="share" action="share" hidden={hidden} />
+            )}
+
+            {!isUnderPaywall && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="share"
+                doAction={() => {
+                  setModal(
+                    <ManagePermissionsModal
+                      item={asset}
+                      setItem={setAsset}
+                      self={self}
+                      eventTarget={eventTarget}
+                      doRemoveSelf={() => {
+                        dispatchAssetEvent({
+                          type: AssetEventType.removeSelf,
+                          id: asset.id,
+                        })
+                      }}
+                    />
+                  )
+                }}
+              />
+            )}
+          </>
         )}
+
         {isCloud && (
           <ContextMenuEntry
             hidden={hidden}

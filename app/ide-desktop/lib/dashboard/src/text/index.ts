@@ -110,6 +110,13 @@ interface PlaceholderOverrides {
   readonly logEventBackendError: [string]
 
   readonly subscribeSuccessSubtitle: [string]
+
+  readonly paywallAvailabilityLevel: [plan: string]
+  readonly paywallScreenDescription: [plan: string]
+  readonly userGroupsLimitMessage: [limit: number]
+  readonly inviteFormSeatsLeftError: [exceedBy: number]
+  readonly inviteFormSeatsLeft: [seatsLeft: number]
+  readonly seatsLeft: [seatsLeft: number, seatsTotal: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

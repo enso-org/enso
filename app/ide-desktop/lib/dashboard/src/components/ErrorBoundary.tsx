@@ -74,7 +74,13 @@ function DefaultFallbackComponent(props: errorBoundary.FallbackProps): React.JSX
       subtitle={getText('arbitraryErrorSubtitle')}
     >
       <ariaComponents.ButtonGroup align="center">
-        <ariaComponents.Button variant="submit" size="medium" onPress={resetErrorBoundary}>
+        <ariaComponents.Button
+          variant="submit"
+          size="large"
+          rounded="full"
+          className="w-24"
+          onPress={resetErrorBoundary}
+        >
           {getText('tryAgain')}
         </ariaComponents.Button>
       </ariaComponents.ButtonGroup>

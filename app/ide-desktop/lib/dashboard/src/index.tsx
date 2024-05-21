@@ -19,6 +19,8 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
 
+import * as reactQueryDevtools from './ReactQueryDevtools'
+
 // =================
 // === Constants ===
 // =================
@@ -101,13 +103,15 @@ function run(props: Omit<app.AppProps, 'portalRoot'>) {
                 {...props}
                 supportsDeepLinks={actuallySupportsDeepLinks}
                 portalRoot={portalRoot}
-              />
-            )}
-          </React.Suspense>
-        </errorBoundary.ErrorBoundary>
-      </reactQuery.QueryClientProvider>
-    </React.StrictMode>
-  )
+              />)}
+            </React.Suspense>
+          </errorBoundary.ErrorBoundary>
+
+          <reactQueryDevtools.ReactQueryDevtools />
+        </reactQuery.QueryClientProvider>
+      </React.StrictMode>
+    )
+
 }
 
 /** Global configuration for the {@link App} component. */
