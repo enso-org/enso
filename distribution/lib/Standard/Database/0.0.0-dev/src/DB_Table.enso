@@ -1827,28 +1827,26 @@ type DB_Table
                             sql_type    = description.at 1
                             result_type = description.at 2
                             column_name = column_set.name
+                            ## We assume that the type for this expression will never be queried - it is
+                               just used internally to build the Union operation and never exposed externally.
+                            infer_return_type _ = SQL_Type_Reference.null
                             case column_set.column_indices.at i of
                                 corresponding_column_index : Integer ->
                                     column = t.at corresponding_column_index
+                                    internal_named_column = column.as_internal.rename column_name
                                     ## We cast if the result type is different.
                                        This is a bit on the safe side. In some cases the cast is not needed
                                        (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
                                        However, we do this for simplicity as determining the rules when the cast is needed or not is adding a lot of complication.
                                        This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
                                     needs_cast = column.value_type != result_type
-                                    # TODO shall I use lower level function here instead?? make_cast?
-                                    casted = if needs_cast then column.cast (description.at 2) else column
-                                    casted.as_internal.rename column_name
+                                    if needs_cast.not then internal_named_column else
+                                        dialect.make_cast internal_named_column sql_type infer_return_type
                                 Nothing ->
                                     typ = SQL_Type_Reference.from_constant SQL_Type.null
                                     expr = SQL_Expression.Literal "NULL"
                                     null_column = Internal_Column.Value column_name typ expr
                                     if sql_type == SQL_Type.null then null_column else
-                                        ## We assume that the type for this
-                                           expression will never be queried - it is
-                                           just used internally to build the Union
-                                           operation and never exposed externally.
-                                        infer_return_type _ = SQL_Type_Reference.null
                                         dialect.make_cast null_column sql_type infer_return_type
                         pairs = columns_to_select.map c->
                             [c.name, c.expression]
