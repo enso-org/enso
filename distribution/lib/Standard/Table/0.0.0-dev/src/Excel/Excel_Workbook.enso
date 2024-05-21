@@ -12,6 +12,7 @@ from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 
+import project.Columns_To_Keep.Columns_To_Keep
 import project.Excel.Excel_Range.Excel_Range
 import project.Headers.Headers
 import project.Internal.Excel_Reader
@@ -331,7 +332,7 @@ type Excel_Workbook
             tables = sheet_names.map on_problems=on_problems address-> self.read address headers on_problems=on_problems
             case return of
                 Return_As.Table_Of_Tables -> Table.new [["Sheet Name", sheet_names], ["Table", tables]]
-                Return_As.Merged_Table match ->
+                Return_As.Merged_Table columns_to_keep match ->
                     first_tbl = tables.find t-> t != Nothing
                     if first_tbl == Nothing then Error.throw (Illegal_Argument.Error "No valid sheets found.") else
                         unique = first_tbl.column_naming_helper.create_unique_name_strategy
@@ -339,7 +340,7 @@ type Excel_Workbook
                         new_column_name = unique.make_unique "Sheet Name"
 
                         with_names = tables.zip sheet_names tbl->name-> if tbl == Nothing then Nothing else tbl.set name new_column_name . reorder_columns [new_column_name]
-                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) match_columns=match
+                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) columns_to_keep=columns_to_keep match_columns=match
 
                         problem_builder = Problem_Builder.new
                         problem_builder.report_unique_name_strategy unique
@@ -359,4 +360,4 @@ type Return_As
     Table_Of_Tables
 
     ## All sheets are merged into a single table. A union operation is performed.
-    Merged_Table match:Match_Columns=Match_Columns.By_Name
+    Merged_Table (columns_to_keep : Columns_To_Keep = Columns_To_Keep.In_Any) (match : Match_Columns = Match_Columns.By_Name)
