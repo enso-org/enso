@@ -214,7 +214,8 @@ export function performCollapse(
   }
   const argNames = info.extracted.inputs
   const collapsedFunction = Ast.Function.fromStatements(edit, collapsedName, argNames, collapsed)
-  topLevel.insert(posToInsert, collapsedFunction, undefined)
+  const collapsedFunctionWithIcon  = Ast.Documented.new("ICON group", collapsedFunction)
+  topLevel.insert(posToInsert, collapsedFunctionWithIcon, undefined)
   return { refactoredNodeId, collapsedNodeIds, outputNodeId }
 }
 
