@@ -5,11 +5,9 @@
  */
 import * as React from 'react'
 
-import * as reactRouter from 'react-router'
+import * as reactRouterDom from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
-
-import * as appUtils from '#/appUtils'
 
 import * as textProvider from '#/providers/TextProvider'
 
@@ -38,19 +36,21 @@ export interface InviteUsersSuccessProps {
 export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
   const { onClose, emails, invitationLink } = props
   const { getText, locale } = textProvider.useText()
-  const membersSearchParams = 'cloud-ide_page="settings"&cloud-ide_SettingsTab="members"'
-  const membersPageUrl = reactRouter.useHref({
-    pathname: appUtils.DASHBOARD_PATH,
-    search: membersSearchParams,
-  })
-  const { search } = reactRouter.useLocation()
+  const membersSearchParams = [
+    ['cloud-ide_page', '"settings"'],
+    ['cloud-ide_SettingsTab', '"members"'],
+  ] as const
+
+  const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
 
   const emailListFormatter = React.useMemo(
     () => new Intl.ListFormat(locale, { type: 'conjunction', style: 'long' }),
     [locale]
   )
 
-  const isUserOnMembersPage = decodeURIComponent(search) === `?${membersSearchParams}`
+  const isUserOnMembersPage =
+    searchParams.has(membersSearchParams[0][0], membersSearchParams[0][1]) &&
+    searchParams.has(membersSearchParams[1][0], membersSearchParams[1][1])
 
   return (
     <result.Result
@@ -78,7 +78,13 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
               size="medium"
               iconPosition="end"
               onPressStart={onClose}
-              href={membersPageUrl}
+              onPress={() => {
+                onClose()
+                membersSearchParams.forEach(([key, value]) => {
+                  searchParams.set(key, value)
+                })
+                setSearchParams(searchParams)
+              }}
             >
               {getText('goToMembersPage')}
             </ariaComponents.Button>
