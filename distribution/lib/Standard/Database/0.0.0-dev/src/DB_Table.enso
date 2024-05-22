@@ -18,6 +18,7 @@ from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import Standard.Table.Column_Operation.Column_Operation
+import Standard.Table.Columns_To_Keep.Columns_To_Keep
 import Standard.Table.Expression.Expression
 import Standard.Table.Expression.Expression_Error
 import Standard.Table.Internal.Add_Row_Number
@@ -30,6 +31,7 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Replace_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
+import Standard.Table.Internal.Table_Helpers.Union_Result_Type
 import Standard.Table.Internal.Table_Ref.Table_Ref
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Value_Type_Helpers
@@ -1719,90 +1721,77 @@ type DB_Table
        - tables: A single table or a vector of tables to append to this one. The
          tables are concatenated in the order they are specified, with `self`
          being the first one.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in any of the tables, reporting a warning for
+         columns that are not present in all tables and adding `Nothing` values
+         for them.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
-           If unmatched columns are to be dropped, the resulting table will keep
-           only the set of columns that appear in all provided tables, in the
-           relative order that they appeared in the `self` table.
-           If unmatched columns are kept, they are added in the order of
-           appearance - i.e. first all columns from `self` will be added in the
-           original order, then any columns from the second table that were not
-           matched will be added at the end (preserving their relative order),
-           and so on for all the remaining tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
-           If unmatched columns are to be dropped, the resulting table will have
-           as many columns as the table that had the least columns and the
-           column names of the first table (`self`) will be used.
-           If unmatched columns are kept, the resulting table will have as many
-           columns as the table with the most columns. Since the first table may
-           not have all the necessary columns to provide column names for the
-           result, the result will have column names taken from the first table
-           that has the biggest number of columns.
-       - keep_unmatched_columns: If set to `True`, unmatched columns are kept
-         and are padded with `Nothing` for tables that did not have them.
-         If set to `False`, only the common subset of columns is kept - any
-         column that is not present in all tables is dropped. Defaults to
-         `Report_Unmatched`, which behaves like `True` - unmatched columns are
-         kept and padded with `Nothing`, but a problem is reported.
-       - allow_type_widening: Specifies if the resulting column type should be
-         adjusted to fit columns from all arguments. If `True`, a common type
-         will be chosen for each column (see "Unifying Column Types" below).
-         If `False`, the resulting column type will be the same as in the first
-         table containing the column. In this case, all columns that are
-         concatenated must have the same type as the first one (unless this
-         had a `Mixed` type - in which case it will accept any other types).
+           The names of each column come from the first table in which the given
+           column appears in.
+           The `List` option is not applicable when mapping columns by position.
+           Column names are taken from the first table if `In_All` and from the
+           first table that has the maximum number of columns if `In_Any`
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         - If `keep_unmatched_columns` is set to `Report_Unmatched` (the
-           default):
-           - If matching by name and there are columns that are not present in
-             all tables, `Unmatched_Columns` is reported.
-           - If matching by position and column counts of the merged tables
-             differ, then a `Column_Count_Mismatch` is reported. The error will
-             contain the greatest column count as its `expected` value and the
-             smallest one as its `actual` value.
-         - If `keep_unmatched_columns` is set to `False` and matching by name,
-           it is possible that there are no columns that are common to all
-           provided tables, in that case `No_Output_Columns` is thrown as a
-           dataflow error regardless of the `on_problems` setting, because there
-           are no columns to include in the resulting table.
-         - If type widening is disabled and one of corresponding columns has a
-           type that is incompatible with the type coming from the first table,
-           a `Column_Type_Mismatch` is reported. The problematic column will be
-           dropped from the resulting table. With type widening disabled, the
-           subsequent tables must have the same types as the first one, unless
-           the type of the first one was `Mixed` which will accept any other
-           type.
-         - If a common type coercion for a set of matched columns from
-           concatenated tables cannot be found, a `No_Common_Type` is reported.
-           In warning or ignore mode, the problematic column will be dropped
-           from the resulting table.
-
        ? Unifying Column Types
 
-         If `allow_type_widening` is set to `True`, then the following rules are
-         used to find a common type that will fit values from all merged tables.
-
-         Numeric columns are unified by finding the most general type that can
-         fit all of the columns. The biggest integer type will be chosen and if
+         Numeric columns are unified by finding the smallest type that can fit
+         all of the columns. The biggest integer type will be chosen and if
          integers and decimals are mixed, the decimal type will be chosen.
          If boolean columns are mixed with numeric columns, they will be coerced
          to the numeric type (and converted to 0 and 1).
 
-         Text types will also be coerced according to the common rules - if
-         constant-length texts of different lengths are mixed, they will be
-         coerced to a varying-length type.
+         Text types will are also unified by finding the smallest type that can
+         fit all the values. If constant-length texts of different lengths are
+         mixed, they will be coerced to a varying-length type.
+
+         If date and date-time columns are unified, this yields a date-time
+         column. In-memory, the date is promoted by adding a time of 00:00 and
+         the system time-zone. In other backends that behaviour may differ.
 
          If one of the matched columns has `Mixed` type, that type will be used
-         regardless of types of other columns. Mixing any other types will
-         result in a `No_Common_Type` problem. If columns of incompatible types
-         are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention. Note that the
-         `Mixed` type may not be supported by most Database backends.
-    union : (DB_Table | Vector DB_Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> DB_Table
-    union self tables:(DB_Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+         regardless of types of other columns. Note that the `Mixed` type may
+         not be supported by most Database backends.
+
+         Finally, if no common type is found using the rules above, everything
+         is converted to text.
+
+       ? Problem Conditions
+
+         - If no common type is found and the text conversion fallback is used,
+           the `No_Common_Type` problem is reported.
+         - The `Float` type may not be able to exactly represent larger
+           integers, thus if such large integers are mixed with floats, the
+           resulting conversion to `Float` may cause a loss of precision.
+           In that case, a `Loss_Of_Integer_Precision` problem is reported.
+           This warning is only reported in the in-memory backend. Currently,
+           the Database backend proceeds without a warning about precision loss.
+         - If a column of dates is unified with a column of date-times, since
+           the assumption of using the midnight time-of-day is arbitrary,
+           a `Implicit_Date_As_Date_Time_Conversion` problem is reported.
+         - If an empty vector of tables is provided, an `Illegal_Argument` error
+           is raised.
+         - If `columns_to_keep` is set to `In_All` or `List` and an expected
+           column is missing in some of the tables, a `Unmatched_Columns`
+           problem is reported. If this causes the output to contain no columns,
+           a `No_Output_Columns` error is raised.
+
+       ? Ordering of Columns in the result
+
+         When matching columns by name, it is possible that the ordering of
+         columns may vary between input tables. The ordering is determined as
+         following: columns that are kept from the first table are in the order
+         they appear in that table. If there are columns that do not appear in
+         the first table, they are appended to the end of the resulting table in
+         the order they appear in the input.
+    @tables (Widget.Vector_Editor item_editor=Widget.Code_Input item_default='_' display=Display.Always)
+    @columns_to_keep Columns_To_Keep.default_widget
+    union : (DB_Table | Vector DB_Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> DB_Table
+    union self tables:(DB_Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> DB_Table.from t)
             single_table -> [self, single_table]
@@ -1811,39 +1800,53 @@ type DB_Table
                we only want to add a cause coming from unification; matching reports problems that would not fit this error.
             problem_builder_for_matching = Problem_Builder.new
             problem_builder_for_unification = Problem_Builder.new
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder_for_matching
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
             dialect = self.connection.dialect
             type_mapping = dialect.get_type_mapping
             merged_columns = matched_column_sets.map column_set->
-                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder_for_unification of
-                    Nothing -> Nothing
-                    result_type : Value_Type ->
-                        sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Report_Error
-                        sql_type.catch Inexact_Type_Coercion error->
-                            Panic.throw <|
-                                Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                        [column_set, sql_type, result_type]
-            good_columns = merged_columns.filter r-> r.is_nothing.not
+                sql_type_from_value_type value_type =
+                    type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
+                        Panic.throw <|
+                            Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
+                    Union_Result_Type.Common_Type common_type ->
+                        [column_set, sql_type_from_value_type common_type, common_type]
+                    Union_Result_Type.Fallback_To_Text ->
+                        [column_set, sql_type_from_value_type Value_Type.Char, Value_Type.Char]
+                    Union_Result_Type.No_Types_To_Unify ->
+                        ## If the column is all nulls, we still need to give it some type.
+                           For DB `Mixed` is not available, so a portable type to use is `Char`.
+                        [column_set, SQL_Type.null, Value_Type.Char]
+
             problem_builder_for_matching.attach_problems_before on_problems <| problem_builder_for_unification.attach_problems_before on_problems <|
-                if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
                     queries = all_tables.map_with_index i-> t->
-                        columns_to_select = good_columns.map description->
-                            column_set = description.first
-                            sql_type = description.second
+                        columns_to_select = merged_columns.map description->
+                            column_set  = description.at 0
+                            sql_type    = description.at 1
+                            result_type = description.at 2
                             column_name = column_set.name
+                            ## We assume that the type for this expression will never be queried - it is
+                               just used internally to build the Union operation and never exposed externally.
+                            infer_return_type _ = SQL_Type_Reference.null
                             case column_set.column_indices.at i of
+                                corresponding_column_index : Integer ->
+                                    column = t.at corresponding_column_index
+                                    internal_named_column = column.as_internal.rename column_name
+                                    ## We cast if the result type is different.
+                                       This is a bit on the safe side. In some cases the cast is not needed
+                                       (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
+                                       However, we do this for simplicity as determining the rules when the cast is needed or not is adding a lot of complication.
+                                       This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
+                                    needs_cast = column.value_type != result_type
+                                    if needs_cast.not then internal_named_column else
+                                        dialect.make_cast internal_named_column sql_type infer_return_type
                                 Nothing ->
                                     typ = SQL_Type_Reference.from_constant SQL_Type.null
                                     expr = SQL_Expression.Literal "NULL"
                                     null_column = Internal_Column.Value column_name typ expr
-                                    ## We assume that the type for this
-                                       expression will never be queried - it is
-                                       just used internally to build the Union
-                                       operation and never exposed externally.
-                                    infer_return_type _ = SQL_Type_Reference.null
-                                    dialect.make_cast null_column sql_type infer_return_type
-                                corresponding_column_index : Integer ->
-                                    t.at corresponding_column_index . as_internal . rename column_name
+                                    if sql_type == SQL_Type.null then null_column else
+                                        dialect.make_cast null_column sql_type infer_return_type
                         pairs = columns_to_select.map c->
                             [c.name, c.expression]
                         Query.Select pairs t.context
@@ -1860,7 +1863,7 @@ type DB_Table
                        See #6118.
                     infer_return_type expression =
                         SQL_Type_Reference.new self.connection new_ctx expression
-                    new_columns = good_columns.map description->
+                    new_columns = merged_columns.map description->
                         column_set = description.first
                         result_type = description.at 2
                         name = column_set.name

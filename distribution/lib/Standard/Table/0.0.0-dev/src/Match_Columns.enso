@@ -1,6 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.State
+from Standard.Base.Runtime import assert
 
+import project.Columns_To_Keep.Columns_To_Keep
 import project.Constants.Report_Unmatched
 from project.Errors import Column_Count_Mismatch, No_Output_Columns, Unmatched_Columns
 
@@ -31,41 +34,93 @@ type Match_Columns
    columns should appear in the resulting table.
 
    The method assumes at least one table is provided in its input.
-match_columns tables matching_mode keep_unmatched_columns problem_builder = case matching_mode of
-    Match_Columns.By_Name -> case keep_unmatched_columns of
-        False ->
+match_columns tables matching_mode columns_to_keep problem_builder =
+    assert tables.not_empty
+    case matching_mode of
+        Match_Columns.By_Name -> match_columns_by_name tables columns_to_keep problem_builder
+        Match_Columns.By_Position -> match_columns_by_position tables columns_to_keep problem_builder
+
+## PRIVATE
+match_columns_by_name tables columns_to_keep problem_builder = case columns_to_keep of
+    Columns_To_Keep.In_List list -> if list.is_empty then Error.throw (Illegal_Argument.Error "The list of columns to keep cannot be empty.") else
+        output_column_names = list.distinct
+        column_counts = find_column_counts tables
+        all_tables_count = tables.length
+        unmatched_column_names = output_column_names.filter name->
+            column_counts.get name 0 < all_tables_count
+        if unmatched_column_names.not_empty then
+            problem_builder.report_other_warning (Unmatched_Columns.Error unmatched_column_names)
+        build_column_set_by_name tables output_column_names
+    Columns_To_Keep.In_All ->
+        column_counts = find_column_counts tables
+        # This will only include columns that were present in all tables.
+        all_tables_count = tables.length
+        common_column_names = tables.first.column_names.filter name->
+            column_counts.at name == all_tables_count
+        if common_column_names.is_empty then Error.throw (No_Output_Columns.Error "Unmatched columns are set to be dropped, but no common column names were found.") else
+            dropped_column_names = tables.map .column_names
+                . flatten
+                . filter (name-> column_counts.at name < all_tables_count)
+                . distinct
+            if dropped_column_names.not_empty then
+                problem_builder.report_other_warning (Unmatched_Columns.Error dropped_column_names)
+            build_column_set_by_name tables common_column_names
+    _ ->
+        output_column_names = distinct_columns_in_appearance_order tables
+        report_missing = case columns_to_keep of
+            Columns_To_Keep.In_Any -> False
+            Columns_To_Keep.In_Any_Warn_On_Missing -> True
+        if report_missing then
             column_counts = find_column_counts tables
-            # This will only include columns that were present in all tables.
-            common_column_names = tables.first.column_names.filter name->
-                column_counts.at name == tables.length
-            if common_column_names.is_empty then Error.throw (No_Output_Columns.Error "Unmatched columns are set to be dropped, but no common column names were found.") else
-                common_column_names.map name->
-                    column_indices = tables.map table->
-                        table.column_names.index_of name
-                    Column_Set.Value name column_indices
-        _ ->
-            output_column_names = distinct_columns_in_appearance_order tables
-            if keep_unmatched_columns == Report_Unmatched then
-                column_counts = find_column_counts tables
-                all_tables_count = tables.length
-                ## We iterate over output column names to get deterministic
-                  order of unmatched columns.
-                unmatched_column_names = output_column_names.filter name->
-                    column_counts.get name 0 < all_tables_count
-                if unmatched_column_names.not_empty then
-                    problem_builder.report_other_warning (Unmatched_Columns.Error unmatched_column_names)
-            output_column_names.map name->
-                column_indices = tables.map table->
-                    table.columns.index_of col-> col.name==name
-                Column_Set.Value name column_indices
-    Match_Columns.By_Position ->
+            all_tables_count = tables.length
+            ## We iterate over output column names to get deterministic
+              order of unmatched columns.
+            unmatched_column_names = output_column_names.filter name->
+                column_counts.get name 0 < all_tables_count
+            if unmatched_column_names.not_empty then
+                problem_builder.report_other_warning (Unmatched_Columns.Error unmatched_column_names)
+        build_column_set_by_name tables output_column_names
+
+## PRIVATE
+   Common logic for computing the final result of by-name matching.
+   Once the set of output column names is determined, we compute the
+   `Column_Set` by finding the corresponding column indices in each table (if found).
+build_column_set_by_name tables output_column_names =
+    output_column_names.map name->
+        column_indices = tables.map table->
+            # TODO this gets O(N^2), we should optimize
+            table.column_names.index_of name
+        Column_Set.Value name column_indices
+
+## PRIVATE
+match_columns_by_position tables columns_to_keep problem_builder = case columns_to_keep of
+    Columns_To_Keep.In_List _ ->
+        Error.throw (Illegal_Argument.Error "The In_List option for `columns_to_keep` cannot be used together with `By_Position` matching.")
+    _ ->
         column_counts = tables.map table-> table.columns.length
         minmax = column_counts.compute_bulk [Statistic.Minimum, Statistic.Maximum]
-        columns_to_take = if keep_unmatched_columns == False then minmax.first else minmax.second
-        if (minmax.first != minmax.second) && (keep_unmatched_columns == Report_Unmatched) then
-            problem_builder.report_other_warning (Column_Count_Mismatch.Error minmax.second minmax.first)
-        name_source = if keep_unmatched_columns == False then tables.first else
-            tables.find table-> table.columns.length == columns_to_take
+        min = minmax.first
+        max = minmax.second
+        columns_to_take = case columns_to_keep of
+            Columns_To_Keep.In_All -> min
+            Columns_To_Keep.In_Any -> max
+            Columns_To_Keep.In_Any_Warn_On_Missing -> max
+        has_unmatched_columns = min != max
+        if has_unmatched_columns then
+            should_report_unmatched = case columns_to_keep of
+                Columns_To_Keep.In_All -> True
+                Columns_To_Keep.In_Any -> False
+                Columns_To_Keep.In_Any_Warn_On_Missing -> True
+            # TODO should we rephrase the wording of the error? should it depend on In_Any_Warn_On_Missing vs In_All?
+            if should_report_unmatched then
+                problem_builder.report_other_warning (Column_Count_Mismatch.Error max min)
+
+        name_source = case columns_to_keep of
+            Columns_To_Keep.In_All -> tables.first
+            _ ->
+                # We find the first table that has all the columns present.
+                tables.find table-> table.columns.length == columns_to_take
+
         column_sets = Vector.new columns_to_take i->
             name = name_source.at i . name
             column_ids = tables.map table->
@@ -79,7 +134,7 @@ type Column_Set
     Value (name : Text) (column_indices : Vector Integer)
 
     ## PRIVATE
-    resolve_columns self all_tables = self.column_indices.zip all_tables i-> parent_table->
+    resolve_columns self (all_tables : Vector) = self.column_indices.zip all_tables i-> parent_table->
         case i of
             Nothing -> Nothing
             _ : Integer -> parent_table.at i
