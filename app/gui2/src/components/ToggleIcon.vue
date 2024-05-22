@@ -9,7 +9,7 @@
 import SvgButton from '@/components/SvgButton.vue'
 import type { Icon } from '@/util/iconName'
 
-const props = withDefaults(defineProps<{ icon: Icon; modelValue?: boolean }>(), {
+const _props = withDefaults(defineProps<{ icon: Icon; modelValue?: boolean }>(), {
   modelValue: false,
 })
 const emit = defineEmits<{

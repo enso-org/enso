@@ -711,7 +711,7 @@ type DB_Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input
@@ -743,7 +743,7 @@ type DB_Table
     take self range=(First 1) =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
@@ -879,7 +879,7 @@ type DB_Table
        Specifically, applying further filters will still apply to the whole
        result set and the limit will be taken after applying these filters.
 
-       > For example:
+       > Example
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
@@ -2387,11 +2387,11 @@ type DB_Table
        ICON split_text
        Expand a column of objects to a new set of columns.
 
-        Arguments:
-        - column: The column to expand.
-        - fields: The set fields to expand. If `Nothing` then all fields are added.
-        - prefix: Prefix to add to the column names. If `Nothing` then the column
-          name is used.
+       Arguments:
+       - column: The column to expand.
+       - fields: The set fields to expand. If `Nothing` then all fields are added.
+       - prefix: Prefix to add to the column names. If `Nothing` then the column
+         name is used.
     @column Widget_Helpers.make_column_name_selector
     expand_column : Text | Integer -> Vector | Nothing -> Text | DB_Table -> DB_Table ! Type_Error
     expand_column self column fields=Nothing prefix=Nothing =
@@ -2886,28 +2886,28 @@ type DB_Table
        ICON dataframe_map_column
        Applies the specified cleansings to the text in each row of the specified columns
 
-        Arguments:
-        - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
-            applied in the order they are provided. The same text cleansing can be used multiple
-            times. The text cleansings are:
-              - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-              - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-              - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-              - ..All_Whitespace: Removes all whitspace from the string.
-              - ..Leading_Numbers: Removes all numbers from the start of the string.
-              - ..Trailing_Numbers: Removes all numbers from the end of the string.
-              - ..Non_ASCII: Removes all non-ascii characters from the string.
-              - ..Tabs: Removes all tab characters from the string.
-              - ..Letters: Removes all letters from the string.
-              - ..Numbers: Removes all numbers characters from the string.
-              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
-              - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
-        - from: The column(s) to cleanse.
+       Arguments:
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are
+           applied in the order they are provided. The same text cleansing can be used multiple
+           times. The text cleansings are:
+             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+             - ..All_Whitespace: Removes all whitspace from the string.
+             - ..Leading_Numbers: Removes all numbers from the start of the string.
+             - ..Trailing_Numbers: Removes all numbers from the end of the string.
+             - ..Non_ASCII: Removes all non-ascii characters from the string.
+             - ..Tabs: Removes all tab characters from the string.
+             - ..Letters: Removes all letters from the string.
+             - ..Numbers: Removes all numbers characters from the string.
+             - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+             - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+       - from: The column(s) to cleanse.
 
-        > Example
-          Remove leading and trailing spaces from cells.
+       > Example
+         Remove leading and trailing spaces from cells.
 
-              table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+             table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> DB_Table

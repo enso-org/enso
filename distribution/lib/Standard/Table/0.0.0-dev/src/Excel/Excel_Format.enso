@@ -147,12 +147,12 @@ type Excel_Format
        - If `Excel_Section.Cell_Range`, the `table` will be written to the
          specified range.
 
-        Arguments:
-        - file: The file to write to.
-        - table: The table to write.
-        - on_existing_file: What to do if the file already exists.
-        - match_columns: How to match columns between the table and the file.
-        - on_problems: What to do if there are problems reading the file.
+       Arguments:
+       - file: The file to write to.
+       - table: The table to write.
+       - on_existing_file: What to do if the file already exists.
+       - match_columns: How to match columns between the table and the file.
+       - on_problems: What to do if there are problems reading the file.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems =
         format = should_treat_as_xls_format self.xls_format file

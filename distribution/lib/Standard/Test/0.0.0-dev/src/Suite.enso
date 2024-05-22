@@ -106,10 +106,12 @@ type Suite
         pending_groups = matching_specs.filter (p-> p.first.is_pending) . length
         case should_exit of
             True ->
+                IO.println ""
                 IO.println <| succ_tests.to_text + " tests succeeded."
                 IO.println <| failed_tests.to_text + " tests failed."
                 IO.println <| skipped_tests.to_text + " tests skipped."
                 IO.println <| pending_groups.to_text + " groups skipped."
+                IO.println ""
                 exit_code = if failed_tests > 0 then 1 else 0
                 System.exit exit_code
             False ->

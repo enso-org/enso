@@ -311,22 +311,22 @@ type Matrix
          combined with the appropriate value (the element with the same row and
          column) of this matrix.
 
-        > Example
-          Divide each channel of the matrix by 2.
+       > Example
+         Divide each channel of the matrix by 2.
 
               import Standard.Examples
 
               example_div = Examples.matrix / 2
 
-        > Example
-          Divide first channel of the matrix by 2, and second channel by 4.
+       > Example
+         Divide first channel of the matrix by 2, and second channel by 4.
 
               import Standard.Examples
 
               example_div = Examples.matrix / [2, 4, 1, 1]
 
-        > Example
-          Divide two matrices.
+       > Example
+         Divide two matrices.
 
               import Standard.Examples
 

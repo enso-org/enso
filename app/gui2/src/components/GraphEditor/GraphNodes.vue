@@ -48,7 +48,6 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :node="node"
     :edited="id === graphStore.editedNodeInfo?.id"
     :graphNodeSelections="props.graphNodeSelections"
-    :data-node="id"
     @delete="graphStore.deleteNodes([id])"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
