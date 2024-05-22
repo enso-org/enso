@@ -136,7 +136,7 @@ type DB_Table
        - selector: The name or index of the column to get.
     @selector Widget_Helpers.make_column_name_selector
     at : Text | Integer -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds
-    at self selector=0 = case selector of
+    at self (selector:(Integer | Text)=0) = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
@@ -148,7 +148,7 @@ type DB_Table
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
     get : Text | Integer -> Any -> DB_Column | Any
-    get self selector=0 ~if_missing=Nothing =
+    get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
         internal_column = case selector of
             _ : Integer -> self.internal_columns.get selector if_missing=Nothing
             _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
