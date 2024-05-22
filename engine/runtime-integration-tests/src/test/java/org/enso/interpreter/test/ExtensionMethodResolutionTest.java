@@ -4,12 +4,10 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
@@ -23,9 +21,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * Shadowing identifiers of imported symbols should result in a compilation failure. This testing
- * suite is focused on testing the shadowing of identifiers in various context of multiple modules,
- * not just a single module.
+ * Shadowing identifiers from imported modules is not a compilation error, neither runtime error.
+ * But we need to make sure that the shadowing is deterministic and that the shadowing is not
+ * affecting the resolution of extension methods. In other words, we need to make sure that the
+ * method resolution is deterministic.
  */
 public class ExtensionMethodResolutionTest extends TestBase {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -45,7 +44,7 @@ public class ExtensionMethodResolutionTest extends TestBase {
   }
 
   @Test
-  public void extensionMethodAndNormalMethodConflict() throws IOException {
+  public void extensionMethodAndNormalMethodConflictInOneModule() throws IOException {
     var src = """
         type T
             foo x = x
@@ -55,73 +54,152 @@ public class ExtensionMethodResolutionTest extends TestBase {
   }
 
   @Test
-  public void extensionMethodAndNormalMethodConflictInDifferentModules() throws IOException {
-    var mod =
+  public void firstResolutionIsInTypesScope() throws IOException {
+    var xMod =
         new SourceModule(
-            QualifiedName.fromString("Mod"),
+            QualifiedName.fromString("X"),
             """
             type T
-                foo = "Mod.T.foo"
+            T.foo = "X"
+            """);
+    var yMod =
+        new SourceModule(
+            QualifiedName.fromString("Y"),
+            """
+            from project.X import T
+            T.foo = "Y"
             """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-            from project.Mod import T
-            T.foo = "Main.T.foo"
+            from project.X import T
+            from project.Y import all
+            T.foo = "Main"
             main = T.foo
             """);
-    var projDir = createProject("Proj", Set.of(mod, mainMod), tempFolder);
-    expectRuntimeError(projDir, not(containsString("Not_Invokable")));
-  }
-
-  @Test
-  public void extensionMethodAndNormalMethodConflictInThreeModules() throws IOException {
-    var tSrc = """
-        type T
-        """;
-    var modSrc = """
-        from project.T import T
-        T.foo x = x
-        """;
-    var mainSrc =
-        """
-        from project.T import T
-        # Make sure we import also the extension method from Mod
-        from project.Mod import all
-        T.foo x y = x + y
-        main = T.foo
-        """;
-    var projDir = createProject("Proj", mainSrc, tempFolder);
-    var tSrcFile = projDir.resolve("src").resolve("T.enso");
-    Files.writeString(tSrcFile, tSrc);
-    var modSrcFile = projDir.resolve("src").resolve("Mod.enso");
-    Files.writeString(modSrcFile, modSrc);
-    expectRuntimeError(
+    var projDir = createProject("Proj", Set.of(xMod, yMod, mainMod), tempFolder);
+    testProjectRun(
         projDir,
-        allOf(
-            containsString("Ambiguous method"),
-            containsString("T.foo"),
-            containsString("Main.enso"),
-            containsString("Mod.enso")));
+        res -> {
+          assertThat(
+              "Method should be first resolved in the types module scope", res.asString(), is("X"));
+        });
   }
 
   @Test
-  public void extensionMethodAndNormalMethodConflictInDifferentProjects() throws IOException {
-    var libSrc = """
-        type T
-            foo x = x
-        """;
-    createProject("Lib", libSrc, tempFolder);
-    var mainSrc =
-        """
-        from local.Lib import T
-        T.foo x y = x + y
-        main = T.foo
-        """;
-    var mainProjDir = createProject("Main", mainSrc, tempFolder);
-    expectRuntimeError(
-        mainProjDir, allOf(containsString("Method"), containsString("already defined")));
+  public void secondResolutionIsInCurrentModuleScope() throws IOException {
+    var xMod =
+        new SourceModule(QualifiedName.fromString("X"), """
+            type T
+            """);
+    var yMod =
+        new SourceModule(
+            QualifiedName.fromString("Y"),
+            """
+            from project.X import T
+            T.foo = "Y"
+            """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            from project.X import T
+            from project.Y import all
+            T.foo = "Main"
+            main = T.foo
+            """);
+    var projDir = createProject("Proj", Set.of(xMod, yMod, mainMod), tempFolder);
+    testProjectRun(
+        projDir,
+        res -> {
+          assertThat(
+              "Method should be secondly resolved in the current scope",
+              res.asString(),
+              is("Main"));
+        });
+  }
+
+  @Test
+  public void resolutionFromImportedModulesIsDeterministic1() throws IOException {
+    var xMod =
+        new SourceModule(QualifiedName.fromString("X"), """
+            type T
+            """);
+    var yMod =
+        new SourceModule(
+            QualifiedName.fromString("Y"),
+            """
+            from project.X import T
+            T.foo = "Y"
+            """);
+    var zMod =
+        new SourceModule(
+            QualifiedName.fromString("Z"),
+            """
+            from project.X import T
+            T.foo = "Z"
+            """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            from project.X import T
+            from project.Y import all
+            from project.Z import all
+            main = T.foo
+            """);
+    var projDir = createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), tempFolder);
+    testProjectRun(
+        projDir,
+        res -> {
+          assertThat(
+              "Method resolution from imported modules should be deterministic "
+                  + "(Y module is imported first)",
+              res.asString(),
+              is("Y"));
+        });
+  }
+
+  @Test
+  public void resolutionFromImportedModulesIsDeterministic2() throws IOException {
+    var xMod =
+        new SourceModule(QualifiedName.fromString("X"), """
+            type T
+            """);
+    var yMod =
+        new SourceModule(
+            QualifiedName.fromString("Y"),
+            """
+            from project.X import T
+            T.foo = "Y"
+            """);
+    var zMod =
+        new SourceModule(
+            QualifiedName.fromString("Z"),
+            """
+            from project.X import T
+            T.foo = "Z"
+            """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            from project.X import T
+            from project.Z import all
+            from project.Y import all
+            main = T.foo
+            """);
+    var projDir = createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), tempFolder);
+    testProjectRun(
+        projDir,
+        res -> {
+          assertThat(
+              "Method resolution from imported modules should be deterministic "
+                  + "(Z module is imported first)",
+              res.asString(),
+              is("Z"));
+        });
   }
 
   @Test
@@ -216,16 +294,6 @@ public class ExtensionMethodResolutionTest extends TestBase {
           assertThat(res.isNumber(), is(true));
           assertThat(res.asInt(), is(2));
         });
-  }
-
-  private void expectRuntimeError(Path projDir, Matcher<String> runtimeErrMsgMatcher) {
-    try {
-      String[] ret = new String[1];
-      testProjectRun(projDir, (res) -> ret[0] = res.toString());
-      fail("Expected runtime error during first run, instead got: " + ret[0]);
-    } catch (PolyglotException e) {
-      assertThat(e.getMessage(), runtimeErrMsgMatcher);
-    }
   }
 
   private void testProjectCompilationFailure(String mainSrc, Matcher<String> errorMessageMatcher)
