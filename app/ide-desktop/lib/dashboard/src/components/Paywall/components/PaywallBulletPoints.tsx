@@ -1,3 +1,8 @@
+/**
+ * @file
+ *
+ * A component that renders a list of bullet points for a paywall.
+ */
 import * as React from 'react'
 
 import * as tw from 'tailwind-merge'
@@ -11,7 +16,7 @@ import * as textProvider from '#/providers/TextProvider'
 import SvgMask from '#/components/SvgMask'
 
 /**
- *
+ * Props for a {@link PaywallBulletPoints}.
  */
 export interface PaywallBulletPointsProps {
   readonly bulletPointsTextId: text.TextId
@@ -19,7 +24,7 @@ export interface PaywallBulletPointsProps {
 }
 
 /**
- *
+ * A component that renders a list of bullet points for a paywall.
  */
 export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
   const { bulletPointsTextId, className } = props
