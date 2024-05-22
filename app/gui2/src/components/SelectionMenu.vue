@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import SvgButton from './SvgButton.vue'
 

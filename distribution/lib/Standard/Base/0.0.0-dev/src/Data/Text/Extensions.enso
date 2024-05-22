@@ -325,7 +325,7 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    ICON text
    Compile the text into a regex pattern that can be used for matching.
 
-   Arguments
+   Arguments:
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
@@ -1005,7 +1005,7 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, head, last, left, limit, mid, right, slice, substring, tail, top
+## ALIAS first, head, last, left, limit, mid, right, slice, substring, tail, top, keep
    GROUP Selections
    ICON split_text
    Creates a new Text by selecting the specified range of the input.
@@ -1021,7 +1021,7 @@ Text.repeat self count=1 =
    Returns:
    The part of the input as specified by the range parameter.
 
-   > Examples
+   > Example
      Various different ways to take part of "Hello World!"
 
          "Hello World!".take First == "H"
@@ -1070,7 +1070,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
    Returns:
    The part of the input as specified by the range parameter.
 
-   > Examples
+   > Example
      Various different ways to take part of "Hello World!"
 
          "Hello World!".drop First == "ello World!"
@@ -1885,7 +1885,7 @@ Text.parse_time_zone self = Time_Zone.parse self
    Returns:
    Part of the selected Text starting at start and stopping after length.
 
-   > Examples
+   > Example
      Various different ways to take part of "Hello World!"
 
          "Hello World!".substring 3 2 == "lo"

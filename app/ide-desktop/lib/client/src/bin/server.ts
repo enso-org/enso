@@ -75,7 +75,7 @@ export class Config {
 /** Determine the initial available communication endpoint, starting from the specified port,
  * to provide file hosting services. */
 async function findPort(port: number): Promise<number> {
-    return await portfinder.getPortPromise({ port, startPort: port })
+    return await portfinder.getPortPromise({ port, startPort: port, stopPort: port + 4 })
 }
 
 // ==============

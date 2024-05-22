@@ -9,7 +9,8 @@ import DocsTags from '@/components/DocumentationPanel/DocsTags.vue'
 import { HistoryStack } from '@/components/DocumentationPanel/history'
 import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/DocumentationPanel/ir'
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
-import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorStyle } from '@/composables/nodeColors'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
@@ -170,7 +171,7 @@ function handleBreadcrumbClick(index: number) {
   --enso-docs-important-background-color: #edefe7;
   --enso-docs-info-background-color: #e6f1f8;
   --enso-docs-example-background-color: #e6f1f8;
-  --enso-docs-background-color: #eaeaea;
+  --enso-docs-background-color: var(--background-color);
   --enso-docs-text-color: rbga(0, 0, 0, 0.6);
   --enso-docs-tag-background-color: #dcd8d8;
   --enso-docs-code-background-color: #dddcde;
