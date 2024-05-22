@@ -131,14 +131,16 @@ export function Dialog(props: types.DialogProps) {
                   {shouldRenderTitle && (
                     <aria.Header className={dialogSlots.header()}>
                       <ariaComponents.CloseButton
-                        className={clsx('mr-auto mt-0.5', { hidden: hideCloseButton })}
+                        className={clsx('col-start-1 col-end-1 mr-auto mt-0.5', {
+                          hidden: hideCloseButton,
+                        })}
                         onPress={opts.close}
                       />
 
                       <aria.Heading
                         slot="title"
                         level={2}
-                        className="my-0 text-base font-semibold leading-6"
+                        className="col-start-2 col-end-2 my-0 text-base font-semibold leading-6"
                       >
                         {title}
                       </aria.Heading>
