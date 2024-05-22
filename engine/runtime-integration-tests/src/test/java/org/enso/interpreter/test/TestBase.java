@@ -30,6 +30,7 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -227,14 +228,16 @@ prefer-local-libraries: true
    * Tests running the project located in the given {@code projDir}. Is equal to running {@code enso
    * --run <projDir>}.
    *
+   * @param ctxBuilder A context builder that might be initialized with some specific options.
    * @param projDir Root directory of the project.
    * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
    *     main} method
    */
-  protected void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
+  protected void testProjectRun(
+      Context.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
     assert projDir.toFile().exists() && projDir.toFile().isDirectory();
     try (var ctx =
-        defaultContextBuilder()
+        ctxBuilder
             .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
@@ -247,6 +250,17 @@ prefer-local-libraries: true
       var res = mainMethod.execute();
       resultConsumer.accept(res);
     }
+  }
+
+  /**
+   * Just a wrapper for {@link TestBase#testProjectRun(Builder, Path, Consumer)}.
+   *
+   * @param projDir Root directory of the project.
+   * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
+   *     main} method
+   */
+  protected void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
+    testProjectRun(defaultContextBuilder(), projDir, resultConsumer);
   }
 
   /** A simple structure corresponding to an Enso module. */
