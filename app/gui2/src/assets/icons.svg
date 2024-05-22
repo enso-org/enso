@@ -211,6 +211,10 @@
     <rect x="5" y="1" width="10" height="10" rx="1" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"></rect>
   </symbol>
 
+  <symbol id="copy2" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path d="M10 10V14H2V6H6M6 10H14V2H6V10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+  </symbol>
+
   <symbol id="credit_card" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <path fill-rule="evenodd" clip-rule="evenodd" d="M0 5C0 3.89543 0.895431 3 2 3H14C15.1046 3 16 3.89543 16 5L0 5ZM0 7H16V11C16 12.1046 15.1046 13 14 13H2C0.895431 13 0 12.1046 0 11V7ZM14 9H11V10H14V9Z" fill="currentColor"></path>
     <rect opacity="0.3" y="5" width="16" height="2" fill="currentColor"></rect>
