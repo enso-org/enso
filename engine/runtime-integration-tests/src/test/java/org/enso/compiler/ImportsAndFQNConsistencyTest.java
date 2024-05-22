@@ -14,8 +14,8 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -36,7 +36,7 @@ import org.junit.runners.model.Statement;
  * symbols are tested. For example the builtin types are not tested.
  */
 @RunWith(Parameterized.class)
-public class ImportsAndFQNConsistencyTest extends TestBase {
+public class ImportsAndFQNConsistencyTest {
   private static Context ctx;
 
   /** Used for description in {@link PrintCodeRule} test rule. */
@@ -51,17 +51,17 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
   @Parameters(name = "exported symbol '{0}'")
   public static List<Symbol> symbolsToTest() {
     try (var ctx =
-        TestBase.defaultContextBuilder(LanguageInfo.ID)
+        TestUtils.defaultContextBuilder(LanguageInfo.ID)
             .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
             .build()) {
-      var ensoCtx = TestBase.leakContext(ctx);
+      var ensoCtx = TestUtils.leakContext(ctx);
       var src = """
 from Standard.Base import all
 from Standard.Table import all
 main = 42
 """;
       // Ensure that the context is initialized first.
-      var res = TestBase.evalModule(ctx, src);
+      var res = TestUtils.evalModule(ctx, src);
       assertThat(res.isNumber(), is(true));
       List<Symbol> symbolsToTest = new ArrayList<>();
       gatherExportedSymbols(ensoCtx, List.of("Standard.Base.Main", "Standard.Table.Main")).stream()
@@ -94,7 +94,7 @@ main = 42
 
   @BeforeClass
   public static void initCtx() {
-    ctx = TestBase.createDefaultContext();
+    ctx = TestUtils.createDefaultContext();
   }
 
   @AfterClass
@@ -109,7 +109,7 @@ main = 42
   }
 
   private void evalCode(Symbol symbol) {
-    var res = TestBase.evalModule(ctx, code);
+    var res = TestUtils.evalModule(ctx, code);
     assertThat(res.isString(), is(true));
     assertThat(res.asString(), is(symbol.getLastPathItem()));
   }

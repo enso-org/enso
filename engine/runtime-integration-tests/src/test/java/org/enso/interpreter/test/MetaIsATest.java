@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -17,7 +18,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class MetaIsATest extends TestBase {
+public class MetaIsATest {
   private static Context ctx;
   private static Value isACheck;
   private static Value warningCheck;
@@ -25,7 +26,7 @@ public class MetaIsATest extends TestBase {
 
   @BeforeClass
   public static void prepareCtx() throws Exception {
-    ctx = createDefaultContext();
+    ctx = TestUtils.createDefaultContext();
     final URI uri = new URI("memory://choose.enso");
     final Source src =
         Source.newBuilder(

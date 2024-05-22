@@ -8,6 +8,7 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -15,7 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ListTest extends TestBase {
+public class ListTest {
   private Context ctx;
   private final int size = 100_000;
   private Value generator;
@@ -28,7 +29,7 @@ public class ListTest extends TestBase {
 
   @Before
   public void prepareCtx() throws Exception {
-    this.ctx = createDefaultContext();
+    this.ctx = TestUtils.createDefaultContext();
 
     final String code =
         """

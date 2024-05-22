@@ -10,8 +10,8 @@ import java.util.logging.Level;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.service.ExecutionService.FunctionPointer;
-import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -21,7 +21,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class FunctionPointerTest extends TestBase {
+public class FunctionPointerTest {
 
   private Context context;
 
@@ -62,7 +62,7 @@ public class FunctionPointerTest extends TestBase {
     var res = module.invokeMember("eval_expression", "run");
 
     assertTrue("fn: " + res, res.canExecute());
-    var rawRes = TestBase.unwrapValue(context, res);
+    var rawRes = TestUtils.unwrapValue(context, res);
     assertTrue("function: " + rawRes, rawRes instanceof Function);
     var c = FunctionPointer.fromFunction((Function) rawRes);
     assertNotNull(c);
@@ -85,7 +85,7 @@ public class FunctionPointerTest extends TestBase {
     var res = module.invokeMember("eval_expression", "X.run");
 
     assertTrue("fn: " + res, res.canExecute());
-    var rawRes = TestBase.unwrapValue(context, res);
+    var rawRes = TestUtils.unwrapValue(context, res);
     assertTrue("function: " + rawRes, rawRes instanceof Function);
     var c = FunctionPointer.fromFunction((Function) rawRes);
     assertNotNull(c);
@@ -95,7 +95,7 @@ public class FunctionPointerTest extends TestBase {
 
     var apply = res.execute(1);
     assertTrue("fn: " + apply, apply.canExecute());
-    var rawApply = TestBase.unwrapValue(context, res);
+    var rawApply = TestUtils.unwrapValue(context, res);
     assertTrue("function: " + rawApply, rawApply instanceof Function);
     var a = FunctionPointer.fromFunction((Function) rawApply);
     assertNotNull(a);
@@ -118,7 +118,7 @@ public class FunctionPointerTest extends TestBase {
     var res = module.invokeMember("eval_expression", "X.run");
 
     assertTrue("fn: " + res, res.canExecute());
-    var rawRes = TestBase.unwrapValue(context, res);
+    var rawRes = TestUtils.unwrapValue(context, res);
     assertTrue("function: " + rawRes, rawRes instanceof Function);
     var c = FunctionPointer.fromFunction((Function) rawRes);
     assertNotNull(c);
@@ -128,7 +128,7 @@ public class FunctionPointerTest extends TestBase {
 
     var apply = res.execute(1);
     assertTrue("fn: " + apply, apply.canExecute());
-    var rawApply = TestBase.unwrapValue(context, res);
+    var rawApply = TestUtils.unwrapValue(context, res);
     assertTrue("function: " + rawApply, rawApply instanceof Function);
     var a = FunctionPointer.fromFunction((Function) rawApply);
     assertNotNull(a);
@@ -151,7 +151,7 @@ public class FunctionPointerTest extends TestBase {
     var res = module.invokeMember("eval_expression", "X.Run");
 
     assertTrue("fn: " + res, res.canInstantiate());
-    var rawRes = TestBase.unwrapValue(context, res);
+    var rawRes = TestUtils.unwrapValue(context, res);
     assertTrue("function: " + rawRes.getClass(), rawRes instanceof AtomConstructor);
     var rawFn = ((AtomConstructor) rawRes).getConstructorFunction();
     var c = FunctionPointer.fromFunction(rawFn);
