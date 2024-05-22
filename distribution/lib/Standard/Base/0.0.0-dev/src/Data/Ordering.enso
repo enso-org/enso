@@ -12,9 +12,6 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
-# needed by Comparator_Spec:
-polyglot java import org.enso.base.ObjectComparator
-
 ## Provides custom ordering, equality check and hash code for types that need it.
 
    The Enso runtime system offers default implementation of _equality_

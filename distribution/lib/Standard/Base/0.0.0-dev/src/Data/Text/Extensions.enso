@@ -50,10 +50,6 @@ polyglot java import org.enso.base.text.Utf16Span
 polyglot java import org.enso.base.text.GraphemeSpan
 polyglot java import org.enso.base.text.ResultWithWarnings
 
-# needed by Util_Spec
-polyglot java import org.enso.base.text.CaseFoldedString
-polyglot java import org.enso.base.text.CaseFoldedString.Grapheme
-
 ## GROUP Text
    ICON text
    Returns a new `Text` object with the characters in the reverse order of the input.
@@ -545,7 +541,7 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
    Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
+   - remove: A vector of the text cleanings to remove from the text. The text cleansings are
       applied in the order they are provided. The same text cleansing can be used multiple
       times. The text cleansings are:
       - ..Leading_Whitespace: Removes all whitspace from the start of the string.
