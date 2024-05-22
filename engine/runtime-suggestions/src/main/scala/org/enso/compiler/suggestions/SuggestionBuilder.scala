@@ -11,6 +11,7 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Location,
+  Module,
   Name,
   Type
 }
@@ -228,18 +229,23 @@ final class SuggestionBuilder[A: IndexedSource](
       }
     }
 
-    val builder: TreeBuilder = Vector.newBuilder
-    builder += Tree.Node(
-      buildModule(
-        module,
-        ir.getMetadata(DocumentationComments).map(_.documentation)
-      ),
-      Vector()
-    )
+    ir match {
+      case module: Module if module.isPrivate =>
+        Tree.Root(Vector())
+      case _ =>
+        val builder: TreeBuilder = Vector.newBuilder
+        builder += Tree.Node(
+          buildModule(
+            module,
+            ir.getMetadata(DocumentationComments).map(_.documentation)
+          ),
+          Vector()
+        )
 
-    Tree.Root(
-      go(builder, Scope(ir.children, ir.location))
-    )
+        Tree.Root(
+          go(builder, Scope(ir.children, ir.location))
+        )
+    }
   }
 
   /** Build a method suggestion. */

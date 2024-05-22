@@ -3297,6 +3297,19 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build private module" in {
+      val code =
+        """private
+          |
+          |type T
+          |
+          |main = "Hello World!"
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(Vector())
+    }
+
     "build module with a type named as module" in {
       val code =
         """type Test
