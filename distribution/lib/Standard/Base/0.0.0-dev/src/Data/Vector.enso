@@ -956,7 +956,7 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = Array_Like_Helpers.slice self start end
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Selections
        ICON parse3
        Creates a new `Vector` with only the specified range of elements from the
@@ -972,7 +972,7 @@ type Vector a
     take self range=(Index_Sub_Range.First 1) =
         Array_Like_Helpers.take self range
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Selections
        ICON parse3
        Creates a new `Vector`, removing any elements from the specified range.
