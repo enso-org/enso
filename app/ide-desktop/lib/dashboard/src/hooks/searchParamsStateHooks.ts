@@ -65,9 +65,6 @@ export function useSearchParamsState<T = unknown>(
   const value = isValueValid ? rawValue : lazyDefaultValueInitializer()
 
   if (!isValueValid) {
-    console.log(
-      `The value for the key "${key}" is not valid. It will be reset to the default value.`
-    )
     clear(true)
   }
 
