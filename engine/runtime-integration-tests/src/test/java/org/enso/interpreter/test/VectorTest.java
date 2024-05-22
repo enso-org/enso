@@ -7,6 +7,7 @@ import java.net.URI;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.Consumer;
+import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -15,12 +16,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class VectorTest extends TestBase {
+public class VectorTest {
   private static Context ctx;
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = createDefaultContext();
+    ctx = TestUtils.createDefaultContext();
   }
 
   @AfterClass

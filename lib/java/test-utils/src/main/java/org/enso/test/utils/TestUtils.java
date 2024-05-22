@@ -1,6 +1,4 @@
-package org.enso.interpreter.test;
-
-import static org.junit.Assert.assertNotNull;
+package org.enso.test.utils;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -29,7 +27,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Language;
@@ -37,24 +34,28 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
-import org.junit.rules.TemporaryFolder;
 
-public abstract class TestBase {
-  protected static Context createDefaultContext() {
+/**
+ * A collection of classes and methods useful for testing, mostly Truffle-related stuff.
+ */
+public final class TestUtils {
+  private TestUtils() {}
+
+  public static Context createDefaultContext() {
     var context = defaultContextBuilder().build();
     final Map<String, Language> langs = context.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    assert langs.get("enso") != null : "Enso found in languages: " + langs;
     return context;
   }
 
-  protected static Context createDefaultContext(OutputStream out) {
+  public static Context createDefaultContext(OutputStream out) {
     var context = defaultContextBuilder().out(out).build();
     final Map<String, Language> langs = context.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    assert langs.get("enso") != null : "Enso found in languages: " + langs;
     return context;
   }
 
-  protected static Context.Builder defaultContextBuilder(String... languages) {
+  public static Context.Builder defaultContextBuilder(String... languages) {
     return Context.newBuilder(languages)
         .allowExperimentalOptions(true)
         .allowIO(IOAccess.ALL)
@@ -68,7 +69,7 @@ public abstract class TestBase {
             Paths.get("../../distribution/component").toFile().getAbsolutePath());
   }
 
-  protected static EnsoContext leakContext(Context ctx) {
+  public static EnsoContext leakContext(Context ctx) {
     return ctx.getBindings(LanguageInfo.ID)
         .invokeMember(TopScope.LEAK_CONTEXT)
         .as(EnsoContext.class);
@@ -80,7 +81,7 @@ public abstract class TestBase {
    *
    * @return Object returned from {@code callable} wrapped in {@link Value}.
    */
-  protected static Value executeInContext(Context ctx, Callable<Object> callable) {
+  public static Value executeInContext(Context ctx, Callable<Object> callable) {
     // Force initialization of the context
     ctx.eval("enso", "value = 0");
     var err = new Exception[1];
@@ -103,6 +104,12 @@ public abstract class TestBase {
     return res;
   }
 
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
+  }
+
   /**
    * Unwraps the `receiver` field from the Value. This is a hack to allow us to test execute methods
    * of artificially created ASTs, e.g., single nodes. More specifically, only unwrapped values are
@@ -113,11 +120,11 @@ public abstract class TestBase {
    * com.oracle.truffle.tck.DebuggerTester#getSourceImpl(Source)} does, but uses a different hack
    * than reflective access.
    */
-  protected static Object unwrapValue(Context ctx, Value value) {
+  public static Object unwrapValue(Context ctx, Value value) {
     var unwrapper = new Unwrapper();
     var unwrapperValue = ctx.asValue(unwrapper);
     unwrapperValue.execute(value);
-    assertNotNull(unwrapper.args);
+    assert unwrapper.args != null;
     return unwrapper.args[0];
   }
 
@@ -127,7 +134,7 @@ public abstract class TestBase {
    * @param src One-line assignment into a variable
    * @param imports Imports, may be empty.
    */
-  protected static Value createValue(Context ctx, String src, String imports) {
+  public static Value createValue(Context ctx, String src, String imports) {
     if (src.lines().count() > 1 || imports == null) {
       throw new IllegalArgumentException("src should have one line, imports must not be null");
     }
@@ -140,7 +147,7 @@ public abstract class TestBase {
     return tmpModule.invokeMember(Module.EVAL_EXPRESSION, "my_var");
   }
 
-  protected static Value createValue(Context ctx, String src) {
+  public static Value createValue(Context ctx, String src) {
     return createValue(ctx, src, "");
   }
 
@@ -150,7 +157,7 @@ public abstract class TestBase {
    * @param src The source code of the module
    * @return The value returned from the main method of the unnamed module.
    */
-  protected static Value evalModule(Context ctx, String src) {
+  public static Value evalModule(Context ctx, String src) {
     Value module = ctx.eval(Source.create("enso", src));
     Value assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
     Value mainMethod = module.invokeMember(Module.GET_METHOD, assocType, "main");
@@ -163,7 +170,7 @@ public abstract class TestBase {
    * @param moduleSrc Source of the whole module
    * @return Reference to the method.
    */
-  protected static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
+  public static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
     Value module = ctx.eval(Source.create("enso", moduleSrc));
     return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
   }
@@ -175,13 +182,12 @@ public abstract class TestBase {
    *
    * @param projName Name of the project (as defined in package.yaml).
    * @param mainSrc Main.enso source content
-   * @param tempFolder Temporary folder from JUnit rule.
-   * @return Path to the newly created directly structure - a project directory.
+   * @param projDir Root directory of the project. Will be populated with the project structure.
    */
-  protected static Path createProject(String projName, String mainSrc, TemporaryFolder tempFolder)
+  public static void createProject(String projName, String mainSrc, Path projDir)
       throws IOException {
     var modules = Set.of(new SourceModule(QualifiedName.fromString("Main"), mainSrc));
-    return createProject(projName, modules, tempFolder);
+    createProject(projName, modules, projDir);
   }
 
   /**
@@ -191,30 +197,30 @@ public abstract class TestBase {
    *
    * @param projName Name of the project
    * @param modules Set of modules. Must contain `Main` module.
-   * @param tempFolder Temporary folder. From jUnit rule.
-   * @return Path to the root directory of the project.
+   * @param projDir A directory in which the whole project structure will be created.
+   *                Must exist and be a directory.
    */
-  protected static Path createProject(
-      String projName, Set<SourceModule> modules, TemporaryFolder tempFolder) throws IOException {
-    var projDir = tempFolder.newFolder(projName);
-    assert projDir.exists();
+  public static void createProject(
+      String projName, Set<SourceModule> modules, Path projDir) throws IOException {
+    if (!projDir.toFile().exists() || !projDir.toFile().isDirectory()) {
+      throw new IllegalArgumentException("Project directory " + projDir + " must already be created");
+    }
     var projYaml =
         """
 name: %s
 version: 0.0.1
 prefer-local-libraries: true
         """.formatted(projName);
-    var yamlPath = projDir.toPath().resolve("package.yaml");
+    var yamlPath = projDir.resolve("package.yaml");
     Files.writeString(yamlPath, projYaml);
     assert yamlPath.toFile().exists();
-    var srcDir = tempFolder.newFolder(projName, "src");
-    var srcDirPath = srcDir.toPath();
-    assert srcDir.exists();
+    var srcDir = Files.createDirectory(projDir.resolve("src"));
+    assert srcDir.toFile().exists();
     boolean mainModuleFound = false;
     for (var module : modules) {
       var relativePath = String.join(File.pathSeparator, module.name().pathAsJava());
-      var modDirPath = srcDirPath.resolve(relativePath);
-      modDirPath.toFile().mkdirs();
+      var modDirPath = srcDir.resolve(relativePath);
+      Files.createDirectories(modDirPath);
       var modPath = modDirPath.resolve(module.name().item() + ".enso");
       Files.writeString(modPath, module.code());
       if (module.name().equals(QualifiedName.fromString("Main"))) {
@@ -222,7 +228,6 @@ prefer-local-libraries: true
       }
     }
     assert mainModuleFound;
-    return projDir.toPath();
   }
 
   /**
@@ -234,7 +239,7 @@ prefer-local-libraries: true
    * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
    *     main} method
    */
-  protected void testProjectRun(
+  public static void testProjectRun(
       Context.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
     assert projDir.toFile().exists() && projDir.toFile().isDirectory();
     try (var ctx =
@@ -260,7 +265,7 @@ prefer-local-libraries: true
    * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
    *     main} method
    */
-  protected void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
+  public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
     testProjectRun(defaultContextBuilder(), projDir, resultConsumer);
   }
 
@@ -269,7 +274,7 @@ prefer-local-libraries: true
    * node inside a context, all the other nodes, and insert them via {@link
    * #insertChildren(Node...)}.
    */
-  protected static final class TestRootNode extends RootNode {
+  public static final class TestRootNode extends RootNode {
     private final Function<VirtualFrame, Object> callback;
 
     public TestRootNode() {
@@ -312,10 +317,5 @@ prefer-local-libraries: true
     boolean isExecutable() {
       return true;
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
-    throw (E) t;
   }
 }
