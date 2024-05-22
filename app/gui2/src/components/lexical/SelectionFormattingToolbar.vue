@@ -25,13 +25,13 @@ onMounted(() => {
   >
     <div class="SelectionFormattingToolbar">
       <div class="button">
-        <ToggleIcon v-model="bold" icon="random" />
+        <ToggleIcon v-model="bold" icon="bold" />
       </div>
       <div class="button">
-        <ToggleIcon v-model="italic" icon="heart" />
+        <ToggleIcon v-model="italic" icon="italic" />
       </div>
       <div class="button">
-        <ToggleIcon v-model="strikethrough" icon="unstable2" />
+        <ToggleIcon v-model="strikethrough" icon="strike-through" />
       </div>
     </div>
   </FloatingSelectionMenu>
