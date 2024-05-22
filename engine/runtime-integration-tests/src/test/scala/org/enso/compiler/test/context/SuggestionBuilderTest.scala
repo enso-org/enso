@@ -3098,6 +3098,51 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build type with private constructor" in {
+      val code =
+        """type T
+          |    private A x y
+          |
+          |    foo self = x + y
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Type(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "T",
+              params        = Seq(),
+              returnType    = "Unnamed.Test.T",
+              parentType    = Some(SuggestionBuilder.Any),
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion
+                  .Argument("self", "Unnamed.Test.T", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.T",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = false,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build Integer type" in {
 
       val code = "type Integer"

@@ -55,8 +55,9 @@ public final class PrivateConstructorAnalysis implements IRPass {
             .map(
                 binding -> {
                   if (binding instanceof Definition.Type type) {
-                    var privateCtorsCnt = type.members().filter(ctor -> ctor.isPrivate()).size();
-                    var publicCtorsCnt = type.members().filter(ctor -> !ctor.isPrivate()).size();
+                    var partitions = type.members().partition(Definition.Data::isPrivate);
+                    var privateCtorsCnt = partitions._1.size();
+                    var publicCtorsCnt = partitions._2.size();
                     var ctorsCnt = type.members().size();
                     if (!(privateCtorsCnt == ctorsCnt || publicCtorsCnt == ctorsCnt)) {
                       assert type.location().isDefined();

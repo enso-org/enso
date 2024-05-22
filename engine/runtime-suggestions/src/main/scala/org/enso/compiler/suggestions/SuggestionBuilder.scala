@@ -87,16 +87,16 @@ final class SuggestionBuilder[A: IndexedSource](
               ) =>
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
-            val conses = members.map {
+            val conses = members.collect {
               case data @ Definition.Data(
                     name,
                     arguments,
                     annotations,
                     _,
-                    _,
+                    isPrivate,
                     _,
                     _
-                  ) =>
+                  ) if !isPrivate =>
                 buildAtomConstructor(
                   module,
                   tpName.name,
@@ -107,6 +107,7 @@ final class SuggestionBuilder[A: IndexedSource](
                 )
             }
             val getters = members
+              .filterNot(_.isPrivate)
               .flatMap(_.arguments)
               .filterNot { argument =>
                 argument.name.name.startsWith(InternalPrefix) ||
