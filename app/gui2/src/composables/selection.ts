@@ -179,7 +179,7 @@ export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
   const hoveredNode = computed<NodeId | undefined>(() => {
     const element = hoveredElement.value?.closest('.GraphNode')
     if (!element) return undefined
-    return dataAttribute<NodeId>(element, 'node')
+    return dataAttribute<NodeId>(element, 'node-id')
   })
 
   return { hoveredNode, hoveredPort }

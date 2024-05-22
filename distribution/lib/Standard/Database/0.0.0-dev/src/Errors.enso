@@ -35,11 +35,18 @@ type SQL_Error
        Convert the SQL error to a textual representation.
     to_text : Text
     to_text self =
-        query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query.to_display_text + "]" else ""
+        query = if self.related_query.is_nothing then "" else
+            query_text = self.related_query.to_text
+            ## Our generated queries tend to be very long, so to still be readable,
+               we don't shorten them too much. We impose an upper limit to avoid unbounded error message size.
+            max_length = 1000
+            shortened_query_text = if query_text.length <= max_length then query_text else
+                query_text.take (Index_Sub_Range.First (max_length.div 2)) + " (...) " + query_text.take (Index_Sub_Range.Last (max_length.div 2))
+            " [Query was: " + shortened_query_text + "]"
         message = self.java_exception.getMessage
         max_length = 300
         short_message = if message.length < max_length then message else
-            message.take (Index_Sub_Range.First max_length/2) + " (...) " + message.take (Index_Sub_Range.Last max_length/2)
+            message.take (Index_Sub_Range.First (max_length.div 2)) + " (...) " + message.take (Index_Sub_Range.Last (max_length.div 2))
         "There was an SQL error: " + short_message + "." + query
 
     ## PRIVATE

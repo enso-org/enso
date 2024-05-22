@@ -23,6 +23,7 @@ import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
 import project.Column.Column
 import project.Column_Ref.Column_Ref
+import project.Columns_To_Keep.Columns_To_Keep
 import project.Constants.Previous_Value
 import project.Constants.Report_Unmatched
 import project.Data_Formatter.Data_Formatter
@@ -49,7 +50,9 @@ import project.Internal.Replace_Helpers
 import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
+import project.Internal.Table_Helpers.Union_Result_Type
 import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
@@ -1383,11 +1386,11 @@ type Table
        ICON split_text
        Expand a column of objects to a new set of columns.
 
-        Arguments:
-        - column: The column to expand.
-        - fields: The set fields to expand. If `Nothing` then all fields are added.
-        - prefix: Prefix to add to the column names. If `Nothing` then the column
-          name is used.
+       Arguments:
+       - column: The column to expand.
+       - fields: The set fields to expand. If `Nothing` then all fields are added.
+       - prefix: Prefix to add to the column names. If `Nothing` then the column
+         name is used.
     @column Widget_Helpers.make_column_name_selector
     expand_column : Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
@@ -1538,7 +1541,7 @@ type Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input
@@ -1570,7 +1573,7 @@ type Table
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
@@ -1809,7 +1812,7 @@ type Table
     ## ICON convert
        Returns the vector of columns contained in this table.
 
-       > Examples
+       > Example
          Get a vector containing the columns in the table.
 
              import Standard.Examples
@@ -2245,91 +2248,78 @@ type Table
        - tables: A single table or a vector of tables to append to this one. The
          tables are concatenated in the order they are specified, with `self`
          being the first one.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in any of the tables, reporting a warning for
+         columns that are not present in all tables and adding `Nothing` values
+         for them.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
-           If unmatched columns are to be dropped, the resulting table will keep
-           only the set of columns that appear in all provided tables, in the
-           relative order that they appeared in the `self` table.
-           If unmatched columns are kept, they are added in the order of
-           appearance - i.e. first all columns from `self` will be added in the
-           original order, then any columns from the second table that were not
-           matched will be added at the end (preserving their relative order),
-           and so on for all the remaining tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
-           If unmatched columns are to be dropped, the resulting table will have
-           as many columns as the table that had the least columns and the
-           column names of the first table (self) will be used.
-           If unmatched columns are kept, the resulting table will have as many
-           columns as the table with the most columns. Since the first table may
-           not have all the necessary columns to provide column names for the
-           result, the result will have column names taken from the first table
-           that has the biggest number of columns.
-       - keep_unmatched_columns: If set to `True`, unmatched columns are kept
-         and are padded with `Nothing` for tables that did not have them.
-         If set to `False`, only the common subset of columns is kept - any
-         column that is not present in all tables is dropped. Defaults to
-         `Report_Unmatched`, which behaves like `True` - unmatched columns are
-         kept and padded with `Nothing`, but a problem is reported.
-       - allow_type_widening: Specifies if the resulting column type should be
-         adjusted to fit columns from all arguments. If `True`, a common type
-         will be chosen for each column (see "Unifying Column Types" below).
-         If `False`, the resulting column type will be the same as in the first
-         table containing the column. In this case, all columns that are
-         concatenated must have the same type as the first one (unless this
-         had a `Mixed` type - in which case it will accept any other types).
+           The names of each column come from the first table in which the given
+           column appears in.
+           The `List` option is not applicable when mapping columns by position.
+           Column names are taken from the first table if `In_All` and from the
+           first table that has the maximum number of columns if `In_Any`
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         - If `keep_unmatched_columns` is set to `Report_Unmatched` (the
-           default):
-           - If matching by name and there are columns that are not present in
-             all tables, `Unmatched_Columns` is reported.
-           - If matching by position and column counts of the merged tables
-             differ, then a `Column_Count_Mismatch` is reported. The error will
-             contain the greatest column count as its `expected` value and the
-             smallest one as its `actual` value.
-         - If `keep_unmatched_columns` is set to `False` and matching by name,
-           it is possible that there are no columns that are common to all
-           provided tables, in that case `No_Output_Columns` is thrown as a
-           dataflow error regardless of the `on_problems` setting, because there
-           are no columns to include in the resulting table.
-         - If type widening is disabled and one of corresponding columns has a
-           type that is incompatible with the type coming from the first table,
-           a `Column_Type_Mismatch` is reported. The problematic column will be
-           dropped from the resulting table. With type widening disabled, the
-           subsequent tables must have the same types as the first one, unless
-           the type of the first one was `Mixed` which will accept any other
-           type.
-         - If a common type coercion for a set of matched columns from
-           concatenated tables cannot be found, a `No_Common_Type` is reported.
-           In warning or ignore mode, the problematic column will be dropped
-           from the resulting table.
-
        ? Unifying Column Types
 
-         If `allow_type_widening` is set to `True`, then the following rules are
-         used to find a common type that will fit values from all merged tables.
-
-         Numeric columns are unified by finding the most general type that can
-         fit all of the columns. The biggest integer type will be chosen and if
+         Numeric columns are unified by finding the smallest type that can fit
+         all of the columns. The biggest integer type will be chosen and if
          integers and decimals are mixed, the decimal type will be chosen.
          If boolean columns are mixed with numeric columns, they will be coerced
          to the numeric type (and converted to 0 and 1).
 
-         Text types will also be coerced according to the common rules - if
-         constant-length texts of different lengths are mixed, they will be
-         coerced to a varying-length type.
+         Text types will are also unified by finding the smallest type that can
+         fit all the values. If constant-length texts of different lengths are
+         mixed, they will be coerced to a varying-length type.
+
+         If date and date-time columns are unified, this yields a date-time
+         column. In-memory, the date is promoted by adding a time of 00:00 and
+         the system time-zone. In other backends that behaviour may differ.
 
          If one of the matched columns has `Mixed` type, that type will be used
-         regardless of types of other columns. Mixing any other types will
-         result in a `No_Common_Type` problem. If columns of incompatible types
-         are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention. Note that the
-         `Mixed` type may not be supported by most Database backends.
-    union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables:(Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
-        Table.from_union ([self] + Vector.unify_vector_or_element tables) match_columns keep_unmatched_columns allow_type_widening on_problems
+         regardless of types of other columns. Note that the `Mixed` type may
+         not be supported by most Database backends.
+
+         Finally, if no common type is found using the rules above, everything
+         is converted to text.
+
+       ? Problem Conditions
+
+         - If no common type is found and the text conversion fallback is used,
+           the `No_Common_Type` problem is reported.
+         - The `Float` type may not be able to exactly represent larger
+           integers, thus if such large integers are mixed with floats, the
+           resulting conversion to `Float` may cause a loss of precision.
+           In that case, a `Loss_Of_Integer_Precision` problem is reported.
+           This warning is only reported in the in-memory backend. Currently,
+           the Database backend proceeds without a warning about precision loss.
+         - If a column of dates is unified with a column of date-times, since
+           the assumption of using the midnight time-of-day is arbitrary,
+           a `Implicit_Date_As_Date_Time_Conversion` problem is reported.
+         - If an empty vector of tables is provided, an `Illegal_Argument` error
+           is raised.
+         - If `columns_to_keep` is set to `In_All` or `List` and an expected
+           column is missing in some of the tables, a `Unmatched_Columns`
+           problem is reported. If this causes the output to contain no columns,
+           a `No_Output_Columns` error is raised.
+
+       ? Ordering of Columns in the result
+
+         When matching columns by name, it is possible that the ordering of
+         columns may vary between input tables. The ordering is determined as
+         following: columns that are kept from the first table are in the order
+         they appear in that table. If there are columns that do not appear in
+         the first table, they are appended to the end of the resulting table in
+         the order they appear in the input.
+    @tables (Widget.Vector_Editor item_editor=Widget.Code_Input item_default='_' display=Display.Always)
+    @columns_to_keep Columns_To_Keep.default_widget
+    union : (Table | Vector Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> Table
+    union self tables:(Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
+        Table.from_union ([self] + Vector.unify_vector_or_element tables) columns_to_keep match_columns on_problems
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
@@ -2874,28 +2864,28 @@ type Table
        ICON dataframe_map_column
        Applies the specified cleansings to the text in each row of the specified columns.
 
-        Arguments:
-        - remove: A vector of the text cleanings to remove from the text. The text cleansings are 
-            applied in the order they are provided. The same text cleansing can be used multiple
-            times. The text cleansings are:
-              - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-              - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-              - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-              - ..All_Whitespace: Removes all whitspace from the string.
-              - ..Leading_Numbers: Removes all numbers from the start of the string.
-              - ..Trailing_Numbers: Removes all numbers from the end of the string.
-              - ..Non_ASCII: Removes all non-ascii characters from the string.
-              - ..Tabs: Removes all tab characters from the string.
-              - ..Letters: Removes all letters from the string.
-              - ..Numbers: Removes all numbers characters from the string.
-              - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
-              - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
-        - from: The column(s) to cleanse.
+       Arguments:
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are
+           applied in the order they are provided. The same text cleansing can be used multiple
+           times. The text cleansings are:
+             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+             - ..All_Whitespace: Removes all whitspace from the string.
+             - ..Leading_Numbers: Removes all numbers from the start of the string.
+             - ..Trailing_Numbers: Removes all numbers from the end of the string.
+             - ..Non_ASCII: Removes all non-ascii characters from the string.
+             - ..Tabs: Removes all tab characters from the string.
+             - ..Letters: Removes all letters from the string.
+             - ..Numbers: Removes all numbers characters from the string.
+             - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+             - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+       - from: The column(s) to cleanse.
 
-        > Example
-          Remove leading and trailing spaces from cells.
+       > Example
+         Remove leading and trailing spaces from cells.
 
-              table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+             table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
     @from (Widget_Helpers.make_column_name_multi_selector use_regex=True)
     text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> Table
@@ -2953,108 +2943,97 @@ type Table
        Arguments:
        - tables: A vector of tables to union  together. The
          tables are concatenated in the order they are specified.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in any of the tables, reporting a warning for
+         columns that are not present in all tables and adding `Nothing` values
+         for them.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
-           If unmatched columns are to be dropped, the resulting table will keep
-           only the set of columns that appear in all provided tables, in the
-           relative order that they appeared in the `self` table.
-           If unmatched columns are kept, they are added in the order of
-           appearance - i.e. first all columns from `self` will be added in the
-           original order, then any columns from the second table that were not
-           matched will be added at the end (preserving their relative order),
-           and so on for all the remaining tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
-           If unmatched columns are to be dropped, the resulting table will have
-           as many columns as the table that had the least columns and the
-           column names of the first table (self) will be used.
-           If unmatched columns are kept, the resulting table will have as many
-           columns as the table with the most columns. Since the first table may
-           not have all the necessary columns to provide column names for the
-           result, the result will have column names taken from the first table
-           that has the biggest number of columns.
-       - keep_unmatched_columns: If set to `True`, unmatched columns are kept
-         and are padded with `Nothing` for tables that did not have them.
-         If set to `False`, only the common subset of columns is kept - any
-         column that is not present in all tables is dropped. Defaults to
-         `Report_Unmatched`, which behaves like `True` - unmatched columns are
-         kept and padded with `Nothing`, but a problem is reported.
-       - allow_type_widening: Specifies if the resulting column type should be
-         adjusted to fit columns from all arguments. If `True`, a common type
-         will be chosen for each column (see "Unifying Column Types" below).
-         If `False`, the resulting column type will be the same as in the first
-         table containing the column. In this case, all columns that are
-         concatenated must have the same type as the first one (unless this
-         had a `Mixed` type - in which case it will accept any other types).
+           The names of each column come from the first table in which the given
+           column appears in.
+           The `List` option is not applicable when mapping columns by position.
+           Column names are taken from the first table if `In_All` and from the
+           first table that has the maximum number of columns if `In_Any`.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         - If `keep_unmatched_columns` is set to `Report_Unmatched` (the
-           default):
-           - If matching by name and there are columns that are not present in
-             all tables, `Unmatched_Columns` is reported.
-           - If matching by position and column counts of the merged tables
-             differ, then a `Column_Count_Mismatch` is reported. The error will
-             contain the greatest column count as its `expected` value and the
-             smallest one as its `actual` value.
-         - If `keep_unmatched_columns` is set to `False` and matching by name,
-           it is possible that there are no columns that are common to all
-           provided tables, in that case `No_Output_Columns` is thrown as a
-           dataflow error regardless of the `on_problems` setting, because there
-           are no columns to include in the resulting table.
-         - If type widening is disabled and one of corresponding columns has a
-           type that is incompatible with the type coming from the first table,
-           a `Column_Type_Mismatch` is reported. The problematic column will be
-           dropped from the resulting table. With type widening disabled, the
-           subsequent tables must have the same types as the first one, unless
-           the type of the first one was `Mixed` which will accept any other
-           type.
-         - If a common type coercion for a set of matched columns from
-           concatenated tables cannot be found, a `No_Common_Type` is reported.
-           In warning or ignore mode, the problematic column will be dropped
-           from the resulting table.
-
        ? Unifying Column Types
 
-         If `allow_type_widening` is set to `True`, then the following rules are
-         used to find a common type that will fit values from all merged tables.
-
-         Numeric columns are unified by finding the most general type that can
-         fit all of the columns. The biggest integer type will be chosen and if
+         Numeric columns are unified by finding the smallest type that can fit
+         all of the columns. The biggest integer type will be chosen and if
          integers and decimals are mixed, the decimal type will be chosen.
          If boolean columns are mixed with numeric columns, they will be coerced
          to the numeric type (and converted to 0 and 1).
 
-         Text types will also be coerced according to the common rules - if
-         constant-length texts of different lengths are mixed, they will be
-         coerced to a varying-length type.
+         Text types will are also unified by finding the smallest type that can
+         fit all the values. If constant-length texts of different lengths are
+         mixed, they will be coerced to a varying-length type.
+
+         If date and date-time columns are unified, this yields a date-time
+         column. In-memory, the date is promoted by adding a time of 00:00 and
+         the system time-zone. In other backends that behaviour may differ.
 
          If one of the matched columns has `Mixed` type, that type will be used
-         regardless of types of other columns. Mixing any other types will
-         result in a `No_Common_Type` problem. If columns of incompatible types
-         are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention. Note that the
-         `Mixed` type may not be supported by most Database backends.
-    from_union : (Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    from_union tables:(Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+         regardless of types of other columns. Note that the `Mixed` type may
+         not be supported by most Database backends.
+
+         Finally, if no common type is found using the rules above, everything
+         is converted to text.
+
+       ? Problem Conditions
+
+         - If no common type is found and the text conversion fallback is used,
+           the `No_Common_Type` problem is reported.
+         - The `Float` type may not be able to exactly represent larger
+           integers, thus if such large integers are mixed with floats, the
+           resulting conversion to `Float` may cause a loss of precision.
+           In that case, a `Loss_Of_Integer_Precision` problem is reported.
+           This warning is only reported in the in-memory backend. Currently,
+           the Database backend proceeds without a warning about precision loss.
+         - If a column of dates is unified with a column of date-times, since
+           the assumption of using the midnight time-of-day is arbitrary,
+           a `Implicit_Date_As_Date_Time_Conversion` problem is reported.
+         - If an empty vector of tables is provided, an `Illegal_Argument` error
+           is raised.
+         - If `columns_to_keep` is set to `In_All` or `List` and an expected
+           column is missing in some of the tables, a `Unmatched_Columns`
+           problem is reported. If this causes the output to contain no columns,
+           a `No_Output_Columns` error is raised.
+
+       ? Ordering of Columns in the result
+
+         When matching columns by name, it is possible that the ordering of
+         columns may vary between input tables. The ordering is determined as
+         following: columns that are kept from the first table are in the order
+         they appear in that table. If there are columns that do not appear in
+         the first table, they are appended to the end of the resulting table in
+         the order they appear in the input.
+    @tables (Widget.Vector_Editor item_editor=Widget.Code_Input item_default='_' display=Display.Always)
+    @columns_to_keep Columns_To_Keep.default_widget
+    from_union : (Vector Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> Table ! No_Output_Columns | Illegal_Argument
+    from_union (tables : Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = (tables.map t-> Table.from t)
-        all_tables.if_not_error <|
+        if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
                we only want to add a cause coming from unification; matching reports problems that would not fit this error.
             problem_builder_for_matching = Problem_Builder.new
             problem_builder_for_unification = Problem_Builder.new
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder_for_matching
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
             result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
-                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder_for_unification of
-                    Nothing -> Nothing
-                    result_type : Value_Type ->
-                        concat_columns column_set all_tables result_type result_row_count on_problems
-            good_columns = merged_columns.filter Filter_Condition.Not_Nothing
+                case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
+                    Union_Result_Type.Common_Type common_type ->
+                        concat_columns column_set all_tables common_type result_row_count needs_cast=False on_problems
+                    Union_Result_Type.Fallback_To_Text ->
+                        concat_columns column_set all_tables Value_Type.Char result_row_count needs_cast=True on_problems
+                    Union_Result_Type.No_Types_To_Unify ->
+                        Column.from_repeated_item column_set.name Nothing result_row_count
             problem_builder_for_matching.attach_problems_before on_problems <|
                 problem_builder_for_unification.attach_problems_before on_problems <|
-                    if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
-                        Table.new good_columns
+                    if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                        Table.new merged_columns
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
@@ -3073,7 +3052,7 @@ make_join_helpers left_table right_table =
 
 ## PRIVATE
    A helper that efficiently concatenates storages of in-memory columns.
-concat_columns column_set all_tables result_type result_row_count on_problems =
+concat_columns column_set all_tables result_type result_row_count needs_cast on_problems =
     Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
         storage_builder = make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
         column_set.column_indices.zip all_tables i-> parent_table->
@@ -3082,7 +3061,9 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
                     null_row_count = parent_table.row_count
                     storage_builder.appendNulls null_row_count
                 _ : Integer ->
-                    storage = parent_table.at i . java_column . getStorage
+                    column = parent_table.at i
+                    converted = if needs_cast then column.cast result_type on_problems=Report_Error else column
+                    storage = converted.java_column.getStorage
                     storage_builder.appendBulkStorage storage
         sealed_storage = storage_builder.seal
         Column.from_storage column_set.name sealed_storage

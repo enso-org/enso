@@ -140,7 +140,7 @@ type Postgres_Dialect
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
+    make_cast self (column : Internal_Column) (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_Expression -> SQL_Type_Reference) =
         mapping = self.get_type_mapping
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
         target_value_type = mapping.sql_type_to_value_type target_type

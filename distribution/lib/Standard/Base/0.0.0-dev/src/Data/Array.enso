@@ -88,7 +88,6 @@ type Array
 
        By default, elements are sorted in ascending order.
 
-
        This is a stable sort, meaning that items that compare the same will not
        have their order changed by the sorting process.
 
@@ -149,7 +148,7 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Selections
        ICON parse3
        Creates a new `Vector` with only the specified range of elements from the
@@ -165,7 +164,7 @@ type Array
     take self range=(Index_Sub_Range.First 1) =
         Array_Like_Helpers.take self range
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Selections
        ICON parse3
        Creates a new `Vector`, removing any elements from the specified range.

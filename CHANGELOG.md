@@ -666,6 +666,7 @@
 - [Added `Text.cleanse` `Column.Text_Cleanse` and `Table.Text_Cleanse`][9879]
 - [Added ability to save an existing Postgres connection as a Data Link in Enso
   Cloud.][9957]
+- [Improved `Table.union`.][9968]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -978,6 +979,7 @@
 [9873]: https://github.com/enso-org/enso/pull/9873
 [9879]: https://github.com/enso-org/enso/pull/9879
 [9957]: https://github.com/enso-org/enso/pull/9957
+[9968]: https://github.com/enso-org/enso/pull/9968
 
 #### Enso Compiler
 
