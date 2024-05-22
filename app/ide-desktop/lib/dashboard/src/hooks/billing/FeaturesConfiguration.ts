@@ -13,6 +13,7 @@ import * as backend from '#/services/Backend'
  */
 export const PAYWALL_FEATURES = {
   userGroups: 'userGroups',
+  userGroupsFull: 'userGroupsFull',
 } as const
 
 /**
@@ -60,6 +61,7 @@ export type PaywallLevel = (typeof PAYWALL_LEVELS)[keyof typeof PAYWALL_LEVELS]
  */
 const PAYWALL_FEATURES_LABELS: Record<PaywallFeatureName, text.TextId> = {
   userGroups: 'userGroupsFeatureLabel',
+  userGroupsFull: 'userGroupsFullFeatureLabel',
 } satisfies { [K in PaywallFeatureName]: `${K}FeatureLabel` }
 
 /**
@@ -82,9 +84,14 @@ export type FeatureConfiguration<Key extends PaywallFeatureName = PaywallFeature
 
 const PAYWALL_CONFIGURATION: Record<PaywallFeatureName, BasicFeatureConfiguration> = {
   userGroups: {
-    level: PAYWALL_LEVELS.solo,
+    level: PAYWALL_LEVELS.team,
     bulletPointsTextId: 'userGroupsFeatureBulletPoints',
     descriptionTextId: 'userGroupsFeatureDescription',
+  },
+  userGroupsFull: {
+    level: PAYWALL_LEVELS.enterprise,
+    bulletPointsTextId: 'userGroupsFullFeatureBulletPoints',
+    descriptionTextId: 'userGroupsFullFeatureDescription',
   },
 }
 

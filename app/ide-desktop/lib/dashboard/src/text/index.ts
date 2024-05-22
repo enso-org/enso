@@ -109,6 +109,7 @@ interface PlaceholderOverrides {
 
   readonly paywallAvailabilityLevel: [Plan: string]
   readonly paywallScreenDescription: [Plan: string]
+  readonly userGroupsLimitMessage: [limit: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

@@ -9,6 +9,7 @@ import type * as stripeJs from '@stripe/stripe-js'
 
 import OpenInNewTabIcon from 'enso-assets/open.svg'
 
+import * as appUtils from '#/appUtils'
 import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -169,7 +170,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
           size="medium"
           rounded="full"
           target="_blank"
-          href="mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan"
+          href={appUtils.getContactSalesURL()}
         >
           {getText('contactSales')}
         </ariaComponents.Button>

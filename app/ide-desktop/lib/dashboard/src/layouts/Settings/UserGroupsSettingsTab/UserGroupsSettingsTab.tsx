@@ -20,7 +20,7 @@ export default function UserGroupsSettingsTab() {
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const showPaywall = isFeatureUnderPaywall('userGroups')
 
-  if (!showPaywall) {
+  if (showPaywall) {
     return (
       <div className="mt-1">
         <paywallComponents.PaywallScreen feature="userGroups" />

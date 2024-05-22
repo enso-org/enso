@@ -17,10 +17,11 @@ import UserGroupRow from '#/layouts/Settings/UserGroupRow'
 import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import * as paywallComponents from '#/components/Paywall'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
@@ -44,6 +45,12 @@ export function UserGroupsSettingsTabContent() {
     () => new Map((users ?? []).map(otherUser => [otherUser.userId, otherUser])),
     [users]
   )
+
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+
+  const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
+  const userGroupsLeft = isUnderPaywall ? 1 - (userGroups?.length ?? 0) : Infinity
+  const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
 
   const usersByGroup = React.useMemo(() => {
     const map = new Map<backendModule.UserGroupId, backendModule.User[]>()
@@ -209,46 +216,74 @@ export function UserGroupsSettingsTabContent() {
       <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
         <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
           <HorizontalMenuBar>
-            <UnstyledButton
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-              onPress={event => {
-                const placeholderId = backendModule.newPlaceholderUserGroupId()
-                const rect = event.target.getBoundingClientRect()
-                const position = { pageX: rect.left, pageY: rect.top }
-                setModal(
-                  <NewUserGroupModal
-                    event={position}
-                    userGroups={userGroups}
-                    onSubmit={groupName => {
-                      const id = placeholderId
-                      const { organizationId } = user
-                      setUserGroups(oldUserGroups => [
-                        ...(oldUserGroups ?? []),
-                        { organizationId, id, groupName },
-                      ])
-                    }}
-                    onSuccess={newUserGroup => {
-                      setUserGroups(
-                        oldUserGroups =>
-                          oldUserGroups?.map(userGroup =>
-                            userGroup.id !== placeholderId ? userGroup : newUserGroup
-                          ) ?? null
-                      )
-                    }}
-                    onFailure={() => {
-                      setUserGroups(
-                        oldUserGroups =>
-                          oldUserGroups?.filter(userGroup => userGroup.id !== placeholderId) ?? null
-                      )
-                    }}
-                  />
-                )
-              }}
-            >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('newUserGroup')}
-              </aria.Text>
-            </UnstyledButton>
+            {shouldDisplayPaywall ? (
+              <ariaComponents.Alert
+                variant="custom"
+                className="flex items-center gap-2 rounded-full bg-white/50"
+                size="small"
+              >
+                <paywallComponents.PaywallDialogButton
+                  feature="userGroupsFull"
+                  variant="outline"
+                  size="medium"
+                  rounding="full"
+                >
+                  {getText('newUserGroup')}
+                </paywallComponents.PaywallDialogButton>
+
+                {getText('userGroupsPaywallMessage')}
+              </ariaComponents.Alert>
+            ) : (
+              <div className="flex items-center gap-2">
+                <ariaComponents.Button
+                  variant="cancel"
+                  rounding="full"
+                  size="medium"
+                  onPress={event => {
+                    const placeholderId = backendModule.newPlaceholderUserGroupId()
+                    const rect = event.target.getBoundingClientRect()
+                    const position = { pageX: rect.left, pageY: rect.top }
+                    setModal(
+                      <NewUserGroupModal
+                        event={position}
+                        userGroups={userGroups}
+                        onSubmit={groupName => {
+                          const id = placeholderId
+                          const { organizationId } = user
+                          setUserGroups(oldUserGroups => [
+                            ...(oldUserGroups ?? []),
+                            { organizationId, id, groupName },
+                          ])
+                        }}
+                        onSuccess={newUserGroup => {
+                          setUserGroups(
+                            oldUserGroups =>
+                              oldUserGroups?.map(userGroup =>
+                                userGroup.id !== placeholderId ? userGroup : newUserGroup
+                              ) ?? null
+                          )
+                        }}
+                        onFailure={() => {
+                          setUserGroups(
+                            oldUserGroups =>
+                              oldUserGroups?.filter(userGroup => userGroup.id !== placeholderId) ??
+                              null
+                          )
+                        }}
+                      />
+                    )
+                  }}
+                >
+                  {getText('newUserGroup')}
+                </ariaComponents.Button>
+
+                {isUnderPaywall ? (
+                  <span className="text-xs">
+                    {getText('userGroupsLimitMessage', userGroupsLeft)}
+                  </span>
+                ) : null}
+              </div>
+            )}
           </HorizontalMenuBar>
           <div
             ref={rootRef}

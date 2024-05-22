@@ -17,7 +17,7 @@ export default function HorizontalMenuBar(props: HorizontalMenuBarProps) {
   return (
     <FocusArea direction="horizontal">
       {innerProps => (
-        <div className="flex h-row gap-drive-bar" {...innerProps}>
+        <div className="flex gap-drive-bar" {...innerProps}>
           {children}
         </div>
       )}

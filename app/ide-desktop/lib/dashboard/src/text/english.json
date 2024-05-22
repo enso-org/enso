@@ -585,6 +585,8 @@
   "userGroups": "User Groups",
   "userGroup": "User Group",
   "newUserGroup": "New User Group",
+  "userGroupsPaywallMessage": "You have reached the limit of user groups for your plan. Upgrade to create more user groups.",
+  "userGroupsLimitMessage": "You can create up to $0 user groups.",
   "userGroupNamePlaceholder": "Enter the name of the user group",
 
   "assetSearchFieldLabel": "Search through items",
@@ -622,6 +624,9 @@
   "paywallAvailabilityLevel": "Available on $0 plan",
 
   "userGroupsFeatureLabel": "User Groups",
-  "userGroupsFeatureBulletPoints": "Create user groups to manage permissions;Assign user groups to assets;Assign users to groups",
-  "userGroupsFeatureDescription": "Get fine-grained control over who can access your assets by creating user groups and assigning them to assets. Assign users to groups to manage their permissions."
+  "userGroupsFeatureBulletPoints": "Create user group to manage permissions;Assign user group to assets;Assign users to group",
+  "userGroupsFeatureDescription": "Get fine-grained control over who can access your assets by creating user groups and assigning them to assets. Assign users to groups to manage their permissions.",
+  "userGroupsFullFeatureLabel": "Unlimited User Groups",
+  "userGroupsFullFeatureBulletPoints": "Create unlimited user groups to manage permissions;Assign user groups to assets;Assign users to groups",
+  "userGroupsFullFeatureDescription": "Get fine-grained control over who can access your assets by creating user groups and assigning them to assets. Assign users to groups to manage their permissions."
 }
