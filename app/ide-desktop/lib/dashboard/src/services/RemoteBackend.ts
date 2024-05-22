@@ -185,7 +185,15 @@ export default class RemoteBackend extends Backend {
           ((await response.json()) as RemoteBackendError)
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
     this.logger.error(message)
-    throw new Error(message)
+    const status = response?.status
+    const errorObject = new Error(message)
+
+    if (status != null) {
+      // @ts-expect-error This is a custom property.
+      errorObject.status = status
+    }
+
+    throw error
   }
 
   /** Return the ID of the root directory. */
