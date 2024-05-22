@@ -66,8 +66,17 @@ export const colorForMessageType: Record<MessageType, string> = {
   padding: 4px;
   margin-right: calc(0px - var(--horizontal-padding));
   border-radius: var(--radius-full);
-  background-color: color-mix(in oklab, black, transparent 65%);
-  color: color-mix(in oklab, var(--color-text-inversed), transparent 20%);
+  position: relative;
+  z-index: 1;
+
+  & > .button:hover {
+    background-color: color-mix(in oklab, black, transparent 90%);
+    color: color-mix(in oklab, var(--color-text-inversed), transparent 20%);
+  }
+
+  & > .button:active {
+    background-color: color-mix(in oklab, black, transparent 70%);
+  }
 }
 
 .copyButton:active {
