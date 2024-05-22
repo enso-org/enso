@@ -334,8 +334,8 @@ export async function mockApi({ page }: MockParams) {
     await page.route('https://www.googletagmanager.com/gtag/js*', route =>
       route.fulfill({ contentType: 'text/javascript', body: 'export {};' })
     )
-    const isOnline = await page.evaluate(() => navigator.onLine)
-    if (!isOnline) {
+    const isActuallyOnline = await page.evaluate(() => navigator.onLine)
+    if (!isActuallyOnline) {
       await page.route('https://fonts.googleapis.com/*', route => route.abort())
     }
 
@@ -804,9 +804,9 @@ export async function mockApi({ page }: MockParams) {
       return json
     })
 
-    await page.route('*', (route, request) => {
+    await page.route('*', async route => {
       if (!isOnline) {
-        route.abort('connectionfailed')
+        await route.abort('connectionfailed')
       }
     })
   })
