@@ -586,7 +586,7 @@
   "userGroup": "User Group",
   "newUserGroup": "New User Group",
   "userGroupsPaywallMessage": "You have reached the limit of user groups for your plan. Upgrade to create more user groups.",
-  "userGroupsLimitMessage": "You can create up to $0 user groups.",
+  "userGroupsLimitMessage": "You can create up to $0 user group(s)",
   "userGroupNamePlaceholder": "Enter the name of the user group",
 
   "assetSearchFieldLabel": "Search through items",

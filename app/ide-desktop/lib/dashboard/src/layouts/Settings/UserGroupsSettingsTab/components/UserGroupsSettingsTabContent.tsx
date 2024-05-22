@@ -48,7 +48,7 @@ export function UserGroupsSettingsTabContent() {
 
   const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 
-  const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
+  const isUnderPaywall = !isFeatureUnderPaywall('userGroupsFull')
   const userGroupsLeft = isUnderPaywall ? 1 - (userGroups?.length ?? 0) : Infinity
   const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
 
@@ -217,22 +217,16 @@ export function UserGroupsSettingsTabContent() {
         <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
           <HorizontalMenuBar>
             {shouldDisplayPaywall ? (
-              <ariaComponents.Alert
-                variant="custom"
-                className="flex items-center gap-2 rounded-full bg-white/50"
-                size="small"
+              <paywallComponents.PaywallDialogButton
+                feature="userGroupsFull"
+                variant="cancel"
+                size="medium"
+                rounding="full"
+                iconPosition="end"
+                tooltip={getText('userGroupsPaywallMessage')}
               >
-                <paywallComponents.PaywallDialogButton
-                  feature="userGroupsFull"
-                  variant="outline"
-                  size="medium"
-                  rounding="full"
-                >
-                  {getText('newUserGroup')}
-                </paywallComponents.PaywallDialogButton>
-
-                {getText('userGroupsPaywallMessage')}
-              </ariaComponents.Alert>
+                {getText('newUserGroup')}
+              </paywallComponents.PaywallDialogButton>
             ) : (
               <div className="flex items-center gap-2">
                 <ariaComponents.Button
@@ -277,11 +271,11 @@ export function UserGroupsSettingsTabContent() {
                   {getText('newUserGroup')}
                 </ariaComponents.Button>
 
-                {isUnderPaywall ? (
+                {isUnderPaywall && (
                   <span className="text-xs">
                     {getText('userGroupsLimitMessage', userGroupsLeft)}
                   </span>
-                ) : null}
+                )}
               </div>
             )}
           </HorizontalMenuBar>

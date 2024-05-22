@@ -26,14 +26,7 @@ export type PaywallButtonProps = Omit<ariaComponents.ButtonProps, 'variant'> & {
  * PaywallDialogButton component
  */
 export function PaywallButton(props: PaywallButtonProps) {
-  const {
-    size = 'medium',
-    variant = 'primary',
-    feature,
-    iconOnly = false,
-    children,
-    ...buttonProps
-  } = props
+  const { feature, iconOnly = false, children, ...buttonProps } = props
 
   const { getText } = textProvider.useText()
 
@@ -47,10 +40,10 @@ export function PaywallButton(props: PaywallButtonProps) {
 
   return (
     <ariaComponents.Button
-      variant={variant}
-      size={size}
+      variant="primary"
+      size="medium"
       icon={PaywallBlocked}
-      iconPosition="start"
+      iconPosition="end"
       tooltip={getText('paywallScreenDescription', levelLabel)}
       {...buttonProps}
     >
