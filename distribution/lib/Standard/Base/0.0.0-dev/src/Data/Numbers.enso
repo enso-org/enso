@@ -1117,7 +1117,7 @@ type Integer
        Bitwise and computes the logical conjunction of the corresponding pairs
        of bits in the operands.
 
-       ? Example
+       > Example
          Computing the bitwise conjunction of 2_01101101 and 2_11110000.
 
              2_01101101.bit_and 2_11110000
