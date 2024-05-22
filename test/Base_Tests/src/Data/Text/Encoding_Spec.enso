@@ -70,14 +70,61 @@ add_specs suite_builder =
 
     suite_builder.group "Default Encoding" group_builder->
         group_builder.specify "should try reading as UTF-8 by default" <|
-            Error.throw "TODO"
+            bytes = [65, -60, -123, -60, -103]
+            #        A   ą          ę
+            Text.from_bytes bytes Encoding.Default . should_equal 'Aąę'
+
         group_builder.specify "does not keep the UTF-8 BOM within the decoded contents" <|
-            Error.throw "TODO"
+            bytes = [-17, -69, -65] + [65, -60, -123, -60, -103]
+            #       BOM                A   ą          ę
+            txt = Text.from_bytes bytes Encoding.Default
+            txt.should_equal 'Aąę'
+            # The BOM is lost:
+            txt.utf_8 . should_equal [65, -60, -123, -60, -103]
+
+        group_builder.specify "keeps the \ufeff BOM (UTF-8 variant) character if it appeared later on in the stream" <|
+            bytes = [-17, -69, -65] + [-17, -69, -65]
+            txt = Text.from_bytes bytes Encoding.Default
+            # First BOM is stripped, the second one is kept as ZERO WIDTH NO-BREAK SPACE
+            txt.should_equal '\ufeff'
+            txt.length . should_equal 1
+
         group_builder.specify "switches to UTF-16 if BOM is detected" <|
-            Error.throw "TODO"
+            bytes_le = [-1, -2] + [65, 0, 5, 1, 25, 1]
+            #           BOM        A      ą     ę
+            Text.from_bytes bytes_le Encoding.Default . should_equal 'Aąę'
+
+            bytes_be = [-2, -1] + [0, 65, 1, 5, 1, 25]
+            #           BOM        A      ą     ę
+            Text.from_bytes bytes_be Encoding.Default . should_equal 'Aąę'
+
+            # If there is no BOM the bytes are interpreted as UTF-8 and the result is no longer the expected text:
+            bytes_without_bom = [65, 0, 5, 1, 25, 1]
+            bad_text = Text.from_bytes bytes_without_bom Encoding.Default
+            bad_text.should_start_with 'A'
+            bad_text.length . should_equal 6
+
+        group_builder.specify "keeps the \ufeff BOM (UTF-16 variant) character if it appeared later on in the stream" <|
+            bytes = [-1, -2] + [-1, -2] + [65, 0] + [-1, -2]
+            txt = Text.from_bytes bytes Encoding.Default
+            # First BOM is stripped, the second one is kept as ZERO WIDTH NO-BREAK SPACE
+            txt.should_equal '\ufeffA\ufeff'
+            bytes.length . should_equal 4*2
+            txt.length . should_equal 3
+
         group_builder.specify "falls back to Windows-1252 if invalid Unicode is detected and no BOM" <|
-            Error.throw "TODO"
+            # These are not valid bytes for UTF-8
+            bytes = [-30, -55, -1]
+            Text.from_bytes bytes Encoding.utf_8 . should_fail_with Encoding_Error
+
+            # But our default encoding will just fall back to Windows-1252 and return something:
+            Text.from_bytes bytes Encoding.Default . should_equal 'âÉÿ'
+
         group_builder.specify "reports failed characters if invalid Unicode but a BOM was present" <|
+            Error.throw "TODO"
+
+        group_builder.specify "also works in File.read" <|
+            # TODO also include a test for Delimited somewhere
             Error.throw "TODO"
 
     suite_builder.group "UTF_8" group_builder->
@@ -135,6 +182,19 @@ add_specs suite_builder =
             default_error.should_fail_with Encoding_Error
             default_error.catch.message . should_equal "Encoding issues at 19."
 
+        group_builder.specify "should strip the initial BOM, but not subsequent repetitions of it" <|
+            bytes = [-17, -69, -65] + [-17, -69, -65] + [65] + [-17, -69, -65]
+            txt = Text.from_bytes bytes Encoding.utf_8
+            txt.should_equal '\ufeffA\ufeff'
+            Problems.assume_no_problems txt
+
+        group_builder.specify "should report a clearer error when UTF-16 BOM is encountered" <|
+            bytes = [-2, -1] + [0, 65, 1, 5, 1, 25]
+            as_utf = Text.from_bytes bytes Encoding.utf_8 Problem_Behavior.Report_Warning
+            w = Problems.expect_only_warning Encoding_Error as_utf
+            w.to_display_text . should_contain "BOM"
+            w.to_display_text . should_contain "UTF-16"
+
     suite_builder.group "UTF_16 BigEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_16 = [9, 21, 9, 77, 9, 55, 9, 63]
@@ -149,6 +209,18 @@ add_specs suite_builder =
             Test.assert_no_problems result
             result . should_equal kshi
 
+        group_builder.specify "should strip the initial BOM, but not subsequent repetitions of it" <|
+            bytes = [-2, -1, -2, -1, 0, 65, -2, -1]
+            txt = Text.from_bytes bytes Encoding.utf_16_be
+            txt.should_equal '\ufeffA\ufeff'
+
+        group_builder.specify "should warn if an inverted BOM is encountered" <|
+            bytes = [-1, -2] + [0, 65, 1, 5, 1, 25]
+            txt = Text.from_bytes bytes Encoding.utf_16_be Problem_Behavior.Report_Warning
+            txt.should_equal "￾A䄀"
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_contain "BOM"
+
     suite_builder.group "UTF_16 LittleEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_16 = [21, 9, 77, 9, 55, 9, 63, 9]
@@ -162,6 +234,18 @@ add_specs suite_builder =
             result = Text.from_bytes kshi_utf_16 Encoding.utf_16_le
             Test.assert_no_problems result
             result . should_equal kshi
+
+        group_builder.specify "should strip the initial BOM, but not subsequent repetitions of it" <|
+            bytes = [-1, -2, -1, -2, 65, 0, -1, -2]
+            txt = Text.from_bytes bytes Encoding.utf_16_le
+            txt.should_equal '\ufeffA\ufeff'
+
+        group_builder.specify "should warn if an inverted BOM is encountered" <|
+            bytes = [-2, -1] + [0, 65, 1, 5, 1, 25]
+            txt = Text.from_bytes bytes Encoding.utf_16_le Problem_Behavior.Report_Warning
+            txt.should_equal "￾䄀A"
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_contain "BOM"
 
     suite_builder.group "codepoints" group_builder->
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
