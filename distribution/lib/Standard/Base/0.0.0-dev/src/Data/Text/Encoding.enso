@@ -48,19 +48,42 @@ type Encoding
             charset = Charset.forName name
             Encoding.Value charset.name
 
+    ## ICON convert
+       A default encoding that will try to guess the encoding based on some
+       heuristics.
+
+       If a BOM is present, it will be used to determine UTF-8 or UTF-16
+       encoding. Otherwise, the input is decoded using UTF-8 unless it contains
+       invalid UTF-8 sequences, in which case Windows-1252 is used as a fallback.
+
+       When used for encoding, it will always encode using UTF-8.
+       This encoding cannot be passed to some functions that require a Java
+       Charset.
+    Default
+
     ## PRIVATE
-       Create a new Encoding object.
+       An encoding identified by its Java name.
 
        Arguments:
        - character_set: java.nio.charset name.
-    Value (character_set:Text)
+    Value (internal_character_set:Text)
 
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset
-    to_java_charset : Charset
-    to_java_charset self =
-        Panic.catch UnsupportedCharsetException (Charset.forName self.character_set) _->
-            Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + self.character_set))
+    to_java_charset : Charset ! Illegal_Argument
+    to_java_charset self = case self of
+        Encoding.Value charset_name ->
+            Panic.catch UnsupportedCharsetException (Charset.forName charset_name) _->
+                Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + charset_name))
+        Encoding.Default ->
+            Error.throw (Illegal_Argument.Error "The Default encoding cannot be converted to a Java Charset. Please select a specific encoding for this operation.")
+
+    ## ICON metadata
+       Get the name of the character set.
+    character_set_name self -> Text ! Illegal_Argument = case self of
+        Encoding.Value charset_name -> charset_name
+        Encoding.Default ->
+            Error.throw (Illegal_Argument.Error "The Default encoding does not have a character set name. Please select a specific encoding.")
 
     ## ICON convert
        Encoding for ASCII.
@@ -142,4 +165,6 @@ type Encoding
     ## PRIVATE
        Convert Encoding to a friendly string.
     to_display_text : Text
-    to_display_text self = self.character_set
+    to_display_text self = case self of
+        Encoding.Value charset_name -> charset_name
+        Encoding.Default -> "Default Encoding"

@@ -30,6 +30,7 @@ type File_By_Line
        - offset: The position within the file to read from (defaults to first byte).
     new : File -> Encoding -> Integer -> File_By_Line
     new file:File encoding:Encoding=Encoding.utf_8 offset:Integer=0 =
+        # TODO we might want to support Encoding.Default here, but that requires modifying the FileLineReader a bit
         create_row_map =
             row_map = LongArrayList.new
             row_map.add offset

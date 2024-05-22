@@ -68,6 +68,18 @@ add_specs suite_builder =
             default_warning.should_equal invalid_ascii_out
             Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
 
+    suite_builder.group "Default Encoding" group_builder->
+        group_builder.specify "should try reading as UTF-8 by default" <|
+            Error.throw "TODO"
+        group_builder.specify "does not keep the UTF-8 BOM within the decoded contents" <|
+            Error.throw "TODO"
+        group_builder.specify "switches to UTF-16 if BOM is detected" <|
+            Error.throw "TODO"
+        group_builder.specify "falls back to Windows-1252 if invalid Unicode is detected and no BOM" <|
+            Error.throw "TODO"
+        group_builder.specify "reports failed characters if invalid Unicode but a BOM was present" <|
+            Error.throw "TODO"
+
     suite_builder.group "UTF_8" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
@@ -195,4 +207,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

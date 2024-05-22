@@ -290,7 +290,7 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+    read_text self (encoding=Encoding.Default) (on_problems=Problem_Behavior.Report_Warning) =
         self.read (Plain_Text_Format.Plain_Text encoding) on_problems
 
     ## GROUP Metadata
