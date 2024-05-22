@@ -103,12 +103,12 @@ type Data_Link
                  source.underlying.delete . if_not_error target.underlying
 
     ## PRIVATE
-         Reads the raw configuration data of a data-link, as plain text.
+       Reads the raw configuration data of a data-link, as plain text.
 
-         This is should mostly be used for testing, `read_config` is preferred for normal use.
+       This is should mostly be used for testing, `read_config` is preferred for normal use.
 
-         Arguments:
-         - file: The file to read the configuration from.
+       Arguments:
+       - file: The file to read the configuration from.
     read_raw_config (file : File_Like) -> Text =
         if Data_Link.is_data_link file . not then
             Panic.throw (Illegal_Argument.Error " Data_Link should only be used for reading config of Data Links, but "+file.to_display_text+" is not a Data Link.")

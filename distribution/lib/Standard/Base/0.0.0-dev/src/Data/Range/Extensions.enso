@@ -34,6 +34,7 @@ Integer.up_to self n:Integer include_end:Boolean=False step:Integer=1 =
 
 ## ALIAS range
    GROUP Input
+   ICON number_input
 
    Creates a decreasing right-exclusive range of integers from `self` to `n`.
 

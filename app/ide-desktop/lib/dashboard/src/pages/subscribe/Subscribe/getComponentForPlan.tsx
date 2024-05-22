@@ -26,7 +26,7 @@ import * as components from './components'
  * The props for the submit button.
  */
 interface SubmitButtonProps {
-  readonly onSubmit: () => Promise<void>
+  readonly onSubmit: (paymentMethodId: string) => Promise<void>
   readonly elements: stripeJs.StripeElements
   readonly stripe: stripeJs.Stripe
   readonly plan: backendModule.Plan

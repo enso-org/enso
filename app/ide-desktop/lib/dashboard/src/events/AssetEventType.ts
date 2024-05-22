@@ -10,7 +10,7 @@ enum AssetEventType {
   newFolder = 'new-folder',
   uploadFiles = 'upload-files',
   updateFiles = 'update-files',
-  newDataLink = 'new-data-link',
+  newDatalink = 'new-datalink',
   newSecret = 'new-secret',
   openProject = 'open-project',
   closeProject = 'close-project',

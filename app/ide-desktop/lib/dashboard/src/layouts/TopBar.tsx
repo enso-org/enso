@@ -85,7 +85,6 @@ export default function TopBar(props: TopBarProps) {
           {supportsCloudBackend && (
             <UserBar
               invisible
-              supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}
               setIsHelpChatOpen={setIsHelpChatOpen}
@@ -108,7 +107,6 @@ export default function TopBar(props: TopBarProps) {
             />
           )}
           <UserBar
-            supportsLocalBackend={supportsLocalBackend}
             page={page}
             setPage={setPage}
             setIsHelpChatOpen={setIsHelpChatOpen}

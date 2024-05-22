@@ -20,7 +20,7 @@ type Enso_User
     ## PRIVATE
        Represents a user within Enso Cloud.
 
-       Fields:
+       Arguments:
        - name: The user's name.
        - email: The user's email address.
        - id: The user's unique ID.
@@ -51,7 +51,8 @@ type Enso_User
         users = get_required_field "users" json
         users.map (user-> Enso_User.from user)
 
-    ## Flushes all cloud caches.
+    ## ICON trash
+       Flushes all cloud caches.
        For example, it will flush cached secrets, ensuring that new values will
        be fetched the next time the secrets are accessed.
     flush_caches : Nothing

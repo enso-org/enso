@@ -76,15 +76,16 @@ print_single_result (test_result : Test_Result) (config : Suite_Config) =
                 txt = "    - " + test_result.spec_name + " " + times_suffix
                 IO.println (maybe_green_text txt config)
         Spec_Result.Failure msg details ->
+            IO.println ""
             txt = "    - [FAILED] " + test_result.spec_name + " " + times_suffix
             IO.println (maybe_red_text txt config)
             IO.println ("        Reason: " + msg)
             if details.is_nothing.not then
                 IO.println (decorate_stack_trace details)
+            IO.println ""
         Spec_Result.Pending reason ->
-            if config.print_only_failures.not then
-                IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
-                IO.println ("        Reason: " + reason)
+            IO.println (maybe_grey_text ("    - [PENDING] " + test_result.spec_name) config)
+            IO.println ("        Reason: " + reason)
 
 
 ## Prints all the results, optionally writing them to a jUnit XML output.
@@ -156,7 +157,7 @@ print_group_report group_name test_results config builder =
             builder.append '        </testcase>\n'
         builder.append '    </testsuite>\n'
 
-    should_print_behavior = config.print_only_failures.not || test_results.any (r -> r.is_fail)
+    should_print_behavior = config.print_only_failures.not || test_results.any (r -> r.is_fail) || test_results.any (r -> r.is_pending)
     if should_print_behavior then
         tests_succeeded = test_results.fold 0 acc-> res->
             if res.is_success then acc + 1 else acc

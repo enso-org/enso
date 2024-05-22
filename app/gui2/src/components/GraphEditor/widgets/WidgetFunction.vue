@@ -157,8 +157,9 @@ const inheritedConfig = computed(() => {
   if (props.input.dynamicConfig?.kind === 'OneOfFunctionCalls' && methodCallInfo.value != null) {
     const cfg = props.input.dynamicConfig
     const info = methodCallInfo.value
-    const name = entryQn(info?.suggestion)
-    return cfg.possibleFunctions.get(name)
+    const fullName = entryQn(info?.suggestion)
+    const autoscopedName = '..' + info?.suggestion.name
+    return cfg.possibleFunctions.get(fullName) ?? cfg.possibleFunctions.get(autoscopedName)
   }
   return undefined
 })

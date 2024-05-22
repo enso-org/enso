@@ -19,7 +19,9 @@ type Ref
     new : Any -> Ref
     new value = @Builtin_Method "Ref.new"
 
-    ## Gets the contents of this mutable reference ref.
+    ## GROUP Metadata
+       ICON metadata
+       Gets the contents of this mutable reference ref.
 
        > Example
          Getting the contents of a reference.
@@ -41,7 +43,9 @@ type Ref
     put : Any -> Any
     put self new_value = @Builtin_Method "Ref.put"
 
-    ## Gets the contents of this mutable reference, transform it using the
+    ## GROUP Calculations
+       ICON edit
+       Gets the contents of this mutable reference, transform it using the
        provided function, and put the new value into the reference.
 
        Returns the original value.
@@ -49,8 +53,8 @@ type Ref
        Arguments:
        - fun: the function to transform the value in the ref
 
-        > Example
-          Increment the integer stored in a ref, and receive the old value.
+       > Example
+         Increment the integer stored in a ref, and receive the old value.
 
           (Ref.new 10) . modify (_+1)
           # => 10

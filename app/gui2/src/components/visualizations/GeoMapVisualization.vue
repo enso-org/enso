@@ -88,7 +88,7 @@ declare var deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import type { Deck } from 'deck.gl'
 import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
@@ -399,18 +399,10 @@ function pushPoints(newPoints: Location[]) {
 <template>
   <VisualizationContainer :overflow="true">
     <template #toolbar>
-      <button class="image-button">
-        <SvgIcon name="find" />
-      </button>
-      <button class="image-button">
-        <SvgIcon name="path2" />
-      </button>
-      <button class="image-button">
-        <SvgIcon name="geo_map_distance" />
-      </button>
-      <button class="image-button">
-        <SvgIcon name="geo_map_pin" />
-      </button>
+      <SvgButton name="find" />
+      <SvgButton name="path2" />
+      <SvgButton name="geo_map_distance" />
+      <SvgButton name="geo_map_pin" />
     </template>
     <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
   </VisualizationContainer>

@@ -725,42 +725,42 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a Data Link.
+  /** Return a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createConnector(
-    body: backend.CreateConnectorRequestBody
-  ): Promise<backend.ConnectorInfo> {
-    const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
-    const response = await this.post<backend.ConnectorInfo>(path, body)
+  override async createDatalink(
+    body: backend.CreateDatalinkRequestBody
+  ): Promise<backend.DatalinkInfo> {
+    const path = remoteBackendPaths.CREATE_DATALINK_PATH
+    const response = await this.post<backend.DatalinkInfo>(path, body)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createConnectorBackendError', body.name)
+      return await this.throw(response, 'createDatalinkBackendError', body.name)
     } else {
       return await response.json()
     }
   }
 
-  /** Return a Data Link.
+  /** Return a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getConnector(
-    connectorId: backend.ConnectorId,
+  override async getDatalink(
+    datalinkId: backend.DatalinkId,
     title: string
-  ): Promise<backend.Connector> {
-    const path = remoteBackendPaths.getConnectorPath(connectorId)
-    const response = await this.get<backend.Connector>(path)
+  ): Promise<backend.Datalink> {
+    const path = remoteBackendPaths.getDatalinkPath(datalinkId)
+    const response = await this.get<backend.Datalink>(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'getConnectorBackendError', title)
+      return await this.throw(response, 'getDatalinkBackendError', title)
     } else {
       return await response.json()
     }
   }
 
-  /** Delete a Data Link.
+  /** Delete a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteConnector(connectorId: backend.ConnectorId, title: string): Promise<void> {
-    const path = remoteBackendPaths.getConnectorPath(connectorId)
+  override async deleteDatalink(datalinkId: backend.DatalinkId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getDatalinkPath(datalinkId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'deleteConnectorBackendError', title)
+      return await this.throw(response, 'deleteDatalinkBackendError', title)
     } else {
       return
     }
@@ -927,10 +927,14 @@ export default class RemoteBackend extends Backend {
 
   /** Create a payment checkout session.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createCheckoutSession(plan: backend.Plan): Promise<backend.CheckoutSession> {
+  override async createCheckoutSession(
+    params: backend.CreateCheckoutSessionRequestParams
+  ): Promise<backend.CheckoutSession> {
+    const { plan, paymentMethodId } = params
+
     const response = await this.post<backend.CheckoutSession>(
       remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
-      { plan } satisfies backend.CreateCheckoutSessionRequestBody
+      { plan, paymentMethodId } satisfies backend.CreateCheckoutSessionRequestBody
     )
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createCheckoutSessionBackendError', plan)

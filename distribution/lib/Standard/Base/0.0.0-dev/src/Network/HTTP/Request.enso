@@ -16,7 +16,8 @@ from project.Data.Boolean import Boolean, False, True
 from project.Network.Extensions import all
 
 type Request
-    ## Create new HTTP request.
+    ## ICON data_download
+       Create new HTTP request.
 
        Arguments:
        - method: The HTTP method represented by the request.
@@ -51,7 +52,8 @@ type Request
     options : (Text | URI) -> Vector -> Request
     options url (headers = []) = Request.new HTTP_Method.Options url headers
 
-    ## Create a Get request.
+    ## ICON data_input
+       Create a Get request.
 
        Arguments:
        - url: The address for the request.
@@ -67,7 +69,8 @@ type Request
     get : (Text | URI) -> Vector -> Request
     get url (headers = []) = Request.new HTTP_Method.Get url headers
 
-    ## Create a Head request.
+    ## ICON data_input
+       Create a Head request.
 
        Arguments:
        - url: The address for the request.
@@ -197,18 +200,18 @@ type Request
     ## ICON edit
        Set the body for the request.
 
-        Arguments:
-        - new_body: The body to insert into the request.
+       Arguments:
+       - new_body: The body to insert into the request.
 
-        > Example
-          Unsetting the body in a post request.
+       > Example
+         Unsetting the body in a post request.
 
-             import Standard.Base.Network.HTTP.Request.Request
-             import Standard.Base.Network.HTTP.Request_Body.Request_Body
-             import Standard.Base.Network.URI.URI
+            import Standard.Base.Network.HTTP.Request.Request
+            import Standard.Base.Network.HTTP.Request_Body.Request_Body
+            import Standard.Base.Network.URI.URI
 
-             example_with_body =
-                 Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
+            example_with_body =
+                Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
     with_body : Request_Body -> Request
     with_body self new_body = Request.Value self.method self.uri self.headers new_body
 

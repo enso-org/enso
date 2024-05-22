@@ -14,99 +14,99 @@ from project.Data.Boolean import Boolean, False, True
 
 ## Provides custom ordering, equality check and hash code for types that need it.
 
-    The Enso runtime system offers default implementation of _equality_
-    as well as capability to _compute hash code_ (e.g. for use in `Map`) automatically.
-    The default implementation is sufficient for most of the programming activities.
-    Especially when defining new type and its constructors, they get sensible
-    implementation of both functions.
+   The Enso runtime system offers default implementation of _equality_
+   as well as capability to _compute hash code_ (e.g. for use in `Map`) automatically.
+   The default implementation is sufficient for most of the programming activities.
+   Especially when defining new type and its constructors, they get sensible
+   implementation of both functions.
 
-    Should there be a need to redefine the default implementation, here is a way:
-    Define conversion function `Comparable.from` for your `type` and return pointer to
-    another `type` that satisfies the following definition:
+   Should there be a need to redefine the default implementation, here is a way:
+   Define conversion function `Comparable.from` for your `type` and return pointer to
+   another `type` that satisfies the following definition:
 
-    ```
-    type Comparator T
-        compare : T -> T -> (Ordering|Nothing)
-        hash : T -> Integer
-    ```
+   ```
+   type Comparator T
+       compare : T -> T -> (Ordering|Nothing)
+       hash : T -> Integer
+   ```
 
-    Every type must provide exactly one comparator, i.e., the method of form
-    `Comparable.from (_:My_Type)` must return the same comparator type for every
-    value. Note that there is an implicit `Default_Comparator` assigned for every
-    type by default.
+   Every type must provide exactly one comparator, i.e., the method of form
+   `Comparable.from (_:My_Type)` must return the same comparator type for every
+   value. Note that there is an implicit `Default_Comparator` assigned for every
+   type by default.
 
-    A comparator has to implement `compare` and `hash` methods. `compare x y` method
-    returns `Ordering.Less` if x is ordered before y, `Ordering.Equal` if x is equal
-    to y, `Ordering.Greater` if x is ordered after y, and `Nothing` if x and y are
-    not equal, and their relative ordering cannot be determined.
+   A comparator has to implement `compare` and `hash` methods. `compare x y` method
+   returns `Ordering.Less` if x is ordered before y, `Ordering.Equal` if x is equal
+   to y, `Ordering.Greater` if x is ordered after y, and `Nothing` if x and y are
+   not equal, and their relative ordering cannot be determined.
 
-    The signature of the `compare` method is designed so that it enables comparators
-    to provide a _partial ordering_ for a specific type.
+   The signature of the `compare` method is designed so that it enables comparators
+   to provide a _partial ordering_ for a specific type.
 
-    A hash code must be provided for all the objects, therefore, the type signature
-    of `hash` method does not allow `Nothing` as a return value.
+   A hash code must be provided for all the objects, therefore, the type signature
+   of `hash` method does not allow `Nothing` as a return value.
 
-    The runtime expects the following semantics for all the comparators:
-    - Hash consistency:
-      - If x == y then hash(x) == hash(y)
-      - If hash(x) != hash(y) then x != y
-    - Consistency: if x == y then x == y for all the subsequent invocations.
-    - Symmetry: if x == y then y == x
-    - Reflexivity: x == x
-    - Transitivity: if x < y and y < z then x < z
-    - Antisymmetry: if x > y then y < x
+   The runtime expects the following semantics for all the comparators:
+   - Hash consistency:
+     - If x == y then hash(x) == hash(y)
+     - If hash(x) != hash(y) then x != y
+   - Consistency: if x == y then x == y for all the subsequent invocations.
+   - Symmetry: if x == y then y == x
+   - Reflexivity: x == x
+   - Transitivity: if x < y and y < z then x < z
+   - Antisymmetry: if x > y then y < x
 
-    Users are responsible for the compliance to the aforementioned semantics.
-    Should the semantics be violated, an unexpected behavior may be encountered, e.g.,
-    `Array.sort` may return unexpected results or fail with `Incomparable_Values`.
+   Users are responsible for the compliance to the aforementioned semantics.
+   Should the semantics be violated, an unexpected behavior may be encountered, e.g.,
+   `Array.sort` may return unexpected results or fail with `Incomparable_Values`.
 
 
-    > Example
-        Comparator for an unordered Pair `UPair`. In this example, we can see an
-        implementation of the `hash` method that delegates to hash methods of
-        fields.
+   > Example
+       Comparator for an unordered Pair `UPair`. In this example, we can see an
+       implementation of the `hash` method that delegates to hash methods of
+       fields.
 
-        ```
-        type UPair
-            Value x y
+       ```
+       type UPair
+           Value x y
 
-        type UPair_Comparator
-            compare pair1 pair2 =
-                if pair1.x == pair2.x && pair1.y == pair2.y then Ordering.Equal else
-                    if pair1.x == pair2.y && pair1.y == pair2.x then Ordering.Equal else
-                        Nothing
+       type UPair_Comparator
+           compare pair1 pair2 =
+               if pair1.x == pair2.x && pair1.y == pair2.y then Ordering.Equal else
+                   if pair1.x == pair2.y && pair1.y == pair2.x then Ordering.Equal else
+                       Nothing
 
-            hash upair =
-                x_comp = Comparable.from upair.x
-                y_comp = Comparable.from upair.y
-                (x_comp.hash upair.x) + (y_comp.hash upair.y)
+           hash upair =
+               x_comp = Comparable.from upair.x
+               y_comp = Comparable.from upair.y
+               (x_comp.hash upair.x) + (y_comp.hash upair.y)
 
-        Comparable.from (_ : UPair) = UPair_Comparator
-        ```
+       Comparable.from (_ : UPair) = UPair_Comparator
+       ```
 
-    > Example
-        Representation of _rational numbers_ as a pair of integers needs a
-        special equality. Here is a way to define it:
+   > Example
+       Representation of _rational numbers_ as a pair of integers needs a
+       special equality. Here is a way to define it:
 
-        ```
-        type Rational
-            Fraction (numerator:Integer) (denominator:Integer)
+       ```
+       type Rational
+           Fraction (numerator:Integer) (denominator:Integer)
 
-        Comparable.from (_:Rational) = Rational_Ordering
+       Comparable.from (_:Rational) = Rational_Ordering
 
-        type Rational_Ordering
-            compare self r1 r2 =
-                v1 = r1.numerator * r2.denominator
-                v2 = r2.numerator * r1.denominator
-                if v1 < v2 then Ordering.Less else
-                    if v1 > v2 then Ordering.Greater else
-                        Ordering.Equal
-            hash self r1 = 42 # or something better
-        ```
+       type Rational_Ordering
+           compare self r1 r2 =
+               v1 = r1.numerator * r2.denominator
+               v2 = r2.numerator * r1.denominator
+               if v1 < v2 then Ordering.Less else
+                   if v1 > v2 then Ordering.Greater else
+                       Ordering.Equal
+           hash self r1 = 42 # or something better
+       ```
 
-        By defining the `Rational_Ordering` and making it available via
-        `Comparable.from (_:Rational)` method, all parts of the Enso system will use
-        the custom comparator whenever equality or hash code is needed.
+       By defining the `Rational_Ordering` and making it available via
+       `Comparable.from (_:Rational)` method, all parts of the Enso system will use
+       the custom comparator whenever equality or hash code is needed.
 @Builtin_Type
 type Comparable
     ## PRIVATE
@@ -189,7 +189,8 @@ type Ordering
         Ordering.Greater -> 1
         Ordering.Equal -> 0
 
-    ## A lexicographical comparison.
+    ## ICON order
+       A lexicographical comparison.
     and_then : Ordering -> Ordering
     and_then self ~other = case self of
         Ordering.Less -> Ordering.Less

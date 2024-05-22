@@ -5,17 +5,22 @@ import project.Spec_Result.Spec_Result
 from project import Test
 from project.Extensions import all
 
+## Test class for checking if a certain point in the code has been reached.
 type Should_Reach
-    Value (reached_ref : Ref Boolean)
+    ## PRIVATE
+    private Value (reached_ref : Ref Boolean)
 
+    ## Creates a new Should_Reach test object.
     new : Should_Reach
     new = Should_Reach.Value (Ref.new False)
 
+    ## Records that a point has been reached.
     reached : Nothing
     reached self -> Nothing =
         self.reached_ref.put True
         Nothing
 
+    ## Checks if a point was reached in execution.
     should_have_reached : Integer -> Spec_Result
     should_have_reached self (frames_to_skip : Integer = 0) -> Spec_Result =
         loc = Meta.get_source_location 1+frames_to_skip

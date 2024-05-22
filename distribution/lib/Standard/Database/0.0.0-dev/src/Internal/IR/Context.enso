@@ -53,7 +53,7 @@ type Context
        their columns come and set filters and other settings for processing the
        query.
 
-        Arguments:
+       Arguments:
        - from_spec: the sources for the query, see `From_Spec` for more
          details.
        - where_filters: a list of expressions for filtering - only the rows
@@ -138,7 +138,7 @@ type Context
 
     ## PRIVATE
 
-         Returns a copy of the context with changed `distinct_on` expressions.
+       Returns a copy of the context with changed `distinct_on` expressions.
     set_distinct_on : (Nothing | Vector SQL_Expression) -> Context
     set_distinct_on self new_distinct_on =
        Context.Value self.from_spec self.where_filters self.orders self.groups self.limit new_distinct_on

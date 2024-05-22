@@ -10,7 +10,7 @@ import {
   type SuggestionId,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import { isOperator, type AstId } from '@/util/ast/abstract.ts'
+import { isIdentifier, isOperator, type AstId, type Identifier } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { RawAstExtended } from '@/util/ast/extended'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
@@ -27,7 +27,7 @@ import {
 import { useToast } from '@/util/toast'
 import { equalFlat } from 'lib0/array'
 import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
-import { computed, nextTick, ref, type ComputedRef } from 'vue'
+import { computed, readonly, ref, type ComputedRef } from 'vue'
 import { useAI } from './ai'
 
 /** Information how the component browser is used, needed for proper input initializing. */
@@ -64,7 +64,6 @@ export type EditingContext =
   // In process of writing AI prompt: no suggestion should be displayed.
   | {
       type: 'aiPrompt'
-      selfIdent: string
       prompt: string
     }
 
@@ -81,57 +80,77 @@ export function useComponentBrowserInput(
   suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
   ai: { query(query: string, sourcePort: string): Promise<Result<string>> } = useAI(),
 ) {
-  const code = ref('')
+  const text = ref('')
   const cbUsage = ref<Usage>()
   const anyChange = ref(false)
   const selection = ref({ start: 0, end: 0 })
-  const ast = computed(() => RawAstExtended.parse(code.value))
+  const ast = computed(() => RawAstExtended.parse(text.value))
   const imports = ref<RequiredImport[]>([])
   const processingAIPrompt = ref(false)
   const toastError = useToast.error()
+  const sourceNodeIdentifier = ref<Identifier>()
+  const firstAppliedReturnType = ref<Typename>()
 
-  // Code Model to being edited externally (by user).
+  // Text Model to being edited externally (by user).
   //
   // Some user actions (like typing operator right after input) may handled differently than
   // internal changes (like applying suggestion).
-  const codeModel = computed({
-    get: () => code.value,
-    set: (newValue) => {
-      if (newValue != code.value) {
-        // When user, right after opening CB with source node types operator, we should
-        // re-initialize input with it instead of dot at the end.
-        const startedTyping = !anyChange.value && newValue.startsWith(code.value)
-        const typed = newValue.substring(code.value.length)
-        code.value = newValue
+  const contentModel = computed({
+    get: () => ({
+      text: text.value,
+      selection: selection.value,
+    }),
+    set: ({ text: newText, selection: newSelection }) => {
+      if (newSelection) {
+        selection.value = newSelection
+      }
+      if (newText !== text.value) {
         anyChange.value = true
-
+        const parsed = extractSourceNode(newText)
         if (
-          startedTyping &&
-          cbUsage.value?.type === 'newNode' &&
-          cbUsage.value?.sourcePort &&
-          isOperator(typed)
+          sourceNodeIdentifier.value &&
+          cbUsage.value?.type !== 'editNode' &&
+          isOperator(newText.trimStart())
         ) {
-          const sourcePort = cbUsage.value.sourcePort
-          // We do any code updates in next tick, as in the current we may yet expect selection
-          // changes we would like to override.
-          nextTick(() => setSourceNode(sourcePort, ` ${typed}`))
+          // When user, right after opening CB with source node types operator, we should
+          // re-initialize input with it instead of dot at the end.
+          alterInput(
+            `${sourceNodeIdentifier.value} ${newText}`,
+            sourceNodeIdentifier.value.length + 1,
+          )
+          sourceNodeIdentifier.value = undefined
+        } else if (!sourceNodeIdentifier.value && parsed.sourceNodeIdentifier) {
+          alterInput(parsed.text, -(parsed.sourceNodeIdentifier.length + 1))
+          sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
+        } else {
+          text.value = newText
         }
       }
     },
   })
 
+  function alterInput(newText: string, prefixLengthChange: number) {
+    text.value = newText
+    const adjustPoint = (point: number) =>
+      Math.min(newText.length, Math.max(0, point + prefixLengthChange))
+    selection.value = {
+      start: adjustPoint(selection.value.start),
+      end: adjustPoint(selection.value.end),
+    }
+  }
+
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
-    if (cursorPosition === 0) return { type: 'insert', position: 0 }
-    // TODO[ao]: refactor a bit before merging:
-    const aiPromptMatch = /^((?:[a-zA-Z_][0-9]*)+)\.AI:(.*)$/.exec(code.value)
-    if (aiPromptMatch) {
-      return {
-        type: 'aiPrompt',
-        selfIdent: aiPromptMatch[1] ?? '',
-        prompt: aiPromptMatch[2] ?? '',
+    if (sourceNodeIdentifier.value) {
+      const aiPromptMatch = /^AI:(.*)$/.exec(text.value)
+      if (aiPromptMatch) {
+        return {
+          type: 'aiPrompt',
+          prompt: aiPromptMatch[1] ?? '',
+        }
       }
     }
+    if (cursorPosition === 0) return { type: 'insert', position: 0 }
     const editedPart = cursorPosition - 1
     const inputAst = ast.value
     const editedAst = inputAst
@@ -165,7 +184,7 @@ export function useComponentBrowserInput(
   })
 
   const internalUsages = computed(() => {
-    const analyzer = new AliasAnalyzer(code.value, ast.value.inner)
+    const analyzer = new AliasAnalyzer(text.value, ast.value.inner)
     analyzer.process()
     function* internalUsages() {
       for (const [_definition, usages] of analyzer.aliases) {
@@ -179,6 +198,13 @@ export function useComponentBrowserInput(
   const accessChainFilter: ComputedRef<Filter> = computed(() => {
     const ctx = context.value
     if (ctx.type === 'changeLiteral' || ctx.type === 'aiPrompt') return {}
+    const insertingAtBeginning = ctx.type === 'insert' && ctx.position === 0
+    const editingAtBeginning =
+      ctx.type === 'changeIdentifier' && ctx.identifier.inner.whitespaceStartInCodeParsed === 0
+    if (sourceNodeIdentifier.value && (insertingAtBeginning || editingAtBeginning)) {
+      const selfArg = nodeType(sourceNodeIdentifier.value)
+      return selfArg ? { selfArg } : {}
+    }
     if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
     const opr = ctx.oprApp.lastOpr()
     if (opr == null || opr.repr() !== '.') return {}
@@ -190,7 +216,7 @@ export function useComponentBrowserInput(
   })
 
   const filter = computed(() => {
-    const input = code.value
+    const input = text.value
     const ctx = context.value
     const filter = { ...accessChainFilter.value }
     if (ctx.type === 'changeIdentifier') {
@@ -211,7 +237,7 @@ export function useComponentBrowserInput(
     // enter (and if press, they won't be surprised by the results).
     const ctx = context.value
     // If no input, we're sure user want's to add something.
-    if (!code.value) return true
+    if (!text.value) return true
     // When changing identifier, it is unfinished. Or, the best match should be exactly what
     // the user wants
     if (ctx.type === 'changeIdentifier') return true
@@ -253,7 +279,12 @@ export function useComponentBrowserInput(
     if (!accessOpr.lhs.isTree(RawAst.Tree.Type.Ident)) return null
     if (accessOpr.apps.length > 1) return null
     if (internalUsages.value.has(accessOpr.lhs.span())) return { type: 'unknown' }
-    const ident = accessOpr.lhs.repr()
+    return nodeType(accessOpr.lhs.repr())
+  }
+
+  function nodeType(
+    ident: string,
+  ): { type: 'known'; typename: Typename } | { type: 'unknown' } | null {
     const definition = graphDb.getIdentDefiningNode(ident)
     if (definition == null) return null
     const typename = graphDb.getExpressionInfo(definition)?.typename
@@ -272,7 +303,6 @@ export function useComponentBrowserInput(
    * Read path segments as idents. The 'path' means all access chain operands except the last.
    * If some of such operands is not and identifier, this returns `null`.
    * @param opr
-   * @param code The code from which `opr` was generated.
    * @returns If all path segments are identifiers, return them
    */
   function qnIdentifiers(opr: GeneralOprApp<false>): RawAstExtended<RawAst.Tree.Ident, false>[] {
@@ -287,8 +317,9 @@ export function useComponentBrowserInput(
   function applySuggestion(id: SuggestionId) {
     const entry = suggestionDb.get(id)
     if (!entry) return
-    const { newCode, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
-    code.value = newCode
+    if (firstAppliedReturnType.value == null) firstAppliedReturnType.value = entry.returnType
+    const { newText, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
+    text.value = newText
     selection.value = { start: newCursorPos, end: newCursorPos }
     if (requiredImport) {
       const [importId] = suggestionDb.nameToId.lookup(requiredImport)
@@ -304,6 +335,7 @@ export function useComponentBrowserInput(
   }
 
   function inputAfterApplyingSuggestion(entry: SuggestionEntry): {
+    newText: string
     newCode: string
     newCursorPos: number
     requiredImport: QualifiedName | null
@@ -312,25 +344,27 @@ export function useComponentBrowserInput(
     changes.reverse()
     const newCodeUpToLastChange = changes.reduce(
       (builder, change) => {
-        const oldCodeFragment = code.value.substring(builder.oldCodeIndex, change.range[0])
+        const oldCodeFragment = text.value.substring(builder.oldCodeIndex, change.range[0])
         return {
-          code: builder.code + oldCodeFragment + change.str,
+          text: builder.text + oldCodeFragment + change.str,
           oldCodeIndex: change.range[1],
         }
       },
-      { code: '', oldCodeIndex: 0 },
+      { text: '', oldCodeIndex: 0 },
     )
     const isModule = entry.kind === SuggestionKind.Module
-    const firstCharAfter = code.value[newCodeUpToLastChange.oldCodeIndex]
+    const firstCharAfter = text.value[newCodeUpToLastChange.oldCodeIndex]
     const shouldInsertSpace =
       !isModule && (firstCharAfter == null || /^[a-zA-Z0-9_]$/.test(firstCharAfter))
     const shouldMoveCursor = !isModule
-    const newCursorPos = newCodeUpToLastChange.code.length + (shouldMoveCursor ? 1 : 0)
+    const newCursorPos = newCodeUpToLastChange.text.length + (shouldMoveCursor ? 1 : 0)
+    const newText =
+      newCodeUpToLastChange.text +
+      (shouldInsertSpace ? ' ' : '') +
+      text.value.substring(newCodeUpToLastChange.oldCodeIndex)
     return {
-      newCode:
-        newCodeUpToLastChange.code +
-        (shouldInsertSpace ? ' ' : '') +
-        code.value.substring(newCodeUpToLastChange.oldCodeIndex),
+      newText,
+      newCode: applySourceNode(newText),
       newCursorPos,
       requiredImport,
     }
@@ -346,7 +380,7 @@ export function useComponentBrowserInput(
       const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, anImport))
       const importedIdent =
         anImport.kind == 'Qualified' ? qnLastSegment(anImport.module) : anImport.import
-      const noLongerNeeded = !code.value.includes(importedIdent)
+      const noLongerNeeded = !text.value.includes(importedIdent)
       if (!noLongerNeeded && !alreadyAdded) {
         finalImports.push(anImport)
       }
@@ -380,7 +414,7 @@ export function useComponentBrowserInput(
         break
       }
       case 'aiPrompt': {
-        mainChange = { range: [0, code.value.length], str }
+        mainChange = { range: [0, text.value.length], str }
         break
       }
     }
@@ -390,6 +424,13 @@ export function useComponentBrowserInput(
 
   function codeToBeInserted(entry: SuggestionEntry): string {
     const ctx = context.value
+    if (ctx.type === 'insert' && ctx.position === 0 && sourceNodeIdentifier.value) return entry.name
+    if (
+      ctx.type === 'changeIdentifier' &&
+      ctx.identifier.inner.whitespaceStartInCodeParsed === 0 &&
+      sourceNodeIdentifier.value
+    )
+      return entry.name
     const opr = 'oprApp' in ctx && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
     const oprAppSpacing =
       ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0 ?
@@ -475,26 +516,41 @@ export function useComponentBrowserInput(
     switch (usage.type) {
       case 'newNode':
         if (usage.sourcePort) {
-          setSourceNode(usage.sourcePort)
+          const ident = graphDb.getOutputPortIdentifier(usage.sourcePort)
+          sourceNodeIdentifier.value = ident != null && isIdentifier(ident) ? ident : undefined
         } else {
-          code.value = ''
-          selection.value = { start: 0, end: 0 }
+          sourceNodeIdentifier.value = undefined
         }
+        text.value = ''
+        selection.value = { start: 0, end: 0 }
         break
-      case 'editNode':
-        code.value = graphDb.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? ''
+      case 'editNode': {
+        const parsed = extractSourceNode(
+          graphDb.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? '',
+        )
+        text.value = parsed.text
+        sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
         selection.value = { start: usage.cursorPos, end: usage.cursorPos }
         break
+      }
     }
     imports.value = []
     cbUsage.value = usage
     anyChange.value = false
   }
 
-  function setSourceNode(sourcePort: AstId, operator: string = '.') {
-    const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
-    code.value = sourceNodeName ? `${sourceNodeName}${operator}` : ''
-    selection.value = { start: code.value.length, end: code.value.length }
+  function extractSourceNode(expression: string) {
+    const sourceNodeMatch = /^([^.]+)\.(.*)$/.exec(expression)
+    const matchedSource = sourceNodeMatch?.[1]
+    const matchedCode = sourceNodeMatch?.[2]
+    if (
+      matchedSource != null &&
+      isIdentifier(matchedSource) &&
+      matchedCode != null &&
+      graphDb.getIdentDefiningNode(matchedSource)
+    )
+      return { text: matchedCode, sourceNodeIdentifier: matchedSource }
+    return { text: expression, sourceNodeIdentifier: undefined }
   }
 
   function applyAIPrompt() {
@@ -503,11 +559,16 @@ export function useComponentBrowserInput(
       console.error('Cannot apply AI prompt in non-AI context')
       return
     }
+    if (sourceNodeIdentifier.value == null) {
+      sourceNodeIdentifier.value
+      console.error('Cannot apply AI prompt without a source node.')
+      return
+    }
     processingAIPrompt.value = true
-    ai.query(ctx.prompt, ctx.selfIdent).then(
+    ai.query(ctx.prompt, sourceNodeIdentifier.value).then(
       (result) => {
         if (result.ok) {
-          code.value = `${ctx.selfIdent}.${result.value}`
+          text.value = result.value
         } else {
           const msg = result.error.message('Applying AI prompt failed')
           console.error(msg)
@@ -524,18 +585,30 @@ export function useComponentBrowserInput(
     )
   }
 
+  function applySourceNode(text: string) {
+    return sourceNodeIdentifier.value ? `${sourceNodeIdentifier.value}.${text}` : text
+  }
+
   return {
-    /** The current input's text (code). */
-    code: codeModel,
+    /** The current input's displayed text (code, excluding any initial self argument). */
+    text: readonly(text),
+    /** The current input's displayed text and selection. */
+    content: contentModel,
+    /** The current input's full code. */
+    code: computed(() => applySourceNode(text.value)),
+    /** Initial self argument to place before the displayed text in the inserted code. */
+    selfArgument: sourceNodeIdentifier,
     /** A flag indicating that input was changed after last reset. */
     anyChange,
     /** The current selection (or cursor position if start is equal to end). */
     selection,
-    /** The editing context deduced from code and selection */
+    /** @internal The editing context deduced from code and selection. Exposed for testing. */
     context,
+    /** Whether the input is an AI prompt. */
+    isAiPrompt: computed(() => context.value.type === 'aiPrompt'),
     /** The filter deduced from code and selection. */
     filter,
-    /** Flag indicating that we should autoselect first component after last update */
+    /** Flag indicating that we should autoselect first component after last update. */
     autoSelectFirstComponent,
     /** Flag indincating that we're waiting for AI's answer for user's prompt. */
     processingAIPrompt,
@@ -543,11 +616,13 @@ export function useComponentBrowserInput(
     reset,
     /** Apply given suggested entry to the input. */
     applySuggestion,
-    /** Apply the currently written AI prompt */
+    /** Apply the currently written AI prompt. */
     applyAIPrompt,
     /** Return input after applying given suggestion, without changing state. */
     inputAfterApplyingSuggestion,
-    /** A list of imports to add when the suggestion is accepted */
+    /** A list of imports to add when the suggestion is accepted. */
     importsToAdd,
+    /** The return type of the first applied suggestion. */
+    firstAppliedReturnType,
   }
 }

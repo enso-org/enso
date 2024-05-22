@@ -12,12 +12,14 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 
 final class PerGenerator {
-  static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x03, 0x0f};
+  static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x13, 0x0f};
   private final OutputStream main;
   private final Map<Object, Integer> knownObjects = new IdentityHashMap<>();
+  private int countReferences = 1;
+  private final Map<Object, Integer> pendingReferences = new IdentityHashMap<>();
   private final Histogram histogram;
   private final PerMap map;
-  final Function<Object, Object> writeReplace;
+  private final Function<Object, Object> writeReplace;
   private int position;
 
   private PerGenerator(
@@ -39,17 +41,23 @@ final class PerGenerator {
     data.writeInt(g.versionStamp());
     data.write(new byte[4]); // space
     data.flush();
-    var at = g.writeObject(obj);
+
+    var at = g.writeObjectAndReferences(obj);
+
     var arr = out.toByteArray();
-    arr[8] = (byte) ((at >> 24) & 0xff);
-    arr[9] = (byte) ((at >> 16) & 0xff);
-    arr[10] = (byte) ((at >> 8) & 0xff);
-    arr[11] = (byte) (at & 0xff);
+    putIntToArray(arr, 8, at);
 
     if (histogram != null) {
       histogram.dump(PerUtils.LOG, arr.length);
     }
     return arr;
+  }
+
+  private static void putIntToArray(byte[] arr, int position, int value) {
+    arr[position] = (byte) ((value >> 24) & 0xff);
+    arr[position + 1] = (byte) ((value >> 16) & 0xff);
+    arr[position + 2] = (byte) ((value >> 8) & 0xff);
+    arr[position + 3] = (byte) (value & 0xff);
   }
 
   final <T> int writeObject(T t) throws IOException {
@@ -106,6 +114,63 @@ final class PerGenerator {
     return map.versionStamp;
   }
 
+  private int registerReference(Persistance.Reference<?> ref) {
+    var obj = ref.get(Object.class);
+    var existingId = pendingReferences.get(obj);
+    if (existingId == null) {
+      var currentSize = countReferences++;
+      pendingReferences.put(obj, currentSize);
+      return currentSize;
+    } else {
+      return existingId;
+    }
+  }
+
+  /**
+   * Writes an object into the buffer. Writes also all {@link Persistance.Reference} that were left
+   * pending during the serialization.
+   *
+   * @param obj the object to write down
+   * @return location of the table {@code int size and then int[size]}
+   */
+  private int writeObjectAndReferences(Object obj) throws IOException {
+    pendingReferences.put(obj, 0);
+    var objAt = writeObject(obj);
+
+    var refsOut = new ByteArrayOutputStream();
+    var refsData = new DataOutputStream(refsOut);
+    refsData.writeInt(-1); // space for size of references
+    refsData.writeInt(objAt); // the main object
+    var count = 1;
+    for (; ; ) {
+      var all = new ArrayList<>(pendingReferences.entrySet());
+      all.sort(
+          (e1, e2) -> {
+            return e1.getValue() - e2.getValue();
+          });
+      var round = all.subList(count, all.size());
+      if (round.isEmpty()) {
+        break;
+      }
+      for (var entry : round) {
+        count++;
+        var at = writeObject(entry.getKey());
+        assert count == entry.getValue() : "Expecting " + count + " got " + entry.getValue();
+        refsData.writeInt(at);
+      }
+    }
+    refsData.flush();
+    var arr = refsOut.toByteArray();
+
+    putIntToArray(arr, 0, count);
+
+    var tableAt = this.position;
+    this.main.write(arr);
+    this.position += arr.length;
+
+    return tableAt;
+  }
+
   private static final class ReferenceOutput extends DataOutputStream
       implements Persistance.Output {
     private final PerGenerator generator;
@@ -117,6 +182,12 @@ final class PerGenerator {
 
     @Override
     public <T> void writeInline(Class<T> clazz, T t) throws IOException {
+      if (Persistance.Reference.class == clazz) {
+        Persistance.Reference<?> ref = (Persistance.Reference<?>) t;
+        var id = this.generator.registerReference(ref);
+        writeInt(id);
+        return;
+      }
       var obj = generator.writeReplace.apply(t);
       var p = generator.map.forType(clazz);
       p.writeInline(obj, this);

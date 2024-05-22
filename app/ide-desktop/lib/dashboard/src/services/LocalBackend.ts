@@ -616,17 +616,17 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override createConnector() {
+  override createDatalink() {
     return this.invalidOperation()
   }
 
   /** Invalid operation. */
-  override getConnector() {
+  override getDatalink() {
     return this.invalidOperation()
   }
 
   /** Invalid operation. */
-  override deleteConnector() {
+  override deleteDatalink() {
     return this.invalidOperation()
   }
 

@@ -15,7 +15,6 @@ use tempfile::tempdir;
 // === Export ===
 // ==============
 
-pub mod artifact;
 pub mod context;
 pub mod download;
 pub mod models;

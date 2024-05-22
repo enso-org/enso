@@ -197,7 +197,7 @@ export default class DrivePageActions extends BaseActions {
     return this.step('Open "new data link" modal', page =>
       page
         .getByRole('button')
-        .filter({ has: page.getByAltText('New Data Link') })
+        .filter({ has: page.getByAltText('New Datalink') })
         .click()
     ).into(NewDataLinkModalActions)
   }

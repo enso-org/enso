@@ -11,7 +11,7 @@ import DrivePageActions from './DrivePageActions'
 
 /** Locate the "new data link" modal. */
 function locateNewDataLinkModal(page: test.Page) {
-  return page.getByRole('heading').and(page.getByText('Create Data Link')).locator('..')
+  return page.getByRole('heading').and(page.getByText('Create Datalink')).locator('..')
 }
 
 // ===============================

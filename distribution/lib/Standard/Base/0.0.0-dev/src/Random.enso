@@ -63,6 +63,7 @@ type Random
     set_seed seed:Integer = Random_Generator.global_random_generator.set_seed seed
 
     ## GROUP Random
+       ICON random
        Return a random `Integer` between `min` (inclusive) and `max`
        (inclusive).
 
@@ -80,6 +81,7 @@ type Random
     integer (min:Integer) (max:Integer) = Random_Generator.global_random_generator.integer min max
 
     ## GROUP Random
+       ICON random
        Return a random `Float` in the specified range.
 
        Arguments:
@@ -96,6 +98,7 @@ type Random
     float (min:Float=0.0) (max:Float=1.0) = Random_Generator.global_random_generator.float min max
 
     ## GROUP Random
+       ICON random
        Return a random `Boolean` using the default instance of
        `Random_Generator`.
 
@@ -109,6 +112,7 @@ type Random
     boolean = Random_Generator.global_random_generator.boolean
 
     ## GROUP Random
+       ICON random
        Return a random Gaussian-distributed `Float` with the specified mean and
        standard deviation.
 
@@ -126,6 +130,7 @@ type Random
     gaussian (standard_deviation:Float=1.0) (mean:Float=0.0) = Random_Generator.global_random_generator.gaussian standard_deviation mean
 
     ## GROUP Random
+       ICON random
        Returns `count` indices sampled from the range 0 (inclusive) to n
        (exclusive) without replacement.
 
@@ -143,6 +148,7 @@ type Random
     indices (n:Integer) (count:Integer=1) = Random_Generator.global_random_generator.indices n count
 
     ## GROUP Random
+       ICON random
        Return a `Date` within the specified `Date_Range`.
 
        Arguments:
@@ -159,6 +165,7 @@ type Random
     date min:Date max:Date = Random_Generator.global_random_generator.date min max
 
     ## GROUP Random
+       ICON random
        Return a `Time_Of_Day` between `start_time` and `end_time` (inclusive).
 
        Arguments:
@@ -182,6 +189,7 @@ type Random
         Random_Generator.global_random_generator.time min max
 
     ## GROUP Random
+       ICON random
        Return a new UUID.
 
        ! Random Seed
@@ -198,6 +206,7 @@ type Random
     uuid = Random_Generator.global_random_generator.uuid
 
     ## GROUP Random
+       ICON random
        Returns a new `Vector` containing a random sample of the input vector,
        with or without replacement.
 
@@ -229,6 +238,7 @@ type Random
     items (v : Vector Any | Array Any) (count:Integer=1) (with_replacement:Boolean=False) = Random_Generator.global_random_generator.items v count with_replacement
 
     ## GROUP Random
+       ICON random
        Returns a random permutation of the input `Vector`.
 
        Arguments:

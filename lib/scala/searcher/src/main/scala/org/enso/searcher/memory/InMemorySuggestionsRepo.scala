@@ -24,9 +24,13 @@ class InMemorySuggestionsRepo(implicit ec: ExecutionContext)
   override def init: Future[Unit] = {
     Future {
       if (db == null) {
-        db      = new mutable.HashMap()
-        version = 0
-        index   = 1
+        this.synchronized {
+          if (db == null) {
+            db      = new mutable.HashMap()
+            version = 0
+            index   = 1
+          }
+        }
       }
     }
   }

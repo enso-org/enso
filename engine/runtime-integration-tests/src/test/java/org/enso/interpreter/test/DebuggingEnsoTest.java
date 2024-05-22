@@ -249,10 +249,19 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        from Standard.Base import Vector
+        import Standard.Base.Internal.Array_Like_Helpers
+        from Standard.Base import Any
+        from Standard.Base import Integer
+
+        new_vector_builder : Integer -> Any
+        new_vector_builder capacity = @Builtin_Method "Array_Like_Helpers.new_vector_builder"
+
+        type Builder
+            Value java_builder
 
         foo x =
-            vec_builder = Vector.new_builder
+            java_builder = new_vector_builder 1
+            builder = Builder.Value java_builder
             end = 42
         """,
             "foo");
@@ -261,7 +270,7 @@ public class DebuggingEnsoTest {
         debugger.startSession(
             (SuspendedEvent event) -> {
               if (event.getSourceSection().getCharacters().toString().strip().equals("end = 42")) {
-                DebugValue vecBuilder = event.getTopStackFrame().eval("vec_builder");
+                DebugValue vecBuilder = event.getTopStackFrame().eval("builder");
                 // `java_builder` is a field of `vec_builder` atom and it is a HostObject.
                 // As such it should be wrapped, and considered only as an interop string.
                 DebugValue javaBuilder = vecBuilder.getProperty("java_builder");
@@ -517,12 +526,13 @@ public class DebuggingEnsoTest {
         createEnsoSource(
             """
         from Standard.Base import Vector
+        import Standard.Base.Data.Vector.Builder
 
         bar vec num_elems =
             vec.slice 0 num_elems
 
         foo x =
-            vec_builder = Vector.new_builder
+            vec_builder = Builder.new
             vec_builder.append 1
             vec_builder.append 2
             vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)
@@ -532,7 +542,7 @@ public class DebuggingEnsoTest {
     List<String> expectedLines =
         List.of(
             "foo x =",
-            "vec_builder = Vector.new_builder",
+            "vec_builder = Builder.new",
             "vec_builder.append 1",
             "vec_builder.append 2",
             "vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)",
