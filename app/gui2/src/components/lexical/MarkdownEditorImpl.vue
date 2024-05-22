@@ -16,11 +16,11 @@ import {
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
 import { syncRef } from '@vueuse/core'
-import { ref, type ComponentInstance } from 'vue'
+import { shallowRef, type ComponentInstance } from 'vue'
 
 const markdown = defineModel<string>({ required: true })
 
-const contentElement = ref<ComponentInstance<typeof LexicalContent>>()
+const contentElement = shallowRef<ComponentInstance<typeof LexicalContent>>()
 
 const markdownPlugin: LexicalPlugin = {
   nodes: [
@@ -64,13 +64,12 @@ const { editor } = useLexical(contentElement, 'MarkdownEditor', [
 <template>
   <div class="MarkdownEditor fullHeight">
     <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
-    <SelectionFormattingToolbar v-if="contentElement" :editor="editor" />
+    <SelectionFormattingToolbar :editor="editor" :editorRoot="contentElement" />
   </div>
 </template>
 
 <style scoped>
 .MarkdownEditor {
-  position: relative;
 }
 
 .fullHeight {
