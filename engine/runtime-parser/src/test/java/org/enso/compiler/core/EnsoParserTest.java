@@ -1432,13 +1432,20 @@ public class EnsoParserTest {
     """);
   }
 
-  private static void parseTest(String code) throws IOException {
+  @Test
+  public void testEmptyBody() throws IOException {
+    parseTest(
+        """
+    main =
+    """);
+  }
+
+  private static void parseTest(String code) {
     parseTest(code, true, true, true);
   }
 
   @SuppressWarnings("unchecked")
-  private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs)
-      throws IOException {
+  private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs) {
     var ir = compile(code);
     assertNotNull(ir);
   }
