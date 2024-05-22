@@ -158,9 +158,7 @@ export interface AppProps {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 export default function App(props: AppProps) {
   const { supportsLocalBackend } = props
-  // This is a React component even though it does not contain JSX.
-  // eslint-disable-next-line no-restricted-syntax
-  const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
+
   const queryClient = React.useMemo(() => reactQueryClientModule.createReactQueryClient(), [])
   const [rootDirectoryPath, setRootDirectoryPath] = React.useState<projectManager.Path | null>(null)
   const [error, setError] = React.useState<unknown>(null)
@@ -198,13 +196,13 @@ export default function App(props: AppProps) {
         transition={toastify.Zoom}
         limit={3}
       />
-      <Router basename={getMainPageUrl().pathname}>
+      <router.BrowserRouter basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
           </ModalProvider>
         </LocalStorageProvider>
-      </Router>
+      </router.BrowserRouter>
 
       <reactQueryDevtools.ReactQueryDevtools />
     </reactQuery.QueryClientProvider>
