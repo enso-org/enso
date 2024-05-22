@@ -74,41 +74,42 @@ test.test('sign up without organization id', async ({ page }) => {
 })
 
 test.test('sign up flow', ({ page }) =>
-  actions.mockAll({ page }).then(({ pageActions, api }) =>
-    pageActions
-      .do(() => {
-        api.setCurrentUser(null)
+  actions.mockAll({ page }).then(
+    async ({ pageActions, api }) =>
+      await pageActions
+        .do(() => {
+          api.setCurrentUser(null)
 
-        // These values should be different, otherwise the email and name may come from the defaults.
-        test.expect(EMAIL).not.toStrictEqual(api.defaultEmail)
-        test.expect(NAME).not.toStrictEqual(api.defaultName)
-      })
-      .loginAsNewUser(EMAIL, actions.VALID_PASSWORD)
-      .setUsername(NAME)
-      .do(async thePage => {
-        await test.expect(actions.locateUpgradeButton(thePage)).toBeVisible()
-        await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()
-      })
-      .do(() => {
-        // Logged in, and account enabled
-        const currentUser = api.currentUser()
-        test.expect(currentUser).toBeDefined()
-        if (currentUser != null) {
-          // This is required because `UserOrOrganization` is `readonly`.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, no-extra-semi
-          ;(currentUser as { isEnabled: boolean }).isEnabled = true
-        }
-      })
-      .openUserMenu()
-      .userMenu.logout()
-      .login(EMAIL, actions.VALID_PASSWORD)
-      .do(async () => {
-        await test.expect(actions.locateNotEnabledStub(page)).not.toBeVisible()
-        await test.expect(actions.locateDriveView(page)).toBeVisible()
-      })
-      .do(() => {
-        test.expect(api.currentUser()?.email, 'new user has correct email').toBe(EMAIL)
-        test.expect(api.currentUser()?.name, 'new user has correct name').toBe(NAME)
-      })
+          // These values should be different, otherwise the email and name may come from the defaults.
+          test.expect(EMAIL).not.toStrictEqual(api.defaultEmail)
+          test.expect(NAME).not.toStrictEqual(api.defaultName)
+        })
+        .loginAsNewUser(EMAIL, actions.VALID_PASSWORD)
+        .setUsername(NAME)
+        .do(async thePage => {
+          await test.expect(actions.locateUpgradeButton(thePage)).toBeVisible()
+          await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()
+        })
+        .do(() => {
+          // Logged in, and account enabled
+          const currentUser = api.currentUser()
+          test.expect(currentUser).toBeDefined()
+          if (currentUser != null) {
+            // This is required because `UserOrOrganization` is `readonly`.
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, no-extra-semi
+            ;(currentUser as { isEnabled: boolean }).isEnabled = true
+          }
+        })
+        .openUserMenu()
+        .userMenu.logout()
+        .login(EMAIL, actions.VALID_PASSWORD)
+        .do(async () => {
+          await test.expect(actions.locateNotEnabledStub(page)).not.toBeVisible()
+          await test.expect(actions.locateDriveView(page)).toBeVisible()
+        })
+        .do(() => {
+          test.expect(api.currentUser()?.email, 'new user has correct email').toBe(EMAIL)
+          test.expect(api.currentUser()?.name, 'new user has correct name').toBe(NAME)
+        })
   )
 )

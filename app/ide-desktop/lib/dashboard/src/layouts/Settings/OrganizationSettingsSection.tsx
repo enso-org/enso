@@ -1,73 +1,20 @@
-;
-
 /** @file Settings tab for viewing and editing account information. */
-import * as React from 'react';
+import * as React from 'react'
 
+import isEmail from 'validator/lib/isEmail'
 
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import isEmail from 'validator/lib/isEmail';
+import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+import SettingsInput from '#/components/styled/settings/SettingsInput'
+import SettingsSection from '#/components/styled/settings/SettingsSection'
 
+import * as backendModule from '#/services/Backend'
 
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
-
-
-
-import * as backendProvider from '#/providers/BackendProvider';
-import * as textProvider from '#/providers/TextProvider';
-
-
-
-import * as aria from '#/components/aria';
-import SettingsInput from '#/components/styled/settings/SettingsInput';
-import SettingsSection from '#/components/styled/settings/SettingsSection';
-
-
-
-import * as backendModule from '#/services/Backend';
-
-
-
-import * as object from '#/utilities/object';
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import * as object from '#/utilities/object'
 
 // ===================================
 // === OrganizationSettingsSection ===

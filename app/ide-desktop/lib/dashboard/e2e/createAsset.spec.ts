@@ -21,45 +21,49 @@ const SECRET_VALUE = 'a secret value'
 // =============
 
 test.test('create folder', ({ page }) =>
-  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
-    pageActions.createFolder().driveTable.withRows(async rows => {
-      await test.expect(rows).toHaveCount(1)
-      await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(/^New Folder 1/)
-    })
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions }) =>
+      await pageActions.createFolder().driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+        await test.expect(rows.nth(0)).toBeVisible()
+        await test.expect(rows.nth(0)).toHaveText(/^New Folder 1/)
+      })
   )
 )
 
 test.test('create project', ({ page }) =>
-  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
-    pageActions
-      .createProject()
-      .do(async thePage => {
-        await test.expect(actions.locateEditor(thePage)).toBeVisible()
-      })
-      .goToDrivePage()
-      .driveTable.withRows(async rows => {
-        await test.expect(rows).toHaveCount(1)
-      })
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions }) =>
+      await pageActions
+        .createProject()
+        .do(async thePage => {
+          await test.expect(actions.locateEditor(thePage)).toBeVisible()
+        })
+        .goToPage.drive()
+        .driveTable.withRows(async rows => {
+          await test.expect(rows).toHaveCount(1)
+        })
   )
 )
 
 test.test('upload file', ({ page }) =>
-  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
-    pageActions.uploadFile(FILE_NAME, FILE_CONTENTS).driveTable.withRows(async rows => {
-      await test.expect(rows).toHaveCount(1)
-      await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
-    })
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions }) =>
+      await pageActions.uploadFile(FILE_NAME, FILE_CONTENTS).driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+        await test.expect(rows.nth(0)).toBeVisible()
+        await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
+      })
   )
 )
 
 test.test('create secret', ({ page }) =>
-  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
-    pageActions.createSecret(SECRET_NAME, SECRET_VALUE).driveTable.withRows(async rows => {
-      await test.expect(rows).toHaveCount(1)
-      await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + SECRET_NAME))
-    })
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions }) =>
+      await pageActions.createSecret(SECRET_NAME, SECRET_VALUE).driveTable.withRows(async rows => {
+        await test.expect(rows).toHaveCount(1)
+        await test.expect(rows.nth(0)).toBeVisible()
+        await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + SECRET_NAME))
+      })
   )
 )

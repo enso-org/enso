@@ -30,7 +30,9 @@ test.test("test name here", ({ page }) =>
     // ONLY chain methods from `pageActions`.
     // Using methods not in `pageActions` is UNDEFINED BEHAVIOR.
     // If it is absolutely necessary though, please remember to `await` the method chain.
-    ({ pageActions }) => pageActions.goToHomePage(),
+    // Note that the `async`/`await` pair is REQUIRED, as `Actions` subclasses are `PromiseLike`s,
+    // not `Promise`s, which causes Playwright to output a type error.
+    async ({ pageActions }) => await pageActions.goToHomePage(),
   ),
 );
 ```
@@ -39,12 +41,13 @@ test.test("test name here", ({ page }) =>
 
 ```ts
 test.test("test name here", ({ page }) =>
-  actions.mockAllAndLogin({ page }).then(({ pageActions, api }) =>
-    pageActions.do(() => {
-      api.foo();
-      api.bar();
-      test.expect(api.baz()?.quux).toEqual("bar");
-    }),
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions, api }) =>
+      await pageActions.do(() => {
+        api.foo();
+        api.bar();
+        test.expect(api.baz()?.quux).toEqual("bar");
+      }),
   ),
 );
 ```

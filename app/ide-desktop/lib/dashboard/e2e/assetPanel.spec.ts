@@ -23,53 +23,55 @@ const EMAIL = 'baz.quux@email.com'
 // =============
 
 test.test('open and close asset panel', ({ page }) =>
-  actions.mockAllAndLogin({ page }).then(({ pageActions }) =>
-    pageActions
-      .createFolder()
-      .driveTable.clickRow(0)
-      .withAssetPanel(async assetPanel => {
-        await test.expect(assetPanel).not.toBeVisible()
-      })
-      .toggleAssetPanel()
-      .withAssetPanel(async assetPanel => {
-        await test.expect(assetPanel).toBeVisible()
-      })
-      .toggleAssetPanel()
-      .withAssetPanel(async assetPanel => {
-        await test.expect(assetPanel).not.toBeVisible()
-      })
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions }) =>
+      await pageActions
+        .createFolder()
+        .driveTable.clickRow(0)
+        .withAssetPanel(async assetPanel => {
+          await test.expect(assetPanel).not.toBeVisible()
+        })
+        .toggleAssetPanel()
+        .withAssetPanel(async assetPanel => {
+          await test.expect(assetPanel).toBeVisible()
+        })
+        .toggleAssetPanel()
+        .withAssetPanel(async assetPanel => {
+          await test.expect(assetPanel).not.toBeVisible()
+        })
   )
 )
 
 test.test('asset panel contents', ({ page }) =>
-  actions.mockAll({ page }).then(({ pageActions, api }) =>
-    pageActions
-      .do(() => {
-        const { defaultOrganizationId, defaultUserId } = api
-        api.addProject('project', {
-          description: DESCRIPTION,
-          permissions: [
-            {
-              permission: permissions.PermissionAction.own,
-              user: {
-                organizationId: defaultOrganizationId,
-                userId: defaultUserId,
-                name: USERNAME,
-                email: backend.EmailAddress(EMAIL),
+  actions.mockAll({ page }).then(
+    async ({ pageActions, api }) =>
+      await pageActions
+        .do(() => {
+          const { defaultOrganizationId, defaultUserId } = api
+          api.addProject('project', {
+            description: DESCRIPTION,
+            permissions: [
+              {
+                permission: permissions.PermissionAction.own,
+                user: {
+                  organizationId: defaultOrganizationId,
+                  userId: defaultUserId,
+                  name: USERNAME,
+                  email: backend.EmailAddress(EMAIL),
+                },
               },
-            },
-          ],
+            ],
+          })
         })
-      })
-      .login()
-      .driveTable.clickRow(0)
-      .toggleAssetPanel()
-      .do(async () => {
-        await test.expect(actions.locateAssetPanelDescription(page)).toHaveText(DESCRIPTION)
-        // `getByText` is required so that this assertion works if there are multiple permissions.
-        await test
-          .expect(actions.locateAssetPanelPermissions(page).getByText(USERNAME))
-          .toBeVisible()
-      })
+        .login()
+        .driveTable.clickRow(0)
+        .toggleAssetPanel()
+        .do(async () => {
+          await test.expect(actions.locateAssetPanelDescription(page)).toHaveText(DESCRIPTION)
+          // `getByText` is required so that this assertion works if there are multiple permissions.
+          await test
+            .expect(actions.locateAssetPanelPermissions(page).getByText(USERNAME))
+            .toBeVisible()
+        })
   )
 )
