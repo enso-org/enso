@@ -48,20 +48,13 @@ public class PrivateAccessTest extends TestBase {
         main = My_Type.Cons 42
         """;
     var projDir = createProject("My_Project", mainSrc, tempFolder);
-    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
-    try (var ctx =
-        defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
-      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
-      var assocType = mainMod.getAssociatedType();
-      var mainMethod = mainMod.getMethod(assocType, "main").get();
-      var res = mainMethod.execute();
-      assertThat(res.hasMember("data"), is(false));
-      assertThat(res.canInvokeMember("data"), is(false));
-      assertThat(res.getMember("data"), is(nullValue()));
-    }
+    testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.hasMember("data"), is(false));
+          assertThat(res.canInvokeMember("data"), is(false));
+          assertThat(res.getMember("data"), is(nullValue()));
+        });
   }
 
   @Test
@@ -128,19 +121,12 @@ public class PrivateAccessTest extends TestBase {
                 _ -> 0
         """;
     var projDir = createProject("My_Project", mainSrc, tempFolder);
-    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
-    try (var ctx =
-        defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
-      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
-      var assocType = mainMod.getAssociatedType();
-      var mainMethod = mainMod.getMethod(assocType, "main").get();
-      var res = mainMethod.execute();
-      assertThat(res.isNumber(), is(true));
-      assertThat(res.asInt(), is(42));
-    }
+    testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.isNumber(), is(true));
+          assertThat(res.asInt(), is(42));
+        });
   }
 
   /** Tests that pattern matching on private constructors fails in compilation. */
