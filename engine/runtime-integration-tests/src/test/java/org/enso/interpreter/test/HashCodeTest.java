@@ -12,6 +12,7 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -22,25 +23,25 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
-public class HashCodeTest extends TestBase {
+public class HashCodeTest {
   private static Context context;
   private static final InteropLibrary interop = InteropLibrary.getUncached();
 
   private static HashCodeNode hashCodeNode;
   private static EqualsNode equalsNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;
-  private static TestRootNode testRootNode;
+  private static TestUtils.TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
-    context = createDefaultContext();
-    executeInContext(
+    context = TestUtils.createDefaultContext();
+    TestUtils.executeInContext(
         context,
         () -> {
           hashCodeNode = HashCodeNode.build();
           equalsNode = EqualsNode.create();
           hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode = new TestRootNode();
+          testRootNode = new TestUtils.TestRootNode();
           testRootNode.insertChildren(hashCodeNode, equalsNode, hostValueToEnsoNode);
           return null;
         });
@@ -78,7 +79,7 @@ public class HashCodeTest extends TestBase {
     values.addAll(valGenerator.warnings());
     try {
       return values.stream()
-          .map(value -> unwrapValue(context, value))
+          .map(value -> TestUtils.unwrapValue(context, value))
           .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
           .collect(Collectors.toList())
           .toArray(new Object[] {});
@@ -89,7 +90,7 @@ public class HashCodeTest extends TestBase {
 
   @Theory
   public void hashCodeContractTheory(Object firstValue, Object secondValue) {
-    executeInContext(
+    TestUtils.executeInContext(
         context,
         () -> {
           long firstHash = hashCodeNode.execute(firstValue);
@@ -123,7 +124,7 @@ public class HashCodeTest extends TestBase {
 
   @Theory
   public void hashCodeIsConsistent(Object value) {
-    executeInContext(
+    TestUtils.executeInContext(
         context,
         () -> {
           long firstHash = hashCodeNode.execute(value);
@@ -135,7 +136,7 @@ public class HashCodeTest extends TestBase {
 
   @Theory
   public void hashCodeCachedNodeIsConsistentWithUncached(Object value) {
-    executeInContext(
+    TestUtils.executeInContext(
         context,
         () -> {
           long uncachedRes = HashCodeNodeGen.getUncached().execute(value);

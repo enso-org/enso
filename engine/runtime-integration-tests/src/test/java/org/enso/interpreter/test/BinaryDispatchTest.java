@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -17,7 +18,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class BinaryDispatchTest extends TestBase {
+public class BinaryDispatchTest {
   private static Context ctx;
   private static Value module;
 
@@ -25,7 +26,7 @@ public class BinaryDispatchTest extends TestBase {
 
   @BeforeClass
   public static void initCtx() throws Exception {
-    ctx = createDefaultContext();
+    ctx = TestUtils.createDefaultContext();
 
     var prelude =
         Source.newBuilder(
