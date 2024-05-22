@@ -10,9 +10,12 @@ import com.oracle.truffle.api.nodes.RootNode;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -35,9 +38,7 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
-/**
- * A collection of classes and methods useful for testing, mostly Truffle-related stuff.
- */
+/** A collection of classes and methods useful for testing, mostly Truffle-related stuff. */
 public final class TestUtils {
   private TestUtils() {}
 
@@ -103,7 +104,6 @@ public final class TestUtils {
     }
     return res;
   }
-
 
   @SuppressWarnings("unchecked")
   private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
@@ -197,13 +197,14 @@ public final class TestUtils {
    *
    * @param projName Name of the project
    * @param modules Set of modules. Must contain `Main` module.
-   * @param projDir A directory in which the whole project structure will be created.
-   *                Must exist and be a directory.
+   * @param projDir A directory in which the whole project structure will be created. Must exist and
+   *     be a directory.
    */
-  public static void createProject(
-      String projName, Set<SourceModule> modules, Path projDir) throws IOException {
+  public static void createProject(String projName, Set<SourceModule> modules, Path projDir)
+      throws IOException {
     if (!projDir.toFile().exists() || !projDir.toFile().isDirectory()) {
-      throw new IllegalArgumentException("Project directory " + projDir + " must already be created");
+      throw new IllegalArgumentException(
+          "Project directory " + projDir + " must already be created");
     }
     var projYaml =
         """
@@ -267,6 +268,26 @@ prefer-local-libraries: true
    */
   public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
     testProjectRun(defaultContextBuilder(), projDir, resultConsumer);
+  }
+
+  /** Deletes provided directory recursively. */
+  public static void deleteRecursively(Path rootDir) throws IOException {
+    Files.walkFileTree(
+        rootDir,
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            Files.delete(file);
+            return FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            Files.delete(dir);
+            return FileVisitResult.CONTINUE;
+          }
+        });
   }
 
   /**
