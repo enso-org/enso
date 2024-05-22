@@ -84,7 +84,7 @@ export const ResizableContentEditableInput = React.forwardRef(
       <aria.TextField {...textFieldProps}>
         <div
           className={base()}
-          onClick={event => {
+          onClick={() => {
             inputRef.current?.focus({ preventScroll: true })
           }}
         >
