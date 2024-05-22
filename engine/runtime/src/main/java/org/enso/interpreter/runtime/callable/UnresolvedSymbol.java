@@ -17,7 +17,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.AmbiguousMethodException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.graalvm.collections.Pair;
@@ -70,12 +69,9 @@ public final class UnresolvedSymbol implements EnsoObject {
   public Pair<Function, Type> resolveFor(Node node, Type type) {
     if (type != null) {
       for (var current : type.allTypes(EnsoContext.get(node))) {
-        var methodDefinitions = scope.collectMethodDefinitions(current, name);
-        if (methodDefinitions.size() > 1) {
-          throw new AmbiguousMethodException(node, current, name, methodDefinitions);
-        }
-        if (methodDefinitions.size() == 1) {
-          return Pair.create(methodDefinitions.get(0), current);
+        Function candidate = scope.lookupMethodDefinition(current, name);
+        if (candidate != null) {
+          return Pair.create(candidate, current);
         }
       }
     }

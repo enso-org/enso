@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -218,36 +217,21 @@ public final class ModuleScope implements EnsoObject {
    */
   @TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    return collectMethodDefinitions(type, name).stream().findFirst().orElse(null);
-  }
+    var definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
+    if (definedWithAtom != null) {
+      return definedWithAtom.get();
+    }
 
-  /**
-   * Collects all the method definitions from this scope, type's definition scope and all the
-   * imported modules scopes.
-   *
-   * @see {@link ModuleScope#lookupMethodDefinition(Type, String)}.
-   */
-  @TruffleBoundary
-  public List<Function> collectMethodDefinitions(Type type, String name) {
-    List<Function> functions = new ArrayList<>();
     var definedHere = getMethodMapFor(type).get(name);
     if (definedHere != null) {
-      functions.add(definedHere.get());
+      return definedHere.get();
     }
 
-    // Only consider type's definition scope if it is different from this scope.
-    if (type != null && type.getDefinitionScope() != this) {
-      var definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
-      if (definedWithAtom != null) {
-        functions.add(definedWithAtom.get());
-      }
-    }
-
-    imports.stream()
+    return imports.stream()
         .map(scope -> scope.getExportedMethod(type, name))
         .filter(Objects::nonNull)
-        .collect(Collectors.toCollection(() -> functions));
-    return functions;
+        .findFirst()
+        .orElse(null);
   }
 
   @TruffleBoundary
