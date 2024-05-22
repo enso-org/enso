@@ -350,7 +350,7 @@ const editorStyle = computed(() => {
     <SvgIcon
       name="close"
       class="closeButton button"
-      title="Cole Code Editor"
+      title="Close Code Editor"
       @click="emit('close')"
     />
   </div>
