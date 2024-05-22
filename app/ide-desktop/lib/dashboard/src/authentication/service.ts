@@ -167,10 +167,11 @@ function loadAmplifyConfig(
     // needs to be registered.
     setDeepLinkHandler(logger, navigate)
   }
+
+  const redirectUrl = process.env.ENSO_CLOUD_REDIRECT ?? window.location.origin
+
   /** Load the platform-specific Amplify configuration. */
-  const signInOutRedirect = supportsDeepLinks
-    ? `${common.DEEP_LINK_SCHEME}://auth`
-    : process.env.ENSO_CLOUD_REDIRECT
+  const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : redirectUrl
   return process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID == null ||
     process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID == null ||
     process.env.ENSO_CLOUD_COGNITO_DOMAIN == null ||

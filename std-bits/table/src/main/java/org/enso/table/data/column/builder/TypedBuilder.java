@@ -28,6 +28,15 @@ public abstract class TypedBuilder extends Builder {
    */
   public abstract TypedBuilder retypeTo(StorageType type);
 
-  /** Specifies if the following object will be accepted by this builder's append* methods. */
+  /**
+   * Specifies if the following object will be accepted by this builder's append* methods.
+   *
+   * <p>This is used to determine if a given value can be appended to the current builder, or if it
+   * needs to be retyped to a more general one.
+   *
+   * <p>Note that the {@code appendBulkStorage} method may still accept more types than {@code
+   * accept}. This is exploited by operations like Union where more flexibility in merging column
+   * types is allowed than in building new columns from scratch.
+   */
   public abstract boolean accepts(Object o);
 }
