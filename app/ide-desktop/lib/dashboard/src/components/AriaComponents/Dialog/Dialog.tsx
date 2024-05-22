@@ -9,6 +9,8 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
 
+import * as mergeRefs from '#/utilities/mergeRefs'
+
 import type * as types from './types'
 import * as variants from './variants'
 
@@ -107,7 +109,23 @@ export function Dialog(props: types.DialogProps) {
             onOpenChange={onOpenChange}
             {...modalProps}
           >
-            <aria.Dialog ref={dialogRef} className={dialogSlots.base()} {...ariaDialogProps}>
+            <aria.Dialog
+              ref={mergeRefs.mergeRefs(dialogRef, element => {
+                if (element) {
+                  // This is a workaround for the `data-testid` attribute not being
+                  // supported by the 'react-aria-components' library.
+                  // We need to set the `data-testid` attribute on the dialog element
+                  // so that we can use it in our tests.
+                  // This is a temporary solution until we refactor the Dialog component
+                  // to use `useDialog` hook from the 'react-aria-components' library.
+                  // this will allow us to set the `data-testid` attribute on the dialog
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                  element.dataset.testId = testId
+                }
+              })}
+              className={dialogSlots.base()}
+              {...ariaDialogProps}
+            >
               {opts => (
                 <>
                   {shouldRenderTitle && (
