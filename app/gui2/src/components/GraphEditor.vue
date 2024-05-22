@@ -54,6 +54,7 @@ import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
+import { unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
@@ -321,7 +322,7 @@ const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
 
-const { documentation } = useAstDocumentation(() => graphStore.methodAst)
+const { documentation } = useAstDocumentation(() => unwrapOr(graphStore.methodAst, undefined))
 
 // === Execution Mode ===
 

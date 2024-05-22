@@ -570,9 +570,7 @@ export function useComponentBrowserInput(
         if (result.ok) {
           text.value = result.value
         } else {
-          const msg = result.error.message('Applying AI prompt failed')
-          console.error(msg)
-          toastError.show(msg)
+          toastError.reportError(result.error, 'Applying AI prompt failed')
         }
         processingAIPrompt.value = false
       },
