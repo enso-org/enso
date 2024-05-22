@@ -3,7 +3,7 @@ import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { ColumnResizedEvent, ICellRendererParams, CellClassParams } from 'ag-grid-community'
+import type { CellClassParams, ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
 
@@ -105,7 +105,7 @@ const defaultColDef = {
   minWidth: 25,
   headerValueGetter: (params: HeaderValueGetterParams) => params.colDef.field,
   cellRenderer: cellRenderer,
-  cellClass: cellClass
+  cellClass: cellClass,
 }
 const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
   headerHeight: 26,
@@ -136,19 +136,19 @@ const selectableRowLimits = computed(() => {
 })
 const wasAutomaticallyAutosized = ref(false)
 
-function isGrouingRequired(params: ICellRendererParams){
-  const field = params.colDef?.field;
-  const allDataForCol = params.node.parent?.allLeafChildren.map(row => {
+function isGrouingRequired(params: ICellRendererParams) {
+  const field = params.colDef?.field
+  const allDataForCol = params.node.parent?.allLeafChildren.map((row) => {
     const data = row.data[field || '']
-    return data?.type === "BigInt" ? data.value : data
+    return data?.type === 'BigInt' ? data.value : data
   })
-  return allDataForCol?.find(num => num > 9999) != null;
+  return allDataForCol?.find((num) => num > 9999) != null
 }
 
 function formatNumber(params: ICellRendererParams) {
-  const isGrouingRequiredForData = isGrouingRequired(params);
+  const isGrouingRequiredForData = isGrouingRequired(params)
   const valueType = params.value?.type
-  const value = valueType === 'BigInt' ? BigInt(params.value?.value) :  params.value;
+  const value = valueType === 'BigInt' ? BigInt(params.value?.value) : params.value
   return new Intl.NumberFormat(undefined, {
     style: 'decimal',
     maximumFractionDigits: 12,
@@ -180,13 +180,13 @@ function escapeHTML(str: string) {
 }
 
 function cellClass(params: CellClassParams) {
-  if(params.colDef.field != '#') return null;
-  if(typeof params.value === 'number' ||params.value === null) return 'ag-right-aligned-cell' 
+  if (params.colDef.field != '#') return null
+  if (typeof params.value === 'number' || params.value === null) return 'ag-right-aligned-cell'
   if (typeof params.value === 'object') {
     const valueType = params.value?.type
     if (valueType === 'BigInt' || valueType === 'Float') return 'ag-right-aligned-cell'
   }
-  return null;
+  return null
 }
 
 function cellRenderer(params: ICellRendererParams) {
@@ -206,8 +206,8 @@ function cellRenderer(params: ICellRendererParams) {
     }
   } else if (typeof params.value === 'object') {
     const valueType = params.value?.type
-  if (valueType === 'BigInt') return formatNumber(params)
-  else if (valueType === 'Float')
+    if (valueType === 'BigInt') return formatNumber(params)
+    else if (valueType === 'Float')
       return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
     else if ('_display_text_' in params.value && params.value['_display_text_'])
       return String(params.value['_display_text_'])
