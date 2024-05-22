@@ -110,4 +110,8 @@ const { editor } = useLexical(contentElement, 'MarkdownEditor', [
 .LexicalContent :deep(.lexical-strikethrough) {
   text-decoration: line-through;
 }
+
+.LexicalContent :deep(.lexical-italic) {
+  font-style: italic;
+}
 </style>

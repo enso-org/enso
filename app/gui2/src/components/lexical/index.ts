@@ -30,6 +30,7 @@ export function useLexical(
       theme: {
         text: {
           strikethrough: 'lexical-strikethrough',
+          italic: 'lexical-italic',
         },
       },
       nodes: [...nodes],
