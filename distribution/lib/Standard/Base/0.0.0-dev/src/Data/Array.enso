@@ -47,7 +47,7 @@ type Array
 
              [1, 2, 3].to_array.at -1 == 3
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = Array_Like_Helpers.at self index
+    at self index:Integer=0 = Array_Like_Helpers.at self index
 
     ## GROUP Metadata
        ICON metadata
@@ -734,7 +734,7 @@ type Array
          of the array, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         Array_Like_Helpers.get self index if_missing
 
     ## GROUP Logical

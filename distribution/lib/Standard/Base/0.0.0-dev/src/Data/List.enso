@@ -77,7 +77,7 @@ type List
 
              example_length = Examples.list.length
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## ICON parse3
@@ -94,7 +94,7 @@ type List
          of the final item, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing = case index >= 0 of
+    get self index:Integer=0 ~if_missing=Nothing = case index >= 0 of
         True ->
             loop current index = case current of
                 Nil -> if_missing

@@ -71,7 +71,7 @@ type Pair
          also allowed be negative, then the elements are indexed from the back
          of the pair, i.e. -1 will correspond to the last element.
     at : Integer -> Any
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index 2))
 
     ## ICON parse3
@@ -84,7 +84,7 @@ type Pair
          of the pair, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         case index of
             0 -> self.first
             1 -> self.second

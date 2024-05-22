@@ -295,7 +295,7 @@ type Vector a
 
              [1, 2, 3].at -1 == 3
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = Array_Like_Helpers.at self index
+    at self index:Integer=0 = Array_Like_Helpers.at self index
 
     ## ICON parse3
        Gets an element from the vector at a specified index (0-based).
@@ -307,7 +307,7 @@ type Vector a
          of the vector, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         Array_Like_Helpers.get self index if_missing
 
     ## ICON dataframe_map_column
@@ -1440,7 +1440,7 @@ type Builder
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.elements_java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)

@@ -121,7 +121,7 @@ type Range
 
             0.up_to 10 . with_step 2 . get -1 == 8
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## ICON parse3
@@ -134,7 +134,7 @@ type Range
          i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         len = self.length
         used_index = if index < 0 then len + index else index
         if used_index >= 0 && used_index < len then self.start + used_index * self.step else

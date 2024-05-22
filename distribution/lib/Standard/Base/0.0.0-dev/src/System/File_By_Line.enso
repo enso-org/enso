@@ -56,7 +56,7 @@ type File_By_Line
        Arguments:
        - line: The line to read (0 indexed).
     get : Integer -> Text
-    get self line:Integer = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
+    get self line:Integer=0 = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
         read_line self line
 
     ## GROUP Selections
