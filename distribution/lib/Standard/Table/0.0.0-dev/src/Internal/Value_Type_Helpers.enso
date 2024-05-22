@@ -1,13 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Runtime import assert
 
 import project.Column.Column
+import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Storage
 import project.Value_Type.Auto
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
-from project.Errors import Invalid_Value_Type, No_Common_Type
+from project.Errors import Invalid_Value_Type, Mixing_Date_Time_Types, No_Common_Type
 from project.Internal.Table_Helpers import is_column
 
 polyglot java import org.enso.base.polyglot.NumericConverter
@@ -60,11 +62,11 @@ reconcile_types current new = case current of
     Value_Type.Integer size -> case new of
         Value_Type.Integer new_size ->
             Value_Type.Integer (max_size size new_size)
-        Value_Type.Byte    -> Value_Type.Integer size
+        Value_Type.Byte    -> current
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
-        Value_Type.Float _ -> Value_Type.Float
+        Value_Type.Float _     -> Value_Type.Float
         Value_Type.Decimal _ _ -> new
-        _                  -> Value_Type.Mixed
+        _                      -> Value_Type.Mixed
     Value_Type.Float size -> case new of
         Value_Type.Float new_size ->
             Value_Type.Float (max_size size new_size)
@@ -74,12 +76,11 @@ reconcile_types current new = case current of
         Value_Type.Decimal _ _ -> Value_Type.Float
         _                      -> Value_Type.Mixed
     Value_Type.Byte -> case new of
-        Value_Type.Byte    -> Value_Type.Byte
-        Value_Type.Integer size ->
-            Value_Type.Integer size
-        Value_Type.Float _ -> Value_Type.Float
+        Value_Type.Byte        -> Value_Type.Byte
+        Value_Type.Integer _   -> new
+        Value_Type.Float _     -> Value_Type.Float
         Value_Type.Decimal _ _ -> new
-        _                  -> Value_Type.Mixed
+        _                      -> Value_Type.Mixed
     Value_Type.Decimal precision scale -> case new of
         Value_Type.Decimal new_precision new_scale ->
             if (precision == new_precision) && (scale == new_scale) then new else
@@ -89,9 +90,6 @@ reconcile_types current new = case current of
         Value_Type.Byte      -> Value_Type.Decimal precision scale
         Value_Type.Float _   -> Value_Type.Float
         _                    -> Value_Type.Mixed
-    Value_Type.Boolean -> case new of
-        Value_Type.Boolean -> Value_Type.Boolean
-        _                  -> Value_Type.Mixed
     Value_Type.Char current_size current_variable -> case new of
         Value_Type.Char new_size new_variable ->
             result_variable = current_variable || new_variable || current_size != new_size
@@ -118,18 +116,69 @@ max_size a b =
 ## PRIVATE
    Finds the most specific value type that will fit all the provided types.
 
-   If `strict` is `True`, it is implemented as specified in the note
-   "Unifying Column Types" in `Table.union`. In that case, if no common type
-   is found, `Nothing` is returned.
-
-   It assumes that the `types` vector is not empty.
-find_common_type : Vector Value_Type -> Boolean -> Value_Type | Nothing
-find_common_type types strict =
+   Arguments:
+   - types: a vector of types to unify. It must not be empty.
+   - strict: A flag determining how strict the unification is.
+     If `False`, if no common type can be found, `Mixed` is used as a generic fallback.
+     If `True`, `Nothing` is returned if no common type can be found and `Mixed`
+     is only returned if any of the input types was already `Mixed`.
+find_common_type (types : Vector Value_Type) (strict : Boolean) -> Value_Type | Nothing =
+    assert types.not_empty
     most_generic_type = (types.drop 1).fold types.first reconcile_types
     if strict.not || most_generic_type != Value_Type.Mixed then most_generic_type else
-        # Double check if Mixed was really allowed to come out.
+        ## We return the Mixed type only if the input contained Mixed.
+           Otherwise we report failure to find common type.
         if types.contains Value_Type.Mixed then Value_Type.Mixed else
             Nothing
+
+## PRIVATE
+   An extra helper function that reconciles Date_Time types with varying timezone
+   setting, as well as Date type, reporting any warnings.
+   It can be used as a fallback after `find_common_type` does not find a simple common type.
+   If non-date types are provided, it will fail by returning `Nothing`. It will not report any warnings in that case.
+   It assumes that the list of `types` is not empty.
+find_common_date_types (types : Vector Value_Type) (related_column_name : Text | Nothing) (problem_builder : Problem_Builder) -> Value_Type | Nothing =
+    assert types.not_empty
+    all_date = types.all typ-> case typ of
+        Value_Type.Date        -> True
+        Value_Type.Date_Time _ -> True
+        _                      -> False
+    if all_date.not then Nothing else
+        has_date = types.contains Value_Type.Date
+        has_date_time_with_tz = types.contains (Value_Type.Date_Time True)
+        has_date_time_without_tz = types.contains (Value_Type.Date_Time False)
+
+        # The common type is the 'largest' one.
+        common_type = if has_date_time_with_tz then Value_Type.Date_Time True else
+            if has_date_time_without_tz then Value_Type.Date_Time False else
+                Value_Type.Date
+
+        if has_date && (common_type != Value_Type.Date) then
+            problem_builder.report_other_warning (Mixing_Date_Time_Types.Date_To_Date_Time related_column_name)
+
+        if has_date_time_without_tz && (common_type != Value_Type.Date_Time False) then
+            problem_builder.report_other_warning (Mixing_Date_Time_Types.Implicit_Time_Zone related_column_name)
+
+        common_type
+
+## PRIVATE
+   An extra helper function that reconciles numeric and boolean types.
+   Unifying Boolean and numeric types is not expected by all operations, but
+   some may want to opt-in to it. This method allows to do so.
+
+   If non-numeric or non-boolean types are provided, it will fail by returning
+   `Nothing`.
+
+   No warnings are reported, as coercing boolean to integer is harmless, it was
+   just chosen not to be done by default.
+find_common_numeric_boolean_type (types : Vector Value_Type) -> Value_Type | Nothing =
+    assert types.not_empty
+    all_numeric_or_boolean = types.all typ-> typ.is_numeric || (typ == Value_Type.Boolean)
+    if all_numeric_or_boolean.not then Nothing else
+        ## We just find a common type again, ignoring the boolean types: the
+           boolean will fit any numeric type that we get out of this.
+        without_boolean = types.filter typ-> typ != Value_Type.Boolean
+        find_common_type without_boolean strict=True
 
 ## PRIVATE
    Finds the type of an argument to a column operation.

@@ -9,8 +9,6 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.polyglot.PolyglotContext;
@@ -48,7 +46,7 @@ public class PrivateAccessTest extends TestBase {
             private Cons data
         main = My_Type.Cons 42
         """;
-    var projDir = createProject("My_Project", mainSrc);
+    var projDir = createProject("My_Project", mainSrc, tempFolder);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
         defaultContextBuilder()
@@ -71,7 +69,7 @@ public class PrivateAccessTest extends TestBase {
         type My_Type
             private Cons data
         """;
-    var projDir = createProject("My_Project", mainSrc);
+    var projDir = createProject("My_Project", mainSrc, tempFolder);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
         defaultContextBuilder()
@@ -94,7 +92,7 @@ public class PrivateAccessTest extends TestBase {
         main =
             My_Type.Cons 42
         """;
-    var projDir = createProject("My_Project", mainSrc);
+    var projDir = createProject("My_Project", mainSrc, tempFolder);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
         defaultContextBuilder()
@@ -128,7 +126,7 @@ public class PrivateAccessTest extends TestBase {
                 My_Type.Cons x -> x
                 _ -> 0
         """;
-    var projDir = createProject("My_Project", mainSrc);
+    var projDir = createProject("My_Project", mainSrc, tempFolder);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
         defaultContextBuilder()
@@ -153,7 +151,7 @@ public class PrivateAccessTest extends TestBase {
             private Cons data
             create x = My_Type.Cons x
         """;
-    createProject("Lib", libSrc);
+    createProject("Lib", libSrc, tempFolder);
     var projSrc =
         """
         from local.Lib import My_Type
@@ -162,7 +160,7 @@ public class PrivateAccessTest extends TestBase {
             case obj of
                 My_Type.Cons x -> x
         """;
-    var projDir = createProject("Proj", projSrc);
+    var projDir = createProject("Proj", projSrc, tempFolder);
     var out = new ByteArrayOutputStream();
     try (var ctx =
         defaultContextBuilder()
@@ -185,34 +183,5 @@ public class PrivateAccessTest extends TestBase {
                 containsString("cannot be used from")));
       }
     }
-  }
-
-  /**
-   * Creates temporary project directory structure with a given main source content. No need to
-   * clean it up, as it is managed by JUnit TemporaryFolder rule. Note that we need to create a
-   * project, otherwise the private stuff won't work.
-   *
-   * @param projName Name of the project (as defined in package.yaml).
-   * @param mainSrc Main.enso source content
-   * @return Path to the newly created directly structure - a project directory.
-   */
-  private Path createProject(String projName, String mainSrc) throws IOException {
-    var projDir = tempFolder.newFolder(projName);
-    assert projDir.exists();
-    var projYaml =
-        """
-name: %s
-version: 0.0.1
-prefer-local-libraries: true
-        """.formatted(projName);
-    var yamlPath = projDir.toPath().resolve("package.yaml");
-    Files.writeString(yamlPath, projYaml);
-    assert yamlPath.toFile().exists();
-    var srcDir = tempFolder.newFolder(projName, "src");
-    assert srcDir.exists();
-    var mainSrcPath = srcDir.toPath().resolve("Main.enso");
-    Files.writeString(mainSrcPath, mainSrc);
-    assert mainSrcPath.toFile().exists();
-    return projDir.toPath();
   }
 }
