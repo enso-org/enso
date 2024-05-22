@@ -347,7 +347,12 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
-    <SvgIcon name="close" class="closeButton button" @click="emit('close')" />
+    <SvgIcon
+      name="close"
+      class="closeButton button"
+      title="Cole Code Editor"
+      @click="emit('close')"
+    />
   </div>
 </template>
 

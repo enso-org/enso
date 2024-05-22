@@ -32,7 +32,7 @@ const config = useVisualizationConfig()
       <SvgButton
         name="not_exclamation"
         data-testid="remove-warnings-button"
-        alt="Remove warnings"
+        title="Remove Warnings"
         :disabled="props.data.length === 0"
         @click="config.createNodes({ content: removeWarnings, commit: true })"
       />
