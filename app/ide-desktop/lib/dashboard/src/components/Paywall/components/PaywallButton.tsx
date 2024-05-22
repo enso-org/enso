@@ -1,7 +1,7 @@
 /**
  * @file
  *
- * PaywallDialogButton component
+ * A styled button that shows that a feature is behind a paywall
  */
 import * as React from 'react'
 
@@ -14,7 +14,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 
 /**
- * Props of the PaywallDialogButton component
+ * Props for {@link PaywallButton}.
  */
 export type PaywallButtonProps = Omit<ariaComponents.ButtonProps, 'variant'> & {
   readonly feature: billingHooks.PaywallFeatureName
@@ -23,7 +23,7 @@ export type PaywallButtonProps = Omit<ariaComponents.ButtonProps, 'variant'> & {
 }
 
 /**
- * PaywallDialogButton component
+ * A styled button that shows that a feature is behind a paywall
  */
 export function PaywallButton(props: PaywallButtonProps) {
   const { feature, iconOnly = false, children, ...buttonProps } = props

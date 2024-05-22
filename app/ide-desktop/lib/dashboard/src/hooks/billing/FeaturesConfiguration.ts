@@ -9,7 +9,7 @@ import type * as text from '#/text'
 import * as backend from '#/services/Backend'
 
 /**
- *
+ * Registered paywall features.
  */
 export const PAYWALL_FEATURES = {
   userGroups: 'userGroups',
@@ -22,12 +22,15 @@ export const PAYWALL_FEATURES = {
 export type PaywallFeatureName = keyof typeof PAYWALL_FEATURES
 
 /**
- *
+ * Paywall level names
  */
 export type PaywallLevelName = backend.Plan | 'free'
 
 /**
- *
+ * Paywall level values.
+ * Used to define the paywall levels and their corresponding labels.
+ * The value is a number that represents the level of the paywall.
+ * Because the paywall levels are ordered and inclusive, the value is used to compare the levels.
  */
 export type PaywallLevelValue =
   | (0 & { readonly name: PaywallLevelName; readonly label: text.TextId })
@@ -35,6 +38,9 @@ export type PaywallLevelValue =
   | (2 & { readonly name: PaywallLevelName; readonly label: text.TextId })
   | (3 & { readonly name: PaywallLevelName; readonly label: text.TextId })
 
+/**
+ * Paywall levels configuration.
+ */
 export const PAYWALL_LEVELS: Record<PaywallLevelName, PaywallLevelValue> = {
   free: Object.assign(0, { name: 'free', label: 'freePlanName' } as const),
   [backend.Plan.solo]: Object.assign(1, {
@@ -74,7 +80,7 @@ interface BasicFeatureConfiguration {
 }
 
 /**
- *
+ * Feature configuration.
  */
 export type FeatureConfiguration<Key extends PaywallFeatureName = PaywallFeatureName> =
   BasicFeatureConfiguration & {

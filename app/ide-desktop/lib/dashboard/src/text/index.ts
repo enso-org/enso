@@ -107,8 +107,8 @@ interface PlaceholderOverrides {
 
   readonly subscribeSuccessSubtitle: [string]
 
-  readonly paywallAvailabilityLevel: [Plan: string]
-  readonly paywallScreenDescription: [Plan: string]
+  readonly paywallAvailabilityLevel: [plan: string]
+  readonly paywallScreenDescription: [plan: string]
   readonly userGroupsLimitMessage: [limit: number]
 }
 

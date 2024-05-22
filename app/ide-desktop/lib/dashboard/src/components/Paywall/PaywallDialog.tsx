@@ -18,7 +18,7 @@ import * as upgradeButton from './UpgradeButton'
 /**
  * Props for a {@link PaywallDialog}.
  */
-export type PaywallDialogProps = ariaComponents.DialogProps & {
+export interface PaywallDialogProps extends ariaComponents.DialogProps {
   readonly feature: billingHooks.PaywallFeatureName
 }
 

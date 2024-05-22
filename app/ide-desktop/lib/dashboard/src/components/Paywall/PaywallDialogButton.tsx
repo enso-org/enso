@@ -16,7 +16,7 @@ import * as paywallDialog from './PaywallDialog'
 /**
  * Props for a {@link PaywallDialogButton}.
  */
-export type PaywallDialogButtonProps = Omit<ariaComponents.ButtonProps, 'variant'> & {
+export interface PaywallDialogButtonProps extends Omit<ariaComponents.ButtonProps, 'variant'> {
   readonly variant?: ariaComponents.ButtonProps['variant']
   readonly feature: billingHooks.PaywallFeatureName
   readonly dialogProps?: paywallDialog.PaywallDialogProps
