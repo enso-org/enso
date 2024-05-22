@@ -38,14 +38,9 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
 
   @Override
   public void appendNoGrow(Object o) {
-    if (o instanceof ZonedDateTime dateTime) {
-      data[currentSize++] = dateTime;
-    } else if (o instanceof LocalDate date) {
-      // TODO warning here or upper level?
-      data[currentSize++] = convertDate(date);
-    } else if (o == null) {
-      data[currentSize++] = null;
-    } else {
+    try {
+      data[currentSize++] = (ZonedDateTime) o;
+    } catch (ClassCastException e) {
       throw new ValueTypeMismatchException(getType(), o);
     }
   }
@@ -80,7 +75,7 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
 
   @Override
   public boolean accepts(Object o) {
-    return o instanceof ZonedDateTime || o instanceof LocalDate;
+    return o instanceof ZonedDateTime;
   }
 
   @Override
