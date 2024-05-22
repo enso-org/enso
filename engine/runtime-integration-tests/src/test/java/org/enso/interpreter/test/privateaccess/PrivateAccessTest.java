@@ -1,4 +1,4 @@
-package org.enso.interpreter.test;
+package org.enso.interpreter.test.privateaccess;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import org.enso.interpreter.test.TestBase;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
