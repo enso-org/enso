@@ -33,7 +33,7 @@ export const colorForMessageType: Record<MessageType, string> = {
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
-      <SvgButton name="copy" class="copyButton" title="Copy message text" @click.stop="copyText" />
+      <SvgButton name="copy2" class="copyButton" title="Copy message text" @click.stop="copyText" />
     </div>
   </div>
 </template>
