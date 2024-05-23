@@ -414,7 +414,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       }
     }
 
-    function overrideNodeColor(nodeId: NodeId, color: string) {
+    function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
       const nodeAst = syncModule.value?.tryGet(nodeId)
       if (!nodeAst) return
       editNodeMetadata(nodeAst, (metadata) => {
