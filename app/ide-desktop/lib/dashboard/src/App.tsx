@@ -170,6 +170,12 @@ export default function App(props: AppProps) {
     },
   })
 
+  const routerFuture: Partial<router.FutureConfig> = {
+    /* we want to use startTransition to enable concurrent rendering */
+    /* eslint-disable-next-line @typescript-eslint/naming-convention */
+    v7_startTransition: true,
+  }
+
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
@@ -180,16 +186,11 @@ export default function App(props: AppProps) {
         theme="light"
         closeOnClick={false}
         draggable={false}
-        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
+        toastClassName="text-sm leading-cozy bg-selected-frame rounded-lg backdrop-blur-default"
         transition={toastify.Zoom}
         limit={3}
       />
-      {/* we want to use startTransition to enable concurrent rendering */}
-      {/* eslint-disable-next-line @typescript-eslint/naming-convention */}
-      <router.BrowserRouter
-        basename={getMainPageUrl().pathname}
-        future={{ v7_startTransition: true }}
-      >
+      <router.BrowserRouter basename={getMainPageUrl().pathname} future={routerFuture}>
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />

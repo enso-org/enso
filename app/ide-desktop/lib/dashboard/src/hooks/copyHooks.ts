@@ -57,6 +57,12 @@ export function useCopy(props: UseCopyProps) {
           successToastMessage === true ? getText('copiedToClipboard') : successToastMessage,
           { toastId, closeOnClick: true, hideProgressBar: true, position: 'bottom-right' }
         )
+        // If user closes the toast, reset the button state
+        toastify.toast.onChange(toast => {
+          if (toast.id === toastId && toast.status === 'removed') {
+            copyQuery.reset()
+          }
+        })
       }
 
       // Reset the button to its original state after a timeout.
