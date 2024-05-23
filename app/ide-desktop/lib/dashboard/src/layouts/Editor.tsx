@@ -97,5 +97,7 @@ export default function Editor(props: EditorProps) {
     return <></>
   }
   const AppRunner = appRunner
+  // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
+  // this is no longer necessary, the `key` could be removed.
   return <AppRunner {...appProps} key={appProps.projectId} />
 }
