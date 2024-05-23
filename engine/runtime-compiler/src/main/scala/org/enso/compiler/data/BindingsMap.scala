@@ -754,8 +754,10 @@ object BindingsMap {
   case class Argument(
     name: String,
     hasDefaultValue: Boolean,
-    typ: Option[Reference[Expression]]
-  )
+    typReference: Reference[Expression]
+  ) {
+    def typ(): Option[Expression] = Option(typReference.get(classOf[Expression]))
+  }
 
   /** A representation of a sum type
     *
@@ -781,10 +783,10 @@ object BindingsMap {
           Cons(
             m.name.name,
             m.arguments.map { arg =>
-              val ascribedType: Option[Reference[Expression]] =
+              val ascribedType: Reference[Expression] =
                 arg.ascribedType match {
-                  case Some(value) => Some(Reference.of(value))
-                  case None        => None
+                  case Some(value) => Reference.of(value)
+                  case None        => Reference.none()
                 }
               BindingsMap.Argument(
                 arg.name.name,

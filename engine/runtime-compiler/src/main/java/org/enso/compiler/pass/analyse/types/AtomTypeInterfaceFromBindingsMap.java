@@ -60,7 +60,7 @@ record AtomTypeInterfaceFromBindingsMap(BindingsMap.Type type) implements AtomTy
       if (arg.typ().isEmpty()) {
         return null;
       } else {
-        Expression expression = arg.typ().get().get(Expression.class);
+        Expression expression = arg.typ().get();
         return resolver.resolveTypeExpression(expression);
       }
     }
