@@ -116,6 +116,11 @@ final class PerGenerator {
 
   private int registerReference(Persistance.Reference<?> ref) {
     var obj = ref.get(Object.class);
+    if (obj == null) {
+      // A null reference is represented by id -1
+      return -1;
+    }
+
     var existingId = pendingReferences.get(obj);
     if (existingId == null) {
       var currentSize = countReferences++;

@@ -56,6 +56,11 @@ final class PerInputImpl implements Input {
   public <T> T readInline(Class<T> clazz) throws IOException {
     if (clazz == Persistance.Reference.class) {
       var refId = readInt();
+      if (refId == -1) {
+        var nullReference = Persistance.Reference.none();
+        return clazz.cast(nullReference);
+      }
+
       var ref = cache.getRef(refId);
       return clazz.cast(ref);
     }
