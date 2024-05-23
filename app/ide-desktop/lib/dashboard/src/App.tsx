@@ -186,7 +186,10 @@ export default function App(props: AppProps) {
       />
       {/* we want to use startTransition to enable concurrent rendering */}
       {/* eslint-disable-next-line @typescript-eslint/naming-convention */}
-      <router.BrowserRouter basename={getMainPageUrl().pathname} future={{ v7_startTransition: true }}>
+      <router.BrowserRouter
+        basename={getMainPageUrl().pathname}
+        future={{ v7_startTransition: true }}
+      >
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />

@@ -166,7 +166,9 @@ export const Button = React.forwardRef(function Button(
 
   const Tag = isLink ? aria.Link : aria.Button
 
-  const goodDefaults = isLink ? { rel: 'noopener noreferrer', 'data-testid': testId ?? 'link' } : { type: 'button',  'data-testid': testId ?? 'button' }
+  const goodDefaults = isLink
+    ? { rel: 'noopener noreferrer', 'data-testid': testId ?? 'link' }
+    : { type: 'button', 'data-testid': testId ?? 'button' }
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
   const shouldShowTooltip = isIconOnly && tooltip !== false
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
