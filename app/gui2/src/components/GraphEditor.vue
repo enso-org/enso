@@ -652,7 +652,7 @@ const groupColors = computed(() => {
       @collapseNodes="collapseNodes"
       @removeNodes="deleteSelected"
     />
-    <PlusButton @click.stop="addNodeAuto()" />
+    <PlusButton title="Add Component" @click.stop="addNodeAuto()" />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />

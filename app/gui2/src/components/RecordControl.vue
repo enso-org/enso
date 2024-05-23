@@ -12,13 +12,13 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
       <ToggleIcon
         icon="record"
         class="button"
-        :alt="`${props.recordMode ? 'Enable' : 'Disable'} record mode`"
+        title="Record"
         :modelValue="props.recordMode"
         @update:modelValue="emit('update:recordMode', $event)"
       />
     </div>
     <div class="control right-end" @click.stop="() => emit('recordOnce')">
-      <SvgButton alt="Record once" class="button" name="record_once" draggable="false" />
+      <SvgButton title="Record Once" class="button" name="record_once" draggable="false" />
     </div>
   </div>
 </template>
