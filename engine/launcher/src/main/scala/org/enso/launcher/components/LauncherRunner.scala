@@ -68,7 +68,8 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
-        connectLoggerIfAvailable = true
+        connectLoggerIfAvailable = true,
+        attachDebugger           = false
       )
     }
 
@@ -127,7 +128,8 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
-        connectLoggerIfAvailable = true
+        connectLoggerIfAvailable = true,
+        attachDebugger           = false
       )
     }
 
@@ -148,6 +150,7 @@ class LauncherRunner(
     versionOverride: Option[SemVer],
     logLevel: Level,
     logMasking: Boolean,
+    attachDebugger: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     for {
@@ -158,6 +161,7 @@ class LauncherRunner(
         versionOverride,
         logLevel,
         logMasking,
+        attachDebugger,
         additionalArguments
       )
     } yield runSettings
@@ -190,7 +194,12 @@ class LauncherRunner(
         }
 
       (
-        RunSettings(version, arguments, connectLoggerIfAvailable = false),
+        RunSettings(
+          version,
+          arguments,
+          connectLoggerIfAvailable = false,
+          attachDebugger           = false
+        ),
         whichEngine
       )
     }
@@ -239,7 +248,8 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
-        connectLoggerIfAvailable = true
+        connectLoggerIfAvailable = true,
+        attachDebugger           = false
       )
     }
 
@@ -286,7 +296,8 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
-        connectLoggerIfAvailable = true
+        connectLoggerIfAvailable = true,
+        attachDebugger           = false
       )
     }
 }

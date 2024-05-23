@@ -64,7 +64,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val runSettings = RunSettings(
         SemVer.of(0, 0, 0),
         Seq("arg1", "--flag2"),
-        connectLoggerIfAvailable = true
+        connectLoggerIfAvailable = true,
+        attachDebugger           = false
       )
       val jvmOptions = Seq(("locally-added-options", "value1"))
 
@@ -299,7 +300,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq("additional"),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          attachDebugger      = false
         )
         .get
 
@@ -321,7 +323,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          attachDebugger      = false
         )
         .get
         .engineVersion shouldEqual overridden

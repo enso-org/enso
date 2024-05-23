@@ -306,7 +306,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             contentRoot,
             versionOverride,
             logLevel,
-            logMasking = cliOptions.internalOptions.logMasking,
+            logMasking     = cliOptions.internalOptions.logMasking,
+            attachDebugger = false,
             additionalArguments
           )
           .get,

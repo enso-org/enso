@@ -26,6 +26,7 @@ import scala.concurrent.duration.FiniteDuration
   *                      printed to parent's streams
   * @param profilingPath the language server profiling file path
   * @param profilingTime the time limiting the profiling duration
+  * @param attachDebugger if true, language server will be started with remote debugging capabilities
   * @param deferredLoggingServiceEndpoint a future that is completed once the
   *                                       logging service has been fully set-up;
   *                                       if the child component should connect
@@ -45,6 +46,7 @@ case class LanguageServerDescriptor(
   discardOutput: Boolean,
   profilingPath: Option[Path],
   profilingTime: Option[FiniteDuration],
+  attachDebugger: Boolean,
   deferredLoggingServiceEndpoint: Future[Option[URI]],
   skipGraalVMUpdater: Boolean
 )

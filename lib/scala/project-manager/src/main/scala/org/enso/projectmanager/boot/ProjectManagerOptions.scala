@@ -11,5 +11,6 @@ import scala.concurrent.duration.FiniteDuration
   */
 case class ProjectManagerOptions(
   profilingPath: Option[Path],
-  profilingTime: Option[FiniteDuration]
+  profilingTime: Option[FiniteDuration],
+  attachDebugger: Boolean
 )

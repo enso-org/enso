@@ -201,10 +201,14 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         )
       }
 
+    val parseAttachDebugger =
+      ZIO.attempt(options.hasOption(Cli.ATTACH_DEBUGGER))
+
     for {
-      profilingPath <- parseProfilingPath
-      profilingTime <- parseProfilingTime
-    } yield ProjectManagerOptions(profilingPath, profilingTime)
+      profilingPath  <- parseProfilingPath
+      profilingTime  <- parseProfilingTime
+      attachDebugger <- parseAttachDebugger
+    } yield ProjectManagerOptions(profilingPath, profilingTime, attachDebugger)
   }
 
   /** The main function of the application, which will be passed the command-line
@@ -277,7 +281,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         procConf = MainProcessConfig(
           logLevel,
           opts.profilingPath,
-          opts.profilingTime
+          opts.profilingTime,
+          opts.attachDebugger
         )
         exitCode <- mainProcess(procConf).fold(
           th => {

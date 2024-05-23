@@ -88,6 +88,7 @@ class LanguageServerController(
       discardOutput                  = distributionConfiguration.shouldDiscardChildOutput,
       profilingPath                  = processConfig.profilingPath,
       profilingTime                  = processConfig.profilingTime,
+      attachDebugger                 = processConfig.attachDebugger,
       deferredLoggingServiceEndpoint = loggingServiceDescriptor.getEndpoint,
       skipGraalVMUpdater             = bootloaderConfig.skipGraalVMUpdater
     )

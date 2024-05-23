@@ -79,7 +79,12 @@ class Runner(
           engineVersion
         )
       }
-      RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)
+      RunSettings(
+        engineVersion,
+        arguments,
+        connectLoggerIfAvailable = false,
+        attachDebugger           = false
+      )
     }
 
   /** Creates [[RunSettings]] for launching the Language Server. */
@@ -89,6 +94,7 @@ class Runner(
     versionOverride: Option[SemVer],
     logLevel: Level,
     logMasking: Boolean,
+    attachDebugger: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] = {
     val version     = resolveVersion(versionOverride, Some(project))
@@ -99,6 +105,7 @@ class Runner(
       version,
       logLevel,
       logMasking,
+      attachDebugger,
       additionalArguments
     )
   }
@@ -110,6 +117,7 @@ class Runner(
     version: SemVer,
     logLevel: Level,
     logMasking: Boolean,
+    attachDebugger: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -137,7 +145,8 @@ class Runner(
       RunSettings(
         version,
         arguments ++ additionalArguments,
-        connectLoggerIfAvailable = true
+        connectLoggerIfAvailable = true,
+        attachDebugger           = attachDebugger
       )
     }
 
@@ -221,9 +230,13 @@ class Runner(
           forceLoggerConnectionArguments()
         else Seq()
 
-      val command = Seq(
-        javaCommand.executableName
-      ) ++ jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
+      val command = Seq(javaCommand.executableName) ++
+        (if (runSettings.attachDebugger)
+           Seq(
+             "-agentlib:jdwp=transport=dt_socket,server=y,address=localhost:5005,suspend=y"
+           )
+         else Seq()) ++
+        jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
       val distributionSettings =
         distributionManager.getEnvironmentToInheritSettings

@@ -14,6 +14,7 @@ object Cli {
   val VERSION_OPTION     = "version"
   val PROFILING_PATH     = "profiling-path"
   val PROFILING_TIME     = "profiling-time"
+  val ATTACH_DEBUGGER    = "attach-debugger"
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
 
@@ -137,6 +138,12 @@ object Cli {
       .longOpt(FILESYSTEM_WRITE_PATH)
       .desc("Write data from stdin to the provided file")
       .build()
+
+    val attachDebugger: cli.Option = cli.Option.builder
+      .hasArg(false)
+      .longOpt(ATTACH_DEBUGGER)
+      .desc("Enables remote debugging capabilities")
+      .build()
   }
 
   val options: cli.Options =
@@ -148,6 +155,7 @@ object Cli {
       .addOption(option.noLogMasking)
       .addOption(option.profilingPath)
       .addOption(option.profilingTime)
+      .addOption(option.attachDebugger)
       .addOption(option.projectsDirectory)
       .addOption(option.projectList)
       .addOption(option.filesystemList)

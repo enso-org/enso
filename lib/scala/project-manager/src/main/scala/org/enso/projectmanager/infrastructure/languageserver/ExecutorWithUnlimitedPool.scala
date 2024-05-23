@@ -122,6 +122,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         version             = descriptor.engineVersion,
         logLevel            = inheritedLogLevel,
         logMasking          = Masking.isMaskingEnabled,
+        attachDebugger      = descriptor.attachDebugger,
         additionalArguments = additionalArguments
       )
       .get
