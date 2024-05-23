@@ -25,7 +25,6 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 import type * as spinner from '#/components/Spinner'

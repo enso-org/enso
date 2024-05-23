@@ -41,13 +41,6 @@ export function useVisualTooltip(props: VisualTooltipProps) {
           targetRef.current.scrollWidth > targetRef.current.clientWidth ||
           targetRef.current.scrollHeight > targetRef.current.clientHeight
 
-        console.log('isOverflowing', isOverflowing, {
-          scrollWidth: targetRef.current.scrollWidth,
-          clientWidth: targetRef.current.clientWidth,
-          scrollHeight: targetRef.current.scrollHeight,
-          clientHeight: targetRef.current.clientHeight,
-        })
-
         if (isOverflowing) {
           React.startTransition(() => {
             setShowTooltip(true)
