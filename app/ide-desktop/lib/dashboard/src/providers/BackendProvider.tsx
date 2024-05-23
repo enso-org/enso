@@ -70,6 +70,7 @@ export default function BackendProvider(props: BackendProviderProps) {
   )
 }
 
+/** Provide all exposed methods of backend in context. */
 function useStrictBackendContext() {
   const ctx = React.useContext(BackendContext)
   invariant(ctx != null, 'Backend not provided.')

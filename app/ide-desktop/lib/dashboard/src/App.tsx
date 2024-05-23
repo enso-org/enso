@@ -87,7 +87,7 @@ import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
 
-import * as types from '../../types/types'
+import type * as types from '../../types/types'
 import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================

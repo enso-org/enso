@@ -8,9 +8,9 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as remoteBackendProvider from '#/providers/RemoteBackendProvider'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
-import * as types from '../../../types/types'
+import type * as types from '../../../types/types'
 
 // =================
 // === Constants ===
@@ -33,15 +33,17 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { hidden, ydocUrl, projectStartupInfo, appRunner } = props
+  const { hidden, ydocUrl, projectStartupInfo, appRunner: AppRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
   const remoteBackend = remoteBackendProvider.useRemoteBackend()
 
   const logEvent = React.useCallback(
-    (message: string, projectId?: string | undefined, metadata?: object) => {
-      remoteBackend?.logEvent(message, projectId, metadata)
+    (message: string, projectId?: string | null, metadata?: object | null) => {
+      if (remoteBackend) {
+        void remoteBackend.logEvent(message, projectId, metadata)
+      }
     },
     [remoteBackend]
   )
@@ -57,6 +59,7 @@ export default function Editor(props: EditorProps) {
   }, [projectStartupInfo, hidden])
 
   const appProps: types.EditorProps | null = React.useMemo(() => {
+    // eslint-disable-next-line no-restricted-syntax
     if (projectStartupInfo == null) return null
     const { project } = projectStartupInfo
     const projectId = projectStartupInfo.projectAsset.id
@@ -93,11 +96,11 @@ export default function Editor(props: EditorProps) {
     }
   }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl])
 
-  if (projectStartupInfo == null || appRunner == null || appProps == null) {
+  if (projectStartupInfo == null || AppRunner == null || appProps == null) {
     return <></>
+  } else {
+    // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
+    // this is no longer necessary, the `key` could be removed.
+    return <AppRunner key={appProps.projectId} {...appProps} />
   }
-  const AppRunner = appRunner
-  // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once
-  // this is no longer necessary, the `key` could be removed.
-  return <AppRunner key={appProps.projectId} {...appProps} />
 }

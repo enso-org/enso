@@ -1,5 +1,5 @@
 /** @file Interfaces common to multiple modules. */
-import React from 'react'
+import type * as React from 'react'
 
 // ======================================
 // === Globally accessible interfaces ===
@@ -10,12 +10,17 @@ interface StringConfig {
     readonly [key: string]: StringConfig | string
 }
 
+/** Props for GUI editor root component. */
 interface EditorProps {
-    config: StringConfig | null
-    projectId: string
-    hidden?: boolean
-    ignoreParamsRegex?: RegExp
-    logEvent(message: string, projectId?: string | undefined, metadata?: object): void
+    readonly config: StringConfig | null
+    readonly projectId: string
+    readonly hidden?: boolean
+    readonly ignoreParamsRegex?: RegExp
+    readonly logEvent: (
+        message: string,
+        projectId?: string | null,
+        metadata?: object | null
+    ) => void
 }
 
 /** The value passed from the entrypoint to the dashboard, which enables the dashboard to

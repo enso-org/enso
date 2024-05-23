@@ -261,9 +261,10 @@ export default function AuthProvider(props: AuthProviderProps) {
   const remoteBackend = React.useMemo(() => {
     if (session) {
       const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
+      // eslint-disable-next-line no-restricted-syntax
       return new RemoteBackend(client, logger, getText)
     }
-  }, [session?.accessToken])
+  }, [session, getText, logger])
 
   React.useEffect(() => {
     if (remoteBackend) {
@@ -274,6 +275,8 @@ export default function AuthProvider(props: AuthProviderProps) {
         window.removeEventListener('beforeunload', logCloseEvent)
         logCloseEvent()
       }
+    } else {
+      return
     }
   }, [remoteBackend])
 
@@ -326,7 +329,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           setBackendWithoutSavingType(remoteBackend)
         }
         gtagEvent('cloud_open')
-        remoteBackend.logEvent('cloud_open')
+        void remoteBackend.logEvent('cloud_open')
         let user: backendModule.User | null
         while (true) {
           try {

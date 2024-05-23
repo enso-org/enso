@@ -21,10 +21,12 @@ export default function RemoteBackendProvider(props: React.PropsWithChildren) {
   const logger = loggerProvider.useLogger()
 
   const backend = React.useMemo(() => {
-    if (session?.accessToken == null) return null
-    const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
-    const backend = new RemoteBackend(client, logger, getText)
-    return backend
+    if (session?.accessToken == null) {
+      return null
+    } else {
+      const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
+      return new RemoteBackend(client, logger, getText)
+    }
   }, [session?.accessToken, logger, getText])
 
   return (

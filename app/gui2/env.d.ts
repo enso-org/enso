@@ -30,5 +30,5 @@ interface FileBrowserApi {
 }
 
 interface LogEvent {
-  (message: string, projectId?: string | undefined, metadata?: object): void
+  (message: string, projectId?: string | null, metadata?: object | null): void
 }

@@ -30,6 +30,20 @@ export interface ResponseWithTypedJson<U> extends Response {
   readonly json: () => Promise<U>
 }
 
+/** Options for {@link HttpClient.post} method. */
+export interface HttpClientPostOptions {
+  readonly keepalive?: boolean
+}
+
+/** Options for {@link HttpClient.request} private method. */
+export interface HttpClientRequestOptions {
+  readonly method: HttpMethod
+  readonly url: string
+  readonly payload?: BodyInit | null
+  readonly mimetype?: string
+  readonly keepalive?: boolean
+}
+
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export default class HttpClient {
   /** Create a new HTTP client with the specified headers to be sent on every request. */
@@ -47,7 +61,7 @@ export default class HttpClient {
   }
 
   /** Send a JSON HTTP POST request to the specified URL. */
-  post<T = void>(url: string, payload: object, options?: { keepalive?: boolean }) {
+  post<T = void>(url: string, payload: object, options?: HttpClientPostOptions) {
     return this.request<T>({
       method: HttpMethod.post,
       url,
@@ -102,22 +116,16 @@ export default class HttpClient {
     return this.request<T>({
       method: HttpMethod.delete,
       url,
-      payload: payload ? JSON.stringify(payload) : undefined,
+      payload: payload ? JSON.stringify(payload) : null,
     })
   }
 
   /** Execute an HTTP request to the specified URL, with the given HTTP method.
    * @throws {Error} if the HTTP request fails. */
-  private async request<T = void>(options: {
-    method: HttpMethod
-    url: string
-    payload?: BodyInit | undefined
-    mimetype?: string
-    keepalive?: boolean
-  }) {
+  private async request<T = void>(options: HttpClientRequestOptions) {
     const headers = new Headers(this.defaultHeaders)
     if (options.payload != null) {
-      const contentType = options?.mimetype ?? 'application/json'
+      const contentType = options.mimetype ?? 'application/json'
       headers.set('Content-Type', contentType)
     }
 
@@ -128,7 +136,7 @@ export default class HttpClient {
       const response = (await fetch(options.url, {
         method: options.method,
         headers,
-        keepalive: options?.keepalive ?? false,
+        keepalive: options.keepalive ?? false,
         ...(options.payload != null ? { body: options.payload } : {}),
       })) as ResponseWithTypedJson<T>
       document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
