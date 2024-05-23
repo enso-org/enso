@@ -107,6 +107,7 @@ export const Text = React.forwardRef(function Text(
     children,
     color = 'primary',
     balance,
+    elementType: ElementType = 'span',
     ...ariaProps
   } = props
 
@@ -144,7 +145,8 @@ export const Text = React.forwardRef(function Text(
 
   return (
     <>
-      <aria.Text
+      {/* @ts-expect-error We suppose that elementType is a valid HTML element */}
+      <ElementType
         ref={mergeRefs.mergeRefs(ref, textElementRef)}
         className={textClasses}
         {...aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(
@@ -157,8 +159,7 @@ export const Text = React.forwardRef(function Text(
         )}
       >
         {children}
-      </aria.Text>
-
+      </ElementType>
       {tooltip}
     </>
   )
