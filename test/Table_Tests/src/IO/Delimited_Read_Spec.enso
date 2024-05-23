@@ -473,8 +473,44 @@ add_specs suite_builder =
             Delimited_Format.Delimited ',' comment_character='#' . without_comments . should_equal (Delimited_Format.Delimited ',' comment_character=Nothing)
             Delimited_Format.Delimited ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited_Format.Delimited ',' line_endings=Line_Ending_Style.Unix)
 
+        utf_16_le_bom = [-1, -2]
+        group_builder.specify "(in default mode) should detect UTF-16 encoding if BOM is present" <|
+            bytes = utf_16_le_bom + ('a,b\n1,2'.bytes Encoding.utf_16_le)
+            f = File.create_temporary_file "delimited-utf-16-bom" ".csv"
+            bytes.write_bytes f . should_succeed
+            table = f.read
+            table.column_names.should_equal ["a", "b"]
+            table.at "a" . to_vector . should_equal ["1"]
+            # No hidden BOM in the column name
+            table.column_names.first.utf_8 . should_equal [97]
+
+        group_builder.specify "(in default mode) should skip UTF-8 BOM if it was present" <|
+            utf_8_bom = [-17, -69, -65]
+            bytes = utf_8_bom + ('a,b\n1,2'.bytes Encoding.utf_8)
+            f = File.create_temporary_file "delimited-utf-8-bom" ".csv"
+            bytes.write_bytes f . should_succeed
+            table = f.read
+            table.column_names.should_equal ["a", "b"]
+            # No hidden BOM in the column name
+            table.column_names.first.utf_8 . should_equal [97]
+
+        group_builder.specify "if UTF-16 encoding was selected but an inverted BOM is detected, a warning is issued" <|
+            bytes = utf_16_le_bom + ('a,b\n1,2'.bytes Encoding.utf_16_be)
+            f = File.create_temporary_file "delimited-utf-16-inverted-bom" ".csv"
+            bytes.write_bytes f . should_succeed
+            # We choose the correct encoding for the rest of the file, only BOM is bad
+            r = f.read (Delimited_Format.Delimited "," encoding=Encoding.utf_16_be)
+            w = Problems.expect_only_warning Encoding_Error r
+            w.to_display_text . should_contain "BOM"
+            # The first column name now contains this invalid character, because it wasn't a BOM
+            r.column_names.first . should_equal "￾a"
+
+            # If we read without specifying the encoding, we will infer UTF-16 LE encoding because of the BOM and get garbage:
+            r2 = f.read
+            r2.column_names . should_equal ["愀Ⰰ戀਀㄀Ⰰ㈀"]
+            r2.first_column.to_vector . should_equal []
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-
