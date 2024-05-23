@@ -373,7 +373,7 @@ watchEffect(() => {
       const needsGrouping = rowData.some((row: any) => row[header] > 9999)
       obj = { ...obj, [header]: needsGrouping }
     })
-    dataGroupingMap.value = obj;
+    dataGroupingMap.value = obj
   }
 
   // If an existing grid, merge width from manually sized columns.
