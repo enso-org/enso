@@ -22,7 +22,7 @@ type Row
     length self = self.table.columns.length
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Gets the value of the specified column.
 
        Arguments:
@@ -31,7 +31,8 @@ type Row
     at : (Integer | Text) -> Any
     at self column = self.table.at column . at self.index
 
-    ## Gets the value of the specified column.
+    ## ICON parse3
+       Gets the value of the specified column.
 
        Arguments:
        - column: The name or index of the column being looked up.

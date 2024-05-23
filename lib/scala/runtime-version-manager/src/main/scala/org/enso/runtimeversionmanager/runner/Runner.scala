@@ -221,8 +221,9 @@ class Runner(
           forceLoggerConnectionArguments()
         else Seq()
 
-      val command = Seq(javaCommand.executableName) ++
-        jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
+      val command = Seq(
+        javaCommand.executableName
+      ) ++ jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
       val distributionSettings =
         distributionManager.getEnvironmentToInheritSettings

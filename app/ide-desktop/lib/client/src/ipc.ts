@@ -27,4 +27,5 @@ export enum Channel {
     goForward = 'go-forward',
     /** Channel for selecting files and directories using the system file browser. */
     openFileBrowser = 'open-file-browser',
+    showAboutModal = 'show-about-modal',
 }

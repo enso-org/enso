@@ -33,13 +33,14 @@ public class BigNumberTest extends TestBase {
   public void evaluation() throws Exception {
     final String code =
         """
+    import Standard.Base.Data.Vector.Builder
     from Standard.Base.Data.Vector import Vector
 
     powers n =
         go x v b = if x > n then b.to_vector else
             b.append v
             @Tail_Call go x+1 v*3 b
-        go 1 1 Vector.new_builder
+        go 1 1 Builder.new
     """;
     var powers = evalCode(code, "powers");
 
@@ -89,6 +90,7 @@ public class BigNumberTest extends TestBase {
   public void averageOfMixedArrayOverNumber() throws Exception {
     var code =
         """
+    import Standard.Base.Data.Vector.Builder
     from Standard.Base.Data.Vector import Vector
     polyglot java import org.enso.example.TestClass
 
@@ -96,7 +98,7 @@ public class BigNumberTest extends TestBase {
             go x v b = if x > n then b.to_vector else
                 b.append v
                 @Tail_Call go x+1 v*2 b
-            go 1 1 Vector.new_builder
+            go 1 1 Builder.new
 
     avg n = TestClass.numberArrayAverage (powers n)
     """;
@@ -113,6 +115,7 @@ public class BigNumberTest extends TestBase {
   public void averageOfMixedArrayOverBigInteger() throws Exception {
     var code =
         """
+    import Standard.Base.Data.Vector.Builder
     from Standard.Base.Data.Vector import Vector
     import Standard.Base.Data.Numbers
     polyglot java import org.enso.example.TestClass
@@ -121,7 +124,7 @@ public class BigNumberTest extends TestBase {
             go x v b = if x > n then b.to_vector else
                 b.append v
                 @Tail_Call go x+1 v*2 b
-            go 1 1 Vector.new_builder
+            go 1 1 Builder.new
 
     avg n = TestClass.exactArrayAverage (powers n)
     """;

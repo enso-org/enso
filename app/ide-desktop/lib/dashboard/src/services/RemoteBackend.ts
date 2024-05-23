@@ -185,7 +185,15 @@ export default class RemoteBackend extends Backend {
           ((await response.json()) as RemoteBackendError)
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
     this.logger.error(message)
-    throw new Error(message)
+    const status = response?.status
+    const errorObject = new Error(message)
+
+    if (status != null) {
+      // @ts-expect-error This is a custom property.
+      errorObject.status = status
+    }
+
+    throw error
   }
 
   /** Return the ID of the root directory. */
@@ -254,10 +262,52 @@ export default class RemoteBackend extends Backend {
 
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
-    const path = remoteBackendPaths.INVITE_USER_PATH
-    const response = await this.post(path, body)
+    const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'inviteUserBackendError', body.userEmail)
+    } else {
+      return
+    }
+  }
+
+  /**
+   * List all invitations.
+   */
+  override async listInvitations(): Promise<backend.Invitation[]> {
+    const response = await this.get<backend.InvitationListRequestBody>(
+      remoteBackendPaths.INVITATION_PATH
+    )
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listInvitationsBackendError')
+    } else {
+      return await response.json().then(data => data.invitations)
+    }
+  }
+
+  /**
+   * Delete an invitation.
+   */
+  override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
+
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'deleteInvitationBackendError')
+    } else {
+      return
+    }
+  }
+
+  /**
+   * Resend an invitation to a user.
+   */
+  override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
+    const response = await this.post(remoteBackendPaths.INVITATION_PATH, {
+      userEmail,
+      resend: true,
+    })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'resendInvitationBackendError')
     } else {
       return
     }
@@ -732,42 +782,42 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Return a Data Link.
+  /** Return a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createConnector(
-    body: backend.CreateConnectorRequestBody
-  ): Promise<backend.ConnectorInfo> {
-    const path = remoteBackendPaths.CREATE_CONNECTOR_PATH
-    const response = await this.post<backend.ConnectorInfo>(path, body)
+  override async createDatalink(
+    body: backend.CreateDatalinkRequestBody
+  ): Promise<backend.DatalinkInfo> {
+    const path = remoteBackendPaths.CREATE_DATALINK_PATH
+    const response = await this.post<backend.DatalinkInfo>(path, body)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'createConnectorBackendError', body.name)
+      return await this.throw(response, 'createDatalinkBackendError', body.name)
     } else {
       return await response.json()
     }
   }
 
-  /** Return a Data Link.
+  /** Return a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async getConnector(
-    connectorId: backend.ConnectorId,
+  override async getDatalink(
+    datalinkId: backend.DatalinkId,
     title: string
-  ): Promise<backend.Connector> {
-    const path = remoteBackendPaths.getConnectorPath(connectorId)
-    const response = await this.get<backend.Connector>(path)
+  ): Promise<backend.Datalink> {
+    const path = remoteBackendPaths.getDatalinkPath(datalinkId)
+    const response = await this.get<backend.Datalink>(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'getConnectorBackendError', title)
+      return await this.throw(response, 'getDatalinkBackendError', title)
     } else {
       return await response.json()
     }
   }
 
-  /** Delete a Data Link.
+  /** Delete a Datalink.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteConnector(connectorId: backend.ConnectorId, title: string): Promise<void> {
-    const path = remoteBackendPaths.getConnectorPath(connectorId)
+  override async deleteDatalink(datalinkId: backend.DatalinkId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getDatalinkPath(datalinkId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'deleteConnectorBackendError', title)
+      return await this.throw(response, 'deleteDatalinkBackendError', title)
     } else {
       return
     }
@@ -934,10 +984,14 @@ export default class RemoteBackend extends Backend {
 
   /** Create a payment checkout session.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async createCheckoutSession(plan: backend.Plan): Promise<backend.CheckoutSession> {
+  override async createCheckoutSession(
+    params: backend.CreateCheckoutSessionRequestParams
+  ): Promise<backend.CheckoutSession> {
+    const { plan, paymentMethodId } = params
+
     const response = await this.post<backend.CheckoutSession>(
       remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
-      { plan } satisfies backend.CreateCheckoutSessionRequestBody
+      { plan, paymentMethodId } satisfies backend.CreateCheckoutSessionRequestBody
     )
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createCheckoutSessionBackendError', plan)
@@ -1026,7 +1080,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send an HTTP DELETE request to the given path. */
-  private delete<T = void>(path: string) {
-    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
+  private delete<T = void>(path: string, payload?: Record<string, unknown>) {
+    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 }

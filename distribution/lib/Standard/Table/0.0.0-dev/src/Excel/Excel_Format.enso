@@ -15,6 +15,7 @@ import project.Internal.Excel_Reader
 import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Excel_Writer
 import project.Match_Columns.Match_Columns
+import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 
 ## PRIVATE
@@ -49,14 +50,14 @@ type Excel_Format
          present. If the column names are not unique, numeric suffixes will be
          appended to disambiguate them.
        - skip_rows: The number of rows to skip before reading the data.
-       - row_limit: The maximum number of rows to read. If set to `Nothing`, all
-         rows are read.
+       - row_limit: The maximum number of rows to read.
        - xls_format:
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
     @sheet (Text_Input display=Display.Always)
-    Sheet (sheet:(Integer|Text)=1) (headers:Headers=Headers.Detect_Headers) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing) (xls_format:Boolean|Infer=Infer)
+    @row_limit Rows_To_Read.default_widget
+    Sheet (sheet:(Integer|Text)=1) (headers:Headers=Headers.Detect_Headers) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (xls_format:Boolean|Infer=Infer)
 
     ## Reads a range from an Excel file as a `Table`.
 
@@ -67,14 +68,14 @@ type Excel_Format
          present. If the column names are not unique, numeric suffixes will be
          appended to disambiguate them.
        - skip_rows: The number of rows to skip before reading the data.
-       - row_limit: The maximum number of rows to read. If set to `Nothing`, all
-         rows are read.
+       - row_limit: The maximum number of rows to read.
        - xls_format:
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
     @address Text_Input
-    Range (address:(Text|Excel_Range)) (headers:Headers=Headers.Detect_Headers) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing) (xls_format : Boolean | Infer = Infer)
+    @row_limit Rows_To_Read.default_widget
+    Range (address:(Text|Excel_Range)) (headers:Headers=Headers.Detect_Headers) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (xls_format : Boolean | Infer = Infer)
 
     ## PRIVATE
        ADVANCED
@@ -146,12 +147,12 @@ type Excel_Format
        - If `Excel_Section.Cell_Range`, the `table` will be written to the
          specified range.
 
-        Arguments:
-        - file: The file to write to.
-        - table: The table to write.
-        - on_existing_file: What to do if the file already exists.
-        - match_columns: How to match columns between the table and the file.
-        - on_problems: What to do if there are problems reading the file.
+       Arguments:
+       - file: The file to write to.
+       - table: The table to write.
+       - on_existing_file: What to do if the file already exists.
+       - match_columns: How to match columns between the table and the file.
+       - on_problems: What to do if there are problems reading the file.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems =
         format = should_treat_as_xls_format self.xls_format file

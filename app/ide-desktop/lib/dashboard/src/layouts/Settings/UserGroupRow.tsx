@@ -63,7 +63,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
       ref={contextMenuRef}
     >
       <aria.Cell className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
-        <aria.TooltipTrigger>
+        <ariaComponents.TooltipTrigger>
           <FocusableText
             ref={tooltipTargetRef}
             className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
@@ -71,7 +71,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
             {userGroup.groupName}
           </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{userGroup.groupName}</ariaComponents.Tooltip>}
-        </aria.TooltipTrigger>
+        </ariaComponents.TooltipTrigger>
       </aria.Cell>
       <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
         <UnstyledButton

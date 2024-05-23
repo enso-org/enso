@@ -12,6 +12,7 @@ from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 
+import project.Columns_To_Keep.Columns_To_Keep
 import project.Excel.Excel_Range.Excel_Range
 import project.Headers.Headers
 import project.Internal.Excel_Reader
@@ -19,6 +20,7 @@ import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Match_Columns.Match_Columns
+import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 from project.Errors import Empty_Sheet
 from project.Internal.Excel_Reader import handle_invalid_location
@@ -206,14 +208,16 @@ type Excel_Workbook
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    read : Text | Excel_Range -> Headers -> Integer | Nothing -> Problem_Behavior -> Table
-    read self (query : Text | Excel_Range) (headers : Headers = Headers.Detect_Headers) (limit : Integer | Nothing = Nothing) (on_problems:Problem_Behavior=..Report_Warning) =
+    @limit Rows_To_Read.default_widget
+    read : Text | Excel_Range -> Headers -> Rows_To_Read -> Problem_Behavior -> Table
+    read self (query : Text | Excel_Range) (headers : Headers = Headers.Detect_Headers) (limit : Rows_To_Read = ..All_Rows) (on_problems:Problem_Behavior=..Report_Warning) =
         java_headers = Excel_Reader.make_java_headers headers
+        java_limit = limit.rows_to_read
         java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             self.with_java_workbook java_workbook-> case query of
-                _ : Excel_Range -> ExcelReader.readRange java_workbook query.java_range java_headers 0 limit java_problem_aggregator
-                _ : Text -> ExcelReader.readRangeByName java_workbook query java_headers 0 limit java_problem_aggregator
-        Table.Value java_table
+                _ : Excel_Range -> ExcelReader.readRange java_workbook query.java_range java_headers 0 java_limit java_problem_aggregator
+                _ : Text -> ExcelReader.readRangeByName java_workbook query java_headers 0 java_limit java_problem_aggregator
+        limit.attach_warning (Table.Value java_table)
 
     ## GROUP Standard.Base.Input
        ICON data_input
@@ -226,6 +230,7 @@ type Excel_Workbook
         case section of
             Excel_Section.Worksheet sheet headers skip_rows row_limit ->
                 java_headers = Excel_Reader.make_java_headers headers
+                java_limit = row_limit.rows_to_read
                 names = self.sheet_names
                 sheet_name = case sheet of
                     _ : Text -> if names.contains sheet then sheet else Error.throw (Illegal_Argument.Error "Worksheet not found.")
@@ -235,15 +240,16 @@ type Excel_Workbook
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     self.with_java_workbook java_workbook->
-                        ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
-                Table.Value java_table
+                        ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows java_limit java_problem_aggregator
+                row_limit.attach_warning (Table.Value java_table)
             Excel_Section.Cell_Range address headers skip_rows row_limit ->
                 java_headers = Excel_Reader.make_java_headers headers
+                java_limit = row_limit.rows_to_read
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     self.with_java_workbook java_workbook-> case address of
-                        _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
-                        _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows row_limit java_problem_aggregator
-                Table.Value java_table
+                        _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows java_limit java_problem_aggregator
+                        _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows java_limit java_problem_aggregator
+                row_limit.attach_warning (Table.Value java_table)
 
     ## ALIAS get, worksheet
        GROUP Standard.Base.Input
@@ -326,7 +332,7 @@ type Excel_Workbook
             tables = sheet_names.map on_problems=on_problems address-> self.read address headers on_problems=on_problems
             case return of
                 Return_As.Table_Of_Tables -> Table.new [["Sheet Name", sheet_names], ["Table", tables]]
-                Return_As.Merged_Table match ->
+                Return_As.Merged_Table columns_to_keep match ->
                     first_tbl = tables.find t-> t != Nothing
                     if first_tbl == Nothing then Error.throw (Illegal_Argument.Error "No valid sheets found.") else
                         unique = first_tbl.column_naming_helper.create_unique_name_strategy
@@ -334,7 +340,7 @@ type Excel_Workbook
                         new_column_name = unique.make_unique "Sheet Name"
 
                         with_names = tables.zip sheet_names tbl->name-> if tbl == Nothing then Nothing else tbl.set name new_column_name . reorder_columns [new_column_name]
-                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) match keep_unmatched_columns=True
+                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) columns_to_keep=columns_to_keep match_columns=match
 
                         problem_builder = Problem_Builder.new
                         problem_builder.report_unique_name_strategy unique
@@ -354,4 +360,4 @@ type Return_As
     Table_Of_Tables
 
     ## All sheets are merged into a single table. A union operation is performed.
-    Merged_Table match:Match_Columns=Match_Columns.By_Name
+    Merged_Table (columns_to_keep : Columns_To_Keep = Columns_To_Keep.In_Any) (match : Match_Columns = Match_Columns.By_Name)

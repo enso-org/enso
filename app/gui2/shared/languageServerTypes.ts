@@ -452,6 +452,10 @@ export namespace response {
   export interface AICompletion {
     code: string
   }
+
+  export interface RenameSymbol {
+    newName: string
+  }
 }
 
 export interface LanguageServerError {

@@ -140,8 +140,8 @@ final class JobExecutionEngine(
         case NonFatal(ex) =>
           logger.log(Level.SEVERE, s"Error executing $job", ex)
           promise.failure(ex)
-        case err: InterruptedException =>
-          logger.log(Level.WARNING, s"$job got interrupted", err)
+        case _: InterruptedException =>
+          logger.log(Level.WARNING, s"$job got interrupted")
         case err: Throwable =>
           logger.log(Level.SEVERE, s"Error executing $job", err)
           throw err

@@ -16,8 +16,6 @@ import * as backend from '#/services/Backend'
 
 /** Props for a {@link Label}. */
 interface InternalLabelProps extends Readonly<React.PropsWithChildren> {
-  // This matches the capitalization of `data-` attributes in React.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'data-testid'?: string
   /** When true, the button is not faded out even when not hovered. */
   readonly active?: boolean

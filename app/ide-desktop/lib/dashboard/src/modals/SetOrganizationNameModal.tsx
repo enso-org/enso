@@ -61,7 +61,7 @@ export function SetOrganizationNameModal() {
     <>
       <ariaComponents.Dialog
         title={getText('setOrgNameTitle')}
-        isDismissible={false}
+        isDismissable={false}
         isKeyboardDismissDisabled
         hideCloseButton
         modalProps={{ isOpen: shouldShowModal }}

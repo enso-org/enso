@@ -4,6 +4,7 @@
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
+import Page from '#/components/Page'
 import FocusArea from '#/components/styled/FocusArea'
 
 // ==========================
@@ -12,8 +13,6 @@ import FocusArea from '#/components/styled/FocusArea'
 
 /** Props for an {@link AuthenticationPage}. */
 export interface AuthenticationPageProps extends Readonly<React.PropsWithChildren> {
-  // This matches the capitalization of `data-` attributes in React.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'data-testid'?: string
   readonly isNotForm?: boolean
   readonly title: string
@@ -33,27 +32,29 @@ export default function AuthenticationPage(props: AuthenticationPageProps) {
     'flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md'
 
   return (
-    <FocusArea direction="vertical">
-      {innerProps => (
-        <div
-          data-testid={props['data-testid']}
-          className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary"
-          {...innerProps}
-        >
-          {isNotForm ? (
-            <div className={containerClasses}>
-              {heading}
-              {children}
-            </div>
-          ) : (
-            <form className={containerClasses} onSubmit={onSubmit}>
-              {heading}
-              {children}
-            </form>
-          )}
-          {footer}
-        </div>
-      )}
-    </FocusArea>
+    <Page>
+      <FocusArea direction="vertical">
+        {innerProps => (
+          <div
+            data-testid={props['data-testid']}
+            className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary"
+            {...innerProps}
+          >
+            {isNotForm ? (
+              <div className={containerClasses}>
+                {heading}
+                {children}
+              </div>
+            ) : (
+              <form className={containerClasses} onSubmit={onSubmit}>
+                {heading}
+                {children}
+              </form>
+            )}
+            {footer}
+          </div>
+        )}
+      </FocusArea>
+    </Page>
   )
 }

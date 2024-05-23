@@ -12,13 +12,14 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
 
 <template>
   <div class="NavBar">
-    <SvgIcon name="graph_editor" draggable="false" class="icon" />
+    <SvgIcon name="graph_editor" draggable="false" />
     <div class="breadcrumbs-controls">
       <SvgIcon
         name="arrow_left"
         draggable="false"
         class="icon button"
         :class="{ inactive: !props.allowNavigationLeft }"
+        title="Back"
         @click.stop="emit('back')"
       />
       <SvgIcon
@@ -26,6 +27,7 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
         draggable="false"
         class="icon button"
         :class="{ inactive: !props.allowNavigationRight }"
+        title="Forward"
         @click.stop="emit('forward')"
       />
     </div>

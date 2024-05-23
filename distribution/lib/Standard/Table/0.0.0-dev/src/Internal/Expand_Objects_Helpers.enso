@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -100,7 +101,7 @@ create_table_from_objects (value : Convertible_To_Rows) (fields : Vector | Nothi
             Map.from_vector (fields.map field_name-> [field_name, Java_Exports.make_inferred_builder len java_problem_aggregator]) error_on_duplicates=False
 
         # This is used to ensure that field names in the resulting table are in the order they were encountered.
-        discovered_field_names = Vector.new_builder
+        discovered_field_names = Builder.new
 
         builder_map = case preset_fields of
             # Just get the queried keys from each object.

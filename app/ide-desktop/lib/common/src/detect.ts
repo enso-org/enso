@@ -5,6 +5,7 @@
 // ===================
 
 /** Return whether the current build is in development mode */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 export const IS_DEV_MODE = process.env.NODE_ENV === 'development'
 
 // ================

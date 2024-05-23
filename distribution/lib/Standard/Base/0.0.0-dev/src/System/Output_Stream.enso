@@ -1,15 +1,18 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
+import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Vector.Vector
 import project.Errors.Encoding_Error.Encoding_Error
+import project.Errors.File_Error.File_Error
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.Input_Stream.Input_Stream
 from project.System.Input_Stream import close_stream
 
+polyglot java import java.io.ByteArrayOutputStream
 polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import org.enso.base.Encoding_Utils
@@ -26,6 +29,26 @@ type Output_Stream
     new java_stream error_handler =
         resource = Managed_Resource.register java_stream close_stream
         Output_Stream.Value resource error_handler
+
+    ## PRIVATE
+       ADVANCED
+       Runs a given action with an output stream that writes to an in-memory
+       byte array.
+       This method can be used when the data will fit in memory and there is no
+       reason to use a backing file.
+
+       The method returns a pair of values: the byte array that was written to
+       and the return value of the `action` is discarded.
+
+       Arguments:
+       - action: A callback to run with the in-memory output stream.
+    with_memory_stream (action : Output_Stream -> Any) -> Pair Vector Any =
+        java_stream = ByteArrayOutputStream.new
+        output_stream = Output_Stream.new java_stream (File_Error.handle_java_exceptions Nothing)
+        action_result = action output_stream
+        action_result.if_not_error <|
+            bytes = Vector.from_polyglot_array java_stream.toByteArray
+            Pair.new bytes action_result
 
     ## PRIVATE
        An output stream, allowing for interactive writing of contents.

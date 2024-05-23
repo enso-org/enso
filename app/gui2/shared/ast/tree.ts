@@ -137,6 +137,15 @@ export abstract class Ast {
     return this.wrappingExpression()?.documentingAncestor()
   }
 
+  get isBindingStatement(): boolean {
+    const inner = this.wrappedExpression()
+    if (inner) {
+      return inner.isBindingStatement
+    } else {
+      return false
+    }
+  }
+
   code(): string {
     return print(this).code
   }
@@ -796,6 +805,10 @@ export class AutoscopedIdentifier extends Ast {
   declare fields: FixedMapView<AstFields & AutoscopedIdentifierFields>
   constructor(module: Module, fields: FixedMapView<AstFields & AutoscopedIdentifierFields>) {
     super(module, fields)
+  }
+
+  get identifier(): Token {
+    return this.module.getToken(this.fields.get('identifier').node)
   }
 
   static tryParse(
@@ -1900,6 +1913,10 @@ export class Function extends Ast {
     }
   }
 
+  get isBindingStatement(): boolean {
+    return true
+  }
+
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
@@ -1986,6 +2003,10 @@ export class Assignment extends Ast {
   }
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
+  }
+
+  get isBindingStatement(): boolean {
+    return true
   }
 
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {

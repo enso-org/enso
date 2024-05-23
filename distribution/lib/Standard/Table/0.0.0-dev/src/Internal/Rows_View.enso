@@ -15,7 +15,7 @@ type Rows_View
     length self = self.table.row_count
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON parse3
        Gets the specified row.
     at : Integer -> Any
     at self index = Row.Value self.table index

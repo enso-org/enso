@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -14,31 +15,33 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Runtime import assert
-from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
+from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import Standard.Table.Column_Operation.Column_Operation
+import Standard.Table.Columns_To_Keep.Columns_To_Keep
 import Standard.Table.Expression.Expression
 import Standard.Table.Expression.Expression_Error
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Constant_Column.Constant_Column
+import Standard.Table.Internal.Display_Helpers
 import Standard.Table.Internal.Join_Kind_Cross.Join_Kind_Cross
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Replace_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
+import Standard.Table.Internal.Table_Helpers.Union_Result_Type
 import Standard.Table.Internal.Table_Ref.Table_Ref
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Row.Row
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
-from Standard.Table.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Table import print_table
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -80,11 +83,14 @@ type DB_Table
        - context: The context associated with this table.
     private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
 
-    ## The name of the table.
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       The name of the table.
     name : Text
     name self = self.internal_name
 
-    ## The name of the SQL Dialect used by the table.
+    ## ICON metadata
+       The name of the SQL Dialect used by the table.
     dialect_name : Text
     dialect_name self = self.connection.dialect.name
 
@@ -97,9 +103,12 @@ type DB_Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.read max_rows=show_rows warn_if_more_rows=False
-        all_rows_count = self.row_count
-        display_dataframe df indices_count=0 all_rows_count format_terminal
+        data_fragment_with_warning = self.read (..First_With_Warning show_rows)
+        has_more_rows = data_fragment_with_warning.has_warnings warning_type=Not_All_Rows_Downloaded
+        data_fragment_cleared = data_fragment_with_warning.remove_warnings Not_All_Rows_Downloaded
+        # `row_count` means another Database query is performed, so we only do it if we need to.
+        all_rows_count = if has_more_rows then self.row_count else data_fragment_cleared.row_count
+        Display_Helpers.display_table table=data_fragment_cleared add_row_index=False max_rows_to_show=show_rows all_rows_count=all_rows_count format_terminal=format_terminal
 
     ## PRIVATE
        ADVANCED
@@ -265,7 +274,7 @@ type DB_Table
         new_columns = helper.select_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS drop_columns, drop fields, remove fields
+    ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns, as specified by the
@@ -319,7 +328,7 @@ type DB_Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
-    ## ALIAS remove fields by type
+    ## ALIAS remove fields by type, select columns by type, select fields by type
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
@@ -337,7 +346,7 @@ type DB_Table
         new_columns = helper.remove_by_type types strict
         self.updated_columns (new_columns.map _.as_internal)
 
-    ## ALIAS select_missing_columns, select_na, select_blank_fields
+    ## ALIAS select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -363,7 +372,7 @@ type DB_Table
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         self.updated_columns new_columns
 
-    ## ALIAS drop_missing_columns, drop_na
+    ## ALIAS drop_missing_columns, drop_na, select_blank_columns, select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
        ICON select_column
 
@@ -482,6 +491,9 @@ type DB_Table
        - column_map: Mapping from old column names to new or a vector of new
          column names to apply by position. `Regex` objects can be used
          within the mapping to do pattern based renaming.
+         Can also be supplied as a `Table` either with a single column of new
+         names or two columns with old (first column) and new names (second
+         column).
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - error_on_missing_columns: Specifies if a missing input column should
@@ -537,10 +549,14 @@ type DB_Table
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
-        Warning.with_suspended new_names names->
-            self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
+    rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) = case column_map of
+        _ : Table ->
+            resolved = Table_Helpers.read_name_map_from_table column_map
+            self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
+        _ ->
+            new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+            Warning.with_suspended new_names names->
+                self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
     ## GROUP Standard.Base.Metadata
        ICON table_edit
@@ -697,7 +713,7 @@ type DB_Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input
@@ -729,7 +745,7 @@ type DB_Table
     take self range=(First 1) =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table from the input with the specified range of rows
@@ -842,6 +858,7 @@ type DB_Table
 
     ## UNSTABLE
        GROUP Standard.Base.Selections
+       ICON select_row
 
        Returns a new Table that will include at most `max_rows` rows from the
        original Table.
@@ -864,7 +881,7 @@ type DB_Table
        Specifically, applying further filters will still apply to the whole
        result set and the limit will be taken after applying these filters.
 
-       > For example:
+       > Example
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
@@ -1100,7 +1117,8 @@ type DB_Table
         self.with_temporary_column predicate_column name-> table->
             table.filter name Filter_Condition.Is_True
 
-    ## Returns the vector of columns contained in this table.
+    ## ICON convert
+       Returns the vector of columns contained in this table.
     columns : Vector DB_Column
     columns self = Vector.from_polyglot_array <|
         Array_Proxy.new self.internal_columns.length i->
@@ -1121,26 +1139,24 @@ type DB_Table
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    rows : Integer | Nothing -> Boolean -> Vector Row
-    rows self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
-        self.read max_rows=max_rows warn_if_more_rows=warn_if_more_rows . rows
+    @max_rows Rows_To_Read.default_widget
+    rows : Rows_To_Read -> Vector Row
+    rows self (max_rows : Rows_To_Read = (..First_With_Warning 1000)) =
+        self.read max_rows . rows
 
     ## GROUP Standard.Base.Selections
        ICON select_row
        Returns the first row of the table.
     first_row : Row ! Index_Out_Of_Bounds
     first_row self =
-        self.read max_rows=1 warn_if_more_rows=False . rows . first
+        self.read (..First 1) . rows . first
 
     ## GROUP Standard.Base.Selections
        ICON select_row
        Returns the second row of the table.
     second_row : Row ! Index_Out_Of_Bounds
     second_row self =
-        self.read max_rows=2 warn_if_more_rows=False . rows . second
+        self.read (..First 2) . rows . second
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -1705,90 +1721,77 @@ type DB_Table
        - tables: A single table or a vector of tables to append to this one. The
          tables are concatenated in the order they are specified, with `self`
          being the first one.
+       - columns_to_keep: Specifies which columns to keep. Defaults to keeping
+         columns that are present in any of the tables, reporting a warning for
+         columns that are not present in all tables and adding `Nothing` values
+         for them.
        - match_columns: Specifies how to match the columns.
          - If `Match_Columns.By_Name` - the columns are matched by name across
            all provided tables.
-           If unmatched columns are to be dropped, the resulting table will keep
-           only the set of columns that appear in all provided tables, in the
-           relative order that they appeared in the `self` table.
-           If unmatched columns are kept, they are added in the order of
-           appearance - i.e. first all columns from `self` will be added in the
-           original order, then any columns from the second table that were not
-           matched will be added at the end (preserving their relative order),
-           and so on for all the remaining tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
-           If unmatched columns are to be dropped, the resulting table will have
-           as many columns as the table that had the least columns and the
-           column names of the first table (`self`) will be used.
-           If unmatched columns are kept, the resulting table will have as many
-           columns as the table with the most columns. Since the first table may
-           not have all the necessary columns to provide column names for the
-           result, the result will have column names taken from the first table
-           that has the biggest number of columns.
-       - keep_unmatched_columns: If set to `True`, unmatched columns are kept
-         and are padded with `Nothing` for tables that did not have them.
-         If set to `False`, only the common subset of columns is kept - any
-         column that is not present in all tables is dropped. Defaults to
-         `Report_Unmatched`, which behaves like `True` - unmatched columns are
-         kept and padded with `Nothing`, but a problem is reported.
-       - allow_type_widening: Specifies if the resulting column type should be
-         adjusted to fit columns from all arguments. If `True`, a common type
-         will be chosen for each column (see "Unifying Column Types" below).
-         If `False`, the resulting column type will be the same as in the first
-         table containing the column. In this case, all columns that are
-         concatenated must have the same type as the first one (unless this
-         had a `Mixed` type - in which case it will accept any other types).
+           The names of each column come from the first table in which the given
+           column appears in.
+           The `List` option is not applicable when mapping columns by position.
+           Column names are taken from the first table if `In_All` and from the
+           first table that has the maximum number of columns if `In_Any`
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
-         - If `keep_unmatched_columns` is set to `Report_Unmatched` (the
-           default):
-           - If matching by name and there are columns that are not present in
-             all tables, `Unmatched_Columns` is reported.
-           - If matching by position and column counts of the merged tables
-             differ, then a `Column_Count_Mismatch` is reported. The error will
-             contain the greatest column count as its `expected` value and the
-             smallest one as its `actual` value.
-         - If `keep_unmatched_columns` is set to `False` and matching by name,
-           it is possible that there are no columns that are common to all
-           provided tables, in that case `No_Output_Columns` is thrown as a
-           dataflow error regardless of the `on_problems` setting, because there
-           are no columns to include in the resulting table.
-         - If type widening is disabled and one of corresponding columns has a
-           type that is incompatible with the type coming from the first table,
-           a `Column_Type_Mismatch` is reported. The problematic column will be
-           dropped from the resulting table. With type widening disabled, the
-           subsequent tables must have the same types as the first one, unless
-           the type of the first one was `Mixed` which will accept any other
-           type.
-         - If a common type coercion for a set of matched columns from
-           concatenated tables cannot be found, a `No_Common_Type` is reported.
-           In warning or ignore mode, the problematic column will be dropped
-           from the resulting table.
-
        ? Unifying Column Types
 
-         If `allow_type_widening` is set to `True`, then the following rules are
-         used to find a common type that will fit values from all merged tables.
-
-         Numeric columns are unified by finding the most general type that can
-         fit all of the columns. The biggest integer type will be chosen and if
+         Numeric columns are unified by finding the smallest type that can fit
+         all of the columns. The biggest integer type will be chosen and if
          integers and decimals are mixed, the decimal type will be chosen.
          If boolean columns are mixed with numeric columns, they will be coerced
          to the numeric type (and converted to 0 and 1).
 
-         Text types will also be coerced according to the common rules - if
-         constant-length texts of different lengths are mixed, they will be
-         coerced to a varying-length type.
+         Text types will are also unified by finding the smallest type that can
+         fit all the values. If constant-length texts of different lengths are
+         mixed, they will be coerced to a varying-length type.
+
+         If date and date-time columns are unified, this yields a date-time
+         column. In-memory, the date is promoted by adding a time of 00:00 and
+         the system time-zone. In other backends that behaviour may differ.
 
          If one of the matched columns has `Mixed` type, that type will be used
-         regardless of types of other columns. Mixing any other types will
-         result in a `No_Common_Type` problem. If columns of incompatible types
-         are meant to be mixed, at least one of them should be explicitly
-         retyped to the `Mixed` type to indicate that intention. Note that the
-         `Mixed` type may not be supported by most Database backends.
-    union : (DB_Table | Vector DB_Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> DB_Table
-    union self tables:(DB_Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+         regardless of types of other columns. Note that the `Mixed` type may
+         not be supported by most Database backends.
+
+         Finally, if no common type is found using the rules above, everything
+         is converted to text.
+
+       ? Problem Conditions
+
+         - If no common type is found and the text conversion fallback is used,
+           the `No_Common_Type` problem is reported.
+         - The `Float` type may not be able to exactly represent larger
+           integers, thus if such large integers are mixed with floats, the
+           resulting conversion to `Float` may cause a loss of precision.
+           In that case, a `Loss_Of_Integer_Precision` problem is reported.
+           This warning is only reported in the in-memory backend. Currently,
+           the Database backend proceeds without a warning about precision loss.
+         - If a column of dates is unified with a column of date-times, since
+           the assumption of using the midnight time-of-day is arbitrary,
+           a `Implicit_Date_As_Date_Time_Conversion` problem is reported.
+         - If an empty vector of tables is provided, an `Illegal_Argument` error
+           is raised.
+         - If `columns_to_keep` is set to `In_All` or `List` and an expected
+           column is missing in some of the tables, a `Unmatched_Columns`
+           problem is reported. If this causes the output to contain no columns,
+           a `No_Output_Columns` error is raised.
+
+       ? Ordering of Columns in the result
+
+         When matching columns by name, it is possible that the ordering of
+         columns may vary between input tables. The ordering is determined as
+         following: columns that are kept from the first table are in the order
+         they appear in that table. If there are columns that do not appear in
+         the first table, they are appended to the end of the resulting table in
+         the order they appear in the input.
+    @tables (Widget.Vector_Editor item_editor=Widget.Code_Input item_default='_' display=Display.Always)
+    @columns_to_keep Columns_To_Keep.default_widget
+    union : (DB_Table | Vector DB_Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> DB_Table
+    union self tables:(DB_Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> DB_Table.from t)
             single_table -> [self, single_table]
@@ -1797,39 +1800,53 @@ type DB_Table
                we only want to add a cause coming from unification; matching reports problems that would not fit this error.
             problem_builder_for_matching = Problem_Builder.new
             problem_builder_for_unification = Problem_Builder.new
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder_for_matching
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
             dialect = self.connection.dialect
             type_mapping = dialect.get_type_mapping
             merged_columns = matched_column_sets.map column_set->
-                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder_for_unification of
-                    Nothing -> Nothing
-                    result_type : Value_Type ->
-                        sql_type = type_mapping.value_type_to_sql result_type Problem_Behavior.Report_Error
-                        sql_type.catch Inexact_Type_Coercion error->
-                            Panic.throw <|
-                                Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
-                        [column_set, sql_type, result_type]
-            good_columns = merged_columns.filter r-> r.is_nothing.not
+                sql_type_from_value_type value_type =
+                    type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
+                        Panic.throw <|
+                            Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
+                case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
+                    Union_Result_Type.Common_Type common_type ->
+                        [column_set, sql_type_from_value_type common_type, common_type]
+                    Union_Result_Type.Fallback_To_Text ->
+                        [column_set, sql_type_from_value_type Value_Type.Char, Value_Type.Char]
+                    Union_Result_Type.No_Types_To_Unify ->
+                        ## If the column is all nulls, we still need to give it some type.
+                           For DB `Mixed` is not available, so a portable type to use is `Char`.
+                        [column_set, SQL_Type.null, Value_Type.Char]
+
             problem_builder_for_matching.attach_problems_before on_problems <| problem_builder_for_unification.attach_problems_before on_problems <|
-                if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                if merged_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
                     queries = all_tables.map_with_index i-> t->
-                        columns_to_select = good_columns.map description->
-                            column_set = description.first
-                            sql_type = description.second
+                        columns_to_select = merged_columns.map description->
+                            column_set  = description.at 0
+                            sql_type    = description.at 1
+                            result_type = description.at 2
                             column_name = column_set.name
+                            ## We assume that the type for this expression will never be queried - it is
+                               just used internally to build the Union operation and never exposed externally.
+                            infer_return_type _ = SQL_Type_Reference.null
                             case column_set.column_indices.at i of
+                                corresponding_column_index : Integer ->
+                                    column = t.at corresponding_column_index
+                                    internal_named_column = column.as_internal.rename column_name
+                                    ## We cast if the result type is different.
+                                       This is a bit on the safe side. In some cases the cast is not needed
+                                       (for example, most databases will allow union of int2 and int4 without casts; or SQLite does not need casts at all).
+                                       However, we do this for simplicity as determining the rules when the cast is needed or not is adding a lot of complication.
+                                       This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
+                                    needs_cast = column.value_type != result_type
+                                    if needs_cast.not then internal_named_column else
+                                        dialect.make_cast internal_named_column sql_type infer_return_type
                                 Nothing ->
                                     typ = SQL_Type_Reference.from_constant SQL_Type.null
                                     expr = SQL_Expression.Literal "NULL"
                                     null_column = Internal_Column.Value column_name typ expr
-                                    ## We assume that the type for this
-                                       expression will never be queried - it is
-                                       just used internally to build the Union
-                                       operation and never exposed externally.
-                                    infer_return_type _ = SQL_Type_Reference.null
-                                    dialect.make_cast null_column sql_type infer_return_type
-                                corresponding_column_index : Integer ->
-                                    t.at corresponding_column_index . as_internal . rename column_name
+                                    if sql_type == SQL_Type.null then null_column else
+                                        dialect.make_cast null_column sql_type infer_return_type
                         pairs = columns_to_select.map c->
                             [c.name, c.expression]
                         Query.Select pairs t.context
@@ -1846,7 +1863,7 @@ type DB_Table
                        See #6118.
                     infer_return_type expression =
                         SQL_Type_Reference.new self.connection new_ctx expression
-                    new_columns = good_columns.map description->
+                    new_columns = merged_columns.map description->
                         column_set = description.first
                         result_type = description.at 2
                         name = column_set.name
@@ -2373,11 +2390,11 @@ type DB_Table
        ICON split_text
        Expand a column of objects to a new set of columns.
 
-        Arguments:
-        - column: The column to expand.
-        - fields: The set fields to expand. If `Nothing` then all fields are added.
-        - prefix: Prefix to add to the column names. If `Nothing` then the column
-          name is used.
+       Arguments:
+       - column: The column to expand.
+       - fields: The set fields to expand. If `Nothing` then all fields are added.
+       - prefix: Prefix to add to the column names. If `Nothing` then the column
+         name is used.
     @column Widget_Helpers.make_column_name_selector
     expand_column : Text | Integer -> Vector | Nothing -> Text | DB_Table -> DB_Table ! Type_Error
     expand_column self column fields=Nothing prefix=Nothing =
@@ -2538,40 +2555,36 @@ type DB_Table
 
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
-         If `Nothing`, all available rows are returned.
-       - warn_if_more_rows: if set to `True`, a warning is attached to the
-         result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Integer | Nothing) -> Boolean -> Table
-    read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
-        preprocessed = if max_rows.is_nothing then self else
-            if warn_if_more_rows then self.limit max_rows+1 else self.limit max_rows
-        case preprocessed.internal_columns.is_empty of
-            True ->
-                Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
-            False ->
-                sql = preprocessed.to_sql
-                column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
-                materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
-                    Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
+    @max_rows Rows_To_Read.default_widget
+    read : Rows_To_Read -> Table
+    read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) =
+        if self.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
+            preprocessed = case max_rows of
+                Rows_To_Read.All_Rows -> self
+                Rows_To_Read.First n -> self.limit n
+                Rows_To_Read.First_With_Warning n -> self.limit n+1
 
-                warnings_builder = Vector.new_builder
-                expected_types = self.columns.map .value_type
-                actual_types = materialized_table.columns.map .value_type
-                expected_types.zip actual_types expected_type-> actual_type->
-                    if expected_type == actual_type then Nothing else
-                        expected_type_kind = Meta.meta expected_type . constructor
-                        actual_type_kind = Meta.meta actual_type . constructor
-                        ## We ignore simple approximations that our in-memory backend does - things like adding default
-                           timezone (because we do not have Date_Time without timezone in-memory),
-                           or changing Float32 to Float64 are silently ignored.
-                           However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
-                        if expected_type_kind == actual_type_kind then Nothing else
-                            warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
-                result = if max_rows.is_nothing || materialized_table.row_count <= max_rows then materialized_table else
-                    assert warn_if_more_rows "We may get more rows than we asked for _only_ if warn_if_more_rows=True"
-                    warnings_builder.append (Not_All_Rows_Downloaded.Warning max_rows)
-                    materialized_table.take max_rows
-                Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
+            sql = preprocessed.to_sql
+            column_type_suggestions = preprocessed.internal_columns.map .sql_type_reference
+            materialized_table = self.connection.read_statement sql column_type_suggestions . catch SQL_Error sql_error->
+                Error.throw (self.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
+
+            warnings_builder = Builder.new
+            expected_types = self.columns.map .value_type
+            actual_types = materialized_table.columns.map .value_type
+            expected_types.zip actual_types expected_type-> actual_type->
+                if expected_type == actual_type then Nothing else
+                    expected_type_kind = Meta.meta expected_type . constructor
+                    actual_type_kind = Meta.meta actual_type . constructor
+                    ## We ignore simple approximations that our in-memory backend does - things like adding default
+                       timezone (because we do not have Date_Time without timezone in-memory),
+                       or changing Float32 to Float64 are silently ignored.
+                       However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
+                    if expected_type_kind == actual_type_kind then Nothing else
+                        warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
+
+            result = max_rows.attach_warning materialized_table
+            Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector result
 
     ## PRIVATE
        Creates a query corresponding to this table.
@@ -2581,11 +2594,12 @@ type DB_Table
         assert cols.not_empty
         Query.Select cols self.context
 
-    ## Returns an SQL statement that will be used for materializing this table.
+    ## ICON convert
+       Returns an SQL statement that will be used for materializing this table.
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 
-    ## ALIAS metadata, field info, column types
+    ## ALIAS column types, field info, metadata
        GROUP Standard.Base.Metadata
        ICON metadata
        Returns a Table describing this table's contents.
@@ -2871,6 +2885,39 @@ type DB_Table
         transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
+    ## GROUP Standard.Base.Text
+       ICON dataframe_map_column
+       Applies the specified cleansings to the text in each row of the specified columns
+
+       Arguments:
+       - remove: A vector of the text cleanings to remove from the text. The text cleansings are
+           applied in the order they are provided. The same text cleansing can be used multiple
+           times. The text cleansings are:
+             - ..Leading_Whitespace: Removes all whitspace from the start of the string.
+             - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
+             - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
+             - ..All_Whitespace: Removes all whitspace from the string.
+             - ..Leading_Numbers: Removes all numbers from the start of the string.
+             - ..Trailing_Numbers: Removes all numbers from the end of the string.
+             - ..Non_ASCII: Removes all non-ascii characters from the string.
+             - ..Tabs: Removes all tab characters from the string.
+             - ..Letters: Removes all letters from the string.
+             - ..Numbers: Removes all numbers characters from the string.
+             - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+             - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+       - from: The column(s) to cleanse.
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+    @remove make_data_cleanse_vector_selector
+    @from (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> DB_Table
+    text_cleanse self remove from =
+        transformer col = col.text_cleanse remove
+        Table_Helpers.replace_columns_with_transformed_columns self from transformer
+
     ## ALIAS cumulative
        GROUP Standard.Base.Values
        ICON data_input
@@ -2942,37 +2989,6 @@ make_table connection table_name columns ctx on_problems =
             DB_Table.Value table_name connection cols ctx
 
 ## PRIVATE
-
-   Renders an ASCII-art representation for a Table from a dataframe that
-   contains a fragment of the underlying data and count of all rows.
-
-   Arguments:
-   - df: The materialized dataframe that contains the data to be displayed, it
-     should have no indices set.
-   - indices_count: Indicates how many columns from the materialized dataframe
-     should be treated as indices in the display (index columns will be bold if
-     `format_terminal` is enabled).
-   - all_rows_count: The count of all rows in the underlying Table; if
-     `all_rows_count` is bigger than the amount of rows of `df`, an additional
-     line will be included that will say how many hidden rows there are.
-   - format_term: A boolean flag, specifying whether to use ANSI escape codes
-     for rich formatting in the terminal.
-display_dataframe : Table -> Integer -> Integer -> Boolean -> Text
-display_dataframe df indices_count all_rows_count format_terminal =
-    cols = Vector.from_polyglot_array df.java_table.getColumns
-    col_names = cols.map .getName . map normalize_string_for_display
-    col_vals = cols.map .getStorage
-    display_rows = df.row_count
-    rows = Vector.new display_rows row_num->
-        col_vals.map col->
-            if col.isNothing row_num then "Nothing" else get_item_string col row_num
-    table = print_table col_names rows indices_count format_terminal
-    if display_rows == all_rows_count then table else
-        missing_rows_count = all_rows_count - display_rows
-        missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
-        table + missing
-
-## PRIVATE
    By default, join on the first column, unless it's a cross join, in which
    case there are no join conditions.
 default_join_condition : DB_Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
@@ -2983,7 +2999,7 @@ default_join_condition table join_kind = case join_kind of
 ## PRIVATE
 Table.from (that:DB_Table) =
     _ = [that]
-    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+    Error.throw (Illegal_Argument.Error "This operation requires the data to be in-memory, materialize the table using `.read`.")
 
 ## PRIVATE
 DB_Table.from (that:Table) =

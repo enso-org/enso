@@ -6,3 +6,4 @@
 export * from './Dialog'
 export * from './types'
 export * from './DialogTrigger'
+export * from './Popover'

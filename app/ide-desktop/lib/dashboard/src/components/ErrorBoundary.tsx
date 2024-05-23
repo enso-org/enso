@@ -5,6 +5,8 @@
  */
 import * as React from 'react'
 
+import * as sentry from '@sentry/react'
+import * as reactQuery from '@tanstack/react-query'
 import * as errorBoundary from 'react-error-boundary'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -37,12 +39,22 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
     ...rest
   } = props
   return (
-    <errorBoundary.ErrorBoundary
-      FallbackComponent={FallbackComponent}
-      onError={onError}
-      onReset={onReset}
-      {...rest}
-    />
+    <reactQuery.QueryErrorResetBoundary>
+      {({ reset }) => (
+        <errorBoundary.ErrorBoundary
+          FallbackComponent={FallbackComponent}
+          onError={(error, info) => {
+            sentry.captureException(error, { extra: { info } })
+            onError(error, info)
+          }}
+          onReset={details => {
+            reset()
+            onReset(details)
+          }}
+          {...rest}
+        />
+      )}
+    </reactQuery.QueryErrorResetBoundary>
   )
 }
 
@@ -61,9 +73,11 @@ function DefaultFallbackComponent(props: errorBoundary.FallbackProps): React.JSX
       title={getText('arbitraryErrorTitle')}
       subtitle={getText('arbitraryErrorSubtitle')}
     >
-      <aria.Button variant="submit" size="medium" onPress={resetErrorBoundary}>
-        {getText('tryAgain')}
-      </aria.Button>
+      <aria.ButtonGroup align="center">
+        <aria.Button variant="submit" size="medium" onPress={resetErrorBoundary}>
+          {getText('tryAgain')}
+        </aria.Button>
+      </aria.ButtonGroup>
     </result.Result>
   )
 }
