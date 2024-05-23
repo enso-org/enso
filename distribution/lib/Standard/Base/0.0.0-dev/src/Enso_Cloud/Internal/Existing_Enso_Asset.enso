@@ -22,6 +22,7 @@ import project.Panic.Panic
 import project.Runtime.Context
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Data_Link_Helpers import data_link_extension
 from project.Enso_Cloud.Public_Utils import get_required_field
 
 ## PRIVATE
@@ -52,8 +53,8 @@ type Existing_Enso_Asset
     ## PRIVATE
     name self -> Text =
         added_extension = case self.asset_type of
+            Enso_Asset_Type.Data_Link -> data_link_extension
             # TODO enable when using new path resolver that should support these
-            #Enso_Asset_Type.Data_Link -> ".datalink"
             #Enso_Asset_Type.Secret -> ".secret"
             #Enso_Asset_Type.Project -> ".enso"
             _ -> ""
@@ -81,13 +82,14 @@ type Existing_Enso_Asset
 
     ## PRIVATE
        Resolves a path to an existing asset in the cloud.
-    resolve_path (path : Text) ~if_not_found =
-        handle_not_found _ = if_not_found
+    resolve_path (path : Text) ~if_not_found = path.if_not_error <|
+        handle_not_found _ = Error.throw Not_Found
         error_handlers = Map.from_vector [["resource_missing", handle_not_found]]
 
         uri = ((URI.from Utils.cloud_root_uri) / "path/resolve") . add_query_argument "path" path
         response = Utils.http_request_as_json HTTP_Method.Get uri error_handlers=error_handlers
         Existing_Enso_Asset.from_json response
+            . catch Not_Found _-> if_not_found
 
     ## PRIVATE
     is_directory self = self.asset_type == Enso_Asset_Type.Directory
