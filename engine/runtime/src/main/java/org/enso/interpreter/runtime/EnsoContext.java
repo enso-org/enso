@@ -28,7 +28,6 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -522,34 +521,35 @@ public final class EnsoContext {
    */
   @TruffleBoundary
   public Object lookupJavaClass(String className) {
-    var items = Arrays.asList(className.split("\\."));
+    var binaryName = new StringBuilder(className);
     var collectedExceptions = new ArrayList<Exception>();
-    for (int i = items.size() - 1; i >= 0; i--) {
-      String pkgName = String.join(".", items.subList(0, i));
-      String curClassName = items.get(i);
-      List<String> nestedClassPart =
-          i < items.size() - 1 ? items.subList(i + 1, items.size()) : List.of();
+    for (; ; ) {
+      var fqn = binaryName.toString();
       try {
-        var hostSymbol = lookupHostSymbol(pkgName, curClassName);
-        if (nestedClassPart.isEmpty()) {
+        var hostSymbol = lookupHostSymbol(fqn);
+        if (hostSymbol != null) {
           return hostSymbol;
-        } else {
-          var fullInnerClassName = curClassName + "$" + String.join("$", nestedClassPart);
-          return lookupHostSymbol(pkgName, fullInnerClassName);
         }
       } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
         collectedExceptions.add(ex);
       }
+      var at = fqn.lastIndexOf('.');
+      if (at < 0) {
+        break;
+      }
+      binaryName.setCharAt(at, '$');
     }
+    var level = Level.WARNING;
     for (var ex : collectedExceptions) {
-      logger.log(Level.WARNING, null, ex);
+      logger.log(level, ex.getMessage());
+      level = Level.FINE;
+      logger.log(Level.FINE, null, ex);
     }
     return null;
   }
 
-  private Object lookupHostSymbol(String pkgName, String curClassName)
+  private Object lookupHostSymbol(String fqn)
       throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
-    var fqn = pkgName + "." + curClassName;
     try {
       if (findGuestJava() == null) {
         return environment.asHostSymbol(hostClassLoader.loadClass(fqn));

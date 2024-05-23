@@ -22,8 +22,7 @@ import org.enso.base.enso_cloud.CloudAPI;
 class AuditLogAPI {
   private static final Logger logger = Logger.getLogger(AuditLogAPI.class.getName());
   public static AuditLogAPI INSTANCE = new AuditLogAPI();
-  private final HttpClient httpClient =
-      HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
+  private HttpClient httpClient;
   private final ExecutorService executorService;
 
   private AuditLogAPI() {
@@ -70,6 +69,9 @@ class AuditLogAPI {
   private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
     try {
       try {
+        if (httpClient == null) {
+          httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
+        }
         HttpResponse<String> response =
             httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
