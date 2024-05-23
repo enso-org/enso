@@ -26,9 +26,30 @@ const insertAsFileConstructor = computed(() => {
     return false
   }
 })
-const strictlyFile = computed(() => props.input.dynamicConfig?.kind === 'File_Browse')
-const strictlyDirectory = computed(() => props.input.dynamicConfig?.kind === 'Folder_Browse')
-const label = computed(() => (strictlyDirectory.value ? 'Choose directory…' : 'Choose file…'))
+const dialogKind = computed(() => {
+  switch (props.input.dynamicConfig?.kind) {
+    case 'File_Browse':
+      return props.input.dynamicConfig.existing_only ? 'file' : 'filePath'
+    case 'Folder_Browse':
+      return 'directory'
+    default:
+      if (props.input[ArgumentInfoKey]?.info?.reprType.includes(WRITABLE_FILE_TYPE)) {
+        return 'filePath'
+      } else {
+        return 'default'
+      }
+  }
+})
+const label = computed(() => {
+  switch (dialogKind.value) {
+    case 'directory':
+      return 'Choose directory…'
+    case 'filePath':
+      return 'Choose path…'
+    default:
+      return 'Choose file…'
+  }
+})
 
 const FILE_CONSTRUCTOR = FILE_TYPE + '.new'
 const FILE_SHORT_CONSTRUCTOR = 'File.new'
@@ -54,11 +75,7 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
 }
 
 const onClick = async () => {
-  const kind =
-    strictlyDirectory.value ? 'directory'
-    : strictlyFile.value ? 'file'
-    : 'default'
-  const selected = await window.fileBrowserApi.openFileBrowser(kind)
+  const selected = await window.fileBrowserApi.openFileBrowser(dialogKind.value)
   if (selected != null && selected[0] != null) {
     const edit = graph.startEdit()
     const value = makeValue(edit, insertAsFileConstructor.value, selected[0])
@@ -90,6 +107,8 @@ const innerWidgetInput = computed(() => {
 const TEXT_TYPE = 'Standard.Base.Data.Text.Text'
 const FILE_MODULE = 'Standard.Base.System.File'
 const FILE_TYPE = FILE_MODULE + '.File'
+const WRITABLE_FILE_MODULE = 'Standard.Base.System.File.Generic.Writable_File'
+const WRITABLE_FILE_TYPE = WRITABLE_FILE_MODULE + '.Writable_File'
 
 export const widgetDefinition = defineWidget(
   WidgetInput.isAstOrPlaceholder,
@@ -101,7 +120,9 @@ export const widgetDefinition = defineWidget(
         props.input.dynamicConfig?.kind === 'Folder_Browse'
       )
         return Score.Perfect
-      if (props.input[ArgumentInfoKey]?.info?.reprType.includes(FILE_TYPE)) return Score.Perfect
+      const reprType = props.input[ArgumentInfoKey]?.info?.reprType
+      if (reprType?.includes(FILE_TYPE) || reprType?.includes(WRITABLE_FILE_TYPE))
+        return Score.Perfect
       return Score.Mismatch
     },
   },
