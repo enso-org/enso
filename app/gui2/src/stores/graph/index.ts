@@ -20,12 +20,15 @@ import type { AstId } from '@/util/ast/abstract'
 import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
+import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
+import { Err, Ok, mapOk, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { normalizeQualifiedName, tryQualifiedName } from '@/util/qualifiedName'
 import { map, set } from 'lib0'
 import { iteratorFilter } from 'lib0/iterator'
 import { SourceDocument } from 'shared/ast/sourceDocument'
-import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, MethodPointer } from 'shared/languageServerTypes'
 import { reachable } from 'shared/util/data/graph'
 import type {
   LocalUserActionOrigin,
@@ -99,9 +102,10 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     )
     const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
     const editedNodeInfo = ref<NodeEditInfo>()
-    const methodAst = ref<Ast.Function>()
+    const methodAst = computed(() => getExecutedMethodAst())
 
-    const unconnectedEdge = ref<UnconnectedEdge>()
+    const mouseEditedEdge = ref<UnconnectedEdge & MouseEditedEdge>()
+    const cbEditedEdge = ref<UnconnectedTarget>()
 
     const moduleSource = reactive(SourceDocument.Empty())
     const moduleRoot = ref<Ast.Ast>()
@@ -173,14 +177,13 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       const textContentLocal = moduleSource.text
       if (!textContentLocal) return
       if (!syncModule.value) return
-      methodAst.value = methodAstInModule(syncModule.value)
-      if (methodAst.value) {
-        const methodSpan = moduleSource.getSpan(methodAst.value.id)
+      if (methodAst.value.ok) {
+        const methodSpan = moduleSource.getSpan(methodAst.value.value.id)
         assert(methodSpan != null)
         const rawFunc = toRaw.get(sourceRangeKey(methodSpan))
         assert(rawFunc != null)
         db.readFunctionAst(
-          methodAst.value,
+          methodAst.value.value,
           rawFunc,
           textContentLocal,
           (id) => moduleSource.getSpan(id),
@@ -189,11 +192,42 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       }
     }
 
-    function methodAstInModule(mod: Ast.Module) {
-      const topLevel = mod.root()
-      if (!topLevel) return
+    function getExecutedMethodAst(module?: Ast.Module): Result<Ast.Function> {
+      const executionStackTop = proj.executionContext.getStackTop()
+      switch (executionStackTop.type) {
+        case 'ExplicitCall': {
+          return getMethodAst(executionStackTop.methodPointer, module)
+        }
+        case 'LocalCall': {
+          const exprId = executionStackTop.expressionId
+          const info = db.getExpressionInfo(exprId)
+          const ptr = info?.methodCall?.methodPointer
+          if (!ptr) return Err("Unknown method pointer of execution stack's top frame")
+          return getMethodAst(ptr, module)
+        }
+      }
+    }
+
+    function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.Function> {
+      const topLevel = (edit ?? syncModule.value)?.root()
+      if (!topLevel) return Err('Module unavailable')
       assert(topLevel instanceof Ast.BodyBlock)
-      return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
+      const modulePath =
+        proj.modulePath ?
+          mapOk(proj.modulePath, normalizeQualifiedName)
+        : Err('Unknown current module name')
+      if (!modulePath?.ok) return modulePath
+      const ptrModule = mapOk(tryQualifiedName(ptr.module), normalizeQualifiedName)
+      const ptrDefinedOnType = mapOk(tryQualifiedName(ptr.definedOnType), normalizeQualifiedName)
+      if (!ptrModule.ok) return ptrModule
+      if (!ptrDefinedOnType.ok) return ptrDefinedOnType
+      if (ptrModule.value !== modulePath.value)
+        return Err('Cannot read method from different module')
+      if (ptrModule.value !== ptrDefinedOnType.value)
+        return Err('Method pointer is not a module method')
+      const method = Ast.findModuleMethod(topLevel, ptr.name)
+      if (!method) return Err(`No method with name ${ptr.name} in ${modulePath.value}`)
+      return Ok(method)
     }
 
     function generateLocallyUniqueIdent(prefix?: string | undefined) {
@@ -207,54 +241,58 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       }
     }
 
-    const edges = computed(() => {
-      const disconnectedEdgeTarget = unconnectedEdge.value?.disconnectedEdgeTarget
-      const edges = []
-      for (const [target, sources] of db.connections.allReverse()) {
-        if ((target as string as PortId) === disconnectedEdgeTarget) continue
-        for (const source of sources) {
-          edges.push({ source, target })
-        }
+    const unconnectedEdges = computed(
+      () => new Set(filterDefined([cbEditedEdge.value, mouseEditedEdge.value])),
+    )
+
+    const disconnectedEdgeTargets = computed(() => {
+      const targets = new Set<PortId>()
+      for (const edge of unconnectedEdges.value) {
+        if (edge.disconnectedEdgeTarget) targets.add(edge.disconnectedEdgeTarget)
       }
-      if (unconnectedEdge.value) {
-        edges.push({
-          source: unconnectedEdge.value.source,
-          target: unconnectedEdge.value.target,
-        })
+      if (editedNodeInfo.value) {
+        const primarySubject = db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
+        if (primarySubject) targets.add(primarySubject)
+      }
+      return targets
+    })
+
+    const connectedEdges = computed(() => {
+      const edges = new Array<ConnectedEdge>()
+      for (const [target, sources] of db.connections.allReverse()) {
+        if (!disconnectedEdgeTargets.value.has(target)) {
+          for (const source of sources) {
+            edges.push({ source, target })
+          }
+        }
       }
       return edges
     })
 
-    const connectedEdges = computed(() => {
-      return edges.value.filter<ConnectedEdge>(isConnected)
-    })
-
     function createEdgeFromOutput(source: Ast.AstId, event: PointerEvent | undefined) {
-      unconnectedEdge.value = { source, target: undefined, event }
+      mouseEditedEdge.value = { source, target: undefined, event, anchor: { type: 'mouse' } }
     }
 
     function disconnectSource(edge: Edge, event: PointerEvent | undefined) {
       if (!edge.target) return
-      unconnectedEdge.value = {
+      mouseEditedEdge.value = {
         source: undefined,
         target: edge.target,
         disconnectedEdgeTarget: edge.target,
         event,
+        anchor: { type: 'mouse' },
       }
     }
 
     function disconnectTarget(edge: Edge, event: PointerEvent | undefined) {
       if (!edge.source || !edge.target) return
-      unconnectedEdge.value = {
+      mouseEditedEdge.value = {
         source: edge.source,
         target: undefined,
         disconnectedEdgeTarget: edge.target,
         event,
+        anchor: { type: 'mouse' },
       }
-    }
-
-    function clearUnconnected() {
-      unconnectedEdge.value = undefined
     }
 
     /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
@@ -382,6 +420,10 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       editNodeMetadata(nodeAst, (metadata) => {
         metadata.set('colorOverride', color)
       })
+    }
+
+    function getNodeColorOverride(node: NodeId) {
+      return db.nodeIdToNode.get(node)?.colorOverride ?? undefined
     }
 
     function normalizeVisMetadata(
@@ -627,7 +669,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     ) {
       const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExpr.id
       const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExpr.id
-      const body = edit.getVersion(methodAstInModule(edit)!).bodyAsBlock()
+      const body = edit.getVersion(unwrap(getExecutedMethodAst(edit))).bodyAsBlock()
       assert(sourceExpr != null)
       assert(targetExpr != null)
       const lines = body.lines
@@ -681,8 +723,9 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       db: markRaw(db),
       mockExpressionUpdate,
       editedNodeInfo,
-      unconnectedEdge,
-      edges,
+      mouseEditedEdge,
+      cbEditedEdge,
+      disconnectedEdgeTargets,
       connectedEdges,
       moduleSource,
       nodeRects,
@@ -691,16 +734,17 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       visibleArea,
       unregisterNodeRect,
       methodAst,
+      getMethodAst,
       generateLocallyUniqueIdent,
       createEdgeFromOutput,
       disconnectSource,
       disconnectTarget,
-      clearUnconnected,
       moduleRoot,
       deleteNodes,
       ensureCorrectNodeOrder,
       batchEdits,
       overrideNodeColor,
+      getNodeColorOverride,
       setNodeContent,
       setNodePosition,
       setNodeVisualization,
@@ -732,13 +776,15 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
   },
 )
 
-/** An edge, which may be connected or unconnected. */
-export interface Edge {
+interface AnyEdge {
   source: AstId | undefined
   target: PortId | undefined
 }
 
-export interface ConnectedEdge extends Edge {
+/** An edge, which may be connected or unconnected. */
+export type Edge = ConnectedEdge | UnconnectedEdge
+
+export interface ConnectedEdge extends AnyEdge {
   source: AstId
   target: PortId
 }
@@ -747,32 +793,36 @@ export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
 }
 
-export interface UnconnectedEdge extends Edge {
+type UnconnectedEdgeAnchor =
+  | {
+      type: 'mouse'
+    }
+  | {
+      type: 'fixed'
+      scenePos: Vec2
+    }
+
+interface AnyUnconnectedEdge extends AnyEdge {
   /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
   disconnectedEdgeTarget?: PortId
+  /** Identifies what the disconnected end should be attached to. */
+  anchor: UnconnectedEdgeAnchor
+  /** CSS value; if provided, overrides any color calculation. */
+  color?: string
+}
+interface UnconnectedSource extends AnyUnconnectedEdge {
+  source: undefined
+  target: PortId
+}
+interface UnconnectedTarget extends AnyUnconnectedEdge {
+  source: AstId
+  target: undefined
+  /** If true, the target end should be drawn as with a self-argument arrow. */
+  targetIsSelfArgument?: boolean
+}
+export type UnconnectedEdge = UnconnectedSource | UnconnectedTarget
+
+interface MouseEditedEdge {
   /** A pointer event which caused the unconnected edge */
   event: PointerEvent | undefined
-}
-
-function getExecutedMethodAst(
-  topLevel: Ast.BodyBlock,
-  executionStackTop: StackItem,
-  db: GraphDb,
-): Ast.Function | undefined {
-  switch (executionStackTop.type) {
-    case 'ExplicitCall': {
-      // Assume that the provided AST matches the module in the method pointer. There is no way to
-      // actually verify this assumption at this point.
-      const ptr = executionStackTop.methodPointer
-      return Ast.findModuleMethod(topLevel, ptr.name) ?? undefined
-    }
-    case 'LocalCall': {
-      const exprId = executionStackTop.expressionId
-      const info = db.getExpressionInfo(exprId)
-      if (!info) return undefined
-      const ptr = info.methodCall?.methodPointer
-      if (!ptr) return undefined
-      return Ast.findModuleMethod(topLevel, ptr.name) ?? undefined
-    }
-  }
 }

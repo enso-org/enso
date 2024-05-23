@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useLexical, type LexicalPlugin } from '@/components/lexical'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
+import { listPlugin } from '@/components/lexical/listPlugin'
 import { useLexicalSync } from '@/components/lexical/sync'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
@@ -52,7 +53,7 @@ const markdownSyncPlugin: LexicalPlugin = {
   },
 }
 
-useLexical(contentElement, 'MarkdownEditor', [markdownPlugin, markdownSyncPlugin])
+useLexical(contentElement, 'MarkdownEditor', [listPlugin, markdownPlugin, markdownSyncPlugin])
 </script>
 
 <template>
@@ -82,5 +83,17 @@ useLexical(contentElement, 'MarkdownEditor', [markdownPlugin, markdownSyncPlugin
 
 .MarkdownEditor :deep(p + p) {
   margin-bottom: 4px;
+}
+
+.MarkdownEditor :deep(ol) {
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: 1.6em;
+}
+
+.MarkdownEditor :deep(ul) {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 1.6em;
 }
 </style>

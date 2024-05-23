@@ -20,7 +20,7 @@ type Enso_User
     ## PRIVATE
        Represents a user within Enso Cloud.
 
-       Fields:
+       Arguments:
        - name: The user's name.
        - email: The user's email address.
        - id: The user's unique ID.

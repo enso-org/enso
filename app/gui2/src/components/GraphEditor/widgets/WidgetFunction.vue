@@ -33,6 +33,7 @@ import type { Opt } from '@/util/data/opt'
 import { isIdentifier } from '@/util/qualifiedName.ts'
 import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
+import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -101,9 +102,17 @@ const application = computed(() => {
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
     return application.value.toWidgetInput()
-  } else {
-    return props.input
+  } else if (methodCallInfo.value) {
+    const definition = graph.getMethodAst(methodCallInfo.value.methodCall.methodPointer)
+    if (definition.ok)
+      return {
+        ...props.input,
+        [FunctionName]: {
+          editableName: definition.value.name.externalId,
+        },
+      }
   }
+  return props.input
 })
 
 const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {

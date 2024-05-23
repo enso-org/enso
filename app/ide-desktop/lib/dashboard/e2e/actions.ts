@@ -752,6 +752,7 @@ export async function login(
   await locatePasswordInput(page).fill(password)
   await locateLoginButton(page).click()
   await locateToastCloseButton(page).click()
+  await passTermsAndConditionsDialog({ page })
 }
 
 // ================
@@ -785,6 +786,23 @@ async function mockDate({ page }: MockParams) {
         const __DateNow = Date.now;
         Date.now = () => __DateNow() + __DateNowOffset;
     }`)
+}
+
+/**
+ * Passes Terms and conditions dialog
+ */
+export async function passTermsAndConditionsDialog({ page }: MockParams) {
+  // wait for terms and conditions dialog to appear
+  // but don't fail if it doesn't appear
+  try {
+    // wait for terms and conditions dialog to appear
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
+    await page.getByRole('checkbox').click()
+    await page.getByRole('button', { name: 'Accept' }).click()
+  } catch (error) {
+    // do nothing
+  }
 }
 
 // ========================
@@ -836,8 +854,12 @@ export async function mockAll({ page }: MockParams) {
 export async function mockAllAndLogin({ page }: MockParams) {
   const mocks = await mockAll({ page })
   await login({ page })
+
+  await passTermsAndConditionsDialog({ page })
+
   // This MUST run after login, otherwise the element's styles are reset when the browser
   // is navigated to another page.
   await mockIDEContainer({ page })
+
   return mocks
 }

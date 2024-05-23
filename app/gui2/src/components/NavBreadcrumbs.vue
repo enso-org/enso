@@ -23,6 +23,7 @@ const emit = defineEmits<{ selected: [index: number] }>()
       <NavBreadcrumb
         :text="breadcrumb.label"
         :active="breadcrumb.active"
+        :title="index === 0 ? 'Project Name' : ''"
         @click.stop="emit('selected', index)"
       />
     </template>

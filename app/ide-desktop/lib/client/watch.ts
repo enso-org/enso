@@ -109,18 +109,32 @@ process.on('SIGINT', () => {
     })
 })
 
-while (true) {
+/**
+ * Starts the electron process with the IDE.
+ */
+function startElectronProcess() {
     console.log('Spawning Electron process.')
+
     const electronProcess = childProcess.spawn('electron', ELECTRON_ARGS, {
         stdio: 'inherit',
         shell: true,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         env: Object.assign({ NODE_MODULES_PATH }, process.env),
     })
-    console.log('Waiting for Electron process to finish.')
-    const result = await new Promise((resolve, reject) => {
-        electronProcess.on('close', resolve)
-        electronProcess.on('error', reject)
+
+    electronProcess.on('close', code => {
+        if (code === 0) {
+            electronProcess.removeAllListeners()
+            process.exit(0)
+        }
     })
-    console.log('Electron process finished.  Exit code: ', result)
+    electronProcess.on('error', error => {
+        console.error('Electron process failed:', error)
+        console.error('Killing electron process.')
+        electronProcess.removeAllListeners()
+        electronProcess.kill()
+        process.exit(1)
+    })
 }
+
+startElectronProcess()

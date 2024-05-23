@@ -573,8 +573,8 @@ useEvent(document, 'scroll', endBrushing)
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <SvgButton name="show_all" alt="Fit all" @click="zoomToSelected(false)" />
-      <SvgButton name="find" alt="Zoom to selected" @click="zoomToSelected(true)" />
+      <SvgButton name="show_all" title="Fit All" @click="zoomToSelected(false)" />
+      <SvgButton name="find" title="Zoom to Selected" @click="zoomToSelected(true)" />
     </template>
     <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">

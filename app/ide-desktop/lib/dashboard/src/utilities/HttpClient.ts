@@ -98,8 +98,12 @@ export default class HttpClient {
   }
 
   /** Send an HTTP DELETE request to the specified URL. */
-  delete<T = void>(url: string) {
-    return this.request<T>({ method: HttpMethod.delete, url })
+  delete<T = void>(url: string, payload?: Record<string, unknown>) {
+    return this.request<T>({
+      method: HttpMethod.delete,
+      url,
+      payload: payload ? JSON.stringify(payload) : undefined,
+    })
   }
 
   /** Execute an HTTP request to the specified URL, with the given HTTP method.
@@ -107,7 +111,7 @@ export default class HttpClient {
   private async request<T = void>(options: {
     method: HttpMethod
     url: string
-    payload?: BodyInit
+    payload?: BodyInit | undefined
     mimetype?: string
     keepalive?: boolean
   }) {

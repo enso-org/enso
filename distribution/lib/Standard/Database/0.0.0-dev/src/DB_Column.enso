@@ -1197,7 +1197,7 @@ type DB_Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Standard.Base.Selections
        ICON parse3
        Creates a new Column with the specified range of rows from the input
@@ -1209,7 +1209,7 @@ type DB_Column
     take : (Index_Sub_Range | Range | Integer) -> DB_Column
     take self range=(First 1) = self.to_table.take range . at 0
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Standard.Base.Selections
        ICON parse3
        Creates a new column from the input with the specified range of rows
