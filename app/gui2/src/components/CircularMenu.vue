@@ -55,7 +55,7 @@ const showColorPicker = ref(false)
         v-if="isFullMenuVisible"
         name="trash2"
         class="slot4"
-        title="`Delete`"
+        title="Delete"
         @click.stop="emit('delete')"
       />
       <ToggleIcon
