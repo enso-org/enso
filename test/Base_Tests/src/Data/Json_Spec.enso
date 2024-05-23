@@ -117,6 +117,12 @@ add_specs suite_builder =
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"second":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["second", 52]])
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"nanosecond":572104300}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52], ["nanosecond", 572104300]])
 
+        group_builder.specify "should be able to read a JSON file with a BOM indicating UTF-16 encoding" <|
+            bytes = [-1, -2] + ("{}".bytes Encoding.utf_16_le)
+            f = File.create_temporary_file "json-with-bom" ".json"
+            bytes.write_bytes f . should_succeed
+            f.read . should_be_a JS_Object
+
     suite_builder.group "JSON Serialization" group_builder->
         group_builder.specify "should print JSON structures to valid json" <|
             "0".should_render_itself
