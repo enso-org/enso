@@ -82,7 +82,7 @@ export function Dialog(props: types.DialogProps) {
 
         dialogRef.current?.animate(
           [{ transform: 'scale(1)' }, { transform: 'scale(1.015)' }, { transform: 'scale(1)' }],
-          { duration, iterations: 2, direction: 'alternate' }
+          { duration, iterations: 1, direction: 'alternate' }
         )
       }
     },
