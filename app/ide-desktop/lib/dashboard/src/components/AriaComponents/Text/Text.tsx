@@ -161,9 +161,9 @@ export const Text = React.forwardRef(function Text(
 /**
  * Heading props
  */
-export interface HeadingProps extends TextProps {
+export interface HeadingProps extends Omit<TextProps, 'elementType'> {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  readonly level?: 1 | 2 | 3 | 4 | 5 | 6
+  readonly level?: '1' | '2' | '3' | '4' | '5' | '6' | 1 | 2 | 3 | 4 | 5 | 6
 }
 
 /**
