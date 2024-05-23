@@ -95,6 +95,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+const dataGroupingMap = ref<{ [key: string]: boolean }>({})
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
@@ -136,24 +137,23 @@ const selectableRowLimits = computed(() => {
 })
 const wasAutomaticallyAutosized = ref(false)
 
-function isGrouingRequired(params: ICellRendererParams) {
-  const field = params.colDef?.field
-  const allDataForCol = params.node.parent?.allLeafChildren.map((row) => {
-    const data = row.data[field || '']
-    return data?.type === 'BigInt' ? data.value : data
-  })
-  return allDataForCol?.find((num) => num > 9999) != null
-}
+const numberFormatGroupped = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumFractionDigits: 12,
+  useGrouping: true,
+})
+
+const numberFormat = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumFractionDigits: 12,
+  useGrouping: false,
+})
 
 function formatNumber(params: ICellRendererParams) {
-  const isGrouingRequiredForData = isGrouingRequired(params)
   const valueType = params.value?.type
   const value = valueType === 'BigInt' ? BigInt(params.value?.value) : params.value
-  return new Intl.NumberFormat(undefined, {
-    style: 'decimal',
-    maximumFractionDigits: 12,
-    useGrouping: isGrouingRequiredForData,
-  }).format(value)
+  const needsGrouping = dataGroupingMap.value[params.colDef?.field || '']
+  return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
 function setRowLimit(newRowLimit: number) {
@@ -180,7 +180,7 @@ function escapeHTML(str: string) {
 }
 
 function cellClass(params: CellClassParams) {
-  if (params.colDef.field != '#') return null
+  if (params.colDef.field === '#') return null
   if (typeof params.value === 'number' || params.value === null) return 'ag-right-aligned-cell'
   if (typeof params.value === 'object') {
     const valueType = params.value?.type
@@ -364,6 +364,16 @@ watchEffect(() => {
   pageLimit.value = newPageLimit
   if (page.value > newPageLimit) {
     page.value = newPageLimit
+  }
+
+  if (rowData.length) {
+    const headers = Object.keys(rowData[0] as object)
+    let obj = {}
+    headers.forEach((header) => {
+      const needsGrouping = rowData.some((row: any) => row[header] > 9999)
+      obj = { ...obj, [header]: needsGrouping }
+    })
+    dataGroupingMap.value = obj;
   }
 
   // If an existing grid, merge width from manually sized columns.
