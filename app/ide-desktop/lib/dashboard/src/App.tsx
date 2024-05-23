@@ -42,7 +42,6 @@ import * as toastify from 'react-toastify'
 import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
-import * as reactQueryClientModule from '#/reactQueryClient'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
@@ -58,9 +57,7 @@ import SessionProvider from '#/providers/SessionProvider'
 import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import ErrorScreen from '#/pages/authentication/ErrorScreen'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import Login from '#/pages/authentication/Login'
 import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
@@ -76,6 +73,7 @@ import * as rootComponent from '#/components/Root'
 
 import AboutModal from '#/modals/AboutModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
+import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -159,44 +157,40 @@ export interface AppProps {
 export default function App(props: AppProps) {
   const { supportsLocalBackend } = props
 
-  const queryClient = React.useMemo(() => reactQueryClientModule.createReactQueryClient(), [])
-  const [rootDirectoryPath, setRootDirectoryPath] = React.useState<projectManager.Path | null>(null)
-  const [error, setError] = React.useState<unknown>(null)
-  const isLoading = supportsLocalBackend && rootDirectoryPath == null
+  const { data: rootDirectoryPath } = reactQuery.useSuspenseQuery({
+    queryKey: ['root-directory', supportsLocalBackend],
+    queryFn: async () => {
+      if (supportsLocalBackend) {
+        const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
+        const text = await response.text()
+        return projectManager.Path(text)
+      } else {
+        return null
+      }
+    },
+  })
 
-  React.useEffect(() => {
-    if (supportsLocalBackend) {
-      void (async () => {
-        try {
-          const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
-          const text = await response.text()
-          setRootDirectoryPath(projectManager.Path(text))
-        } catch (innerError) {
-          setError(innerError)
-        }
-      })()
-    }
-  }, [supportsLocalBackend])
+  const routerFuture: Partial<router.FutureConfig> = {
+    /* we want to use startTransition to enable concurrent rendering */
+    /* eslint-disable-next-line @typescript-eslint/naming-convention */
+    v7_startTransition: true,
+  }
 
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
-  return error != null ? (
-    <ErrorScreen error={error} />
-  ) : isLoading ? (
-    <LoadingScreen />
-  ) : (
-    <reactQuery.QueryClientProvider client={queryClient}>
+  return (
+    <>
       <toastify.ToastContainer
         position="top-center"
         theme="light"
         closeOnClick={false}
         draggable={false}
-        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
+        toastClassName="text-sm leading-cozy bg-selected-frame rounded-lg backdrop-blur-default"
         transition={toastify.Zoom}
         limit={3}
       />
-      <router.BrowserRouter basename={getMainPageUrl().pathname}>
+      <router.BrowserRouter basename={getMainPageUrl().pathname} future={routerFuture}>
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
@@ -205,7 +199,7 @@ export default function App(props: AppProps) {
       </router.BrowserRouter>
 
       <reactQueryDevtools.ReactQueryDevtools />
-    </reactQuery.QueryClientProvider>
+    </>
   )
 }
 
@@ -393,22 +387,24 @@ function AppRouter(props: AppRouterProps) {
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
-            <router.Route
-              path={appUtils.DASHBOARD_PATH}
-              element={shouldShowDashboard && <Dashboard {...props} />}
-            />
+          <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+            <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
+              <router.Route
+                path={appUtils.DASHBOARD_PATH}
+                element={shouldShowDashboard && <Dashboard {...props} />}
+              />
 
-            <router.Route
-              path={appUtils.SUBSCRIBE_PATH}
-              element={
-                <errorBoundary.ErrorBoundary>
-                  <React.Suspense fallback={<loader.Loader />}>
-                    <subscribe.Subscribe />
-                  </React.Suspense>
-                </errorBoundary.ErrorBoundary>
-              }
-            />
+              <router.Route
+                path={appUtils.SUBSCRIBE_PATH}
+                element={
+                  <errorBoundary.ErrorBoundary>
+                    <React.Suspense fallback={<loader.Loader />}>
+                      <subscribe.Subscribe />
+                    </React.Suspense>
+                  </errorBoundary.ErrorBoundary>
+                }
+              />
+            </router.Route>
           </router.Route>
 
           <router.Route
@@ -424,10 +420,12 @@ function AppRouter(props: AppRouterProps) {
         </router.Route>
       </router.Route>
 
-      {/* Semi-protected pages are visible to users currently registering. */}
-      <router.Route element={<authProvider.NotDeletedUserLayout />}>
-        <router.Route element={<authProvider.SemiProtectedLayout />}>
-          <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+      <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+        {/* Semi-protected pages are visible to users currently registering. */}
+        <router.Route element={<authProvider.NotDeletedUserLayout />}>
+          <router.Route element={<authProvider.SemiProtectedLayout />}>
+            <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+          </router.Route>
         </router.Route>
       </router.Route>
 
@@ -447,7 +445,9 @@ function AppRouter(props: AppRouterProps) {
       <router.Route path="*" element={<router.Navigate to="/" replace />} />
     </router.Routes>
   )
+
   let result = routes
+
   result = (
     <SupportsLocalBackendProvider supportsLocalBackend={supportsLocalBackend}>
       {result}

@@ -9,6 +9,8 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
 
+import * as mergeRefs from '#/utilities/mergeRefs'
+
 import type * as types from './types'
 import * as variants from './variants'
 
@@ -60,6 +62,7 @@ export function Dialog(props: types.DialogProps) {
     className,
     onOpenChange = () => {},
     modalProps = {},
+    testId = 'dialog',
     ...ariaDialogProps
   } = props
   const dialogRef = React.useRef<HTMLDivElement>(null)
@@ -79,7 +82,7 @@ export function Dialog(props: types.DialogProps) {
 
         dialogRef.current?.animate(
           [{ transform: 'scale(1)' }, { transform: 'scale(1.015)' }, { transform: 'scale(1)' }],
-          { duration, iterations: 2, direction: 'alternate' }
+          { duration, iterations: 1, direction: 'alternate' }
         )
       }
     },
@@ -106,20 +109,38 @@ export function Dialog(props: types.DialogProps) {
             onOpenChange={onOpenChange}
             {...modalProps}
           >
-            <aria.Dialog ref={dialogRef} className={dialogSlots.base()} {...ariaDialogProps}>
+            <aria.Dialog
+              ref={mergeRefs.mergeRefs(dialogRef, element => {
+                if (element) {
+                  // This is a workaround for the `data-testid` attribute not being
+                  // supported by the 'react-aria-components' library.
+                  // We need to set the `data-testid` attribute on the dialog element
+                  // so that we can use it in our tests.
+                  // This is a temporary solution until we refactor the Dialog component
+                  // to use `useDialog` hook from the 'react-aria-components' library.
+                  // this will allow us to set the `data-testid` attribute on the dialog
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                  element.dataset.testId = testId
+                }
+              })}
+              className={dialogSlots.base()}
+              {...ariaDialogProps}
+            >
               {opts => (
                 <>
                   {shouldRenderTitle && (
                     <aria.Header className={dialogSlots.header()}>
                       <ariaComponents.CloseButton
-                        className={clsx('mr-auto mt-0.5', { hidden: hideCloseButton })}
+                        className={clsx('col-start-1 col-end-1 mr-auto mt-0.5', {
+                          hidden: hideCloseButton,
+                        })}
                         onPress={opts.close}
                       />
 
                       <aria.Heading
                         slot="title"
                         level={2}
-                        className="my-0 text-base font-semibold leading-6"
+                        className="col-start-2 col-end-2 my-0 text-base font-semibold leading-6"
                       >
                         {title}
                       </aria.Heading>

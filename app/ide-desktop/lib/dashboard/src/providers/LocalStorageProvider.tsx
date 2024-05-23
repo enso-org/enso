@@ -2,6 +2,8 @@
  * via the shared React context. */
 import * as React from 'react'
 
+import * as refreshHooks from '#/hooks/refreshHooks'
+
 import LocalStorage from '#/utilities/LocalStorage'
 
 // ===========================
@@ -27,7 +29,15 @@ export interface LocalStorageProviderProps extends Readonly<React.PropsWithChild
 /** A React Provider that lets components get the shortcut registry. */
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {
   const { children } = props
-  const localStorage = React.useMemo(() => new LocalStorage(), [])
+  const [, doRefresh] = refreshHooks.useRefresh()
+
+  const localStorage = React.useMemo(
+    () =>
+      new LocalStorage(() => {
+        doRefresh()
+      }),
+    [doRefresh]
+  )
 
   return (
     <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>
