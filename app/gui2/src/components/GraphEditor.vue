@@ -346,7 +346,7 @@ const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
 
-const { documentation } = useAstDocumentation(() => graphStore.methodAst)
+const { documentation } = useAstDocumentation(graphStore, () => graphStore.methodAst)
 
 // === Execution Mode ===
 

@@ -97,5 +97,5 @@ export default function Editor(props: EditorProps) {
     return <></>
   }
   const AppRunner = appRunner
-  return <AppRunner {...appProps} />
+  return <AppRunner {...appProps} key={appProps.projectId} />
 }

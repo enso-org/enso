@@ -304,7 +304,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       addImports(edit.getVersion(topLevel), importsToAdd)
     }
 
-    function deleteNodes(ids: NodeId[]) {
+    function deleteNodes(ids: Iterable<NodeId>) {
       edit(
         (edit) => {
           for (const id of ids) {
@@ -676,7 +676,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return db.connections.reverseLookup(portId as AstId).size > 0
     }
 
-    return {
+    return proxyRefs({
       transact,
       db: markRaw(db),
       mockExpressionUpdate,
@@ -728,7 +728,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
         if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
         return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
       },
-    }
+    })
   },
 )
 
