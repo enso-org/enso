@@ -77,13 +77,13 @@ function useStrictBackendContext() {
 }
 
 /** Exposes a property to get the current backend. */
-export function useBackend() {
+export function useStrictBackend() {
   const { backend } = useStrictBackendContext()
   return { backend }
 }
 
 /** Exposes a property to set the current backend. */
-export function useSetBackend() {
+export function useStrictSetBackend() {
   const { setBackend, setBackendWithoutSavingType } = useStrictBackendContext()
   return { setBackend, setBackendWithoutSavingType }
 }

@@ -1032,7 +1032,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Log an event that will be visible in the organization audit log. */
-  async logEvent(message: string, projectId?: string | undefined, metadata?: object) {
+  async logEvent(message: string, projectId?: string | null | undefined, metadata?: object) {
     const path = remoteBackendPaths.POST_LOG_EVENT_PATH
     const response = await this.post(
       path,

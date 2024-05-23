@@ -5,7 +5,7 @@ import {
   usePlacement,
 } from '@/components/ComponentBrowser/placement'
 import type { GraphNavigator } from '@/providers/graphNavigator'
-import { useGraphStore, type GraphStore, type NodeId } from '@/stores/graph'
+import { type GraphStore, type NodeId } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import type { Typename } from '@/stores/suggestionDatabase/entry'

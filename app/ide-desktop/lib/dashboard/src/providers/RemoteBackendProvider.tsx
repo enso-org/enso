@@ -1,4 +1,6 @@
-import React from 'react'
+/** @file The React provider for a `RemoteBackend` instance that is always configured to use active
+ * session token. */
+import * as React from 'react'
 
 import invariant from 'tiny-invariant'
 

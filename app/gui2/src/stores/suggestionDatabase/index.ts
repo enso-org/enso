@@ -1,5 +1,5 @@
 import { createContextStore } from '@/providers'
-import { useProjectStore, type ProjectStore } from '@/stores/project'
+import { type ProjectStore } from '@/stores/project'
 import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'

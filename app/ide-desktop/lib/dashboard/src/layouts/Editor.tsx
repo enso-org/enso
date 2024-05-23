@@ -69,29 +69,29 @@ export default function Editor(props: EditorProps) {
     } else if (binaryAddress == null) {
       toastAndLog('noBinaryEndpointError')
       return null
+    } else {
+      return {
+        config: {
+          engine: {
+            rpcUrl: jsonAddress,
+            dataUrl: binaryAddress,
+            ydocUrl: ydocAddress,
+          },
+          startup: {
+            project: project.packageName,
+            displayedProjectName: project.name,
+          },
+          window: {
+            topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+          },
+        },
+        projectId,
+        hidden,
+        ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
+        logEvent,
+      }
     }
-
-    return {
-      config: {
-        engine: {
-          rpcUrl: jsonAddress,
-          dataUrl: binaryAddress,
-          ydocUrl: ydocAddress,
-        },
-        startup: {
-          project: project.packageName,
-          displayedProjectName: project.name,
-        },
-        window: {
-          topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
-        },
-      },
-      projectId,
-      hidden,
-      ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
-      logEvent,
-    }
-  }, [projectStartupInfo, toastAndLog, hidden])
+  }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl])
 
   if (projectStartupInfo == null || appRunner == null || appProps == null) {
     return <></>

@@ -172,7 +172,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
-  const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
+  const { setBackendWithoutSavingType } = backendProvider.useStrictSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
@@ -267,8 +267,8 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   React.useEffect(() => {
     if (remoteBackend) {
-      remoteBackend.logEvent('open_app')
-      const logCloseEvent = () => remoteBackend.logEvent('close_app')
+      void remoteBackend.logEvent('open_app')
+      const logCloseEvent = () => void remoteBackend.logEvent('close_app')
       window.addEventListener('beforeunload', logCloseEvent)
       return () => {
         window.removeEventListener('beforeunload', logCloseEvent)

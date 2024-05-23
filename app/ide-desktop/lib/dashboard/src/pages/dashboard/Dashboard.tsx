@@ -130,8 +130,8 @@ export default function Dashboard(props: DashboardProps) {
   const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
-  const { setBackend } = backendProvider.useSetBackend()
+  const { backend } = backendProvider.useStrictBackend()
+  const { setBackend } = backendProvider.useStrictSetBackend()
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()

@@ -1,4 +1,3 @@
-import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { computed, type Ref } from 'vue'
 import { createContextStore } from '.'
 

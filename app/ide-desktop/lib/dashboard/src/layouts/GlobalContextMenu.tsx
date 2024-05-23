@@ -36,7 +36,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { hidden = false, hasPasteData, directoryKey, directoryId, rootDirectoryId } = props
   const { dispatchAssetListEvent } = props
   const { doPaste } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const filesInputRef = React.useRef<HTMLInputElement>(null)
