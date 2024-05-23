@@ -363,12 +363,9 @@ export default function Drive(props: DriveProps) {
           }`}
         >
           <div className="flex flex-col items-start gap-icons self-start">
-            <aria.Heading
-              level={1}
-              className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug"
-            >
+            <ariaComponents.Text.Heading>
               {isCloud ? getText('cloudDrive') : getText('localDrive')}
-            </aria.Heading>
+            </ariaComponents.Text.Heading>
             <DriveBar
               category={category}
               canDownload={canDownload}
