@@ -349,15 +349,15 @@ function AppRouter(props: AppRouterProps) {
           app.contains(selection.anchorNode) &&
           selection.focusNode != null &&
           app.contains(selection.focusNode)
-        if (selection != null && !appContainsSelection) {
-          selection.removeAllRanges()
+        if (!appContainsSelection) {
+          selection?.removeAllRanges()
         }
       }
     }
-
     const onSelectStart = () => {
       isClick = false
     }
+
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('selectstart', onSelectStart)

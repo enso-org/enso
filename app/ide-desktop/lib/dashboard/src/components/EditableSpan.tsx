@@ -4,7 +4,7 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
-import * as eventCalback from '#/hooks/eventCallbackHooks'
+import * as eventCallback from '#/hooks/eventCallbackHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -46,9 +46,8 @@ export default function EditableSpan(props: EditableSpanProps) {
   const checkSubmittableRef = React.useRef(checkSubmittable)
   checkSubmittableRef.current = checkSubmittable
 
-  // Making sure that the event callback is stable.
-  // to prevent the effect from re-running.
-  const onCancelEventCallback = eventCalback.useEventCallback(onCancel)
+  // Make sure that the event callback is stable to prevent the effect from re-running.
+  const onCancelEventCallback = eventCallback.useEventCallback(onCancel)
 
   React.useEffect(() => {
     if (editable) {
@@ -80,10 +79,8 @@ export default function EditableSpan(props: EditableSpanProps) {
         className="flex grow"
         onSubmit={event => {
           event.preventDefault()
-          if (isSubmittable) {
-            if (inputRef.current != null) {
-              onSubmit(inputRef.current.value)
-            }
+          if (isSubmittable && inputRef.current != null) {
+            onSubmit(inputRef.current.value)
           }
         }}
       >
