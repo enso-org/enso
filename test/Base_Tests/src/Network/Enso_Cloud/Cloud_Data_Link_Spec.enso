@@ -40,6 +40,16 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 r.should_be_a Text
                 r.should_contain "Cupcake"
 
+        ## Normally, once we created an asset, its information is cached for a brief period of time, so any tests will rely on this cache also.
+           Here we explicitly clear the cache to test the path resolver as well.
+        group_builder.specify "should be able to resolve data link by path after caches were cleared" <|
+            Cloud_Tests_Setup.reset
+            datalink = Enso_File.new (test_root.get.path + "/TestDataLink-HTTP.datalink")
+            datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
+            datalink.exists.should_be_true
+            Test.with_retries <|
+                datalink.read . should_contain "Cupcake"
+
         group_builder.specify "will report which library is missing if a datalink relying on other library is accessed" <|
             datalink = test_root.get / "TestDataLink-S3.datalink"
             Data_Link.write_raw_config datalink s3_data_link_content . should_succeed
