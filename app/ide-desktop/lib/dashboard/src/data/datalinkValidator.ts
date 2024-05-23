@@ -1,8 +1,8 @@
-/** @file AJV instance configured for data links. */
+/** @file AJV instance configured for datalinks. */
 import type * as ajv from 'ajv/dist/2020'
 import Ajv from 'ajv/dist/2020'
 
-import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
+import SCHEMA from '#/data/datalinkSchema.json' assert { type: 'json' }
 
 import * as error from '#/utilities/error'
 
@@ -12,6 +12,6 @@ AJV.addSchema(SCHEMA)
 
 // This is a function, even though it does not contain function syntax.
 // eslint-disable-next-line no-restricted-syntax
-export const validateDataLink = error.assert<ajv.ValidateFunction>(() =>
+export const validateDatalink = error.assert<ajv.ValidateFunction>(() =>
   AJV.getSchema('#/$defs/DataLink')
 )

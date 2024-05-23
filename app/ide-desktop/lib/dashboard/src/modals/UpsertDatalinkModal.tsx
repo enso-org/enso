@@ -1,14 +1,14 @@
-/** @file A modal for creating a Data Link. */
+/** @file A modal for creating a Datalink. */
 import * as React from 'react'
 
-import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
-import * as dataLinkValidator from '#/data/dataLinkValidator'
+import SCHEMA from '#/data/datalinkSchema.json' assert { type: 'json' }
+import * as datalinkValidator from '#/data/datalinkValidator'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import DataLinkInput from '#/components/dashboard/DataLinkInput'
+import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
@@ -22,26 +22,26 @@ import * as jsonSchema from '#/utilities/jsonSchema'
 // =================
 
 const DEFS: Record<string, object> = SCHEMA.$defs
-const INITIAL_DATA_LINK_VALUE =
+const INITIAL_DATALINK_VALUE =
   jsonSchema.constantValue(DEFS, SCHEMA.$defs.DataLink, true)[0] ?? null
 
 // ===========================
 // === UpsertDataLinkModal ===
 // ===========================
 
-/** Props for a {@link UpsertDataLinkModal}. */
-export interface UpsertDataLinkModalProps {
-  readonly doCreate: (name: string, dataLink: unknown) => void
+/** Props for a {@link UpsertDatalinkModal}. */
+export interface UpsertDatalinkModalProps {
+  readonly doCreate: (name: string, datalink: unknown) => void
 }
 
-/** A modal for creating a Data Link. */
-export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
+/** A modal for creating a Datalink. */
+export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const { doCreate } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [name, setName] = React.useState('')
-  const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
-  const isValueSubmittable = React.useMemo(() => dataLinkValidator.validateDataLink(value), [value])
+  const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATALINK_VALUE)
+  const isValueSubmittable = React.useMemo(() => datalinkValidator.validateDatalink(value), [value])
   const isSubmittable = name !== '' && isValueSubmittable
 
   const doSubmit = () => {
@@ -62,7 +62,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         }}
       >
         <aria.Heading className="relative text-sm font-semibold">
-          {getText('createDataLink')}
+          {getText('createDatalink')}
         </aria.Heading>
         <FocusArea direction="horizontal">
           {innerProps => (
@@ -75,7 +75,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
               <FocusRing>
                 <aria.Input
                   autoFocus
-                  placeholder={getText('dataLinkNamePlaceholder')}
+                  placeholder={getText('datalinkNamePlaceholder')}
                   className={`focus-child text grow rounded-full border bg-transparent px-input-x ${
                     name !== '' ? 'border-primary/10' : 'border-red-700/60'
                   }`}
@@ -89,7 +89,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           )}
         </FocusArea>
         <div className="relative">
-          <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
+          <DatalinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
         <ButtonRow>
           <UnstyledButton

@@ -114,6 +114,29 @@ declare global {
         toggleDevtools: () => void
     }
 
+    /**
+     * Highlight a range of text.
+     */
+    class Highlight {
+        type: string
+        /**
+         * @param ranges - The range to highlight.
+         */
+        constructor(...ranges: Range[])
+    }
+
+    /**
+     *
+     */
+    namespace CSS {
+        // eslint-disable-next-line no-restricted-syntax
+        export const highlights: {
+            set: (key: string, value: Highlight) => void
+            delete: (key: string) => void
+            clear: () => void
+        }
+    }
+
     namespace NodeJS {
         /** Environment variables. */
         // `TZ` MUST NOT be `readonly`, or else `@types/node` will error.
@@ -147,7 +170,7 @@ declare global {
             // === Cloud environment variables ===
 
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_REDIRECT: string
+            readonly ENSO_CLOUD_REDIRECT?: string
             // When unset, the `.env` loader tries to load `.env` rather than `.<name>.env`.
             // Set to the empty string to load `.env`.
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.

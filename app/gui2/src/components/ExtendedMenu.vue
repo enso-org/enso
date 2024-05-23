@@ -4,6 +4,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ref } from 'vue'
+import SvgButton from './SvgButton.vue'
 
 const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
 const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
@@ -55,20 +56,19 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
       <div class="row">
         <div class="label">Zoom</div>
         <div class="zoomControl">
-          <div class="zoomButtonHighlight">
-            <SvgIcon :scale="12 / 16" name="minus" title="Decrease zoom" @click="emit('zoomOut')" />
-          </div>
+          <SvgButton
+            class="zoomButton"
+            name="minus"
+            title="Decrease zoom"
+            @click="emit('zoomOut')"
+          />
           <span
             class="zoomScaleLabel"
             v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
           ></span>
-          <div class="zoomButtonHighlight">
-            <SvgIcon :scale="12 / 16" name="add" title="increase zoom" @click="emit('zoomIn')" />
-          </div>
+          <SvgButton class="zoomButton" name="add" title="Increase zoom" @click="emit('zoomIn')" />
           <div class="divider"></div>
-          <div class="showAllIconHighlight">
-            <SvgIcon name="show_all" class="showAllIcon" @click="emit('fitToAllClicked')" />
-          </div>
+          <SvgButton name="show_all" class="showAllIcon" @click="emit('fitToAllClicked')" />
         </div>
       </div>
       <div
@@ -126,6 +126,9 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
   &:hover {
     background-color: var(--color-menu-entry-hover-bg);
   }
+  &:active {
+    background-color: var(--color-menu-entry-active-bg);
+  }
   &.selected {
     background-color: var(--color-menu-entry-selected-bg);
   }
@@ -160,22 +163,6 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
   align-items: center;
 }
 
-.showAllIconHighlight {
-  display: flex;
-  justify-items: center;
-  align-items: center;
-  padding-left: 4px;
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  margin: -4px -4px;
-  border-radius: var(--radius-full);
-  transition: background-color 0.3s;
-  &:hover {
-    background-color: var(--color-menu-entry-hover-bg);
-  }
-}
-
 .zoomScaleLabel {
   width: 4em;
   text-align: center;
@@ -186,21 +173,8 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
   left: 8px;
 }
 
-.zoomButtonHighlight {
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-full);
-  position: relative;
-  margin: 0px;
-  padding: 2px;
-  display: inline-block;
-  vertical-align: middle;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.zoomButtonHighlight:hover {
-  background-color: var(--color-menu-entry-hover-bg);
+.zoomButton {
+  --icon-transform: scale(12/16);
 }
 
 .dropdown-enter-active,

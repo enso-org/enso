@@ -21,7 +21,6 @@ import { initializeFFI } from 'shared/ast/ffi'
 import { assertUnreachable } from 'shared/util/assert'
 import type { ExternalId, Uuid } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
-import { nextTick } from 'vue'
 
 await initializeFFI()
 
@@ -76,15 +75,10 @@ test.each([
   [
     'operator1.',
     10,
-    { type: 'insert', position: 10, oprApp: ['operator1', '.', null] },
+    { type: 'insert', position: 0 },
     { selfArg: { type: 'known', typename: 'Standard.Base.Number' } },
   ],
-  [
-    'operator2.',
-    10,
-    { type: 'insert', position: 10, oprApp: ['operator2', '.', null] },
-    { selfArg: { type: 'unknown' } },
-  ],
+  ['operator2.', 10, { type: 'insert', position: 0 }, { selfArg: { type: 'unknown' } }],
   [
     'operator3.',
     10,
@@ -123,8 +117,7 @@ test.each([
     },
   ) => {
     const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), aiMock)
-    input.code.value = code
-    input.selection.value = { start: cursorPos, end: cursorPos }
+    input.content.value = { text: code, selection: { start: cursorPos, end: cursorPos } }
     const context = input.context.value
     const filter = input.filter.value
     expect(context.type).toStrictEqual(expContext.type)
@@ -294,8 +287,7 @@ test.each([
     db.set(dummyId, suggestion)
     const graphMock = GraphDb.Mock()
     const input = useComponentBrowserInput(graphMock, db, aiMock)
-    input.code.value = code
-    input.selection.value = { start: cursorPos, end: cursorPos }
+    input.content.value = { text: code, selection: { start: cursorPos, end: cursorPos } }
     input.applySuggestion(dummyId)
     expect(input.code.value).toEqual(expected)
     expect(input.selection.value).toStrictEqual({
@@ -358,11 +350,13 @@ test.each([
     db.set(3, makeConstructor('Standard.Base.Table.new'))
     const graphMock = GraphDb.Mock(undefined, db)
     const input = useComponentBrowserInput(graphMock, db, aiMock)
-    input.code.value = initialCode
-    input.selection.value = { start: initialCode.length, end: initialCode.length }
+    input.content.value = {
+      text: initialCode,
+      selection: { start: initialCode.length, end: initialCode.length },
+    }
     input.applySuggestion(suggestionId)
     if (manuallyEditedCode != null) {
-      input.code.value = manuallyEditedCode
+      input.content.value = { ...input.content.value, text: manuallyEditedCode }
     }
     expect(input.code.value).toEqual(expectedCode)
     expect(input.importsToAdd()).toEqual(expectedImports)
@@ -374,7 +368,7 @@ test.each`
   ${' '}   | ${'operator1. '}
   ${'+'}   | ${'operator1 +'}
   ${'>='}  | ${'operator1 >='}
-`('Initialize input for new node and type $typed', async ({ typed, finalCodeWithSourceNode }) => {
+`('Initialize input for new node and type $typed', ({ typed, finalCodeWithSourceNode }) => {
   const mockDb = mockGraphDb()
   const sourceNode = operator1Id
   const sourcePort = mockDb.getNodeFirstOutputPort(asNodeId(sourceNode))
@@ -385,9 +379,7 @@ test.each`
   expect(input.code.value).toBe('')
   expect(input.selection.value).toEqual({ start: 0, end: 0 })
   expect(input.anyChange.value).toBeFalsy()
-  input.code.value = typed
-  input.selection.value.start = input.selection.value.end = typed.length
-  await nextTick()
+  input.content.value = { text: typed, selection: { start: typed.length, end: typed.length } }
   expect(input.code.value).toBe(typed)
   expect(input.selection.value).toEqual({ start: typed.length, end: typed.length })
   expect(input.anyChange.value).toBeTruthy()
@@ -395,29 +387,26 @@ test.each`
   // With source node
   input.reset({ type: 'newNode', sourcePort })
   expect(input.code.value).toBe('operator1.')
-  expect(input.selection.value).toEqual({ start: 10, end: 10 })
+  expect(input.text.value).toBe('')
+  expect(input.selection.value).toEqual({ start: 0, end: 0 })
   expect(input.anyChange.value).toBeFalsy()
-  input.code.value = `operator1.${typed}`
-  input.selection.value.start = input.selection.value.end = typed.length + 10
-  await nextTick()
+  input.content.value = { text: typed, selection: { start: typed.length, end: typed.length } }
   expect(input.code.value).toBe(finalCodeWithSourceNode)
   expect(input.selection.value).toEqual({
-    start: finalCodeWithSourceNode.length,
-    end: finalCodeWithSourceNode.length,
+    start: input.text.value.length,
+    end: input.text.value.length,
   })
   expect(input.anyChange.value).toBeTruthy()
 })
 
-test('Initialize input for edited node', async () => {
+test('Initialize input for edited node', () => {
   const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), aiMock)
   input.reset({ type: 'editNode', node: asNodeId(operator1Id), cursorPos: 4 })
   expect(input.code.value).toBe('Data.read')
   expect(input.selection.value).toEqual({ start: 4, end: 4 })
   expect(input.anyChange.value).toBeFalsy()
   // Typing anything should not affected existing code (in contrary to new node creation)
-  input.code.value = `Data.+.read`
-  input.selection.value.start = input.selection.value.end = 5
-  await nextTick()
+  input.content.value = { text: `Data.+.read`, selection: { start: 5, end: 5 } }
   expect(input.code.value).toEqual('Data.+.read')
   expect(input.selection.value).toEqual({ start: 5, end: 5 })
   expect(input.anyChange.value).toBeTruthy()

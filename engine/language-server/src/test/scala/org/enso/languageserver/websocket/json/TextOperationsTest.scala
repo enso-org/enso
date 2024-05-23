@@ -408,6 +408,126 @@ class TextOperationsTest
           }""")
     }
 
+    "allow file/read to read contents of a buffer" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "file_read_test.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "file_read_test.txt" ]
+              }
+            }
+          }
+          """)
+
+      receiveAndReplyToOpenFile("file_read_test.txt")
+
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "text/canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "file_read_test.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      // apply edit
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "file_read_test.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  },
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 12 },
+                      "end": { "line": 0, "character": 12 }
+                    },
+                    "text": "foo"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+
+      // file/read
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/read",
+            "id": 3,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "file_read_test.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": { "contents": "bar123456789foo" }
+          }
+          """)
+
+    }
+
   }
 
   "text/openFile" must {

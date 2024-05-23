@@ -826,7 +826,7 @@ export default function Chat(props: ChatProps) {
           <UnstyledButton
             // This UI element does not appear anywhere else.
             // eslint-disable-next-line no-restricted-syntax
-            className="mx-2 my-1 rounded-default bg-call-to-action/90 p-2 text-center leading-cozy text-white"
+            className="bg-call-to-action/90 mx-2 my-1 rounded-default p-2 text-center leading-cozy text-white"
             onPress={upgradeToPro}
           >
             {getText('upgradeToProNag')}
