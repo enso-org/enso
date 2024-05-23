@@ -1369,22 +1369,15 @@ fn pattern_match_suspended_default_arguments() {
 }
 
 // === Private (project-private) keyword ===
-// So far, private keyword is only allowed to either have empty body, or to be followed by
-// a constructor definition.
-// Nothing else can be private yet.
 #[test]
 fn private_keyword() {
     test("private", block![(Private())]);
     expect_invalid_node("private func");
 
-    expect_invalid_node("private ConstructorOutsideType");
+    // Private binding is not supported.
+    expect_invalid_node("private var = 42");
 
-    #[rustfmt::skip]
-    let code = [
-        "type My_Type",
-        "    private method self = self.x"
-    ];
-    expect_invalid_node(&code.join("\n"));
+    expect_invalid_node("private ConstructorOutsideType");
 
     #[rustfmt::skip]
     let code = [
@@ -1395,17 +1388,48 @@ fn private_keyword() {
 
     #[rustfmt::skip]
     let code = [
-        "pub_method x y = x + y",
-        "private priv_method x y = x + y"
-    ];
-    expect_invalid_node(&code.join("\n"));
-
-    #[rustfmt::skip]
-    let code = [
         "private type My_Type",
         "    Ctor"
     ];
     expect_invalid_node(&code.join("\n"));
+}
+
+#[test]
+fn private_methods() {
+    #[rustfmt::skip]
+    let code = "private method x = x";
+    #[rustfmt::skip]
+    let expected = block![
+        (Private 
+            (Function (Ident method) #((() (Ident x) () ())) () "=" (Ident x)))
+    ];
+    test(code, expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "private method =",
+        "    42"
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (Private (Function (Ident method) #() () "="
+         (BodyBlock #((Number () "42" ())))))
+    ];
+    test(&code.join("\n"), expected);
+
+    #[rustfmt::skip]
+    let code = [
+        "type T",
+        "    private method x = x"
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef type T #() #(
+            (Private
+                (Function (Ident method) #((() (Ident x) () ())) () "=" (Ident x)))
+        ))
+    ];
+    test(&code.join("\n"), expected);
 }
 
 
