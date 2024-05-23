@@ -1,5 +1,5 @@
 <script lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
@@ -29,14 +29,13 @@ const config = useVisualizationConfig()
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <button class="image-button" :class="{ active: props.data.length !== 0 }">
-        <SvgIcon
-          name="not_exclamation"
-          data-testid="remove-warnings-button"
-          alt="Remove warnings"
-          @click="config.createNodes({ content: removeWarnings, commit: true })"
-        />
-      </button>
+      <SvgButton
+        name="not_exclamation"
+        data-testid="remove-warnings-button"
+        alt="Remove warnings"
+        :disabled="props.data.length === 0"
+        @click="config.createNodes({ content: removeWarnings, commit: true })"
+      />
     </template>
     <template #default>
       <div class="WarningsVisualization">

@@ -39,7 +39,7 @@ type Regex
        Compile the provided `expression` into a `Regex` that can be used for
        matching.
 
-       Arguments
+       Arguments:
        - expression: The text representing the regular expression that you want to
          compile. Must be non-empty.
        - case_insensitive: Enables or disables case-insensitive matching. Case
@@ -360,7 +360,7 @@ type Regex
 
        Return a lazy iterator over matches against a string.
 
-       Arguments
+       Arguments:
        - text: the string to match against.
     iterator : Text -> Match_Iterator
     iterator self input = Match_Iterator.new self input
@@ -496,7 +496,7 @@ type Regex_Syntax_Error
 
    If an empty regex is used, throws an Illegal_Argument error.
 
-   Arguments
+   Arguments:
    - expression: The text representing the regular expression that you want to
      compile. Must be non-empty.
 regex : Text -> Regex ! Regex_Syntax_Error | Illegal_Argument

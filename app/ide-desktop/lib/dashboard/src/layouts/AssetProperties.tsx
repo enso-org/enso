@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import * as dataLinkValidator from '#/data/dataLinkValidator'
+import * as datalinkValidator from '#/data/datalinkValidator'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -17,7 +17,7 @@ import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
-import DataLinkInput from '#/components/dashboard/DataLinkInput'
+import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import Button from '#/components/styled/Button'
@@ -65,14 +65,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
-  const [dataLinkValue, setDataLinkValue] = React.useState<NonNullable<unknown> | null>(null)
-  const [editedDataLinkValue, setEditedDataLinkValue] = React.useState<NonNullable<unknown> | null>(
-    dataLinkValue
+  const [datalinkValue, setDatalinkValue] = React.useState<NonNullable<unknown> | null>(null)
+  const [editedDatalinkValue, setEditedDatalinkValue] = React.useState<NonNullable<unknown> | null>(
+    datalinkValue
   )
-  const [isDataLinkFetched, setIsDataLinkFetched] = React.useState(false)
-  const isDataLinkSubmittable = React.useMemo(
-    () => dataLinkValidator.validateDataLink(dataLinkValue),
-    [dataLinkValue]
+  const [isDatalinkFetched, setIsDatalinkFetched] = React.useState(false)
+  const isDatalinkSubmittable = React.useMemo(
+    () => datalinkValidator.validateDatalink(datalinkValue),
+    [datalinkValue]
   )
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<assetTreeNode.AnyAssetTreeNode>) => {
@@ -89,8 +89,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     ownsThisAsset ||
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
-  const isDataLink = item.item.type === backendModule.AssetType.dataLink
-  const isDataLinkDisabled = dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable
+  const isDatalink = item.item.type === backendModule.AssetType.datalink
+  const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -98,11 +98,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (item.item.type === backendModule.AssetType.dataLink) {
-        const value = await backend.getConnector(item.item.id, item.item.title)
-        setDataLinkValue(value)
-        setEditedDataLinkValue(value)
-        setIsDataLinkFetched(true)
+      if (item.item.type === backendModule.AssetType.datalink) {
+        const value = await backend.getDatalink(item.item.id, item.item.title)
+        setDatalinkValue(value)
+        setEditedDatalinkValue(value)
+        setIsDatalinkFetched(true)
       }
     })()
   }, [backend, item.item])
@@ -239,50 +239,50 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           </tbody>
         </table>
       </div>
-      {isDataLink && (
+      {isDatalink && (
         <div className="pointer-events-auto flex flex-col items-start gap-side-panel-section">
           <aria.Heading
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('dataLink')}
+            {getText('datalink')}
           </aria.Heading>
-          {!isDataLinkFetched ? (
+          {!isDatalinkFetched ? (
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
           ) : (
             <>
-              <DataLinkInput
+              <DatalinkInput
                 readOnly={!canEditThisAsset}
                 dropdownTitle="Type"
-                value={editedDataLinkValue}
-                setValue={setEditedDataLinkValue}
+                value={editedDatalinkValue}
+                setValue={setEditedDatalinkValue}
               />
               {canEditThisAsset && (
                 <div className="flex gap-buttons">
                   <UnstyledButton
-                    isDisabled={isDataLinkDisabled}
-                    {...(isDataLinkDisabled
-                      ? { title: 'Edit the Data Link before updating it.' }
+                    isDisabled={isDatalinkDisabled}
+                    {...(isDatalinkDisabled
+                      ? { title: 'Edit the Datalink before updating it.' }
                       : {})}
                     className="button bg-invite text-white enabled:active"
                     onPress={() => {
                       void (async () => {
-                        if (item.item.type === backendModule.AssetType.dataLink) {
-                          const oldDataLinkValue = dataLinkValue
+                        if (item.item.type === backendModule.AssetType.datalink) {
+                          const oldDatalinkValue = datalinkValue
                           try {
-                            setDataLinkValue(editedDataLinkValue)
-                            await backend.createConnector({
-                              connectorId: item.item.id,
+                            setDatalinkValue(editedDatalinkValue)
+                            await backend.createDatalink({
+                              datalinkId: item.item.id,
                               name: item.item.title,
                               parentDirectoryId: null,
-                              value: editedDataLinkValue,
+                              value: editedDatalinkValue,
                             })
                           } catch (error) {
                             toastAndLog(null, error)
-                            setDataLinkValue(oldDataLinkValue)
-                            setEditedDataLinkValue(oldDataLinkValue)
+                            setDatalinkValue(oldDatalinkValue)
+                            setEditedDatalinkValue(oldDatalinkValue)
                           }
                         }
                       })()
@@ -291,10 +291,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     {getText('update')}
                   </UnstyledButton>
                   <UnstyledButton
-                    isDisabled={isDataLinkDisabled}
+                    isDisabled={isDatalinkDisabled}
                     className="button bg-selected-frame enabled:active"
                     onPress={() => {
-                      setEditedDataLinkValue(dataLinkValue)
+                      setEditedDatalinkValue(datalinkValue)
                     }}
                   >
                     {getText('cancel')}

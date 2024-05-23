@@ -58,7 +58,6 @@ import SessionProvider from '#/providers/SessionProvider'
 import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ErrorScreen from '#/pages/authentication/ErrorScreen'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
@@ -159,9 +158,7 @@ export interface AppProps {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 export default function App(props: AppProps) {
   const { supportsLocalBackend } = props
-  // This is a React component even though it does not contain JSX.
-  // eslint-disable-next-line no-restricted-syntax
-  const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
+
   const queryClient = React.useMemo(() => reactQueryClientModule.createReactQueryClient(), [])
   const [rootDirectoryPath, setRootDirectoryPath] = React.useState<projectManager.Path | null>(null)
   const [error, setError] = React.useState<unknown>(null)
@@ -199,13 +196,13 @@ export default function App(props: AppProps) {
         transition={toastify.Zoom}
         limit={3}
       />
-      <Router basename={getMainPageUrl().pathname}>
+      <router.BrowserRouter basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
           </ModalProvider>
         </LocalStorageProvider>
-      </Router>
+      </router.BrowserRouter>
 
       <reactQueryDevtools.ReactQueryDevtools />
     </reactQuery.QueryClientProvider>
@@ -390,10 +387,7 @@ function AppRouter(props: AppRouterProps) {
       {/* Login & registration pages are visible to unauthenticated users. */}
       <router.Route element={<authProvider.GuestLayout />}>
         <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-        <router.Route
-          path={appUtils.LOGIN_PATH}
-          element={<Login supportsLocalBackend={supportsLocalBackend} />}
-        />
+        <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
       </router.Route>
 
       {/* Protected pages are visible to authenticated users. */}
@@ -441,7 +435,6 @@ function AppRouter(props: AppRouterProps) {
       <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
       <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
       <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-      <router.Route path={appUtils.ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
 
       {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
       <router.Route element={<authProvider.ProtectedLayout />}>

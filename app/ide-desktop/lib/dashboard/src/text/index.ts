@@ -11,6 +11,10 @@ export enum Language {
   english = 'english',
 }
 
+export const LANGUAGE_TO_LOCALE: Record<Language, string> = {
+  [Language.english]: 'en-US',
+}
+
 /** An object containing the corresponding localized text for each text ID. */
 type Texts = typeof ENGLISH
 /** All possible text IDs. */
@@ -27,6 +31,7 @@ interface PlaceholderOverrides {
   readonly unknownThreadIdError: [threadId: string]
   readonly needsOwnerError: [assetType: string]
   readonly inviteSuccess: [userEmail: string]
+  readonly inviteManyUsersSuccess: [userCount: number]
 
   readonly deleteLabelActionText: [labelName: string]
   readonly deleteSelectedAssetActionText: [assetName: string]
@@ -59,7 +64,7 @@ interface PlaceholderOverrides {
   readonly enterTheNewKeyboardShortcutFor: [actionName: string]
   readonly downloadProjectError: [projectName: string]
   readonly downloadFileError: [fileName: string]
-  readonly downloadDataLinkError: [dataLinkName: string]
+  readonly downloadDatalinkError: [datalinkName: string]
   readonly deleteUserGroupError: [userGroupName: string]
   readonly removeUserFromUserGroupError: [userName: string, userGroupName: string]
   readonly deleteUserError: [userName: string]
@@ -84,9 +89,9 @@ interface PlaceholderOverrides {
   readonly checkResourcesBackendError: [string]
   readonly uploadFileWithNameBackendError: [string]
   readonly getFileDetailsBackendError: [string]
-  readonly createConnectorBackendError: [string]
-  readonly getConnectorBackendError: [string]
-  readonly deleteConnectorBackendError: [string]
+  readonly createDatalinkBackendError: [string]
+  readonly getDatalinkBackendError: [string]
+  readonly deleteDatalinkBackendError: [string]
   readonly createSecretBackendError: [string]
   readonly getSecretBackendError: [string]
   readonly updateSecretBackendError: [string]

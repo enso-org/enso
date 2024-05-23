@@ -10,31 +10,20 @@ import type { Icon } from '@/util/iconName'
 
 const props = defineProps<{
   name: Icon | URLString
-  width?: number
-  height?: number
-  scale?: number
 }>()
 </script>
 
 <template>
-  <svg
-    :style="{
-      '--width': `${props.width ?? 16}px`,
-      '--height': `${props.height ?? 16}px`,
-      '--scale': props.scale ?? 1,
-    }"
-  >
+  <svg>
     <use :href="props.name.includes(':') ? props.name : `${icons}#${props.name}`"></use>
   </svg>
 </template>
 
 <style scoped>
 svg {
-  width: var(--width);
-  min-width: var(--width);
-  height: var(--height);
-  min-height: var(--height);
-  transform: scale(var(--scale));
-  transform-origin: top left;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 16px;
 }
 </style>

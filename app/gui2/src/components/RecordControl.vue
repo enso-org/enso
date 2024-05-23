@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 
 const props = defineProps<{ recordMode: boolean }>()
@@ -18,7 +18,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
       />
     </div>
     <div class="control right-end" @click.stop="() => emit('recordOnce')">
-      <SvgIcon alt="Record once" class="button" name="record_once" draggable="false" :scale="1.5" />
+      <SvgButton alt="Record once" class="button" name="record_once" draggable="false" />
     </div>
   </div>
 </template>
@@ -34,7 +34,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 .control {
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
-  padding: 8px 8px;
+  padding: 4px 4px;
   width: 42px;
   cursor: pointer;
 }
@@ -43,7 +43,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
   border-radius: var(--radius-full) 0 0 var(--radius-full);
 
   .button {
-    margin: 0 4px 0 auto;
+    margin: 0 0 0 auto;
   }
 }
 
@@ -52,8 +52,11 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 
   .button {
     position: relative;
-    top: -4px;
     margin: 0 auto 0 0;
+    width: 32px;
+    height: 24px;
+    --icon-transform: scale(1.5) translateY(calc(-4px / 1.5));
+    --icon-transform-origin: left top;
   }
 }
 

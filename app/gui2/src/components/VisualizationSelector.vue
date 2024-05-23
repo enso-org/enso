@@ -109,5 +109,9 @@ button {
   &:hover {
     background: var(--color-menu-entry-hover-bg);
   }
+
+  &:active {
+    background-color: var(--color-menu-entry-active-bg);
+  }
 }
 </style>

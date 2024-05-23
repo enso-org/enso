@@ -1,0 +1,124 @@
+from Standard.Base import all
+
+import project.Util
+from project.Util import all
+
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Test.Extensions
+
+from Standard.Table import Column, Table, Value_Type, Auto, Bits
+from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
+from project.Common_Table_Operations.Util import run_default_backend
+
+from Standard.Test import all
+
+type Data
+    Value ~connection
+
+    setup create_connection_fn =
+        Data.Value (create_connection_fn Nothing)
+
+    teardown self = self.connection.close
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    prefix = setup.prefix
+    materialize = setup.materialize
+    create_connection_fn = setup.create_connection_func
+    suite_builder.group prefix+"Table Text Cleanse" group_builder->
+        data = Data.setup create_connection_fn
+
+        group_builder.teardown <|
+            data.teardown
+
+        table_builder cols =
+            setup.table_builder cols connection=data.connection
+        flight = ["Flight", [" BA0123", "BA0123 ", "  SG0456  ", "BA  0123", " S G 0 4 5 6 "]]
+        passenger = ["Passenger", ["   Albert Einstein", "Marie Curie   ", "   Isaac Newton   ", "Stephen   Hawking", " A d a Lovelace "]]
+        ticket_price = ["Ticket Price", [101, 576, 73, 112, 74]]
+        table = table_builder [flight, passenger, ticket_price]
+        group_builder.specify "should remove leading whitespace" <|
+            clean_flight = ["Flight", ["BA0123", "BA0123 ", "SG0456  ", "BA  0123", "S G 0 4 5 6 "]]
+            clean_passenger = ["Passenger", ["Albert Einstein", "Marie Curie   ", "Isaac Newton   ", "Stephen   Hawking", "A d a Lovelace "]]
+            expected_table = Table.new [clean_flight, clean_passenger, ticket_price]
+            res = table.text_cleanse [Text_Cleanse.Leading_Whitespace] ["Flight", "Passenger"]
+            r = materialize res . rows . map .to_vector
+            r.length . should_equal 5
+            r.should_equal (expected_table . rows . map .to_vector)
+        group_builder.specify "should error if applied to non-text column" <|
+            table.text_cleanse [Text_Cleanse.Leading_Whitespace] ["Flight", "Passenger", "Ticket Price"] . should_fail_with Invalid_Value_Type
+    suite_builder.group "Column Text Cleanse" group_builder->
+        test_col = Column.from_vector "Test" ["  It was", "the best  ", "of  times", "  it was  the  worst  of  times  "]
+        group_builder.specify "should remove leading whitespace" <|
+            expected_col = Column.from_vector "Test" ["It was", "the best  ", "of  times", "it was  the  worst  of  times  "]
+            res = test_col.text_cleanse [Text_Cleanse.Leading_Whitespace]
+            res.should_equal expected_col
+        group_builder.specify "should remove trailing whitespace" <|
+            expected_col = Column.from_vector "Test" ["  It was", "the best", "of  times", "  it was  the  worst  of  times"]
+            res = test_col.text_cleanse [Text_Cleanse.Trailing_Whitespace]
+            res.should_equal expected_col
+        group_builder.specify "should remove duplicate whitespace" <|
+            expected_col = Column.from_vector "Test" [" It was", "the best ", "of times", " it was the worst of times "]
+            res = test_col.text_cleanse [Text_Cleanse.Duplicate_Whitespace]
+            res.should_equal expected_col
+        group_builder.specify "should remove leading and trailing whitespace" <|
+            expected_col = Column.from_vector "Test" ["It was", "the best", "of  times", "it was  the  worst  of  times"]
+            res = test_col.text_cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Trailing_Whitespace]
+            res.should_equal expected_col
+        group_builder.specify "should remove all whitespace" <|
+            expected_col = Column.from_vector "Test" ["Itwas", "thebest", "oftimes", "itwastheworstoftimes"]
+            res = test_col.text_cleanse [Text_Cleanse.All_Whitespace]
+            res.should_equal expected_col
+        test_col_with_nums = Column.from_vector "Test" ["1It was", "the best2", "3of  times4", " 1984 it was  the  worst  of  times  72"]
+        group_builder.specify "should remove leading numbers" <|
+            expected_col = Column.from_vector "Test" ["It was", "the best2", "of  times4", " 1984 it was  the  worst  of  times  72"]
+            res = test_col_with_nums.text_cleanse [Text_Cleanse.Leading_Numbers]
+            res.should_equal expected_col
+        group_builder.specify "should remove trailing numbers" <|
+            expected_col = Column.from_vector "Test" ["1It was", "the best", "3of  times", " 1984 it was  the  worst  of  times  "]
+            res = test_col_with_nums.text_cleanse [Text_Cleanse.Trailing_Numbers]
+            res.should_equal expected_col
+        test_col_with_non_ascii_chars = Column.from_vector "Test" ["  It was the 🥇", "of  🕒s", "  it was  the  𒀂  of  🕒s  "]
+        group_builder.specify "should remove non-ascii characters" <|
+            expected_col = Column.from_vector "Test" ["  It was the ", "of  s", "  it was  the    of  s  "]
+            res = test_col_with_non_ascii_chars.text_cleanse [Text_Cleanse.Non_ASCII]
+            res.should_equal expected_col
+        group_builder.specify "should remove tabs" <|
+            test_col_with_tabs = Column.from_vector "Test" ['  It was\t the best', 'of  times  it was  the  worst\t  of  times  ']
+            expected_col = Column.from_vector "Test" ["  It was the best", "of  times  it was  the  worst  of  times  "]
+            res = test_col_with_tabs.text_cleanse [Text_Cleanse.Tabs]
+            res.should_equal expected_col
+        group_builder.specify "should remove numbers and letters" <|
+            test_col_with_nums_and_letters = Column.from_vector "Test" ["1A2B3C4", "5D6E7F8", "9G0H1I2", "3J4K5L6"]
+            res1 = test_col_with_nums_and_letters.text_cleanse [Text_Cleanse.Numbers]
+            res2 = test_col_with_nums_and_letters.text_cleanse [Text_Cleanse.Letters]
+            res3 = test_col_with_nums_and_letters.text_cleanse [Text_Cleanse.Letters, Text_Cleanse.Numbers]
+            res1.should_equal (Column.from_vector "Test" ["ABC", "DEF", "GHI", "JKL"])
+            res2.should_equal (Column.from_vector "Test" ["1234", "5678", "9012", "3456"])
+            res3.should_equal (Column.from_vector "Test" ["", "", "", ""])
+        group_builder.specify "should remove punctuation" <|
+            test_col_with_punctuation = Column.from_vector "Test" ['Hello, World!', 'How are you?', ',.!?():;\'"']
+            res = test_col_with_punctuation.text_cleanse [Text_Cleanse.Punctuation]
+            res.should_equal (Column.from_vector "Test" ["Hello World", "How are you", ""])
+        group_builder.specify "should remove symbols" <|
+            test_col_with_symbols = Column.from_vector "Test" ['Hello, World123!', 'How_are_you?', ',.!?():;\'"', '🥇🕒🕒']
+            res = test_col_with_symbols.text_cleanse [Text_Cleanse.Symbols]
+            res.should_equal (Column.from_vector "Test" ["Hello World123", "Howareyou", "", ""])
+        group_builder.specify "should error if applied to non-text column" <|
+            test_col_num = Column.from_vector "Test" [1, 2, 3, 4]
+            test_col_num.text_cleanse [Text_Cleanse.Numbers] . should_fail_with Invalid_Value_Type
+        group_builder.specify "should apply the operations in order" <|
+            test_col_with_mixed_chars = Column.from_vector "Test" ["  11String with Leading Spaces then Leading Numbers", "22  String with Leading Numbers then Leading Spaces"]
+            res1 = test_col_with_mixed_chars.text_cleanse [Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
+            res2 = test_col_with_mixed_chars.text_cleanse [Text_Cleanse.Leading_Numbers, Text_Cleanse.Leading_Whitespace]
+            res3 = test_col_with_mixed_chars.text_cleanse [Text_Cleanse.Leading_Numbers, Text_Cleanse.Leading_Whitespace, Text_Cleanse.Leading_Numbers]
+            expected_col1 = Column.from_vector "Test" ["String with Leading Spaces then Leading Numbers", "  String with Leading Numbers then Leading Spaces"]
+            expected_col2 = Column.from_vector "Test" ["11String with Leading Spaces then Leading Numbers", "String with Leading Numbers then Leading Spaces"]
+            expected_col3 = Column.from_vector "Test" ["String with Leading Spaces then Leading Numbers", "String with Leading Numbers then Leading Spaces"]
+            res1.should_equal expected_col1
+            res2.should_equal expected_col2
+            res3.should_equal expected_col3

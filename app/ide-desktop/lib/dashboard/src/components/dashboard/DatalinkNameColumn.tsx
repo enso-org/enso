@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
-import ConnectorIcon from 'enso-assets/connector.svg'
+import DatalinkIcon from 'enso-assets/datalink.svg'
 
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -23,25 +23,25 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import Visibility from '#/utilities/Visibility'
 
-// =====================
-// === ConnectorName ===
-// =====================
+// ====================
+// === DatalinkName ===
+// ====================
 
-/** Props for a {@link DataLinkNameColumn}. */
-export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
+/** Props for a {@link DatalinkNameColumn}. */
+export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
 
-/** The icon and name of a {@link backendModule.DataLinkAsset}.
- * @throws {Error} when the asset is not a {@link backendModule.DataLinkAsset}.
+/** The icon and name of a {@link backendModule.DatalinkAsset}.
+ * @throws {Error} when the asset is not a {@link backendModule.DatalinkAsset}.
  * This should never happen. */
-export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
+export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  if (item.type !== backendModule.AssetType.dataLink) {
+  if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
-    throw new Error('`DataLinkNameColumn` can only display Data Links.')
+    throw new Error('`DatalinkNameColumn` can only display Datalinks.')
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
@@ -90,16 +90,16 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
           // are handled by `AssetRow`.
           break
         }
-        case AssetEventType.newDataLink: {
+        case AssetEventType.newDatalink: {
           if (item.key === event.placeholderId) {
             if (backend.type !== backendModule.BackendType.remote) {
-              toastAndLog('localBackendDataLinkError')
+              toastAndLog('localBackendDatalinkError')
             } else {
               rowState.setVisibility(Visibility.faded)
               try {
-                const { id } = await backend.createConnector({
+                const { id } = await backend.createDatalink({
                   parentDirectoryId: asset.parentId,
-                  connectorId: null,
+                  datalinkId: null,
                   name: asset.title,
                   value: event.value,
                 })
@@ -107,7 +107,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
                 setAsset(object.merger({ id }))
               } catch (error) {
                 dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-                toastAndLog('createDataLinkError', error)
+                toastAndLog('createDatalinkError', error)
               }
             }
           }
@@ -145,7 +145,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         }
       }}
     >
-      <img src={ConnectorIcon} className="m-name-column-icon size-icon" />
+      <img src={DatalinkIcon} className="m-name-column-icon size-icon" />
       <EditableSpan
         editable={false}
         onSubmit={async newTitle => {
