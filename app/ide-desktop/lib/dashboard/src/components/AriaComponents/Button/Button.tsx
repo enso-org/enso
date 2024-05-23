@@ -52,9 +52,7 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
-
   readonly children?: React.ReactNode
-
   readonly testId?: string
 }
 
@@ -63,7 +61,7 @@ export const BUTTON_STYLES = twv.tv({
   variants: {
     isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
     isFocused: {
-      true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary',
+      true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
     },
     loading: { true: { base: 'cursor-wait', content: 'opacity-0' } },
     fullWidth: { true: 'w-full' },
@@ -87,22 +85,22 @@ export const BUTTON_STYLES = twv.tv({
     },
     variant: {
       custom: 'focus-visible:outline-offset-2',
-      link: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary focus-visible:outline-offset-0',
-      primary: 'bg-primary text-white hover:bg-primary/70 focus-visible:outline-offset-2',
-      tertiary: 'bg-share text-white hover:bg-share/90 focus-visible:outline-offset-2',
-      cancel: 'bg-white/50 hover:bg-white focus-visible:outline-offset-2',
-      delete: 'bg-danger text-white focus-visible:outline-offset-2',
+      link: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary',
+      primary: 'bg-primary text-white hover:bg-primary/70',
+      tertiary: 'bg-share text-white hover:bg-share/90',
+      cancel: 'bg-white/50 hover:bg-white',
+      delete:
+        'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-offset-0',
+        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         icon: 'w-fit h-fit',
       },
       ghost:
         'opacity-80 hover:opacity-100 hover:bg-white focus-visible:opacity-100 focus-visible:bg-white',
-      submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      outline:
-        'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',
+      submit: 'bg-invite text-white opacity-80 hover:opacity-100',
+      outline: 'border-primary/40 text-primary font-bold hover:border-primary/90',
     },
     iconPosition: {
       start: { content: '' },
@@ -131,6 +129,8 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: false,
   },
   compoundVariants: [
+    { variant: 'icon', isFocused: true, class: 'focus-visible:outline-offset-0' },
+    { variant: 'link', isFocused: true, class: 'focus-visible:outline-offset-0' },
     { variant: 'icon', size: 'xxsmall', class: 'p-0.5 rounded-full', iconOnly: true },
     { variant: 'icon', size: 'xsmall', class: 'p-1 rounded-full', iconOnly: true },
     { variant: 'icon', size: 'small', class: 'p-1 rounded-full', iconOnly: true },
