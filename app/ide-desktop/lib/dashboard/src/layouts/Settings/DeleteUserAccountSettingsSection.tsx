@@ -9,7 +9,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
 
