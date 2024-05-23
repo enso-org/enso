@@ -220,14 +220,3 @@ declare global {
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_VITE: boolean
 }
-
-declare namespace React {
-    /**
-     * HTML attributes that are used by the IDE.
-     */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-restricted-syntax
-    interface HTMLAttributes<T> {
-        popovertarget?: string
-        popover?: string
-    }
-}
