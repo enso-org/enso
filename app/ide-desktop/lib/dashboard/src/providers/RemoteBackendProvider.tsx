@@ -1,19 +1,18 @@
 import React from 'react'
 
+import invariant from 'tiny-invariant'
+
+import * as authProvider from '#/providers/AuthProvider'
+import * as loggerProvider from '#/providers/LoggerProvider'
+import * as textProvider from '#/providers/TextProvider'
+
 import RemoteBackend from '#/services/RemoteBackend'
 
 import HttpClient from '#/utilities/HttpClient'
 
-import * as authProvider from './AuthProvider'
-import * as loggerProvider from './LoggerProvider'
-import * as textProvider from './TextProvider'
-
-// as `backend` will always be accessed using `useRemoteBackend`.
 const RemoteBackendContext = React.createContext<RemoteBackend | null>(null)
 
-/**
- * A React Provider that lets components get the current remote backend with current user session.
- */
+/** A React Provider that lets components get the current remote backend with current user session. */
 export default function RemoteBackendProvider(props: React.PropsWithChildren) {
   const { session } = authProvider.useAuth()
   const { getText } = textProvider.useText()
@@ -34,4 +33,11 @@ export default function RemoteBackendProvider(props: React.PropsWithChildren) {
 /** Exposes a property to get the a remote backend using current session data. */
 export function useRemoteBackend() {
   return React.useContext(RemoteBackendContext)
+}
+
+/** Exposes a property to get the a remote backend using current session data. */
+export function useStrictRemoteBackend() {
+  const backend = useRemoteBackend()
+  invariant(backend != null, 'Remote backend not provided.')
+  return backend
 }

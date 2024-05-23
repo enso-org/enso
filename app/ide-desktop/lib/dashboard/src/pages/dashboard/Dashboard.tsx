@@ -13,6 +13,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as remoteBackendProvider from '#/providers/RemoteBackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -370,6 +371,7 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [inputBindings])
 
+  const remoteBackend = remoteBackendProvider.useStrictRemoteBackend()
   const setBackendType = React.useCallback(
     (newBackendType: backendModule.BackendType) => {
       if (newBackendType !== backend.type) {
@@ -381,10 +383,7 @@ export default function Dashboard(props: DashboardProps) {
             break
           }
           case backendModule.BackendType.remote: {
-            const client = new HttpClient([
-              ['Authorization', `Bearer ${session.accessToken ?? ''}`],
-            ])
-            setBackend(new RemoteBackend(client, logger, getText))
+            setBackend(remoteBackend)
             break
           }
         }
@@ -392,9 +391,7 @@ export default function Dashboard(props: DashboardProps) {
     },
     [
       backend.type,
-      session.accessToken,
-      logger,
-      getText,
+      remoteBackend,
       /* should never change */ projectManagerUrl,
       /* should never change */ projectManagerRootDirectory,
       /* should never change */ setBackend,

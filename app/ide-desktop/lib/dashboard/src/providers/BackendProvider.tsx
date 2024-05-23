@@ -2,6 +2,8 @@
  * provider via the shared React context. */
 import * as React from 'react'
 
+import invariant from 'tiny-invariant'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 
 import * as backendModule from '#/services/Backend'
@@ -37,7 +39,6 @@ export interface BackendContextType {
   readonly setBackendWithoutSavingType: (backend: Backend) => void
 }
 
-// as `backend` will always be accessed using `useBackend`.
 const BackendContext = React.createContext<BackendContextType | null>(null)
 
 /** Props for a {@link BackendProvider}. */
@@ -69,20 +70,20 @@ export default function BackendProvider(props: BackendProviderProps) {
   )
 }
 
-function useBackendContext() {
+function useStrictBackendContext() {
   const ctx = React.useContext(BackendContext)
-  if (ctx == null) throw new Error(`Backend not provided.`)
+  invariant(ctx != null, 'Backend not provided.')
   return ctx
 }
 
 /** Exposes a property to get the current backend. */
 export function useBackend() {
-  const { backend } = useBackendContext()
+  const { backend } = useStrictBackendContext()
   return { backend }
 }
 
 /** Exposes a property to set the current backend. */
 export function useSetBackend() {
-  const { setBackend, setBackendWithoutSavingType } = useBackendContext()
+  const { setBackend, setBackendWithoutSavingType } = useStrictBackendContext()
   return { setBackend, setBackendWithoutSavingType }
 }

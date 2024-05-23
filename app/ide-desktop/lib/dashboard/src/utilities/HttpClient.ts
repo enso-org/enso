@@ -43,57 +43,77 @@ export default class HttpClient {
 
   /** Send an HTTP GET request to the specified URL. */
   get<T = void>(url: string) {
-    return this.request<T>(HttpMethod.get, url)
+    return this.request<T>({ method: HttpMethod.get, url })
   }
 
   /** Send a JSON HTTP POST request to the specified URL. */
-  post<T = void>(url: string, payload: object, keepalive = false) {
-    return this.request<T>(
-      HttpMethod.post,
+  post<T = void>(url: string, payload: object, options?: { keepalive?: boolean }) {
+    return this.request<T>({
+      method: HttpMethod.post,
       url,
-      JSON.stringify(payload),
-      'application/json',
-      keepalive
-    )
+      payload: JSON.stringify(payload),
+      mimetype: 'application/json',
+      keepalive: options?.keepalive ?? false,
+    })
   }
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
   async postBinary<T = void>(url: string, payload: Blob) {
-    return await this.request<T>(HttpMethod.post, url, payload, 'application/octet-stream')
+    return await this.request<T>({
+      method: HttpMethod.post,
+      url,
+      payload,
+      mimetype: 'application/octet-stream',
+    })
   }
 
   /** Send a JSON HTTP PATCH request to the specified URL. */
   patch<T = void>(url: string, payload: object) {
-    return this.request<T>(HttpMethod.patch, url, JSON.stringify(payload), 'application/json')
+    return this.request<T>({
+      method: HttpMethod.patch,
+      url,
+      payload: JSON.stringify(payload),
+      mimetype: 'application/json',
+    })
   }
 
   /** Send a JSON HTTP PUT request to the specified URL. */
   put<T = void>(url: string, payload: object) {
-    return this.request<T>(HttpMethod.put, url, JSON.stringify(payload), 'application/json')
+    return this.request<T>({
+      method: HttpMethod.put,
+      url,
+      payload: JSON.stringify(payload),
+      mimetype: 'application/json',
+    })
   }
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
   async putBinary<T = void>(url: string, payload: Blob) {
-    return await this.request<T>(HttpMethod.put, url, payload, 'application/octet-stream')
+    return await this.request<T>({
+      method: HttpMethod.put,
+      url,
+      payload,
+      mimetype: 'application/octet-stream',
+    })
   }
 
   /** Send an HTTP DELETE request to the specified URL. */
   delete<T = void>(url: string) {
-    return this.request<T>(HttpMethod.delete, url)
+    return this.request<T>({ method: HttpMethod.delete, url })
   }
 
   /** Execute an HTTP request to the specified URL, with the given HTTP method.
    * @throws {Error} if the HTTP request fails. */
-  private async request<T = void>(
-    method: HttpMethod,
-    url: string,
-    payload?: BodyInit,
-    mimetype?: string,
-    keepalive = false
-  ) {
+  private async request<T = void>(options: {
+    method: HttpMethod
+    url: string
+    payload?: BodyInit
+    mimetype?: string
+    keepalive?: boolean
+  }) {
     const headers = new Headers(this.defaultHeaders)
-    if (payload != null) {
-      const contentType = mimetype ?? 'application/json'
+    if (options.payload != null) {
+      const contentType = options?.mimetype ?? 'application/json'
       headers.set('Content-Type', contentType)
     }
 
@@ -101,11 +121,11 @@ export default class HttpClient {
       // This is an UNSAFE type assertion, however this is a HTTP client
       // and should only be used to query APIs with known response types.
       // eslint-disable-next-line no-restricted-syntax
-      const response = (await fetch(url, {
-        method,
+      const response = (await fetch(options.url, {
+        method: options.method,
         headers,
-        keepalive,
-        ...(payload != null ? { body: payload } : {}),
+        keepalive: options?.keepalive ?? false,
+        ...(options.payload != null ? { body: options.payload } : {}),
       })) as ResponseWithTypedJson<T>
       document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
       return response

@@ -18,8 +18,6 @@ import * as types from '../../../types/types'
 
 /** The horizontal offset of the editor's top bar from the left edge of the window. */
 const TOP_BAR_X_OFFSET_PX = 96
-/** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
 
 // =================
 // === Component ===

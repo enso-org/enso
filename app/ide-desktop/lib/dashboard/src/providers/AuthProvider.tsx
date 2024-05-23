@@ -255,6 +255,9 @@ export default function AuthProvider(props: AuthProviderProps) {
     return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_app', 'close_app')
   }, [])
 
+  // This is a duplication of `RemoteBackendProvider`, but we cannot use it here, as it would
+  // introduce a cyclic dependency between two providers (`BackendProvider` uses `AuthProvider`).
+  // FIXME: Refactor `remoteBackend` dependant things out of the `AuthProvider`.
   const remoteBackend = React.useMemo(() => {
     if (session) {
       const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
@@ -265,11 +268,11 @@ export default function AuthProvider(props: AuthProviderProps) {
   React.useEffect(() => {
     if (remoteBackend) {
       remoteBackend.logEvent('open_app')
-      const onBeforeUnload = () => remoteBackend.logEvent('close_app')
-      window.addEventListener('beforeunload', onBeforeUnload)
+      const logCloseEvent = () => remoteBackend.logEvent('close_app')
+      window.addEventListener('beforeunload', logCloseEvent)
       return () => {
-        window.removeEventListener('beforeunload', onBeforeUnload)
-        onBeforeUnload()
+        window.removeEventListener('beforeunload', logCloseEvent)
+        logCloseEvent()
       }
     }
   }, [remoteBackend])

@@ -984,14 +984,20 @@ export default class RemoteBackend extends Backend {
   /** Log an event that will be visible in the organization audit log. */
   async logEvent(message: string, projectId?: string | undefined, metadata?: object) {
     const path = remoteBackendPaths.POST_LOG_EVENT_PATH
-    const response = await this.post(path, {
-      message,
-      projectId,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        ...(metadata ?? {}),
+    const response = await this.post(
+      path,
+      {
+        message,
+        projectId,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          ...(metadata ?? {}),
+        },
       },
-    })
+      {
+        keepalive: true,
+      }
+    )
     if (!responseIsSuccessful(response)) {
       return this.throw(response, 'logEventBackendError', message)
     }
@@ -1021,8 +1027,8 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  private post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+  private post<T = void>(path: string, payload: object, options?: { keepalive?: boolean }) {
+    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload, options)
   }
 
   /** Send a binary HTTP POST request to the given path. */

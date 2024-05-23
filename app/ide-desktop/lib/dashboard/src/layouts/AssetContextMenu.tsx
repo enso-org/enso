@@ -8,8 +8,8 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as remoteBackendProvider from '#/providers/RemoteBackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -31,9 +31,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
-import RemoteBackend from '#/services/RemoteBackend'
 
-import HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -66,10 +64,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { doCreateLabel } = state
 
-  const logger = loggerProvider.useLogger()
-  const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const remoteBackend = remoteBackendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
@@ -202,12 +200,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="uploadToCloud"
             doAction={async () => {
               unsetModal()
-              if (accessToken == null) {
+              if (remoteBackend == null) {
                 toastAndLog('offlineUploadFilesError')
               } else {
                 try {
-                  const client = new HttpClient([['Authorization', `Bearer ${accessToken}`]])
-                  const remoteBackend = new RemoteBackend(client, logger, getText)
                   const projectResponse = await fetch(
                     `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`
                   )
