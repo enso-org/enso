@@ -48,6 +48,7 @@ export default function Settings() {
   const root = portal.useStrictPortalContext()
   const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
+
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
     id: user?.organizationId ?? backendModule.OrganizationId(''),
     name: null,
@@ -55,6 +56,7 @@ export default function Settings() {
     website: null,
     address: null,
     picture: null,
+    subscription: {},
   }))
 
   React.useEffect(() => {
