@@ -30,6 +30,9 @@ const TEXT_STYLE = twv.tv({
       disabled: 'text-primary/30',
       invert: 'text-white',
     },
+    // we use custom padding for the text variants to make sure the text is aligned with the grid
+    // leading is also adjusted to make sure the text is aligned with the grid
+    // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
       body: 'pt-[1px] pb-[3px] text-xs leading-[20px]',
@@ -43,6 +46,9 @@ const TEXT_STYLE = twv.tv({
       extraBold: 'font-extrabold',
       normal: 'font-normal',
       thin: 'font-thin',
+    },
+    balance: {
+      true: 'text-balance',
     },
     transform: {
       none: '',
@@ -77,6 +83,7 @@ const TEXT_STYLE = twv.tv({
     nowrap: false,
     monospace: false,
   },
+  compoundVariants: [{ variant: 'h1', class: 'font-bold' }],
 })
 
 /**
@@ -99,6 +106,7 @@ export const Text = React.forwardRef(function Text(
     lineClamp = 1,
     children,
     color = 'primary',
+    balance,
     ...ariaProps
   } = props
 
@@ -114,6 +122,7 @@ export const Text = React.forwardRef(function Text(
     truncate,
     color,
     className,
+    balance,
   })
 
   const tooltipTextClasses = TEXT_STYLE({
@@ -122,6 +131,7 @@ export const Text = React.forwardRef(function Text(
     transform,
     monospace,
     italic,
+    balance,
     className: 'pointer-events-none',
   })
 

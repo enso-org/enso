@@ -6,8 +6,6 @@
 
 import * as React from 'react'
 
-import clsx from 'clsx'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -34,7 +32,7 @@ export function useVisualTooltip(props: VisualTooltipProps) {
   const popoverRef = React.useRef<HTMLDivElement>(null)
   const id = React.useId()
 
-  const { hoverProps } = aria.useHover({
+  const { hoverProps, isHovered } = aria.useHover({
     onHoverStart: () => {
       if (targetRef.current && popoverRef.current) {
         const isOverflowing =
@@ -45,7 +43,6 @@ export function useVisualTooltip(props: VisualTooltipProps) {
           React.startTransition(() => {
             setShowTooltip(true)
             popoverRef.current?.showPopover()
-            updatePosition()
           })
         }
       }
@@ -59,27 +56,33 @@ export function useVisualTooltip(props: VisualTooltipProps) {
     isDisabled,
   })
 
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  const { overlayProps, updatePosition } = aria.useOverlayPosition({
+  const { overlayProps } = aria.useOverlayPosition({
     overlayRef: popoverRef,
     targetRef,
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    offset: 6,
+    isOpen: isHovered,
   })
 
   return {
     targetProps: aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(hoverProps, { id }),
-    tooltip: (
-      <div
+    tooltip: isDisabled ? null : (
+      <span
         id={id}
         ref={popoverRef}
-        className={ariaComponents.TOOLTIP_STYLES({
-          className: clsx(className, { hidden: !showTooltip || isDisabled }),
-        })}
+        className={ariaComponents.TOOLTIP_STYLES({ className })}
         // @ts-expect-error popover attribute does not exist on React.HTMLAttributes yet
         popover=""
+        aria-hidden="true"
+        role="presentation"
         {...overlayProps}
+        style={{
+          ...overlayProps.style,
+          visibility: showTooltip ? 'visible' : 'hidden',
+        }}
       >
         {children}
-      </div>
+      </span>
     ),
   }
 }
