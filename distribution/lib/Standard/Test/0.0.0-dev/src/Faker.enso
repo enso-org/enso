@@ -38,7 +38,7 @@ type Faker
        - template: Vector of vectors that represent the possible characters for each
          letter, as UTF-16 code units.
 
-       > Examples:
+       > Example
          Creates a fake UK National Insurance number:
 
                 l = "ABCEGHJKLMNOPRSTWXYZ".char_vector

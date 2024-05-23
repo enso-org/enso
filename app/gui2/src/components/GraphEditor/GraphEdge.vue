@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { isConnected, useGraphStore, type Edge } from '@/stores/graph'
+import type { Edge } from '@/stores/graph'
+import { isConnected, useGraphStore } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -20,33 +21,41 @@ const props = defineProps<{
 
 const base = ref<SVGPathElement>()
 
+const mouseAnchor = computed(() => 'anchor' in props.edge && props.edge.anchor.type === 'mouse')
+const mouseAnchorPos = computed(() => (mouseAnchor.value ? navigator?.sceneMousePos : undefined))
+const hoveredNode = computed(() => (mouseAnchor.value ? selection?.hoveredNode : undefined))
+const hoveredPort = computed(() => (mouseAnchor.value ? selection?.hoveredPort : undefined))
+
+const connectedSourceNode = computed(
+  () => props.edge.source && graph.db.getPatternExpressionNodeId(props.edge.source),
+)
+
 const sourceNode = computed(() => {
-  const setSource = props.edge.source
-  if (setSource != null) {
-    return graph.db.getPatternExpressionNodeId(setSource)
-  } else {
+  if (connectedSourceNode.value) {
+    return connectedSourceNode.value
+  } else if (hoveredNode.value != null && props.edge.target) {
     // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
     // as the source, as long as it is not from the same node as the target.
-    if (selection?.hoveredNode != null) {
-      const rawTargetNode = props.edge.target && graph.getPortNodeId(props.edge.target)
-      if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
-    }
+    const rawTargetNode = graph.getPortNodeId(props.edge.target)
+    if (hoveredNode.value != rawTargetNode) return hoveredNode.value
   }
   return undefined
 })
 
 const targetExpr = computed(() => {
   const setTarget = props.edge.target
-  // When the target is not set (i.e. edge is dragged), use the currently hovered over expression
-  // as the target, as long as it is not from the same node as the source.
-  if (setTarget == null && selection?.hoveredNode != null) {
-    if (selection.hoveredNode != props.edge.source) return selection.hoveredPort
+  if (setTarget) {
+    return setTarget
+  } else if (hoveredNode.value != null && hoveredNode.value !== connectedSourceNode.value) {
+    // When the target is not set (i.e. edge is dragged), use the currently hovered over expression
+    // as the target, as long as it is not from the same node as the source.
+    return hoveredPort.value
   }
-  return setTarget
+  return undefined
 })
 
 const targetNode = computed(
-  () => targetExpr.value && (graph.getPortNodeId(targetExpr.value) ?? selection?.hoveredNode),
+  () => targetExpr.value && (graph.getPortNodeId(targetExpr.value) ?? hoveredNode.value),
 )
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
@@ -58,8 +67,10 @@ const targetPos = computed<Vec2 | undefined>(() => {
     const yAdjustment =
       targetIsSelfArgument.value ? -(selfArgumentArrowHeight + selfArgumentArrowYOffset) : 0
     return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, yAdjustment))
-  } else if (navigator?.sceneMousePos != null) {
-    return navigator.sceneMousePos
+  } else if (mouseAnchorPos.value != null) {
+    return mouseAnchorPos.value
+  } else if ('anchor' in props.edge && props.edge.anchor.type === 'fixed') {
+    return props.edge.anchor.scenePos
   } else {
     return undefined
   }
@@ -72,8 +83,13 @@ const sourceNodeRect = computed<Rect | undefined>(() => {
 const sourceRect = computed<Rect | undefined>(() => {
   if (sourceNodeRect.value) {
     return sourceNodeRect.value
-  } else if (navigator?.sceneMousePos != null) {
-    return new Rect(navigator.sceneMousePos, Vec2.Zero)
+  } else if (
+    'anchor' in props.edge &&
+    props.edge.anchor.type === 'mouse' &&
+    props.edge.target != null &&
+    mouseAnchorPos.value != null
+  ) {
+    return new Rect(mouseAnchorPos.value, Vec2.Zero)
   } else {
     return undefined
   }
@@ -102,10 +118,11 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   return { id, rect, radius }
 })
 
-const edgeColor = computed(
-  () =>
-    (targetNode.value && graph.db.getNodeColorStyle(targetNode.value)) ??
-    (sourceNode.value && graph.db.getNodeColorStyle(sourceNode.value)),
+const edgeColor = computed(() =>
+  'color' in props.edge ? props.edge.color
+  : targetNode.value ? graph.db.getNodeColorStyle(targetNode.value)
+  : sourceNode.value ? graph.db.getNodeColorStyle(sourceNode.value)
+  : undefined,
 )
 
 /** The inputs to the edge state computation. */
@@ -440,6 +457,7 @@ const backwardEdgeArrowTransform = computed<string | undefined>(() => {
 })
 
 const targetIsSelfArgument = computed(() => {
+  if ('targetIsSelfArgument' in props.edge && props.edge?.targetIsSelfArgument) return true
   if (!targetExpr.value) return
   const nodeId = graph.getPortNodeId(targetExpr.value)
   if (!nodeId) return

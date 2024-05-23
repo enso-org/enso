@@ -19,6 +19,8 @@ import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
+import * as errorBoundary from '#/components/ErrorBoundary'
+import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
 
@@ -35,8 +37,11 @@ export default function Settings() {
   const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTab.account,
-    (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
+    (value): value is SettingsTab => {
+      return array.includes(Object.values(SettingsTab), value)
+    }
   )
+
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
@@ -67,7 +72,7 @@ export default function Settings() {
     })()
   }, [sessionType, backend])
 
-  let content: JSX.Element
+  let content: React.JSX.Element
   switch (settingsTab) {
     case SettingsTab.account: {
       content = <AccountSettingsTab />
@@ -136,7 +141,11 @@ export default function Settings() {
           settingsTab={settingsTab}
           setSettingsTab={setSettingsTab}
         />
-        {content}
+        <errorBoundary.ErrorBoundary>
+          <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
+            {content}
+          </React.Suspense>
+        </errorBoundary.ErrorBoundary>
       </div>
     </div>
   )

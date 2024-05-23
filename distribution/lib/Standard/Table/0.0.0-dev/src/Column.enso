@@ -2310,7 +2310,7 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Standard.Base.Selections
        ICON parse3
        Creates a new Column with the specified range of rows from the input
@@ -2323,7 +2323,7 @@ type Column
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Standard.Base.Selections
        ICON parse3
        Creates a new Column from the input with the specified range of rows

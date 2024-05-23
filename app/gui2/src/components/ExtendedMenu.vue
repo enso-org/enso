@@ -48,7 +48,12 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
 </script>
 
 <template>
-  <div ref="buttonElement" class="ExtendedMenu" @click.stop="toggleDropdown">
+  <div
+    ref="buttonElement"
+    class="ExtendedMenu"
+    title="Additional Options"
+    @click.stop="toggleDropdown"
+  >
     <SvgIcon name="3_dot_menu" class="moreIcon" />
   </div>
   <Transition name="dropdown">
@@ -59,16 +64,21 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
           <SvgButton
             class="zoomButton"
             name="minus"
-            title="Decrease zoom"
+            title="Decrease Zoom"
             @click="emit('zoomOut')"
           />
           <span
             class="zoomScaleLabel"
             v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
           ></span>
-          <SvgButton class="zoomButton" name="add" title="Increase zoom" @click="emit('zoomIn')" />
+          <SvgButton class="zoomButton" name="add" title="Increase Zoom" @click="emit('zoomIn')" />
           <div class="divider"></div>
-          <SvgButton name="show_all" class="showAllIcon" @click="emit('fitToAllClicked')" />
+          <SvgButton
+            name="show_all"
+            class="showAllIcon"
+            title="Show All Components"
+            @click="emit('fitToAllClicked')"
+          />
         </div>
       </div>
       <div

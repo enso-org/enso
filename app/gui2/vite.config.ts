@@ -12,7 +12,6 @@ import { defineConfig, type Plugin } from 'vite'
 // @ts-expect-error
 import * as tailwindConfig from 'enso-dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
-const localServerPort = 8080
 const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
@@ -60,7 +59,7 @@ export default defineConfig({
     },
   },
   define: {
-    ...getDefines(localServerPort),
+    ...getDefines(),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
     YDOC_SERVER_URL: IS_POLYGLOT_YDOC_SERVER ? JSON.stringify('defined') : undefined,

@@ -3,6 +3,8 @@
  * Types for the Form component.
  */
 
+import type * as React from 'react'
+
 import type * as reactHookForm from 'react-hook-form'
 import type * as z from 'zod'
 
@@ -51,6 +53,8 @@ interface BaseFormProps<
   readonly onSubmitFailed?: (error: unknown) => Promise<void> | void
   readonly onSubmitSuccess?: () => Promise<void> | void
   readonly onSubmitted?: () => Promise<void> | void
+
+  readonly testId?: string
 }
 
 /**
@@ -63,7 +67,7 @@ interface FormPropsWithParentForm<
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues | undefined = undefined,
 > {
-  readonly form: components.UseFormReturn<TFieldValues, TTransformedValues>
+  readonly form?: components.UseFormReturn<TFieldValues, TTransformedValues>
   readonly schema?: never
   readonly formOptions?: never
 }
@@ -75,7 +79,7 @@ interface FormPropsWithParentForm<
 interface FormPropsWithOptions<TFieldValues extends components.FieldValues> {
   readonly form?: never
   readonly schema?: z.ZodObject<TFieldValues>
-  readonly formOptions: Omit<components.UseFormProps<TFieldValues>, 'resolver'>
+  readonly formOptions?: Omit<components.UseFormProps<TFieldValues>, 'resolver'>
 }
 
 /**
@@ -96,4 +100,8 @@ export interface FormStateRenderProps<TFieldValues extends components.FieldValue
    * Removes a field from the form state.
    */
   readonly unregister: reactHookForm.UseFormUnregister<TFieldValues>
+  readonly setValue: reactHookForm.UseFormSetValue<TFieldValues>
+  readonly getValues: reactHookForm.UseFormGetValues<TFieldValues>
+  readonly setError: reactHookForm.UseFormSetError<TFieldValues>
+  readonly clearErrors: reactHookForm.UseFormClearErrors<TFieldValues>
 }

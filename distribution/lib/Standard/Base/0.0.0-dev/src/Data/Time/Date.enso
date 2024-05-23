@@ -38,7 +38,7 @@ polyglot java import org.enso.base.Time_Utils
 ## PRIVATE
    Constructs a new Date from a year, month, and day.
 
-   Arguments
+   Arguments:
    - year: The year to represent.
    - month: The month-of-year to represent, from 1 (January) to 12 (December).
    - day: The day-of-month to represent, from 1 to 31. It must be valid for the
@@ -75,7 +75,7 @@ type Date
        ICON date_and_time
        Constructs a new Date from a year, month, and day.
 
-       Arguments
+       Arguments:
        - year: The year to represent.
        - month: The month-of-year to represent, from 1 (January) to 12 (December).
        - day: The day-of-month to represent, from 1 to 31. It must be valid for the
