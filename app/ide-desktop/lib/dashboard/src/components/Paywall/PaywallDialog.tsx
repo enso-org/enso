@@ -38,11 +38,11 @@ export function PaywallDialog(props: PaywallDialogProps) {
       <div className="flex flex-col">
         <components.PaywallLock feature={feature} className="mb-2" />
 
-        <p className="text-base text-primary/60">{getText(descriptionTextId)}</p>
+        <p className="text-base text-primary/70">{getText(descriptionTextId)}</p>
 
         <components.PaywallBulletPoints bulletPointsTextId={bulletPointsTextId} className="my-4" />
 
-        <upgradeButton.UpgradeButton feature={feature} rounding="xlarge" className="mt-2" />
+        <upgradeButton.UpgradeButton feature={feature} rounded="xlarge" className="mt-2" />
       </div>
     </ariaComponents.Dialog>
   )

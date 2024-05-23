@@ -40,7 +40,7 @@ export function PaywallBulletPoints(props: PaywallBulletPointsProps) {
     return (
       <ul
         className={tw.twMerge(
-          'm-0 flex w-full list-inside list-none flex-col gap-1 text-base',
+          'm-0 flex w-full list-inside list-none flex-col gap-1 text-base text-primary/70',
           className
         )}
       >

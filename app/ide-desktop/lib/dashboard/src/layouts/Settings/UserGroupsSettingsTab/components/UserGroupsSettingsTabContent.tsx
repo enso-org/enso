@@ -221,7 +221,7 @@ export function UserGroupsSettingsTabContent() {
                 feature="userGroupsFull"
                 variant="cancel"
                 size="medium"
-                rounding="full"
+                rounded="full"
                 iconPosition="end"
                 tooltip={getText('userGroupsPaywallMessage')}
               >
@@ -231,7 +231,7 @@ export function UserGroupsSettingsTabContent() {
               <div className="flex items-center gap-2">
                 <ariaComponents.Button
                   variant="cancel"
-                  rounding="full"
+                  rounded="full"
                   size="medium"
                   onPress={event => {
                     const placeholderId = backendModule.newPlaceholderUserGroupId()

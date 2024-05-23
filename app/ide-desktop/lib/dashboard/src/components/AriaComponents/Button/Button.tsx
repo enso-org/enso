@@ -16,8 +16,8 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link Button}. */
 export type ButtonProps =
-  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
-  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
+  | (BaseButtonProps & Omit<aria.ButtonProps, 'children' | 'onPress'> & PropsWithoutHref)
+  | (BaseButtonProps & Omit<aria.LinkProps, 'children' | 'onPress'> & PropsWithHref)
 
 /**
  * Props for a button with an href.
@@ -53,6 +53,8 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
 
+  readonly children?: React.ReactNode
+
   readonly testId?: string
 }
 
@@ -69,7 +71,7 @@ export const BUTTON_STYLES = twv.tv({
       custom: '',
       hero: 'px-8 py-4 text-lg',
       large: 'px-6 py-3 text-base',
-      medium: 'px-4 py-2 text-sm',
+      medium: { base: 'px-[7px] py-[3px] text-xs', text: 'pt-[1px] pb-[3px] leading-5' },
       small: 'px-3 py-1 text-xs',
       xsmall: 'px-2 py-1 text-xs',
       xxsmall: 'px-1.5 py-0.5 text-xs',
@@ -88,15 +90,16 @@ export const BUTTON_STYLES = twv.tv({
       link: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary focus-visible:outline-offset-0',
       primary: 'bg-primary text-white hover:bg-primary/70 focus-visible:outline-offset-2',
       tertiary: 'bg-share text-white hover:bg-share/90 focus-visible:outline-offset-2',
-      cancel: 'bg-selected-frame opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      delete: 'bg-delete text-white focus-visible:outline-offset-2',
+      cancel: 'bg-white/50 hover:bg-white focus-visible:outline-offset-2',
+      delete: 'bg-danger text-white focus-visible:outline-offset-2',
       icon: {
-        base: 'opacity-70 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-offset-0',
+        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-offset-0',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         icon: 'w-fit h-fit',
       },
-
+      ghost:
+        'opacity-80 hover:opacity-100 hover:bg-white focus-visible:opacity-100 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline:
         'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',
@@ -114,7 +117,8 @@ export const BUTTON_STYLES = twv.tv({
     wrapper: 'relative block',
     loader:
       'animate-appear-delayed absolute inset-0 flex items-center justify-center duration-1000',
-    content: 'flex items-center gap-[0.5em] delay-1000 duration-0',
+    content: 'flex items-center gap-[0.75em] delay-1000 duration-0',
+    text: '',
     icon: 'h-[1.5em] flex-none',
   },
   defaultVariants: {
@@ -194,6 +198,7 @@ export const Button = React.forwardRef(function Button(
     loader,
     extraClickZone,
     icon: iconClasses,
+    text,
   } = BUTTON_STYLES({
     isDisabled,
     loading: isLoading,
@@ -219,7 +224,7 @@ export const Button = React.forwardRef(function Button(
       return (
         <>
           {icon != null && <SvgMask src={icon} className={iconClasses()} />}
-          <>{children}</>
+          <span className={text()}>{children}</span>
         </>
       )
     }
