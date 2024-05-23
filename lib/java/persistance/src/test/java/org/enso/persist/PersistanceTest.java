@@ -248,4 +248,14 @@ public class PersistanceTest {
       current = next;
     }
   }
+
+  @Test
+  public void testNullReference() throws Exception {
+    var obj1 = new LongerLoop1(1, Persistance.Reference.none());
+
+    var loaded1 = serde(LongerLoop1.class, obj1, -1);
+
+    var r2 = loaded1.y().get(LongerLoop2.class);
+    assertSame("The reference points to null", null, r2);
+  }
 }
