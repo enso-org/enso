@@ -4,28 +4,32 @@ import { type UseFormatting } from '@/components/lexical/formatting'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { Icon } from '@/util/iconName'
-import { computed, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 
 const props = defineProps<{ formatting: UseFormatting }>()
+
+const menuOpen = ref(false)
 
 const { bold, italic, strikethrough, subscript, superscript, blockType, clearFormatting } =
   props.formatting
 
-function useEnumerationToggle<T>(current: Ref<T>, select: T, defaultValue: T) {
+function useValueEqualsConstant<T>(value: Ref<T>, constant: T, valueWhenSetToFalse: T) {
   return computed({
-    get: () => current.value === select,
-    set: (value) => {
-      if (value && current.value !== select) {
-        current.value = select
-      } else if (!value && current.value === select) {
-        current.value = defaultValue
+    get: () => value.value === constant,
+    set: (newValue) => {
+      if (newValue && value.value !== constant) {
+        value.value = constant
+      } else if (!newValue && value.value === constant) {
+        value.value = valueWhenSetToFalse
       }
     },
   })
 }
-const code = useEnumerationToggle(blockType, 'code', 'paragraph')
+const code = useValueEqualsConstant(blockType, 'code', 'paragraph')
 
 const TODO: Icon = 'text'
+
+const close = () => (menuOpen.value = false)
 </script>
 
 <template>
@@ -33,13 +37,23 @@ const TODO: Icon = 'text'
   <ToggleIcon v-model="italic" icon="italic" title="Italic" />
   <ToggleIcon v-model="code" :icon="TODO" title="Insert Code Block" />
   <!-- TODO: Insert link -->
-  <DropdownMenu>
+  <DropdownMenu v-model:open="menuOpen">
     <template #button>Aa</template>
     <template #entries>
-      <ToggleIcon v-model="strikethrough" icon="strike-through" label="Strikethrough" />
-      <ToggleIcon v-model="subscript" :icon="TODO" label="Subscript" />
-      <ToggleIcon v-model="superscript" :icon="TODO" label="Superscript" />
-      <SvgButton :name="TODO" label="Clear Formatting" @click.stop="clearFormatting" />
+      <ToggleIcon
+        v-model="strikethrough"
+        icon="strike-through"
+        label="Strikethrough"
+        @click="close"
+      />
+      <ToggleIcon v-model="subscript" :icon="TODO" label="Subscript" @click="close" />
+      <ToggleIcon v-model="superscript" :icon="TODO" label="Superscript" @click="close" />
+      <SvgButton
+        :name="TODO"
+        label="Clear Formatting"
+        @click.stop="clearFormatting"
+        @click="close"
+      />
     </template>
   </DropdownMenu>
 </template>
