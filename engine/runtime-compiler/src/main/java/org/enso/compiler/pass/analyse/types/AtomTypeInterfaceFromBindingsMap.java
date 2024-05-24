@@ -7,8 +7,17 @@ import org.enso.compiler.pass.analyse.types.util.ProxyList;
 import scala.jdk.javaapi.CollectionConverters$;
 
 /** Implementation of {@link AtomTypeInterface} that is built from a {@link BindingsMap.Type}. */
-record AtomTypeInterfaceFromBindingsMap(BindingsMap.Type type) implements AtomTypeInterface {
-  // needed for serialization
+public final class AtomTypeInterfaceFromBindingsMap implements AtomTypeInterface {
+  private final BindingsMap.Type type;
+
+  public AtomTypeInterfaceFromBindingsMap(BindingsMap.Type type) {
+    this.type = type;
+  }
+
+  // Needed for Persistable
+  public BindingsMap.Type type() {
+    return type;
+  }
 
   @Override
   public List<? extends Constructor> constructors() {
