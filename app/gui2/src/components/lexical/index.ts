@@ -30,7 +30,7 @@ export function useLexical(
       theme: {},
       nodes: [...nodes],
       onError: console.error,
-    })
+    }),
   )
 
   onMounted(() => {
