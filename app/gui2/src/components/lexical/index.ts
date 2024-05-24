@@ -1,6 +1,7 @@
 import { unrefElement, type MaybeElement } from '@vueuse/core'
 import {
   createEditor,
+  type EditorThemeClasses,
   type KlassConstructor,
   type LexicalEditor,
   type LexicalNode,
@@ -15,9 +16,36 @@ export interface LexicalPlugin {
   register: (editor: LexicalEditor) => void
 }
 
+export function lexicalTheme(theme: Record<string, string>): EditorThemeClasses {
+  function getTheme(className: string) {
+    if (!(className in theme))
+      console.warn(`Referenced class ${className} not found in lexical theme.`, theme)
+    return theme[className]!
+  }
+  return {
+    text: {
+      strikethrough: getTheme('strikethrough'),
+      italic: getTheme('italic'),
+      bold: getTheme('bold'),
+    },
+    quote: getTheme('quote'),
+    heading: {
+      h1: getTheme('h1'),
+      h2: getTheme('h2'),
+      h3: getTheme('h3'),
+    },
+    paragraph: getTheme('paragraph'),
+    list: {
+      ol: getTheme('ol'),
+      ul: getTheme('ul'),
+    },
+  }
+}
+
 export function useLexical(
   contentElement: Ref<MaybeElement>,
   namespace: string,
+  theme: EditorThemeClasses,
   plugins: LexicalPlugin[],
 ) {
   const nodes = new Set<NodeDefinition>()
@@ -27,12 +55,7 @@ export function useLexical(
     createEditor({
       editable: true,
       namespace,
-      theme: {
-        text: {
-          strikethrough: 'lexical-strikethrough',
-          italic: 'lexical-italic',
-        },
-      },
+      theme,
       nodes: [...nodes],
       onError: console.error,
     }),

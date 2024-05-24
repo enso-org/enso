@@ -1,0 +1,48 @@
+.h1 {
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.75;
+}
+.h2 {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.75;
+}
+.h3 {
+  font-size: 14px;
+  line-height: 2;
+}
+
+.strikethrough {
+  text-decoration: line-through;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.quote {
+  margin-left: 0.2em;
+  border-left: 0.3em solid #ccc;
+  padding-left: 1.6em;
+}
+
+.paragraph {
+  margin-bottom: 0.5em;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: 1.6em;
+}
+
+.ul {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 1.6em;
+}
