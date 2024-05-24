@@ -456,7 +456,7 @@ class App {
                     // "Accept", as the file won't be created immediately.
                     const { canceled, filePath } = await electron.dialog.showSaveDialog({
                         buttonLabel: 'Accept',
-                        ...(defaultPath ? { defaultPath } : {}),
+                        ...(defaultPath != null ? { defaultPath } : {}),
                     })
                     if (!canceled) {
                         retval = [filePath]
@@ -474,7 +474,7 @@ class App {
                                 : ['openFile']
                     const { canceled, filePaths } = await electron.dialog.showOpenDialog({
                         properties,
-                        ...(defaultPath ? { defaultPath } : {}),
+                        ...(defaultPath != null ? { defaultPath } : {}),
                     })
                     if (!canceled) {
                         retval = filePaths
