@@ -2321,7 +2321,7 @@ type Column
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
-        Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## ALIAS skip, remove
        GROUP Standard.Base.Selections

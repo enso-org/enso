@@ -1442,7 +1442,6 @@ type Builder
        - index: The location in the vector to get the element from. The index is
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
-    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
     at self index:Integer =
         actual_index = if index < 0 then self.length + index else index

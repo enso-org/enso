@@ -277,7 +277,6 @@ type Table
         java_column = case selector of
             _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
             _ : Text -> self.java_table.getColumnByName selector
-            _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if java_column.is_nothing then if_missing else Column.Value java_column
 
     ## ALIAS cell value, get cell
@@ -1571,7 +1570,7 @@ type Table
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
-        Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
 
     ## ALIAS skip, remove
        GROUP Standard.Base.Selections
