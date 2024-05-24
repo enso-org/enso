@@ -75,7 +75,7 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
   margin: 4px;
 }
 
-:deep(.DropdownMenuContent) {
+.ExtendedMenu :deep(.DropdownMenuContent) {
   width: 250px;
   margin-top: 2px;
   padding: 4px;
