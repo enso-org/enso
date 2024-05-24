@@ -7,6 +7,7 @@ import {
   type LexicalNode,
   type LexicalNodeReplacement,
 } from 'lexical'
+import { assertDefined } from 'shared/util/assert'
 import { markRaw, onMounted, type Ref } from 'vue'
 
 type NodeDefinition = KlassConstructor<typeof LexicalNode> | LexicalNodeReplacement
@@ -17,29 +18,27 @@ export interface LexicalPlugin {
 }
 
 export function lexicalTheme(theme: Record<string, string>): EditorThemeClasses {
-  function getTheme(className: string) {
-    if (!(className in theme))
-      console.warn(`Referenced class ${className} not found in lexical theme.`, theme)
-    return theme[className]!
+  interface EditorThemeShape extends Record<string, EditorThemeShape | string> {}
+  const editorClasses: EditorThemeShape = {}
+  for (const [classPath, className] of Object.entries(theme)) {
+    const path = classPath.split('_')
+    const leaf = path.pop()
+    // `split` will always return at least one value
+    assertDefined(leaf)
+    let obj = editorClasses
+    for (const section of path) {
+      const nextObj = (obj[section] ??= {})
+      if (typeof nextObj === 'string') {
+        console.warn(
+          `Lexical theme contained path '${classPath}', but path component '${section}' is a leaf.`,
+        )
+        continue
+      }
+      obj = nextObj
+    }
+    obj[leaf] = className
   }
-  return {
-    text: {
-      strikethrough: getTheme('strikethrough'),
-      italic: getTheme('italic'),
-      bold: getTheme('bold'),
-    },
-    quote: getTheme('quote'),
-    heading: {
-      h1: getTheme('h1'),
-      h2: getTheme('h2'),
-      h3: getTheme('h3'),
-    },
-    paragraph: getTheme('paragraph'),
-    list: {
-      ol: getTheme('ol'),
-      ul: getTheme('ul'),
-    },
-  }
+  return editorClasses
 }
 
 export function useLexical(
