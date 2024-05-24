@@ -202,6 +202,7 @@ export class ArgumentApplication {
     public target: ArgumentApplication | Ast.Ast | ArgumentPlaceholder | ArgumentAst,
     public infixOperator: Ast.Token | undefined,
     public argument: ArgumentAst | ArgumentPlaceholder,
+    public calledFunction: SuggestionEntry | undefined,
   ) {}
 
   private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
@@ -220,6 +221,7 @@ export class ArgumentApplication {
       argFor('lhs', 0),
       interpreted.operator,
       argFor('rhs', 1),
+      suggestion,
     )
   }
 
@@ -364,7 +366,13 @@ export class ArgumentApplication {
 
     return resolvedArgs.reduce(
       (target: ArgumentApplication | Ast.Ast, toDisplay) =>
-        new ArgumentApplication(toDisplay.appTree, target, undefined, toDisplay.argument),
+        new ArgumentApplication(
+          toDisplay.appTree,
+          target,
+          undefined,
+          toDisplay.argument,
+          suggestion,
+        ),
       interpreted.func,
     )
   }

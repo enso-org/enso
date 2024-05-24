@@ -48,7 +48,7 @@ export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
   readonly isDisabled?: boolean
   readonly className?: string
   readonly style?: React.CSSProperties
-  readonly onPress: (event: aria.PressEvent) => void
+  readonly onPress?: (event: aria.PressEvent) => void
 }
 
 /** An unstyled button with a focus ring and focus movement behavior. */

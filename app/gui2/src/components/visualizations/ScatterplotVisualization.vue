@@ -539,10 +539,10 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <SvgButton name="show_all" alt="Fit all" @click.stop="zoomToSelected(false)" />
+      <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
       <SvgButton
         name="find"
-        alt="Zoom to selected"
+        title="Zoom to Selected"
         :disabled="brushExtent == null"
         @click.stop="zoomToSelected"
       />

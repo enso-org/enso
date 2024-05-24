@@ -39,8 +39,17 @@ const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day': 'time',
 }
 
+export const DEFAULT_ICON = 'enso_logo'
+
 export function typeNameToIcon(typeName: string): Icon {
-  return typeNameToIconLookup[typeName] ?? 'enso_logo'
+  return typeNameToIconLookup[typeName] ?? DEFAULT_ICON
+}
+
+export function suggestionEntryToIcon(entry: SuggestionEntry) {
+  if (entry.iconName) return mapOldIconName(entry.iconName)
+  if (entry.kind === SuggestionKind.Local) return 'local_scope2'
+  if (entry.kind === SuggestionKind.Module) return 'collection'
+  return DEFAULT_ICON
 }
 
 export function displayedIconOf(
@@ -49,9 +58,10 @@ export function displayedIconOf(
   actualType?: Typename,
 ): Icon {
   if (entry) {
-    if (entry.iconName) return mapOldIconName(entry.iconName)
-    if (entry.kind === SuggestionKind.Local) return 'local_scope2'
-    if (entry.kind === SuggestionKind.Module) return 'collection'
-  } else if (!methodCall?.name && actualType) return typeNameToIcon(actualType)
-  return 'enso_logo'
+    return suggestionEntryToIcon(entry)
+  } else if (!methodCall?.name && actualType) {
+    return typeNameToIcon(actualType)
+  } else {
+    return DEFAULT_ICON
+  }
 }

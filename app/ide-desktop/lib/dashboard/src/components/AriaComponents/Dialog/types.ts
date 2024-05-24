@@ -2,7 +2,7 @@
 import type * as aria from '#/components/aria'
 
 /** The type of Dialog. */
-export type DialogType = 'fullscreen' | 'modal' | 'popover'
+export type DialogType = 'fullscreen' | 'modal'
 
 /** The type of close button for the Dialog.
  * Note that Dialogs with a title have a regular close button by default. */
@@ -20,6 +20,8 @@ export interface DialogProps extends aria.DialogProps {
   readonly onOpenChange?: (isOpen: boolean) => void
   readonly isKeyboardDismissDisabled?: boolean
   readonly modalProps?: Pick<aria.ModalOverlayProps, 'className' | 'defaultOpen' | 'isOpen'>
+
+  readonly testId?: string
 }
 
 /** The props for the DialogTrigger component. */

@@ -84,24 +84,18 @@ export default function UserBar(props: UserBarProps) {
           />
 
           {shouldShowInviteButton && (
-            <ariaComponents.Button
-              rounding="full"
-              size="xsmall"
-              variant="tertiary"
-              className="h-row"
-              onPress={event => {
-                const rect = event.target.getBoundingClientRect()
-                const position = { pageX: rect.left, pageY: rect.top }
-                setModal(<InviteUsersModal backend={backend} event={position} />)
-              }}
-            >
-              <aria.Text slot="label">{getText('invite')}</aria.Text>
-            </ariaComponents.Button>
+            <ariaComponents.DialogTrigger>
+              <ariaComponents.Button rounded="full" size="xsmall" variant="tertiary">
+                {getText('invite')}
+              </ariaComponents.Button>
+
+              <InviteUsersModal />
+            </ariaComponents.DialogTrigger>
           )}
 
           <ariaComponents.Button
             variant="primary"
-            rounding="full"
+            rounded="full"
             size="xsmall"
             className="h-row"
             href={appUtils.SUBSCRIBE_PATH}
@@ -110,7 +104,7 @@ export default function UserBar(props: UserBarProps) {
           </ariaComponents.Button>
           {shouldShowShareButton && (
             <ariaComponents.Button
-              rounding="full"
+              rounded="full"
               size="xsmall"
               variant="tertiary"
               className="h-row"

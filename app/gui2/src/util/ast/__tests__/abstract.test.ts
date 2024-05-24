@@ -369,6 +369,10 @@ const cases = [
   ['value = foo', '    bar'].join('\n'),
   ['value = foo', '    +x', '    bar'].join('\n'),
   ['###', ' x'].join('\n'),
+  '\n',
+  '\n\n',
+  '\na',
+  '\n\na',
 ]
 test.each(cases)('parse/print round trip: %s', (code) => {
   // Get an AST.

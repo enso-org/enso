@@ -72,8 +72,8 @@ export default class HttpClient {
   }
 
   /** Send an HTTP DELETE request to the specified URL. */
-  delete<T = void>(url: string) {
-    return this.request<T>(HttpMethod.delete, url)
+  delete<T = void>(url: string, payload?: Record<string, unknown>) {
+    return this.request<T>(HttpMethod.delete, url, JSON.stringify(payload))
   }
 
   /** Execute an HTTP request to the specified URL, with the given HTTP method.
