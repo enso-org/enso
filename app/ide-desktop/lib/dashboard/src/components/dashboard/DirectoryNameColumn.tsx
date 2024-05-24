@@ -168,7 +168,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }`}
         onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
-          setIsEditing(false)
         }}
       />
       <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />

@@ -78,8 +78,12 @@ export default function EditableSpan(props: EditableSpanProps) {
         className="flex grow"
         onSubmit={event => {
           event.preventDefault()
-          if (isSubmittable && inputRef.current != null) {
-            onSubmit(inputRef.current.value)
+          if (inputRef.current != null) {
+            if (isSubmittable) {
+              onSubmit(inputRef.current.value)
+            } else {
+              onCancel()
+            }
           }
         }}
       >
