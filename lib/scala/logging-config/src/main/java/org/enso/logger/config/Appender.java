@@ -70,7 +70,7 @@ public abstract sealed class Appender
   }
 
   public static final String defaultPattern =
-      "[%level] [%d{yyyy-MM-dd'T'HH:mm:ssXXX}] [%logger] %msg%n";
+      "[%level] [%d{yyyy-MM-dd'T'HH:mm:ss.SSS}] [%logger] %msg%n";
   protected static final String patternKey = "pattern";
   private static final String nameKey = "name";
 }

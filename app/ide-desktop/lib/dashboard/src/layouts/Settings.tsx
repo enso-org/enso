@@ -18,6 +18,8 @@ import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
+import * as errorBoundary from '#/components/ErrorBoundary'
+import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
 
@@ -43,6 +45,7 @@ export default function Settings(props: SettingsProps) {
     SettingsTab.account,
     array.includesPredicate(Object.values(SettingsTab))
   )
+
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const root = portal.useStrictPortalContext()
@@ -153,7 +156,11 @@ export default function Settings(props: SettingsProps) {
           settingsTab={settingsTab}
           setSettingsTab={setSettingsTab}
         />
-        {content}
+        <errorBoundary.ErrorBoundary>
+          <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
+            {content}
+          </React.Suspense>
+        </errorBoundary.ErrorBoundary>
       </div>
     </div>
   )

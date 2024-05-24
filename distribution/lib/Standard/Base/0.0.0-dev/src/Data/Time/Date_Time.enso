@@ -87,16 +87,16 @@ type Date_Time
     ## ICON date_and_time
        Obtains the start of the epoch for Enso.
 
-        ? Start of the epoch
-        For Enso, start of the epoch is equal to the start of the Gregorian calendar,
-        which is on 15th October 1582.
+       ? Start of the epoch
+       For Enso, start of the epoch is equal to the start of the Gregorian calendar,
+       which is on 15th October 1582.
 
-        Invoking some Gregorian calendar related functionalities, like `is_leap_year`,
-        is computed for all the date times, including those before an epoch start,
-        with today's rules. Trying to get some Gregorian calendar related properties
-        for a historical date times that is defined before the epoch is likely an error,
-        as the Gregorian calendar had not yet been introduced. Therefore, for such
-        historical date times, a warning is attached to the result.
+       Invoking some Gregorian calendar related functionalities, like `is_leap_year`,
+       is computed for all the date times, including those before an epoch start,
+       with today's rules. Trying to get some Gregorian calendar related properties
+       for a historical date times that is defined before the epoch is likely an error,
+       as the Gregorian calendar had not yet been introduced. Therefore, for such
+       historical date times, a warning is attached to the result.
     enso_epoch_start : Date_Time
     enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
 

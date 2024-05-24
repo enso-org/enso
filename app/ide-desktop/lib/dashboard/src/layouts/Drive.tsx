@@ -338,7 +338,7 @@ export default function Drive(props: DriveProps) {
             <ariaComponents.Button
               variant="primary"
               size="medium"
-              rounding="full"
+              rounded="full"
               data-testid="download-free-edition"
               onPress={async () => {
                 const downloadUrl = await github.getDownloadUrl()
