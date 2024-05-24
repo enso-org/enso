@@ -1434,8 +1434,7 @@ public class EnsoParserTest {
 
   @Test
   public void testEmptyBody() {
-    parseTest(
-        """
+    parseTest("""
     main =
     """);
   }
