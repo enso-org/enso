@@ -447,12 +447,15 @@ class App {
             ipc.Channel.openFileBrowser,
             async (_event, kind: 'default' | 'directory' | 'file' | 'filePath') => {
                 logger.log('Request for opening browser for ', kind)
+                let retval = null
                 if (kind === 'filePath') {
                     // "Accept", as the file won't be created immediately.
                     const { canceled, filePath } = await electron.dialog.showSaveDialog({
                         buttonLabel: 'Accept',
                     })
-                    if (!canceled) return [filePath]
+                    if (!canceled) {
+                        retval = [filePath]
+                    }
                 } else {
                     /** Helper for `showOpenDialog`, which has weird types by default. */
                     type Properties = ('openDirectory' | 'openFile')[]
@@ -467,9 +470,11 @@ class App {
                     const { canceled, filePaths } = await electron.dialog.showOpenDialog({
                         properties,
                     })
-                    if (!canceled) return filePaths
+                    if (!canceled) {
+                        retval = filePaths
+                    }
                 }
-                return null
+                return retval
             }
         )
 
