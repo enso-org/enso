@@ -3,13 +3,15 @@ import BlockTypeMenu from '@/components/lexical/BlockTypeMenu.vue'
 import FormatPropertiesBar from '@/components/lexical/FormatPropertiesBar.vue'
 import type { UseFormatting } from '@/components/lexical/formatting'
 
-const _props = defineProps<{ formatting: UseFormatting }>()
+const props = defineProps<{ formatting: UseFormatting }>()
+
+const { blockType } = props.formatting
 </script>
 
 <template>
   <div class="FormattingToolbar">
     <div class="section">
-      <BlockTypeMenu v-model="formatting.blockType.value" />
+      <BlockTypeMenu v-model="blockType" />
     </div>
     <div class="section">
       <FormatPropertiesBar :formatting="formatting" />
