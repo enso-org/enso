@@ -15,5 +15,3 @@ type Text_Cleanse
 type Cleansable_Text
     ## PRIVATE
     Value replace
-
-
