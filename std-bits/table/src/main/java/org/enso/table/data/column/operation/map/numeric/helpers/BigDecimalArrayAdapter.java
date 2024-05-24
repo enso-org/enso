@@ -41,7 +41,6 @@ public interface BigDecimalArrayAdapter {
     };
   }
 
-
   class BigDecimalStorageAsBigDecimal implements BigDecimalArrayAdapter {
     private final SpecializedStorage<BigDecimal> storage;
 
