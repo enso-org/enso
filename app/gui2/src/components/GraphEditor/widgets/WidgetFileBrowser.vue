@@ -53,11 +53,8 @@ const label = computed(() => {
   }
 })
 
-const FILE_CONSTRUCTOR = FILE_TYPE + '.new'
-const FILE_SHORT_CONSTRUCTOR = 'File.new'
-
-const fileConPattern = Pattern.parse(`${FILE_CONSTRUCTOR} __`)
-const fileShortConPattern = Pattern.parse(`${FILE_SHORT_CONSTRUCTOR} __`)
+const fileConPattern = Pattern.parse(`${FILE_TYPE}.new __`)
+const fileShortConPattern = Pattern.parse(`File.new __`)
 const currentPath = computed(() => {
   if (typeof props.input.value === 'string') {
     return props.input.value
@@ -82,12 +79,6 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
       import: 'File',
     } as RequiredImport
     const conflicts = graph.addMissingImports(edit, [requiredImport])
-    // const constructor = conflicts != null ? FILE_CONSTRUCTOR : FILE_SHORT_CONSTRUCTOR
-    // const constructorAst = Ast.PropertyAccess.tryParse(constructor, edit)
-    // if (constructorAst == null) {
-    //   throw new Error(`Failed to parse constructor as AST: ${constructor}`)
-    // }
-    // return Ast.App.new(edit, constructorAst, undefined, arg)
     const pattern = conflicts ? fileConPattern : fileShortConPattern
     return pattern.instantiate(edit, [arg])
   } else {
