@@ -67,3 +67,23 @@ test('Selecting nodes by area drag', async ({ page }) => {
   await expect(node1).toBeSelected()
   await expect(node2).toBeSelected()
 })
+
+test('Deleting selected node with backspace key', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const nodesCount = await locate.graphNode(page).count()
+  const deletedNode = locate.graphNodeByBinding(page, 'final')
+  await deletedNode.click()
+  await page.keyboard.press('Backspace')
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
+})
+
+test('Deleting selected node with delete key', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const nodesCount = await locate.graphNode(page).count()
+  const deletedNode = locate.graphNodeByBinding(page, 'final')
+  await deletedNode.click()
+  await page.keyboard.press('Delete')
+  await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
+})
