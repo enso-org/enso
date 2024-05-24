@@ -636,6 +636,16 @@ add_specs suite_builder setup =
                     actual.at "col0" . to_vector . should_equal ["axyc", "xyef", "ghxy"]
                     actual.at "col1" . to_vector . should_equal ["naxyc", "nxyef", "asxyf"]
 
+        group_builder.specify "should allow to replace values in a table with a named_pattern" <|
+            t = table_builder [["col0", ["abc123", "123def", "ghi456"]], ["col1", ["nabc123", "123ndef", "asdf456"]]]
+            actual = t.text_replace ["col0"] Named_Pattern.Leading_Numbers "xy"
+            case actual.is_error && setup.is_database of
+                True ->
+                    actual.should_fail_with Unsupported_Database_Operation
+                False ->
+                    actual.at "col0" . to_vector . should_equal ["abc123", "xydef", "ghi456"]
+                    actual.at "col1" . to_vector . should_equal ["nabc123", "123ndef", "asdf456"]
+
         group_builder.specify "should allow to replace values in a table with a column" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["col2", ["xy", "yx", "zz"]]]
             actual = t.text_replace ["col0", "col1"] "[bdi]".to_regex (t.at "col2")
