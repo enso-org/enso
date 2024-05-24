@@ -10,7 +10,6 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -36,7 +35,7 @@ export interface EditableSpanProps {
 
 /** A `<span>` that can turn into an `<input type="text">`. */
 export default function EditableSpan(props: EditableSpanProps) {
-  const { className, editable = false, children } = props
+  const { className = '', editable = false, children } = props
   const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -86,7 +85,7 @@ export default function EditableSpan(props: EditableSpanProps) {
       >
         <aria.Input
           data-testid={props['data-testid']}
-          className={className ?? ''}
+          className={className}
           ref={inputRef}
           autoFocus
           type="text"
@@ -127,20 +126,18 @@ export default function EditableSpan(props: EditableSpanProps) {
             <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
           </UnstyledButton>
         )}
-        <FocusRing>
-          <UnstyledButton
-            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
-            onPress={() => {
-              cancelledRef.current = true
-              onCancel()
-              window.setTimeout(() => {
-                cancelledRef.current = false
-              })
-            }}
-          >
-            <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
-          </UnstyledButton>
-        </FocusRing>
+        <UnstyledButton
+          className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
+          onPress={() => {
+            cancelledRef.current = true
+            onCancel()
+            window.setTimeout(() => {
+              cancelledRef.current = false
+            })
+          }}
+        >
+          <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
+        </UnstyledButton>
       </form>
     )
   } else {
