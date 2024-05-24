@@ -84,21 +84,18 @@ export default function UserBar(props: UserBarProps) {
           />
 
           {shouldShowInviteButton && (
-            <ariaComponents.Button
-              rounding="full"
-              size="xsmall"
-              variant="tertiary"
-              onPress={() => {
-                setModal(<InviteUsersModal />)
-              }}
-            >
-              <aria.Text slot="label">{getText('invite')}</aria.Text>
-            </ariaComponents.Button>
+            <ariaComponents.DialogTrigger>
+              <ariaComponents.Button rounded="full" size="xsmall" variant="tertiary">
+                {getText('invite')}
+              </ariaComponents.Button>
+
+              <InviteUsersModal />
+            </ariaComponents.DialogTrigger>
           )}
 
           <ariaComponents.Button
             variant="primary"
-            rounding="full"
+            rounded="full"
             size="xsmall"
             href={appUtils.SUBSCRIBE_PATH}
           >

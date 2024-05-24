@@ -27,6 +27,11 @@ export function unwrap<T, E>(result: Result<T, E>): T {
   else throw result.error
 }
 
+export function unwrapOr<T, A>(result: Result<T, unknown>, alternative: A): T | A {
+  if (result.ok) return result.value
+  else return alternative
+}
+
 export function mapOk<T, U, E>(result: Result<T, E>, f: (value: T) => U): Result<U, E> {
   if (result.ok) return Ok(f(result.value))
   else return result

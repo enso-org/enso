@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { groupColorVar } from '@/composables/nodeColors'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { colorFromString } from '@/util/colors'
 import { computed } from 'vue'
 

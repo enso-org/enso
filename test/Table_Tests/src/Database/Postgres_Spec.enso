@@ -940,7 +940,7 @@ add_data_link_specs suite_builder =
             r.catch.to_display_text . should_contain "The Postgres Data Link cannot be saved to a file."
 
     cloud_setup = Cloud_Tests_Setup.prepare
-    suite_builder.group "[PostgreSQL] Saving to DataLink" pending=cloud_setup.real_cloud_pending group_builder->
+    suite_builder.group "[PostgreSQL] Saving to DataLink" pending=(pending.if_nothing cloud_setup.real_cloud_pending) group_builder->
         test_root = Temporary_Directory.make "Postgres-DataLinks"
         group_builder.teardown test_root.cleanup
         group_builder.specify "allows to save an established connection as a Data Link" <|

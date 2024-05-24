@@ -22,7 +22,7 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -33,6 +33,7 @@ import {
   useResizeObserver,
 } from '@/composables/events'
 import { useNavigatorStorage } from '@/composables/navigatorStorage'
+import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -45,7 +46,7 @@ import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
-import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
@@ -53,6 +54,7 @@ import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
+import { unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
@@ -320,7 +322,7 @@ const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
 
-const { documentation } = useAstDocumentation(() => graphStore.methodAst)
+const { documentation } = useAstDocumentation(() => unwrapOr(graphStore.methodAst, undefined))
 
 // === Execution Mode ===
 
@@ -576,7 +578,7 @@ const groupColors = computed(() => {
   <div
     ref="viewportNode"
     class="GraphEditor viewport"
-    :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
+    :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
     v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"
@@ -609,7 +611,7 @@ const groupColors = computed(() => {
         <div class="scrollArea">
           <MarkdownEditor v-model="documentation" />
         </div>
-        <SvgIcon
+        <SvgButton
           name="close"
           class="closeButton button"
           @click.stop="showDocumentationEditor = false"
@@ -650,7 +652,7 @@ const groupColors = computed(() => {
       @collapseNodes="collapseNodes"
       @removeNodes="deleteSelected"
     />
-    <PlusButton @click.stop="addNodeAuto()" />
+    <PlusButton title="Add Component" @click.stop="addNodeAuto()" />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
@@ -674,13 +676,13 @@ const groupColors = computed(() => {
   border-radius: 7px 0 0;
   background-color: rgba(255, 255, 255, 0.35);
   backdrop-filter: var(--blur-app-bg);
-  padding: 4px 12px 0 6px;
-  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
-  overflow-x: clip;
+  padding: 4px 12px 0 0;
 }
 .rightDock-enter-active,
 .rightDock-leave-active {
   transition: left 0.25s ease;
+  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
+  overflow-x: clip;
 }
 .rightDock-enter-from,
 .rightDock-leave-to {
@@ -690,6 +692,7 @@ const groupColors = computed(() => {
   width: 100%;
   height: 100%;
   overflow-y: auto;
+  padding-left: 6px;
 }
 
 .rightDock .closeButton {
@@ -709,6 +712,8 @@ const groupColors = computed(() => {
   contain: layout;
   overflow: clip;
   user-select: none;
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior-x: none;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
 }

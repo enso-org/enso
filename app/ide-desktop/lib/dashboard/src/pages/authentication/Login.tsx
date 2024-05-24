@@ -8,6 +8,8 @@ import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
+import * as common from 'enso-common'
+import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
@@ -51,7 +53,12 @@ export default function Login() {
       footer={
         <>
           <Link
-            to={appUtils.REGISTRATION_PATH}
+            openInBrowser={detect.isOnElectron()}
+            to={
+              detect.isOnElectron()
+                ? 'https://' + common.CLOUD_DASHBOARD_DOMAIN + appUtils.REGISTRATION_PATH
+                : appUtils.REGISTRATION_PATH
+            }
             icon={CreateAccountIcon}
             text={getText('dontHaveAnAccount')}
           />
