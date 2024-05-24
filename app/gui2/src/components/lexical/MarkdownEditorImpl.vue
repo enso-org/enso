@@ -4,7 +4,7 @@ import FloatingSelectionMenu from '@/components/lexical/FloatingSelectionMenu.vu
 import FormattingToolbar from '@/components/lexical/FormattingToolbar.vue'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
 import SelectionFormattingToolbar from '@/components/lexical/SelectionFormattingToolbar.vue'
-import { provideFormatting } from '@/components/lexical/formattingProvider'
+import { useFormatting } from '@/components/lexical/formatting'
 import { listPlugin } from '@/components/lexical/listPlugin'
 import { useLexicalStringSync } from '@/components/lexical/sync'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
@@ -62,7 +62,7 @@ const { editor } = useLexical(contentElement, 'MarkdownEditor', [
   markdownPlugin,
   markdownSyncPlugin,
 ])
-provideFormatting(editor)
+const formatting = useFormatting(editor)
 </script>
 
 <template>
@@ -70,7 +70,7 @@ provideFormatting(editor)
     <FormattingToolbar @pointerdown.prevent />
     <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
     <FloatingSelectionMenu :selectionElement="contentElement">
-      <SelectionFormattingToolbar />
+      <SelectionFormattingToolbar :formatting="formatting" />
     </FloatingSelectionMenu>
   </div>
 </template>

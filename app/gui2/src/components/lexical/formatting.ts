@@ -65,6 +65,7 @@ export function useFormatting(editor: LexicalEditor) {
     clearFormatting: () => editor.update($clearFormatting),
   }
 }
+export type UseFormatting = ReturnType<typeof useFormatting>
 
 function useFormatProperty(
   editor: LexicalEditor,
