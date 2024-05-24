@@ -13,6 +13,7 @@ import AssetListEventType from '#/events/AssetListEventType'
 import * as assetDiffView from '#/layouts/AssetDiffView'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import ButtonRow from '#/components/styled/ButtonRow'
 
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
@@ -33,7 +34,7 @@ export interface AssetVersionProps {
   readonly latestVersion: backendService.S3ObjectVersion
   readonly backend: Backend
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  readonly doRestore: () => void
+  readonly doRestore: () => Promise<void> | void
 }
 
 /** Displays information describing a specific version of an asset. */
@@ -43,6 +44,18 @@ export default function AssetVersion(props: AssetVersionProps) {
   const { getText } = textProvider.useText()
   const asset = item.item
   const isProject = asset.type === backendService.AssetType.project
+
+  const doDuplicate = () => {
+    if (isProject) {
+      dispatchAssetListEvent({
+        type: AssetListEventType.duplicateProject,
+        parentKey: item.directoryKey,
+        parentId: asset.parentId,
+        original: asset,
+        versionId: version.versionId,
+      })
+    }
+  }
 
   return (
     <div
@@ -74,12 +87,48 @@ export default function AssetVersion(props: AssetVersionProps) {
               type="fullscreen"
               title={getText('compareVersionXWithLatest', number)}
             >
-              <assetDiffView.AssetDiffView
-                latestVersionId={latestVersion.versionId}
-                versionId={version.versionId}
-                project={asset}
-                backend={backend}
-              />
+              {opts => (
+                <div className="flex h-full flex-col gap-3">
+                  <ButtonRow>
+                    <ariaComponents.TooltipTrigger>
+                      <ariaComponents.Button
+                        variant="icon"
+                        aria-label={getText('restoreThisVersion')}
+                        icon={RestoreIcon}
+                        isDisabled={version.isLatest || placeholder}
+                        onPress={async () => {
+                          await doRestore()
+                          opts.close()
+                        }}
+                      />
+                      <ariaComponents.Tooltip>
+                        {getText('restoreThisVersion')}
+                      </ariaComponents.Tooltip>
+                    </ariaComponents.TooltipTrigger>
+                    <ariaComponents.TooltipTrigger>
+                      <ariaComponents.Button
+                        variant="icon"
+                        aria-label={getText('duplicateThisVersion')}
+                        icon={DuplicateIcon}
+                        isDisabled={placeholder}
+                        onPress={() => {
+                          doDuplicate()
+                          opts.close()
+                        }}
+                      />
+                      <ariaComponents.Tooltip>
+                        {getText('duplicateThisVersion')}
+                      </ariaComponents.Tooltip>
+                    </ariaComponents.TooltipTrigger>
+                  </ButtonRow>
+                  <assetDiffView.AssetDiffView
+                    latestVersionId={latestVersion.versionId}
+                    versionId={version.versionId}
+                    project={asset}
+                    backend={backend}
+                  />
+                </div>
+              )}
             </ariaComponents.Dialog>
           </ariaComponents.DialogTrigger>
         )}
@@ -102,15 +151,7 @@ export default function AssetVersion(props: AssetVersionProps) {
               aria-label={getText('duplicateThisVersion')}
               icon={DuplicateIcon}
               isDisabled={placeholder}
-              onPress={() => {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.duplicateProject,
-                  parentKey: item.directoryKey,
-                  parentId: asset.parentId,
-                  original: asset,
-                  versionId: version.versionId,
-                })
-              }}
+              onPress={doDuplicate}
             />
             <ariaComponents.Tooltip>{getText('duplicateThisVersion')}</ariaComponents.Tooltip>
           </ariaComponents.TooltipTrigger>
