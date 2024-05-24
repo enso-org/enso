@@ -27,16 +27,10 @@ export function useLexical(
     createEditor({
       editable: true,
       namespace,
-      theme: {
-        text: {
-          strikethrough: 'lexical-strikethrough',
-          italic: 'lexical-italic',
-        },
-        quote: 'lexical-quote',
-      },
+      theme: {},
       nodes: [...nodes],
       onError: console.error,
-    }),
+    })
   )
 
   onMounted(() => {

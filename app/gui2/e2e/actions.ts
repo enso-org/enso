@@ -33,7 +33,7 @@ export async function expectNodePositionsInitialized(page: Page, yPos: number) {
 }
 
 export async function exitFunction(page: Page, x = 300, y = 300) {
-  await page.mouse.dblclick(x, y, { delay: 10 })
+  await locate.graphEditor(page).dblclick({ position: { x, y } })
 }
 
 // =================
