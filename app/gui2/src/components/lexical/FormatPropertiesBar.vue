@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import DropdownMenu from '@/components/DropdownMenu.vue'
-import { injectFormatting } from '@/components/lexical/formattingProvider'
+import { type UseFormatting } from '@/components/lexical/formatting'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { Icon } from '@/util/iconName'
 import { computed, type Ref } from 'vue'
 
+const props = defineProps<{ formatting: UseFormatting }>()
+
 const { bold, italic, strikethrough, subscript, superscript, blockType, clearFormatting } =
-  injectFormatting()
+  props.formatting
 
 function useEnumerationToggle<T>(current: Ref<T>, select: T, defaultValue: T) {
   return computed({

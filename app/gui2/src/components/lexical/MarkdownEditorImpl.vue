@@ -67,7 +67,7 @@ const formatting = useFormatting(editor)
 
 <template>
   <div class="MarkdownEditor fullHeight">
-    <FormattingToolbar @pointerdown.prevent />
+    <FormattingToolbar :formatting="formatting" @pointerdown.prevent />
     <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
     <FloatingSelectionMenu :selectionElement="contentElement">
       <SelectionFormattingToolbar :formatting="formatting" />
