@@ -515,8 +515,11 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
 
      '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
 @term make_regex_text_widget
-Text.replace : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
-Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
+Text.replace : Text | Regex | Named_Pattern -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
+Text.replace self term:(Text | Regex | Named_Pattern) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
+    process_regex regex:Regex = 
+      updated_regex = regex.recompile case_sensitivity
+      updated_regex.replace self replacement only_first
     case term of
         _ : Text -> if term.is_empty then self else
             array_from_single_result result = case result of
@@ -534,8 +537,9 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
             Text_Utils.replace_spans self spans_array replacement
         _ : Regex ->
-            updated_regex = term.recompile case_sensitivity
-            updated_regex.replace self replacement only_first
+            process_regex term
+        _ : Named_Pattern ->
+            process_regex (Regex.compile term.regex_pattern)
 
 ## GROUP Text
    ICON text
