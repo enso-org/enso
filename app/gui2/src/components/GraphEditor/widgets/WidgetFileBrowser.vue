@@ -8,7 +8,9 @@ import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widge
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
+import { Pattern } from '@/util/ast/match'
 import { ArgumentInfoKey } from '@/util/callTree'
+import { TextLiteral } from 'shared/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -54,6 +56,23 @@ const label = computed(() => {
 const FILE_CONSTRUCTOR = FILE_TYPE + '.new'
 const FILE_SHORT_CONSTRUCTOR = 'File.new'
 
+const fileConPattern = Pattern.parse(`${FILE_CONSTRUCTOR} __`)
+const fileShortConPattern = Pattern.parse(`${FILE_SHORT_CONSTRUCTOR} __`)
+const currentPath = computed(() => {
+  if (typeof props.input.value === 'string') {
+    return props.input.value
+  } else if (props.input.value) {
+    const expression = props.input.value.innerExpression()
+    const match = fileShortConPattern.match(expression) ?? fileConPattern.match(expression)
+    const pathAst =
+      match && match[0] ? expression.module.get(match[0]).innerExpression() : expression
+    if (pathAst instanceof TextLiteral) {
+      return pathAst.rawTextContent
+    }
+  }
+  return undefined
+})
+
 function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: string): Ast.Owned {
   if (useFileConstructor) {
     const arg = Ast.TextLiteral.new(path, edit)
@@ -63,29 +82,38 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
       import: 'File',
     } as RequiredImport
     const conflicts = graph.addMissingImports(edit, [requiredImport])
-    const constructor = conflicts != null ? FILE_CONSTRUCTOR : FILE_SHORT_CONSTRUCTOR
-    const constructorAst = Ast.PropertyAccess.tryParse(constructor, edit)
-    if (constructorAst == null) {
-      throw new Error(`Failed to parse constructor as AST: ${constructor}`)
-    }
-    return Ast.App.new(edit, constructorAst, undefined, arg)
+    // const constructor = conflicts != null ? FILE_CONSTRUCTOR : FILE_SHORT_CONSTRUCTOR
+    // const constructorAst = Ast.PropertyAccess.tryParse(constructor, edit)
+    // if (constructorAst == null) {
+    //   throw new Error(`Failed to parse constructor as AST: ${constructor}`)
+    // }
+    // return Ast.App.new(edit, constructorAst, undefined, arg)
+    const pattern = conflicts ? fileConPattern : fileShortConPattern
+    return pattern.instantiate(edit, [arg])
   } else {
     return Ast.TextLiteral.new(path, edit)
   }
 }
 
 const onClick = async () => {
-  const selected = await window.fileBrowserApi.openFileBrowser(dialogKind.value)
-  if (selected != null && selected[0] != null) {
-    const edit = graph.startEdit()
-    const value = makeValue(edit, insertAsFileConstructor.value, selected[0])
-    props.onUpdate({
-      edit,
-      portUpdate: {
-        value,
-        origin: props.input.portId,
-      },
-    })
+  if (!window.fileBrowserApi) {
+    console.error('File browser not supported!')
+  } else {
+    const selected = await window.fileBrowserApi.openFileBrowser(
+      dialogKind.value,
+      currentPath.value,
+    )
+    if (selected != null && selected[0] != null) {
+      const edit = graph.startEdit()
+      const value = makeValue(edit, insertAsFileConstructor.value, selected[0])
+      props.onUpdate({
+        edit,
+        portUpdate: {
+          value,
+          origin: props.input.portId,
+        },
+      })
+    }
   }
 }
 

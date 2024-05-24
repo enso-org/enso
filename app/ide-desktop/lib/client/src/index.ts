@@ -445,13 +445,18 @@ class App {
         )
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
-            async (_event, kind: 'default' | 'directory' | 'file' | 'filePath') => {
-                logger.log('Request for opening browser for ', kind)
+            async (
+                _event,
+                kind: 'default' | 'directory' | 'file' | 'filePath',
+                defaultPath?: string
+            ) => {
+                logger.log('Request for opening browser for ', kind, defaultPath)
                 let retval = null
                 if (kind === 'filePath') {
                     // "Accept", as the file won't be created immediately.
                     const { canceled, filePath } = await electron.dialog.showSaveDialog({
                         buttonLabel: 'Accept',
+                        ...(defaultPath ? { defaultPath } : {}),
                     })
                     if (!canceled) {
                         retval = [filePath]
@@ -469,6 +474,7 @@ class App {
                                 : ['openFile']
                     const { canceled, filePaths } = await electron.dialog.showOpenDialog({
                         properties,
+                        ...(defaultPath ? { defaultPath } : {}),
                     })
                     if (!canceled) {
                         retval = filePaths

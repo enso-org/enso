@@ -1766,6 +1766,10 @@ export class Group extends Ast {
     return this.module.get(this.fields.get('expression')?.node)
   }
 
+  wrappedExpression(): Ast | undefined {
+    return this.expression
+  }
+
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, expression, close } = getAll(this.fields)
     if (open) yield open
