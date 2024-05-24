@@ -27,5 +27,7 @@ svg {
   min-width: 16px;
   height: 16px;
   min-height: 16px;
+  transform: var(--icon-transform);
+  transform-origin: var(--icon-transform-origin);
 }
 </style>
