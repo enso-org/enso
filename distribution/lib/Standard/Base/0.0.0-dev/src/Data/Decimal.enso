@@ -88,7 +88,7 @@ type Decimal
     ## PRIVATE
     Value (big_decimal : BigDecimal)
 
-    ## ICON number_input
+    ## ICON input_number
        Construct a `Decimal` from a string or integer.
 
        Arguments:
