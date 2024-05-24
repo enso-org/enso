@@ -23,7 +23,7 @@ final class PerInputImpl implements Input {
     this.at = at;
   }
 
-  static <T> Reference<T> readObject(ByteBuffer buf, Function<Object, Object> readResolve)
+  static Reference<?> readObject(ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
       if (buf.get(i) != PerGenerator.HEADER[i]) {
@@ -44,11 +44,13 @@ final class PerInputImpl implements Input {
     buf.position(tableAt);
     var count = buf.getInt();
     assert count > 0 : "There is always the main object in the table: " + count;
-    var refs = new int[count];
+    var refPerIds = new int[count];
+    var refIds = new int[count];
     for (var i = 0; i < count; i++) {
-      refs[i] = buf.getInt();
+      refIds[i] = buf.getInt();
+      refPerIds[i] = buf.getInt();
     }
-    var cache = new InputCache(buf, readResolve, map, refs);
+    var cache = new InputCache(buf, readResolve, map, refIds, refPerIds);
     return cache.getRef(0);
   }
 
@@ -264,16 +266,21 @@ final class PerInputImpl implements Input {
     private final Function<Object, Object> readResolve;
     private final PerMap map;
     private final ByteBuffer buf;
-    private final Reference[] refs;
+    private final Reference<?>[] refs;
 
     private InputCache(
-        ByteBuffer buf, Function<Object, Object> readResolve, PerMap map, int[] refs) {
+        ByteBuffer buf,
+        Function<Object, Object> readResolve,
+        PerMap map,
+        int[] refIds,
+        int[] refPerIds) {
       this.buf = buf;
       this.readResolve = readResolve;
       this.map = map;
-      this.refs = new Reference[refs.length];
-      for (var i = 0; i < refs.length; i++) {
-        this.refs[i] = PerBufferReference.cached(null, this, refs[i]);
+      this.refs = new Reference[refIds.length];
+      for (var i = 0; i < refIds.length; i++) {
+        var p = map.forId(refPerIds[i]);
+        this.refs[i] = PerBufferReference.cached(p, this, refIds[i]);
       }
     }
 
@@ -301,8 +308,7 @@ final class PerInputImpl implements Input {
       return buf;
     }
 
-    @SuppressWarnings("unchecked")
-    final <T> Reference<T> getRef(int index) {
+    final Reference<?> getRef(int index) {
       return refs[index];
     }
   }

@@ -146,6 +146,7 @@ final class PerGenerator {
     var refsData = new DataOutputStream(refsOut);
     refsData.writeInt(-1); // space for size of references
     refsData.writeInt(objAt); // the main object
+    refsData.writeInt(map.forType(obj.getClass()).id); // main objects Persistance id
     var count = 1;
     for (; ; ) {
       var all = new ArrayList<>(pendingReferences.entrySet());
@@ -162,6 +163,8 @@ final class PerGenerator {
         var at = writeObject(entry.getKey());
         assert count == entry.getValue() : "Expecting " + count + " got " + entry.getValue();
         refsData.writeInt(at);
+        // Also store the id of the used Persistance, to be able to be reconstructed
+        refsData.writeInt(map.forType(entry.getKey().getClass()).id);
       }
     }
     refsData.flush();
