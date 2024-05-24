@@ -22,7 +22,7 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -611,7 +611,7 @@ const groupColors = computed(() => {
         <div class="scrollArea">
           <MarkdownEditor v-model="documentation" />
         </div>
-        <SvgIcon
+        <SvgButton
           name="close"
           class="closeButton button"
           @click.stop="showDocumentationEditor = false"
@@ -676,13 +676,13 @@ const groupColors = computed(() => {
   border-radius: 7px 0 0;
   background-color: rgba(255, 255, 255, 0.35);
   backdrop-filter: var(--blur-app-bg);
-  padding: 4px 12px 0 6px;
-  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
-  overflow-x: clip;
+  padding: 4px 12px 0 0;
 }
 .rightDock-enter-active,
 .rightDock-leave-active {
   transition: left 0.25s ease;
+  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
+  overflow-x: clip;
 }
 .rightDock-enter-from,
 .rightDock-leave-to {
@@ -692,6 +692,7 @@ const groupColors = computed(() => {
   width: 100%;
   height: 100%;
   overflow-y: auto;
+  padding-left: 6px;
 }
 
 .rightDock .closeButton {

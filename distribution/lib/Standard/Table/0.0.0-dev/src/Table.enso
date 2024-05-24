@@ -1648,7 +1648,7 @@ type Table
     add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
         Add_Row_Number.add_row_number self name from step group_by order_by on_problems
 
-    ## ALIAS add column, formula, new column, update column
+    ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
        ICON dataframe_map_column
        Sets the column value at the given name.
@@ -2670,7 +2670,7 @@ type Table
              from Standard.Table import all
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") (Excel_Format.Sheet "MySheetName")
-    @path (Widget.File_Browse display=Display.Always)
+    @path (Widget.File_Browse existing_only=False display=Display.Always)
     @format Widget_Helpers.write_table_selector
     write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =

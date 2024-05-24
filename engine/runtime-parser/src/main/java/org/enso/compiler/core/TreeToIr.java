@@ -37,9 +37,7 @@ import org.enso.syntax2.Line;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
-
 import org.enso.syntax2.Tree.Invalid;
-
 import org.enso.syntax2.Tree.Private;
 
 import scala.Option;
@@ -536,8 +534,11 @@ final class TreeToIr {
       var loc = getIdentifiedLocation(fn, 0, 0, null);
       var returnSignature = resolveReturnTypeSignature(fn);
       if (body == null) {
-        var error = translateSyntaxError(fn, new Syntax.UnsupportedSyntax("Block without body"));
-        return error;
+        var emptyLocation = methodRef.location().map(identifiedLocation -> {
+          var location = new Location(identifiedLocation.end(), identifiedLocation.end());
+          return new IdentifiedLocation(location, identifiedLocation.uuid());
+        });
+        body = new Empty(emptyLocation, meta(), diag());
       }
 
       String functionName = fn.getName().codeRepr();

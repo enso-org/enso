@@ -893,7 +893,7 @@ type DB_Table
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
 
-    ## ALIAS add column, formula, new column, update column
+    ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
        ICON dataframe_map_column
        Sets the column value at the given name.

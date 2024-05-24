@@ -51,12 +51,12 @@ public class ExecStrictCompilerTest {
   }
 
   @AfterClass
-  public static void closeEnsoContext() throws Exception {
+  public static void closeEnsoContext() {
     ctx.close();
   }
 
   @Test
-  public void redefinedArgument() throws Exception {
+  public void redefinedArgument() {
     try {
       var module = ctx.eval("enso", """
       type My_Type

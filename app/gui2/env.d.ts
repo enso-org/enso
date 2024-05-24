@@ -23,8 +23,11 @@ interface Window {
  * interface.
  */
 interface FileBrowserApi {
-  /** Select path for local file or directory using the system file browser. */
+  /**
+   * Select path for local file or directory using the system file browser.
+   * 'filePath' is same as 'file', but allows picking non-existing files.
+   */
   readonly openFileBrowser: (
-    kind: 'file' | 'directory' | 'default',
+    kind: 'file' | 'directory' | 'default' | 'filePath',
   ) => Promise<string[] | undefined>
 }
