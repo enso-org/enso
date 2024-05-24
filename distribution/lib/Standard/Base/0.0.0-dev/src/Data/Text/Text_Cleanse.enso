@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 ## PRIVATE
-Defines a Text_Cleanse operation
+   Defines a Text_Cleanse operation
 type Text_Cleanse
    ## PRIVATE
    Value named_pattern:Named_Pattern
