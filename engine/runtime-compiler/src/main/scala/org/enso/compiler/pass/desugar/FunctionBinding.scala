@@ -99,6 +99,7 @@ case object FunctionBinding extends IRPass {
             name,
             args,
             body,
+            _,
             location,
             canBeTCO,
             passData,
@@ -144,6 +145,7 @@ case object FunctionBinding extends IRPass {
       case meth @ definition.Method.Binding(
             methRef,
             args,
+            isPrivate,
             body,
             loc,
             passData,
@@ -161,6 +163,7 @@ case object FunctionBinding extends IRPass {
           new definition.Method.Explicit(
             methRef,
             newBody,
+            isPrivate,
             loc,
             passData,
             diagnostics
