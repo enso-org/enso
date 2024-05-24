@@ -85,7 +85,7 @@ public final class Builtins {
 
   private final Error error;
   private final Module module;
-  private final ModuleScope.Builder scope;
+  private final ModuleScope scope;
   private final Number number;
   private final Boolean bool;
 
@@ -172,7 +172,7 @@ public final class Builtins {
     system = new System(this);
     number = new Number(this);
     special = new Special(language);
-    scope = scopeBuilder;
+    scope = scopeBuilder.build();
   }
 
   private static Map<String, LoadedBuiltinMethod> loadBuiltinMethodClassesEarly(
@@ -749,7 +749,7 @@ public final class Builtins {
    *
    * @return the builtin module scope
    */
-  public ModuleScope.Builder getScope() {
+  public ModuleScope getScope() {
     return scope;
   }
 

@@ -231,7 +231,7 @@ public final class AtomConstructor implements EnsoObject {
    * @return the scope in which this constructor was defined
    */
   public ModuleScope getMaterializedDefinitionScope() {
-    return definitionScope.build();
+    return definitionScope.built();
   }
 
   /**

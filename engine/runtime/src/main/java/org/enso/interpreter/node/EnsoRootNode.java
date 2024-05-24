@@ -148,7 +148,7 @@ public abstract class EnsoRootNode extends RootNode {
   }
 
   public ModuleScope getMaterializedScope() {
-    return moduleScope.build();
+    return moduleScope.built();
   }
 
   public Module getModule() {

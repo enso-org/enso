@@ -119,7 +119,7 @@ public final class ExecutionService {
   public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
-    ModuleScope scope = module.compileScope(context).build();
+    ModuleScope scope = module.compileScope(context).built();
     Type type =
         scope
             .getType(typeName)

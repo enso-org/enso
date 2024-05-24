@@ -149,7 +149,12 @@ public final class Module implements EnsoObject {
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = synthetic;
-    this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
+    if (synthetic) {
+      this.compilationStage = CompilationStage.INITIAL;
+      scopeBuilder.build();
+    } else {
+      this.compilationStage = CompilationStage.AFTER_CODEGEN;
+    }
   }
 
   /**
@@ -451,7 +456,7 @@ public final class Module implements EnsoObject {
    * @return the runtime scope of this module.
    */
   public ModuleScope getScope() {
-    return scopeBuilder.build();
+    return scopeBuilder.built();
   }
 
   public ModuleScope.Builder getScopeBuilder() {
@@ -672,7 +677,7 @@ public final class Module implements EnsoObject {
           return module.getName().toString();
         case MethodNames.Module.GET_METHOD:
           scope = module.compileScope(context);
-          Function result = getMethod(scope.build(), arguments);
+          Function result = getMethod(scope.built(), arguments);
           return result == null ? context.getBuiltins().nothing() : result;
         case MethodNames.Module.GET_TYPE:
           scope = module.compileScope(context);
@@ -689,7 +694,7 @@ public final class Module implements EnsoObject {
           return setSourceFile(module, arguments, context);
         case MethodNames.Module.GET_ASSOCIATED_TYPE:
           scope = module.compileScope(context);
-          return getAssociatedType(scope.build(), arguments);
+          return getAssociatedType(scope.built(), arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
           scope = module.compileScope(context);
           return evalExpression(scope, arguments, context, callOptimiserNode);

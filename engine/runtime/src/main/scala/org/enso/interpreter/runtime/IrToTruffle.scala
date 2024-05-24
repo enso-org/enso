@@ -110,7 +110,7 @@ import org.enso.interpreter.runtime.scope.{ModuleScope}
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
-import scala.annotation.{tailrec, unused}
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
@@ -212,7 +212,9 @@ class IrToTruffle(
               if (requestedTypes.isEmpty()) {
                 asScope(mod)
               } else {
-                asScope(mod).withTypes(requestedTypes)
+                val c = asScope(mod).withTypes(requestedTypes)
+                c.build()
+                c
               }
             })
             .getOrElse(asScope(mod))
@@ -2277,7 +2279,6 @@ class IrToTruffle(
       }
   }
 
-  @unused
   private def asScope(module: CompilerContext.Module): ModuleScope.Builder = {
     val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
     m.getScopeBuilder()

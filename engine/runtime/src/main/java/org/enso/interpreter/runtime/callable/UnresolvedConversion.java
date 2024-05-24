@@ -46,7 +46,7 @@ public final class UnresolvedConversion implements EnsoObject {
    * @return the scope this symbol was used in.
    */
   public ModuleScope getScope() {
-    return scopeBuilder != null ? scopeBuilder.build() : scope;
+    return scopeBuilder != null ? scopeBuilder.built() : scope;
   }
 
   /**

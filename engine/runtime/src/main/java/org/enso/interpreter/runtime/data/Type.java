@@ -132,7 +132,7 @@ public final class Type implements EnsoObject {
   }
 
   public ModuleScope getDefinitionScope() {
-    return definitionScope.build();
+    return definitionScope.built();
   }
 
   public boolean isBuiltin() {
