@@ -1,8 +1,12 @@
 package org.enso.compiler.core;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,9 +15,12 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.function.Function;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.expression.Error;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import scala.jdk.javaapi.CollectionConverters;
 
 public class EnsoParserTest {
   private static EnsoParser ensoCompiler;
@@ -1401,6 +1408,40 @@ public class EnsoParserTest {
   }
 
   @Test
+  public void testPrivateMethodInType() {
+    String code = """
+        type My_Type
+            private method self = self
+        """;
+    Module ir = compile(code);
+    expectNoErrorsInIr(ir);
+    var hasPrivateFunc =
+        CollectionConverters.asJava(ir.preorder()).stream()
+            .anyMatch(
+                child -> {
+                  if (child instanceof org.enso.compiler.core.ir.Function func) {
+                    return func.isPrivate();
+                  }
+                  return false;
+                });
+    assertThat(hasPrivateFunc, is(true));
+  }
+
+  @Test
+  public void testPrivateTopLevelMethod() throws IOException {
+    String code = """
+        private method x = x
+        """;
+    var ir = compile(code);
+    expectNoErrorsInIr(ir);
+    assertThat(ir.bindings().size(), is(1));
+    var methodDef = ir.bindings().head();
+    assertThat(methodDef, instanceOf(Method.Binding.class));
+    var method = (Method.Binding) methodDef;
+    assertThat(method.isPrivate(), is(true));
+  }
+
+  @Test
   public void testPrivateConstructor() throws Exception {
     parseTest(
         """
@@ -1452,6 +1493,18 @@ public class EnsoParserTest {
 
   private static Module compile(String code) {
     return compile(ensoCompiler, code);
+  }
+
+  private void expectNoErrorsInIr(Module moduleIr) {
+    moduleIr
+        .preorder()
+        .foreach(
+            ir -> {
+              if (ir instanceof Error err) {
+                fail("Encountered an unexpected error in IR: " + err.pretty());
+              }
+              return null;
+            });
   }
 
   public static Module compile(EnsoParser c, String code) {

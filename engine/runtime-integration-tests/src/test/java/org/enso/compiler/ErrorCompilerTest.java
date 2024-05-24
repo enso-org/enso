@@ -464,6 +464,36 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void illegalPrivateVariableDeclaration() throws Exception {
+    var ir = parse("private var = 42");
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 16);
+  }
+
+  @Test
+  public void illegalPrivateKeywordUseInType() throws Exception {
+    var ir = parse("""
+        type T
+            private
+        """);
+    assertSingleSyntaxError(
+        ir,
+        Syntax.UnexpectedDeclarationInType$.MODULE$,
+        "Unexpected declaration in the body of a type",
+        11,
+        18);
+  }
+
+  @Test
+  public void illegalPrivateTypeDeclaration() throws Exception {
+    var ir = parse("""
+        private type T
+        """);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 14);
+  }
+
+  @Test
   public void illegalEscapeSequence() throws Exception {
     var ir = parse("""
     escape = 'wrong \\c sequence'
@@ -519,20 +549,6 @@ public class ErrorCompilerTest extends CompilerTest {
         "Unexpected declaration in the body of a type",
         9,
         27);
-  }
-
-  @Test
-  public void testUnsupportedPrivateModifierInTypeDefinition() throws Exception {
-    var ir = parse("""
-    type T
-      private method self = 42
-    """);
-    assertSingleSyntaxError(
-        ir,
-        Syntax.UnexpectedDeclarationInType$.MODULE$,
-        "Unexpected declaration in the body of a type",
-        9,
-        33);
   }
 
   @Test
