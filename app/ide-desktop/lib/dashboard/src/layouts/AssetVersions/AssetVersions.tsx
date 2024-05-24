@@ -131,12 +131,12 @@ export default function AssetVersions(props: AssetVersionsProps) {
               backend={backend}
               latestVersion={latestVersion}
               dispatchAssetListEvent={dispatchAssetListEvent}
-              doRestore={() => {
-                restoreMutation.mutate({
+              doRestore={() =>
+                restoreMutation.mutateAsync({
                   versionId: version.versionId,
                   placeholderId: backendService.S3ObjectVersionId(uniqueString.uniqueString()),
                 })
-              }}
+              }
             />
           )),
         ]
