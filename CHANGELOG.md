@@ -1143,6 +1143,7 @@
 - [Allow Oracle GraalVM JDK][9322]
 - [`Table.join` can access its `right` argument][9410]
 - [Atom constructors can be project-private][9692]
+- [Methods can be project-private][10060]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1305,6 +1306,7 @@
 [9322]: https://github.com/enso-org/enso/pull/9322
 [9692]: https://github.com/enso-org/enso/pull/9692
 [9410]: https://github.com/enso-org/enso/pull/9410
+[10060]: https://github.com/enso-org/enso/pull/10060
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
