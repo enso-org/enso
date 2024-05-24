@@ -8,19 +8,19 @@ import static org.junit.Assert.assertTrue;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.test.utils.TestUtils;
+import org.enso.interpreter.test.TestBase;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class DisabledAssertionsTest {
+public class DisabledAssertionsTest extends TestBase {
   private static Context ctx;
 
   @BeforeClass
   public static void setupCtx() {
-    ctx = TestUtils.defaultContextBuilder().environment("ENSO_ENABLE_ASSERTIONS", "false").build();
+    ctx = TestBase.defaultContextBuilder().environment("ENSO_ENABLE_ASSERTIONS", "false").build();
   }
 
   @AfterClass
@@ -38,7 +38,7 @@ public class DisabledAssertionsTest {
   @Test
   public void actionInAssertIsNotComputedWhenAssertionsAreDisabled() {
     Value res =
-        TestUtils.evalModule(
+        TestBase.evalModule(
             ctx,
             """
 from Standard.Base import Runtime

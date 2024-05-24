@@ -9,7 +9,6 @@ import static org.junit.Assert.fail;
 
 import org.enso.common.HostEnsoUtils;
 import org.enso.interpreter.instrument.job.VisualizationResult;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -17,13 +16,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class FindExceptionMessageTest {
+public class FindExceptionMessageTest extends TestBase {
 
   private static Context ctx;
 
   @BeforeClass
   public static void initCtx() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = createDefaultContext();
   }
 
   @AfterClass
@@ -44,7 +43,7 @@ public class FindExceptionMessageTest {
     """;
 
     try {
-      Value res = TestUtils.evalModule(ctx, src);
+      Value res = evalModule(ctx, src);
       fail("No result expected: " + res);
     } catch (PolyglotException ex) {
       assertExceptionMessage("java.lang.NullPointerException", ex);
@@ -64,7 +63,7 @@ public class FindExceptionMessageTest {
     """;
 
     try {
-      Value res = TestUtils.evalModule(ctx, src);
+      Value res = evalModule(ctx, src);
       fail("No result expected: " + res);
     } catch (PolyglotException ex) {
       assertExceptionMessage("Hello World!", ex);
@@ -85,7 +84,7 @@ public class FindExceptionMessageTest {
         d
     """;
 
-    var res = TestUtils.evalModule(ctx, src);
+    var res = evalModule(ctx, src);
     assertTrue("Expecting error: " + res, res.isException());
     assertEquals("Standard.Base.Error.Error", res.getMetaObject().getMetaQualifiedName());
 
@@ -115,7 +114,7 @@ public class FindExceptionMessageTest {
         d
     """;
 
-    var res = TestUtils.evalModule(ctx, src);
+    var res = evalModule(ctx, src);
     assertTrue("Expecting recovered error: " + res, res.isException());
     assertEquals(
         "Panic was converted to error",
@@ -159,7 +158,7 @@ public class FindExceptionMessageTest {
         d
     """;
 
-    var res = TestUtils.evalModule(ctx, src);
+    var res = evalModule(ctx, src);
     assertTrue("Expecting recovered error: " + res, res.isException());
     assertEquals(
         "Panic was converted to error",
@@ -198,7 +197,7 @@ public class FindExceptionMessageTest {
     """;
 
     try {
-      Value res = TestUtils.evalModule(ctx, src);
+      Value res = evalModule(ctx, src);
       fail("No result expected: " + res);
     } catch (PolyglotException ex) {
       assertExceptionMessage("Illegal Argument: Jejda!", ex);
@@ -209,7 +208,7 @@ public class FindExceptionMessageTest {
     var msg = HostEnsoUtils.findExceptionMessage(ex);
     assertEquals(exp, msg);
 
-    TestUtils.executeInContext(
+    executeInContext(
         ctx,
         () -> {
           var guestException = extractHostException(ex);
@@ -225,7 +224,7 @@ public class FindExceptionMessageTest {
     } else {
       assertTrue("Has to be guest object: " + ex, ex.isGuestException());
       var v = ex.getGuestObject();
-      return (Throwable) TestUtils.unwrapValue(ctx, v);
+      return (Throwable) unwrapValue(ctx, v);
     }
   }
 }

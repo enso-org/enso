@@ -8,7 +8,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.util.concurrent.Executors;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -16,12 +15,12 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class ForeignMethodInvokeTest {
+public class ForeignMethodInvokeTest extends TestBase {
   private static Context ctx;
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = TestUtils.defaultContextBuilder("enso", "js").build();
+    ctx = defaultContextBuilder("enso", "js").build();
   }
 
   @AfterClass

@@ -10,16 +10,16 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import org.enso.interpreter.test.TestBase;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class PrivateConstructorAccessTest {
+public class PrivateConstructorAccessTest extends TestBase {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
@@ -32,8 +32,8 @@ public class PrivateConstructorAccessTest {
             obj = My_Type.Cons 42
             obj.data
         """;
-    try (var ctx = TestUtils.createDefaultContext()) {
-      var res = TestUtils.evalModule(ctx, src);
+    try (var ctx = createDefaultContext()) {
+      var res = TestBase.evalModule(ctx, src);
       assertThat(res.isNumber(), is(true));
       assertThat(res.asInt(), is(42));
     }
@@ -47,9 +47,8 @@ public class PrivateConstructorAccessTest {
             private Cons data
         main = My_Type.Cons 42
         """;
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("My_Project", mainSrc, projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("My_Project", mainSrc, tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(res.hasMember("data"), is(false));
@@ -64,11 +63,10 @@ public class PrivateConstructorAccessTest {
         type My_Type
             private Cons data
         """;
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("My_Project", mainSrc, projDir);
+    var projDir = createProject("My_Project", mainSrc, tempFolder);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
-        TestUtils.defaultContextBuilder()
+        defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
             .build()) {
       var polyCtx = new PolyglotContext(ctx);
@@ -88,11 +86,10 @@ public class PrivateConstructorAccessTest {
         main =
             My_Type.Cons 42
         """;
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("My_Project", mainSrc, projDir);
+    var projDir = createProject("My_Project", mainSrc, tempFolder);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
-        TestUtils.defaultContextBuilder()
+        defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
             .build()) {
       var polyCtx = new PolyglotContext(ctx);
@@ -123,9 +120,8 @@ public class PrivateConstructorAccessTest {
                 My_Type.Cons x -> x
                 _ -> 0
         """;
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("My_Project", mainSrc, projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("My_Project", mainSrc, tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(res.isNumber(), is(true));
@@ -142,7 +138,7 @@ public class PrivateConstructorAccessTest {
             private Cons data
             create x = My_Type.Cons x
         """;
-    TestUtils.createProject("Lib", libSrc, tempFolder.newFolder("Lib").toPath());
+    createProject("Lib", libSrc, tempFolder);
     var projSrc =
         """
         from local.Lib import My_Type
@@ -151,11 +147,10 @@ public class PrivateConstructorAccessTest {
             case obj of
                 My_Type.Cons x -> x
         """;
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", projSrc, projDir);
+    var projDir = createProject("Proj", projSrc, tempFolder);
     var out = new ByteArrayOutputStream();
     try (var ctx =
-        TestUtils.defaultContextBuilder()
+        defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(RuntimeOptions.DISABLE_IR_CACHES, "true")

@@ -3,7 +3,6 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -11,7 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class PolyglotErrorTest {
+public class PolyglotErrorTest extends TestBase {
   private Context ctx;
   private Value panic;
 
@@ -21,7 +20,7 @@ public class PolyglotErrorTest {
 
   @Before
   public void prepareCtx() throws Exception {
-    this.ctx = TestUtils.createDefaultContext();
+    this.ctx = createDefaultContext();
 
     var code =
         """

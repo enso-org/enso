@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.util.Set;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -17,12 +16,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TypeMembersTest {
+public class TypeMembersTest extends TestBase {
   private Context ctx;
 
   @Before
   public void prepareCtx() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = createDefaultContext();
   }
 
   @After

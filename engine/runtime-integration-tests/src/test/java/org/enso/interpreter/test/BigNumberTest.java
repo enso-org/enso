@@ -9,7 +9,6 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -17,12 +16,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class BigNumberTest {
+public class BigNumberTest extends TestBase {
   private static Context ctx;
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = createDefaultContext();
   }
 
   @AfterClass
