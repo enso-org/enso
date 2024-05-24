@@ -101,9 +101,6 @@ public abstract class Persistance<T> implements Cloneable {
      */
     public abstract <T> void writeInline(Class<T> clazz, T obj) throws IOException;
 
-    public abstract <T> void writeInlineReference(Class<T> clazz, Reference<T> ref)
-        throws IOException;
-
     /**
      * Writes an object as a "reference". Objects written by this method are shared - each {@code
      * obj} is stored only once and referenced from all the locations it is used.

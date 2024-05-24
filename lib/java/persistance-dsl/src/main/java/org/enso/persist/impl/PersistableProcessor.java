@@ -19,10 +19,8 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor9;
-import javax.lang.model.util.SimpleTypeVisitor14;
 import javax.tools.Diagnostic.Kind;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -247,21 +245,7 @@ public class PersistableProcessor extends AbstractProcessor {
             var type = tu.erasure(v.asType());
             var elem = (TypeElement) tu.asElement(type);
             var name = findFqn(elem);
-            if (name.equals("org.enso.persist.Persistance.Reference")) {
-              if (!canInline) {
-                throw new IllegalArgumentException(
-                    "Reference fields can currently only be stored as inlined objects.");
-              }
-
-              TypeMirror innerType = extractReferenceInnerType(v.asType());
-              var innerElem = (TypeElement) tu.asElement(tu.erasure(innerType));
-              var innerName = findFqn(innerElem);
-              w.append("    out.writeInlineReference(")
-                  .append(innerName)
-                  .append(".class, obj.")
-                  .append(v.getSimpleName())
-                  .append("());\n");
-            } else if (canInline && shouldInline(elem)) {
+            if (canInline && shouldInline(elem)) {
               w.append("    out.writeInline(")
                   .append(name)
                   .append(".class, obj.")
@@ -288,30 +272,6 @@ public class PersistableProcessor extends AbstractProcessor {
       w.append("}\n");
     }
     return true;
-  }
-
-  private TypeMirror extractReferenceInnerType(TypeMirror reference) {
-    return reference.accept(
-        new SimpleTypeVisitor14<TypeMirror, Void>() {
-          @Override
-          protected TypeMirror defaultAction(TypeMirror t, Void o) {
-            throw new IllegalStateException(
-                "Unexpected type: " + t + ", Persistance.Reference was expected.");
-          }
-
-          @Override
-          public TypeMirror visitDeclared(DeclaredType t, Void unused) {
-            var typeArgs = t.getTypeArguments();
-            if (typeArgs.size() != 1) {
-              throw new IllegalStateException(
-                  "Unexpected number of type arguments for Persistance.Reference: "
-                      + typeArgs.size());
-            }
-
-            return typeArgs.get(0);
-          }
-        },
-        null);
   }
 
   private int countSeq(List<? extends VariableElement> parameters) {

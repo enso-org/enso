@@ -114,8 +114,8 @@ final class PerGenerator {
     return map.versionStamp;
   }
 
-  private <T> int registerReference(Class<T> clazz, Persistance.Reference<T> ref) {
-    var obj = ref.get(clazz);
+  private int registerReference(Persistance.Reference<?> ref) {
+    var obj = ref.get(Object.class);
     if (obj == null) {
       // A null reference is represented by id -1
       return -1;
@@ -188,19 +188,14 @@ final class PerGenerator {
     @Override
     public <T> void writeInline(Class<T> clazz, T t) throws IOException {
       if (Persistance.Reference.class == clazz) {
-        throw new IllegalStateException(
-            "writeInlineReference should have been used for Persistance.Reference");
+        Persistance.Reference<?> ref = (Persistance.Reference<?>) t;
+        var id = this.generator.registerReference(ref);
+        writeInt(id);
+        return;
       }
       var obj = generator.writeReplace.apply(t);
       var p = generator.map.forType(clazz);
       p.writeInline(obj, this);
-    }
-
-    @Override
-    public <T> void writeInlineReference(Class<T> clazz, Persistance.Reference<T> ref)
-        throws IOException {
-      var id = this.generator.registerReference(clazz, ref);
-      writeInt(id);
     }
 
     @Override
