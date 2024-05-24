@@ -129,7 +129,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   ) : (
     <ContextMenus hidden={hidden} key={asset.id} event={event}>
       <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
-        {asset.type === backendModule.AssetType.dataLink && (
+        {asset.type === backendModule.AssetType.datalink && (
           <ContextMenuEntry
             hidden={hidden}
             action="useInNewProject"
@@ -377,7 +377,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           isDisabled={
             isCloud &&
             asset.type !== backendModule.AssetType.file &&
-            asset.type !== backendModule.AssetType.dataLink &&
+            asset.type !== backendModule.AssetType.datalink &&
             asset.type !== backendModule.AssetType.project
           }
           action="download"

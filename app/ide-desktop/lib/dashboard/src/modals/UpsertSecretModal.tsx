@@ -11,10 +11,10 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
+import Button from '#/components/styled/Button'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
@@ -110,10 +110,10 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                       }}
                     />
                   </FocusRing>
-                  <SvgMask
-                    src={isShowingValue ? EyeIcon : EyeCrossedIcon}
+                  <Button
+                    image={isShowingValue ? EyeIcon : EyeCrossedIcon}
                     className="absolute right-2 top-1 cursor-pointer rounded-full"
-                    onClick={() => {
+                    onPress={() => {
                       setIsShowingValue(show => !show)
                     }}
                   />

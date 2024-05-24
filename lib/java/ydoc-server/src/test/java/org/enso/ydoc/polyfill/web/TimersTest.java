@@ -77,7 +77,7 @@ public class TimersTest extends ExecutorSetup {
         var p = function (x, y) {
             globalThis.result = 10*x + y;
         };
-        var timeoutId = setTimeout(p, 9999, 4, 2);
+        var timeoutId = setTimeout(p, 99999, 4, 2);
         clearTimeout(timeoutId);
         """;
 

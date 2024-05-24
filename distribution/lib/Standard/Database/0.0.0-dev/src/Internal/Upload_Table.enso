@@ -228,7 +228,7 @@ type Non_Unique_Key_Recipe
 raise_duplicated_primary_key_error source_table primary_key original_panic =
     agg = source_table.aggregate primary_key [Aggregate_Column.Count]
     filtered = agg.filter column=-1 (Filter_Condition.Greater than=1)
-    materialized = filtered.read max_rows=1 warn_if_more_rows=False
+    materialized = filtered.read (..First 1)
     case materialized.row_count == 0 of
         ## If we couldn't find a duplicated key, we give up the translation and
            rethrow the original panic containing the SQL error. This could
@@ -619,7 +619,7 @@ check_multiple_rows_match left_table right_table key_columns ~continuation =
     joined = left_table.join right_table on=key_columns join_kind=Join_Kind.Inner
     counted = joined.aggregate key_columns [Aggregate_Column.Count]
     duplicates = counted.filter -1 (Filter_Condition.Greater than=1)
-    example = duplicates.read max_rows=1 warn_if_more_rows=False
+    example = duplicates.read (..First 1)
     case example.row_count == 0 of
         True -> continuation
         False ->
@@ -633,7 +633,7 @@ check_for_null_keys table key_columns ~continuation =
     keys = table.select_columns key_columns
     is_any_key_blank = keys.columns.map (_.is_nothing) . reduce (||)
     null_keys = table.filter is_any_key_blank Filter_Condition.Is_True
-    example = null_keys.read max_rows=1 warn_if_more_rows=False
+    example = null_keys.read (..First 1)
     case example.row_count == 0 of
         True -> continuation
         False ->

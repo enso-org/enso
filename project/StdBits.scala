@@ -36,7 +36,11 @@ object StdBits {
         else baseFilter
       val configFilter: ConfigurationFilter =
         DependencyFilter.configurationFilter(name = validConfig)
-      val graalVmOrgs = GraalVM.modules.map(_.organization).distinct
+      val graalVmOrgs = if ("espresso".equals(System.getenv("ENSO_JAVA"))) {
+        Seq()
+      } else {
+        GraalVM.modules.map(_.organization).distinct
+      }
       // All graal related modules must be filtered away - they will be provided in
       // module-path, and so, they must not be included in std-bits polyglot directories.
       val graalModuleFilter = DependencyFilter.moduleFilter(

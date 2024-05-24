@@ -79,7 +79,7 @@ export default function UserRow(props: UserRowProps) {
             />
           </aria.FocusRing>
         )}
-        <aria.TooltipTrigger>
+        <ariaComponents.TooltipTrigger>
           <FocusableText
             ref={tooltipTargetRef}
             className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
@@ -87,7 +87,7 @@ export default function UserRow(props: UserRowProps) {
             {user.name}
           </FocusableText>
           {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}
-        </aria.TooltipTrigger>
+        </ariaComponents.TooltipTrigger>
       </aria.Cell>
       <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
         {user.email}

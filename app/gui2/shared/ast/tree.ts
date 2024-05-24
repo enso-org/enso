@@ -117,8 +117,33 @@ export abstract class Ast {
   }
 
   innerExpression(): Ast {
-    // TODO: Override this in `Documented`, `Annotated`, `AnnotatedBuiltin`
-    return this
+    return this.wrappedExpression()?.innerExpression() ?? this
+  }
+
+  wrappedExpression(): Ast | undefined {
+    return undefined
+  }
+
+  wrappingExpression(): Ast | undefined {
+    const parent = this.parent()
+    return parent?.wrappedExpression()?.is(this) ? parent : undefined
+  }
+
+  wrappingExpressionRoot(): Ast {
+    return this.wrappingExpression()?.wrappingExpressionRoot() ?? this
+  }
+
+  documentingAncestor(): Documented | undefined {
+    return this.wrappingExpression()?.documentingAncestor()
+  }
+
+  get isBindingStatement(): boolean {
+    const inner = this.wrappedExpression()
+    if (inner) {
+      return inner.isBindingStatement
+    } else {
+      return false
+    }
   }
 
   code(): string {
@@ -326,6 +351,14 @@ export abstract class MutableAst extends Ast {
   /** Update the AST according to changes to its corresponding source code. */
   applyTextEdits(textEdits: SourceRangeEdit[], metadataSource?: Module) {
     applyTextEditsToAst(this, textEdits, metadataSource ?? this.module)
+  }
+
+  getOrInitDocumentation(): MutableDocumented {
+    const existing = this.documentingAncestor()
+    if (existing) return this.module.getVersion(existing)
+    return this.module
+      .getVersion(this.wrappingExpressionRoot())
+      .updateValue((ast) => Documented.new('', ast))
   }
 
   ///////////////////
@@ -772,6 +805,10 @@ export class AutoscopedIdentifier extends Ast {
   declare fields: FixedMapView<AstFields & AutoscopedIdentifierFields>
   constructor(module: Module, fields: FixedMapView<AstFields & AutoscopedIdentifierFields>) {
     super(module, fields)
+  }
+
+  get identifier(): Token {
+    return this.module.getToken(this.fields.get('identifier').node)
   }
 
   static tryParse(
@@ -1575,6 +1612,14 @@ export class Documented extends Ast {
     return raw.startsWith(' ') ? raw.slice(1) : raw
   }
 
+  wrappedExpression(): Ast | undefined {
+    return this.expression
+  }
+
+  documentingAncestor(): Documented | undefined {
+    return this
+  }
+
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, elements, newlines, expression } = getAll(this.fields)
     yield open
@@ -1868,6 +1913,10 @@ export class Function extends Ast {
     }
   }
 
+  get isBindingStatement(): boolean {
+    return true
+  }
+
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
@@ -1954,6 +2003,10 @@ export class Assignment extends Ast {
   }
   get expression(): Ast {
     return this.module.get(this.fields.get('expression').node)
+  }
+
+  get isBindingStatement(): boolean {
+    return true
   }
 
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {

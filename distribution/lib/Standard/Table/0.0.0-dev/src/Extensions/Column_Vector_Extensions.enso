@@ -45,6 +45,7 @@ Column.compute self statistic=Statistic.Count =
     Statistic.compute_bulk self.to_vector [statistic] . first
 
 ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
+   ICON sigma
    Compute statistics on the column.
 
    Arguments:

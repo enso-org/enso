@@ -26,6 +26,8 @@ import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import * as result from '#/components/Result'
 import type * as spinner from '#/components/Spinner'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -283,10 +285,10 @@ export default function Drive(props: DriveProps) {
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
   )
 
-  const doCreateDataLink = React.useCallback(
+  const doCreateDatalink = React.useCallback(
     (name: string, value: unknown) => {
       dispatchAssetListEvent({
-        type: AssetListEventType.newDataLink,
+        type: AssetListEventType.newDatalink,
         parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
         parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
         name,
@@ -325,29 +327,31 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.notEnabled: {
       return (
-        <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
-          <div className="flex flex-col gap-status-page text-center text-base">
-            {getText('upgradeToUseCloud')}
-            <a className="button self-center bg-help text-white" href="https://enso.org/pricing">
-              {getText('upgrade')}
-            </a>
-            {!supportsLocalBackend && (
-              <UnstyledButton
-                className="button self-center bg-help text-white"
-                onPress={async () => {
-                  const downloadUrl = await github.getDownloadUrl()
-                  if (downloadUrl == null) {
-                    toastAndLog('noAppDownloadError')
-                  } else {
-                    download.download(downloadUrl)
-                  }
-                }}
-              >
-                {getText('downloadFreeEdition')}
-              </UnstyledButton>
-            )}
-          </div>
-        </div>
+        <result.Result
+          status="error"
+          title={getText('notEnabledTitle')}
+          qa="not-enabled-stub"
+          subtitle={`${getText('notEnabledSubtitle')}${!supportsLocalBackend ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
+        >
+          {!supportsLocalBackend && (
+            <ariaComponents.Button
+              variant="primary"
+              size="medium"
+              rounded="full"
+              data-testid="download-free-edition"
+              onPress={async () => {
+                const downloadUrl = await github.getDownloadUrl()
+                if (downloadUrl == null) {
+                  toastAndLog('noAppDownloadError')
+                } else {
+                  download.download(downloadUrl)
+                }
+              }}
+            >
+              {getText('downloadFreeEdition')}
+            </ariaComponents.Button>
+          )}
+        </result.Result>
       )
     }
     case DriveStatus.ok: {
@@ -373,7 +377,7 @@ export default function Drive(props: DriveProps) {
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
               doCreateSecret={doCreateSecret}
-              doCreateDataLink={doCreateDataLink}
+              doCreateDatalink={doCreateDatalink}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>

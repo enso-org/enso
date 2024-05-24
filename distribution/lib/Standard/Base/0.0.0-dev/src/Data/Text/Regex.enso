@@ -35,10 +35,11 @@ polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
 
 type Regex
-    ## Compile the provided `expression` into a `Regex` that can be used for
+    ## ICON text
+       Compile the provided `expression` into a `Regex` that can be used for
        matching.
 
-       Arguments
+       Arguments:
        - expression: The text representing the regular expression that you want to
          compile. Must be non-empty.
        - case_insensitive: Enables or disables case-insensitive matching. Case
@@ -359,12 +360,14 @@ type Regex
 
        Return a lazy iterator over matches against a string.
 
-       Arguments
+       Arguments:
        - text: the string to match against.
     iterator : Text -> Match_Iterator
     iterator self input = Match_Iterator.new self input
 
-    ## Return the number of groups in the underlying RegexObject.
+    ## GROUP Metadata
+       ICON metadata
+       Return the number of groups in the underlying RegexObject.
        Note, the count includes group 0 (the whole match) as well.
     group_count : Integer
     group_count self = self.internal_regex_object.groupCount
@@ -377,13 +380,15 @@ type Regex
         map = polyglot_map_to_map self.internal_regex_object.groups
         map.keys
 
-    ## Return a map from group number to group name. Only includes named groups.
+    ## ICON metadata
+       Return a map from group number to group name. Only includes named groups.
     group_nums_to_names : Map Integer Text
     group_nums_to_names self =
         map = polyglot_map_to_map self.internal_regex_object.groups
         map.transform k-> v-> [v.at 0, k]
 
-    ## Escape the special characters in `expression` such that the result is a
+    ## ICON text
+       Escape the special characters in `expression` such that the result is a
        valid literal pattern for the original string.
 
        Arguments:
@@ -491,7 +496,7 @@ type Regex_Syntax_Error
 
    If an empty regex is used, throws an Illegal_Argument error.
 
-   Arguments
+   Arguments:
    - expression: The text representing the regular expression that you want to
      compile. Must be non-empty.
 regex : Text -> Regex ! Regex_Syntax_Error | Illegal_Argument

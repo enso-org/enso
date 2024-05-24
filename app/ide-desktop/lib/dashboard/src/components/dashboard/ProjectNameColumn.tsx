@@ -110,7 +110,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     async event => {
       switch (event.type) {
         case AssetEventType.newFolder:
-        case AssetEventType.newDataLink:
+        case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
         case AssetEventType.openProject:
         case AssetEventType.closeProject:

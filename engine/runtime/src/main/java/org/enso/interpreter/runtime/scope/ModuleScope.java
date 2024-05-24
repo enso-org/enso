@@ -4,14 +4,13 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.enso.interpreter.runtime.Module;
@@ -78,7 +77,7 @@ public final class ModuleScope implements EnsoObject {
     Type tpeKey = type == null ? noTypeKey : type;
     Map<String, Supplier<Function>> result = methods.get(tpeKey);
     if (result == null) {
-      return new HashMap<>();
+      return new LinkedHashMap<>();
     }
     return result;
   }
@@ -217,7 +216,7 @@ public final class ModuleScope implements EnsoObject {
   private Map<Type, Function> getConversionsFor(Type type) {
     var result = conversions.get(type);
     if (result == null) {
-      return new HashMap<>();
+      return new LinkedHashMap<>();
     }
     return result;
   }
@@ -278,12 +277,12 @@ public final class ModuleScope implements EnsoObject {
 
     public Builder(Module module) {
       this.module = module;
-      this.polyglotSymbols = new HashMap<>();
-      this.types = new HashMap<>();
-      this.methods = new ConcurrentHashMap<>();
-      this.conversions = new ConcurrentHashMap<>();
-      this.imports = new HashSet<>();
-      this.exports = new HashSet<>();
+      this.polyglotSymbols = new LinkedHashMap<>();
+      this.types = new LinkedHashMap<>();
+      this.methods = new LinkedHashMap<>();
+      this.conversions = new LinkedHashMap<>();
+      this.imports = new LinkedHashSet<>();
+      this.exports = new LinkedHashSet<>();
       this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
     }
 
@@ -320,7 +319,7 @@ public final class ModuleScope implements EnsoObject {
      */
     private Map<String, Supplier<Function>> ensureMethodMapFor(Type type) {
       Type tpeKey = type == null ? noTypeKey : type;
-      return methods.computeIfAbsent(tpeKey, k -> new HashMap<>());
+      return methods.computeIfAbsent(tpeKey, k -> new LinkedHashMap<>());
     }
 
     /**
@@ -372,7 +371,7 @@ public final class ModuleScope implements EnsoObject {
      */
     public void registerConversionMethod(Type toType, Type fromType, Function function) {
       assert moduleScope == null;
-      var sourceMap = conversions.computeIfAbsent(toType, k -> new HashMap<>());
+      var sourceMap = conversions.computeIfAbsent(toType, k -> new LinkedHashMap<>());
       if (sourceMap.containsKey(fromType)) {
         throw new RedefinedConversionException(toType.getName(), fromType.getName());
       } else {
@@ -454,12 +453,12 @@ public final class ModuleScope implements EnsoObject {
      * @return a copy of this scope modulo the requested types
      */
     public ModuleScope.Builder withTypes(List<String> typeNames) {
-      Map<String, Object> polyglotSymbols = new HashMap<>(this.polyglotSymbols);
-      Map<String, Type> requestedTypes = new HashMap<>(this.types);
-      Map<Type, Map<String, Supplier<Function>>> methods = new ConcurrentHashMap<>();
-      Map<Type, Map<Type, Function>> conversions = new ConcurrentHashMap<>();
-      Set<ModuleScope.Builder> imports = new HashSet<>(this.imports);
-      Set<ModuleScope.Builder> exports = new HashSet<>(this.exports);
+      Map<String, Object> polyglotSymbols = new LinkedHashMap<>(this.polyglotSymbols);
+      Map<String, Type> requestedTypes = new LinkedHashMap<>(this.types);
+      Map<Type, Map<String, Supplier<Function>>> methods = new LinkedHashMap<>();
+      Map<Type, Map<Type, Function>> conversions = new LinkedHashMap<>();
+      Set<ModuleScope.Builder> imports = new LinkedHashSet<>(this.imports);
+      Set<ModuleScope.Builder> exports = new LinkedHashSet<>(this.exports);
       this.types
           .entrySet()
           .forEach(
@@ -514,13 +513,13 @@ public final class ModuleScope implements EnsoObject {
     }
 
     public void reset() {
-      polyglotSymbols = new HashMap<>();
+      polyglotSymbols = new LinkedHashMap<>();
       // can't clear types because on recompilation methods etc will be assigned to the new one
-      // types = new HashMap<>();
-      methods = new ConcurrentHashMap<>();
-      conversions = new ConcurrentHashMap<>();
-      imports = new HashSet<>();
-      exports = new HashSet<>();
+      // types = new LinkedHashMap<>();
+      methods = new LinkedHashMap<>();
+      conversions = new LinkedHashMap<>();
+      imports = new LinkedHashSet<>();
+      exports = new LinkedHashSet<>();
       moduleScope = null;
     }
 

@@ -28,6 +28,7 @@ type Type
     Value value
 
     ## ADVANCED
+       ICON metadata
 
        Returns a vector of `Meta.Constructor` for this type
     constructors : Vector
@@ -118,6 +119,7 @@ type Atom
     fields self = Vector.from_polyglot_array (get_atom_fields self.value)
 
     ## ADVANCED
+       ICON metadata
 
        Returns a constructor value of the given atom.
     constructor : Constructor
@@ -156,6 +158,7 @@ type Constructor
         get_constructor_name c
 
     ## ADVANCED
+       ICON braces
 
        Creates a new atom of the given constructor.
 

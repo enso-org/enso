@@ -72,6 +72,7 @@ type Error
     to_display_text self = "Error: " + (self.catch Any .to_display_text)
 
     ## GROUP Errors
+       ICON error
        Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
@@ -172,6 +173,7 @@ type Error
 
     ## ADVANCED
        GROUP Errors
+       ICON metadata
 
        Returns the attached stack trace of the error.
 
@@ -182,6 +184,7 @@ type Error
         Panic.get_attached_stack_trace self
 
     ## GROUP Errors
+       ICON error
        Checks if `self` is an error.
 
        > Example

@@ -9,7 +9,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_E
 
 from Standard.Test import all
 
-from project.Common_Table_Operations.Util import expect_column_names, run_default_backend, within_table
+from project.Common_Table_Operations.Util import all
 import project.Util
 
 main filter=Nothing = run_default_backend add_specs filter
@@ -41,6 +41,11 @@ add_specs suite_builder setup =
     db_pending = if setup.is_database then "Table.from_union is currently not implemented for the Database backend."
     suite_builder.group prefix+"Table.from_union" pending=db_pending group_builder->
         run_union_tests group_builder setup call_static_union
+
+        group_builder.specify "should fail if no tables are provided" <|
+            r = Table.from_union []
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "at least 1"
 
 run_union_tests group_builder setup call_union =
     create_connection_fn = setup.create_connection_func
@@ -90,36 +95,69 @@ run_union_tests group_builder setup call_union =
         problems2 = [Unmatched_Columns.Error ["A", "D"]]
         Problems.test_problem_handling action2 problems2 tester2
 
-    group_builder.specify "should drop unmatched columns if asked to" <|
+    group_builder.specify "should fill unmatched columns with nulls with no warning, if In_Any is explicitly chosen" <|
+        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+        t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
+        t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+
+        table = call_union [t1, t2, t3] columns_to_keep=..In_Any on_problems=..Report_Error
+        Problems.assume_no_problems table
+        expect_column_names ["A", "B", "C", "D"] table
+        table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, Nothing]
+        table.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+        table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
+        table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
+
+    group_builder.specify "should drop unmatched columns and warn, if In_All is selected" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
         t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
 
-        t4 = call_union[t1, t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Report_Error
-        Problems.assume_no_problems t4
+        t4 = call_union [t1, t2, t3] columns_to_keep=..In_All
+        w = Problems.expect_only_warning Unmatched_Columns t4
+        w.column_names.should_equal ["B", "C"]
         expect_column_names ["A"] t4
         t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
-
-    group_builder.specify "should keep unmatched columns without errors if asked to" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
-        t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
-        t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
-
-        t4 = call_union [t1, t2, t3] keep_unmatched_columns=True on_problems=Problem_Behavior.Report_Error
-        Problems.assume_no_problems t4
-        expect_column_names ["A", "B", "C"] t4
-        t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
-        t4.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-        t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
 
     group_builder.specify "should fail if asked to drop unmatched columns but the set of common columns is empty" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
         t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
 
-        t4 = call_union [t1, t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Ignore
+        t4 = call_union [t1, t2, t3] columns_to_keep=..In_All on_problems=..Ignore
         t4.should_fail_with No_Output_Columns
         t4.catch.to_display_text . should_equal "No columns in the result, because of another problem: Unmatched columns are set to be dropped, but no common column names were found."
+
+    group_builder.specify "should allow to select specified columns for union by In_List, using the ordering from the list" <|
+        t1 = table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
+        t2 = table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
+
+        t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "A"])
+        expect_column_names ["B", "A"] t3
+        t3.at "B" . to_vector . should_equal ["a", "b"]
+        t3.at "A" . to_vector . should_equal [1, 4]
+
+    group_builder.specify "should add a Null column for unmatched columns from In_List" <|
+        t1 = table_builder [["A", [1]], ["X", [2]]]
+        t2 = table_builder [["Z", [4]], ["A", [5]]]
+
+        t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "A"])
+        expect_column_names ["B", "A"] t3
+        t3.at "B" . to_vector . should_equal [Nothing, Nothing]
+        t3.at "A" . to_vector . should_equal [1, 5]
+
+    group_builder.specify "does not allow an empty list in In_List" <|
+        t1 = table_builder [["A", [1]], ["X", [2]]]
+        t2 = table_builder [["Z", [4]], ["A", [5]]]
+        r = call_union [t1, t2] columns_to_keep=(..In_List [])
+        r.should_fail_with Illegal_Argument
+
+    group_builder.specify "does not error if duplicate entries appear in the In_List" <|
+        t1 = table_builder [["A", [1]], ["X", [2]], ["B", ["a"]], ["Y", [3]]]
+        t2 = table_builder [["A", [4]], ["Z", [5]], ["B", ["b"]], ["X", [6]]]
+
+        t3 = call_union [t1, t2] columns_to_keep=(..In_List ["B", "B", "A", "A", "B"])
+        expect_column_names ["B", "A"] t3
 
     group_builder.specify "should ignore column names when matching by position" <|
         t1 = table_builder [["A", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
@@ -144,27 +182,35 @@ run_union_tests group_builder setup call_union =
         problems = [Column_Count_Mismatch.Error 3 1]
         Problems.test_problem_handling action problems tester
 
-    group_builder.specify "should keep the least number of columns with positional matching if asked to drop unmatched ones" <|
+    group_builder.specify "should keep the least number of columns with positional matching if In_All" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
         t3 = table_builder [["A2", [10, 20, 30]]]
 
-        t4 = call_union [t1, t2, t3] keep_unmatched_columns=False match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
-        Problems.assume_no_problems t4
+        t4 = call_union [t1, t2, t3] columns_to_keep=..In_All match_columns=..By_Position
         expect_column_names ["A"] t4
         t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+        w = Problems.expect_only_warning Column_Count_Mismatch t4
+        w.expected.should_equal 3
+        w.actual.should_equal 1
 
-    group_builder.specify "should keep the greatest number of columns with positional matching if asked to keep unmatched ones, filling missing values with null and reporting no problems" <|
+    group_builder.specify "should keep the greatest number of columns with positional matching if In_Any, reporting no problems" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
         t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
         t3 = table_builder [["A2", [10, 20, 30]]]
 
-        t4 = call_union [t1, t2, t3] match_columns=Match_Columns.By_Position keep_unmatched_columns=True on_problems=Problem_Behavior.Ignore
+        t4 = call_union [t1, t2, t3] columns_to_keep=..In_Any match_columns=..By_Position on_problems=..Report_Error
         Problems.assume_no_problems t4
         expect_column_names ["A1", "B1", "C"] t4
         t4.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
         t4.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
         t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
+
+    group_builder.specify "does not allow In_List with positional matching" <|
+        t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+        t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
+        r = call_union [t1, t2] columns_to_keep=(..In_List ["A", "B"]) match_columns=Match_Columns.By_Position
+        r.should_fail_with Illegal_Argument
 
     group_builder.specify "should use column names from the first table that has enough columns in positional matching mode" <|
         t1 = table_builder [["A", [1, 2, 3]]]
@@ -179,10 +225,6 @@ run_union_tests group_builder setup call_union =
         within_table t3 <|
             check t3
         Problems.get_attached_warnings t3 . should_equal [Column_Count_Mismatch.Error 2 1]
-
-        t4 = call_union [t1, t2] match_columns=Match_Columns.By_Position keep_unmatched_columns=True
-        within_table t4 <|
-            check t4
 
         t5 = table_builder [["Y", [7, 8, 9]], ["A", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
         t6 = table_builder [["W", [0]]]
@@ -216,11 +258,13 @@ run_union_tests group_builder setup call_union =
         check_same <| call_union [t1]
         check_same <| call_union [t1] match_columns=Match_Columns.By_Position
 
-        check_same <| call_union [t1] keep_unmatched_columns=False
-        check_same <| call_union [t1] match_columns=Match_Columns.By_Position keep_unmatched_columns=False
+        check_same <| call_union [t1] columns_to_keep=..In_All
+        check_same <| call_union [t1] match_columns=Match_Columns.By_Position columns_to_keep=..In_All
 
-        check_same <| call_union [t1] keep_unmatched_columns=True
-        check_same <| call_union [t1] match_columns=Match_Columns.By_Position keep_unmatched_columns=True
+        check_same <| call_union [t1] columns_to_keep=..In_Any
+        check_same <| call_union [t1] match_columns=Match_Columns.By_Position columns_to_keep=..In_Any
+
+        check_same <| call_union [t1] columns_to_keep=(..In_List ["A", "B"])
 
     group_builder.specify "should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
         t1 = (table_builder [["A", ["a", "b", "c"]]]) . cast "A" (Value_Type.Char size=1 variable_length=False)
@@ -231,12 +275,13 @@ run_union_tests group_builder setup call_union =
 
         t3 = call_union [t1, t2]
         expect_column_names ["A"] t3
+        Problems.assume_no_problems t3
         t3.at "A" . to_vector . should_equal ["a", "b", "c", "xyz", "abc", "def"]
         t3.at "A" . value_type . is_text . should_be_true
         Test.with_clue "t3[A].value_type="+(t3.at "A").value_type.to_display_text+": " <|
             t3.at "A" . value_type . variable_length . should_be_true
 
-    group_builder.specify "should find a common type that will fit the merged columns" <|
+    group_builder.specify "should find a common type that will fit the merged columns (Integer + Float)" <|
         t1 = table_builder [["A", [0, 1, 2]]]
         t2 = table_builder [["A", [1.0, 2.0, 2.5]]]
 
@@ -245,29 +290,77 @@ run_union_tests group_builder setup call_union =
 
         t3 = call_union [t1, t2]
         expect_column_names ["A"] t3
+        Problems.assume_no_problems t3
         t3.at "A" . value_type . is_floating_point . should_be_true
         t3.at "A" . to_vector . should_equal [0, 1, 2, 1.0, 2.0, 2.5]
 
-        # Specific type tests that apply to in-memory. Database behaviour is up to implementation.
-        if setup.is_database.not then
-            t4 = table_builder [["A", [2^100, 2^10, 2]]]
-            t4.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
+    group_builder.specify "should find a common type that will fit the merged columns (numeric + Boolean)" <|
+        t1 = table_builder [["A", [0, 1, 20]]]
+        t2 = table_builder [["A", [True, False, True]]]
 
-            t5 = call_union [t2, t4]
-            expect_column_names ["A"] t5
-            t5.at "A" . value_type . is_floating_point . should_be_true
-            t5.at "A" . to_vector . should_equal [1.0, 2.0, 2.5, 2^100, 2^10, 2]
+        t1.at "A" . value_type . is_integer . should_be_true
+        t2.at "A" . value_type . should_equal Value_Type.Boolean
 
-            t6 = call_union [t1, t4]
-            expect_column_names ["A"] t6
-            t6.at "A" . value_type . should_be_a (Value_Type.Decimal ...)
-            t6.at "A" . to_vector . should_equal [0, 1, 2, 2^100, 2^10, 2]
+        t3 = call_union [t1, t2]
+        expect_column_names ["A"] t3
+        Problems.assume_no_problems t3
+        t3.at "A" . value_type . is_integer . should_be_true
+        t3.at "A" . to_vector . should_equal [0, 1, 20, 1, 0, 1]
+
+        t4 = table_builder [["A", [1.5, 0.0, 2.0]]]
+        t5 = call_union [t2, t4]
+        Problems.assume_no_problems t5
+        t5.at "A" . value_type . is_floating_point . should_be_true
+        t5.at "A" . to_vector . should_equal [1.0, 0.0, 1.0, 1.5, 0.0, 2.0]
+
+    group_builder.specify "should warn about loss of precision when converting large Integer to Float" pending=(if setup.is_database then "Loss_Of_Integer_Precision not yet supported in DB.") <|
+        # 2^70 is not exactly representable as a Float.
+        t1 = table_builder [["A", [2^70, 2^10, 2]]]
+        t2 = table_builder [["A", [1.5, 2.0, 2.5]]]
+        t1.at "A" . value_type . is_decimal . should_be_true
+        t2.at "A" . value_type . is_floating_point . should_be_true
+
+        t3 = call_union [t1, t2]
+        expect_column_names ["A"] t3
+        w = Problems.expect_only_warning Loss_Of_Integer_Precision t3
+        # TODO should we try to include column name here for context? may be worth it...
+        w.affected_rows_count.should_equal 1
+        t3.at "A" . value_type . is_floating_point . should_be_true
+        t3.at "A" . to_vector . should_equal [(2^70).to_float, 2^10, 2, 1.5, 2.0, 2.5]
+
+    group_builder.specify "should find a common type (Integer and Char of different sizes)" <|
+        t1 = (table_builder [["X", [0, 1, 2]], ["Y", ['aa', 'bb', 'cc']]]) . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=2 variable_length=False)
+        t2 = (table_builder [["X", [3, 4, 5]], ["Y", ['x', 'y', 'z']]]) . cast "X" (Value_Type.Integer Bits.Bits_32) . cast "Y" (Value_Type.Char size=1 variable_length=False)
+        supports_complex_types = (t1.is_error || t2.is_error || Problems.get_attached_warnings t1 . not_empty).not
+        case supports_complex_types of
+            False -> Nothing
+            True ->
+                t12 = call_union [t1, t2]
+                # No warnings are expected
+                Problems.assume_no_problems t12
+                t12.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
+                t12.at "Y" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
+
+                t12.at "X" . to_vector . should_equal [0, 1, 2, 3, 4, 5]
+                t12.at "Y" . to_vector . should_equal ['aa', 'bb', 'cc', 'x', 'y', 'z']
+
+    date_time_pending = if setup.test_selection.date_time.not then "Date/Time operations are not supported."
+    group_builder.specify "should warn when converting a Date to Date_Time" pending=date_time_pending <|
+        t1 = table_builder [["D", [Date_Time.new 2024 5 16 16 48 23]]]
+        t2 = table_builder [["D", [Date.new 2019 10 23, Date.new 2020]]]
+
+        action = call_union [t1, t2] on_problems=_
+        tester table =
+            expect_column_names ["D"] table
+            table.at "D" . value_type . should_equal Value_Type.Date_Time
+            table.at "D" . to_vector . should_equal_tz_agnostic [Date_Time.new 2024 5 16 16 48 23, Date_Time.new 2019 10 23 0 0 0, Date_Time.new 2020 1 1 0 0 0]
+        problems = [Mixing_Date_Time_Types.Date_To_Date_Time "D"]
+        problems.first.to_display_text . should_contain "[D]"
+        Problems.test_problem_handling action problems tester
 
     # Database backends are not required to support Mixed types.
     if setup.is_database.not then
         group_builder.specify "should resort to Mixed value type only if at least one column is already Mixed" <|
-            ## TODO currently no way to retype a column to Mixed, so we are
-               using a custom object
             t1 = table_builder [["A", [1, 2, 3]], ["mixed", ["a", My_Type.Value 1 2, Nothing]]]
             t2 = table_builder [["A", [4, 5, 6]], ["mixed", [1, 2, 3]]]
             t1.at "mixed" . value_type . should_equal Value_Type.Mixed
@@ -291,145 +384,68 @@ run_union_tests group_builder setup call_union =
             t6.at "mixed" . to_vector . should_equal ["X", "y", "a", My_Type.Value 1 2, Nothing, 1, 2, 3, True, False]
             t6.at "mixed" . value_type . should_equal Value_Type.Mixed
 
-    group_builder.specify "if no common type can be found, should report error and drop the problematic column" <|
+    group_builder.specify "if no common type can be found, will fall back to converting all types to text and warn" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, Nothing]]]
         t2 = table_builder [["C", ["x", "Y", "Z"]], ["A", [4, 5, 6]], ["B", [1, 2, 3]]]
 
         r1 = call_union [t1, t2] on_problems=Problem_Behavior.Report_Error
         r1.should_fail_with No_Common_Type
+        r1.catch.to_display_text . should_contain "converted to text"
 
-        r2 = call_union [t1, t2] on_problems=Problem_Behavior.Ignore
-        Problems.assume_no_problems r2
-
-        r3 = call_union [t1, t2] on_problems=Problem_Behavior.Report_Warning
-        w3 = Problems.get_attached_warnings r3
-        w3.each w-> w.should_be_a No_Common_Type
-        w3.map w->
-            ## We look just at names of the Value_Type constructors, as
-               different database backends may choose integers of different
-               sizes and have differing settings for text types.
-            types = w.types.map value_type->
-                Meta.meta value_type . constructor . name
-            (types == ["Char", "Integer"]) || (types == ["Boolean", "Char"]) . should_be_true
-
-        # A boolean column cannot be merged with integers.
-        t3 = t1.select_columns ["C", "A"] reorder=True
-        t4 = t2.select_columns ["B", "A"] reorder=True
-        r4 = call_union [t3, t4] match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
-        r4.should_fail_with No_Common_Type
-
-    group_builder.specify "if type widening is not allowed, should use the type from first table that contained the given column" <|
-        t1 = table_builder [["A", [1, 2, 3]]]
-        t2 = table_builder [["A", [4, 5, 6]], ["B", [1.2, 2.2, 3.1]]]
-
-        t3 = call_union [t1, t2] allow_type_widening=False keep_unmatched_columns=True
-        within_table t3 <|
-            Problems.assume_no_problems t3
-            expect_column_names ["A", "B"] t3
-            t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-            t3.at "B" . to_vector . should_equal [Nothing, Nothing, Nothing, 1.2, 2.2, 3.1]
-            t3.at "A" . value_type . is_integer . should_be_true
-            t2.at "B" . value_type . is_floating_point . should_be_true
-            t3.at "B" . value_type . is_floating_point . should_be_true
-
-    group_builder.specify "if type widening is not allowed and types do not match, should report error and drop the problematic column" <|
-        t1 = table_builder [["A", [1, 2, 3]], ["B", [1, 2, 3]], ["E", [1.1, 2.5, 3.2]]]
-        t2 = table_builder [["A", [4, 5, 6]], ["B", [1.5, 2.5, 3.5]], ["E", [1, 2, 3]]]
-
-        t1.at "B" . value_type . is_integer . should_be_true
-        t1.at "E" . value_type . is_floating_point . should_be_true
-
-        t2.at "B" . value_type . is_floating_point . should_be_true
-        t2.at "E" . value_type . is_integer . should_be_true
-
-        action = call_union [t1, t2] allow_type_widening=False on_problems=_
-        tester table =
-            expect_column_names ["A"] table
+        action = call_union [t1, t2] on_problems=_
+        result_checker table =
+            expect_column_names ["A", "B", "C"] table
+            # If type was matched - the columns are merged as is:
             table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            table.at "A" . value_type . is_integer . should_be_true
+            # If mixed, they are converted to text representation:
+            table.at "B" . to_vector . should_equal ["a", "b", "c", "1", "2", "3"]
+            table.at "B" . value_type . is_text . should_be_true
 
-        problem_checker problem =
-            problem.should_be_a Column_Type_Mismatch
-            True
-        err_checker err =
-            problem_checker err.catch
-        warn_checker warnings =
-            warnings.all problem_checker
-        Problems.test_advanced_problem_handling action err_checker warn_checker tester
+            v = table.at "C" . to_vector
+            # The check needs to be case insensitive because various database backends may represent Booleans with lower or uppercase.
+            v.take 2 . map (t -> t.to_case Case.Lower) . should_equal ["true", "false"]
+            # Nothing is preserved, not converted to text because we want to preserve the meaning of 'missing value':
+            v.drop 2 . should_equal [Nothing, "x", "Y", "Z"]
 
-    # Database backends are not required to support Mixed types.
-    if setup.is_database.not then
-        group_builder.specify "even if type widening is not allowed, if the first column is mixed, it should accept any column to be concatenated to it" <|
-            t1 = table_builder [["X", ["a", 1, Nothing]]]
-            t2 = table_builder [["X", [1]]]
-            t3 = table_builder [["X", [1.2, 2.3, 3.4]]]
-            t4 = table_builder [["X", ["a", "b"]]]
-            t5 = table_builder [["X", [True, False]]]
+            table.at "C" . value_type . is_text . should_be_true
 
-            t1.at "X" . value_type . should_equal Value_Type.Mixed
-            t2.at "X" . value_type . should_equal Value_Type.Integer
+        error_checker result = result.should_fail_with No_Common_Type
+        warnings_checker warnings =
+            warnings.map w->
+                w.should_be_a No_Common_Type
+                w.to_display_text . should_contain "converted to text"
+                ["B", "C"].should_contain w.related_column_name
+                ## We look just at names of the Value_Type constructors, as
+                   different database backends may choose integers of different
+                   sizes and have differing settings for text types.
+                types = w.types.map value_type->
+                    Meta.meta value_type . constructor . name
+                Test.with_clue "(should be one of...) " <|
+                    [["Char", "Integer"], ["Boolean", "Char"]].should_contain types
+        Problems.test_advanced_problem_handling action error_checker warnings_checker result_checker
 
-            t6 = call_union [t1, t2, t3, t4, t5] allow_type_widening=False
-            Problems.assume_no_problems t6
-            t6.at "X" . value_type . should_equal Value_Type.Mixed
-            t6.at "X" . to_vector . should_equal ["a", 1, Nothing, 1, 1.2, 2.3, 3.4, "a", "b", True, False]
+    group_builder.specify "if no common type can be found, will fall back to converting all types to text and warn (Date+Time)" pending=date_time_pending <|
+        t1 = table_builder [["D", [Time_Of_Day.new 12, Time_Of_Day.new 13, Time_Of_Day.new 14]]]
+        t2 = table_builder [["D", [Date.new 2019, Date.new 2020, Date.new 2021]]]
 
-        group_builder.specify "when finding a common type for numeric columns to be Float, any precision loss should be reported" <|
-            t1 = table_builder [["X", [1, (2^62)-1, 3]]]
-            t2 = table_builder [["X", [1.5, 2.5, 3.5]]]
-            t3 = table_builder [["X", [(2^100)+1, 2^10, 2]]]
+        action = call_union [t1, t2] on_problems=_
+        tester table =
+            expect_column_names ["D"] table
+            table.at "D" . to_vector . should_equal ["12:00:00", "13:00:00", "14:00:00", "2019-01-01", "2020-01-01", "2021-01-01"]
+            table.at "D" . value_type . is_text . should_be_true
+        problems = [No_Common_Type.Warning_Convert_To_Text [Value_Type.Time, Value_Type.Date] "D"]
+        Problems.test_problem_handling action problems tester
 
-            t1.at "X" . value_type . should_equal Value_Type.Integer
-            t2.at "X" . value_type . should_equal Value_Type.Float
-            t3.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
-
-            t4 = call_union [t2, t1, t3] allow_type_widening=True
-            t4.at "X" . value_type . should_equal Value_Type.Float
-            t4.at "X" . to_vector . should_equal [1.5, 2.5, 3.5, 1, (2^62)-1, 3, (2^100)+1 . to_float, 2^10, 2]
-
-            w = Problems.expect_only_warning Loss_Of_Integer_Precision t4
-            # Losing precision on (2^62)-1 and 2^100+1.
-            w.affected_rows_count . should_equal 2
-
-    group_builder.specify "if type mismatches cause all columns to be dropped, fail with No_Output_Columns" <|
-        t1 = table_builder [["A", [1, 2, 3]]]
-        t2 = table_builder [["A", ['x']]]
-
-        e3 = call_union [t1, t2] allow_type_widening=True on_problems=Problem_Behavior.Ignore
-        e3.should_fail_with No_Output_Columns
-
-        t4 = table_builder [["A", [1.5]]]
-        e5 = call_union [t1, t4] allow_type_widening=False on_problems=Problem_Behavior.Ignore
-        e5.should_fail_with No_Output_Columns
-
-    group_builder.specify "should find a common type (2)" <|
-        t1 = (table_builder [["X", [0, 1, 2]], ["Y", ['aa', 'bb', 'cc']]]) . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=2 variable_length=False)
-        t2 = (table_builder [["X", [3, 4, 5]], ["Y", ['x', 'y', 'z']]]) . cast "X" (Value_Type.Integer Bits.Bits_32) . cast "Y" (Value_Type.Char size=1 variable_length=False)
-        supports_complex_types = (t1.is_error || t2.is_error || Problems.get_attached_warnings t1 . not_empty).not
-        case supports_complex_types of
-            False -> Nothing
-            True ->
-                t12 = call_union [t1, t2]
-                Problems.assume_no_problems t12
-                t12.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_32)
-                t12.at "Y" . value_type . should_equal (Value_Type.Char size=2 variable_length=True)
-
-                t12.at "X" . to_vector . should_equal [0, 1, 2, 3, 4, 5]
-                t12.at "Y" . to_vector . should_equal ['aa', 'bb', 'cc', 'x', 'y', 'z']
-
-    group_builder.specify "should fail to find a common type if widening is not allowed (2)" <|
-        t1 = (table_builder [["X", [0, 1, 2]], ["Y", ['aa', 'bb', 'cc']]]) . cast "X" (Value_Type.Integer Bits.Bits_16) . cast "Y" (Value_Type.Char size=2 variable_length=False)
-        t2 = (table_builder [["X", [3, 4, 5]], ["Y", ['x', 'y', 'z']]]) . cast "X" (Value_Type.Integer Bits.Bits_32) . cast "Y" (Value_Type.Char size=1 variable_length=False)
-        supports_complex_types = (t1.is_error || t2.is_error || Problems.get_attached_warnings t1 . not_empty).not
-        case supports_complex_types of
-            False -> Nothing
-            True ->
-                r1 = call_union [t1, t2] allow_type_widening=False
-                r1.should_fail_with No_Output_Columns
-                r1.catch.cause . should_be_a Column_Type_Mismatch
-                r1.catch.to_display_text . should_equal "No columns in the result, because of another problem: The column [X] expects type Integer (16 bits) but one of the provided tables had type Integer (32 bits) which is not compatible with it."
-
-                # And this should report Column_Type_Mismatch as the more important error too:
-                call_union [t1, t2] allow_type_widening=False on_problems=Problem_Behavior.Report_Error . should_fail_with Column_Type_Mismatch
+    group_builder.specify "will use the _output_ column name in the warnings when matching by position (so input names may differ)" <|
+        t1 = table_builder [["A", [1]]]
+        t2 = table_builder [["B", ["a"]]]
+        r1 = call_union [t1, t2] match_columns=Match_Columns.By_Position
+        expect_column_names ["A"] r1
+        r1.at "A" . value_type . is_text . should_be_true
+        r1.at "A" . to_vector . should_equal ["1", "a"]
+        w = Problems.expect_only_warning No_Common_Type r1
+        w.related_column_name.should_equal "A"
 
     group_builder.specify "should gracefully handle tables from different backends" <|
         t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]

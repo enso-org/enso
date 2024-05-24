@@ -23,6 +23,7 @@ polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
+polyglot java import org.enso.base.statistics.Rank.Method
 polyglot java import org.enso.base.statistics.Statistic as Java_Statistic
 
 ## Specifies how to handle ranking of equal values.
@@ -52,11 +53,11 @@ type Rank_Method
     compute : Vector -> Vector
     compute self input =
         java_method = case self of
-            Rank_Method.Minimum -> Rank.Method.MINIMUM
-            Rank_Method.Maximum -> Rank.Method.MAXIMUM
-            Rank_Method.Average -> Rank.Method.AVERAGE
-            Rank_Method.Ordinal -> Rank.Method.ORDINAL
-            Rank_Method.Dense -> Rank.Method.DENSE
+            Rank_Method.Minimum -> Method.MINIMUM
+            Rank_Method.Maximum -> Method.MAXIMUM
+            Rank_Method.Average -> Method.AVERAGE
+            Rank_Method.Ordinal -> Method.ORDINAL
+            Rank_Method.Dense -> Method.DENSE
 
         report_nullpointer caught_panic = Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)
         handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer

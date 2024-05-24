@@ -10,9 +10,9 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
+import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
@@ -127,8 +127,11 @@ export default function Labels(props: LabelsProps) {
                   </Label>
                   {!newLabelNames.has(label.value) && (
                     <FocusRing placement="after">
-                      <aria.Button
-                        className="relative flex after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring"
+                      <Button
+                        active
+                        image={Trash2Icon}
+                        alt={getText('delete')}
+                        className="relative flex size-icon text-delete transition-all transparent after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                         onPress={() => {
                           setModal(
                             <ConfirmDeleteModal
@@ -139,13 +142,7 @@ export default function Labels(props: LabelsProps) {
                             />
                           )
                         }}
-                      >
-                        <SvgMask
-                          src={Trash2Icon}
-                          alt={getText('delete')}
-                          className="size-icon text-delete transition-all transparent group-has-[[data-focus-visible]]:active group-hover:active"
-                        />
-                      </aria.Button>
+                      />
                     </FocusRing>
                   )}
                 </div>

@@ -252,6 +252,7 @@ type Number
 
     ## ALIAS exponential
        GROUP Math
+       ICON math
 
        Computes the exponential function, raising Euler's number `r` to the power of
        `self`.
@@ -364,7 +365,7 @@ type Number
     min self that = if self < that then self else that
 
     ## GROUP Math
-       ICON math
+       ICON sigma
        Returns the larger value of `self` and `that`.
 
        Arguments:
@@ -732,7 +733,8 @@ type Float
              5.0.to_float
     to_float self -> Float = self
 
-    ## ICON convert
+    ## GROUP Conversions
+       ICON convert
        Convert this to a `Decimal`.
 
        > Example
@@ -1092,7 +1094,8 @@ type Integer
              5.to_float
     to_float self -> Float = integer_to_float self
 
-    ## ICON convert
+    ## GROUP Conversions
+       ICON convert
        Convert this to a `Decimal`.
 
        > Example
@@ -1114,7 +1117,7 @@ type Integer
        Bitwise and computes the logical conjunction of the corresponding pairs
        of bits in the operands.
 
-       ? Example
+       > Example
          Computing the bitwise conjunction of 2_01101101 and 2_11110000.
 
              2_01101101.bit_and 2_11110000

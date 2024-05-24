@@ -1,4 +1,5 @@
 // We are using `react-toastify`, since we share toast environment with dashboard.
+import type { ResultError } from '@/util/data/result'
 import { uuidv4 } from 'lib0/random'
 import { toast, type ToastContent, type ToastOptions, type TypeOptions } from 'react-toastify'
 import { onScopeDispose } from 'vue'
@@ -24,6 +25,11 @@ export function useToast(options: UseToastOptions = {}) {
     show(content: ToastContent) {
       if (toast.isActive(id)) toast.update(id, { ...options, render: content })
       else toast(content, { ...options, toastId: id })
+    },
+    reportError<E>(result: ResultError<E>, preamble?: string) {
+      const msg = result.message(preamble)
+      console.error(msg)
+      this.show(msg)
     },
     dismiss() {
       toast.dismiss(id)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PointerButtonMask, usePointer } from '@/composables/events'
+import { usePointer } from '@/composables/events'
 import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 

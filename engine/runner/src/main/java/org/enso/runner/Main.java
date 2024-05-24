@@ -11,9 +11,9 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
@@ -43,6 +43,7 @@ import org.enso.profiling.sampler.OutputStreamSampler;
 import org.enso.version.VersionDescription;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
+import org.graalvm.polyglot.SourceSection;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import scala.concurrent.ExecutionContext;
@@ -1231,69 +1232,22 @@ public final class Main {
         scala.Option.apply(profilingPath), scala.Option.apply(profilingTime));
   }
 
-  private void printFrame(StackFrame frame, File relativeTo) {
-    var langId = frame.isHostFrame() ? "java" : frame.getLanguage().getId();
-
-    String fmtFrame;
-    if (LanguageInfo.ID.equals(langId)) {
-      var fName = frame.getRootName();
-
-      var src = "Internal";
-      var sourceLoc = frame.getSourceLocation();
-      if (sourceLoc != null) {
-        var path = sourceLoc.getSource().getPath();
-        var ident = sourceLoc.getSource().getName();
-        if (path != null) {
-          if (relativeTo != null) {
-            var absRoot = relativeTo.getAbsoluteFile();
-            if (path.startsWith(absRoot.getAbsolutePath())) {
-              var rootDir = absRoot.isDirectory() ? absRoot : absRoot.getParentFile();
-              ident = rootDir.toPath().relativize(new File(path).toPath()).toString();
-            }
-          }
-        }
-
-        var loc = sourceLoc.getStartLine() + "-" + sourceLoc.getEndLine();
-        var line = sourceLoc.getStartLine();
-        if (line == sourceLoc.getEndLine()) {
-          var start = sourceLoc.getStartColumn();
-          var end = sourceLoc.getEndColumn();
-          loc = line + ":" + start + "-" + end;
-        }
-        src = ident + ":" + loc;
-      }
-      fmtFrame = fName + "(" + src + ")";
-    } else {
-      fmtFrame = frame.toString();
-    }
-    println("        at <" + langId + "> " + fmtFrame);
-  }
-
   private void printPolyglotException(PolyglotException exception, File relativeTo) {
-    var fullStackReversed = new LinkedList<StackFrame>();
-    for (var e : exception.getPolyglotStackTrace()) {
-      fullStackReversed.addFirst(e);
-    }
-
-    var dropInitJava =
-        fullStackReversed.stream()
-            .dropWhile(f -> !LanguageInfo.ID.equals(f.getLanguage().getId()))
-            .toList();
-    Collections.reverse(fullStackReversed);
     var msg = HostEnsoUtils.findExceptionMessage(exception);
-    println("Execution finished with an error: " + msg);
+    Function<StackFrame, String> fnLangId =
+        (frame) -> frame.isHostFrame() ? "java" : frame.getLanguage().getId();
+    Function<StackFrame, String> fnRootName = StackFrame::getRootName;
+    Function<StackFrame, SourceSection> fnSourceSection = StackFrame::getSourceLocation;
 
-    if (exception.isSyntaxError()) {
-      // no stack
-    } else if (dropInitJava.isEmpty()) {
-      for (var f : exception.getPolyglotStackTrace()) {
-        printFrame(f, relativeTo);
-      }
-    } else {
-      for (var f : dropInitJava) {
-        printFrame(f, relativeTo);
-      }
-    }
+    Utils.printStackTrace(
+        exception.getPolyglotStackTrace(),
+        exception.isSyntaxError(),
+        msg,
+        relativeTo,
+        this::println,
+        fnLangId,
+        fnRootName,
+        fnSourceSection);
   }
 
   @SuppressWarnings("unchecked")

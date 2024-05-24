@@ -14,8 +14,8 @@ function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
   rects.set(3, Rect.FromBounds(1, 20, 10, 30))
   rects.set(4, Rect.FromBounds(20, 20, 30, 30))
   const navigator = proxyRefs({ sceneMousePos: sceneMousePos ?? ref(Vec2.Zero), scale: 1 })
-  const allPortsEnabled = () => true
-  const selection = useSelection(navigator, rects, allPortsEnabled, 0)
+  const allNodesValid = () => true
+  const selection = useSelection(navigator, rects, 0, allNodesValid)
   selection.setSelection(new Set([1, 2]))
   return selection
 }
@@ -44,7 +44,7 @@ test.each`
   const selection = selectionWithMockData()
   // Position is zero, because this method should not depend on click position
   selection.handleSelectionOf(mockPointerEvent('click', Vec2.Zero, binding), new Set([click]))
-  expect(Array.from(selection.selected)).toEqual(expected)
+  expect([...selection.selected.value]).toEqual(expected)
 })
 
 const areas: Record<string, Rect> = {
@@ -94,9 +94,9 @@ test.each`
       selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
       mousePos.value = stop
       selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
-      expect(selection.selected).toEqual(new Set(expected))
+      expect(selection.selected.value).toEqual(new Set(expected))
       selection.events.pointerdown(mockPointerEvent('pointerup', mousePos.value, binding))
-      expect(selection.selected).toEqual(new Set(expected))
+      expect(selection.selected.value).toEqual(new Set(expected))
     }
 
     // We should select same set of nodes, regardless of drag direction

@@ -14,6 +14,7 @@ import project.Headers.Headers
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 import project.Match_Columns.Match_Columns
+import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 
 ## Read delimited files such as CSVs into a Table.
@@ -57,7 +58,8 @@ type Delimited_Format
          defaults to `Nothing` which means that comments are disabled.
     @delimiter make_file_read_delimiter_selector
     @encoding Encoding.default_widget
-    Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
+    @row_limit Rows_To_Read.default_widget
+    Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## PRIVATE
        ADVANCED

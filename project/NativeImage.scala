@@ -8,6 +8,7 @@ import sbtassembly.AssemblyKeys.assembly
 import sbtassembly.AssemblyPlugin.autoImport.assemblyOutputPath
 
 import scala.sys.process._
+import java.nio.file.Paths
 
 object NativeImage {
 
@@ -15,6 +16,12 @@ object NativeImage {
     * Should be set to false for production builds. May work only on Linux.
     */
   private val includeDebugInfo: Boolean = false
+
+  lazy val smallJdk = taskKey[Option[File]]("Location of a minimal JDK")
+  lazy val additionalCp =
+    taskKey[Seq[String]](
+      "Additional class-path entries to be added to the native image"
+    )
 
   /** List of classes that should be initialized at build time by the native image.
     * Note that we strive to initialize as much classes during the native image build
@@ -70,8 +77,6 @@ object NativeImage {
     *                            time initialization is set to default
     * @param initializeAtBuildtime a list of classes that should be initialized at
     *                              build time.
-    * @param additionalCp additional class-path entries to be added to the
-    *                     native image.
     * @param includeRuntime Whether `org.enso.runtime` should is included. If yes, then
     *                       it will be passed as a module to the native-image along with other
     *                       Graal and Truffle related modules.
@@ -86,24 +91,41 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    additionalCp: Seq[String]                = Seq(),
     verbose: Boolean                         = false,
     includeRuntime: Boolean                  = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
-      val log            = state.value.log
-      val javaHome       = System.getProperty("java.home")
-      val subProjectRoot = baseDirectory.value
-      val nativeImagePath =
+      val log = state.value.log
+
+      def nativeImagePath(prefix: Path)(path: Path): Path = {
+        val base = path.resolve(prefix)
         if (Platform.isWindows)
-          s"$javaHome\\bin\\native-image.cmd"
-        else s"$javaHome/bin/native-image"
+          base.resolve("native-image.cmd")
+        else base.resolve("native-image")
+      }
+
+      val (javaHome: Path, nativeImagePathResolver) =
+        smallJdk.value
+          .map(f =>
+            (f.toPath(), nativeImagePath(Path.of("lib", "svm", "bin")) _)
+          )
+          .filter { case (p, resolver) => resolver(p).toFile.exists() }
+          .getOrElse(
+            (
+              Paths.get(System.getProperty("java.home")),
+              nativeImagePath(Path.of("bin")) _
+            )
+          )
+
+      log.info("Native image JAVA_HOME: " + javaHome)
+
+      val subProjectRoot = baseDirectory.value
       val pathToJAR =
         (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
 
-      if (!file(nativeImagePath).exists()) {
+      if (!nativeImagePathResolver(javaHome).toFile.exists()) {
         log.error(
-          "Unexpected: Native Image component not found in the JVM distribution."
+          "Unexpected: Native Image component not found in the JVM distribution: " + javaHome
         )
         log.error("Is this a GraalVM distribution?")
         log.error(
@@ -184,11 +206,12 @@ object NativeImage {
         )
         .map(_.data.getAbsolutePath)
 
+      val auxCp = additionalCp.value
       val fullCp =
         if (includeRuntime) {
-          componentModules ++ additionalCp
+          componentModules ++ auxCp
         } else {
-          ourCp.map(_.data.getAbsolutePath) ++ additionalCp
+          ourCp.map(_.data.getAbsolutePath) ++ auxCp
         }
       val cpStr = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
@@ -225,7 +248,7 @@ object NativeImage {
       val newPath   = pathParts.mkString(File.pathSeparator)
 
       val cmd =
-        Seq(nativeImagePath) ++
+        Seq(nativeImagePathResolver(javaHome).toString) ++
         verboseOpt ++
         Seq("@" + argFile.toAbsolutePath.toString)
 

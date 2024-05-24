@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use crate::ci_gen::not_a_fork;
 use crate::paths;
 
 use ide_ci::actions::workflow::definition::env_expression;
@@ -17,7 +18,8 @@ pub fn test_reporter(
     Step {
         name: Some(step_name.into()),
         uses: Some("dorny/test-reporter@v1".into()),
-        r#if: Some("success() || failure()".into()),
+        // The action does not support running on forks.
+        r#if: Some(format!("(success() || failure()) && {}", not_a_fork())),
         ..default()
     }
     .with_custom_argument("reporter", "java-junit")

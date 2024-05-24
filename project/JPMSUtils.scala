@@ -1,6 +1,6 @@
 import JPMSPlugin.autoImport.javaModuleName
-import sbt.*
-import sbt.Keys.*
+import sbt._
+import sbt.Keys._
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
 import sbt.util.CacheStore
 import sbtassembly.Assembly.{Dependency, JarEntry, Project}

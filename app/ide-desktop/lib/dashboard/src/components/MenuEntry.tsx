@@ -43,7 +43,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   uploadFiles: 'uploadFilesShortcut',
   newProject: 'newProjectShortcut',
   newFolder: 'newFolderShortcut',
-  newDataLink: 'newDataLinkShortcut',
+  newDatalink: 'newDatalinkShortcut',
   newSecret: 'newSecretShortcut',
   useInNewProject: 'useInNewProjectShortcut',
   closeModal: 'closeModalShortcut',
@@ -58,6 +58,7 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   selectAdditionalRange: 'selectAdditionalRangeShortcut',
   goBack: 'goBackShortcut',
   goForward: 'goForwardShortcut',
+  aboutThisApp: 'aboutThisAppShortcut',
 } satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 // =================

@@ -4,6 +4,7 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
+import * as reactQuery from '@tanstack/react-query'
 import * as reactDOM from 'react-dom/client'
 import * as reactRouter from 'react-router-dom'
 
@@ -11,6 +12,11 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as app from '#/App'
 import App from '#/App'
+import * as reactQueryClientModule from '#/reactQueryClient'
+
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
+import * as errorBoundary from '#/components/ErrorBoundary'
 
 // =================
 // === Constants ===
@@ -77,16 +83,22 @@ function run(props: app.AppProps) {
     // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
     // via the browser.
     const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
+    const queryClient = reactQueryClientModule.createReactQueryClient()
+
     reactDOM.createRoot(root).render(
-      <sentry.ErrorBoundary>
-        {detect.IS_DEV_MODE ? (
-          <React.StrictMode>
-            <App {...props} />
-          </React.StrictMode>
-        ) : (
-          <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
-        )}
-      </sentry.ErrorBoundary>
+      <React.StrictMode>
+        <reactQuery.QueryClientProvider client={queryClient}>
+          <errorBoundary.ErrorBoundary>
+            <React.Suspense fallback={<LoadingScreen />}>
+              {detect.IS_DEV_MODE ? (
+                <App {...props} />
+              ) : (
+                <App {...props} supportsDeepLinks={actuallySupportsDeepLinks} />
+              )}
+            </React.Suspense>
+          </errorBoundary.ErrorBoundary>
+        </reactQuery.QueryClientProvider>
+      </React.StrictMode>
     )
   }
 }

@@ -2,7 +2,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding } from 'lib0'
 import { xxHash128 } from 'shared/ast/ffi'
-import { computed, watch } from 'vue'
+import { computed, nextTick, watch } from 'vue'
 import type { NavigatorComposable } from './navigator'
 
 /**
@@ -12,10 +12,13 @@ import type { NavigatorComposable } from './navigator'
  * @param reactiveStorageKeyEncoder A **reactive** encoder from which a storage key is derived. Data
  * that is encoded in this function dictates the effective identity of stored viewport. Whenever the
  * encoded data changes, the stored viewport value is restored to navigator.
+ * @param initializeViewport A function that will be called when no stored viewport is found for the
+ * current storage key.
  */
 export function useNavigatorStorage(
   navigator: NavigatorComposable,
   reactiveStorageKeyEncoder: (enc: encoding.Encoder) => void,
+  initializeViewport: () => void,
 ) {
   const graphViewportStorageKey = computed(() =>
     xxHash128(encoding.encode(reactiveStorageKeyEncoder)),
@@ -64,6 +67,7 @@ export function useNavigatorStorage(
 
   function restoreViewport(storageKey: string) {
     const restored = storedViewport.value.get(storageKey)
+    if (restored == null) nextTick(initializeViewport)
     const pos = restored ? Vec2.FromXY(restored).finiteOrZero() : Vec2.Zero
     const scale = restored?.s ?? 1
     navigator.setCenterAndScale(pos, scale)
