@@ -52,6 +52,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const isExpanded = item.children != null && item.isExpanded
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -161,9 +162,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     >
       <Button
         image={FolderArrowIcon}
-        alt={item.children == null ? getText('expand') : getText('collapse')}
+        alt={isExpanded ? getText('collapse') : getText('expand')}
         className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
-          item.children != null ? 'rotate-90' : ''
+          isExpanded ? 'rotate-90' : ''
         }`}
         onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
