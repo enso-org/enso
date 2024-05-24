@@ -10,6 +10,7 @@ import {
   $createQuoteNode,
   $isHeadingNode,
   $isQuoteNode,
+  type HeadingTagType,
 } from '@lexical/rich-text'
 import { $setBlocksType } from '@lexical/selection'
 import { $isTableSelection } from '@lexical/table'
@@ -147,6 +148,19 @@ export const blockTypeToBlockName = {
   quote: 'Quote',
 }
 export type BlockType = keyof typeof blockTypeToBlockName
+export const blockTypes = Object.keys(blockTypeToBlockName) as BlockType[]
+
+const smallestEnabledHeading = ['h6', 'h5', 'h4', 'h3', 'h2', 'h1'].find(
+  isBlockType,
+) as HeadingTagType & BlockType
+
+function isBlockType(value: string): value is BlockType {
+  return value in blockTypeToBlockName
+}
+
+export function normalizeHeadingLevel(heading: HeadingTagType): HeadingTagType & BlockType {
+  return isBlockType(heading) ? heading : smallestEnabledHeading
+}
 
 function useBlockType(
   editor: LexicalEditor,
@@ -155,10 +169,6 @@ function useBlockType(
   const state = ref<BlockType>('paragraph')
 
   onReadSelection((selection) => (state.value = $getBlockType(selection) ?? 'paragraph'))
-
-  const smallestEnabledHeading = ['h6', 'h5', 'h4', 'h3', 'h2', 'h1'].find(
-    (type) => type in blockTypeToBlockName,
-  ) as keyof typeof blockTypeToBlockName
 
   function $getBlockType(selection: RangeSelection): BlockType | undefined {
     const anchorNode = selection.anchor.getNode()
@@ -177,12 +187,7 @@ function useBlockType(
         return type as keyof typeof blockTypeToBlockName
       }
     } else if ($isHeadingNode(element)) {
-      const type = element.getTag()
-      if (type in blockTypeToBlockName) {
-        return type as keyof typeof blockTypeToBlockName
-      } else {
-        return smallestEnabledHeading
-      }
+      return normalizeHeadingLevel(element.getTag())
     } else {
       const type = element.getType()
       if (type in blockTypeToBlockName) {
