@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
 import Standard.Database.DB_Column.DB_Column
@@ -1435,6 +1436,16 @@ add_specs suite_builder setup =
             regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
             col = table_builder [["x", [regex]]] . at "x"
             do_replace col regex "asdf" ["asdf"]
+    
+    suite_builder.group prefix+"replace: Named_Pattern and replacement" group_builder->
+        data = Literal_Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "can use Named_Patterns" <|
+            do_replace data.col1 Named_Pattern.Symbols 'hey' expected=['aheybcdhey AheybCdhey aheybcdhey', 'abac ad Ab aCAd']
+
 
     suite_builder.group prefix+"replace: pattern and replacement columns" group_builder->
         data = Replace_Data.setup create_connection_fn setup.table_builder
@@ -1544,7 +1555,7 @@ add_specs suite_builder setup =
 
             group_builder.specify "should only allow replace on Text columns" <|
                 data.c.text_replace "a" "#" . should_fail_with Invalid_Value_Type
-                data.a.text_replace 1 "#" . should_fail_with Invalid_Value_Type
+                Test.expect_panic Type_Error (data.a.text_replace 1 "#")
                 data.a.text_replace data.c "#" . should_fail_with Invalid_Value_Type
                 data.a.text_replace "a" 1 . should_fail_with Invalid_Value_Type
                 data.a.text_replace "a" data.c . should_fail_with Invalid_Value_Type
