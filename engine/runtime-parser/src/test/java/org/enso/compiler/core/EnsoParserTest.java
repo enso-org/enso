@@ -1,5 +1,6 @@
 package org.enso.compiler.core;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.Error;
@@ -1439,6 +1441,35 @@ public class EnsoParserTest {
     assertThat(methodDef, instanceOf(Method.Binding.class));
     var method = (Method.Binding) methodDef;
     assertThat(method.isPrivate(), is(true));
+  }
+
+  @Test
+  public void testPrivateAndPublicTopScopeMethods() {
+    var code = """
+        private priv_method x = x
+        pub_method x = x
+        """;
+    var ir = compile(code);
+    expectNoErrorsInIr(ir);
+    var funcs =
+        CollectionConverters.asJava(ir.preorder()).stream()
+            .map(
+                f -> {
+                  if (f instanceof Method meth) {
+                    return meth;
+                  } else {
+                    return null;
+                  }
+                })
+            .filter(Objects::nonNull)
+            .toList();
+    assertThat(funcs.size(), is(2));
+    var privMethod = funcs.get(0);
+    assertThat(privMethod.isPrivate(), is(true));
+    assertThat(privMethod.methodName().name(), containsString("priv_method"));
+    var pubMethod = funcs.get(1);
+    assertThat(pubMethod.isPrivate(), is(false));
+    assertThat(pubMethod.methodName().name(), containsString("pub_method"));
   }
 
   @Test
