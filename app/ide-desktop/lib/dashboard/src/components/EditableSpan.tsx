@@ -72,7 +72,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     cancelledRef.current = false
   }, [editable])
 
-  if (editable) {
+  if (true) {
     return (
       <form
         className="flex grow"

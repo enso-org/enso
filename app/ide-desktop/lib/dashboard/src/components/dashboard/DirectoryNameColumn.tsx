@@ -22,6 +22,7 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
+import Debug from '#/utilities/Debug'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -138,64 +139,66 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   })
 
   return (
-    <div
-      className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
-        item.depth
-      )}`}
-      onKeyDown={event => {
-        if (rowState.isEditingName && event.key === 'Enter') {
-          event.stopPropagation()
-        }
-      }}
-      onClick={event => {
-        if (handleClick(event)) {
-          // Already handled.
-        } else if (
-          eventModule.isSingleClick(event) &&
-          selected &&
-          selectedKeys.current.size === 1
-        ) {
-          event.stopPropagation()
-          setIsEditing(true)
-        }
-      }}
-    >
-      <Button
-        image={FolderArrowIcon}
-        alt={isExpanded ? getText('collapse') : getText('expand')}
-        className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
-          isExpanded ? 'rotate-90' : ''
-        }`}
-        onPress={() => {
-          doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+    <Debug>
+      <div
+        className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
+          item.depth
+        )}`}
+        onKeyDown={event => {
+          if (rowState.isEditingName && event.key === 'Enter') {
+            event.stopPropagation()
+          }
         }}
-      />
-      <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
-      <EditableSpan
-        data-testid="asset-row-name"
-        editable={rowState.isEditingName}
-        className={`text grow cursor-pointer bg-transparent ${
-          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
-        }`}
-        checkSubmittable={newTitle =>
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.key ||
-              // that are directories,
-              !backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
-          )
-        }
-        onSubmit={doRename}
-        onCancel={() => {
-          setIsEditing(false)
+        onClick={event => {
+          if (handleClick(event)) {
+            // Already handled.
+          } else if (
+            eventModule.isSingleClick(event) &&
+            selected &&
+            selectedKeys.current.size === 1
+          ) {
+            event.stopPropagation()
+            setIsEditing(true)
+          }
         }}
       >
-        {asset.title}
-      </EditableSpan>
-    </div>
+        <Button
+          image={FolderArrowIcon}
+          alt={isExpanded ? getText('collapse') : getText('expand')}
+          className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
+            isExpanded ? 'rotate-90' : ''
+          }`}
+          onPress={() => {
+            doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+          }}
+        />
+        <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
+        <EditableSpan
+          data-testid="asset-row-name"
+          editable={rowState.isEditingName}
+          className={`text grow cursor-pointer bg-transparent ${
+            rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+          }`}
+          checkSubmittable={newTitle =>
+            newTitle !== item.item.title &&
+            (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
+              child =>
+                // All siblings,
+                child.key === item.key ||
+                // that are directories,
+                !backendModule.assetIsDirectory(child.item) ||
+                // must have a different name.
+                child.item.title !== newTitle
+            )
+          }
+          onSubmit={doRename}
+          onCancel={() => {
+            setIsEditing(false)
+          }}
+        >
+          {asset.title}
+        </EditableSpan>
+      </div>
+    </Debug>
   )
 }
