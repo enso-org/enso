@@ -171,6 +171,8 @@ type Vector a
        - function: a function taking a `Builder` and adding elements to it.
        - initial_capacity: Initial capacity of the `Builder`; this is for
          pre-allocation and does not affect the size of the resulting `Vector`.
+       - no_warning_propagation: If True, do not gather warnings from values
+         added to the builder.
 
        ! Error Conditions
 
@@ -1249,6 +1251,8 @@ type Builder
        - elements_java_builder: The accumulator for the new vector.
        - warnings_java_builder: The accumulator for `Warning`s that were
          attached to values added to the builder.
+       - no_warning_propagation: If True, do not gather warnings from values
+         added to the builder.
 
        A vector builder is a mutable data structure, that allows to gather a
        number of elements and then convert them to a vector. This is
