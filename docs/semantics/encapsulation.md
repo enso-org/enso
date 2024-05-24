@@ -74,9 +74,13 @@ public and private constructors in a single type is a compilation error. A type
 with all constructors public is called an _open_ type and a type with all
 constructors private is called a _closed_ type.
 
+### Methods
+
 Methods on types (or on modules) can be specified private. To check whether a
 private method is accessed only from within the same project, a runtime check
 must be performed, as this cannot be checked during the compilation.
+
+Conversion and foreign methods cannot be specified as private.
 
 ### Polyglot access
 
@@ -121,7 +125,7 @@ tmp.enso:
 ```
 from Lib import Pub_Type
 import Lib.Methods
-import Lib.Internal.Helpers # Fails during compilation - cannot import private module
+import Lib.Internal.Helpers # Fails during compilation - cannot import private module from different project
 
 main =
   # This constructor is not private, we can use it here.
@@ -169,6 +173,4 @@ during compilation and method resolution.
 ## Other notes
 
 - A private module implies that all the entities defined within are private
-- A private type implies that all the constructors, methods and fields defined
-  within are private
 - A private constructor implies private fields defined in that constructor.
