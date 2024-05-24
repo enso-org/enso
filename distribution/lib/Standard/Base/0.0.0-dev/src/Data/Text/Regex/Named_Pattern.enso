@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+## PRIVATE
 type Named_Pattern
    Duplicate_Whitespace
    Leading_Whitespace
