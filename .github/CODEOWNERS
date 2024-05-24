@@ -2,32 +2,28 @@
 CHANGELOG.md
 
 # The repository settings
-/.github/ @mwu-tow
+/.github/ @jdunkerley  @AdRiley @hubertp @Frizi
 /.github/CODEOWNERS @jdunkerley @jaroslavtulach @farmaazon @AdRiley @PabloBuchu @wdanilo
 
 # Build script & utilities
-/run @mwu-tow
-/run.bat @mwu-tow
-/build @mwu-tow
+/run @jdunkerley  @AdRiley @hubertp @Frizi
+/run.bat @jdunkerley  @AdRiley @hubertp @Frizi
+/build @jdunkerley  @AdRiley @hubertp @Frizi
 
 # Rust Libraries and Related Files
-rust-toolchain.toml @vitvakatu @Frizi @kazcw @farmaazon @mwu-tow
-rustfmt.toml @mwu-tow @farmaazon @vitvakatu @Frizi @kazcw 
+rust-toolchain.toml @vitvakatu @Frizi @kazcw @farmaazon @AdRiley
+rustfmt.toml @farmaazon @vitvakatu @Frizi @kazcw @AdRiley
 Cargo.lock
 Cargo.toml
-/lib/rust/ @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi
-/lib/rust/parser/ @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach
-/integration-test/ @farmaazon @kazcw @vitvakatu @Frizi
-/tools/build-performance/ @kazcw @mwu-tow @Akirathan
+/lib/rust/ @farmaazon @kazcw @vitvakatu @Frizi @AdRiley
+/lib/rust/parser/ @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach @AdRiley
+/tools/build-performance/ @kazcw @Akirathan
 
 # Scala Libraries
 /lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # GUI
-/app/gui/ @farmaazon @mwu-tow @kazcw @vitvakatu @Frizi
-/app/gui/view/ @farmaazon @kazcw @vitvakatu @Frizi
-/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @farmaazon @kazcw @jdunkerley @vitvakatu @Frizi
-/app/gui2/ @Frizi @farmaazon @vitvakatu @kazcw
+/app/gui2/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine

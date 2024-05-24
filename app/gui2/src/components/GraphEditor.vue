@@ -33,6 +33,7 @@ import {
   useResizeObserver,
 } from '@/composables/events'
 import { useNavigatorStorage } from '@/composables/navigatorStorage'
+import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -45,7 +46,7 @@ import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
-import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
@@ -53,6 +54,7 @@ import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
+import { unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
@@ -320,7 +322,7 @@ const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
 
-const { documentation } = useAstDocumentation(() => graphStore.methodAst)
+const { documentation } = useAstDocumentation(() => unwrapOr(graphStore.methodAst, undefined))
 
 // === Execution Mode ===
 
@@ -576,7 +578,7 @@ const groupColors = computed(() => {
   <div
     ref="viewportNode"
     class="GraphEditor viewport"
-    :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
+    :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
     v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"
@@ -650,7 +652,7 @@ const groupColors = computed(() => {
       @collapseNodes="collapseNodes"
       @removeNodes="deleteSelected"
     />
-    <PlusButton @click.stop="addNodeAuto()" />
+    <PlusButton title="Add Component" @click.stop="addNodeAuto()" />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
@@ -709,6 +711,8 @@ const groupColors = computed(() => {
   contain: layout;
   overflow: clip;
   user-select: none;
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior-x: none;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
 }

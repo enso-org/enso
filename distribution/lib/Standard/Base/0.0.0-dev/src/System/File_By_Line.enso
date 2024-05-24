@@ -24,7 +24,7 @@ type File_By_Line
     ## ICON data_input
        Creates a new File_By_Line object.
 
-       Arguments
+       Arguments:
        - file: The file to read.
        - encoding: The encoding to use when reading the file (defaults to UTF 8).
        - offset: The position within the file to read from (defaults to first byte).
@@ -40,7 +40,7 @@ type File_By_Line
     ## PRIVATE
        Creates a new File_By_Line object.
 
-       Arguments
+       Arguments:
        - file: The file to read.
        - encoding: The encoding to use when reading the file (defaults to UTF 8).
        - limit_lines: The number of lines to read (defaults to all lines).
@@ -53,7 +53,7 @@ type File_By_Line
        ICON parse3
        Reads a specific line from the file.
 
-       Arguments
+       Arguments:
        - line: The line to read (0 indexed).
     get : Integer -> Text
     get self line:Integer = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
@@ -93,7 +93,7 @@ type File_By_Line
     ## ICON parse3
        Performs an action on each line.
 
-       Arguments
+       Arguments:
        - function: The action to perform on each line.
     each : (Text -> Any) -> Nothing
     each self function =
@@ -116,7 +116,7 @@ type File_By_Line
     ## ICON dataframe_map_column
        Transforms each line in the file and returns the result as a vector.
 
-       Arguments
+       Arguments:
        - action: The action to perform on each line.
     map : (Text -> Any) -> Vector Any
     map self action =
@@ -127,7 +127,7 @@ type File_By_Line
     ## ICON dataframe_map_column
        Transforms each line in the file and returns the result as a vector.
 
-       Arguments
+       Arguments:
        - action: The action to perform on each line.
     map_with_index : (Integer -> Text -> Any) -> Vector Any
     map_with_index self action =
@@ -139,7 +139,7 @@ type File_By_Line
        ICON select_row
        Skips the specified number of lines.
 
-       Arguments
+       Arguments:
        - lines: The number of lines to skip.
     skip : Integer -> File_By_Line
     skip self lines:Integer =
@@ -159,7 +159,7 @@ type File_By_Line
        ICON parse3
        Limits a file to a specific number of lines.
 
-       Arguments
+       Arguments:
        - lines: The number of lines to limit the file to.
     limit : Integer -> File_By_Line
     limit self lines:Integer =
@@ -169,7 +169,7 @@ type File_By_Line
        ICON preparation
        Filters the file by a predicate.
 
-       Arguments
+       Arguments:
        - predicate: The predicate to filter by.
     filter : Text | (Text -> Boolean) -> File_By_Line
     filter self predicate =

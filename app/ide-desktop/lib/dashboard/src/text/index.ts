@@ -11,6 +11,10 @@ export enum Language {
   english = 'english',
 }
 
+export const LANGUAGE_TO_LOCALE: Record<Language, string> = {
+  [Language.english]: 'en-US',
+}
+
 /** An object containing the corresponding localized text for each text ID. */
 type Texts = typeof ENGLISH
 /** All possible text IDs. */
@@ -28,6 +32,7 @@ interface PlaceholderOverrides {
   readonly unknownThreadIdError: [threadId: string]
   readonly needsOwnerError: [assetType: string]
   readonly inviteSuccess: [userEmail: string]
+  readonly inviteManyUsersSuccess: [userCount: number]
 
   readonly deleteLabelActionText: [labelName: string]
   readonly deleteSelectedAssetActionText: [assetName: string]

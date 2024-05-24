@@ -36,7 +36,7 @@ type Replacer
     ## PRIVATE
        Creates a new Replacer.
 
-       Arguments
+       Arguments:
        - replacement_string: a string, possibly containing group references,
          that will be used to provide a replacement in a regex match.
     new : Text -> Regex -> Replacer ! No_Such_Group

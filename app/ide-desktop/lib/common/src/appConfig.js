@@ -86,13 +86,13 @@ function stringify(value) {
  * - the unique identifier for the cloud environment, for use in Sentry logs
  * - Stripe, Sentry and Amplify public keys */
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-export function getDefines(serverPort = 8080) {
+export function getDefines() {
     return {
         /* eslint-disable @typescript-eslint/naming-convention */
         'process.env.ENSO_CLOUD_REDIRECT': stringify(
             // The actual environment variable does not necessarily exist.
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            process.env.ENSO_CLOUD_REDIRECT ?? `http://localhost:${serverPort}`
+            process.env.ENSO_CLOUD_REDIRECT
         ),
         'process.env.ENSO_CLOUD_ENVIRONMENT': stringify(
             // The actual environment variable does not necessarily exist.
@@ -120,15 +120,16 @@ export function getDefines(serverPort = 8080) {
         'process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH': stringify(
             process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH
         ),
+        'process.env.ENSO_CLOUD_ENSO_HOST': stringify(
+            process.env.ENSO_CLOUD_ENSO_HOST ?? 'https://enso.org'
+        ),
         /* eslint-enable @typescript-eslint/naming-convention */
     }
 }
 
-const SERVER_PORT = 8080
 const DUMMY_DEFINES = {
     /* eslint-disable @typescript-eslint/naming-convention */
     'process.env.NODE_ENV': 'production',
-    'process.env.ENSO_CLOUD_REDIRECT': `http://localhost:${SERVER_PORT}`,
     'process.env.ENSO_CLOUD_ENVIRONMENT': 'production',
     'process.env.ENSO_CLOUD_API_URL': 'https://mock',
     'process.env.ENSO_CLOUD_SENTRY_DSN':

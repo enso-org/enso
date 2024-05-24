@@ -223,8 +223,8 @@ class App {
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
-                await this.startBackendIfEnabled()
                 await this.startContentServerIfEnabled()
+                await this.startBackendIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
                 await this.loadWindowContent()
@@ -236,8 +236,10 @@ class App {
                 authentication.initModule(() => this.window!)
             })
         } catch (err) {
-            console.error('Failed to initialize the application, shutting down. Error:', err)
+            logger.error('Failed to initialize the application, shutting down. Error: ', err)
             electron.app.quit()
+        } finally {
+            logger.groupEnd()
         }
     }
 
@@ -281,18 +283,24 @@ class App {
     /** Start the content server, which will serve the application content (HTML) to the window. */
     async startContentServerIfEnabled() {
         await this.runIfEnabled(this.args.options.server, async () => {
-            await logger.asyncGroupMeasured('Starting the content server.', async () => {
-                const serverCfg = new server.Config({
-                    dir: paths.ASSETS_PATH,
-                    port: this.args.groups.server.options.port.value,
-                    externalFunctions: {
-                        uploadProjectBundle: projectManagement.uploadBundle,
-                        runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
-                            projectManager.runCommand(this.args, cliArguments, body),
-                    },
+            await logger
+                .asyncGroupMeasured('Starting the content server.', async () => {
+                    const serverCfg = new server.Config({
+                        dir: paths.ASSETS_PATH,
+                        port: this.args.groups.server.options.port.value,
+                        externalFunctions: {
+                            uploadProjectBundle: projectManagement.uploadBundle,
+                            runProjectManagerCommand: (
+                                cliArguments,
+                                body?: NodeJS.ReadableStream
+                            ) => projectManager.runCommand(this.args, cliArguments, body),
+                        },
+                    })
+                    this.server = await server.Server.create(serverCfg)
                 })
-                this.server = await server.Server.create(serverCfg)
-            })
+                .finally(() => {
+                    logger.groupEnd()
+                })
         })
     }
 
