@@ -137,7 +137,6 @@ function $clearFormatting() {
 
 export const blockTypeToBlockName = {
   bullet: 'Bulleted List',
-  /* check: 'Check List', */
   code: 'Code Block',
   h1: 'Heading 1',
   h2: 'Heading 2',
@@ -193,7 +192,6 @@ function useBlockType(
 
   const $setBlockType: Record<BlockType, () => void> = {
     bullet: () => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined),
-    //check: () => editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined),
     number: () => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined),
     paragraph: () => {
       const selection = $getSelection()
