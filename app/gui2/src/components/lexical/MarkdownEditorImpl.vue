@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useLexical, type LexicalPlugin } from '@/components/lexical'
+import FloatingSelectionMenu from '@/components/lexical/FloatingSelectionMenu.vue'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
 import SelectionFormattingToolbar from '@/components/lexical/SelectionFormattingToolbar.vue'
+import { provideFormatting } from '@/components/lexical/formattingProvider'
 import { listPlugin } from '@/components/lexical/listPlugin'
 import { useLexicalStringSync } from '@/components/lexical/sync'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
@@ -59,19 +61,19 @@ const { editor } = useLexical(contentElement, 'MarkdownEditor', [
   markdownPlugin,
   markdownSyncPlugin,
 ])
+provideFormatting(editor)
 </script>
 
 <template>
   <div class="MarkdownEditor fullHeight">
     <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
-    <SelectionFormattingToolbar :editor="editor" :editorRoot="contentElement" />
+    <FloatingSelectionMenu :selectionElement="contentElement">
+      <SelectionFormattingToolbar />
+    </FloatingSelectionMenu>
   </div>
 </template>
 
 <style scoped>
-.MarkdownEditor {
-}
-
 .fullHeight {
   height: 100%;
 }
