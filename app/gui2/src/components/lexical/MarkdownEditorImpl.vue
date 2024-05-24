@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useLexical, type LexicalPlugin } from '@/components/lexical'
+import { lexicalTheme, useLexical, type LexicalPlugin } from '@/components/lexical'
 import FloatingSelectionMenu from '@/components/lexical/FloatingSelectionMenu.vue'
 import FormattingToolbar from '@/components/lexical/FormattingToolbar.vue'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
@@ -19,7 +19,7 @@ import {
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
 import { syncRef } from '@vueuse/core'
-import { shallowRef, type ComponentInstance } from 'vue'
+import { shallowRef, useCssModule, type ComponentInstance } from 'vue'
 
 const markdown = defineModel<string>({ required: true })
 
@@ -57,7 +57,8 @@ const markdownSyncPlugin: LexicalPlugin = {
   },
 }
 
-const { editor } = useLexical(contentElement, 'MarkdownEditor', [
+const theme = lexicalTheme(useCssModule('lexicalTheme'))
+const { editor } = useLexical(contentElement, 'MarkdownEditor', theme, [
   listPlugin,
   markdownPlugin,
   markdownSyncPlugin,
@@ -92,49 +93,6 @@ const formatting = useFormatting(editor)
   color: inherit;
   opacity: inherit;
 }
-
-.LexicalContent :deep(h1) {
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 1.75;
-}
-
-.LexicalContent :deep(h2, h3, h4, h5, h6) {
-  font-size: 14px;
-  line-height: 2;
-}
-
-.LexicalContent :deep(p + p) {
-  margin-bottom: 4px;
-}
-
-.LexicalContent :deep(ol) {
-  list-style-type: decimal;
-  list-style-position: outside;
-  padding-left: 1.6em;
-}
-
-.LexicalContent :deep(ul) {
-  list-style-type: disc;
-  list-style-position: outside;
-  padding-left: 1.6em;
-}
-
-.LexicalContent :deep(strong) {
-  font-weight: bold;
-}
-
-.LexicalContent :deep(.lexical-strikethrough) {
-  text-decoration: line-through;
-}
-
-.LexicalContent :deep(.lexical-italic) {
-  font-style: italic;
-}
-
-.LexicalContent :deep(.lexical-quote) {
-  margin-left: 0.2em;
-  border-left: 0.3em solid #ccc;
-  padding-left: 1.6em;
-}
 </style>
+
+<style module="lexicalTheme" src="@/components/lexical/theme.css" />
