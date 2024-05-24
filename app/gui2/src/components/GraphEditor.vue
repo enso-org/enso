@@ -81,7 +81,6 @@ const _visualizationStore = provideVisualizationStore(projectStore)
 
 widgetRegistry.loadBuiltins()
 
-// Initialize suggestion db immediately, so it will be ready when user needs it.
 onMounted(() => {
   if (isDevMode) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)

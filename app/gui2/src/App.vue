@@ -31,7 +31,7 @@ initializePrefixes()
 
 const logger = provideEventLogger(toRef(props, 'logEvent'), toRef(props, 'projectId'))
 watch(
-  [toRef(props, 'projectId')],
+  toRef(props, 'projectId'),
   (_id, _oldId, onCleanup) => {
     logger.send('ide_project_opened')
     onCleanup(() => logger.send('ide_project_closed'))
