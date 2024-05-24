@@ -40,7 +40,6 @@ make_date_part_function column period make_unary_op naming_helper =
                 Date_Period.Month -> make_unary_op column "month"
                 Date_Period.Week _ -> make_unary_op column "week"
                 Date_Period.Day -> make_unary_op column "day"
-                Time_Period.Day -> make_unary_op column "day"
                 Time_Period.Hour -> make_unary_op column "hour"
                 Time_Period.Minute -> make_unary_op column "minute"
                 Time_Period.Second -> make_unary_op column "second"
