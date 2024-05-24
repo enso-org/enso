@@ -80,15 +80,15 @@ const formatting = useFormatting(editor)
   height: 100%;
 }
 
-.MarkdownEditor :deep(.toggledOn) {
+:deep(.toggledOn) {
   color: black;
   opacity: 0.6;
 }
-.MarkdownEditor :deep(.toggledOff) {
+:deep(.toggledOff) {
   color: black;
   opacity: 0.3;
 }
-.MarkdownEditor :deep(.DropdownMenuButton) {
+:deep(.DropdownMenuButton) {
   color: inherit;
   opacity: inherit;
 }
