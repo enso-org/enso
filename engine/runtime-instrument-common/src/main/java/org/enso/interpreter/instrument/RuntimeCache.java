@@ -8,14 +8,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.WeakHashMap;
 import java.util.function.Consumer;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
-  private final Map<Object, UUID> valuesToKeys = new WeakHashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
@@ -37,7 +35,6 @@ public final class RuntimeCache implements java.util.function.Function<String, O
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
       expressions.put(key, new WeakReference<>(value));
-      valuesToKeys.put(value, key);
       return true;
     } else {
       var ref = new WeakReference<>(value);
