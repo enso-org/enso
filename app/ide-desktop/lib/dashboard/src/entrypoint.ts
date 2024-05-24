@@ -2,6 +2,7 @@
 import '#/tailwind.css'
 
 import * as main from '#/index'
+import * as testAppRunner from '#/TestAppRunner'
 
 // ===================
 // === Entry point ===
@@ -25,5 +26,5 @@ main.run({
   /** The cloud frontend is not capable of running a Project Manager. */
   projectManagerUrl: null,
   ydocUrl: null,
-  appRunner: null,
+  appRunner: testAppRunner.TestAppRunner,
 })

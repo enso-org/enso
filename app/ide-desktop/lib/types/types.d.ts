@@ -14,7 +14,7 @@ interface StringConfig {
 interface EditorProps {
     readonly config: StringConfig | null
     readonly projectId: string
-    readonly hidden?: boolean
+    readonly hidden: boolean
     readonly ignoreParamsRegex?: RegExp
     readonly logEvent: (
         message: string,
