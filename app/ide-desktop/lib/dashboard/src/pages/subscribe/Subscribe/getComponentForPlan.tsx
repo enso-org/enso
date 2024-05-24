@@ -89,7 +89,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
 
       return (
         <ariaComponents.DialogTrigger defaultOpen={defaultOpen}>
-          <ariaComponents.Button variant={'outline'} fullWidth size="medium" rounding="full">
+          <ariaComponents.Button variant={'outline'} fullWidth size="medium" rounded="full">
             {getText('subscribe')}
           </ariaComponents.Button>
 
@@ -129,7 +129,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
 
       return (
         <ariaComponents.DialogTrigger defaultOpen={defaultOpen}>
-          <ariaComponents.Button variant={'submit'} fullWidth size="medium" rounding="full">
+          <ariaComponents.Button variant={'submit'} fullWidth size="medium" rounded="full">
             {getText('subscribe')}
           </ariaComponents.Button>
 
@@ -167,7 +167,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
           fullWidth
           variant="primary"
           size="medium"
-          rounding="full"
+          rounded="full"
           target="_blank"
           href="mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan"
         >

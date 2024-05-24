@@ -144,15 +144,13 @@ const nodeShortType = computed(() =>
         <div class="toolbar">
           <SvgButton
             :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
-            :alt="config.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+            :title="config.fullscreen ? 'Exit Fullscreen' : 'Fullscreen'"
             @click.stop.prevent="(config.fullscreen = !config.fullscreen), blur($event)"
           />
           <div class="icon-container">
             <SvgButton
               :name="config.icon ?? 'columns_increasing'"
-              :alt="
-                isSelectorVisible ? 'Hide visualization selector' : 'Show visualization selector'
-              "
+              title="Visualization Selector"
               @click.stop.prevent="
                 (!isSelectorVisible || isTriggeredByKeyboard($event)) &&
                   (isSelectorVisible = !isSelectorVisible)

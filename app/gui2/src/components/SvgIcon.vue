@@ -10,11 +10,13 @@ import type { Icon } from '@/util/iconName'
 
 const props = defineProps<{
   name: Icon | URLString
+  title?: string
 }>()
 </script>
 
 <template>
   <svg>
+    <title v-if="title" v-text="title"></title>
     <use :href="props.name.includes(':') ? props.name : `${icons}#${props.name}`"></use>
   </svg>
 </template>

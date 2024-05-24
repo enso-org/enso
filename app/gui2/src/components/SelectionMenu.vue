@@ -16,10 +16,10 @@ const emit = defineEmits<{
     <span
       v-text="`${selectedComponents} component${selectedComponents === 1 ? '' : 's'} selected`"
     />
-    <SvgButton name="group" alt="Group components" @click.stop="emit('collapseNodes')" />
+    <SvgButton name="group" title="Group Selected Components" @click.stop="emit('collapseNodes')" />
     <ToggleIcon
       v-model="showColorPicker"
-      :alt="`${showColorPicker ? 'Hide' : 'Show'} the component color chooser`"
+      title="Color Selected Components"
       icon="paint_palette"
       :class="{
         // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
@@ -27,7 +27,7 @@ const emit = defineEmits<{
         disableInput: showColorPicker,
       }"
     />
-    <SvgButton name="trash" alt="Delete components" @click.stop="emit('removeNodes')" />
+    <SvgButton name="trash" title="Delete Selected Components" @click.stop="emit('removeNodes')" />
     <ColorPickerMenu v-if="showColorPicker" class="submenu" @close="showColorPicker = false" />
   </div>
 </template>

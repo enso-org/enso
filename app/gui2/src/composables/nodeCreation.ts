@@ -109,8 +109,8 @@ export function useNodeCreation(
     const placedNodes = placeNodes(nodesOptions)
     if (placedNodes.length === 0) return new Set()
     const methodAst = graphStore.methodAst
-    if (!methodAst) {
-      console.error(`BUG: Cannot add node: No current function.`)
+    if (!methodAst.ok) {
+      methodAst.error.log(`BUG: Cannot add node: No current function.`)
       return new Set()
     }
     const created = new Set<NodeId>()
@@ -123,7 +123,7 @@ export function useNodeCreation(
         assert(options.metadata?.position != null, 'Node should already be placed')
         graphStore.nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
       }
-      insertNodeStatements(edit.getVersion(methodAst).bodyAsBlock(), statements)
+      insertNodeStatements(edit.getVersion(methodAst.value).bodyAsBlock(), statements)
     })
     onCreated(created)
   }

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.dispatch;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Cached;
@@ -113,6 +114,16 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return new PanicException(err, this);
   }
 
+  private void ensureFunctionIsAccessible(Function function, FunctionSchema functionSchema) {
+    var isPrivateCheckDisabled = getContext().isPrivateCheckDisabled();
+    CompilerAsserts.compilationConstant(isPrivateCheckDisabled);
+    if (!isPrivateCheckDisabled
+        && functionSchema.isProjectPrivate()
+        && !isInSameProject(function)) {
+      throw makePrivateAccessPanic(function);
+    }
+  }
+
   @Specialization(
       guards = {"!getContext().isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
@@ -130,9 +141,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
               "build(argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(),"
                   + " getTailStatus())")
           CurryNode curryNode) {
-    if (cachedSchema.isProjectPrivate() && !isInSameProject(function)) {
-      throw makePrivateAccessPanic(function);
-    }
+    ensureFunctionIsAccessible(function, cachedSchema);
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(callerFrame, function, state, arguments);
@@ -174,9 +183,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
       Object[] arguments,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
-    if (function.getSchema().isProjectPrivate() && !isInSameProject(function)) {
-      throw makePrivateAccessPanic(function);
-    }
+    ensureFunctionIsAccessible(function, function.getSchema());
 
     CallArgumentInfo.ArgumentMapping argumentMapping =
         CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), getSchema());

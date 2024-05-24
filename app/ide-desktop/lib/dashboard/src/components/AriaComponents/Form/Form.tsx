@@ -43,6 +43,7 @@ export const Form = React.forwardRef(function Form<
     onSubmitSuccess = () => {},
     onSubmitFailed = () => {},
     id = formId,
+    testId,
     schema,
     ...formProps
   } = props
@@ -59,7 +60,7 @@ export const Form = React.forwardRef(function Form<
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
 
   const formMutation = reactQuery.useMutation({
-    mutationKey: ['FormSubmit', id],
+    mutationKey: ['FormSubmit', testId, id],
     mutationFn: async (fieldValues: TFieldValues) => {
       try {
         await onSubmit(fieldValues, innerForm)
@@ -82,11 +83,16 @@ export const Form = React.forwardRef(function Form<
   // There is no way to avoid type casting here
   // eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax,@typescript-eslint/no-unsafe-argument
   const formOnSubmit = innerForm.handleSubmit(formMutation.mutateAsync as any)
+  const { formState, clearErrors, getValues, setValue, setError, register, unregister } = innerForm
 
-  const formStateRenderProps = {
-    formState: innerForm.formState,
-    register: innerForm.register,
-    unregister: innerForm.unregister,
+  const formStateRenderProps: types.FormStateRenderProps<TFieldValues> = {
+    formState,
+    register,
+    unregister,
+    setError,
+    clearErrors,
+    getValues,
+    setValue,
   }
 
   return (
@@ -97,6 +103,7 @@ export const Form = React.forwardRef(function Form<
       className={typeof className === 'function' ? className(formStateRenderProps) : className}
       style={typeof style === 'function' ? style(formStateRenderProps) : style}
       noValidate
+      data-testid={testId}
       {...formProps}
     >
       <reactHookForm.FormProvider {...innerForm}>

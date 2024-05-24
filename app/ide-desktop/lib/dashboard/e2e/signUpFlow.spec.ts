@@ -19,11 +19,15 @@ test.test('sign up flow', async ({ page }) => {
   await actions.locateEmailInput(page).fill(email)
   await actions.locatePasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateLoginButton(page).click()
+
+  await actions.passTermsAndConditionsDialog({ page })
+
   await test.expect(actions.locateSetUsernamePanel(page)).toBeVisible()
 
   // Logged in, but account disabled
   await actions.locateUsernameInput(page).fill(name)
   await actions.locateSetUsernameButton(page).click()
+
   await test.expect(actions.locateUpgradeButton(page)).toBeVisible()
   await test.expect(actions.locateDriveView(page)).not.toBeVisible()
 
