@@ -460,7 +460,7 @@ impl<'s> Lexer<'s> {
 /// 26  &     3F  ?
 /// 27  '     40  @
 /// 28  (     [A-Z]
-/// 29  )     
+/// 29  )
 /// 2A  *     5B  [
 /// 2B  +     5C  \
 /// 2C  ,     5D  ]
@@ -1397,6 +1397,9 @@ impl<'s> Lexer<'s> {
                 // The new line indent is smaller than current block but bigger than the
                 // previous one. We are treating the line as belonging to the
                 // block. The warning should be reported by parser.
+                let location = newline.left_offset.code.position_before();
+                let offset = Offset(VisibleOffset(0), location.clone());
+                self.submit_token(Token(offset, location, token::Variant::invalid()));
                 break;
             }
             self.end_block();

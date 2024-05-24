@@ -669,20 +669,19 @@ fn code_block_empty() {
 #[test]
 fn code_block_bad_indents1() {
     let code = ["main =", "  foo", " bar", "  baz"];
-    let expected = block![
-        (Function (Ident main) #() () "=" (BodyBlock #((Ident foo) (Ident bar) (Ident baz))))
-    ];
-    test(&code.join("\n"), expected);
+    expect_invalid_node(&code.join("\n"));
+}
+
+#[test]
+fn fail_on_bad_indents() {
+    let code = ["group =", "    space4", "        space8", "     space5"];
+    expect_invalid_node(&code.join("\n"));
 }
 
 #[test]
 fn code_block_bad_indents2() {
     let code = ["main =", "  foo", " bar", "baz"];
-    let expected = block![
-        (Function (Ident main) #() () "=" (BodyBlock #((Ident foo) (Ident bar))))
-        (Ident baz)
-    ];
-    test(&code.join("\n"), expected);
+    expect_invalid_node(&code.join("\n"));
 }
 
 #[test]

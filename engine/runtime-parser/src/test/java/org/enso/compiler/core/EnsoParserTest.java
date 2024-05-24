@@ -11,6 +11,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.function.Function;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.expression.errors.Syntax;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1432,15 +1433,31 @@ public class EnsoParserTest {
     """);
   }
 
-  private static void parseTest(String code) throws IOException {
-    parseTest(code, true, true, true);
+  @Test
+  public void testWrongIndentation() throws IOException {
+    var code = """
+    group =
+        space4
+            space8
+          space5
+    """;
+    var ir = parseTest(code);
+    var errors = ir.preorder().filter((node) -> node instanceof Syntax);
+    assertEquals(1, errors.size());
+    var first = (Syntax) errors.head();
+    assertEquals(Syntax.UnexpectedExpression$.MODULE$, first.reason());
+  }
+
+  private static IR parseTest(String code) throws IOException {
+    return parseTest(code, true, true, true);
   }
 
   @SuppressWarnings("unchecked")
-  private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs)
+  private static IR parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs)
       throws IOException {
     var ir = compile(code);
     assertNotNull(ir);
+    return ir;
   }
 
   private static void equivalenceTest(String code1, String code2) throws IOException {
