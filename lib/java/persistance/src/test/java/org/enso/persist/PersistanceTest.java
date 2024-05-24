@@ -249,13 +249,28 @@ public class PersistanceTest {
     }
   }
 
+
+  @Test
+  public void testReferenceLoopsSavedTwiceInPersistance() throws Exception {
+    var obj3 = new LongerLoop3("a", null);
+    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3));
+    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2));
+    obj3.y = Persistance.Reference.of(obj1);
+
+    var loaded1 = serde(LongerLoop1.class, obj1, -1);
+    // Now we serialize the deserialized object again - this is to test that references read from file can be serialized back to a file.
+    var loadedAgain = serde(LongerLoop1.class, loaded1, -1);
+    System.out.println(loadedAgain.y());
+    var r2 = loadedAgain.y().get(LongerLoop2.class).y().get(LongerLoop3.class).y().get(LongerLoop1.class);
+    assertSame("The recreated structure contains the loop", loadedAgain, r2);
+  }
+
   @Test
   public void testNullReference() throws Exception {
     var obj1 = new LongerLoop1(1, Persistance.Reference.none());
 
     var loaded1 = serde(LongerLoop1.class, obj1, -1);
-
-    var r2 = loaded1.y().get(LongerLoop2.class);
-    assertSame("The reference points to null", null, r2);
+    var inner1 = loaded1.y().get(LongerLoop2.class);
+    assertSame("The reference points to null", null, inner1);
   }
 }
