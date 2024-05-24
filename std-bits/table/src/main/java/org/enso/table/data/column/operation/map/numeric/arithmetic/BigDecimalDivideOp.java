@@ -14,6 +14,11 @@ public class BigDecimalDivideOp<T extends Number, I extends Storage<? super T>>
   @Override
   public BigDecimal doBigDecimal(
       BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
-    return a.divide(b);
+    try {
+      return a.divide(b);
+    } catch (ArithmeticException e) {
+      problemAggregator.reportArithmeticError(e.getMessage(), ix);
+      return null;
+    }
   }
 }

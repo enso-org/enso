@@ -87,6 +87,7 @@ enso_to_java x = case x of
    `Column`.  This step is unnecessary for primitive and builtin values, but
    necessary for values such as `Decimal`/`BigDecimal`.
 java_to_enso x = case x of
+    _ : Nothing -> Nothing
     _ : BigDecimal -> Decimal.Value x
     _ -> x
 

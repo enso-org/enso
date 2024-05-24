@@ -1836,6 +1836,17 @@ add_specs suite_builder setup =
             (t.at "y" / (Decimal.new "16.5")) . to_vector . should_equal [Decimal.new "57245348.2234235"]
             (t.at "x" ^ (Decimal.new "2.0")) . to_vector . should_equal [Decimal.new "5.408994610535877E20" . to_float]
 
+        group_builder.specify "arithmetic errors" <|
+            t = table_builder [["x", [Decimal.new "1"]], ["y", [Decimal.new "3"]], ["z", [Decimal.new "0"]]]
+
+            r0 = t.at "x" / t.at "y"
+            r0 . to_vector . should_equal [Nothing]
+            Problems.expect_warning Arithmetic_Error r0
+
+            r1 = t.at "x" / t.at "z"
+            r1 . to_vector . should_equal [Nothing]
+            Problems.expect_warning Arithmetic_Error r1
+
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object
 
