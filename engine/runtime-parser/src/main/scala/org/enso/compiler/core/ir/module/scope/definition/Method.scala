@@ -70,8 +70,8 @@ object Method {
       this(
         methodReference,
         Seq(body),
-        isPrivate,
         Explicit.computeIsStatic(body),
+        isPrivate,
         Explicit.computeIsStaticWrapperForInstanceMethod(body),
         location,
         passData,
