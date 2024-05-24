@@ -491,12 +491,9 @@ public class ErrorCompilerTest extends CompilerTest {
             private priv_nested_method x = x
         """);
     assertSingleSyntaxError(
-        ir,
-        Syntax.UnexpectedExpression$.MODULE$,
-        "Unexpected expression",
-        13,
-        45);
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 13, 45);
   }
+
   @Test
   public void illegalPrivateTypeDeclaration() throws Exception {
     var ir = parse("""
