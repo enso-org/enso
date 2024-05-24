@@ -22,14 +22,14 @@ from project.Data.Boolean import Boolean, False, True
 get_required_field (key : Text) js_object (show_value : Boolean = True) (expected_type = Any) = case js_object of
     _ : JS_Object ->
         handle_missing =
-            suffix = if show_value then " in "+js_object.to_display_text else ""
+            suffix = if show_value then " in "+js_object.to_text else ""
             Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing required field `"+key+"`"+suffix+".")
         result = js_object.get key if_missing=handle_missing
         result.if_not_error <| if result.is_a expected_type then result else
-            representation = if show_value then result.to_display_text else Meta.type_of result . to_display_text
+            representation = if show_value then result.to_text else Meta.type_of result . to_display_text
             Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected field `"+key+"` to be of type "+expected_type.to_display_text+", but got "+representation+".")
     _ ->
-        representation = if show_value then js_object.to_display_text else Meta.type_of js_object . to_display_text
+        representation = if show_value then js_object.to_text else Meta.type_of js_object . to_display_text
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+representation+".")
 
 ## PRIVATE
@@ -53,10 +53,10 @@ get_optional_field (key : Text) js_object (~if_missing = Nothing) (show_value : 
         case result of
             Nothing -> if_missing
             _ -> if result.is_a expected_type then result else
-                representation = if show_value then result.to_display_text else Meta.type_of result . to_display_text
+                representation = if show_value then result.to_text else Meta.type_of result . to_display_text
                 Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected field `"+key+"` to be of type "+expected_type.to_display_text+", but got "+representation+".")
     _ ->
-        representation = if show_value then js_object.to_display_text else Meta.type_of js_object . to_display_text
+        representation = if show_value then js_object.to_text else Meta.type_of js_object . to_display_text
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+representation+".")
 
 ## PRIVATE
