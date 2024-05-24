@@ -539,7 +539,7 @@ Text.replace self term:(Text | Regex | Named_Pattern) replacement:Text (case_sen
         _ : Regex ->
             process_regex term
         _ : Named_Pattern ->
-            process_regex (Regex.compile term.regex_pattern)
+            process_regex term
 
 ## GROUP Text
    ICON text

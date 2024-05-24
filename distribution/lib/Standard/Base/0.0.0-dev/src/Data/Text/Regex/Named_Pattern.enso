@@ -31,4 +31,4 @@ type Named_Pattern
       Named_Pattern.Symbols -> "[^a-zA-Z\d\s]"
 
 ## PRIVATE
-Regex.from (that:Named_Pattern) = that.regex_pattern
+Regex.from (that:Named_Pattern) = Regex.compile that.regex_pattern
