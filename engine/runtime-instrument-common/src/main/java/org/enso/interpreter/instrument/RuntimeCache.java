@@ -50,6 +50,13 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     return res;
   }
 
+  /** Get the value from the cache. */
+  public Object getAnyValue(UUID key) {
+    var ref = expressions.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
   @Override
   public Object apply(String uuid) {
     var key = UUID.fromString(uuid);

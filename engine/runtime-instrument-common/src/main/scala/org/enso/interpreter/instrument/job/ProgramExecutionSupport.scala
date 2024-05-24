@@ -510,7 +510,7 @@ object ProgramExecutionSupport {
         val v = if (visualization.expressionId == value.getExpressionId) {
           value.getValue
         } else {
-          runtimeCache.get(visualization.expressionId)
+          runtimeCache.getAnyValue(visualization.expressionId)
         }
         if (v != null) {
           executeAndSendVisualizationUpdate(
