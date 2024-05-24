@@ -38,6 +38,7 @@ export function useFormatting(editor: LexicalEditor) {
     strikethrough: useFormatProperty(editor, 'strikethrough', onReadSelection),
   }
 }
+export type UseFormatting = ReturnType<typeof useFormatting>
 
 function useFormatProperty(
   editor: LexicalEditor,

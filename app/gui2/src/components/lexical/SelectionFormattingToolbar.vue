@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import ToggleIcon from '@/components/ToggleIcon.vue'
-import { injectFormatting } from '@/components/lexical/formattingProvider'
+import { type UseFormatting } from '@/components/lexical/formatting'
 
-const { bold, italic, strikethrough } = injectFormatting()
+const props = defineProps<{ formatting: UseFormatting }>()
+
+const { bold, italic, strikethrough } = props.formatting
 </script>
 
 <template>
