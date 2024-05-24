@@ -633,12 +633,14 @@ class IrToTruffle(
                           )
                         }
                   }
-
-                val funcSchema = FunctionSchema
+                val funcSchemaBldr = FunctionSchema
                   .newBuilder()
                   .annotations(annotations: _*)
                   .argumentDefinitions(arguments: _*)
-                  .build()
+                if (fn.isPrivate) {
+                  funcSchemaBldr.projectPrivate();
+                }
+                val funcSchema = funcSchemaBldr.build();
                 Right(
                   Some(
                     new RuntimeFunction(
