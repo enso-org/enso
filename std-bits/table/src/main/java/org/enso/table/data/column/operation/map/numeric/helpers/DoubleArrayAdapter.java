@@ -90,7 +90,7 @@ public interface DoubleArrayAdapter {
     }
   }
 
- class BigDecimalStorageAsDouble implements DoubleArrayAdapter {
+  class BigDecimalStorageAsDouble implements DoubleArrayAdapter {
     private final BigDecimalStorage storage;
 
     private BigDecimalStorageAsDouble(BigDecimalStorage storage) {

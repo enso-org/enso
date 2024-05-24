@@ -19,7 +19,7 @@ import enso_dev.Base_Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main filter="Decimal" = run_default_backend add_specs filter
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~connection

@@ -5,7 +5,6 @@ import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArr
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -46,9 +45,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           case BigIntegerStorage s -> runBigIntegerMap(
               BigIntegerArrayAdapter.fromStorage(s), rhs, problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
-              BigDecimalArrayAdapter.fromStorage(s),
-              new BigDecimal(rhs),
-              problemAggregator);
+              BigDecimalArrayAdapter.fromStorage(s), new BigDecimal(rhs), problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, rhs.doubleValue(), problemAggregator);
           default -> throw new IllegalStateException(
               "Unsupported storage: " + storage.getClass().getCanonicalName());
@@ -62,7 +59,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
               BigInteger.valueOf(argAsLong),
               problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
-            BigDecimalArrayAdapter.fromStorage(s),
+              BigDecimalArrayAdapter.fromStorage(s),
               BigDecimal.valueOf(argAsLong),
               problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, (double) argAsLong, problemAggregator);
@@ -85,7 +82,8 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
               "Unsupported storage: " + storage.getClass().getCanonicalName());
         };
       } else if (arg instanceof BigDecimal bd) {
-          return runBigDecimalMap(BigDecimalArrayAdapter.fromAnyStorage(storage), bd, problemAggregator);
+        return runBigDecimalMap(
+            BigDecimalArrayAdapter.fromAnyStorage(storage), bd, problemAggregator);
       } else {
         throw new UnexpectedTypeException("a Number.");
       }

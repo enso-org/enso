@@ -4,14 +4,14 @@ import static org.enso.table.data.column.operation.map.numeric.helpers.BigDecima
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 
-public abstract class NumericBinaryOpReturningBigDecimal<T extends Number, I extends Storage<? super T>>
+public abstract class NumericBinaryOpReturningBigDecimal<
+        T extends Number, I extends Storage<? super T>>
     extends NumericBinaryOpImplementation<T, I> {
   public NumericBinaryOpReturningBigDecimal(String name) {
     super(name);
