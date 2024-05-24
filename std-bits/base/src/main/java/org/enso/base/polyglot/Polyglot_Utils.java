@@ -35,7 +35,6 @@ public class Polyglot_Utils {
     if (item.isException()) {
       throw new WrappedDataflowError(item);
     }
-
     var ret = item.as(Object.class);
     if (ret instanceof BigInteger && item.fitsInLong()) {
       return item.asLong();
