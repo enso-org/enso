@@ -185,10 +185,10 @@ type Vector a
                  builder.append 2
                  builder.append 3
              # => [1, 2, 3]
-    build : (Builder -> Any) -> Integer -> Vector
-    build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
+    build : (Builder -> Any) -> Integer -> Boolean -> Vector
+    build (function : Builder -> Any) (initial_capacity : Integer = 10) (no_warning_propagation : Boolean = False) -> Vector =
         # Delegate to .build_multiple
-        results_multiple = Vector.build_multiple 1 initial_capacity=initial_capacity (builders-> function (builders.at 0))
+        results_multiple = Vector.build_multiple 1 (builders-> function (builders.at 0)) initial_capacity no_warning_propagation
         results_multiple.if_not_error (results_multiple.at 0)
 
     ## PRIVATE
@@ -238,10 +238,10 @@ type Vector a
                  builder1.append 4
                  builder1.append 5
              # => [[0, 1, 2], [3, 4, 5]]
-    build_multiple : Integer -> (Builder -> Any) -> Integer -> Vector Vector
-    build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector Vector =
+    build_multiple : Integer -> (Builder -> Any) -> Integer -> Boolean -> Vector Vector
+    build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) (no_warning_propagation : Boolean = False) -> Vector Vector =
         if count < 0 then Error.throw (Illegal_Argument.Error "count must be non-negative: "+count.to_text) else
-            builders = Range.new 0 count . map (_-> Builder.new initial_capacity)
+            builders = Range.new 0 count . map (_-> Builder.new initial_capacity no_warning_propagation)
             Panic.handle_wrapped_dataflow_error <|
                 function builders . if_not_error (builders.map .to_vector)
 
@@ -1285,7 +1285,7 @@ type Builder
                  builder.append 2
                  builder.append 3
              # => [1, 2, 3]
-    private Value elements_java_builder warnings_java_builder
+    private Value elements_java_builder warnings_java_builder (no_warning_propagation : Boolean)
 
     ## PRIVATE
        ADVANCED
@@ -1308,6 +1308,8 @@ type Builder
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
+       - no_warning_propagation: If True, do not gather warnings from values
+         added to the builder.
 
        > Example
          Construct a vector using a builder that contains the items 1 to 5.
@@ -1320,8 +1322,8 @@ type Builder
              do_build 1 5
              builder.to_vector
              # => [1, 2, 3, 4]
-    new : Integer -> Builder
-    new (capacity : Integer = 10) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
+    new : Integer -> Boolean -> Builder
+    new (capacity : Integer = 10) (no_warning_propagation : Boolean = False) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0) no_warning_propagation
 
     ## ICON join
        Appends a new element into this builder.
@@ -1355,7 +1357,8 @@ type Builder
         Panic.rethrow_wrapped_if_error <|
             item.if_not_error <|
                 self.unsafe_append item
-                self.add_warnings item
+                if self.no_warning_propagation.not then
+                    self.add_warnings item
                 Nothing
 
     ## ICON join
@@ -1402,7 +1405,8 @@ type Builder
             first_dataflow_error.if_not_error <|
                 append_result = self.elements_java_builder.appendTo subrange
                 assert (append_result.is_error.not)
-                self.add_warnings subrange
+                if self.no_warning_propagation.not then
+                    self.add_warnings subrange
                 Nothing
 
     ## PRIVATE
@@ -1512,9 +1516,10 @@ type Builder
            This also reattaches any warnings that were attached to the added
            values. It attaches them to the whole array, not the individual
            values.
-        warnings_vector = Vector.from_polyglot_array self.warnings_java_builder.toArray
-        Warning.attach_multiple warnings_vector <|
-            Vector.from_polyglot_array self.elements_java_builder.toArray
+        without_warnings = Vector.from_polyglot_array self.elements_java_builder.toArray
+        if self.no_warning_propagation then without_warnings else
+            warnings_vector = Vector.from_polyglot_array self.warnings_java_builder.toArray
+            Warning.attach_multiple warnings_vector without_warnings
 
 ## PRIVATE
    Describes an error attached to a value within a `Vector`. The `index` field
