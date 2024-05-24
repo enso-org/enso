@@ -1777,6 +1777,11 @@ add_specs suite_builder setup =
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
+        group_builder.specify "can store and retrieve values" <|
+            t = table_builder [["x", [Decimal.new "23257245345.345345345"]]]
+            t.at "x" . at 0 . should_be_a Decimal
+            t.at "x" . get 0 . should_be_a Decimal
+
         group_builder.specify "arithmetic (decimal column and decimal column)" <|
             t = table_builder [["x", [Decimal.new "23257245345.345345345"]], ["y", [Decimal.new "123e50"]], ["z", [Decimal.new "125e50"]], ["w", [Decimal.new 7513]], ["v", [Decimal.new "3.7"]]]
             (t.at "x" + t.at "y").to_vector . should_equal [Decimal.new "12300000000000000000000000000000000000000023257245345.345345345"]

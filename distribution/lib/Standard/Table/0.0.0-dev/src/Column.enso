@@ -2143,7 +2143,7 @@ type Column
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
     at self (index : Integer) =
-        java_to_enso <| self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2166,7 +2166,7 @@ type Column
         if valid_index.not then default else
             storage = self.java_column.getStorage
             if storage.isNothing index then Nothing else
-                storage.getItem index
+                java_to_enso <| storage.getItem index
 
     ## ICON data_input
        Returns a column containing rows of this column.
