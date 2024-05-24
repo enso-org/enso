@@ -1520,16 +1520,17 @@ type DB_Column
     day self = Value_Type.expect_has_date self <|
         self.make_unary_op "day"
 
-    ## GROUP Standard.Base.DateTime
+    ## ALIAS weekday
+       GROUP Standard.Base.DateTime
        ICON date_and_time
        Gets the weekday as a number (1 - 7) from the date stored in the column.
        Monday is 1, Tuesday is 2, ..., Sunday is 7.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    weekday : DB_Column ! Invalid_Value_Type
-    weekday self = Value_Type.expect_has_date self <|
-        self.make_unary_op "weekday"
+    day_of_week : DB_Column ! Invalid_Value_Type
+    day_of_week self = Value_Type.expect_has_date self <|
+        self.make_unary_op "day_of_week"
 
     ## GROUP Standard.Base.DateTime
        ICON time

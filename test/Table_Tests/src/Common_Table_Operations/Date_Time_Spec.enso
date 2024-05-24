@@ -84,14 +84,15 @@ add_specs suite_builder setup =
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
-        group_builder.specify "should allow to get the year/month/day/weekday of a Date" <|
+        group_builder.specify "should allow to get the year/month/day/day_of_year/day_of_week of a Date" <|
             t = data.dates
             a = t.at "A"
             a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
             a.month . to_vector . should_equal [12, 2, 1, Nothing]
             a.day . to_vector . should_equal [31, 29, 1, Nothing]
-            a.weekday . to_vector . should_equal [4, 4, 1, Nothing]
-            [a.year, a.month, a.day, a.weekday].each c->
+            a.day_of_year . to_vector . should_equal [366, 60, 1, Nothing]
+            a.day_of_week . to_vector . should_equal [4, 4, 1, Nothing]
+            [a.year, a.month, a.day, a.day_of_year, a.day_of_week].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
                 c.value_type.is_integer.should_be_true
@@ -100,13 +101,14 @@ add_specs suite_builder setup =
             ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
             ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
 
-        group_builder.specify "should allow to get the year/month/day/weekday of a Date_Time" <|
+        group_builder.specify "should allow to get the year/month/day/day_of_year/day_of_week of a Date_Time" <|
             t = data.datetimes
             a = t.at "A"
             a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
             a.month . to_vector . should_equal [12, 2, 1, Nothing]
-            a.weekday . to_vector . should_equal [4, 4, 1, Nothing]
-            [a.year, a.month, a.day, a.weekday].each c->
+            a.day_of_year . to_vector . should_equal [366, 60, 1, Nothing]
+            a.day_of_week . to_vector . should_equal [4, 4, 1, Nothing]
+            [a.year, a.month, a.day, a.day_of_year, a.day_of_week].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
 
