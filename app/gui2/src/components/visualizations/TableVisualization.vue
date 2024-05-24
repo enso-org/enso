@@ -5,7 +5,16 @@ import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type { CellClassParams, ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
-import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  shallowRef,
+  watchEffect,
+  type Ref,
+} from 'vue'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -95,7 +104,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
-const dataGroupingMap = ref<{ [key: string]: boolean }>({})
+const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
@@ -152,7 +161,7 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 function formatNumber(params: ICellRendererParams) {
   const valueType = params.value?.type
   const value = valueType === 'BigInt' ? BigInt(params.value?.value) : params.value
-  const needsGrouping = dataGroupingMap.value[params.colDef?.field || '']
+  const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
@@ -368,12 +377,15 @@ watchEffect(() => {
 
   if (rowData.length) {
     const headers = Object.keys(rowData[0] as object)
-    let obj = {}
+    const headerGroupingMap = new Map()
     headers.forEach((header) => {
-      const needsGrouping = rowData.some((row: any) => row[header] > 9999)
-      obj = { ...obj, [header]: needsGrouping }
+      const needsGrouping = rowData.some((row: any) => {
+        const value = typeof row[header] === 'object' ? row[header].value : row[header]
+        return value > 9999
+      })
+      headerGroupingMap.set(header, needsGrouping)
     })
-    dataGroupingMap.value = obj
+    dataGroupingMap.value = headerGroupingMap
   }
 
   // If an existing grid, merge width from manually sized columns.
