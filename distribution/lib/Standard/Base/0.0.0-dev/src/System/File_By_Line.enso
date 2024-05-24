@@ -207,7 +207,7 @@ type File_By_Line
        Exports the row_map
     row_positions : Vector Integer
     row_positions self = Vector.from_polyglot_array <|
-        Array_Proxy.new self.row_map.getSize (i-> self.row_map.get i)
+        Array_Proxy.new self.row_map.getSize (self.row_map.get _)
 
     ## PRIVATE
        Gets the Java_File for the backing file.

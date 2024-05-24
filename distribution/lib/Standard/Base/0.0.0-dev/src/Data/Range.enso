@@ -535,7 +535,7 @@ type Range
              1.up_to 6 . to_vector
     to_vector : Vector Integer
     to_vector self =
-        proxy = Array_Proxy.new self.length (i-> self.at i)
+        proxy = Array_Proxy.new self.length (self.at _)
         Vector.from_polyglot_array proxy
 
     ## ICON preparation

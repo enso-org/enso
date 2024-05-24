@@ -2334,7 +2334,7 @@ type Column
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range=(First 1) =
-        Index_Sub_Range_Module.drop_helper self.length self.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.

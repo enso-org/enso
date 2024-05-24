@@ -205,8 +205,8 @@ add_specs suite_builder setup =
 
                 rnd = data.table.take (Sample 3 seed=42)
                 random_indices = [5, 6, 2]
-                alpha_sample = random_indices.map (i-> data.table.at "alpha" . to_vector . at i)
-                beta_sample = random_indices.map (i-> data.table.at "beta" . to_vector . at i)
+                alpha_sample = random_indices.map (data.table.at "alpha" . to_vector . at _)
+                beta_sample = random_indices.map (data.table.at "beta" . to_vector . at _)
                 rnd.at "alpha" . to_vector . should_equal alpha_sample
                 rnd.at "beta" . to_vector . should_equal beta_sample
 
