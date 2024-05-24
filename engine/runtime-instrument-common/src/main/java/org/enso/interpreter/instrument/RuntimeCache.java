@@ -9,17 +9,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.function.Consumer;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
-
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
   private final Map<Object, UUID> valuesToKeys = new WeakHashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
+  private Consumer<UUID> observer;
 
   /**
    * Add value to the cache if it is possible.
@@ -30,6 +31,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
+    System.err.println("offer " + key + " with " + value);
     var weight = weights.get(key);
     if (weight != null && weight > 0) {
       var ref = new SoftReference<>(value);
@@ -38,14 +40,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
       valuesToKeys.put(value, key);
       return true;
     } else {
-      var otherId = valuesToKeys.get(value);
-      var otherValue = cache.get(otherId);
-      if (otherValue != null && otherValue.get() == value) {
-        // if the value is already cached for another UUID, cache it
-        // for this expression UUID as well
-        var ref = new WeakReference<>(value);
-        expressions.put(key, ref);
-      }
+      var ref = new WeakReference<>(value);
+      expressions.put(key, ref);
       return false;
     }
   }
@@ -62,6 +58,11 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     var key = UUID.fromString(uuid);
     var ref = expressions.get(key);
     var res = ref != null ? ref.get() : null;
+    var callback = observer;
+    System.err.println("  reading: " + key + " res: " + res);
+    if (callback != null) {
+      callback.accept(key);
+    }
     return res;
   }
 
@@ -176,5 +177,15 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   /** Clear the weights. */
   public void clearWeights() {
     weights.clear();
+  }
+
+  public void beginQuery(Consumer<UUID> callback) {
+    assert this.observer == null;
+    this.observer = callback;
+  }
+
+  public void finishQuery(Consumer<UUID> callback) {
+    assert this.observer == callback;
+    this.observer = null;
   }
 }
