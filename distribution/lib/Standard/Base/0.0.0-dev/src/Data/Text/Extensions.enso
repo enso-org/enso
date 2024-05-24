@@ -127,7 +127,7 @@ Text.each self function =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".at 1 == "반"
-@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index:Integer=0 =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
@@ -154,7 +154,7 @@ Text.at self index:Integer=0 =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".get 1 == "반"
-@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
 Text.get : Integer -> Any -> Any
 Text.get self index:Integer=0 ~if_missing=Nothing =
     new_index = if index < 0 then index + self.length else index

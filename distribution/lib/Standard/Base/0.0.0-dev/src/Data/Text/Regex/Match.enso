@@ -300,7 +300,7 @@ type Match
        Arguments:
        - id: The integer index or name of that group.
        - if_missing: The value to return if the index is out of bounds.
-    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.pattern.group_count+1 display=Display.Always)
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.pattern.group_count display=Display.Always)
     get : Integer -> Any -> Text | Any
     get self index:Integer=0 ~if_missing=Nothing =
         self.text index . catch No_Such_Group (_-> if_missing)
@@ -314,7 +314,7 @@ type Match
        Arguments:
        - id: The integer index or name of that group.
        - if_missing: The value to return if the index is out of bounds.
-    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.pattern.group_count+1 display=Display.Always)
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.pattern.group_count display=Display.Always)
     at : Integer -> Text ! Index_Out_Of_Bounds
     at self index:Integer=0 =
         self.get index if_missing=(Error.throw (Index_Out_Of_Bounds.Error index self.pattern.group_count))
