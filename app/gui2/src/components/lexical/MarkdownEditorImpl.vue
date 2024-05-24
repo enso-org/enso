@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useLexical, type LexicalPlugin } from '@/components/lexical'
 import FloatingSelectionMenu from '@/components/lexical/FloatingSelectionMenu.vue'
+import FormattingToolbar from '@/components/lexical/FormattingToolbar.vue'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
 import SelectionFormattingToolbar from '@/components/lexical/SelectionFormattingToolbar.vue'
 import { provideFormatting } from '@/components/lexical/formattingProvider'
@@ -66,6 +67,7 @@ provideFormatting(editor)
 
 <template>
   <div class="MarkdownEditor fullHeight">
+    <FormattingToolbar @pointerdown.prevent />
     <LexicalContent ref="contentElement" class="fullHeight" @wheel.stop @contextmenu.stop />
     <FloatingSelectionMenu :selectionElement="contentElement">
       <SelectionFormattingToolbar />
@@ -76,6 +78,19 @@ provideFormatting(editor)
 <style scoped>
 .fullHeight {
   height: 100%;
+}
+
+.MarkdownEditor :deep(.toggledOn) {
+  color: black;
+  opacity: 0.6;
+}
+.MarkdownEditor :deep(.toggledOff) {
+  color: black;
+  opacity: 0.3;
+}
+.MarkdownEditor :deep(.DropdownMenuButton) {
+  color: inherit;
+  opacity: inherit;
 }
 
 .LexicalContent :deep(h1) {
@@ -115,5 +130,11 @@ provideFormatting(editor)
 
 .LexicalContent :deep(.lexical-italic) {
   font-style: italic;
+}
+
+.LexicalContent :deep(.lexical-quote) {
+  margin-left: 0.2em;
+  border-left: 0.3em solid #ccc;
+  padding-left: 1.6em;
 }
 </style>

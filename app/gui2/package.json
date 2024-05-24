@@ -52,6 +52,7 @@
     "@lexical/plain-text": "^0.15.0",
     "@lexical/rich-text": "^0.15.0",
     "@lexical/table": "^0.15.0",
+    "@lexical/utils": "^0.15.0",
     "@lezer/common": "^1.1.0",
     "@lezer/highlight": "^1.1.6",
     "@noble/hashes": "^1.3.2",

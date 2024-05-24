@@ -32,6 +32,7 @@ export function useLexical(
           strikethrough: 'lexical-strikethrough',
           italic: 'lexical-italic',
         },
+        quote: 'lexical-quote',
       },
       nodes: [...nodes],
       onError: console.error,
