@@ -3,10 +3,10 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigDecimal;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
-import org.enso.table.data.column.operation.map.numeric.arithmetic.BigDecimalPowerOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.BigDecimalDivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.MulOp;
+import org.enso.table.data.column.operation.map.numeric.arithmetic.PowerOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.SubOp;
 import org.enso.table.data.column.operation.map.numeric.comparisons.EqualsComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterComparison;
@@ -38,7 +38,7 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
         .add(new SubOp<>())
         .add(new MulOp<>())
         .add(new BigDecimalDivideOp<>())
-        .add(new BigDecimalPowerOp())
+        .add(new PowerOp<>())
         .add(new ModOp<>())
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())
