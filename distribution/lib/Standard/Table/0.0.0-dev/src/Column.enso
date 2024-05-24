@@ -1524,6 +1524,17 @@ type Column
         apply_unary_operation self DatePartOperation.DAY_INSTANCE
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
+       Gets the weekday as a number (1 - 7) from the date stored in the column.
+       Monday is 1, Tuesday is 2, ..., Sunday is 7.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    weekday : Column ! Invalid_Value_Type
+    weekday self = Value_Type.expect_has_date self <|
+        apply_unary_operation self DatePartOperation.WEEKDAY_INSTANCE
+
+    ## GROUP Standard.Base.DateTime
        ICON time
        Gets the hour as a number (0-23) from the time stored in the column.
 

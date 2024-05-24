@@ -31,6 +31,10 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
   public static final UnaryOperation DAY_INSTANCE =
       new DatePartOperation(DAY, ChronoField.DAY_OF_MONTH, false);
 
+  public static final String WEEKDAY = "weekday";
+  public static final UnaryOperation WEEKDAY_INSTANCE =
+      new DatePartOperation(WEEKDAY, ChronoField.DAY_OF_WEEK, false);
+
   public static final String HOUR = "hour";
   public static final UnaryOperation HOUR_INSTANCE =
       new DatePartOperation(HOUR, ChronoField.HOUR_OF_DAY, true);
