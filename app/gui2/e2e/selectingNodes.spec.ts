@@ -37,7 +37,7 @@ test('Selecting nodes by click', async ({ page }) => {
   await expect(selectionMenu).not.toBeVisible()
 
   // Check that clicking the background deselects all nodes.
-  await page.mouse.click(600, 200)
+  await locate.graphEditor(page).click({ position: { x: 600, y: 200 } })
   await expect(node1).not.toBeSelected()
   await expect(node2).not.toBeSelected()
   await expect(selectionMenu).not.toBeVisible()
