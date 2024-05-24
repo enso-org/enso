@@ -1124,6 +1124,7 @@ final class TreeToIr {
                 meta(), diag()
         );
       }
+      case Tree.Private __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateExpression"));
     };

@@ -485,6 +485,19 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void illegalPrivateKeywordUseInMethodBody() throws Exception {
+    var ir = parse("""
+        method =
+            private priv_nested_method x = x
+        """);
+    assertSingleSyntaxError(
+        ir,
+        Syntax.UnexpectedExpression$.MODULE$,
+        "Unexpected expression",
+        13,
+        45);
+  }
+  @Test
   public void illegalPrivateTypeDeclaration() throws Exception {
     var ir = parse("""
         private type T
