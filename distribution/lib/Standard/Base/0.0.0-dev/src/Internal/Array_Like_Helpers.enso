@@ -246,7 +246,7 @@ transpose vec_of_vecs =
             Vector.from_polyglot_array proxy
 
 map vector function on_problems =
-    vector_from_function vector.length (function << vector.at) on_problems
+    vector_from_function vector.length (function << (i-> vector.at i)) on_problems
 
 map_with_index vector function on_problems =
     vector_from_function vector.length (i-> function i (vector.at i)) on_problems

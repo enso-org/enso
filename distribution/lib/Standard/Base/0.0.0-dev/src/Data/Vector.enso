@@ -31,7 +31,6 @@ from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Metadata import Display, Widget
-
 from project.Runtime import assert
 
 polyglot java import java.lang.IndexOutOfBoundsException
@@ -1445,7 +1444,7 @@ type Builder
          of the vector, i.e. -1 will correspond to the last element.
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index:Integer=0 =
+    at self index:Integer =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.elements_java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
