@@ -2424,7 +2424,8 @@ type Table
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
 
-       ? Example Transpose Operation
+       > Example
+         Transpose Operation
 
          Input Table `table`:
 
@@ -2503,7 +2504,8 @@ type Table
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
 
-       ? Example Cross Tab Operation
+       > Example
+         Cross Tab Operation
 
          Input Table `table`:
 
@@ -2713,7 +2715,8 @@ type Table
            `attribute_columns` or `value_column`, a `Unexpected_Extra_Columns`
            is reported according to the `on_problems` setting.
 
-       ? Example to_xml Operation
+       > Example
+         to_xml Operation
 
          Input Table `table`:
 

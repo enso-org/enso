@@ -1129,7 +1129,7 @@ type Integer
 
        The bitwise compliment negates the value of each bit in the operand.
 
-       ? Example
+       > Example
          Bitwise negation of 2_0110.
 
              2_0110.bit_not

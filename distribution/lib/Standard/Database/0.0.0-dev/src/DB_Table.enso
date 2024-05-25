@@ -2032,7 +2032,8 @@ type DB_Table
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
 
-       ? Example Transpose Operation
+       > Example
+         Transpose Operation
 
          Input Table `table`:
 
@@ -2096,7 +2097,8 @@ type DB_Table
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
 
-       ? Example Cross Tab Operation
+       > Example
+         Cross Tab Operation
 
          Input Table `table`:
 
