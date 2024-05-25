@@ -83,7 +83,7 @@ const TEXT_STYLE = twv.tv({
     nowrap: false,
     monospace: false,
   },
-  compoundVariants: [{ variant: 'h1', class: 'font-bold' }],
+  compoundVariants: [{ variant: 'h1', class: 'font-bold text-balance' }],
 })
 
 /**
@@ -139,8 +139,9 @@ export const Text = React.forwardRef(function Text(
   const { tooltip, targetProps } = visualTooltip.useVisualTooltip({
     isDisabled: !truncate,
     className: tooltipTextClasses,
-    children,
     targetRef: textElementRef,
+    displayStrategy: 'whenOverflowing',
+    children,
   })
 
   return (
@@ -185,5 +186,5 @@ Text.Heading = React.forwardRef(function Heading(
   ref: React.Ref<HTMLHeadingElement>
 ) {
   const { level = 1, ...textProps } = props
-  return <Text ref={ref} elementType={`h${level}`} variant="h1" {...textProps} />
+  return <Text ref={ref} elementType={`h${level}`} variant="h1" balance {...textProps} />
 })

@@ -38,7 +38,7 @@ interface PropsWithoutHref {
  */
 export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
-  readonly tooltip?: React.ReactNode
+  readonly tooltip?: React.ReactElement | string | false
   /**
    * The icon to display in the button
    */

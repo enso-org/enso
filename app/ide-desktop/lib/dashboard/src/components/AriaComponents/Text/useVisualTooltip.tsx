@@ -10,6 +10,7 @@ import clsx from 'clsx'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import Portal from '#/components/Portal'
 
 /**
  * Props for {@link useVisualTooltip}.
@@ -23,7 +24,20 @@ export interface VisualTooltipProps {
     aria.AriaPositionProps,
     'containerPadding' | 'offset' | 'placement'
   >
+  /**
+   * Determines when the tooltip should be displayed.
+   * - 'always': Tooltip is always displayed when the target element is hovered over.
+   * - 'when-overflowing': Tooltip is displayed only when the target element is overflowing.
+   * - A function that returns a boolean. The function is called with the target element as an argument.
+   */
+  readonly displayStrategy?: DisplayStrategy | ((target: HTMLElement) => boolean)
+  readonly qa?: string
 }
+
+/**
+ * The display strategy for the tooltip.
+ */
+type DisplayStrategy = 'always' | 'whenOverflowing'
 
 const DEFAULT_OFFSET = 6
 
@@ -31,10 +45,19 @@ const DEFAULT_OFFSET = 6
  * Creates a tooltip that appears when the target element is hovered over.
  * Works with any element that has a ref.
  * doesn't have a11y support. It's a visual tooltip.
- * Common use case is to show a tooltip when the content of an element is overflowing.
+ * Common use case is to show a tooltip when the content of an element is overflowing,
+ * Or show a description of the element when hovered over.
  */
 export function useVisualTooltip(props: VisualTooltipProps) {
-  const { children, targetRef, className, isDisabled = false, overlayPositionProps = {} } = props
+  const {
+    children,
+    targetRef,
+    className,
+    isDisabled = false,
+    overlayPositionProps = {},
+    displayStrategy = 'always',
+    qa = 'visual-tooltip',
+  } = props
 
   const {
     containerPadding = 0,
@@ -48,11 +71,12 @@ export function useVisualTooltip(props: VisualTooltipProps) {
   const { hoverProps, isHovered } = aria.useHover({
     onHoverStart: () => {
       if (targetRef.current) {
-        const isOverflowing =
-          targetRef.current.scrollWidth > targetRef.current.clientWidth ||
-          targetRef.current.scrollHeight > targetRef.current.clientHeight
+        const shouldDisplay =
+          typeof displayStrategy === 'function'
+            ? displayStrategy(targetRef.current)
+            : DISPLAY_STRATEGIES[displayStrategy](targetRef.current)
 
-        if (isOverflowing) {
+        if (shouldDisplay) {
           popoverRef.current?.showPopover()
         }
       }
@@ -64,10 +88,10 @@ export function useVisualTooltip(props: VisualTooltipProps) {
   })
 
   const { overlayProps } = aria.useOverlayPosition({
+    isOpen: isHovered,
     overlayRef: popoverRef,
     targetRef,
     offset,
-    isOpen: isHovered,
     placement,
     containerPadding,
   })
@@ -75,20 +99,29 @@ export function useVisualTooltip(props: VisualTooltipProps) {
   return {
     targetProps: aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(hoverProps, { id }),
     tooltip: isDisabled ? null : (
-      <span
-        id={id}
-        ref={popoverRef}
-        className={ariaComponents.TOOLTIP_STYLES({
-          className: clsx(className, 'hidden animate-in fade-in [&:popover-open]:flex'),
-        })}
-        // @ts-expect-error popover attribute does not exist on React.HTMLAttributes yet
-        popover=""
-        aria-hidden="true"
-        role="presentation"
-        {...overlayProps}
-      >
-        {children}
-      </span>
+      <Portal>
+        <span
+          id={id}
+          ref={popoverRef}
+          className={ariaComponents.TOOLTIP_STYLES({
+            className: clsx(className, 'hidden animate-in fade-in [&:popover-open]:flex'),
+          })}
+          // @ts-expect-error popover attribute does not exist on React.HTMLAttributes yet
+          popover=""
+          aria-hidden="true"
+          role="presentation"
+          data-testid={qa}
+          {...overlayProps}
+        >
+          {children}
+        </span>
+      </Portal>
     ),
-  }
+  } as const
+}
+
+const DISPLAY_STRATEGIES: Record<DisplayStrategy, (target: HTMLElement) => boolean> = {
+  always: () => true,
+  whenOverflowing: target =>
+    target.scrollWidth > target.clientWidth || target.scrollHeight > target.clientHeight,
 }
