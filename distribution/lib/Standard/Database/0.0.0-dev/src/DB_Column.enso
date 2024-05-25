@@ -1520,6 +1520,17 @@ type DB_Column
     day self = Value_Type.expect_has_date self <|
         self.make_unary_op "day"
 
+    ## GROUP Standard.Base.DateTime
+       ICON date_and_time
+       Gets the day of the year as a number (1 - 366) from the date stored in
+       the column.
+
+       Applies only to columns that hold the `Date` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    day_of_year : DB_Column ! Invalid_Value_Type
+    day_of_year self = Value_Type.expect_has_date self <|
+        self.make_unary_op "day_of_year"
+
     ## ALIAS weekday
        GROUP Standard.Base.DateTime
        ICON date_and_time
