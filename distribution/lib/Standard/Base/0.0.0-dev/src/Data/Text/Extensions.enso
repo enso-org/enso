@@ -927,7 +927,9 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
    ICON preparation
 
    Checks whether `self` contains `sequence` as its substring.
-   Returns: `True` if term is found within `self`. `False` otherwise.
+
+   Returns:
+   `True` if term is found within `self`. `False` otherwise.
 
    Arguments:
    - term: The term to find.
