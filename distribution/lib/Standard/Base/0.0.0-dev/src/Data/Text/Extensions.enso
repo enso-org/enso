@@ -108,7 +108,7 @@ Text.each self function =
 
 ## ALIAS get character
    GROUP Selections
-   ICON split_text
+   ICON split
 
    Returns a character from the text at the specified index (0-based).
 
@@ -133,7 +133,7 @@ Text.at self index =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
 ## ALIAS get character
-   ICON split_text
+   ICON split
 
    Returns a character from the text at the specified index (0-based).
    If the index is invalid then `if_missing` is returned.
@@ -167,7 +167,7 @@ Text.get self index ~if_missing=Nothing =
             Text_Utils.substring self first next
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the first character from the text.
 
    ! What is a Character?
@@ -183,7 +183,7 @@ Text.first : Text ! Index_Out_Of_Bounds
 Text.first self = self.at 0
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the second character from the text.
 
    ! What is a Character?
@@ -199,7 +199,7 @@ Text.second : Text ! Index_Out_Of_Bounds
 Text.second self = self.at 1
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the last character from the text.
 
    ! What is a Character?
@@ -345,7 +345,7 @@ Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
 ## ALIAS split text
    GROUP Conversions
-   ICON split_text
+   ICON split
 
    Takes a delimiter and returns the vector that results from splitting `self`
    on each of its occurrences.
@@ -411,7 +411,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
 
 ## ADVANCED
    GROUP Conversions
-   ICON split_text
+   ICON split
    Takes an input string and and a pattern and returns all the matches as a
    `Vector Text`. If the pattern contains marked groups, the values are
    concatenated together; otherwise the whole match is returned.
@@ -1011,7 +1011,7 @@ Text.repeat self count=1 =
 
 ## ALIAS first, head, last, left, limit, mid, right, slice, substring, tail, top, keep
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by selecting the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1060,7 +1060,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
 
 ## ALIAS remove, skip
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1879,7 +1879,7 @@ Text.parse_time_zone self = Time_Zone.parse self
 
 ## ALIAS mid, slice, substring
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by selecting the specified range of the input.
 
    Arguments:

@@ -157,7 +157,7 @@ type Regex
        self.match_all input . map match_to_group_maybe
 
     ## GROUP Conversions
-       ICON split_text
+       ICON split
        Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
@@ -201,7 +201,7 @@ type Regex
             go it.next
 
     ## GROUP Conversions
-       ICON split_text
+       ICON split
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned. Non-participating

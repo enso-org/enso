@@ -376,7 +376,7 @@ type Any
     catch_primitive : (Error -> Any) -> Any
     catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Transforms an error.
 
        Arguments:
@@ -432,7 +432,7 @@ type Any
     if_not_error : Any -> Any
     if_not_error self ~other = other
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies the provided function to `self` unless `self` is `Nothing`, which is
        returned unchanged.
 

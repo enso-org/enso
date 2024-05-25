@@ -108,7 +108,7 @@ type List
                     @Tail_Call loop xs (0.max count-1) new_lagged
             loop self -index self
 
-    ## ICON sigma
+    ## ICON transform4
        Combines all the elements of the list, by iteratively applying the
        passed function with next elements of the list.
 
@@ -322,7 +322,7 @@ type List
                 True  -> Pair.new (Cons elem acc.first) acc.second
                 False -> Pair.new acc.first (Cons elem acc.second)
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element of the list, returning the list of
        results.
 

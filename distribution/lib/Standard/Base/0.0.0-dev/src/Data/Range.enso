@@ -164,7 +164,7 @@ type Range
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element in the range, producing a vector of
        results.
 
@@ -301,7 +301,7 @@ type Range
                     @Tail_Call go ix+1 current+self.step
             go 0 self.start
 
-    ## ICON sigma
+    ## ICON transform4
        Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
@@ -330,7 +330,7 @@ type Range
                     @Tail_Call go new_acc current+self.step
             go init self.start
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the range, by iteratively applying the
        passed function with the next element of the range. After each step the
        value is stored resulting in a new Vector of the same size as self.

@@ -40,7 +40,7 @@ type Pair
     last : Any
     last self = self.second
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies the provided function to both elements of the pair.
 
        > Example
@@ -211,7 +211,7 @@ type Pair
             if used_start>=0 && predicate self.first then 0 else
                 Nothing
 
-    ## ICON sigma
+    ## ICON transform4
        Combines all the elements of the pair, by iteratively applying the
        passed function with next elements of the pair.
 
