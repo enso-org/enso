@@ -280,7 +280,7 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "day_of_week" "isodow", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "day_of_week" "isodow", make_extract_as_int "day_of_year" "doy", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_null, is_empty]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides + other
