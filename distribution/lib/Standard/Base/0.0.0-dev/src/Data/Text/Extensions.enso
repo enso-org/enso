@@ -45,10 +45,10 @@ polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
-polyglot java import org.enso.base.Text_Utils
-polyglot java import org.enso.base.text.Utf16Span
 polyglot java import org.enso.base.text.GraphemeSpan
 polyglot java import org.enso.base.text.ResultWithWarnings
+polyglot java import org.enso.base.text.Utf16Span
+polyglot java import org.enso.base.Text_Utils
 
 ## GROUP Text
    ICON text
@@ -1009,7 +1009,7 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, head, last, left, limit, mid, right, slice, substring, tail, top, keep
+## ALIAS first, head, keep, last, left, limit, mid, right, slice, substring, tail, top
    GROUP Selections
    ICON split
    Creates a new Text by selecting the specified range of the input.
