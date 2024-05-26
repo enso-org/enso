@@ -94,9 +94,6 @@ LocalStorage.registerKey('enabledColumns', {
 // === Constants ===
 // =================
 
-/** The maximum age of a directory's contents before its contents should be refreshed when it is
- * re-opened. Currently set to 300 seconds (5 minutes). */
-const MAX_DIRECTORY_STALE_TIME_MS = 300_000
 /** If the drag pointer is less than this distance away from the top or bottom of the
  * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
  * the top of the scroll container, or downwards if the cursor is near the bottom. */
@@ -1115,74 +1112,68 @@ export default function AssetsTable(props: AssetsTableProps) {
                   })
           )
         )
-        if (
-          directory != null &&
-          (directory.children == null ||
-            Number(new Date()) - Number(directory.createdAt) > MAX_DIRECTORY_STALE_TIME_MS)
-        ) {
-          void (async () => {
-            const abortController = new AbortController()
-            directoryListAbortControllersRef.current.set(directoryId, abortController)
-            const displayedTitle = title ?? nodeMapRef.current.get(key)?.item.title ?? '(unknown)'
-            const childAssets = await backend
-              .listDirectory(
-                {
-                  parentId: directoryId,
-                  filterBy: CATEGORY_TO_FILTER_BY[category],
-                  recentProjects: category === Category.recent,
-                  labels: null,
-                },
-                displayedTitle
-              )
-              .catch(error => {
-                toastAndLog('listFolderBackendError', error, displayedTitle)
-                throw error
-              })
-            if (!abortController.signal.aborted) {
-              setAssetTree(oldAssetTree =>
-                oldAssetTree.map(item => {
-                  if (item.key !== key) {
-                    return item
-                  } else {
-                    const initialChildren = item.children?.filter(
-                      child => child.item.type !== backendModule.AssetType.specialLoading
-                    )
-                    const childAssetsMap = new Map(childAssets.map(asset => [asset.id, asset]))
-                    for (const child of initialChildren ?? []) {
-                      const newChild = childAssetsMap.get(child.item.id)
-                      if (newChild != null) {
-                        child.item = newChild
-                        childAssetsMap.delete(child.item.id)
-                      }
+        void (async () => {
+          const abortController = new AbortController()
+          directoryListAbortControllersRef.current.set(directoryId, abortController)
+          const displayedTitle = title ?? nodeMapRef.current.get(key)?.item.title ?? '(unknown)'
+          const childAssets = await backend
+            .listDirectory(
+              {
+                parentId: directoryId,
+                filterBy: CATEGORY_TO_FILTER_BY[category],
+                recentProjects: category === Category.recent,
+                labels: null,
+              },
+              displayedTitle
+            )
+            .catch(error => {
+              toastAndLog('listFolderBackendError', error, displayedTitle)
+              throw error
+            })
+          if (!abortController.signal.aborted) {
+            setAssetTree(oldAssetTree =>
+              oldAssetTree.map(item => {
+                if (item.key !== key) {
+                  return item
+                } else {
+                  const initialChildren = item.children?.filter(
+                    child => child.item.type !== backendModule.AssetType.specialLoading
+                  )
+                  const childAssetsMap = new Map(childAssets.map(asset => [asset.id, asset]))
+                  for (const child of initialChildren ?? []) {
+                    const newChild = childAssetsMap.get(child.item.id)
+                    if (newChild != null) {
+                      child.item = newChild
+                      childAssetsMap.delete(child.item.id)
                     }
-                    const childAssetNodes = Array.from(childAssetsMap.values(), child =>
-                      AssetTreeNode.fromAsset(child, key, directoryId, item.depth + 1)
-                    )
-                    const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
-                      (initialChildren != null && initialChildren.length !== 0) ||
-                      childAssetNodes.length !== 0
-                        ? null
-                        : backendModule.createSpecialEmptyAsset(directoryId)
-                    const children =
-                      specialEmptyAsset != null
-                        ? [
-                            AssetTreeNode.fromAsset(
-                              specialEmptyAsset,
-                              key,
-                              directoryId,
-                              item.depth + 1
-                            ),
-                          ]
-                        : initialChildren == null || initialChildren.length === 0
-                          ? childAssetNodes
-                          : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
-                    return item.with({ children })
                   }
-                })
-              )
-            }
-          })()
-        }
+                  const childAssetNodes = Array.from(childAssetsMap.values(), child =>
+                    AssetTreeNode.fromAsset(child, key, directoryId, item.depth + 1)
+                  )
+                  const specialEmptyAsset: backendModule.SpecialEmptyAsset | null =
+                    (initialChildren != null && initialChildren.length !== 0) ||
+                    childAssetNodes.length !== 0
+                      ? null
+                      : backendModule.createSpecialEmptyAsset(directoryId)
+                  const children =
+                    specialEmptyAsset != null
+                      ? [
+                          AssetTreeNode.fromAsset(
+                            specialEmptyAsset,
+                            key,
+                            directoryId,
+                            item.depth + 1
+                          ),
+                        ]
+                      : initialChildren == null || initialChildren.length === 0
+                        ? childAssetNodes
+                        : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
+                  return item.with({ children })
+                }
+              })
+            )
+          }
+        })()
       }
     },
     [category, backend, toastAndLog]
@@ -2230,7 +2221,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
-  const [se, setSe] = React.useState(true)
+  const [se] = React.useState(true)
 
   const columns = columnUtils.getColumnList(backend.type, enabledColumns)
 
