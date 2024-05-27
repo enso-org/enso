@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
+import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -98,6 +99,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
 
+  const draggableProps = dragAndDropHooks.useDraggable()
   const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useStrictBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -695,7 +697,6 @@ export default function AssetRow(props: AssetRowProps) {
           {!hidden && (
             <FocusRing>
               <tr
-                draggable
                 tabIndex={0}
                 ref={element => {
                   rootRef.current = element
@@ -716,6 +717,7 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }}
                 className={`h-row rounded-full transition-all ease-in-out rounded-rows-child ${visibility} ${isDraggedOver || selected ? 'selected' : ''}`}
+                {...draggableProps}
                 onClick={event => {
                   unsetModal()
                   onClick(innerProps, event)

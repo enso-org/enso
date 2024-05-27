@@ -112,9 +112,6 @@ export default function EditableSpan(props: EditableSpanProps) {
               event.stopPropagation()
             }
           }}
-          onDragStart={event => {
-            event.stopPropagation()
-          }}
           {...(inputPattern == null ? {} : { pattern: inputPattern })}
           {...(inputTitle == null ? {} : { title: inputTitle })}
           {...(checkSubmittable == null

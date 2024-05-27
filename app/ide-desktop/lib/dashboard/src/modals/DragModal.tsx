@@ -45,10 +45,10 @@ export default function DragModal(props: DragModalProps) {
   const [top, setTop] = React.useState(event.pageY - (offsetPx ?? offsetYPx))
 
   React.useEffect(() => {
-    const onDrag = (moveEvent: MouseEvent) => {
-      if (moveEvent.pageX !== 0 || moveEvent.pageY !== 0) {
-        setLeft(moveEvent.pageX - (offsetPx ?? offsetXPx))
-        setTop(moveEvent.pageY - (offsetPx ?? offsetYPx))
+    const onDrag = (dragEvent: MouseEvent) => {
+      if (dragEvent.pageX !== 0 || dragEvent.pageY !== 0) {
+        setLeft(dragEvent.pageX - (offsetPx ?? offsetXPx))
+        setTop(dragEvent.pageY - (offsetPx ?? offsetYPx))
       }
     }
     const onDragEnd = () => {
