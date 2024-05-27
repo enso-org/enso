@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.Test;
@@ -121,6 +122,31 @@ public class RuntimeCacheTest {
     obj = null;
 
     assertGC("Local only values are eligible for GC", true, ref);
+  }
+
+  /** */
+  @Test
+  public void runQueryWithCallback() {
+    var cache = new RuntimeCache();
+    var key = UUID.randomUUID();
+    var key2 = UUID.randomUUID();
+    var obj = new Object();
+
+    var queried = new HashSet<UUID>();
+
+    var result =
+        cache.runQuery(
+            queried::add,
+            () -> {
+              cache.apply(key.toString());
+              cache.apply(key2.toString());
+              return obj;
+            });
+    assertEquals(obj, result);
+
+    assertEquals("Two queries to the cache: " + queried, 2, queried.size());
+    assertTrue("Two queries to the cache: " + queried, queried.contains(key));
+    assertTrue("Two queries to the cache: " + queried, queried.contains(key2));
   }
 
   private static void assertGC(String msg, boolean expectGC, Reference<?> ref) {

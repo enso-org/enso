@@ -547,7 +547,18 @@ object ProgramExecutionSupport {
           )
         )
         val holder = ctx.contextManager.getVisualizationHolder(contextId)
-        val callback: Consumer[UUID] = if (runtimeCache != null) {
+
+        def makeCall(): AnyRef =
+          ctx.executionService.callFunctionWithInstrument(
+            holder,
+            visualization.cache,
+            runtimeCache,
+            visualization.module,
+            visualization.callback,
+            expressionValue +: visualization.arguments: _*
+          )
+
+        if (runtimeCache != null) {
           def processUUID(id: UUID): Unit = {
             logger.log(
               Level.WARNING,
@@ -560,26 +571,9 @@ object ProgramExecutionSupport {
 
             holder.upsert(visualization, id)
           }
-          processUUID
+          runtimeCache.runQuery(processUUID, () => makeCall())
         } else {
-          null
-        }
-        try {
-          if (runtimeCache != null) {
-            runtimeCache.beginQuery(callback)
-          }
-          ctx.executionService.callFunctionWithInstrument(
-            holder,
-            visualization.cache,
-            runtimeCache,
-            visualization.module,
-            visualization.callback,
-            expressionValue +: visualization.arguments: _*
-          )
-        } finally {
-          if (callback != null) {
-            runtimeCache.finishQuery(callback)
-          }
+          makeCall()
         }
       }
 

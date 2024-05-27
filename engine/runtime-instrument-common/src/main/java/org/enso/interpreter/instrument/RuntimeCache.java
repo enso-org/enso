@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
@@ -181,13 +182,21 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     weights.clear();
   }
 
-  public void beginQuery(Consumer<UUID> callback) {
-    assert this.observer == null;
+  /**
+   * Executes a query while tracking access to the cache by {@code callback} observer.
+   *
+   * @param callback call with accessed UUIDs
+   * @param scope the code to execute
+   * @return value computed by the {@code scope}
+   * @param <V> type of the returned value
+   */
+  public <V> V runQuery(Consumer<UUID> callback, Supplier<V> scope) {
+    var previousCallback = this.observer;
     this.observer = callback;
-  }
-
-  public void finishQuery(Consumer<UUID> callback) {
-    assert this.observer == callback;
-    this.observer = null;
+    try {
+      return scope.get();
+    } finally {
+      this.observer = previousCallback;
+    }
   }
 }
