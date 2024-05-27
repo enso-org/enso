@@ -105,7 +105,6 @@ declare global {
     /** */
     // eslint-disable-next-line no-restricted-syntax
     interface Window {
-        readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi

@@ -53,6 +53,7 @@ import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import RemoteBackendProvider from '#/providers/RemoteBackendProvider'
 import SessionProvider from '#/providers/SessionProvider'
 import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
@@ -86,6 +87,7 @@ import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
 
+import type * as types from '../../types/types'
 import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
@@ -146,7 +148,7 @@ export interface AppProps {
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly appRunner: AppRunner
+  readonly appRunner: types.EditorRunner | null
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -454,6 +456,7 @@ function AppRouter(props: AppRouterProps) {
     </SupportsLocalBackendProvider>
   )
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
+  result = <RemoteBackendProvider>{result}</RemoteBackendProvider>
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}

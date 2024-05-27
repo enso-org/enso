@@ -41,7 +41,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
 
   const [inputValue, setInputValue] = React.useState('')
 
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const inputRef = React.useRef<HTMLDivElement>(null)
   const formRef = React.useRef<HTMLFormElement>(null)
 
