@@ -14,7 +14,7 @@ import org.slf4j.Logger;
 final class PerGenerator {
   static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x13, 0x0f};
   private final OutputStream main;
-  private final Map<Object, Integer> knownObjects = new IdentityHashMap<>();
+  private final Map<Object, WriteResult> knownObjects = new IdentityHashMap<>();
   private int countReferences = 1;
   private final Map<Object, Integer> pendingReferences = new IdentityHashMap<>();
   private final Histogram histogram;
@@ -60,17 +60,27 @@ final class PerGenerator {
     arr[position + 3] = (byte) (value & 0xff);
   }
 
-  final <T> int writeObject(T t) throws IOException {
+  private record WriteResult(Persistance<?> usedPersistance, int position) {
+    void writePositionAndPersistanceId(DataOutputStream out) throws IOException {
+      // For the null reference, we also write an integer for the id.
+      // It is unused, but it ensures each reference always has the same representation size.
+      int persistanceId = usedPersistance == null ? -1 : usedPersistance.id;
+      out.writeInt(position);
+      out.writeInt(persistanceId);
+    }
+  }
+
+  final <T> WriteResult writeObject(T t) throws IOException {
     if (t == null) {
-      return -1;
+      return new WriteResult(null, NULL_REFERENCE_ID);
     }
     java.lang.Object obj = writeReplace.apply(t);
-    java.lang.Integer found = knownObjects.get(obj);
+    WriteResult found = knownObjects.get(obj);
     if (found == null) {
       org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
       java.io.ByteArrayOutputStream os = new ByteArrayOutputStream();
       p.writeInline(obj, new ReferenceOutput(this, os));
-      found = this.position;
+      found = new WriteResult(p, this.position);
       byte[] arr = os.toByteArray();
       main.write(arr);
       this.position += arr.length;
@@ -82,19 +92,19 @@ final class PerGenerator {
   final void writeIndirect(Object obj, Persistance.Output out) throws IOException {
     obj = writeReplace.apply(obj);
     if (obj == null) {
-      out.writeInt(-1);
+      out.writeInt(NULL_REFERENCE_ID);
       return;
     }
     org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
     if (obj instanceof String s) {
       obj = s.intern();
     }
-    java.lang.Integer found = knownObjects.get(obj);
+    WriteResult found = knownObjects.get(obj);
     if (found == null) {
       var os = new ByteArrayOutputStream();
       var osData = new ReferenceOutput(this, os);
       p.writeInline(obj, osData);
-      found = position;
+      found = new WriteResult(p, position);
       if (os.size() == 0) {
         os.write(0);
       }
@@ -106,7 +116,7 @@ final class PerGenerator {
         histogram.register(obj.getClass(), arr.length);
       }
     }
-    out.writeInt(found);
+    out.writeInt(found.position);
     out.writeInt(p.id);
   }
 
@@ -117,8 +127,7 @@ final class PerGenerator {
   private int registerReference(Persistance.Reference<?> ref) {
     var obj = ref.get(Object.class);
     if (obj == null) {
-      // A null reference is represented by id -1
-      return -1;
+      return NULL_REFERENCE_ID;
     }
 
     var existingId = pendingReferences.get(obj);
@@ -140,13 +149,12 @@ final class PerGenerator {
    */
   private int writeObjectAndReferences(Object obj) throws IOException {
     pendingReferences.put(obj, 0);
-    var objAt = writeObject(obj);
+    WriteResult root = writeObject(obj);
 
     var refsOut = new ByteArrayOutputStream();
     var refsData = new DataOutputStream(refsOut);
     refsData.writeInt(-1); // space for size of references
-    refsData.writeInt(objAt); // the main object
-    refsData.writeInt(map.forType(obj.getClass()).id); // main objects Persistance id
+    root.writePositionAndPersistanceId(refsData);
     var count = 1;
     for (; ; ) {
       var all = new ArrayList<>(pendingReferences.entrySet());
@@ -159,7 +167,7 @@ final class PerGenerator {
         break;
       }
       for (var entry : round) {
-        var at = writeObject(entry.getKey());
+        WriteResult writeResult = writeObject(entry.getKey());
         assert count == entry.getValue()
             : "Expecting "
                 + count
@@ -168,9 +176,7 @@ final class PerGenerator {
                 + " (in "
                 + entry.getKey().getClass().getCanonicalName()
                 + ")";
-        refsData.writeInt(at);
-        // Also store the id of the used Persistance, to be able to be reconstructed
-        refsData.writeInt(map.forType(entry.getKey().getClass()).id);
+        writeResult.writePositionAndPersistanceId(refsData);
         count++;
       }
     }
@@ -246,4 +252,6 @@ final class PerGenerator {
       c[1]++;
     }
   }
+
+  static final int NULL_REFERENCE_ID = -1;
 }

@@ -1,5 +1,6 @@
 package org.enso.persist;
 
+import static org.enso.persist.PerGenerator.NULL_REFERENCE_ID;
 import static org.enso.persist.PerUtils.raise;
 
 import java.io.DataInputStream;
@@ -58,7 +59,7 @@ final class PerInputImpl implements Input {
   public <T> T readInline(Class<T> clazz) throws IOException {
     if (clazz == Persistance.Reference.class) {
       var refId = readInt();
-      if (refId == -1) {
+      if (refId == NULL_REFERENCE_ID) {
         var nullReference = Persistance.Reference.none();
         return clazz.cast(nullReference);
       }

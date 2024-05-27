@@ -9,7 +9,7 @@ import org.openide.util.lookup.Lookups;
 
 final class PerMap {
 
-  private static final int serialVersionUID = 8689; // Use PR number
+  private static final int serialVersionUID = 10101; // Use PR number
   private static final Collection<? extends Persistance> ALL;
 
   static {
