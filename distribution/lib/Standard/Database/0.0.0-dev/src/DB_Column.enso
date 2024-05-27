@@ -1448,7 +1448,7 @@ type DB_Column
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
     text_replace : Text | Regex | DB_Column -> Text | DB_Column -> Case_Sensitivity -> Boolean -> DB_Column ! Unsupported_Database_Operation
-    text_replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
+    text_replace self (term : Text | Regex | DB_Column = "") new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first

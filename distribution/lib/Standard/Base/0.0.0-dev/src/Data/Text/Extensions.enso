@@ -11,6 +11,7 @@ import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
+import project.Data.Text.Regex.Named_Pattern.Named_Pattern
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
@@ -541,13 +542,13 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
    Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the text cleanings to remove from the text. The text cleansings are
-      applied in the order they are provided. The same text cleansing can be used multiple
-      times. The text cleansings are:
-      - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-      - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-      - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-      - ..All_Whitespace: Removes all whitspace from the string.
+   - remove: A vector of the named patterns to cleanse from the text. The named patterns are 
+      applied in the order they are provided. The same named pattern can be used multiple
+      times. The named patterns are:
+      - ..Leading_Whitespace: Removes all whitespace from the start of the string.
+      - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
+      - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
+      - ..All_Whitespace: Removes all whitespace from the string.
       - ..Leading_Numbers: Removes all numbers from the start of the string.
       - ..Trailing_Numbers: Removes all numbers from the end of the string.
       - ..Non_ASCII: Removes all non-ascii characters from the string.
@@ -562,9 +563,9 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
 
          text.cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
 @remove make_data_cleanse_vector_selector
-Text.cleanse : Vector Text_Cleanse -> Text
+Text.cleanse : Vector Named_Pattern -> Text
 Text.cleanse self remove =
-   remove.fold self (current-> tc-> tc.apply current)
+   remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
 ## PRIVATE
 Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (Regex.compile pattern) replace_with)
