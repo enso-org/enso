@@ -140,7 +140,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
       {managesThisAsset && (
         <UnstyledButton
           ref={plusButtonRef}
-          className="shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
+          className="min-w-max shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
           onPress={() => {
             setModal(
               <ManageLabelsModal

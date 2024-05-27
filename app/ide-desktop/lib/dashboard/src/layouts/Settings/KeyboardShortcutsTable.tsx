@@ -121,7 +121,8 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   </UnstyledButton>
                                 </div>
                               ))}
-                              <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
+                              <div className="grow" />
+                              <div className="flex min-w-max shrink-0 gap-keyboard-shortcuts-button">
                                 <UnstyledButton
                                   className="focus-default my-auto flex rounded-full"
                                   onPress={() => {
