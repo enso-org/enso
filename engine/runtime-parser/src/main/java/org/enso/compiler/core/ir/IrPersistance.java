@@ -24,7 +24,6 @@ import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
-import scala.jdk.javaapi.CollectionConverters$;
 
 @Persistable(clazz = Module.class, id = 201)
 @Persistable(clazz = Name.Literal.class, id = 351)

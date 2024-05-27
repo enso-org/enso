@@ -241,7 +241,9 @@ public class IrPersistanceTest {
     assertNotSame("Lazily deserialized s2", s2, out.get(1));
   }
 
-  /** The Scala sequence is not lazy because it is actually written (and thus also read) as a List. */
+  /**
+   * The Scala sequence is not lazy because it is actually written (and thus also read) as a List.
+   */
   @Test
   public void notLazyScalaSequence() throws Exception {
     var s1 = new LazyString("Hello");

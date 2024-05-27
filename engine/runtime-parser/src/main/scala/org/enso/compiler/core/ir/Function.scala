@@ -37,7 +37,7 @@ object Function {
     * better optimisation.
     *
     * @param arguments   the arguments to the lambda
-    * @param bodyReference     the body of the lambda, stored as a reference to ensure
+    * @param bodyReference the body of the lambda, stored as a reference to ensure
     *                     laziness of storage
     * @param location    the source location that the node corresponds to
     * @param canBeTCO    whether or not the function can be tail-call optimised
