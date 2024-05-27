@@ -783,7 +783,7 @@ type DB_Table
 
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON column_add
        Adds a new column to the table enumerating the rows.
 
        Arguments:
@@ -894,7 +894,7 @@ type DB_Table
 
     ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON column_add
        Sets the column value at the given name.
 
        Arguments:
@@ -1579,7 +1579,7 @@ type DB_Table
 
     ## ALIAS find replace
        GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Replaces values in the columns using `lookup_table` to specify a mapping
        from old to new values.
 
@@ -1661,7 +1661,7 @@ type DB_Table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
-       ICON dataframes_join
+       ICON join2-1
        Joins two tables by zipping rows from both tables table together - the
        first row of the left table is correlated with the first one of the right
        one etc.
@@ -1713,7 +1713,7 @@ type DB_Table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
-       ICON dataframes_union
+       ICON union
        Appends records from other table(s) to this table.
 
        Arguments:
@@ -1789,7 +1789,7 @@ type DB_Table
          the order they appear in the input.
     @tables (Widget.Vector_Editor item_editor=Widget.Code_Input item_default='_' display=Display.Always)
     @columns_to_keep Columns_To_Keep.default_widget
-    union : (DB_Table | Vector DB_Table) -> Match_Columns -> Columns_To_Keep -> Problem_Behavior -> DB_Table
+    union : (DB_Table | Vector DB_Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> DB_Table
     union self tables:(DB_Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
         all_tables = case tables of
             v : Vector -> [self] + (v.map t-> DB_Table.from t)
@@ -1874,7 +1874,7 @@ type DB_Table
 
     ## ALIAS group by, summarize
        GROUP Standard.Base.Calculations
-       ICON sigma
+       ICON transform4
 
        Aggregates the rows in a table using `group_by` columns.
        The columns argument specifies which additional aggregations to perform
@@ -2001,7 +2001,7 @@ type DB_Table
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
-       ICON dataframe_map_row
+       ICON map_row
        Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
        value field.
@@ -2031,7 +2031,8 @@ type DB_Table
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
 
-       ? Example Transpose Operation
+       > Example
+         Transpose Operation
 
          Input Table `table`:
 
@@ -2059,7 +2060,7 @@ type DB_Table
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
-       ICON dataframe_map_column
+       ICON column_add
        Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
@@ -2095,7 +2096,8 @@ type DB_Table
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
 
-       ? Example Cross Tab Operation
+       > Example
+         Cross Tab Operation
 
          Input Table `table`:
 
@@ -2264,7 +2266,7 @@ type DB_Table
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.format is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Splits a column of text into a set of new columns.
        The original column will be removed from the table.
        The new columns will be named with the name of the input column with a
@@ -2288,7 +2290,7 @@ type DB_Table
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Splits a column of text into a set of new rows.
        The values of other columns are repeated for the new rows.
 
@@ -2303,7 +2305,7 @@ type DB_Table
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_rows is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Tokenizes a column of text into a set of new columns using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -2331,7 +2333,7 @@ type DB_Table
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Tokenizes a column of text into a set of new rows using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -2353,7 +2355,7 @@ type DB_Table
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_rows is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Converts a Text column into new columns using a regular expression
        pattern.
 
@@ -2386,7 +2388,7 @@ type DB_Table
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.parse_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Calculations
-       ICON split_text
+       ICON split
        Expand a column of objects to a new set of columns.
 
        Arguments:
@@ -2401,7 +2403,7 @@ type DB_Table
             Error.throw (Unsupported_Database_Operation.Error "DB_Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## GROUP Standard.Base.Calculations
-       ICON split_text
+       ICON split
        Expand aggregate values in a column to separate rows.
 
        For each value in the specified column, if it is an aggregate (`Vector`,
@@ -2786,7 +2788,7 @@ type DB_Table
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
-       ICON dataframe_clean
+       ICON table_clean
 
        Returns a new table where missing values in the specified columns have
        been replaced with the provided default(s).
@@ -2815,7 +2817,7 @@ type DB_Table
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
-       ICON dataframe_clean
+       ICON table_clean
 
        Returns a new column where empty Text values have been replaced with the
        provided default.
@@ -2842,7 +2844,7 @@ type DB_Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row of the specified column. If `term` is empty, the function returns the
        table unchanged.
@@ -2885,7 +2887,7 @@ type DB_Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Applies the specified cleansings to the text in each row of the specified columns
 
        Arguments:

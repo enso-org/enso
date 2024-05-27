@@ -721,7 +721,7 @@ type Table
 
     ## ALIAS group by, summarize
        GROUP Standard.Base.Calculations
-       ICON sigma
+       ICON transform4
 
        Aggregates the rows in a table using `group_by` columns.
        The columns argument specifies which additional aggregations to perform
@@ -1265,7 +1265,7 @@ type Table
             table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Splits a column of text into a set of new columns.
        The original column will be removed from the table.
        The new columns will be named with the name of the input column with a
@@ -1288,7 +1288,7 @@ type Table
         Split_Tokenize.split_to_columns self column delimiter column_count on_problems
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Splits a column of text into a set of new rows.
        The values of other columns are repeated for the new rows.
 
@@ -1302,7 +1302,7 @@ type Table
         Split_Tokenize.split_to_rows self column delimiter
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Tokenizes a column of text into a set of new columns using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -1329,7 +1329,7 @@ type Table
         Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Tokenizes a column of text into a set of new rows using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -1350,7 +1350,7 @@ type Table
         Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Converts a Text column into new columns using a regular expression
        pattern.
 
@@ -1382,7 +1382,7 @@ type Table
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
     ## GROUP Standard.Base.Calculations
-       ICON split_text
+       ICON split
        Expand a column of objects to a new set of columns.
 
        Arguments:
@@ -1396,7 +1396,7 @@ type Table
         Expand_Objects_Helpers.expand_column self column fields prefix
 
     ## GROUP Standard.Base.Calculations
-       ICON split_text
+       ICON split
        Expand aggregate values in a column to separate rows.
 
        For each value in the specified column, if it is an aggregate (`Vector`,
@@ -1611,7 +1611,7 @@ type Table
 
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON column_add
        Adds a new column to the table enumerating the rows.
 
        Arguments:
@@ -1649,7 +1649,7 @@ type Table
 
     ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON column_add
        Sets the column value at the given name.
 
        Arguments:
@@ -2091,7 +2091,7 @@ type Table
 
     ## ALIAS find replace
        GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Replaces values in the columns using `lookup_table` to specify a mapping
        from old to new values.
 
@@ -2173,7 +2173,7 @@ type Table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
-       ICON dataframes_join
+       ICON join2-1
        Joins two tables by zipping rows from both tables table together - the
        first row of the left table is correlated with the first one of the right
        one etc.
@@ -2240,7 +2240,7 @@ type Table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
-       ICON dataframes_union
+       ICON union
        Appends records from other table(s) to this table.
 
        Arguments:
@@ -2393,7 +2393,7 @@ type Table
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
-       ICON dataframe_map_row
+       ICON map_row
        Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
        value field.
@@ -2423,7 +2423,8 @@ type Table
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
 
-       ? Example Transpose Operation
+       > Example
+         Transpose Operation
 
          Input Table `table`:
 
@@ -2466,7 +2467,7 @@ type Table
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
-       ICON dataframe_map_column
+       ICON column_add
        Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
@@ -2502,7 +2503,8 @@ type Table
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
 
-       ? Example Cross Tab Operation
+       > Example
+         Cross Tab Operation
 
          Input Table `table`:
 
@@ -2712,7 +2714,8 @@ type Table
            `attribute_columns` or `value_column`, a `Unexpected_Extra_Columns`
            is reported according to the `on_problems` setting.
 
-       ? Example to_xml Operation
+       > Example
+         to_xml Operation
 
          Input Table `table`:
 
@@ -2761,7 +2764,7 @@ type Table
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
-       ICON dataframe_clean
+       ICON table_clean
 
        Returns a new table where missing values in the specified columns have
        been replaced with the provided default(s).
@@ -2790,7 +2793,7 @@ type Table
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
-       ICON dataframe_clean
+       ICON table_clean
 
        Returns a new column where empty Text values have been replaced with the
        provided default(s).
@@ -2817,7 +2820,7 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row of the specified column. If `term` is empty, the function returns the
        table unchanged.
@@ -2860,7 +2863,7 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Applies the specified cleansings to the text in each row of the specified columns.
 
        Arguments:
@@ -2894,7 +2897,7 @@ type Table
 
     ## ALIAS cumulative
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON column_add
        Adds a new column to the table with a running calculation.
 
        Arguments:

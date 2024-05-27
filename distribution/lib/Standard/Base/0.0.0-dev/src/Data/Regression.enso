@@ -51,7 +51,7 @@ type Model
             if x <= 0 then Panic.throw (Illegal_Argument.Error (series_name + " must be positive.")) else x.ln
         Panic.recover Illegal_Argument <| xs.map ln_with_panic
 
-## ICON machine_learning
+## ICON robot
    Use Least Squares to fit a line to the data.
 fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument | Fit_Error
 fit_least_squares known_xs known_ys model=Model.Linear =
@@ -105,7 +105,7 @@ type Fitted_Model
         Fitted_Model.Power a b _ -> a.to_text + " * X ^ " + b.to_text
 
     ## GROUP Calculations
-       ICON machine_learning
+       ICON robot
        Use the model to predict a value.
     predict : Number -> Number
     predict self x = case self of
