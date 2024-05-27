@@ -159,7 +159,6 @@ final class PerGenerator {
         break;
       }
       for (var entry : round) {
-        count++;
         var at = writeObject(entry.getKey());
         assert count == entry.getValue()
             : "Expecting "
@@ -172,6 +171,7 @@ final class PerGenerator {
         refsData.writeInt(at);
         // Also store the id of the used Persistance, to be able to be reconstructed
         refsData.writeInt(map.forType(entry.getKey().getClass()).id);
+        count++;
       }
     }
     refsData.flush();
