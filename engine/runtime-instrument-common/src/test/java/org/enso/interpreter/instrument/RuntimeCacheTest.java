@@ -53,7 +53,7 @@ public class RuntimeCacheTest {
   }
 
   @Test
-  public void cacheExpressions() {
+  public void cacheAllExpressions() {
     var cache = new RuntimeCache();
     var key = UUID.randomUUID();
     var exprKey = UUID.randomUUID();
@@ -62,7 +62,9 @@ public class RuntimeCacheTest {
     cache.setWeights(Map.of(key, 1.0));
 
     assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
-    assertNull("No UUID for exprKey", cache.apply(exprKey.toString()));
+    assertNull("No UUID for exprKey in cache", cache.get(exprKey));
+    assertEquals("obj inserted into expressions", obj, cache.getAnyValue(exprKey));
+    assertEquals("obj inserted into expressions", obj, cache.apply(exprKey.toString()));
 
     assertTrue("key is inserted, as it has associated weight", cache.offer(key, obj));
 
@@ -82,7 +84,8 @@ public class RuntimeCacheTest {
     cache.setWeights(Map.of(key, 1.0));
 
     assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
-    assertNull("No UUID for exprKey", cache.apply(exprKey.toString()));
+    assertNull("No UUID for exprKey in cache", cache.get(exprKey));
+    assertEquals("obj inserted into expressions", obj, cache.getAnyValue(exprKey));
 
     assertTrue("key is inserted, as it has associated weight", cache.offer(key, obj));
 
@@ -99,6 +102,25 @@ public class RuntimeCacheTest {
     cache.remove(key);
 
     assertGC("Cached object can disappear after eviction from the cache", true, ref);
+  }
+
+  @Test
+  public void cleanupOfNotCachedExpressions() {
+    var cache = new RuntimeCache();
+    var key = UUID.randomUUID();
+    var exprKey = UUID.randomUUID();
+    var obj = new Object();
+
+    cache.setWeights(Map.of(key, 1.0));
+
+    assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
+    assertNull("No UUID for exprKey in cache", cache.get(exprKey));
+    assertEquals("obj inserted into expressions", obj, cache.getAnyValue(exprKey));
+
+    var ref = new WeakReference<>(obj);
+    obj = null;
+
+    assertGC("Local only values are eligible for GC", true, ref);
   }
 
   private static void assertGC(String msg, boolean expectGC, Reference<?> ref) {
