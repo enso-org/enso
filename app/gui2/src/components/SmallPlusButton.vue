@@ -12,7 +12,7 @@ function addNode() {
 </script>
 
 <template>
-  <SvgButton name="add" class="SmallPlusButton addn" title="Add Component" @click.stop="addNode" />
+  <SvgButton name="add" class="SmallPlusButton" title="Add Component" @click.stop="addNode" />
 </template>
 
 <style scoped>

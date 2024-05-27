@@ -53,8 +53,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
   .iconButton {
     position: relative;
     margin: 0 auto 0 0;
-    --icon-transform: scale(1.5) translateY(calc(-4px / 1.5));
-    --icon-transform-origin: left top;
+    --icon-width: 24px;
   }
 }
 
