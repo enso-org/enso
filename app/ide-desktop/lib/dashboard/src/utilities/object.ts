@@ -1,4 +1,13 @@
-/** @file Immutably shallowly merge an object with a partial update. */
+/** @file Functions related to manipulating objects. */
+
+// ===============
+// === Mutable ===
+// ===============
+
+/** Remove the `readonly` modifier from all fields in a type. */
+export type Mutable<T> = {
+  -readonly [K in keyof T]: T[K]
+}
 
 // =============
 // === merge ===
