@@ -40,7 +40,8 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
     if (clazz.isAssignableFrom(p.clazz)) {
       clazz = (Class<T>) p.clazz;
     } else {
-      throw new ClassCastException();
+      throw new ClassCastException(
+          "Expecting " + clazz.getName() + " but found " + p.clazz.getName());
     }
 
     var in = new PerInputImpl(cache, offset);
