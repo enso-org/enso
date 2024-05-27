@@ -325,6 +325,7 @@ public abstract class Persistance<T> implements Cloneable {
       out.writeObject(obj.get());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected InlineReference readObject(Input in) throws IOException, ClassNotFoundException {
       return new IndirectInlineReference(in.readReference(Object.class));
