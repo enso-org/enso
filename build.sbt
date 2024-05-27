@@ -1258,6 +1258,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
+    inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
