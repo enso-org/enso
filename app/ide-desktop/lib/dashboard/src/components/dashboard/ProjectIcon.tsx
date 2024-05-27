@@ -112,7 +112,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [user, /* should never change */ setItem]
+    [user, setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -193,16 +193,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         setState(backendModule.ProjectState.closed)
       }
     },
-    [
-      state,
-      backend,
-      item,
-      closeProjectAbortController,
-      session,
-      toastAndLog,
-      /* should never change */ setState,
-      /* should never change */ setItem,
-    ]
+    [state, backend, item, closeProjectAbortController, session, toastAndLog, setState, setItem]
   )
 
   React.useEffect(() => {

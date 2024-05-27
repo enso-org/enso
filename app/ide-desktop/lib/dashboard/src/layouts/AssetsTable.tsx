@@ -827,7 +827,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [isCloud, assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
+  }, [isCloud, assetTree, query, visibilities, allLabels, setSuggestions])
 
   React.useEffect(() => {
     if (rawQueuedAssetEvents.length !== 0) {
@@ -864,11 +864,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         },
       })
     }
-  }, [
-    hidden,
-    /* should never change */ inputBindings,
-    /* should never change */ dispatchAssetEvent,
-  ])
+  }, [hidden, inputBindings, dispatchAssetEvent])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -926,7 +922,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
       }
     },
-    [isCloud, /* should never change */ setCanDownload]
+    [isCloud, setCanDownload]
   )
 
   const clearSelectedKeys = React.useCallback(() => {
@@ -990,12 +986,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         return null
       })
     },
-    [
-      rootDirectoryId,
-      toastAndLog,
-      /* should never change */ setNameOfProjectToImmediatelyOpen,
-      /* should never change */ dispatchAssetEvent,
-    ]
+    [rootDirectoryId, toastAndLog, setNameOfProjectToImmediatelyOpen, dispatchAssetEvent]
   )
   const overwriteNodesRef = React.useRef(overwriteNodes)
   overwriteNodesRef.current = overwriteNodes
@@ -1046,24 +1037,20 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (savedEnabledColumns != null) {
       setEnabledColumns(new Set(savedEnabledColumns))
     }
-  }, [/* should never change */ localStorage])
+  }, [localStorage])
 
   React.useEffect(() => {
     if (initialized) {
       localStorage.set('enabledColumns', [...enabledColumns])
     }
-  }, [enabledColumns, initialized, /* should never change */ localStorage])
+  }, [enabledColumns, initialized, localStorage])
 
   React.useEffect(() => {
     if (selectedKeysRef.current.size !== 1) {
       setAssetPanelProps(null)
       setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [
-    selectedKeysRef.current.size,
-    /* should never change */ setAssetPanelProps,
-    /* should never change */ setIsAssetPanelTemporarilyVisible,
-  ])
+  }, [selectedKeysRef.current.size, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
 
   const directoryListAbortControllersRef = React.useRef(
     new Map<backendModule.DirectoryId, AbortController>()
@@ -1821,7 +1808,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         runInBackground: false,
       })
     },
-    [/* should never change */ dispatchAssetEvent]
+    [dispatchAssetEvent]
   )
 
   const doCloseEditor = React.useCallback(
@@ -1836,7 +1823,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doCopy = React.useCallback(() => {
     unsetModal()
     setPasteData({ type: PasteType.copy, data: selectedKeysRef.current })
-  }, [/* should never change */ unsetModal])
+  }, [unsetModal])
 
   const doCut = React.useCallback(() => {
     unsetModal()
@@ -1846,12 +1833,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     setPasteData({ type: PasteType.move, data: selectedKeysRef.current })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeysRef.current })
     setSelectedKeys(new Set())
-  }, [
-    pasteData,
-    setSelectedKeys,
-    /* should never change */ unsetModal,
-    /* should never change */ dispatchAssetEvent,
-  ])
+  }, [pasteData, setSelectedKeys, unsetModal, dispatchAssetEvent])
 
   const doPaste = React.useCallback(
     (newParentKey: backendModule.DirectoryId, newParentId: backendModule.DirectoryId) => {
@@ -1883,13 +1865,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [
-      pasteData,
-      doToggleDirectoryExpansion,
-      /* should never change */ unsetModal,
-      /* should never change */ dispatchAssetEvent,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [pasteData, doToggleDirectoryExpansion, unsetModal, dispatchAssetEvent, dispatchAssetListEvent]
   )
 
   const hideColumn = React.useCallback((column: columnUtils.Column) => {
@@ -1922,9 +1898,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
-      /* should never change */ clearSelectedKeys,
-      /* should never change */ dispatchAssetEvent,
-      /* should never change */ dispatchAssetListEvent,
+      clearSelectedKeys,
+      dispatchAssetEvent,
+      dispatchAssetListEvent,
     ]
   )
 
@@ -1986,12 +1962,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
-      /* should never change */ hideColumn,
-      /* should never change */ setAssetPanelProps,
-      /* should never change */ setIsAssetPanelTemporarilyVisible,
-      /* should never change */ setQuery,
-      /* should never change */ dispatchAssetEvent,
-      /* should never change */ dispatchAssetListEvent,
+      hideColumn,
+      setAssetPanelProps,
+      setIsAssetPanelTemporarilyVisible,
+      setQuery,
+      dispatchAssetEvent,
+      dispatchAssetListEvent,
     ]
   )
 
@@ -2031,11 +2007,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         },
         false
       ),
-    [
-      setSelectedKeys,
-      /* should never change */ inputBindings,
-      /* should never change */ setMostRecentlySelectedIndex,
-    ]
+    [setSelectedKeys, inputBindings, setMostRecentlySelectedIndex]
   )
 
   React.useEffect(() => {
@@ -2092,7 +2064,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       })(event, false)
       return result
     },
-    [/* should never change */ inputBindings]
+    [inputBindings]
   )
 
   // Only non-`null` when it is different to`selectedKeys`.
@@ -2183,7 +2155,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setVisuallySelectedKeysOverride(null)
       dragSelectionRangeRef.current = null
     },
-    [displayItems, calculateNewKeys, /* should never change */ setSelectedKeys]
+    [displayItems, calculateNewKeys, setSelectedKeys]
   )
 
   const onSelectionDragCancel = React.useCallback(() => {
@@ -2213,12 +2185,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectionStartIndexRef.current = null
       }
     },
-    [
-      visibleItems,
-      calculateNewKeys,
-      /* should never change */ setSelectedKeys,
-      /* should never change */ setMostRecentlySelectedIndex,
-    ]
+    [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex]
   )
 
   const columns = columnUtils.getColumnList(backend.type, enabledColumns)

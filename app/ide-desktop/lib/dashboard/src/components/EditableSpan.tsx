@@ -66,7 +66,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     } else {
       return
     }
-  }, [editable, /* should never change */ inputBindings, onCancelEventCallback])
+  }, [editable, inputBindings, onCancelEventCallback])
 
   React.useEffect(() => {
     cancelledRef.current = false

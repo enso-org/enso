@@ -95,7 +95,7 @@ export default function AssetPanel(props: AssetPanelProps) {
     if (initializedRef.current) {
       localStorage.set('assetPanelTab', tab)
     }
-  }, [tab, /* should never change */ localStorage])
+  }, [tab, localStorage])
 
   React.useEffect(() => {
     setInitialized(true)

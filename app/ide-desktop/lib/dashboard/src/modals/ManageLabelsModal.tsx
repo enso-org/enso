@@ -80,7 +80,7 @@ export default function ManageLabelsModal<
         } as Partial<Asset>)
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   const doToggleLabel = async (name: backendModule.LabelName) => {

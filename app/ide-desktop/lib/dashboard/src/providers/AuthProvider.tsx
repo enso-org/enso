@@ -214,11 +214,11 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }, [
     getText,
-    /* should never change */ projectManagerUrl,
-    /* should never change */ projectManagerRootDirectory,
-    /* should never change */ supportsLocalBackend,
-    /* should never change */ logger,
-    /* should never change */ setBackendWithoutSavingType,
+    projectManagerUrl,
+    projectManagerRootDirectory,
+    supportsLocalBackend,
+    logger,
+    setBackendWithoutSavingType,
   ])
 
   const goOffline = React.useCallback(
@@ -230,7 +230,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       navigate(appUtils.DASHBOARD_PATH)
       return Promise.resolve(true)
     },
-    [goOfflineInternal, /* should never change */ navigate]
+    [goOfflineInternal, navigate]
   )
 
   // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
@@ -286,7 +286,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (!navigator.onLine) {
       void goOffline()
     }
-  }, [/* should never change */ goOffline])
+  }, [goOffline])
 
   React.useEffect(() => {
     if (authService == null) {
@@ -294,7 +294,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       goOfflineInternal()
       navigate(appUtils.DASHBOARD_PATH)
     }
-  }, [authService, navigate, /* should never change */ goOfflineInternal])
+  }, [authService, navigate, goOfflineInternal])
 
   React.useEffect(
     () =>
@@ -303,7 +303,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           void goOffline()
         }
       }),
-    [onSessionError, /* should never change */ goOffline]
+    [onSessionError, goOffline]
   )
 
   /** Fetch the JWT access token from the session via the AWS Amplify library.
@@ -413,14 +413,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     // value.
     // `initialized` MUST NOT be a dependency as it breaks offline mode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    cognito,
-    logger,
-    onAuthenticated,
-    session,
-    /* should never change */ goOfflineInternal,
-    /* should never change */ setBackendWithoutSavingType,
-  ])
+  }, [cognito, logger, onAuthenticated, session, goOfflineInternal, setBackendWithoutSavingType])
 
   /** Wrap a function returning a {@link Promise} to display a loading toast notification
    * until the returned {@link Promise} finishes loading. */

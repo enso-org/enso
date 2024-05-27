@@ -67,12 +67,7 @@ export default function DragModal(props: DragModalProps) {
       document.removeEventListener('dragover', onDrag, { capture: true })
       document.removeEventListener('dragend', onDragEnd, { capture: true })
     }
-  }, [
-    /* should never change */ offsetPx,
-    /* should never change */ offsetXPx,
-    /* should never change */ offsetYPx,
-    /* should never change */ unsetModal,
-  ])
+  }, [offsetPx, offsetXPx, offsetYPx, unsetModal])
 
   return (
     <Modal className="pointer-events-none absolute size-full overflow-hidden">

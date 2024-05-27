@@ -139,7 +139,7 @@ export default function AssetRow(props: AssetRowProps) {
     if (selected && insertionVisibility !== Visibility.visible) {
       setSelected(false)
     }
-  }, [selected, insertionVisibility, /* should never change */ setSelected])
+  }, [selected, insertionVisibility, setSelected])
 
   React.useEffect(() => {
     if (isKeyboardSelected) {
@@ -185,9 +185,9 @@ export default function AssetRow(props: AssetRowProps) {
       asset,
       item.key,
       toastAndLog,
-      /* should never change */ nodeMap,
-      /* should never change */ setAsset,
-      /* should never change */ dispatchAssetListEvent,
+      nodeMap,
+      setAsset,
+      dispatchAssetListEvent,
     ]
   )
 
@@ -300,8 +300,8 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryKey,
       item.key,
       toastAndLog,
-      /* should never change */ setAsset,
-      /* should never change */ dispatchAssetListEvent,
+      setAsset,
+      dispatchAssetListEvent,
     ]
   )
 
@@ -310,12 +310,7 @@ export default function AssetRow(props: AssetRowProps) {
       setAssetPanelProps({ item, setItem })
       setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [
-    item,
-    isSoleSelected,
-    /* should never change */ setAssetPanelProps,
-    /* should never change */ setIsAssetPanelTemporarilyVisible,
-  ])
+  }, [item, isSoleSelected, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
 
   const doDelete = React.useCallback(
     async (forever = false) => {
@@ -358,13 +353,7 @@ export default function AssetRow(props: AssetRowProps) {
         toastAndLog('deleteAssetError', error, asset.title)
       }
     },
-    [
-      backend,
-      dispatchAssetListEvent,
-      asset,
-      /* should never change */ item.key,
-      /* should never change */ toastAndLog,
-    ]
+    [backend, dispatchAssetListEvent, asset, item.key, toastAndLog]
   )
 
   const doRestore = React.useCallback(async () => {
@@ -377,7 +366,7 @@ export default function AssetRow(props: AssetRowProps) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog('restoreAssetError', error, asset.title)
     }
-  }, [backend, dispatchAssetListEvent, asset, toastAndLog, /* should never change */ item.key])
+  }, [backend, dispatchAssetListEvent, asset, toastAndLog, item.key])
 
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(

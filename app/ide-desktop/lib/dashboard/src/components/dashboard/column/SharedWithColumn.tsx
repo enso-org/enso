@@ -60,7 +60,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         })
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   return (

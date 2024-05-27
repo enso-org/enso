@@ -60,7 +60,7 @@ export default function BackendProvider(props: BackendProviderProps) {
       setBackendWithoutSavingType(newBackend)
       localStorage.set('backendType', newBackend.type)
     },
-    [/* should never change */ localStorage]
+    [localStorage]
   )
 
   return (

@@ -60,7 +60,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         })
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   return (

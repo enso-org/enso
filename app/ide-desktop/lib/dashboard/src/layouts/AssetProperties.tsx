@@ -79,7 +79,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       setItemInner(valueOrUpdater)
       setItemRaw(valueOrUpdater)
     },
-    [/* should never change */ setItemRaw]
+    [setItemRaw]
   )
   const self = item.item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)

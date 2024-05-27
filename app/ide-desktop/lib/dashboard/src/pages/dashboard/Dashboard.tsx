@@ -315,17 +315,17 @@ export default function Dashboard(props: DashboardProps) {
         localStorage.delete('projectStartupInfo')
       }
     }
-  }, [projectStartupInfo, /* should never change */ localStorage])
+  }, [projectStartupInfo, localStorage])
 
   React.useEffect(() => {
     localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
-  }, [isAssetPanelEnabled, /* should never change */ localStorage])
+  }, [isAssetPanelEnabled, localStorage])
 
   React.useEffect(() => {
     if (page !== pageSwitcher.Page.settings) {
       localStorage.set('page', page)
     }
-  }, [page, /* should never change */ localStorage])
+  }, [page, localStorage])
 
   React.useEffect(
     () =>
@@ -389,13 +389,7 @@ export default function Dashboard(props: DashboardProps) {
         }
       }
     },
-    [
-      backend.type,
-      remoteBackend,
-      /* should never change */ projectManagerUrl,
-      /* should never change */ projectManagerRootDirectory,
-      /* should never change */ setBackend,
-    ]
+    [backend.type, remoteBackend, projectManagerUrl, projectManagerRootDirectory, setBackend]
   )
 
   const doCreateProject = React.useCallback(
@@ -418,12 +412,7 @@ export default function Dashboard(props: DashboardProps) {
         onSpinnerStateChange,
       })
     },
-    [
-      backend.type,
-      rootDirectoryId,
-      projectManagerRootDirectory,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [backend.type, rootDirectoryId, projectManagerRootDirectory, dispatchAssetListEvent]
   )
 
   const doOpenEditor = React.useCallback(
@@ -464,7 +453,7 @@ export default function Dashboard(props: DashboardProps) {
       dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
       setProjectStartupInfo(null)
     }
-  }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
+  }, [projectStartupInfo?.projectAsset, dispatchAssetListEvent])
 
   const onSignOut = React.useCallback(() => {
     if (page === pageSwitcher.Page.editor) {

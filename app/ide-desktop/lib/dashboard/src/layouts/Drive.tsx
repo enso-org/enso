@@ -162,7 +162,7 @@ export default function Drive(props: DriveProps) {
         setLabels(await backend.listTags())
       }
     })()
-  }, [backend, user?.isEnabled, /* should never change */ setLabels])
+  }, [backend, user?.isEnabled, setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
@@ -178,18 +178,12 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [
-      isCloud,
-      rootDirectoryId,
-      sessionType,
-      toastAndLog,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [isCloud, rootDirectoryId, sessionType, toastAndLog, dispatchAssetListEvent]
   )
 
   const doEmptyTrash = React.useCallback(() => {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
-  }, [/* should never change */ dispatchAssetListEvent])
+  }, [dispatchAssetListEvent])
 
   const doCreateProject = React.useCallback(
     (
@@ -207,7 +201,7 @@ export default function Drive(props: DriveProps) {
         onSpinnerStateChange,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   const doCreateDirectory = React.useCallback(() => {
@@ -216,7 +210,7 @@ export default function Drive(props: DriveProps) {
       parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
       parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
     })
-  }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
+  }, [rootDirectoryId, dispatchAssetListEvent])
 
   const doCreateLabel = React.useCallback(
     async (value: string, color: backendModule.LChColor) => {
@@ -241,7 +235,7 @@ export default function Drive(props: DriveProps) {
         labelNames => new Set([...labelNames].filter(labelName => labelName !== newLabelName))
       )
     },
-    [backend, toastAndLog, /* should never change */ setLabels]
+    [backend, toastAndLog, setLabels]
   )
 
   const doDeleteLabel = React.useCallback(
@@ -262,13 +256,7 @@ export default function Drive(props: DriveProps) {
         oldNames => new Set([...oldNames].filter(oldValue => oldValue !== value))
       )
     },
-    [
-      backend,
-      toastAndLog,
-      /* should never change */ setQuery,
-      /* should never change */ dispatchAssetEvent,
-      /* should never change */ setLabels,
-    ]
+    [backend, toastAndLog, setQuery, dispatchAssetEvent, setLabels]
   )
 
   const doCreateSecret = React.useCallback(
@@ -281,7 +269,7 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   const doCreateDatalink = React.useCallback(
@@ -294,7 +282,7 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   switch (status) {

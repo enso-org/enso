@@ -77,7 +77,7 @@ export default function DriveBar(props: DriveBarProps) {
         uploadFilesRef.current?.click()
       },
     })
-  }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
+  }, [backend.type, doCreateDirectory, doCreateProject, inputBindings])
 
   switch (effectiveCategory) {
     case Category.recent: {
