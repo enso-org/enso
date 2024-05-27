@@ -15,7 +15,7 @@ const props = defineProps<{
 </script>
 
 <template>
-  <svg>
+  <svg viewBox="0 0 16 16">
     <title v-if="title" v-text="title"></title>
     <use :href="props.name.includes(':') ? props.name : `${icons}#${props.name}`"></use>
   </svg>
@@ -23,9 +23,9 @@ const props = defineProps<{
 
 <style scoped>
 svg {
-  width: 16px;
-  min-width: 16px;
-  height: 16px;
-  min-height: 16px;
+  width: var(--svg-icon-size, 16px);
+  min-width: var(--svg-icon-size, 16px);
+  height: var(--svg-icon-size, 16px);
+  min-height: var(--svg-icon-size, 16px);
 }
 </style>

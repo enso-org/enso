@@ -35,7 +35,7 @@ export async function mockExpressionUpdate(
   update: Partial<ExpressionUpdate>,
 ) {
   await page.evaluate(
-    ({ expression, update }) => (window as any).mockExpressionUpdate(expression, update),
+    ({ expression, update }) => (window as any)._mockExpressionUpdate(expression, update),
     { expression, update },
   )
 }

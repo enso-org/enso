@@ -10,7 +10,7 @@ import { mockDataHandler, mockLSHandler, mockYdocProvider } from '../mock/engine
 
 import 'enso-dashboard/src/tailwind.css'
 import { createApp } from 'vue'
-import App from './App.vue'
+import { AsyncApp } from './asyncApp'
 
 MockTransport.addMock('engine', mockLSHandler)
 MockWebSocket.addMock('data', mockDataHandler)
@@ -24,22 +24,26 @@ window_.fileBrowserApi = {
   },
 }
 
-const app = createApp(App, {
-  config: {
-    startup: {
-      project: 'Mock_Project',
-      displayedProjectName: 'Mock Project',
+AsyncApp().then(({ default: App }) => {
+  const app = createApp(App, {
+    config: {
+      startup: {
+        project: 'Mock_Project',
+        displayedProjectName: 'Mock Project',
+      },
+      engine: {
+        rpcUrl: 'mock://engine',
+        dataUrl: 'mock://data',
+        namespace: 'local',
+        projectManagerUrl: '',
+      },
+      window: {
+        topBarOffset: '96',
+      },
     },
-    engine: {
-      rpcUrl: 'mock://engine',
-      dataUrl: 'mock://data',
-      namespace: 'local',
-      projectManagerUrl: '',
-    },
-    window: {
-      topBarOffset: '96',
-    },
-  },
-  projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
+    projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
+    logEvent: () => {},
+    hidden: false,
+  })
+  app.mount('body')
 })
-app.mount('#app')

@@ -62,15 +62,13 @@ registerAutoBlurHandler()
 </script>
 
 <template>
-  <Teleport to="#app">
-    <HelpScreen
-      v-if="appConfig.unrecognizedOptions.length"
-      v-show="!props.hidden"
-      :unrecognizedOptions="appConfig.unrecognizedOptions"
-      :config="appConfig.config"
-    />
-    <ProjectView v-else v-show="!props.hidden" class="App" :class="[...classSet.keys()]" />
-  </Teleport>
+  <HelpScreen
+    v-if="appConfig.unrecognizedOptions.length"
+    v-show="!props.hidden"
+    :unrecognizedOptions="appConfig.unrecognizedOptions"
+    :config="appConfig.config"
+  />
+  <ProjectView v-else v-show="!props.hidden" class="App" :class="[...classSet.keys()]" />
 </template>
 
 <style scoped>
@@ -78,11 +76,19 @@ registerAutoBlurHandler()
   flex: 1;
   color: var(--color-text);
   font-family: var(--font-sans);
+  font-weight: 500;
   font-size: 11.5px;
   font-weight: 500;
   line-height: 20px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  pointer-events: all;
+  cursor: default;
+}
+
+.enso-dashboard .App {
+  /* Compensate for top bar, render the app below it. */
+  margin-top: calc(0px - var(--row-height) - var(--top-level-gap) - var(--top-bar-margin));
 }
 </style>

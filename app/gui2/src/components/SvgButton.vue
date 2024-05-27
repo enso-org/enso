@@ -10,7 +10,7 @@ const _props = defineProps<{
 </script>
 
 <template>
-  <button class="SvgButton button" :class="{ disabled }" :disabled="disabled ?? false">
+  <button class="SvgButton" :class="{ disabled }" :disabled="disabled ?? false">
     <SvgIcon :name="name" draggable="false" />
   </button>
 </template>
@@ -19,7 +19,7 @@ const _props = defineProps<{
 .SvgButton {
   border: none;
   display: flex;
-  justify-items: center;
+  justify-content: center;
   align-items: center;
   padding: 4px;
   cursor: pointer;
@@ -38,6 +38,7 @@ const _props = defineProps<{
 
   &.disabled {
     opacity: 0.3;
+    cursor: default;
 
     &:hover {
       background-color: unset;
