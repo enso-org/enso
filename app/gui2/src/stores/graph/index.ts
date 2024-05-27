@@ -91,7 +91,7 @@ export const useGraphStore = defineStore('graph', () => {
   )
   const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
-  const methodAst = computed(() => getExecutedMethodAst())
+  const methodAst = ref<Result<Ast.Function>>(Err('AST not yet initialized'))
 
   const mouseEditedEdge = ref<UnconnectedEdge & MouseEditedEdge>()
   const cbEditedEdge = ref<UnconnectedTarget>()
@@ -166,6 +166,7 @@ export const useGraphStore = defineStore('graph', () => {
     const textContentLocal = moduleSource.text
     if (!textContentLocal) return
     if (!syncModule.value) return
+    methodAst.value = getExecutedMethodAst(syncModule.value)
     if (methodAst.value.ok) {
       const methodSpan = moduleSource.getSpan(methodAst.value.value.id)
       assert(methodSpan != null)
