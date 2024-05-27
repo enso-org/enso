@@ -2544,6 +2544,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           {!hidden && (
             <SelectionBrush
               targetRef={rootRef}
+              margin={8}
               onDrag={onSelectionDrag}
               onDragEnd={onSelectionDragEnd}
               onDragCancel={onSelectionDragCancel}

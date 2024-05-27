@@ -355,7 +355,6 @@ function AppRouter(props: AppRouterProps) {
       }
     }
     const onSelectStart = () => {
-      console.log(':U')
       isClick = false
     }
 
