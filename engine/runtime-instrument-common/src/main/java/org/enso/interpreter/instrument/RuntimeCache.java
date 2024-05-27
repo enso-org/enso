@@ -29,7 +29,6 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
-    System.err.println("offer " + key + " with " + value);
     var weight = weights.get(key);
     if (weight != null && weight > 0) {
       var ref = new SoftReference<>(value);
@@ -63,7 +62,6 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     var ref = expressions.get(key);
     var res = ref != null ? ref.get() : null;
     var callback = observer;
-    System.err.println("  reading: " + key + " res: " + res);
     if (callback != null) {
       callback.accept(key);
     }
