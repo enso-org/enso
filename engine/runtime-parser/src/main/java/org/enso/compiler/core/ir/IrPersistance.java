@@ -239,7 +239,7 @@ public final class IrPersistance {
   @ServiceProvider(service = Persistance.class)
   public static final class PersistJavaListLazy extends Persistance<java.util.List> {
     public PersistJavaListLazy() {
-      super(java.util.List.class, true, 34011);
+      super(java.util.List.class, true, 4434);
     }
 
     @Override

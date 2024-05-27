@@ -24,7 +24,6 @@ import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import org.openide.util.lookup.ServiceProvider;
 
-@Persistable(clazz = QualifiedName.class, id = 30300)
 public final class ImportExportCache
     implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
