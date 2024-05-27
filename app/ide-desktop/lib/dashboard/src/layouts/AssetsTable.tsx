@@ -394,6 +394,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const navigator2D = navigator2DProvider.useNavigator2D()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortInfo, setSortInfo] =
@@ -995,13 +997,13 @@ export default function AssetsTable(props: AssetsTableProps) {
       /* should never change */ dispatchAssetEvent,
     ]
   )
+  const overwriteNodesRef = React.useRef(overwriteNodes)
+  overwriteNodesRef.current = overwriteNodes
 
   React.useEffect(() => {
-    if (initialized) {
-      overwriteNodes([])
+    if (initializedRef.current) {
+      overwriteNodesRef.current([])
     }
-    // `overwriteAssets` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backend, category])
 
   asyncEffectHooks.useAsyncEffect(

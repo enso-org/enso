@@ -40,6 +40,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const [value, setValue] = React.useState(valueRaw)
+  const setValueRawRef = React.useRef(setValueRaw)
+  setValueRawRef.current = setValueRaw
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null
   )
@@ -48,14 +50,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
 
   React.useEffect(() => {
     setValue(valueRaw)
-    // `initializing` is not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valueRaw])
 
   React.useEffect(() => {
-    setValueRaw(value)
-    // `setStateRaw` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setValueRawRef.current(value)
   }, [value])
 
   // NOTE: `enum` schemas omitted for now as they are not yet used.

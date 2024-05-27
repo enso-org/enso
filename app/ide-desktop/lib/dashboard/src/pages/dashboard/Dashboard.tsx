@@ -138,6 +138,8 @@ export default function Dashboard(props: DashboardProps) {
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
   // These pages MUST be ROUTER PAGES.
@@ -306,15 +308,13 @@ export default function Dashboard(props: DashboardProps) {
   })
 
   React.useEffect(() => {
-    if (initialized) {
+    if (initializedRef.current) {
       if (projectStartupInfo != null) {
         localStorage.set('projectStartupInfo', projectStartupInfo)
       } else {
         localStorage.delete('projectStartupInfo')
       }
     }
-    // `initialized` is NOT a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectStartupInfo, /* should never change */ localStorage])
 
   React.useEffect(() => {

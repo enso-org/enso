@@ -29,8 +29,11 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   const isMouseDownRef = React.useRef(false)
   const didMoveWhileDraggingRef = React.useRef(false)
   const onDragRef = React.useRef(onDrag)
+  onDragRef.current = onDrag
   const onDragEndRef = React.useRef(onDragEnd)
+  onDragEndRef.current = onDragEnd
   const onDragCancelRef = React.useRef(onDragCancel)
+  onDragCancelRef.current = onDragCancel
   const lastMouseEvent = React.useRef<MouseEvent | null>(null)
   const [anchor, setAnchor] = React.useState<geometry.Coordinate2D | null>(null)
   // This will be `null` if `anchor` is `null`.
@@ -42,18 +45,6 @@ export default function SelectionBrush(props: SelectionBrushProps) {
     anchor == null ||
     position == null ||
     (anchor.left === position.left && anchor.top === position.top)
-
-  React.useEffect(() => {
-    onDragRef.current = onDrag
-  }, [onDrag])
-
-  React.useEffect(() => {
-    onDragEndRef.current = onDragEnd
-  }, [onDragEnd])
-
-  React.useEffect(() => {
-    onDragCancelRef.current = onDragCancel
-  }, [onDragCancel])
 
   React.useEffect(() => {
     if (anchor != null) {
@@ -162,10 +153,8 @@ export default function SelectionBrush(props: SelectionBrushProps) {
 
   React.useEffect(() => {
     if (selectionRectangle != null && lastMouseEvent.current != null) {
-      onDrag(selectionRectangle, lastMouseEvent.current)
+      onDragRef.current(selectionRectangle, lastMouseEvent.current)
     }
-    // `onChange` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectionRectangle])
 
   const brushStyle =

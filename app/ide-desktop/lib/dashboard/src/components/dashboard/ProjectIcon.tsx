@@ -128,6 +128,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     React.useState<AbortController | null>(null)
   const [closeProjectAbortController, setCloseProjectAbortController] =
     React.useState<AbortController | null>(null)
+  const doOpenEditorRef = React.useRef(doOpenEditor)
+  doOpenEditorRef.current = doOpenEditor
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local && item.projectState.openedBy !== user?.email
 
@@ -296,12 +298,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
-        doOpenEditor(shouldSwitchPage)
+        doOpenEditorRef.current(shouldSwitchPage)
         setShouldOpenWhenReady(false)
       }
     }
-    // `doOpenEditor` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
   const closeProject = async (triggerOnClose = true) => {
