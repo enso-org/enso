@@ -8,7 +8,6 @@ import * as twv from 'tailwind-variants'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
-import WindowButton from '#/components/styled/WindowButton'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
@@ -153,8 +152,8 @@ export function Dialog(props: types.DialogProps) {
                     {typeof children === 'function' ? children(opts) : children}
                   </div>
                   {closeButton === 'floating' && (
-                    <div className="m-floating-buttons absolute flex gap-1">
-                      <WindowButton role="close" onPress={opts.close} />
+                    <div className="absolute m-[19px] flex gap-1">
+                      <ariaComponents.CloseButton onPress={opts.close} />
                     </div>
                   )}
                 </>

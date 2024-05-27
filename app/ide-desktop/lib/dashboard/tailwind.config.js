@@ -346,7 +346,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
         'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
         'context-menu-half-x': 'var(--context-menu-half-width)',
-        'floating-buttons': 'var(--floating-buttons-margin)',
         'chat-header-x': 'var(--chat-header-margin-x)',
         'chat-header-t': 'var(--chat-header-margin-top)',
         'chat-form-x': 'var(--chat-form-margin-x)',

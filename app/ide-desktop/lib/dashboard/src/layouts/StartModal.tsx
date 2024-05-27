@@ -1,4 +1,4 @@
-/** @file Home screen. */
+/** @file A modal containing project templates and news. */
 import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -9,17 +9,17 @@ import WhatsNew from '#/layouts/WhatsNew'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
-// ============
-// === Home ===
-// ============
+// ==================
+// === StartModal ===
+// ==================
 
-/** Props for a {@link Home}. */
-export interface HomeProps {
+/** Props for a {@link StartModal}. */
+export interface StartModalProps {
   readonly createProject: (templateId?: string | null, templateName?: string | null) => void
 }
 
-/** Home screen. */
-export default function Home(props: HomeProps) {
+/** A modal containing project templates and news. */
+export default function StartModal(props: StartModalProps) {
   const { createProject: createProjectRaw } = props
   const { getText } = textProvider.useText()
 

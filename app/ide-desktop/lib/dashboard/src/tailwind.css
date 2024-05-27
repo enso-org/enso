@@ -156,8 +156,6 @@
   --auth-link-padding-x: 0.5rem;
   --auth-link-padding-y: 0.25rem;
   --text-link-padding-x: 0.25rem;
-  /* The margin between a floating button and the edge of its window. */
-  --floating-buttons-margin: 1.1875rem;
 
   /********\
   |* Chat *|

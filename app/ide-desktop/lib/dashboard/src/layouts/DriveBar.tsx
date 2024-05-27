@@ -16,7 +16,7 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import Start from '#/layouts/Start'
+import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
@@ -90,7 +90,7 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-row py-drive-bar-y">
           <HorizontalMenuBar>
             <UnstyledButton
-              className="flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
+              className="border-0.5 flex h-row items-center rounded-full border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
               onPress={() => {
                 setModal(
                   <ConfirmDeleteModal
@@ -115,14 +115,14 @@ export default function DriveBar(props: DriveBarProps) {
           <HorizontalMenuBar>
             <aria.DialogTrigger>
               <UnstyledButton
-                className="relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90"
+                className="before:bg-accent relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:transition-all hover:before:brightness-90"
                 onPress={() => {}}
               >
                 <aria.Text className="text relative whitespace-nowrap font-bold">
                   {getText('startWithATemplate')}
                 </aria.Text>
               </UnstyledButton>
-              <Start createProject={doCreateProject} />
+              <StartModal createProject={doCreateProject} />
             </aria.DialogTrigger>
             <UnstyledButton
               variant="bar"
@@ -134,7 +134,7 @@ export default function DriveBar(props: DriveBarProps) {
                 {getText('newEmptyProject')}
               </aria.Text>
             </UnstyledButton>
-            <div className="flex h-row items-center gap-icons rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
+            <div className="border-0.5 flex h-row items-center gap-icons rounded-full border-primary/20 px-drive-bar-icons-x text-primary/50">
               <Button
                 active
                 image={AddFolderIcon}
