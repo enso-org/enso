@@ -280,8 +280,12 @@ final class PerInputImpl implements Input {
       this.map = map;
       this.refs = new Reference[refIds.length];
       for (var i = 0; i < refIds.length; i++) {
-        var p = map.forId(refPerIds[i]);
-        this.refs[i] = PerBufferReference.cached(p, this, refIds[i]);
+        if (refIds[i] == NULL_REFERENCE_ID) {
+          this.refs[i] = Persistance.Reference.none();
+        } else {
+          var p = map.forId(refPerIds[i]);
+          this.refs[i] = PerBufferReference.cached(p, this, refIds[i]);
+        }
       }
     }
 
