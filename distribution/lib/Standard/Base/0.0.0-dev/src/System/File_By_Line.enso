@@ -56,7 +56,7 @@ type File_By_Line
        Arguments:
        - line: The line to read (0 indexed).
     get : Integer -> Text
-    get self line:Integer = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
+    get self line:Integer=0 = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
         read_line self line
 
     ## GROUP Selections
@@ -207,7 +207,7 @@ type File_By_Line
        Exports the row_map
     row_positions : Vector Integer
     row_positions self = Vector.from_polyglot_array <|
-        Array_Proxy.new self.row_map.getSize (i-> self.row_map.get i)
+        Array_Proxy.new self.row_map.getSize (self.row_map.get _)
 
     ## PRIVATE
        Gets the Java_File for the backing file.

@@ -16,6 +16,7 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.List.List import Cons, Nil
+from project.Metadata import Display, Widget
 
 ## The basic cons-list type.
 
@@ -76,8 +77,9 @@ type List
              import Standard.Examples
 
              example_length = Examples.list.length
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## ICON parse3
@@ -93,8 +95,9 @@ type List
          also allowed be negative, then the elements are indexed from the back
          of the final item, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing = case index >= 0 of
+    get self index:Integer=0 ~if_missing=Nothing = case index >= 0 of
         True ->
             loop current index = case current of
                 Nil -> if_missing

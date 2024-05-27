@@ -30,6 +30,7 @@ from project.Data.Filter_Condition import unify_condition_or_predicate, unify_co
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 from project.Runtime import assert
 
 polyglot java import java.lang.IndexOutOfBoundsException
@@ -294,8 +295,9 @@ type Vector a
          Get the last element of a vector.
 
              [1, 2, 3].at -1 == 3
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = Array_Like_Helpers.at self index
+    at self index:Integer=0 = Array_Like_Helpers.at self index
 
     ## ICON parse3
        Gets an element from the vector at a specified index (0-based).
@@ -306,8 +308,9 @@ type Vector a
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         Array_Like_Helpers.get self index if_missing
 
     ## ICON dataframe_map_column
@@ -1440,7 +1443,7 @@ type Builder
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.elements_java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)

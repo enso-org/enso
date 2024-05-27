@@ -18,4 +18,4 @@ type Rows_View
        ICON parse3
        Gets the specified row.
     at : Integer -> Any
-    at self index = Row.Value self.table index
+    at self index:Integer=0 = Row.Value self.table index

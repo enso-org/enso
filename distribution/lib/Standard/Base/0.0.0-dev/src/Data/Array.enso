@@ -24,6 +24,7 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
@@ -46,8 +47,9 @@ type Array
          Get the last element of an array.
 
              [1, 2, 3].to_array.at -1 == 3
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = Array_Like_Helpers.at self index
+    at self index:Integer=0 = Array_Like_Helpers.at self index
 
     ## GROUP Metadata
        ICON metadata
@@ -733,8 +735,9 @@ type Array
          also allowed be negative, then the elements are indexed from the back
          of the array, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         Array_Like_Helpers.get self index if_missing
 
     ## GROUP Logical

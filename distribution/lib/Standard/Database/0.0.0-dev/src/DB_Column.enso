@@ -137,7 +137,7 @@ type DB_Column
 
              example_at = Examples.integer_column.at 0
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
-    at self (index : Integer) =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
@@ -155,7 +155,7 @@ type DB_Column
 
              example_at = Examples.integer_column.get 0 -1
     get : Integer -> Any -> Any | Nothing
-    get self (index : Integer) (~default=Nothing) =
+    get self index:Integer=0 (~default=Nothing) =
         self.read (..First index+1) . get index default
 
     ## GROUP Standard.Base.Metadata

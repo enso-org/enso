@@ -15,6 +15,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate
+from project.Metadata import Display, Widget
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -120,8 +121,9 @@ type Range
          Get the last element of a range with step.
 
             0.up_to 10 . with_step 2 . get -1 == 8
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## ICON parse3
@@ -133,8 +135,9 @@ type Range
          also allowed be negative, then the elements are indexed from the back,
          i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         len = self.length
         used_index = if index < 0 then len + index else index
         if used_index >= 0 && used_index < len then self.start + used_index * self.step else
@@ -532,9 +535,8 @@ type Range
              1.up_to 6 . to_vector
     to_vector : Vector Integer
     to_vector self =
-        proxy = Array_Proxy.new self.length self.at
+        proxy = Array_Proxy.new self.length (self.at _)
         Vector.from_polyglot_array proxy
-
 
     ## ICON preparation
        Combines all the elements of a non-empty range using a binary operation.

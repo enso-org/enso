@@ -2140,7 +2140,7 @@ type Column
              example_at = Examples.integer_column.at 0
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
-    at self (index : Integer) =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
@@ -2159,7 +2159,7 @@ type Column
              example_at = Examples.integer_column.get 0 -1
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     get : Integer -> Any -> Any | Nothing
-    get self (index : Integer) (~default=Nothing) =
+    get self index:Integer=0 (~default=Nothing) =
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then default else
             storage = self.java_column.getStorage
@@ -2321,7 +2321,7 @@ type Column
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Column
     take self range=(First 1) =
-        Index_Sub_Range_Module.take_helper self.length self.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## ALIAS skip, remove
        GROUP Standard.Base.Selections
@@ -2334,7 +2334,7 @@ type Column
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Column
     drop self range=(First 1) =
-        Index_Sub_Range_Module.drop_helper self.length self.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
        Returns a column with a continuous sub-range of rows taken.
