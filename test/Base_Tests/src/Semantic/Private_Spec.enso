@@ -9,6 +9,8 @@ polyglot java import org.enso.base_test_helpers.CallbackHelper
 type My_Priv_Type
     private Cons data
 
+private My_Priv_Type.ext_method self = self.data
+
 
 add_specs spec_builder =
     spec_builder.group "Private constructors" group_builder->
@@ -90,6 +92,10 @@ add_specs spec_builder =
             Test.expect_panic Private_Access <|
                 Priv_Type.in_ctx <|
                     Priv_Type.priv_method obj
+
+        group_builder.specify "extension methods can be specified as private" <|
+            obj = My_Priv_Type.Cons 42
+            obj.ext_method . should_equal 42
 
 
 
