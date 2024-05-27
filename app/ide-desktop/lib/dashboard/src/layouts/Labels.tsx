@@ -112,7 +112,7 @@ export default function Labels(props: LabelsProps) {
                       setModal(
                         <DragModal
                           event={event}
-                          doCleanup={() => {
+                          onDragEnd={() => {
                             drag.LABELS.unbind(payload)
                           }}
                         >

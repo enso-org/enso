@@ -2304,7 +2304,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               <DragModal
                 event={event}
                 className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
-                doCleanup={() => {
+                onDragEnd={() => {
                   drag.ASSET_ROWS.unbind(payload)
                 }}
               >

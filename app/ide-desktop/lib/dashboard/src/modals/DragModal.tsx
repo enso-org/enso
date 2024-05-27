@@ -21,7 +21,7 @@ export interface DragModalProps
   extends Readonly<React.PropsWithChildren>,
     Readonly<JSX.IntrinsicElements['div']> {
   readonly event: React.DragEvent
-  readonly doCleanup: () => void
+  readonly onDragEnd: () => void
   readonly offsetPx?: number
   readonly offsetXPx?: number
   readonly offsetYPx?: number
@@ -37,12 +37,14 @@ export default function DragModal(props: DragModalProps) {
     children,
     style,
     className,
-    doCleanup,
+    onDragEnd: onDragEndRaw,
     ...passthrough
   } = props
   const { unsetModal } = modalProvider.useSetModal()
   const [left, setLeft] = React.useState(event.pageX - (offsetPx ?? offsetXPx))
   const [top, setTop] = React.useState(event.pageY - (offsetPx ?? offsetYPx))
+  const onDragEndRef = React.useRef(onDragEndRaw)
+  onDragEndRef.current = onDragEndRaw
 
   React.useEffect(() => {
     const onDrag = (dragEvent: MouseEvent) => {
@@ -52,7 +54,7 @@ export default function DragModal(props: DragModalProps) {
       }
     }
     const onDragEnd = () => {
-      doCleanup()
+      onDragEndRef.current()
       unsetModal()
     }
     // Update position (non-FF)
@@ -65,8 +67,6 @@ export default function DragModal(props: DragModalProps) {
       document.removeEventListener('dragover', onDrag, { capture: true })
       document.removeEventListener('dragend', onDragEnd, { capture: true })
     }
-    // `doCleanup` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     /* should never change */ offsetPx,
     /* should never change */ offsetXPx,
