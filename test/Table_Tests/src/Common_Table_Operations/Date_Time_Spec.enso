@@ -106,6 +106,7 @@ add_specs suite_builder setup =
             a = t.at "A"
             a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
             a.month . to_vector . should_equal [12, 2, 1, Nothing]
+            a.day . to_vector . should_equal [31, 29, 1, Nothing]
             a.day_of_year . to_vector . should_equal [366, 60, 1, Nothing]
             a.day_of_week . to_vector . should_equal [4, 4, 1, Nothing]
             [a.year, a.month, a.day, a.day_of_year, a.day_of_week].each c->
