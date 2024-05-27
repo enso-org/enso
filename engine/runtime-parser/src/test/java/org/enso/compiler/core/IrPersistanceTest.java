@@ -183,7 +183,7 @@ public class IrPersistanceTest {
     var idLoc2 = new IdentifiedLocation(new Location(2, 4), UUID.randomUUID());
     var in = join(idLoc2, join(idLoc1, nil()));
 
-    var out = serde(List.class, in, 77);
+    List out = serde(List.class, in, 77);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("UUIDs are serialized at the moment", idLoc2, out.head());
@@ -195,7 +195,7 @@ public class IrPersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = join(idLoc1, join(idLoc1, nil()));
 
-    var out = serde(List.class, in, 44);
+    List out = serde(List.class, in, 44);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("Head is equal to original", idLoc1, out.head());
@@ -223,7 +223,26 @@ public class IrPersistanceTest {
   }
 
   @Test
-  public void lazyScalaSequence() throws Exception {
+  public void lazyJavaList() throws Exception {
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
+
+    var in = java.util.List.of(s1, s2);
+    assertEquals("Seq with two elements created", 2, in.size());
+
+    LazyString.forbidden = true;
+    var out = serde(java.util.List.class, in, -1);
+    assertEquals("Two elements", 2, out.size());
+    LazyString.forbidden = false;
+
+    assertEquals("Lazily deserialized s1", s1, out.get(0));
+    assertNotSame("Lazily deserialized s1", s1, out.get(0));
+    assertEquals("Lazily deserialized s2", s2, out.get(1));
+    assertNotSame("Lazily deserialized s2", s2, out.get(1));
+  }
+
+  @Test
+  public void notLazyScalaSequence() throws Exception {
     var s1 = new LazyString("Hello");
     var s2 = new LazyString("World");
 
@@ -240,19 +259,27 @@ public class IrPersistanceTest {
                   second[0] = true;
                   return s1;
                 });
+    System.out.println(in);
+    System.out.println(in.getClass().getCanonicalName());
     assertEquals("Seq with two elements created", 2, in.length());
 
     LazyString.forbidden = true;
+    try {
+      serde(Seq.class, in, -1);
+      fail("This should have failed with IllegalStateException");
+    } catch (IllegalStateException e) {
+      assertEquals("Cannot create LazyString right now!", e.getMessage());
+    }
+
+    // But will work once enabled:
+    LazyString.forbidden = false;
     var out = serde(Seq.class, in, -1);
 
     assertEquals("Two elements", 2, out.size());
-
-    LazyString.forbidden = false;
-
-    assertEquals("Lazily deserialized s2", s2, out.head());
-    assertNotSame("Lazily deserialized s2", s2, out.head());
-    assertEquals("Lazily deserialized s1", s1, out.last());
-    assertNotSame("Lazily deserialized s1", s1, out.head());
+    assertEquals("deserialized s2", s2, out.head());
+    assertNotSame("deserialized s2", s2, out.head());
+    assertEquals("deserialized s1", s1, out.last());
+    assertNotSame("deserialized s1", s1, out.head());
   }
 
   @Test
@@ -299,6 +326,19 @@ public class IrPersistanceTest {
     assertEquals(s1, out.get("Hello"));
     assertEquals(s2, out.get("World"));
     assertEquals(in, out);
+  }
+
+  @Test
+  public void inlineReferenceIsLazy() throws Exception {
+    var s1 = new LazyString("Hello");
+    var in = new InlineReferenceHolder(Persistance.InlineReference.of(s1));
+
+    LazyString.forbidden = true;
+    InlineReferenceHolder out = serde(InlineReferenceHolder.class, in, -1);
+    Persistance.InlineReference<CharSequence> ref = out.ref();
+    LazyString.forbidden = false;
+
+    assertEquals(s1, ref.get());
   }
 
   @Test
@@ -517,4 +557,7 @@ public class IrPersistanceTest {
       this(Persistance.Reference.of(id));
     }
   }
+
+  @Persistable(clazz = InlineReferenceHolder.class, id = 432437)
+  public record InlineReferenceHolder(Persistance.InlineReference<CharSequence> ref) {}
 }
