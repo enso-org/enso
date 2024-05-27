@@ -7,6 +7,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
+import org.openide.util.lookup.ServiceProvider;
 
 /**
  * Central persistance class. Use static {@link Persistance#write write} method to turn a graph of
@@ -206,6 +207,10 @@ public abstract class Persistance<T> implements Cloneable {
    * Reference to an object. Either created directly or obtained from {@link Input#readReference}
    * method.
    *
+   * <p>When reading, the Reference is read lazily, only on demand. When writing, the Reference is
+   * deferred towards the end, allowing to handle circular references inside of the serialized
+   * structure.
+   *
    * @see Input#readReference
    */
   public abstract static sealed class Reference<T> permits PerBufferReference, PerMemoryReference {
@@ -256,6 +261,73 @@ public abstract class Persistance<T> implements Cloneable {
      */
     public static <V> Reference<V> of(V obj) {
       return new PerMemoryReference<>(obj);
+    }
+  }
+
+  /**
+   * Reference to an object.
+   *
+   * <p>This is a sibling to {@link Reference} that has the same lazy behaviour upon read, but it is
+   * written eagerly. This class is not meant to be used when cycles in the structure are expected -
+   * use {@link Reference} instead. It should be used when we want to ensure that a part of a
+   * structure is only read lazily.
+   */
+  public abstract static sealed class InlineReference<T>
+      permits DirectInlineReference, IndirectInlineReference {
+
+    /**
+     * Extract object from the reference.
+     *
+     * @return the referenced object
+     */
+    public abstract T get();
+
+    public static <T> InlineReference<T> of(T obj) {
+      return new DirectInlineReference<>(obj);
+    }
+  }
+
+  private static final class DirectInlineReference<T> extends InlineReference<T> {
+    private final T value;
+
+    public DirectInlineReference(T value) {
+      this.value = value;
+    }
+
+    @Override
+    public T get() {
+      return value;
+    }
+  }
+
+  private static final class IndirectInlineReference<T> extends InlineReference<T> {
+    private final Reference<T> ref;
+
+    public IndirectInlineReference(Reference<T> ref) {
+      this.ref = ref;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public T get() {
+      return (T) ref.get(Object.class);
+    }
+  }
+
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistInlineReference extends Persistance<InlineReference> {
+    public PersistInlineReference() {
+      super(InlineReference.class, true, 0);
+    }
+
+    @Override
+    protected void writeObject(InlineReference obj, Output out) throws IOException {
+      out.writeObject(obj.get());
+    }
+
+    @Override
+    protected InlineReference readObject(Input in) throws IOException, ClassNotFoundException {
+      return new IndirectInlineReference(in.readReference(Object.class));
     }
   }
 }
