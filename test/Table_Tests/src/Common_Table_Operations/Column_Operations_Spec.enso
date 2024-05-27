@@ -8,7 +8,7 @@ import Standard.Base.Meta.Type
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
-from Standard.Table import Bits, Value_Type, Column_Ref
+from Standard.Table import Bits, Value_Type, Column_Ref, Column
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
@@ -1371,7 +1371,7 @@ add_specs suite_builder setup =
                 op data.c 1 . should_fail_with Invalid_Value_Type
                 op data.a True . should_fail_with Invalid_Value_Type
 
-    do_replace column (term : Text | Regex | Column) new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
+    do_replace column (term : Text | Regex | Column | DB_Column) new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
         case setup.is_database of
             True ->
                 input_type = Meta.type_of term
