@@ -108,40 +108,48 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[CompilationStatus] = {
-    val result = compile(module)
-    result match {
+    compile(module) match {
       case Left(ex) =>
         logger.log(
           Level.WARNING,
           s"Error while ensureCompiledModule ${module.getName}",
           ex
         )
-        Some(CompilationStatus.Failure)
       case _ =>
-        applyEdits(new File(module.getPath)).map { changeset =>
-          compile(module)
-            .map { _ =>
-              // Side-effect: ensures that module's source is correctly initialized.
-              module.getSource()
-              invalidateCaches(module, changeset)
-              val state =
-                ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
-              if (state.isIndexed) {
-                ctx.jobProcessor.runBackground(
-                  AnalyzeModuleJob(module, state, module.getIr(), changeset)
-                )
-              } else {
-                AnalyzeModuleJob.analyzeModule(
-                  module,
-                  state,
-                  module.getIr(),
-                  changeset
-                )
-              }
-              runCompilationDiagnostics(module)
-            }
-            .getOrElse(CompilationStatus.Failure)
+    }
+    applyEdits(new File(module.getPath)).map { changeset =>
+      compile(module)
+        .map { _ =>
+          // Side-effect: ensures that module's source is correctly initialized.
+          module.getSource()
+          invalidateCaches(module, changeset)
+          val state =
+            ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
+          if (state.isIndexed) {
+            ctx.jobProcessor.runBackground(
+              AnalyzeModuleJob(module, state, module.getIr(), changeset)
+            )
+          } else {
+            AnalyzeModuleJob.analyzeModule(
+              module,
+              state,
+              module.getIr(),
+              changeset
+            )
+          }
+          runCompilationDiagnostics(module)
         }
+        .fold(
+          err => {
+            logger.log(
+              Level.WARNING,
+              s"Error while ensureCompiledModule ${module.getName}",
+              err
+            )
+            CompilationStatus.Failure
+          },
+          identity
+        )
     }
   }
 

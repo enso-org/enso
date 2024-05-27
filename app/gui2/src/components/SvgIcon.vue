@@ -23,9 +23,11 @@ const props = defineProps<{
 
 <style scoped>
 svg {
-  width: var(--svg-icon-size, 16px);
-  min-width: var(--svg-icon-size, 16px);
-  height: var(--svg-icon-size, 16px);
-  min-height: var(--svg-icon-size, 16px);
+  width: var(--icon-size, 16px);
+  min-width: var(--icon-size, 16px);
+  height: var(--icon-size, 16px);
+  min-height: var(--icon-size, 16px);
+  transform: var(--icon-transform);
+  transform-origin: var(--icon-transform-origin, center center);
 }
 </style>
