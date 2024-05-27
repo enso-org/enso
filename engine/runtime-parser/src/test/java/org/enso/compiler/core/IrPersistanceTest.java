@@ -27,7 +27,7 @@ import scala.collection.immutable.Seq;
 public class IrPersistanceTest {
   @Before
   public void resetDebris() {
-    LazySeq.forbidden = false;
+    LazyString.forbidden = false;
   }
 
   @Test
@@ -127,8 +127,8 @@ public class IrPersistanceTest {
   @Test
   @SuppressWarnings("unchecked")
   public void scalaImmutableMapIsLazy() throws Exception {
-    var s1 = new LazySeq("Hello");
-    var s2 = new LazySeq("World");
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
     var in =
         (scala.collection.immutable.Map)
             scala.collection.immutable.Map$.MODULE$
@@ -136,14 +136,14 @@ public class IrPersistanceTest {
                 .$plus(new Tuple2("Hello", s1))
                 .$plus(new Tuple2("World", s2));
 
-    LazySeq.forbidden = true;
+    LazyString.forbidden = true;
     var out = (scala.collection.immutable.Map) serde(scala.collection.immutable.Map.class, in, 76);
 
     assertEquals("Two pairs element", 2, out.size());
     assertEquals("Two keys", 2, out.keySet().size());
     assertTrue(out.keySet().contains("Hello"));
     assertTrue(out.keySet().contains("World"));
-    LazySeq.forbidden = false;
+    LazyString.forbidden = false;
 
     assertEquals(s1, out.get("Hello").get());
     assertEquals(s2, out.get("World").get());
@@ -224,13 +224,13 @@ public class IrPersistanceTest {
 
   @Test
   public void lazyScalaSequence() throws Exception {
-    var s1 = new LazySeq("Hello");
-    var s2 = new LazySeq("World");
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
 
     var second = new boolean[1];
     @SuppressWarnings("unchecked")
     var in =
-        (Seq<String>)
+        (Seq<CharSequence>)
             Seq.fill(
                 2,
                 () -> {
@@ -242,12 +242,12 @@ public class IrPersistanceTest {
                 });
     assertEquals("Seq with two elements created", 2, in.length());
 
-    LazySeq.forbidden = true;
+    LazyString.forbidden = true;
     var out = serde(Seq.class, in, -1);
 
     assertEquals("Two elements", 2, out.size());
 
-    LazySeq.forbidden = false;
+    LazyString.forbidden = false;
 
     assertEquals("Lazily deserialized s2", s2, out.head());
     assertNotSame("Lazily deserialized s2", s2, out.head());
@@ -281,20 +281,20 @@ public class IrPersistanceTest {
   @Test
   @SuppressWarnings("unchecked")
   public void hashMapIsLazy() throws Exception {
-    var s1 = new LazySeq("Hello");
-    var s2 = new LazySeq("World");
-    var in = new HashMap<String, LazySeq>();
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
+    var in = new HashMap<String, LazyString>();
     in.put("Hello", s1);
     in.put("World", s2);
 
-    LazySeq.forbidden = true;
+    LazyString.forbidden = true;
     var out = serde(java.util.Map.class, in, 76);
 
     assertEquals("Two pairs element", 2, out.size());
     assertEquals("Two keys", 2, out.keySet().size());
     assertTrue(out.keySet().contains("Hello"));
     assertTrue(out.keySet().contains("World"));
-    LazySeq.forbidden = false;
+    LazyString.forbidden = false;
 
     assertEquals(s1, out.get("Hello"));
     assertEquals(s2, out.get("World"));
@@ -396,27 +396,31 @@ public class IrPersistanceTest {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  private static class LazySeq implements CharSequence {
+  private static class LazyString implements CharSequence {
 
     private static boolean forbidden;
 
     private final String value;
 
-    public LazySeq(String value) {
+    public LazyString(String value) {
+      Objects.requireNonNull(value);
       if (forbidden) {
-        throw new IllegalStateException("Cannot create LazySeq right now!");
+        throw new IllegalStateException("Cannot create LazyString right now!");
       }
       this.value = value;
     }
 
+    @Override
     public char charAt(int index) {
       return value.charAt(index);
     }
 
+    @Override
     public int length() {
       return value.length();
     }
 
+    @Override
     public CharSequence subSequence(int beginIndex, int endIndex) {
       return value.subSequence(beginIndex, endIndex);
     }
@@ -439,27 +443,32 @@ public class IrPersistanceTest {
       if (getClass() != obj.getClass()) {
         return false;
       }
-      final LazySeq other = (LazySeq) obj;
+      final LazyString other = (LazyString) obj;
       return Objects.equals(this.value, other.value);
+    }
+
+    @Override
+    public String toString() {
+      return value;
     }
   }
 
   @ServiceProvider(service = Persistance.class)
-  public static final class PersistLazySeq extends Persistance<LazySeq> {
+  public static final class PersistLazyString extends Persistance<LazyString> {
 
-    public PersistLazySeq() {
-      super(LazySeq.class, false, 432432);
+    public PersistLazyString() {
+      super(LazyString.class, false, 432432);
     }
 
     @Override
-    protected void writeObject(LazySeq obj, Output out) throws IOException {
+    protected void writeObject(LazyString obj, Output out) throws IOException {
       out.writeUTF(obj.value);
     }
 
     @Override
-    protected LazySeq readObject(Input in) throws IOException, ClassNotFoundException {
+    protected LazyString readObject(Input in) throws IOException, ClassNotFoundException {
       var s = in.readUTF();
-      return new LazySeq(s);
+      return new LazyString(s);
     }
   }
 
