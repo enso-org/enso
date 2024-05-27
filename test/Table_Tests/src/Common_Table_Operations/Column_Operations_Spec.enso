@@ -1371,7 +1371,7 @@ add_specs suite_builder setup =
                 op data.c 1 . should_fail_with Invalid_Value_Type
                 op data.a True . should_fail_with Invalid_Value_Type
 
-    do_replace column term new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
+    do_replace column (term : Text | Regex | Column) new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
         case setup.is_database of
             True ->
                 input_type = Meta.type_of term
