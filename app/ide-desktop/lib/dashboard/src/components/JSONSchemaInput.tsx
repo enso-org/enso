@@ -63,7 +63,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     // This value cannot change.
     return null
   } else {
-    const children: JSX.Element[] = []
+    const children: React.JSX.Element[] = []
     if ('type' in schema) {
       switch (schema.type) {
         case 'string': {

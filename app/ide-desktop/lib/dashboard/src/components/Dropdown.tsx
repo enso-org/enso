@@ -319,4 +319,4 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
 // eslint-disable-next-line no-restricted-syntax
 export default React.forwardRef(Dropdown) as <T>(
   props: DropdownProps<T> & React.RefAttributes<HTMLDivElement>
-) => JSX.Element
+) => React.JSX.Element

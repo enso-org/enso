@@ -71,7 +71,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     (backend.type === backendModule.BackendType.local ||
       (ownPermission != null &&
         permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
-  const isCloud = backend.type !== backendModule.BackendType.local
+  const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
     isCloud && projectState.openedBy != null && projectState.openedBy !== user?.email
 

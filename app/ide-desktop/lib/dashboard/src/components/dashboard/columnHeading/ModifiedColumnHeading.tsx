@@ -15,7 +15,9 @@ import UnstyledButton from '#/components/UnstyledButton'
 import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Modified" column. */
-export default function ModifiedColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
+export default function ModifiedColumnHeading(
+  props: column.AssetColumnHeadingProps
+): React.JSX.Element {
   const { state } = props
   const { sortInfo, setSortInfo, hideColumn } = state
   const { getText } = textProvider.useText()

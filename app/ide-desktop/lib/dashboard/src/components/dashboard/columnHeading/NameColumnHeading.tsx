@@ -13,7 +13,9 @@ import UnstyledButton from '#/components/UnstyledButton'
 import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Name" column. */
-export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
+export default function NameColumnHeading(
+  props: column.AssetColumnHeadingProps
+): React.JSX.Element {
   const { state } = props
   const { sortInfo, setSortInfo } = state
   const { getText } = textProvider.useText()

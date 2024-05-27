@@ -59,7 +59,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
   const { onChange, doDelete } = props
   const { getText } = textProvider.useText()
   const [action, setActionRaw] = React.useState(actionRaw)
-  const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
+  const [TheChild, setTheChild] = React.useState<(() => React.JSX.Element) | null>()
   const permissionSelectorButtonRef = React.useRef<HTMLButtonElement>(null)
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
@@ -130,7 +130,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     }
   }
 
-  let permissionDisplay: JSX.Element
+  let permissionDisplay: React.JSX.Element
 
   switch (permission.type) {
     case permissionsModule.Permission.read:

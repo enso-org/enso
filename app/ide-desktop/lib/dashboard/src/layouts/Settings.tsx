@@ -72,7 +72,7 @@ export default function Settings(props: SettingsProps) {
     })()
   }, [sessionType, backend])
 
-  let content: JSX.Element | null
+  let content: React.JSX.Element | null
   switch (settingsTab) {
     case SettingsTab.account: {
       content = backend == null ? null : <AccountSettingsTab backend={backend} />

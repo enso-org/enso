@@ -43,7 +43,7 @@ export default function MembersTable(props: MembersTableProps) {
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
   const membersQuery = reactQuery.useQuery({
     initialData: () => (populateWithSelf && user != null ? [user] : null),
-    queryKey: ['members'],
+    queryKey: ['listUsers'],
     queryFn: () => backend.listUsers(),
   })
   const membersMap = React.useMemo(

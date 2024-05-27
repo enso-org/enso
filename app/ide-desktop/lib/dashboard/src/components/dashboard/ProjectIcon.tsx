@@ -124,7 +124,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
   const toastId: toast.Id = React.useId()
   const isOpening = backendModule.IS_OPENING[item.projectState.type]
-  const isCloud = backend.type !== backendModule.BackendType.local
+  const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
 
