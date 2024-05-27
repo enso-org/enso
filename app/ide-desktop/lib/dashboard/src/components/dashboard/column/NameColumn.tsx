@@ -10,8 +10,6 @@ import SecretNameColumn from '#/components/dashboard/SecretNameColumn'
 
 import * as backendModule from '#/services/Backend'
 
-import Debug from '#/utilities/Debug'
-
 // =================
 // === AssetName ===
 // =================
@@ -24,11 +22,7 @@ export default function AssetNameColumn(props: AssetNameColumnProps) {
   const { item } = props
   switch (item.item.type) {
     case backendModule.AssetType.directory: {
-      return (
-        <Debug>
-          <DirectoryNameColumn {...props} />
-        </Debug>
-      )
+      return <DirectoryNameColumn {...props} />
     }
     case backendModule.AssetType.project: {
       return <ProjectNameColumn {...props} />

@@ -72,7 +72,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     cancelledRef.current = false
   }, [editable])
 
-  if (true) {
+  if (editable) {
     return (
       <form
         className="flex grow"
@@ -111,6 +111,9 @@ export default function EditableSpan(props: EditableSpanProps) {
             if (event.key !== 'Escape') {
               event.stopPropagation()
             }
+          }}
+          onDragStart={event => {
+            event.stopPropagation()
           }}
           {...(inputPattern == null ? {} : { pattern: inputPattern })}
           {...(inputTitle == null ? {} : { title: inputTitle })}
