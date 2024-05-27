@@ -98,7 +98,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releaseWriteCompilationLock()
         logger.log(
           Level.FINEST,
-          s"Kept write compilation lock [${where.getSimpleName}] for " + (System.currentTimeMillis - lockTimestamp) + " milliseconds"
+          s"Kept write compilation lock [{0}] for {1} milliseconds",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - lockTimestamp
+          )
         )
       }
     }
@@ -135,7 +139,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releaseReadCompilationLock()
         logger.log(
           Level.FINEST,
-          s"Kept read compilation lock [${where.getSimpleName}] for " + (System.currentTimeMillis - lockTimestamp) + " milliseconds"
+          s"Kept read compilation lock [{0}] for {1} milliseconds",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - lockTimestamp
+          )
         )
       }
     }
@@ -166,7 +174,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releasePendingEditsLock()
         logger.log(
           Level.FINEST,
-          s"Kept pending edits lock [${where.getSimpleName}] for " + (System.currentTimeMillis - lockTimestamp) + " milliseconds"
+          s"Kept pending edits lock [{0}] for {1} milliseconds",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - lockTimestamp
+          )
         )
       }
     }
@@ -221,7 +233,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releaseContextLock(contextId)
         logger.log(
           Level.FINEST,
-          s"Kept context lock [${where.getSimpleName}] for " + (System.currentTimeMillis - contextLockTimestamp) + " milliseconds"
+          s"Kept context lock [{0}] for {1} milliseconds",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - contextLockTimestamp
+          )
         )
       }
     }
@@ -271,7 +287,11 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
         releaseFileLock(file)
         logger.log(
           Level.FINEST,
-          s"Kept file lock [${where.getSimpleName}] for " + (System.currentTimeMillis - lockTimestamp) + " milliseconds"
+          s"Kept file lock [{0}] for {1} milliseconds",
+          Array[Any](
+            where.getSimpleName,
+            System.currentTimeMillis - lockTimestamp
+          )
         )
       }
     }
