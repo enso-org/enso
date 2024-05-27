@@ -32,10 +32,10 @@ import {
   useEvent,
   useResizeObserver,
 } from '@/composables/events'
-import { useNavigatorStorage } from '@/composables/navigatorStorage'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
+import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
@@ -56,9 +56,11 @@ import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { computedFallback } from '@/util/reactivity'
+import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import { computed, onMounted, ref, shallowRef, toRef, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, shallowRef, toRef, watch } from 'vue'
 
 const keyboard = provideKeyboard()
 const graphStore = useGraphStore()
@@ -72,47 +74,94 @@ const suggestionDb = useSuggestionDbStore()
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
 const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
-useNavigatorStorage(
-  graphNavigator,
-  (enc) => {
-    // Navigator viewport needs to be stored separately for:
+
+// === Client saved state ===
+
+const storedShowDocumentationEditor = ref()
+const rightDockWidth = ref<number>()
+
+/**
+ * JSON serializable representation of graph state saved in localStorage. The names of fields here
+ * are kept relatively short, because it will be common to store hundreds of them within one big
+ * JSON object, and serialize it quite often whenever the state is modified. Shorter keys end up
+ * costing less localStorage space and slightly reduce serialization overhead.
+ */
+interface GraphStoredState {
+  /** Navigator position X */
+  x: number
+  /** Navigator position Y */
+  y: number
+  /** Navigator scale */
+  s: number
+  /** Whether or not the documentation panel is open. */
+  doc: boolean
+  /** Width of the right dock. */
+  rwidth: number | null
+}
+
+const visibleAreasReady = computed(() => {
+  const nodesCount = graphStore.db.nodeIdToNode.size
+  const visibleNodeAreas = graphStore.visibleNodeAreas
+  return nodesCount > 0 && visibleNodeAreas.length == nodesCount
+})
+
+useSyncLocalStorage<GraphStoredState>({
+  storageKey: 'enso-graph-state',
+  mapKeyEncoder: (enc) => {
+    // Client graph state needs to be stored separately for:
     // - each project
     // - each function within the project
     encoding.writeVarString(enc, projectStore.name)
     const methodPtr = graphStore.currentMethodPointer()
     if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
   },
-  waitInitializationAndPanToAll,
-)
-
-let stopInitialization: (() => void) | undefined
-function waitInitializationAndPanToAll() {
-  stopInitialization?.()
-  stopInitialization = watchEffect(() => {
-    const nodesCount = graphStore.db.nodeIdToNode.size
-    const visibleNodeAreas = graphStore.visibleNodeAreas
-    if (nodesCount > 0 && visibleNodeAreas.length == nodesCount) {
-      zoomToSelected(true)
-      stopInitialization?.()
-      stopInitialization = undefined
+  debounce: 200,
+  captureState() {
+    return {
+      x: graphNavigator.targetCenter.x,
+      y: graphNavigator.targetCenter.y,
+      s: graphNavigator.targetScale,
+      doc: storedShowDocumentationEditor.value,
+      rwidth: rightDockWidth.value ?? null,
     }
-  })
-}
+  },
+  async restoreState(restored, abort) {
+    if (restored) {
+      const pos = new Vec2(restored.x ?? 0, restored.y ?? 0)
+      const scale = restored.s ?? 1
+      graphNavigator.setCenterAndScale(pos, scale)
+      storedShowDocumentationEditor.value = restored.doc ?? undefined
+      rightDockWidth.value = restored.rwidth ?? undefined
+    } else {
+      await until(visibleAreasReady).toBe(true)
+      if (!abort.aborted) zoomToAll(true)
+    }
+  },
+})
 
-function selectionBounds() {
-  if (!viewportNode.value) return
-  const selected = nodeSelection.selected
-  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+function nodesBounds(nodeIds: Iterable<NodeId>) {
   let bounds = Rect.Bounding()
-  for (const id of nodesToCenter) {
+  for (const id of nodeIds) {
     const rect = graphStore.visibleArea(id)
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
   if (bounds.isFinite()) return bounds
 }
 
+function selectionBounds() {
+  const selected = nodeSelection.selected
+  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+  return nodesBounds(nodesToCenter)
+}
+
 function zoomToSelected(skipAnimation: boolean = false) {
   const bounds = selectionBounds()
+  if (bounds)
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
+}
+
+function zoomToAll(skipAnimation: boolean = false) {
+  const bounds = nodesBounds(graphStore.db.nodeIdToNode.keys())
   if (bounds)
     graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
@@ -307,7 +356,11 @@ const codeEditorHandler = codeEditorBindings.handler({
 // === Documentation Editor ===
 
 const documentationEditorArea = ref<HTMLElement>()
-const showDocumentationEditor = ref(false)
+const showDocumentationEditor = computedFallback(
+  storedShowDocumentationEditor,
+  // Show documenation editor when documentation exists on first graph visit.
+  () => !!documentation.value,
+)
 
 const documentationEditorHandler = documentationEditorBindings.handler({
   toggle() {
@@ -317,7 +370,6 @@ const documentationEditorHandler = documentationEditorBindings.handler({
 
 const rightDockComputedSize = useResizeObserver(documentationEditorArea)
 const rightDockComputedBounds = computed(() => new Rect(Vec2.Zero, rightDockComputedSize.value))
-const rightDockWidth = ref<number>()
 const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
