@@ -1,7 +1,7 @@
 /** @file File containing SVG icon definitions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===============
 // === SvgMask ===
@@ -49,7 +49,7 @@ export default function SvgMask(props: SvgMaskProps) {
         ...(invert ? { WebkitMaskComposite: 'exclude, exclude' } : {}),
         /* eslint-enable @typescript-eslint/naming-convention */
       }}
-      className={tailwindMerge.twMerge('inline-block h-max w-max', className)}
+      className={tailwindMerge.twMerge('inline-block size-max', className)}
     >
       {/* This is required for this component to have the right size. */}
       <img alt={alt} src={src} className="transparent" draggable={false} />

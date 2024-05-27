@@ -18,6 +18,7 @@ import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
+import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -138,24 +139,26 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           </Label>
         ))}
       {managesThisAsset && (
-        <UnstyledButton
-          ref={plusButtonRef}
-          className="min-w-max shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
-          onPress={() => {
-            setModal(
-              <ManageLabelsModal
-                key={uniqueString.uniqueString()}
-                item={asset}
-                setItem={setAsset}
-                allLabels={labels}
-                doCreateLabel={doCreateLabel}
-                eventTarget={plusButtonRef.current}
-              />
-            )
-          }}
-        >
-          <img className="size-plus-icon" src={Plus2Icon} />
-        </UnstyledButton>
+        <div className="relative inline-flex shrink-0 transition-all transparent before:absolute before:inset-0 before:rounded-full before:border before:border-primary/10 before:transition-all before:hover:bg-primary/5 group-hover:opacity-100">
+          <UnstyledButton
+            ref={plusButtonRef}
+            className="relative inline-flex min-w-max rounded-full transition-all selectable focus-visible:opacity-100"
+            onPress={() => {
+              setModal(
+                <ManageLabelsModal
+                  key={uniqueString.uniqueString()}
+                  item={asset}
+                  setItem={setAsset}
+                  allLabels={labels}
+                  doCreateLabel={doCreateLabel}
+                  eventTarget={plusButtonRef.current}
+                />
+              )
+            }}
+          >
+            <SvgMask className="size-icon" src={Plus2Icon} />
+          </UnstyledButton>
+        </div>
       )}
     </div>
   )

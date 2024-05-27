@@ -12,6 +12,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
@@ -84,29 +85,31 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         </PermissionDisplay>
       ))}
       {managesThisAsset && (
-        <UnstyledButton
-          ref={plusButtonRef}
-          className="min-w-max shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
-          onPress={() => {
-            setModal(
-              <ManagePermissionsModal
-                key={uniqueString.uniqueString()}
-                item={asset}
-                setItem={setAsset}
-                self={self}
-                eventTarget={plusButtonRef.current}
-                doRemoveSelf={() => {
-                  dispatchAssetEvent({
-                    type: AssetEventType.removeSelf,
-                    id: asset.id,
-                  })
-                }}
-              />
-            )
-          }}
-        >
-          <img className="size-plus-icon" src={Plus2Icon} />
-        </UnstyledButton>
+        <div className="relative inline-flex shrink-0 transition-all transparent before:absolute before:inset-0 before:rounded-full before:border before:border-primary/10 before:transition-all before:hover:bg-primary/5 group-hover:opacity-100">
+          <UnstyledButton
+            ref={plusButtonRef}
+            className="relative inline-flex min-w-max rounded-full transition-all selectable focus-visible:opacity-100"
+            onPress={() => {
+              setModal(
+                <ManagePermissionsModal
+                  key={uniqueString.uniqueString()}
+                  item={asset}
+                  setItem={setAsset}
+                  self={self}
+                  eventTarget={plusButtonRef.current}
+                  doRemoveSelf={() => {
+                    dispatchAssetEvent({
+                      type: AssetEventType.removeSelf,
+                      id: asset.id,
+                    })
+                  }}
+                />
+              )
+            }}
+          >
+            <SvgMask className="size-icon" src={Plus2Icon} />
+          </UnstyledButton>
+        </div>
       )}
     </div>
   )

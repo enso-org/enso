@@ -4,7 +4,7 @@ import * as React from 'react'
 import BlankIcon from 'enso-assets/blank.svg'
 import CrossIcon from 'enso-assets/cross.svg'
 import Plus2Icon from 'enso-assets/plus2.svg'
-import ReloadInCircleIcon from 'enso-assets/reload_in_circle.svg'
+import ReloadIcon from 'enso-assets/reload.svg'
 
 import type * as refreshHooks from '#/hooks/refreshHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -124,7 +124,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                               <div className="grow" />
                               <div className="flex min-w-max shrink-0 gap-keyboard-shortcuts-button">
                                 <UnstyledButton
-                                  className="focus-default my-auto flex rounded-full"
+                                  className="focus-default relative my-auto flex rounded-full transition-all selectable after:absolute after:inset-0 after:rounded-inherit after:border after:border-primary/10 after:transition-all after:hover:bg-primary/5"
                                   onPress={() => {
                                     setModal(
                                       <CaptureKeyboardShortcutModal
@@ -138,16 +138,16 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                     )
                                   }}
                                 >
-                                  <img className="size-plus-icon" src={Plus2Icon} />
+                                  <SvgMask className="size-icon" src={Plus2Icon} />
                                 </UnstyledButton>
                                 <UnstyledButton
-                                  className="my-auto flex rounded-full"
+                                  className="relative my-auto flex rounded-full transition-all selectable after:absolute after:inset-0 after:rounded-inherit after:border after:border-primary/10 after:transition-all after:hover:bg-primary/5"
                                   onPress={() => {
                                     inputBindings.reset(action)
                                     doRefresh()
                                   }}
                                 >
-                                  <img className="size-plus-icon" src={ReloadInCircleIcon} />
+                                  <SvgMask className="size-icon" src={ReloadIcon} />
                                 </UnstyledButton>
                               </div>
                             </div>
