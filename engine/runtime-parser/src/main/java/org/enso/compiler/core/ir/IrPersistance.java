@@ -1,6 +1,8 @@
 package org.enso.compiler.core.ir;
 
 import java.io.IOException;
+import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -219,6 +221,57 @@ public final class IrPersistance {
         list = scala.collection.immutable.$colon$colon$.MODULE$.apply(elem, list);
       }
       return list;
+    }
+  }
+
+  /**
+   * Persistance for Java List.
+   *
+   * <p>When reading back, the deserialization is done lazily.
+   */
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistJavaListLazy extends Persistance<java.util.List> {
+    public PersistJavaListLazy() {
+      super(java.util.List.class, true, 34011);
+    }
+
+    @Override
+    protected void writeObject(java.util.List list, Output out) throws IOException {
+      var size = list.size();
+      out.writeInt(size);
+      for (var i = 0; i < size; i++) {
+        out.writeObject(list.get(i));
+      }
+    }
+
+    @Override
+    protected java.util.List readObject(Input in) throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      var references = new ArrayList<Reference<Object>>(size);
+      for (var i = 0; i < size; i++) {
+        var elem = in.readReference(Object.class);
+        references.add(elem);
+      }
+
+      return new ListOfReferences(references);
+    }
+
+    private static class ListOfReferences extends AbstractList<Object> {
+      private final java.util.List<Reference<Object>> references;
+
+      public ListOfReferences(java.util.List<Reference<Object>> references) {
+        this.references = references;
+      }
+
+      @Override
+      public Object get(int index) {
+        return references.get(index).get(Object.class);
+      }
+
+      @Override
+      public int size() {
+        return references.size();
+      }
     }
   }
 
