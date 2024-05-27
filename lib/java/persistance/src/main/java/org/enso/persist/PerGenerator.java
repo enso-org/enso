@@ -1,6 +1,7 @@
 package org.enso.persist;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -61,12 +62,14 @@ final class PerGenerator {
   }
 
   private record WriteResult(Persistance<?> usedPersistance, int position) {
-    void writePositionAndPersistanceId(DataOutputStream out) throws IOException {
-      // For the null reference, we also write an integer for the id.
-      // It is unused, but it ensures each reference always has the same representation size.
-      int persistanceId = usedPersistance == null ? -1 : usedPersistance.id;
-      out.writeInt(position);
-      out.writeInt(persistanceId);
+    void writePositionAndPersistanceId(DataOutput out) throws IOException {
+      if (usedPersistance == null) {
+        assert position == NULL_REFERENCE_ID;
+        out.writeInt(NULL_REFERENCE_ID);
+      } else {
+        out.writeInt(position);
+        out.writeInt(usedPersistance.id);
+      }
     }
   }
 
@@ -95,7 +98,6 @@ final class PerGenerator {
       out.writeInt(NULL_REFERENCE_ID);
       return;
     }
-    org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
     if (obj instanceof String s) {
       obj = s.intern();
     }
@@ -103,6 +105,7 @@ final class PerGenerator {
     if (found == null) {
       var os = new ByteArrayOutputStream();
       var osData = new ReferenceOutput(this, os);
+      org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
       p.writeInline(obj, osData);
       found = new WriteResult(p, position);
       if (os.size() == 0) {
@@ -116,8 +119,7 @@ final class PerGenerator {
         histogram.register(obj.getClass(), arr.length);
       }
     }
-    out.writeInt(found.position);
-    out.writeInt(p.id);
+    found.writePositionAndPersistanceId(out);
   }
 
   final int versionStamp() {

@@ -43,15 +43,8 @@ final class PerInputImpl implements Input {
 
     var tableAt = buf.getInt(8);
     buf.position(tableAt);
-    var count = buf.getInt();
-    assert count > 0 : "There is always the main object in the table: " + count;
-    var refPerIds = new int[count];
-    var refIds = new int[count];
-    for (var i = 0; i < count; i++) {
-      refIds[i] = buf.getInt();
-      refPerIds[i] = buf.getInt();
-    }
-    var cache = new InputCache(buf, readResolve, map, refIds, refPerIds);
+    InputCache.RawReferenceMap rawRefMap = InputCache.RawReferenceMap.readFromBuffer(buf);
+    var cache = new InputCache(buf, readResolve, map, rawRefMap);
     return cache.getRef(0);
   }
 
@@ -263,6 +256,48 @@ final class PerInputImpl implements Input {
   }
 
   static final class InputCache {
+    static class RawReferenceMap {
+      private final int[] refIds;
+      private final int[] refPerIds;
+
+      private RawReferenceMap(int[] refIds, int[] refPerIds) {
+        this.refIds = refIds;
+        this.refPerIds = refPerIds;
+      }
+
+      static RawReferenceMap readFromBuffer(ByteBuffer buf) {
+        var count = buf.getInt();
+        assert count > 0 : "There is always the main object in the reference table: " + count;
+        var refPerIds = new int[count];
+        var refIds = new int[count];
+        for (var i = 0; i < count; i++) {
+          int refId = buf.getInt();
+          if (refId == NULL_REFERENCE_ID) {
+            // If this was a null reference, we don't read another integer - as its type id was not
+            // stored.
+            refIds[i] = NULL_REFERENCE_ID;
+          } else {
+            refIds[i] = refId;
+            refPerIds[i] = buf.getInt();
+          }
+        }
+        return new RawReferenceMap(refIds, refPerIds);
+      }
+
+      Reference<?>[] intoReferences(PerMap map, InputCache inputCache) {
+        var refs = new Reference[refIds.length];
+        for (var i = 0; i < refIds.length; i++) {
+          if (refIds[i] == NULL_REFERENCE_ID) {
+            refs[i] = Persistance.Reference.none();
+          } else {
+            var p = map.forId(refPerIds[i]);
+            refs[i] = PerBufferReference.cached(p, inputCache, refIds[i]);
+          }
+        }
+        return refs;
+      }
+    }
+
     private final Map<Integer, Object> cache = new HashMap<>();
     private final Function<Object, Object> readResolve;
     private final PerMap map;
@@ -273,20 +308,11 @@ final class PerInputImpl implements Input {
         ByteBuffer buf,
         Function<Object, Object> readResolve,
         PerMap map,
-        int[] refIds,
-        int[] refPerIds) {
+        RawReferenceMap rawReferenceMap) {
       this.buf = buf;
       this.readResolve = readResolve;
       this.map = map;
-      this.refs = new Reference[refIds.length];
-      for (var i = 0; i < refIds.length; i++) {
-        if (refIds[i] == NULL_REFERENCE_ID) {
-          this.refs[i] = Persistance.Reference.none();
-        } else {
-          var p = map.forId(refPerIds[i]);
-          this.refs[i] = PerBufferReference.cached(p, this, refIds[i]);
-        }
-      }
+      this.refs = rawReferenceMap.intoReferences(map, this);
     }
 
     final Object resolveObject(Object res) {
