@@ -81,7 +81,7 @@ public class IrPersistanceTest {
     var id = UUID.randomUUID();
     var il = new RefHolder(id);
     var two = join(il, join(il, nil()));
-    ;
+
     var in = serde(List.class, two, -1, null);
     assertEquals("Two elements", 2, in.size());
 
@@ -241,6 +241,7 @@ public class IrPersistanceTest {
     assertNotSame("Lazily deserialized s2", s2, out.get(1));
   }
 
+  /** The Scala sequence is not lazy because it is actually written (and thus also read) as a List. */
   @Test
   public void notLazyScalaSequence() throws Exception {
     var s1 = new LazyString("Hello");
@@ -259,8 +260,6 @@ public class IrPersistanceTest {
                   second[0] = true;
                   return s1;
                 });
-    System.out.println(in);
-    System.out.println(in.getClass().getCanonicalName());
     assertEquals("Seq with two elements created", 2, in.length());
 
     LazyString.forbidden = true;
@@ -276,10 +275,10 @@ public class IrPersistanceTest {
     var out = serde(Seq.class, in, -1);
 
     assertEquals("Two elements", 2, out.size());
-    assertEquals("deserialized s2", s2, out.head());
-    assertNotSame("deserialized s2", s2, out.head());
-    assertEquals("deserialized s1", s1, out.last());
-    assertNotSame("deserialized s1", s1, out.head());
+    assertEquals("deserialized s2", in.head(), out.head());
+    assertNotSame("deserialized s2", in.head(), out.head());
+    assertEquals("deserialized s1", in.last(), out.last());
+    assertNotSame("deserialized s1", in.last(), out.last());
   }
 
   @Test

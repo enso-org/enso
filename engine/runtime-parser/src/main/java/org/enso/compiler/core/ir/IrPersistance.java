@@ -24,6 +24,7 @@ import scala.Option;
 import scala.Tuple2;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
+import scala.jdk.javaapi.CollectionConverters$;
 
 @Persistable(clazz = Module.class, id = 201)
 @Persistable(clazz = Name.Literal.class, id = 351)
@@ -194,33 +195,38 @@ public final class IrPersistance {
     }
   }
 
+  /**
+   * The persistance for Scala List is needed, because some places expect the more general List type
+   * instead of Seq.
+   *
+   * <p>Because List is a subtype of Seq and can be deserialized using any of the two persistance
+   * implementations, we want to ensure that the format of both is compatible. Seq is generally
+   * preferred as it can be lazy.
+   */
   @ServiceProvider(service = Persistance.class)
   public static final class PersistScalaList extends Persistance<List> {
     public PersistScalaList() {
       super(List.class, true, 4432);
     }
 
+    private final PersistScalaSeq underlying = new PersistScalaSeq();
+
     @Override
     protected void writeObject(List list, Output out) throws IOException {
-      var size = list.size();
-      out.writeInt(size);
-      var l = list.reverse();
-      for (var i = 0; i < size; i++) {
-        out.writeObject(l.head());
-        l = (List) l.tail();
-      }
+      underlying.writeObject(list, out);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected List readObject(Input in) throws IOException, ClassNotFoundException {
+      // Algorithm that is aligned with `underlying`, but is not lazy.
+      var builder = List.newBuilder();
       var size = in.readInt();
-      List list = scala.collection.immutable.Nil$.MODULE$;
       for (var i = 0; i < size; i++) {
         var elem = in.readObject();
-        list = scala.collection.immutable.$colon$colon$.MODULE$.apply(elem, list);
+        builder.addOne(elem);
       }
-      return list;
+      return builder.result();
     }
   }
 
@@ -404,11 +410,12 @@ public final class IrPersistance {
     }
 
     @Override
-    protected void writeObject(Seq list, Output out) throws IOException {
-      var size = list.size();
+    protected void writeObject(Seq seq, Output out) throws IOException {
+      var size = seq.size();
       out.writeInt(size);
-      for (var i = 0; i < size; i++) {
-        out.writeObject(list.apply(i));
+      var it = seq.iterator();
+      while (it.hasNext()) {
+        out.writeObject(it.next());
       }
     }
 
