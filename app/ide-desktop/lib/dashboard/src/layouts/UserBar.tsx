@@ -85,7 +85,12 @@ export default function UserBar(props: UserBarProps) {
 
           {shouldShowInviteButton && (
             <ariaComponents.DialogTrigger>
-              <ariaComponents.Button rounded="full" size="xsmall" variant="tertiary">
+              <ariaComponents.Button
+                rounded="full"
+                size="xsmall"
+                variant="tertiary"
+                className="h-[34px]"
+              >
                 {getText('invite')}
               </ariaComponents.Button>
 
