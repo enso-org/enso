@@ -2286,7 +2286,7 @@ type Table
          Finally, if no common type is found using the rules above, everything
          is converted to text.
 
-       ? Problem Conditions
+       ! Error Conditions
 
          - If no common type is found and the text conversion fallback is used,
            the `No_Common_Type` problem is reported.
@@ -2984,7 +2984,7 @@ type Table
          Finally, if no common type is found using the rules above, everything
          is converted to text.
 
-       ? Problem Conditions
+       ! Error Conditions
 
          - If no common type is found and the text conversion fallback is used,
            the `No_Common_Type` problem is reported.
