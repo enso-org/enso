@@ -507,14 +507,21 @@ object ProgramExecutionSupport {
           value.getExpressionId
         )
       visualizations.foreach { visualization =>
-        executeAndSendVisualizationUpdate(
-          contextId,
-          runtimeCache,
-          syncState,
-          visualization,
-          value.getExpressionId,
+        val v = if (visualization.expressionId == value.getExpressionId) {
           value.getValue
-        )
+        } else {
+          runtimeCache.getAnyValue(visualization.expressionId)
+        }
+        if (v != null) {
+          executeAndSendVisualizationUpdate(
+            contextId,
+            runtimeCache,
+            syncState,
+            visualization,
+            value.getExpressionId,
+            v
+          )
+        }
       }
     }
   }
@@ -539,14 +546,35 @@ object ProgramExecutionSupport {
               .getOrElse(expressionValue.getClass)
           )
         )
-        ctx.executionService.callFunctionWithInstrument(
-          ctx.contextManager.getVisualizationHolder(contextId),
-          visualization.cache,
-          runtimeCache,
-          visualization.module,
-          visualization.callback,
-          expressionValue +: visualization.arguments: _*
-        )
+        val holder = ctx.contextManager.getVisualizationHolder(contextId)
+
+        def makeCall(): AnyRef =
+          ctx.executionService.callFunctionWithInstrument(
+            holder,
+            visualization.cache,
+            runtimeCache,
+            visualization.module,
+            visualization.callback,
+            expressionValue +: visualization.arguments: _*
+          )
+
+        if (runtimeCache != null) {
+          def processUUID(id: UUID): Unit = {
+            logger.log(
+              Level.WARNING,
+              "Associating visualization [{0}] with additional ID [{1}]",
+              Array[Object](
+                visualization.id,
+                id
+              )
+            )
+
+            holder.upsert(visualization, id)
+          }
+          runtimeCache.runQuery(processUUID, () => makeCall())
+        } else {
+          makeCall()
+        }
       }
 
   /** Compute the visualization of the expression value and send an update.
