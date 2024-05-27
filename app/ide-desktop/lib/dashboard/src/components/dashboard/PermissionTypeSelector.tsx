@@ -1,6 +1,8 @@
 /** @file A selector for all possible permission types. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import UnstyledButton from '#/components/UnstyledButton'
@@ -107,19 +109,19 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
             ).map(data => (
               <UnstyledButton
                 key={data.type}
-                className={`flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5 ${
-                  type === data.type
-                    ? 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent'
-                    : ''
-                }`}
+                className={tailwindMerge.twMerge(
+                  'flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5',
+                  type === data.type && 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent'
+                )}
                 onPress={() => {
                   onChange(data.type)
                 }}
               >
                 <div
-                  className={`h-full w-permission-type rounded-full py-permission-type-y ${
+                  className={tailwindMerge.twMerge(
+                    'h-full w-permission-type rounded-full py-permission-type-y',
                     permissions.PERMISSION_CLASS_NAME[data.type]
-                  }`}
+                  )}
                 >
                   {data.type}
                 </div>
@@ -130,9 +132,10 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 {data.previous != null && (
                   <>
                     <div
-                      className={`h-full w-permission-type rounded-full py-permission-type-y text-center ${
+                      className={tailwindMerge.twMerge(
+                        'h-full w-permission-type rounded-full py-permission-type-y text-center',
                         permissions.PERMISSION_CLASS_NAME[data.previous]
-                      }`}
+                      )}
                     >
                       {data.previous}
                     </div>

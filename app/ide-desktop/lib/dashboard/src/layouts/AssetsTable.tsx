@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as toast from 'react-toastify'
+import * as tailwindMerge from 'tailwind-merge'
 
 import DropFilesImage from 'enso-assets/drop_files.svg'
 
@@ -2459,7 +2460,10 @@ export default function AssetsTable(props: AssetsTableProps) {
       </table>
       <div
         data-testid="root-directory-dropzone"
-        className={`sticky left grid max-w-container grow place-items-center ${category !== Category.cloud && category !== Category.local ? 'hidden' : ''}`}
+        className={tailwindMerge.twMerge(
+          'sticky left grid max-w-container grow place-items-center',
+          category !== Category.cloud && category !== Category.local && 'hidden'
+        )}
         onClick={() => {
           setSelectedKeys(new Set())
         }}

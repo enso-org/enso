@@ -1,6 +1,8 @@
 /** @file A heading for the "Modified" column. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
@@ -61,9 +63,11 @@ export default function ModifiedColumnHeading(
         <img
           alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
           src={SortAscendingIcon}
-          className={`transition-all duration-arrow ${
-            isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
-          } ${isDescending ? 'rotate-180' : ''}`}
+          className={tailwindMerge.twMerge(
+            'transition-all duration-arrow',
+            isSortActive ? 'selectable active' : 'transparent group-hover:selectable',
+            isDescending && 'rotate-180'
+          )}
         />
       </UnstyledButton>
     </div>

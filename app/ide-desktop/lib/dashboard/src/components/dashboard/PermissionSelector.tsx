@@ -1,6 +1,8 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -141,9 +143,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={`selectable ${!isDisabled || !input ? 'active' : ''} ${
+            className={tailwindMerge.twMerge(
+              'h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y selectable',
+              (!isDisabled || !input) && 'active',
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
+            )}
             onPress={doShowPermissionTypeSelector}
           >
             <aria.Text>{getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}</aria.Text>
@@ -164,9 +168,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             }}
           >
             <aria.Text
-              className={`selectable ${permission.docs && (!isDisabled || !input) ? 'active' : ''} ${
+              className={tailwindMerge.twMerge(
+                'h-text grow px-permission-mini-button-x py-permission-mini-button-y selectable',
+                permission.docs && (!isDisabled || !input) && 'active',
                 permissionsModule.DOCS_CLASS_NAME
-              } h-text grow px-permission-mini-button-x py-permission-mini-button-y`}
+              )}
             >
               {getText('docsPermissionModifier')}
             </aria.Text>
@@ -187,9 +193,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             }}
           >
             <aria.Text
-              className={`selectable ${permission.execute && (!isDisabled || !input) ? 'active' : ''} ${
+              className={tailwindMerge.twMerge(
+                'rounded-r-full px-permission-mini-button-x py-permission-mini-button-y selectable',
+                permission.execute && (!isDisabled || !input) && 'active',
                 permissionsModule.EXEC_CLASS_NAME
-              } rounded-r-full px-permission-mini-button-x py-permission-mini-button-y`}
+              )}
             >
               {getText('execPermissionModifier')}
             </aria.Text>
@@ -204,9 +212,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
           {...(isDisabled && error != null ? { title: error } : {})}
-          className={`selectable ${!isDisabled || !input ? 'active' : ''} ${
+          className={tailwindMerge.twMerge(
+            'h-text w-permission-display rounded-full selectable',
+            (!isDisabled || !input) && 'active',
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } h-text w-permission-display rounded-full`}
+          )}
           onPress={doShowPermissionTypeSelector}
         >
           {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}

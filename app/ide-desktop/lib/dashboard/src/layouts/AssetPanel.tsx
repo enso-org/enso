@@ -1,6 +1,8 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -114,9 +116,10 @@ export default function AssetPanel(props: AssetPanelProps) {
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
             <UnstyledButton
-              className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
-                tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
-              }`}
+              className={tailwindMerge.twMerge(
+                'button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame',
+                tab === AssetPanelTab.versions && 'bg-selected-frame active'
+              )}
               onPress={() => {
                 setTab(oldTab =>
                   oldTab === AssetPanelTab.versions

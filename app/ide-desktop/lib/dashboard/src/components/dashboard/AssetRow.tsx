@@ -1,6 +1,8 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import BlankIcon from 'enso-assets/blank.svg'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -721,7 +723,11 @@ export default function AssetRow(props: AssetRowProps) {
                     element.focus()
                   }
                 }}
-                className={`h-row rounded-full transition-all ease-in-out rounded-rows-child ${visibility} ${isDraggedOver || selected ? 'selected' : ''}`}
+                className={tailwindMerge.twMerge(
+                  'h-row rounded-full transition-all ease-in-out rounded-rows-child',
+                  visibility,
+                  (isDraggedOver || selected) && 'selected'
+                )}
                 onClick={event => {
                   unsetModal()
                   onClick(innerProps, event)
@@ -906,9 +912,10 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex h-row w-container justify-center rounded-full rounded-rows-child ${indent.indentClass(
-                item.depth
-              )}`}
+              className={tailwindMerge.twMerge(
+                'flex h-row w-container justify-center rounded-full rounded-rows-child',
+                indent.indentClass(item.depth)
+              )}
             >
               <StatelessSpinner size={24} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
@@ -921,7 +928,10 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex h-row items-center rounded-full rounded-rows-child ${indent.indentClass(item.depth)}`}
+              className={tailwindMerge.twMerge(
+                'flex h-row items-center rounded-full rounded-rows-child',
+                indent.indentClass(item.depth)
+              )}
             >
               <img src={BlankIcon} />
               <aria.Text className="px-name-column-x placeholder">

@@ -1,6 +1,8 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
@@ -356,13 +358,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                           el?.focus()
                         }
                       }}
-                      className={`pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame ${
-                        index === selectedIndex
-                          ? 'bg-selected-frame'
-                          : selectedIndices.has(index)
-                            ? 'bg-frame'
-                            : ''
-                      }`}
+                      className={tailwindMerge.twMerge(
+                        'pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame',
+                        selectedIndices.has(index) && 'bg-frame',
+                        index === selectedIndex && 'bg-selected-frame'
+                      )}
                       onPress={event => {
                         querySource.current = QuerySource.internal
                         setQuery(

@@ -214,6 +214,12 @@ const RESTRICTED_SYNTAXES = [
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',
     },
+    // TemplateLiteral
+    {
+        selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
+        message:
+            'Use `tv` from `tailwind-variants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
+    },
     {
         selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',
         message: 'Use `Button` or `UnstyledButton` instead of `button`',

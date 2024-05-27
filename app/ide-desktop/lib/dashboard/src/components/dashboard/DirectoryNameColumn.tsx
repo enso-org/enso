@@ -1,6 +1,8 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 
@@ -136,9 +138,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   return (
     <div
-      className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
-        item.depth
-      )}`}
+      className={tailwindMerge.twMerge(
+        'group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        indent.indentClass(item.depth)
+      )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
@@ -160,9 +163,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <Button
         image={FolderArrowIcon}
         alt={item.children == null ? getText('expand') : getText('collapse')}
-        className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
-          item.children != null ? 'rotate-90' : ''
-        }`}
+        className={tailwindMerge.twMerge(
+          'm-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block',
+          item.children != null && 'rotate-90'
+        )}
         onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
@@ -171,9 +175,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`text grow cursor-pointer bg-transparent ${
+        className={tailwindMerge.twMerge(
+          'text grow cursor-pointer bg-transparent',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
-        }`}
+        )}
         checkSubmittable={newTitle =>
           newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

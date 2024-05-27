@@ -1,6 +1,8 @@
 /** @file A styled button representing a tab on a sidebar. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as aria from '#/components/aria'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
@@ -40,10 +42,13 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
       autoFocus={autoFocus}
       onPress={onPress}
       isDisabled={isDisabled}
-      className={`relative rounded-full ${active ? 'focus-default' : ''}`}
+      className={tailwindMerge.twMerge('relative rounded-full', active && 'focus-default')}
     >
       <div
-        className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
+        className={tailwindMerge.twMerge(
+          'button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame',
+          active && 'disabled bg-selected-frame active'
+        )}
       >
         {active && isPending ? (
           <StatelessSpinner state={statelessSpinner.SpinnerState.loadingMedium} size={16} />

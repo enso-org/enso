@@ -1,6 +1,8 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import RecentIcon from 'enso-assets/recent.svg'
@@ -106,14 +108,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     >
       <UnstyledButton
         tooltip={false}
-        className={`rounded-inherit ${isCurrent ? 'focus-default' : ''}`}
+        className={tailwindMerge.twMerge('rounded-inherit', isCurrent && 'focus-default')}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
       >
         <div
-          className={`selectable ${
+          className={tailwindMerge.twMerge(
+            'group flex h-row items-center gap-icon-with-text rounded-inherit px-button-x selectable',
             isCurrent ? 'disabled active' : 'hover:bg-selected-frame'
-          } group flex h-row items-center gap-icon-with-text rounded-inherit px-button-x`}
+          )}
         >
           <SvgMask
             src={icon}

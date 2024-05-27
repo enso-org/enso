@@ -2,6 +2,8 @@
  * classes. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 // ===============
 // === Spinner ===
 // ===============
@@ -53,7 +55,10 @@ export default function Spinner(props: SpinnerProps) {
         stroke="currentColor"
         strokeLinecap="round"
         strokeWidth={3}
-        className={`pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray [transition-duration:var(--spinner-slow-transition-duration)] ${SPINNER_CSS_CLASSES[state]}`}
+        className={tailwindMerge.twMerge(
+          'pointer-events-none origin-center !animate-spin-ease transition-stroke-dasharray [transition-duration:var(--spinner-slow-transition-duration)]',
+          SPINNER_CSS_CLASSES[state]
+        )}
       />
     </svg>
   )

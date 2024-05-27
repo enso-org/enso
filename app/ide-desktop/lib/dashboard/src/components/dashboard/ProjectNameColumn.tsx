@@ -1,6 +1,8 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import NetworkIcon from 'enso-assets/network.svg'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -274,9 +276,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   return (
     <div
-      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
-        item.depth
-      )}`}
+      className={tailwindMerge.twMerge(
+        'flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        indent.indentClass(item.depth)
+      )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
@@ -320,13 +323,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`text grow bg-transparent ${
-          rowState.isEditingName
-            ? 'cursor-text'
-            : canExecute && !isOtherUserUsingProject
-              ? 'cursor-pointer'
-              : ''
-        }`}
+        className={tailwindMerge.twMerge(
+          'text grow bg-transparent',
+          canExecute && !isOtherUserUsingProject && 'cursor-pointer',
+          rowState.isEditingName && 'cursor-text'
+        )}
         checkSubmittable={newTitle =>
           newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

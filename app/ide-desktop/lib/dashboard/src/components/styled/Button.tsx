@@ -71,7 +71,12 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         })}
       >
         <div
-          className={`group flex selectable ${light ? 'selectable-light' : ''} ${isDisabled || softDisabled ? 'disabled' : ''} ${active ? 'active' : ''}`}
+          className={tailwindMerge.twMerge(
+            'group flex selectable',
+            light && 'selectable-light',
+            (isDisabled || softDisabled) && 'disabled',
+            active && 'active'
+          )}
         >
           <SvgMask
             src={image}

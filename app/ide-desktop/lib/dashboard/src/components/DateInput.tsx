@@ -1,6 +1,8 @@
 /** @file An input that outputs a {@link Date}. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CrossIcon from 'enso-assets/cross.svg'
 import FolderArrowDoubleIcon from 'enso-assets/folder_arrow_double.svg'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
@@ -105,7 +107,10 @@ export default function DateInput(props: DateInputProps) {
           {...aria.mergeProps<JSX.IntrinsicElements['div']>()(focusChildProps, {
             role: 'button',
             tabIndex: 0,
-            className: `flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`,
+            className: tailwindMerge.twMerge(
+              'flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg',
+              date == null && 'placeholder'
+            ),
             onClick: event => {
               event.stopPropagation()
               setIsPickerVisible(!isPickerVisible)
@@ -215,7 +220,10 @@ export default function DateInput(props: DateInputProps) {
                         <td key={j} className="text-tight p">
                           <UnstyledButton
                             isDisabled={isSelectedDate}
-                            className={`w-full rounded-small-rectangle-button text-center hover:bg-primary/10 disabled:bg-frame disabled:font-bold ${day.monthOffset === 0 ? '' : 'opacity-unimportant'}`}
+                            className={tailwindMerge.twMerge(
+                              'w-full rounded-small-rectangle-button text-center hover:bg-primary/10 disabled:bg-frame disabled:font-bold',
+                              day.monthOffset !== 0 && 'opacity-unimportant'
+                            )}
                             onPress={() => {
                               setIsPickerVisible(false)
                               onInput(currentDate)

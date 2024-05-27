@@ -2,6 +2,8 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as detect from 'enso-common/src/detect'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -446,9 +448,10 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
         <div
-          className={`flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out ${
+          className={tailwindMerge.twMerge(
+            'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
             isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
-          }`}
+          )}
         >
           {isAssetPanelVisible && (
             <AssetPanel

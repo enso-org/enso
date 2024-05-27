@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as toast from 'react-toastify'
+import * as tailwindMerge from 'tailwind-merge'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -354,13 +355,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
             void closeProject(!isRunningInBackground)
           }}
         >
-          <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+          <div
+            className={tailwindMerge.twMerge('relative h-0', isRunningInBackground && 'text-green')}
+          >
             <Spinner size={ICON_SIZE_PX} state={spinnerState} />
           </div>
           <SvgMask
             alt={getText('stopExecution')}
             src={StopIcon}
-            className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
+            className={tailwindMerge.twMerge(
+              'size-project-icon',
+              isRunningInBackground && 'text-green'
+            )}
           />
         </UnstyledButton>
       )
@@ -376,13 +382,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
               void closeProject(!isRunningInBackground)
             }}
           >
-            <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+            <div
+              className={tailwindMerge.twMerge(
+                'relative h-0',
+                isRunningInBackground && 'text-green'
+              )}
+            >
               <Spinner className="size-project-icon" state={spinnerState} />
             </div>
             <SvgMask
               alt={getText('stopExecution')}
               src={StopIcon}
-              className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
+              className={tailwindMerge.twMerge(
+                'size-project-icon',
+                isRunningInBackground && 'text-green'
+              )}
             />
           </UnstyledButton>
           {!isOtherUserUsingProject && !isRunningInBackground && (
