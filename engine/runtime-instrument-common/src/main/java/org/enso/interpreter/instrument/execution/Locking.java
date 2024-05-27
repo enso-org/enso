@@ -47,9 +47,9 @@ public interface Locking {
   <T> T withContextLock(UUID contextId, Class<?> where, Callable<T> callable);
 
   /**
-   * Releases and removes a context lock.
+   * Removes a context lock.
    *
-   * @param contextId a context to unlock
+   * @param contextId a context to remove
    */
   void removeContextLock(UUID contextId);
 
