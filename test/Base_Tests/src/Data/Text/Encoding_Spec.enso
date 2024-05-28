@@ -142,6 +142,16 @@ add_specs suite_builder =
             w2 = Problems.expect_only_warning Encoding_Error r2
             w2.to_display_text . should_contain "BOM"
 
+        group_builder.specify "should work on 0 or 1 byte input" <|
+            empty = Text.from_bytes [] Encoding.Default
+            empty.should_equal ""
+            Problems.assume_no_problems empty
+
+            txt = Text.from_bytes [-1] Encoding.Default Problem_Behavior.Report_Warning
+            txt.should_equal 'ÿ'
+            # No problems, as falling back to Windows-1252.
+            Problems.assume_no_problems txt
+
         group_builder.specify "Default Encoding heuristics also work in File.read" <|
             f = File.create_temporary_file "utf-heuristics" ".txt"
 
@@ -223,6 +233,7 @@ add_specs suite_builder =
             txt.should_equal '\ufeffA\ufeff'
             Problems.assume_no_problems txt
 
+        ## A UTF-16 BOM representation does not make sense in UTF-8, so we can detect that situation and report it.
         group_builder.specify "should report a clearer error when UTF-16 BOM is encountered" <|
             bytes = [-2, -1] + [0, 65, 1, 5, 1, 25]
             as_utf = Text.from_bytes bytes Encoding.utf_8 Problem_Behavior.Report_Warning
@@ -230,6 +241,16 @@ add_specs suite_builder =
             w = Problems.expect_only_warning Encoding_Error as_utf
             w.to_display_text . should_contain "BOM"
             w.to_display_text . should_contain "UTF-16"
+
+        group_builder.specify "should work on 0 or 1 byte input" <|
+            empty = Text.from_bytes [] Encoding.utf_8
+            empty.should_equal ""
+            Problems.assume_no_problems empty
+
+            txt = Text.from_bytes [-1] Encoding.utf_8 Problem_Behavior.Report_Warning
+            txt.should_equal '\ufffd'
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_equal "Failed to decode 1 code units (at positions: 0)."
 
     suite_builder.group "UTF_16 BigEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
@@ -256,6 +277,16 @@ add_specs suite_builder =
             txt.should_equal "￾A䄀"
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_contain "BOM"
+
+        group_builder.specify "should work on 0 or 1 byte input" <|
+            empty = Text.from_bytes [] Encoding.utf_16_be
+            empty.should_equal ""
+            Problems.assume_no_problems empty
+
+            txt = Text.from_bytes [-1] Encoding.utf_16_be Problem_Behavior.Report_Warning
+            txt.should_equal '\ufffd'
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_equal "Failed to decode 1 code units (at positions: 0)."
 
     suite_builder.group "UTF_16 LittleEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
