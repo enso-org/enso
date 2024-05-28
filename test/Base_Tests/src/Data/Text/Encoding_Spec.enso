@@ -204,7 +204,7 @@ add_specs suite_builder =
         group_builder.specify "Invalid UTF-8 should raise a problem when decoding via encoding" <|
             action = Text.from_bytes invalid_utf_8 Encoding.utf_8 on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Encoding issues at 19."]
+            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 19)."]
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "Invalid UTF-8 should raise a problem when decoding (error by default)" <|
