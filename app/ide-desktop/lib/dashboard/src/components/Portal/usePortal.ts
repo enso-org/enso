@@ -31,7 +31,7 @@ export function usePortal(props: types.PortalProps) {
         'Before using Portal, you need to specify a root, where the component should be mounted or put the component under the <Root /> component'
       )
 
-      setMountRoot(currentRoot)
+      setMountRoot(currentRoot ?? contextRoot)
     }
   }, [root, portalContext.root, isDisabled])
 
