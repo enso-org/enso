@@ -90,6 +90,12 @@ type Column
             Value_Type.Boolean   -> False
             Value_Type.Byte      -> False
             _                    -> True
+        needs_enso_to_java_conversion = case value_type of
+            Value_Type.Decimal _ _ -> True
+            Auto                   -> True
+            _                      -> False
+        enso_to_java_maybe items = if needs_enso_to_java_conversion.not then items else
+            items.map enso_to_java
         expected_storage_type = case value_type of
             Auto -> Nothing
             _ -> Storage.from_value_type value_type on_problems=Problem_Behavior.Report_Warning
@@ -103,7 +109,7 @@ type Column
         Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <| handle_invalid_value_type <|
             java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                 case needs_polyglot_conversion of
-                    True -> Java_Column.fromItems name (items.map enso_to_java) expected_storage_type java_problem_aggregator
+                    True -> Java_Column.fromItems name (enso_to_java_maybe items) expected_storage_type java_problem_aggregator
                     False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
             result = Column.Value java_column . throw_on_warning Conversion_Failure
             result.catch Conversion_Failure error->
