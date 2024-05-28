@@ -5,6 +5,7 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import Cross2 from 'enso-assets/cross2.svg'
 
+import type * as backendHooks from '#/hooks/backendHooks'
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
 import * as tooltipHooks from '#/hooks/tooltipHooks'
 
@@ -19,7 +20,7 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
-import * as backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
 
 // ====================
 // === UserGroupRow ===
@@ -27,7 +28,7 @@ import * as backend from '#/services/Backend'
 
 /** Props for a {@link UserGroupRow}. */
 export interface UserGroupRowProps {
-  readonly userGroup: backend.UserGroupInfo
+  readonly userGroup: backendHooks.WithPlaceholder<backend.UserGroupInfo>
   readonly doDeleteUserGroup: (userGroup: backend.UserGroupInfo) => void
 }
 
@@ -62,8 +63,8 @@ export default function UserGroupRow(props: UserGroupRowProps) {
     <aria.Row
       id={userGroup.id}
       className={tailwindMerge.twMerge(
-        'group h-row rounded-rows-child',
-        backend.isPlaceholderUserGroupId(userGroup.id) && 'pointer-events-none placeholder'
+        'group h-row select-none rounded-rows-child',
+        userGroup.isPlaceholder && 'pointer-events-none placeholder'
       )}
       ref={contextMenuRef}
     >
@@ -71,7 +72,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
         <ariaComponents.TooltipTrigger>
           <FocusableText
             ref={tooltipTargetRef}
-            className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
+            className="block cursor-default overflow-hidden text-ellipsis whitespace-nowrap"
           >
             {userGroup.groupName}
           </FocusableText>

@@ -5,6 +5,8 @@ import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router'
 import * as tailwindMerge from 'tailwind-merge'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -33,7 +35,6 @@ export function SetOrganizationNameModal() {
   const userId = session && 'user' in session && session.user?.userId ? session.user.userId : null
   const userPlan =
     session && 'user' in session && session.user?.plan != null ? session.user.plan : null
-
   const queryClient = reactQuery.useQueryClient()
   const { data: organizationName } = reactQuery.useSuspenseQuery({
     queryKey: ['organization', userId],
@@ -47,13 +48,11 @@ export function SetOrganizationNameModal() {
     staleTime: Infinity,
     select: data => data?.name ?? '',
   })
-
-  const submit = reactQuery.useMutation({
-    mutationKey: ['organization', userId],
-    mutationFn: (name: string) => backend.updateOrganization({ name }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['organization', userId] }),
-  })
-
+  const updateOrganizationMutation = backendHooks.useBackendMutation(
+    backend,
+    'updateOrganization',
+    { onSuccess: () => queryClient.invalidateQueries({ queryKey: ['getOrganization', userId] }) }
+  )
   const shouldShowModal =
     userPlan != null && PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
 
@@ -69,15 +68,14 @@ export function SetOrganizationNameModal() {
         <aria.Form
           onSubmit={event => {
             event.preventDefault()
-            const name = new FormData(event.currentTarget).get('organization')
-
+            const name = new FormData(event.currentTarget).get('name')
             if (typeof name === 'string') {
-              submit.mutate(name)
+              updateOrganizationMutation.mutate([{ name }])
             }
           }}
         >
           <aria.TextField
-            name="organization"
+            name="name"
             isRequired
             autoFocus
             inputMode="text"
@@ -97,25 +95,22 @@ export function SetOrganizationNameModal() {
             />
             <aria.FieldError className="text-sm text-red-500" />
           </aria.TextField>
-
-          {submit.error && (
+          {updateOrganizationMutation.error && (
             <ariaComponents.Alert variant="error" size="medium">
-              {submit.error.message}
+              {updateOrganizationMutation.error.message}
             </ariaComponents.Alert>
           )}
-
           <ariaComponents.Button
             className="mt-4"
             type="submit"
             variant="submit"
             size="medium"
-            loading={submit.isPending}
+            loading={updateOrganizationMutation.isPending}
           >
             {getText('submit')}
           </ariaComponents.Button>
         </aria.Form>
       </ariaComponents.Dialog>
-
       <router.Outlet context={session} />
     </>
   )

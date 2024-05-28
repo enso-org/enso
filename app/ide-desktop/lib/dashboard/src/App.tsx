@@ -45,6 +45,8 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -220,6 +222,7 @@ export interface AppRouterProps extends AppProps {
 function AppRouter(props: AppRouterProps) {
   const { logger, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
+  backendHooks.useObserveBackend()
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
   // eslint-disable-next-line no-restricted-properties

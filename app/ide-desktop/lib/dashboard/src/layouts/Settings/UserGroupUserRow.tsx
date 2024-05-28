@@ -1,8 +1,11 @@
 /** @file A row of the user groups table representing a user. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import Cross2 from 'enso-assets/cross2.svg'
 
+import type * as backendHooks from '#/hooks/backendHooks'
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
 import * as tooltipHooks from '#/hooks/tooltipHooks'
 
@@ -25,7 +28,7 @@ import type * as backend from '#/services/Backend'
 
 /** Props for a {@link UserGroupUserRow}. */
 export interface UserGroupUserRowProps {
-  readonly user: backend.User
+  readonly user: backendHooks.WithPlaceholder<backend.User>
   readonly userGroup: backend.UserGroupInfo
   readonly doRemoveUserFromUserGroup: (user: backend.User, userGroup: backend.UserGroupInfo) => void
 }
@@ -64,7 +67,10 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   return (
     <aria.Row
       id={`_key-${userGroup.id}-${user.userId}`}
-      className="group h-row rounded-rows-child"
+      className={tailwindMerge.twMerge(
+        'group h-row select-none rounded-rows-child',
+        user.isPlaceholder && 'pointer-events-none placeholder'
+      )}
       ref={contextMenuRef}
     >
       <aria.Cell className="text border-x-2 border-transparent bg-clip-padding rounded-rows-skip-level last:border-r-0">

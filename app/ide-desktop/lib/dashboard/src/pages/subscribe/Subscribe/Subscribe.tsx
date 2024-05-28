@@ -24,16 +24,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
-// =====================================
-// === CreateCheckoutSessionMutation ===
-// =====================================
-
-/** Mutation data for the `onCompleteMutation` mutation. */
-interface CreateCheckoutSessionMutation {
-  readonly plan: backendModule.Plan
-  readonly paymentMethodId: string
-}
-
 // =================
 // === Subscribe ===
 // =================
@@ -63,7 +53,6 @@ export function Subscribe() {
     staleTime: Infinity,
     queryFn: async () => {
       const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
-
       if (stripeKey == null) {
         throw new Error('Stripe key not found')
       } else {
@@ -86,11 +75,8 @@ export function Subscribe() {
   })
 
   const onCompleteMutation = reactQuery.useMutation({
-    mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
-      const { id } = await backend.createCheckoutSession({
-        plan: mutationData.plan,
-        paymentMethodId: mutationData.paymentMethodId,
-      })
+    mutationFn: async (data: backendModule.CreateCheckoutSessionRequestParams) => {
+      const { id } = await backend.createCheckoutSession(data)
       return backend.getCheckoutSession(id)
     },
     onSuccess: (data, mutationData) => {
