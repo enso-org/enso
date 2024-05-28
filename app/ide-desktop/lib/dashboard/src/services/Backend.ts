@@ -1,11 +1,18 @@
+;
 /** @file Type definitions common between all backends. */
-import type * as React from 'react'
+import type * as React from 'react';
 
-import * as array from '#/utilities/array'
-import * as dateTime from '#/utilities/dateTime'
-import * as newtype from '#/utilities/newtype'
-import * as permissions from '#/utilities/permissions'
-import * as uniqueString from '#/utilities/uniqueString'
+
+
+import * as array from '#/utilities/array';
+import * as dateTime from '#/utilities/dateTime';
+import * as newtype from '#/utilities/newtype';
+import * as permissions from '#/utilities/permissions';
+import * as uniqueString from '#/utilities/uniqueString';
+
+
+
+
 
 // ================
 // === Newtypes ===
@@ -1384,4 +1391,10 @@ export default abstract class Backend {
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
   abstract getLogEvents(): Promise<Event[]>
+  /** Log an event that will be visible in the organization audit log. */
+  abstract logEvent(
+    message: string,
+    projectId?: string | null,
+    metadata?: object | null
+  ): Promise<void>
 }

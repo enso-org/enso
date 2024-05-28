@@ -1,20 +1,117 @@
+;
+
 /** @file Module containing the API client for the Cloud backend API.
  *
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/src/detect';
 
-import type * as text from '#/text'
 
-import type * as loggerProvider from '#/providers/LoggerProvider'
-import type * as textProvider from '#/providers/TextProvider'
 
-import Backend, * as backend from '#/services/Backend'
-import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+import type * as text from '#/text';
 
-import type HttpClient from '#/utilities/HttpClient'
-import * as object from '#/utilities/object'
+
+
+import type * as loggerProvider from '#/providers/LoggerProvider';
+import type * as textProvider from '#/providers/TextProvider';
+
+
+
+import Backend, * as backend from '#/services/Backend';
+import * as remoteBackendPaths from '#/services/remoteBackendPaths';
+
+
+
+import type HttpClient from '#/utilities/HttpClient';
+import * as object from '#/utilities/object';
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // =================
 // === Constants ===
@@ -133,6 +230,11 @@ type GetText = ReturnType<typeof textProvider.useText>['getText']
 interface DefaultVersionInfo {
   readonly version: backend.VersionNumber
   readonly lastUpdatedEpochMs: number
+}
+
+/** Options for {@link RemoteBackend.post} private method. */
+interface RemoteBackendPostOptions {
+  readonly keepalive?: boolean
 }
 
 /** Class for sending requests to the Cloud backend API endpoints. */
@@ -1031,6 +1133,33 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Log an event that will be visible in the organization audit log. */
+  async logEvent(
+    message: string,
+    projectId?: string | null,
+    metadata?: object | null
+  ): Promise<void> {
+    const path = remoteBackendPaths.POST_LOG_EVENT_PATH
+    const response = await this.post(
+      path,
+      {
+        message,
+        projectId,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          ...(metadata ?? {}),
+        },
+      },
+      {
+        keepalive: true,
+      }
+    )
+    if (!responseIsSuccessful(response)) {
+      // eslint-disable-next-line no-restricted-syntax
+      return this.throw(response, 'logEventBackendError', message)
+    }
+  }
+
   /** Get the default version given the type of version (IDE or backend). */
   protected async getDefaultVersion(versionType: backend.VersionType) {
     const cached = this.defaultVersions[versionType]
@@ -1055,8 +1184,8 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  private post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+  private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
+    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload, options)
   }
 
   /** Send a binary HTTP POST request to the given path. */

@@ -492,10 +492,8 @@ export function locateModalBackground(page: test.Locator | test.Page) {
 
 /** Find an editor container (if any) on the current page. */
 export function locateEditor(page: test.Page) {
-  // This is fine as this element is defined in `index.html`, rather than from React.
-  // Using `data-testid` may be more correct though.
-  // eslint-disable-next-line no-restricted-properties
-  return page.locator('#app')
+  // Test ID of a placeholder editor component used during testing.
+  return page.getByTestId('gui-editor-root')
 }
 
 /** Find an assets table (if any) on the current page. */

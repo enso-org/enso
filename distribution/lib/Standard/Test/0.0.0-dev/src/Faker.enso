@@ -13,7 +13,7 @@ type Faker
        Set of lower case letters.
     lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
 
-    ## ICON number_input
+    ## ICON input_number
        Set of numerical digits.
     numbers = "0123456789".char_vector
 

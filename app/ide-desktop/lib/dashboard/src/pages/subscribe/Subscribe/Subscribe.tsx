@@ -54,10 +54,8 @@ interface CreateCheckoutSessionMutation {
 export function Subscribe() {
   const navigate = navigateHooks.useNavigate()
   const { getText } = textProvider.useText()
-
   const [searchParams] = router.useSearchParams()
   const backend = backendProvider.useRemoteBackendStrict()
-
   const plan = searchParams.get('plan')
 
   const { data: stripeInstance } = reactQuery.useSuspenseQuery({

@@ -700,27 +700,28 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /**
-   * Invalid operation.
-   */
+  /** Invalid operation. */
   override listInvitations() {
     return this.invalidOperation()
   }
-  /**
-   * Invalid operation.
-   */
-  override deleteInvitation(): Promise<void> {
+
+  /** Invalid operation. */
+  override deleteInvitation() {
     return this.invalidOperation()
   }
-  /**
-   * Invalid operation.
-   */
-  override resendInvitation(): Promise<void> {
+
+  /** Invalid operation. */
+  override resendInvitation() {
     return this.invalidOperation()
   }
 
   /** Invalid operation. */
   override getLogEvents() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override logEvent() {
     return this.invalidOperation()
   }
 }

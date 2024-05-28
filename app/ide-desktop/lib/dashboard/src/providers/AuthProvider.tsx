@@ -225,6 +225,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       platform: detect.platform(),
       architecture: detect.architecture(),
     })
+
     return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_app', 'close_app')
   }, [])
 
@@ -279,6 +280,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           setRemoteBackend(backend)
         }
         gtagEvent('cloud_open')
+        void backend.logEvent('cloud_open')
         let user: backendModule.User | null
         while (true) {
           try {

@@ -85,6 +85,7 @@ import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
 
+import type * as types from '../../types/types'
 import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
@@ -145,7 +146,7 @@ export interface AppProps {
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly appRunner: AppRunner
+  readonly appRunner: types.EditorRunner | null
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -258,6 +259,20 @@ function AppRouter(props: AppRouterProps) {
       }
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+
+  React.useEffect(() => {
+    if (remoteBackend) {
+      void remoteBackend.logEvent('open_app')
+      const logCloseEvent = () => void remoteBackend.logEvent('close_app')
+      window.addEventListener('beforeunload', logCloseEvent)
+      return () => {
+        window.removeEventListener('beforeunload', logCloseEvent)
+        logCloseEvent()
+      }
+    } else {
+      return
+    }
+  }, [remoteBackend])
 
   const inputBindings = React.useMemo(() => {
     const updateLocalStorage = () => {

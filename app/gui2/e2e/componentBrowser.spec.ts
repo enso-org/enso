@@ -56,7 +56,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   // Dragging out an edge
   const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
-  await page.mouse.click(100, 500)
+  await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
   await expectAndCancelBrowser(page, '', 'final')
   // Double-clicking port
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
@@ -111,7 +111,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
   const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
-  await page.mouse.click(100, 1700)
+  await locate.graphEditor(page).click({ position: { x: 100, y: 1700 } })
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
   await expectAndCancelBrowser(page, '', 'final')
 })

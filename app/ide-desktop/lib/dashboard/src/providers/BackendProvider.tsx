@@ -6,6 +6,8 @@ import invariant from 'tiny-invariant'
 
 import * as common from 'enso-common'
 
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
@@ -21,9 +23,10 @@ export interface BackendContextType {
   readonly localBackend: Backend | null
 }
 
-// @ts-expect-error The default value will never be exposed
-// as `backend` will always be accessed using `useBackend`.
-const BackendContext = React.createContext<BackendContextType>(null)
+const BackendContext = React.createContext<BackendContextType>({
+  remoteBackend: null,
+  localBackend: null,
+})
 
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {

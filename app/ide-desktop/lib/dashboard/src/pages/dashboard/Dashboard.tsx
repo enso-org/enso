@@ -45,6 +45,8 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
+import type * as types from '../../../../types/types'
+
 // ============================
 // === Global configuration ===
 // ============================
@@ -109,7 +111,9 @@ LocalStorage.registerKey('projectStartupInfo', {
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
-  readonly appRunner: AppRunner
+  /** Whether the application may have the local backend running. */
+  readonly supportsLocalBackend: boolean
+  readonly appRunner: types.EditorRunner | null
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null

@@ -2,12 +2,11 @@
 import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useProjectStore } from '@/stores/project'
-import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import { PropertyAccess } from 'shared/ast'
-import type { ExpressionId, MethodPointer } from 'shared/languageServerTypes'
+import type { ExpressionId } from 'shared/languageServerTypes'
 import { computed, ref, watchEffect } from 'vue'
 import NodeWidget from '../NodeWidget.vue'
 
