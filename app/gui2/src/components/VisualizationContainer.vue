@@ -52,13 +52,13 @@ function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
 }
 
-const realSize = useResizeObserver(contentNode)
+const size = computed(() => new Vec2(config.width, config.height))
 
 // Because ResizeHandles are applying the screen mouse movements, the bouds must be in `screen`
 // space.
 const clientBounds = computed({
   get() {
-    return new Rect(Vec2.Zero, realSize.value.scale(config.scale))
+    return new Rect(Vec2.Zero, size.value.scale(config.scale))
   },
   set(value) {
     if (resizing.left || resizing.right) config.width = value.width / config.scale
@@ -68,9 +68,7 @@ const clientBounds = computed({
 
 let resizing: BoundsSet = {}
 
-// When dragging left resizer, we need to move node position accordingly. It may be done only by
-// reading the real width change, as `config.width` does not consider node's minimum width.
-watch(realSize, (newVal, oldVal) => {
+watch(size, (newVal, oldVal) => {
   if (!resizing.left) return
   const delta = newVal.x - oldVal.x
   if (delta !== 0)
