@@ -2,12 +2,13 @@ from Standard.Base import all
 
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
-from Standard.Table import Bits, Value_Type, Column_Ref
+from Standard.Table import Bits, Value_Type, Column_Ref, Column
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
@@ -634,6 +635,16 @@ add_specs suite_builder setup =
                 False ->
                     actual.at "col0" . to_vector . should_equal ["axyc", "xyef", "ghxy"]
                     actual.at "col1" . to_vector . should_equal ["naxyc", "nxyef", "asxyf"]
+
+        group_builder.specify "should allow to replace values in a table with a named_pattern" <|
+            t = table_builder [["col0", ["abc123", "123def", "ghi456"]], ["col1", ["nabc123", "123ndef", "asdf456"]]]
+            actual = t.text_replace ["col0"] Named_Pattern.Leading_Numbers "xy"
+            case actual.is_error && setup.is_database of
+                True ->
+                    actual.should_fail_with Unsupported_Database_Operation
+                False ->
+                    actual.at "col0" . to_vector . should_equal ["abc123", "xydef", "ghi456"]
+                    actual.at "col1" . to_vector . should_equal ["nabc123", "123ndef", "asdf456"]
 
         group_builder.specify "should allow to replace values in a table with a column" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["col2", ["xy", "yx", "zz"]]]
@@ -1359,7 +1370,7 @@ add_specs suite_builder setup =
                 op data.c 1 . should_fail_with Invalid_Value_Type
                 op data.a True . should_fail_with Invalid_Value_Type
 
-    do_replace column term new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
+    do_replace column (term : Text | Regex | Column | DB_Column) new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
         case setup.is_database of
             True ->
                 input_type = Meta.type_of term
@@ -1424,6 +1435,16 @@ add_specs suite_builder setup =
             regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
             col = table_builder [["x", [regex]]] . at "x"
             do_replace col regex "asdf" ["asdf"]
+    
+    suite_builder.group prefix+"replace: Named_Pattern and replacement" group_builder->
+        data = Literal_Data.setup create_connection_fn setup.table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "can use Named_Patterns" <|
+            do_replace data.col1 Named_Pattern.Symbols 'hey' expected=['aheybcdhey AheybCdhey aheybcdhey', 'abac ad Ab aCAd']
+
 
     suite_builder.group prefix+"replace: pattern and replacement columns" group_builder->
         data = Replace_Data.setup create_connection_fn setup.table_builder
@@ -1533,7 +1554,7 @@ add_specs suite_builder setup =
 
             group_builder.specify "should only allow replace on Text columns" <|
                 data.c.text_replace "a" "#" . should_fail_with Invalid_Value_Type
-                data.a.text_replace 1 "#" . should_fail_with Invalid_Value_Type
+                Test.expect_panic Type_Error (data.a.text_replace 1 "#")
                 data.a.text_replace data.c "#" . should_fail_with Invalid_Value_Type
                 data.a.text_replace "a" 1 . should_fail_with Invalid_Value_Type
                 data.a.text_replace "a" data.c . should_fail_with Invalid_Value_Type

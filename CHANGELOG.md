@@ -668,6 +668,7 @@
   Cloud.][9957]
 - [Improved `Table.union`.][9968]
 - [Added support for arithmetic operations on in-memory `Decimal` columns.][9950]
+- [Add `day_of_week` and `day_of_year` to `Column`.][10081]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -982,6 +983,7 @@
 [9957]: https://github.com/enso-org/enso/pull/9957
 [9968]: https://github.com/enso-org/enso/pull/9968
 [9950]: https://github.com/enso-org/enso/pull/9950
+[10081]: https://github.com/enso-org/enso/pull/10081
 
 #### Enso Compiler
 

@@ -45,7 +45,7 @@ export default function ManageLabelsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
   const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

@@ -45,7 +45,7 @@ type Rank_Method
     Ordinal
 
     ## GROUP Statistics
-       ICON sigma
+       ICON transform4
        Assigns a rank to each value of data, dealing with equal values according to the method.
 
        Arguments:
@@ -323,7 +323,7 @@ calculate_correlation_statistics_matrix data =
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
 ## GROUP Statistics
-   ICON sigma
+   ICON transform4
    Compute a single statistic on the vector (ignoring Nothing and NaN values).
 
    Arguments:
@@ -332,7 +332,7 @@ Vector.compute : Statistic -> Any
 Vector.compute self statistic=Statistic.Count =
     self.compute_bulk [statistic] . first
 
-## ICON dataframe_map_column
+## ICON column_add
    Compute statistics on the vector (ignoring Nothing and NaN values).
 
    Arguments:
@@ -363,7 +363,7 @@ Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.running_bulk self statistics
 
 ## GROUP Statistics
-   ICON dataframe_map_column
+   ICON column_add
    Assigns a rank to each value of data, dealing with equal values according to
    the method.
 
