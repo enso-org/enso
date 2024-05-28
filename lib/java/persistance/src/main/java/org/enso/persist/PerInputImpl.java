@@ -1,5 +1,6 @@
 package org.enso.persist;
 
+import static org.enso.persist.PerGenerator.INLINED_REFERENCE_ID;
 import static org.enso.persist.PerGenerator.NULL_REFERENCE_ID;
 import static org.enso.persist.PerUtils.raise;
 
@@ -43,7 +44,7 @@ final class PerInputImpl implements Input {
 
     var tableAt = buf.getInt(8);
     buf.position(tableAt);
-    InputCache.RawReferenceMap rawRefMap = InputCache.RawReferenceMap.readFromBuffer(buf);
+    var rawRefMap = InputCache.RawReferenceMap.readFromBuffer(buf);
     var cache = new InputCache(buf, readResolve, map, rawRefMap);
     return cache.getRef(0);
   }
@@ -56,9 +57,10 @@ final class PerInputImpl implements Input {
         var nullReference = Persistance.Reference.none();
         return clazz.cast(nullReference);
       }
-
-      var ref = cache.getRef(refId);
-      return clazz.cast(ref);
+      if (refId != INLINED_REFERENCE_ID) {
+        var ref = cache.getRef(refId);
+        return clazz.cast(ref);
+      }
     }
     Persistance<T> p = cache.map().forType(clazz);
     T res = p.readWith(this);
@@ -244,7 +246,7 @@ final class PerInputImpl implements Input {
       InputCache buffer, PerMap map, Input in, Class<T> clazz) throws IOException {
     var at = in.readInt();
     if (at < 0) {
-      return null;
+      return Reference.none();
     }
     var id = in.readInt();
     var p = map.forId(id);

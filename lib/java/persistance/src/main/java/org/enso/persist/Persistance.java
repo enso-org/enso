@@ -283,5 +283,7 @@ public abstract class Persistance<T> implements Cloneable {
     public static <V> Reference<V> of(V obj, boolean deferWrite) {
       return deferWrite ? new PerMemoryReference.Deferred<>(obj) : new PerMemoryReference<>(obj);
     }
+
+    abstract boolean isDeferredWrite();
   }
 }

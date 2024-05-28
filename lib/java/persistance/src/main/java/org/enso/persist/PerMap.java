@@ -16,6 +16,7 @@ final class PerMap {
     var loader = PerMap.class.getClassLoader();
     var lookup = Lookups.metaInfServices(loader);
     var all = new ArrayList<Persistance>();
+    all.add(PerReferencePeristance.INSTANCE);
     all.addAll(lookup.lookupAll(Persistance.class));
     ALL = all;
   }

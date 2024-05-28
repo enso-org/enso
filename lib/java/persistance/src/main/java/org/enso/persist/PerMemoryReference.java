@@ -13,6 +13,11 @@ sealed class PerMemoryReference<T> extends Persistance.Reference<T>
     return value;
   }
 
+  @Override
+  boolean isDeferredWrite() {
+    return Deferred.class == getClass();
+  }
+
   static final class Deferred<T> extends PerMemoryReference<T> {
     Deferred(T obj) {
       super(obj);

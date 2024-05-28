@@ -207,9 +207,12 @@ final class PerGenerator {
     public <T> void writeInline(Class<T> clazz, T t) throws IOException {
       if (Persistance.Reference.class == clazz) {
         Persistance.Reference<?> ref = (Persistance.Reference<?>) t;
-        var id = this.generator.registerReference(ref);
-        writeInt(id);
-        return;
+        if (ref.isDeferredWrite()) {
+          var id = this.generator.registerReference(ref);
+          writeInt(id);
+          return;
+        }
+        writeInt(INLINED_REFERENCE_ID);
       }
       var obj = generator.writeReplace.apply(t);
       var p = generator.map.forType(clazz);
@@ -255,5 +258,6 @@ final class PerGenerator {
     }
   }
 
+  static final int INLINED_REFERENCE_ID = -2;
   static final int NULL_REFERENCE_ID = -1;
 }

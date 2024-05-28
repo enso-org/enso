@@ -52,6 +52,11 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
     return obj;
   }
 
+  @Override
+  boolean isDeferredWrite() {
+    return true;
+  }
+
   static <V> Reference<V> from(Persistance<V> p, InputCache buffer, int offset) {
     return new PerBufferReference<>(p, buffer, offset, false);
   }
