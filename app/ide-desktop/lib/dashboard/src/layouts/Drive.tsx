@@ -329,7 +329,7 @@ export default function Drive(props: DriveProps) {
         <result.Result
           status="error"
           title={getText('notEnabledTitle')}
-          qa="not-enabled-stub"
+          testId="not-enabled-stub"
           subtitle={`${getText('notEnabledSubtitle')}${!supportsLocalBackend ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
           {!supportsLocalBackend && (

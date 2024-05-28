@@ -140,7 +140,7 @@ export const Text = React.forwardRef(function Text(
     isDisabled: !truncate,
     className: tooltipTextClasses,
     targetRef: textElementRef,
-    displayStrategy: 'whenOverflowing',
+    display: 'whenOverflowing',
     children,
   })
 

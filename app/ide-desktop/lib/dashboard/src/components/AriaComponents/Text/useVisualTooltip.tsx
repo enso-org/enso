@@ -27,11 +27,11 @@ export interface VisualTooltipProps {
   /**
    * Determines when the tooltip should be displayed.
    * - 'always': Tooltip is always displayed when the target element is hovered over.
-   * - 'when-overflowing': Tooltip is displayed only when the target element is overflowing.
+   * - 'whenOverflowing': Tooltip is displayed only when the target element is overflowing.
    * - A function that returns a boolean. The function is called with the target element as an argument.
    */
-  readonly displayStrategy?: DisplayStrategy | ((target: HTMLElement) => boolean)
-  readonly qa?: string
+  readonly display?: DisplayStrategy | ((target: HTMLElement) => boolean)
+  readonly testId?: string
 }
 
 /**
@@ -55,8 +55,8 @@ export function useVisualTooltip(props: VisualTooltipProps) {
     className,
     isDisabled = false,
     overlayPositionProps = {},
-    displayStrategy = 'always',
-    qa = 'visual-tooltip',
+    display = 'always',
+    testId = 'visual-tooltip',
   } = props
 
   const {
@@ -72,9 +72,9 @@ export function useVisualTooltip(props: VisualTooltipProps) {
     onHoverStart: () => {
       if (targetRef.current) {
         const shouldDisplay =
-          typeof displayStrategy === 'function'
-            ? displayStrategy(targetRef.current)
-            : DISPLAY_STRATEGIES[displayStrategy](targetRef.current)
+          typeof display === 'function'
+            ? display(targetRef.current)
+            : DISPLAY_STRATEGIES[display](targetRef.current)
 
         if (shouldDisplay) {
           popoverRef.current?.showPopover()
@@ -110,7 +110,7 @@ export function useVisualTooltip(props: VisualTooltipProps) {
           popover=""
           aria-hidden="true"
           role="presentation"
-          data-testid={qa}
+          data-testid={testId}
           {...overlayProps}
         >
           {children}
