@@ -60,7 +60,15 @@ export async function mockApi({ page }: MockParams) {
     userGroups: null,
   }
   let currentUser: backend.User | null = defaultUser
-  let currentOrganization: backend.OrganizationInfo | null = null
+  let currentOrganization: backend.OrganizationInfo | null = {
+    id: defaultOrganizationId,
+    name: 'MOCK ORGANIZATION',
+    email: null,
+    address: null,
+    subscription: {},
+    picture: null,
+    website: null,
+  }
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
