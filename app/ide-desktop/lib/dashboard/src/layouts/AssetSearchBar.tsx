@@ -393,7 +393,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={getText('assetSearchFieldLabel')}
-              className="relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all"
+              className="relative grow before:text before:absolute before:-inset-x-1 before:my-auto before:rounded-full before:transition-all"
               value={query.query}
               onKeyDown={event => {
                 event.continuePropagation()

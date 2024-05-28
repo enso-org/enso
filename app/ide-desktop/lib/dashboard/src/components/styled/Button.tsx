@@ -65,7 +65,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
           ref,
           className: tailwindMerge.twMerge(
-            'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring m-button-focus-ring-inset p-negative-button-focus-ring-inset',
+            'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring -m-1 p-1',
             buttonClassName
           ),
         })}
@@ -73,7 +73,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         <div
           className={tailwindMerge.twMerge(
             'group flex selectable',
-            light && 'selectable-light',
+            light && 'opacity-25',
             (isDisabled || softDisabled) && 'disabled',
             active && 'active'
           )}

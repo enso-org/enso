@@ -131,7 +131,7 @@ export default function Labels(props: LabelsProps) {
                         active
                         image={Trash2Icon}
                         alt={getText('delete')}
-                        className="relative flex size-icon text-delete transition-all transparent after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                        className="relative flex size-icon text-delete transition-all transparent after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                         onPress={() => {
                           setModal(
                             <ConfirmDeleteModal

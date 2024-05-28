@@ -2,6 +2,8 @@
  * provider via the shared React context. */
 import * as React from 'react'
 
+import invariant from 'tiny-invariant'
+
 import * as common from 'enso-common'
 
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -89,20 +91,16 @@ export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
   if (categoryModule.isCloud(category)) {
-    if (remoteBackend == null) {
-      // eslint-disable-next-line no-restricted-syntax
-      throw new Error(
-        `This distribution of ${common.PRODUCT_NAME} does not support the Cloud Backend.`
-      )
-    }
+    invariant(
+      remoteBackend != null,
+      `This distribution of ${common.PRODUCT_NAME} does not support the Cloud Backend.`
+    )
     return remoteBackend
   } else {
-    if (localBackend == null) {
-      // eslint-disable-next-line no-restricted-syntax
-      throw new Error(
-        `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`
-      )
-    }
+    invariant(
+      localBackend != null,
+      `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`
+    )
     return localBackend
   }
 }
