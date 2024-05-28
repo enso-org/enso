@@ -11,10 +11,7 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.filewatcher.WatcherAdapterFactory
-import org.enso.jsonrpc.debug.{
-  SaveBinaryMessageCallback,
-  SaveTextMessageCallback
-}
+import org.enso.jsonrpc.debug.MessageWriter
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
@@ -68,6 +65,7 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
+
 import scala.concurrent.duration._
 
 /** A main module containing all components of the server.
@@ -469,11 +467,18 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       Some(_)
     )
 
-  private val textMessageCallback =
+  private val messagesCallback = {
     languageServerConfig.profiling.textMessagesPath match {
-      case Some(path) => List(SaveTextMessageCallback(path))
-      case None       => Nil
+      case Some(path) =>
+        val messageWriter = system.actorOf(
+          MessageWriter.props(path),
+          "message-writer"
+        )
+        log.trace("Created messages writer [{}].", messageWriter)
+        List(messageWriter ! _)
+      case None => Nil
     }
+  }
 
   val jsonRpcServer =
     new JsonRpcServer(
@@ -486,15 +491,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           secureConfig       = secureConfig
         ),
       List(healthCheckEndpoint, idlenessEndpoint),
-      textMessageCallback
+      messagesCallback
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
-
-  private val binaryMessageCallback =
-    languageServerConfig.profiling.binaryMessagesPath match {
-      case Some(path) => List(SaveBinaryMessageCallback(path))
-      case None       => Nil
-    }
 
   val binaryServer =
     new BinaryWebSocketServer(
@@ -506,7 +505,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
       ),
-      binaryMessageCallback
+      messagesCallback
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
