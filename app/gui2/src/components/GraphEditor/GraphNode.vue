@@ -458,7 +458,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
     class="GraphNode"
     :style="{
       transform,
-      minWidth: isVisualizationVisible ? `${visualizationWidth}px` : undefined,
+      minWidth: isVisualizationVisible ? `${visualizationWidth ?? 200}px` : undefined,
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
     }"

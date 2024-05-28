@@ -275,7 +275,7 @@ provideVisualizationConfig({
     emit('update:width', value)
   },
   get height() {
-    return rect.value.height
+    return rect.value.height - toolbarHeight.value
   },
   set height(value) {
     emit('update:height', value)
