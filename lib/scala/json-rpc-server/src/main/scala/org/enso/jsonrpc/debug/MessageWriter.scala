@@ -2,7 +2,6 @@ package org.enso.jsonrpc.debug
 
 import akka.actor.{Actor, Props}
 import org.enso.jsonrpc.MessageHandler
-import org.enso.jsonrpc.debug.MessageWriter.TimestampSeparator
 
 import java.io.BufferedWriter
 import java.nio.ByteBuffer
@@ -32,15 +31,15 @@ final class MessageWriter(clock: Clock, writer: BufferedWriter) extends Actor {
 
   private def writeTextEntry(message: String): Unit = {
     writer.write(timestamp)
-    writer.write(TimestampSeparator)
-    writer.write(message)
+    writer.write(MessageWriter.TimestampSeparator)
+    writer.write(MessageWriter.removeNewlines(message))
+    writer.newLine()
   }
 
   private def writeBinaryEntry(message: ByteBuffer): Unit = {
     val bytes  = messageBytes(message)
     val base64 = Base64.getEncoder.encodeToString(bytes)
     writeTextEntry(base64)
-    writer.newLine()
   }
 
   private def timestamp: String =
@@ -63,4 +62,7 @@ object MessageWriter {
       Files.newBufferedWriter(path, StandardCharsets.UTF_8)
     Props(new MessageWriter(clock, writer))
   }
+
+  private def removeNewlines(message: String): String =
+    message.replaceAll(System.lineSeparator(), "")
 }
