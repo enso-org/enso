@@ -2495,6 +2495,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           {!hidden && hiddenContextMenu}
           {!hidden && (
             <SelectionBrush
+              targetRef={rootRef}
               onDrag={onSelectionDrag}
               onDragEnd={onSelectionDragEnd}
               onDragCancel={onSelectionDragCancel}
