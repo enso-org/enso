@@ -11,7 +11,7 @@ import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
 import { computed, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
-  /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
+  /** If true, the visualization should be `overflow: visible` instead of `overflow: auto`. */
   overflow?: boolean
   /** If true, the visualization should display below the node background. */
   belowNode?: boolean
@@ -83,6 +83,13 @@ const nodeShortType = computed(() =>
     qnLastSegment(config.nodeType)
   : UNKNOWN_TYPE,
 )
+
+const contentStyle = computed(() => {
+  return {
+    width: config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
+    height: config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
+  }
+})
 </script>
 
 <template>
@@ -109,12 +116,7 @@ const nodeShortType = computed(() =>
         ref="contentNode"
         class="content scrollable"
         :class="{ overflow: props.overflow }"
-        :style="{
-          width:
-            config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-          height:
-            config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
-        }"
+        :style="contentStyle"
         @wheel.passive="onWheel"
       >
         <slot></slot>
@@ -144,15 +146,13 @@ const nodeShortType = computed(() =>
         <div class="toolbar">
           <SvgButton
             :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
-            :alt="config.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+            :title="config.fullscreen ? 'Exit Fullscreen' : 'Fullscreen'"
             @click.stop.prevent="(config.fullscreen = !config.fullscreen), blur($event)"
           />
           <div class="icon-container">
             <SvgButton
               :name="config.icon ?? 'columns_increasing'"
-              :alt="
-                isSelectorVisible ? 'Hide visualization selector' : 'Show visualization selector'
-              "
+              title="Visualization Selector"
               @click.stop.prevent="
                 (!isSelectorVisible || isTriggeredByKeyboard($event)) &&
                   (isSelectorVisible = !isSelectorVisible)

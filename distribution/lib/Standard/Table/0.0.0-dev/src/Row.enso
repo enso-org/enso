@@ -29,7 +29,7 @@ type Row
        - column: The name or index of the column being looked up.
     @column (self -> Widget_Helpers.make_column_name_selector self.table)
     at : (Integer | Text) -> Any
-    at self column = self.table.at column . at self.index
+    at self (column:(Integer | Text)=0) = self.table.at column . at self.index
 
     ## ICON parse3
        Gets the value of the specified column.
@@ -39,7 +39,7 @@ type Row
        - if_missing: The value to use if the column isn't present.
     @column (self -> Widget_Helpers.make_column_name_selector self.table)
     get : (Integer | Text) -> Any -> Any
-    get self column ~if_missing=Nothing =
+    get self (column:(Integer | Text)=0) ~if_missing=Nothing =
         table_column = self.table.get column
         case table_column of
             Nothing -> if_missing

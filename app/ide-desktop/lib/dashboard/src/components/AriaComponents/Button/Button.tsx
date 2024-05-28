@@ -52,6 +52,8 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
+
+  readonly testId?: string
 }
 
 export const BUTTON_STYLES = twv.tv({
@@ -152,6 +154,7 @@ export const Button = React.forwardRef(function Button(
     fullWidth,
     rounded,
     tooltip,
+    testId,
     onPress = () => {},
     ...ariaProps
   } = props
@@ -163,7 +166,9 @@ export const Button = React.forwardRef(function Button(
 
   const Tag = isLink ? aria.Link : aria.Button
 
-  const goodDefaults = isLink ? { rel: 'noopener noreferrer' } : { type: 'button' }
+  const goodDefaults = isLink
+    ? { rel: 'noopener noreferrer', 'data-testid': testId ?? 'link' }
+    : { type: 'button', 'data-testid': testId ?? 'button' }
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
   const shouldShowTooltip = isIconOnly && tooltip !== false
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null

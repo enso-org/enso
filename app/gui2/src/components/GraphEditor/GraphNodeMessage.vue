@@ -69,12 +69,12 @@ export const colorForMessageType: Record<MessageType, string> = {
   position: relative;
   z-index: 1;
 
-  & > .button:hover {
+  & > .SvgButton:hover {
     background-color: color-mix(in oklab, black, transparent 90%);
     color: color-mix(in oklab, var(--color-text-inversed), transparent 20%);
   }
 
-  & > .button:active {
+  & > .SvgButton:active {
     background-color: color-mix(in oklab, black, transparent 70%);
   }
 }

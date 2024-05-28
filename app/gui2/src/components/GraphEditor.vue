@@ -22,7 +22,7 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PlusButton from '@/components/PlusButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -32,10 +32,10 @@ import {
   useEvent,
   useResizeObserver,
 } from '@/composables/events'
-import { useNavigatorStorage } from '@/composables/navigatorStorage'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
+import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
@@ -43,11 +43,12 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { provideGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
-import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { provideProjectStore } from '@/stores/project'
+import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
+import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
@@ -56,63 +57,124 @@ import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { computedFallback } from '@/util/reactivity'
+import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import { computed, onMounted, ref, shallowRef, toRef, watch, watchEffect } from 'vue'
+import { isDevMode } from 'shared/util/detect'
+import { computed, onMounted, onUnmounted, ref, shallowRef, toRaw, toRef, watch } from 'vue'
 
 const keyboard = provideKeyboard()
-const graphStore = useGraphStore()
+const projectStore = provideProjectStore()
+const suggestionDb = provideSuggestionDbStore(projectStore)
+const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
+const _visualizationStore = provideVisualizationStore(projectStore)
+
 widgetRegistry.loadBuiltins()
-const projectStore = useProjectStore()
-const suggestionDb = useSuggestionDbStore()
+
+onMounted(() => {
+  if (isDevMode) {
+    ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
+  }
+})
+onUnmounted(() => {
+  projectStore.disposeYDocsProvider()
+})
 
 // === Navigator ===
 
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
 const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
-useNavigatorStorage(
-  graphNavigator,
-  (enc) => {
-    // Navigator viewport needs to be stored separately for:
+
+// === Client saved state ===
+
+const storedShowDocumentationEditor = ref()
+const rightDockWidth = ref<number>()
+
+/**
+ * JSON serializable representation of graph state saved in localStorage. The names of fields here
+ * are kept relatively short, because it will be common to store hundreds of them within one big
+ * JSON object, and serialize it quite often whenever the state is modified. Shorter keys end up
+ * costing less localStorage space and slightly reduce serialization overhead.
+ */
+interface GraphStoredState {
+  /** Navigator position X */
+  x: number
+  /** Navigator position Y */
+  y: number
+  /** Navigator scale */
+  s: number
+  /** Whether or not the documentation panel is open. */
+  doc: boolean
+  /** Width of the right dock. */
+  rwidth: number | null
+}
+
+const visibleAreasReady = computed(() => {
+  const nodesCount = graphStore.db.nodeIdToNode.size
+  const visibleNodeAreas = graphStore.visibleNodeAreas
+  return nodesCount > 0 && visibleNodeAreas.length == nodesCount
+})
+
+useSyncLocalStorage<GraphStoredState>({
+  storageKey: 'enso-graph-state',
+  mapKeyEncoder: (enc) => {
+    // Client graph state needs to be stored separately for:
     // - each project
     // - each function within the project
     encoding.writeVarString(enc, projectStore.name)
     const methodPtr = graphStore.currentMethodPointer()
     if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
   },
-  waitInitializationAndPanToAll,
-)
-
-let stopInitialization: (() => void) | undefined
-function waitInitializationAndPanToAll() {
-  stopInitialization?.()
-  stopInitialization = watchEffect(() => {
-    const nodesCount = graphStore.db.nodeIdToNode.size
-    const visibleNodeAreas = graphStore.visibleNodeAreas
-    if (nodesCount > 0 && visibleNodeAreas.length == nodesCount) {
-      zoomToSelected(true)
-      stopInitialization?.()
-      stopInitialization = undefined
+  debounce: 200,
+  captureState() {
+    return {
+      x: graphNavigator.targetCenter.x,
+      y: graphNavigator.targetCenter.y,
+      s: graphNavigator.targetScale,
+      doc: storedShowDocumentationEditor.value,
+      rwidth: rightDockWidth.value ?? null,
     }
-  })
-}
+  },
+  async restoreState(restored, abort) {
+    if (restored) {
+      const pos = new Vec2(restored.x ?? 0, restored.y ?? 0)
+      const scale = restored.s ?? 1
+      graphNavigator.setCenterAndScale(pos, scale)
+      storedShowDocumentationEditor.value = restored.doc ?? undefined
+      rightDockWidth.value = restored.rwidth ?? undefined
+    } else {
+      await until(visibleAreasReady).toBe(true)
+      if (!abort.aborted) zoomToAll(true)
+    }
+  },
+})
 
-function selectionBounds() {
-  if (!viewportNode.value) return
-  const selected = nodeSelection.selected
-  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+function nodesBounds(nodeIds: Iterable<NodeId>) {
   let bounds = Rect.Bounding()
-  for (const id of nodesToCenter) {
+  for (const id of nodeIds) {
     const rect = graphStore.visibleArea(id)
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
   if (bounds.isFinite()) return bounds
 }
 
+function selectionBounds() {
+  const selected = nodeSelection.selected
+  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+  return nodesBounds(nodesToCenter)
+}
+
 function zoomToSelected(skipAnimation: boolean = false) {
   const bounds = selectionBounds()
+  if (bounds)
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
+}
+
+function zoomToAll(skipAnimation: boolean = false) {
+  const bounds = nodesBounds(graphStore.db.nodeIdToNode.keys())
   if (bounds)
     graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
@@ -125,11 +187,11 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = useStackNavigator()
+const stackNavigator = useStackNavigator(projectStore, graphStore)
 
 // === Toasts ===
 
-const toasts = useGraphEditorToasts()
+const toasts = useGraphEditorToasts(projectStore)
 
 // === Selection ===
 
@@ -160,6 +222,7 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
 )
 
 const { createNode, createNodes, placeNode } = provideNodeCreation(
+  graphStore,
   toRef(graphNavigator, 'viewport'),
   toRef(graphNavigator, 'sceneMousePos'),
   (nodes) => {
@@ -172,6 +235,7 @@ const { createNode, createNodes, placeNode } = provideNodeCreation(
 // === Clipboard Copy/Paste ===
 
 const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
+  graphStore,
   toRef(nodeSelection, 'selected'),
   createNodes,
 )
@@ -307,7 +371,11 @@ const codeEditorHandler = codeEditorBindings.handler({
 // === Documentation Editor ===
 
 const documentationEditorArea = ref<HTMLElement>()
-const showDocumentationEditor = ref(false)
+const showDocumentationEditor = computedFallback(
+  storedShowDocumentationEditor,
+  // Show documenation editor when documentation exists on first graph visit.
+  () => !!documentation.value,
+)
 
 const documentationEditorHandler = documentationEditorBindings.handler({
   toggle() {
@@ -317,12 +385,13 @@ const documentationEditorHandler = documentationEditorBindings.handler({
 
 const rightDockComputedSize = useResizeObserver(documentationEditorArea)
 const rightDockComputedBounds = computed(() => new Rect(Vec2.Zero, rightDockComputedSize.value))
-const rightDockWidth = ref<number>()
 const cssRightDockWidth = computed(() =>
   rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
 )
 
-const { documentation } = useAstDocumentation(() => unwrapOr(graphStore.methodAst, undefined))
+const { documentation } = useAstDocumentation(graphStore, () =>
+  unwrapOr(graphStore.methodAst, undefined),
+)
 
 // === Execution Mode ===
 
@@ -553,13 +622,13 @@ async function handleFileDrop(event: DragEvent) {
 
 // === Color Picker ===
 
-provideNodeColors((variable) =>
+provideNodeColors(graphStore, (variable) =>
   viewportNode.value ? getComputedStyle(viewportNode.value).getPropertyValue(variable) : '',
 )
 
 const showColorPicker = ref(false)
 
-function setSelectedNodesColor(color: string) {
+function setSelectedNodesColor(color: string | undefined) {
   graphStore.transact(() =>
     nodeSelection.selected.forEach((id) => graphStore.overrideNodeColor(id, color)),
   )
@@ -611,7 +680,7 @@ const groupColors = computed(() => {
         <div class="scrollArea">
           <MarkdownEditor v-model="documentation" />
         </div>
-        <SvgIcon
+        <SvgButton
           name="close"
           class="closeButton button"
           @click.stop="showDocumentationEditor = false"
@@ -652,7 +721,7 @@ const groupColors = computed(() => {
       @collapseNodes="collapseNodes"
       @removeNodes="deleteSelected"
     />
-    <PlusButton @click.stop="addNodeAuto()" />
+    <PlusButton title="Add Component" @click.stop="addNodeAuto()" />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
@@ -676,13 +745,13 @@ const groupColors = computed(() => {
   border-radius: 7px 0 0;
   background-color: rgba(255, 255, 255, 0.35);
   backdrop-filter: var(--blur-app-bg);
-  padding: 4px 12px 0 6px;
-  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
-  overflow-x: clip;
+  padding: 4px 12px 0 0;
 }
 .rightDock-enter-active,
 .rightDock-leave-active {
   transition: left 0.25s ease;
+  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
+  overflow-x: clip;
 }
 .rightDock-enter-from,
 .rightDock-leave-to {
@@ -692,6 +761,7 @@ const groupColors = computed(() => {
   width: 100%;
   height: 100%;
   overflow-y: auto;
+  padding-left: 6px;
 }
 
 .rightDock .closeButton {

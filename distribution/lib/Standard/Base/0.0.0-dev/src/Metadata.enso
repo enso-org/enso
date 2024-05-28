@@ -76,7 +76,7 @@ type Widget
     Folder_Browse label:(Nothing | Text)=Nothing display:Display=Display.When_Modified
 
     ## Describes a file chooser.
-    File_Browse label:(Nothing | Text)=Nothing display:Display=Display.When_Modified action:File_Action=File_Action.Open file_types:(Vector Pair)=[Pair.new "All Files" "*.*"]
+    File_Browse existing_only:Boolean=True label:(Nothing | Text)=Nothing display:Display=Display.When_Modified action:File_Action=File_Action.Open file_types:(Vector Pair)=[Pair.new "All Files" "*.*"]
 
 ## PRIVATE
 make_single_choice : Vector -> Display -> Widget

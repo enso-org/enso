@@ -667,6 +667,7 @@
 - [Added ability to save an existing Postgres connection as a Data Link in Enso
   Cloud.][9957]
 - [Improved `Table.union`.][9968]
+- [Add `day_of_week` and `day_of_year` to `Column`.][10081]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -980,6 +981,7 @@
 [9879]: https://github.com/enso-org/enso/pull/9879
 [9957]: https://github.com/enso-org/enso/pull/9957
 [9968]: https://github.com/enso-org/enso/pull/9968
+[10081]: https://github.com/enso-org/enso/pull/10081
 
 #### Enso Compiler
 

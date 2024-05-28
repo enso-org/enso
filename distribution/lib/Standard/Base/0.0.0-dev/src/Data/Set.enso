@@ -109,7 +109,7 @@ type Set
         Set.Value new_map
 
     ## GROUP Calculations
-       ICON dataframes_union
+       ICON union
        Creates a union of the two sets.
     union : Set -> Set
     union self (other : Set) =

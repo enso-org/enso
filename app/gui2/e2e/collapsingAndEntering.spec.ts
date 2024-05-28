@@ -79,7 +79,7 @@ test('Collapsing nodes', async ({ page }) => {
     .locator('.icon')
     .click({ modifiers: ['Shift'] })
 
-  await page.getByAltText('Group components').click()
+  await page.getByTitle('Group Selected Components').click()
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
   const collapsedNode = locate.graphNodeByBinding(page, 'prod')
   await expect(collapsedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'collapsed', 'five'])

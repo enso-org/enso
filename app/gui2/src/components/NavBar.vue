@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import NavBreadcrumbs, { type BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from './SvgButton.vue'
 
 const props = defineProps<{
   breadcrumbs: BreadcrumbItem[]
@@ -14,18 +15,16 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
   <div class="NavBar">
     <SvgIcon name="graph_editor" draggable="false" />
     <div class="breadcrumbs-controls">
-      <SvgIcon
+      <SvgButton
         name="arrow_left"
-        draggable="false"
-        class="icon button"
-        :class="{ inactive: !props.allowNavigationLeft }"
+        :disabled="!props.allowNavigationLeft"
+        title="Back"
         @click.stop="emit('back')"
       />
-      <SvgIcon
+      <SvgButton
         name="arrow_right"
-        draggable="false"
-        class="icon button"
-        :class="{ inactive: !props.allowNavigationRight }"
+        :disabled="!props.allowNavigationRight"
+        title="Forward"
         @click.stop="emit('forward')"
       />
     </div>
@@ -49,10 +48,6 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
 
   > .breadcrumbs-controls {
     display: flex;
-  }
-
-  & .inactive {
-    opacity: 0.4;
   }
 }
 </style>
