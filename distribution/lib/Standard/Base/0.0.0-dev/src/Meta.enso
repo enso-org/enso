@@ -209,7 +209,7 @@ type Unresolved_Symbol
        - new_name: The new name for the unresolved symbol.
     rename : Text -> Any
     rename self new_name =
-        create_unresolved_symbol new_name self.scope
+        create_unresolved_symbol new_name self.value
 
     ## ADVANCED
        GROUP Metadata
@@ -218,14 +218,6 @@ type Unresolved_Symbol
        Returns the name of an unresolved symbol.
     name : Text
     name self = get_unresolved_symbol_name self.value
-
-    ## ADVANCED
-       GROUP Metadata
-       ICON metadata
-
-       Returns the definition scope of an unresolved symbol.
-    scope : Any
-    scope self = get_unresolved_symbol_scope self.value
 
     ## ADVANCED
        GROUP Metadata
@@ -348,7 +340,7 @@ get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
 
    Arguments:
    - name: The name of the unresolved symbol.
-   - scope: The scope in which the symbol name is unresolved.
+   - symbol: The unresolved symbol from which to get the scope.
 create_unresolved_symbol : Text -> Any -> Unresolved_Symbol
 create_unresolved_symbol name scope = @Builtin_Method "Meta.create_unresolved_symbol"
 
@@ -360,15 +352,6 @@ create_unresolved_symbol name scope = @Builtin_Method "Meta.create_unresolved_sy
    - symbol: The unresolved symbol from which to get the name.
 get_unresolved_symbol_name : Unresolved_Symbol -> Text
 get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
-
-## PRIVATE
-
-   Obtains the scope in which the provided unresolved symbol was created.
-
-   Arguments:
-   - symbol: The unresolved symbol from which to get the scope.
-get_unresolved_symbol_scope : Unresolved_Symbol -> Any
-get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
 
 ## PRIVATE
 
