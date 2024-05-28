@@ -114,7 +114,7 @@ export default function Settings() {
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
-          <aria.Popover UNSTABLE_portalContainer={root.current}>
+          <aria.Popover UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu
               isUserInOrganization={isUserInOrganization}

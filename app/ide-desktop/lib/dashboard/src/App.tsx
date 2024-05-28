@@ -234,9 +234,6 @@ function AppRouter(props: AppRouterProps) {
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
-  const [root] = React.useState<React.RefObject<HTMLElement>>(() => ({
-    current: document.getElementById('enso-dashboard'),
-  }))
 
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
@@ -487,10 +484,6 @@ function AppRouter(props: AppRouterProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-  result = (
-    <rootComponent.Root rootRef={root} navigate={navigate}>
-      {result}
-    </rootComponent.Root>
-  )
+  result = <rootComponent.Root navigate={navigate}>{result}</rootComponent.Root>
   return result
 }

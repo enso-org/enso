@@ -111,7 +111,7 @@ export function Dialog(props: types.DialogProps) {
       className={OVERLAY_STYLES}
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-      UNSTABLE_portalContainer={root.current}
+      UNSTABLE_portalContainer={root}
       onOpenChange={onOpenChange}
       shouldCloseOnInteractOutside={() => false}
       {...modalProps}
@@ -124,7 +124,7 @@ export function Dialog(props: types.DialogProps) {
             className={MODAL_STYLES}
             isDismissable={isDismissable}
             isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-            UNSTABLE_portalContainer={root.current}
+            UNSTABLE_portalContainer={root}
             onOpenChange={onOpenChange}
             shouldCloseOnInteractOutside={() => false}
             {...modalProps}
