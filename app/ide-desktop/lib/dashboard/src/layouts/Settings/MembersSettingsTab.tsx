@@ -24,7 +24,7 @@ const LIST_USERS_STALE_TIME = 60_000
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsTab() {
   const { getText } = textProvider.useText()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
 
   const [{ data: members }, { data: invitations }] = reactQuery.useSuspenseQueries({
     queries: [

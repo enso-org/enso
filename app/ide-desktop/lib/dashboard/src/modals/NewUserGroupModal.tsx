@@ -34,7 +34,7 @@ export interface NewUserGroupModalProps {
 export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   const { userGroups: userGroupsRaw, onSubmit: onSubmitRaw, onSuccess, onFailure } = props
   const { event: positionEvent } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

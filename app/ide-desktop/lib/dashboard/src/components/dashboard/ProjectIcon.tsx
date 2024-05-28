@@ -83,7 +83,7 @@ export interface ProjectIconProps {
 export default function ProjectIcon(props: ProjectIconProps) {
   const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
   const { doCloseEditor, doOpenEditor } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()

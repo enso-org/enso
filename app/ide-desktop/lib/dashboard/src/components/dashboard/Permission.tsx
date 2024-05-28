@@ -48,7 +48,7 @@ export interface PermissionProps {
 export default function Permission(props: PermissionProps) {
   const { asset, self, isOnlyOwner, doDelete } = props
   const { permission: initialPermission, setPermission: outerSetPermission } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [permission, setPermission] = React.useState(initialPermission)

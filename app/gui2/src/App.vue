@@ -1,46 +1,74 @@
 <script setup lang="ts">
 import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
+import { provideEventLogger } from '@/providers/eventLogging'
 import { provideGuiConfig } from '@/providers/guiConfig'
-import { useProjectStore } from '@/stores/project'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { registerAutoBlurHandler } from '@/util/autoBlur'
-import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
+import {
+  baseConfig,
+  configValue,
+  mergeConfig,
+  type ApplicationConfigValue,
+  type StringConfig,
+} from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
-import { isDevMode } from 'shared/util/detect'
-import { computed, onMounted, onUnmounted, toRaw } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import { computed, toRef, watch } from 'vue'
+import { initializePrefixes } from './util/ast/node'
+import { urlParams } from './util/urlParams'
 
 const props = defineProps<{
-  config: ApplicationConfig
-  accessToken: string | null
-  unrecognizedOptions: string[]
+  config: StringConfig
+  projectId: string
+  logEvent: LogEvent
+  hidden: boolean
+  ignoreParamsRegex?: RegExp
 }>()
 
 const classSet = provideAppClassSet()
 
-provideGuiConfig(computed((): ApplicationConfigValue => configValue(props.config)))
+initializePrefixes()
 
-registerAutoBlurHandler()
+const logger = provideEventLogger(toRef(props, 'logEvent'), toRef(props, 'projectId'))
+watch(
+  toRef(props, 'projectId'),
+  (_id, _oldId, onCleanup) => {
+    logger.send('ide_project_opened')
+    onCleanup(() => logger.send('ide_project_closed'))
+  },
+  { immediate: true },
+)
 
-// Initialize suggestion db immediately, so it will be ready when user needs it.
-onMounted(() => {
-  const suggestionDb = useSuggestionDbStore()
-  if (isDevMode) {
-    ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
+useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed'))
+
+const appConfig = computed(() => {
+  const unrecognizedOptions: string[] = []
+  const intermediateConfig = mergeConfig(
+    baseConfig,
+    urlParams({ ignoreKeysRegExp: props.ignoreParamsRegex }),
+    {
+      onUnrecognizedOption: (p) => unrecognizedOptions.push(p.join('.')),
+    },
+  )
+  return {
+    unrecognizedOptions,
+    config: mergeConfig(intermediateConfig, props.config ?? {}),
   }
 })
-onUnmounted(() => {
-  useProjectStore().disposeYDocsProvider()
-})
+
+provideGuiConfig(computed((): ApplicationConfigValue => configValue(appConfig.value.config)))
+
+registerAutoBlurHandler()
 </script>
 
 <template>
   <HelpScreen
-    v-if="unrecognizedOptions.length"
-    :unrecognizedOptions="props.unrecognizedOptions"
-    :config="props.config"
+    v-if="appConfig.unrecognizedOptions.length"
+    v-show="!props.hidden"
+    :unrecognizedOptions="appConfig.unrecognizedOptions"
+    :config="appConfig.config"
   />
-  <ProjectView v-else class="App" :class="[...classSet.keys()]" />
+  <ProjectView v-else v-show="!props.hidden" class="App" :class="[...classSet.keys()]" />
 </template>
 
 <style scoped>
@@ -48,11 +76,19 @@ onUnmounted(() => {
   flex: 1;
   color: var(--color-text);
   font-family: var(--font-sans);
+  font-weight: 500;
   font-size: 11.5px;
   font-weight: 500;
   line-height: 20px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  pointer-events: all;
+  cursor: default;
+}
+
+.enso-dashboard .App {
+  /* Compensate for top bar, render the app below it. */
+  margin-top: calc(0px - var(--row-height) - var(--top-level-gap) - var(--top-bar-margin));
 }
 </style>

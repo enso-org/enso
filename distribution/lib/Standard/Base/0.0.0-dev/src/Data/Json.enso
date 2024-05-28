@@ -217,7 +217,7 @@ type JS_Object
     field_names : Vector
     field_names self = self.field_array
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Maps a function over each value in this object
 
        Arguments:
@@ -228,7 +228,7 @@ type JS_Object
         kv_func = _ -> function
         self.map_with_key kv_func
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Maps a function over each field-value pair in the object.
 
        Arguments:

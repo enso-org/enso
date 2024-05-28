@@ -27,7 +27,7 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
 export function SetOrganizationNameModal() {
   const { getText } = textProvider.useText()
 
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { session } = authProvider.useAuth()
 
   const userId = session && 'user' in session && session.user?.userId ? session.user.userId : null

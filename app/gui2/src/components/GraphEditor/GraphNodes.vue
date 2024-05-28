@@ -20,7 +20,7 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
-  setNodeColor: [color: string]
+  setNodeColor: [color: string | undefined]
 }>()
 
 const projectStore = useProjectStore()
