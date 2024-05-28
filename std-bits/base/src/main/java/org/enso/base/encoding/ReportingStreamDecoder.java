@@ -12,7 +12,8 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import org.graalvm.polyglot.Context;
 
 /**
  * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
@@ -25,13 +26,23 @@ import java.util.stream.Collectors;
  * then return a bulk report of places where the issues have been encountered.
  */
 public class ReportingStreamDecoder extends Reader {
-  public ReportingStreamDecoder(InputStream stream, CharsetDecoder decoder) {
+  public ReportingStreamDecoder(InputStream stream, CharsetDecoder decoder, boolean pollSafepoints) {
     bufferedInputStream = new BufferedInputStream(stream);
     this.decoder = decoder;
+    this.pollSafepoints = pollSafepoints;
   }
 
   private final BufferedInputStream bufferedInputStream;
   private final CharsetDecoder decoder;
+
+
+  /**
+   * Currently there is no easy way to check if a Context is available in the current thread and we can use safepoints or not.
+   * The issue tracking this feature can be found at: <a href="https://github.com/oracle/graal/issues/6931">oracle/graal#6931</a>.
+   * For the time being we just manually let the user consciously choose if safepoints shall be enabled or not, based on
+   * the user's knowledge if the thread running the decoding will run on the main thread or in the background.
+   */
+  private final boolean pollSafepoints;
 
   /**
    * The buffer keeping any characters that have already been decoded, but not consumed by the user
@@ -83,7 +94,9 @@ public class ReportingStreamDecoder extends Reader {
    *
    * <p>Used for reporting warnings.
    */
-  List<Integer> encodingIssuePositions = new ArrayList<>();
+  private final List<Integer> encodingIssuePositions = new ArrayList<>(MAX_ENCODING_ISSUE_EXAMPLES);
+  private int encodingIssueCount = 0;
+  private static final int MAX_ENCODING_ISSUE_EXAMPLES = 3;
 
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
@@ -197,6 +210,8 @@ public class ReportingStreamDecoder extends Reader {
    * <p>After this call, the output buffer is in reading mode.
    */
   private void runDecoderOnInputBuffer() {
+    Context context = pollSafepoints ? Context.getCurrent() : null;
+
     while (inputBuffer.hasRemaining() || (eof && !hadEofDecodeCall)) {
       CoderResult cr = decoder.decode(inputBuffer, outputBuffer, eof);
       if (eof) {
@@ -217,14 +232,9 @@ public class ReportingStreamDecoder extends Reader {
         growOutputBuffer();
       }
 
-      /*
-       We cannot have a safepoint here, because `read` is called from a separate Thread by the `CsvParser` where
-       there is no context to get. On this separate thread there is no reason to have a safepoint anyway.
-       Ideally, we should be able to check if a context is available and poll safepoints only if it is. The issue
-       tracking this feature can be found at: https://github.com/oracle/graal/issues/6931
-       For now, we just disable safepoints in this method - it is not run directly from Enso code anyway. But we may
-       need to revisit this in the future.
-      */
+      if (pollSafepoints) {
+        context.safepoint();
+      }
     }
 
     if (eof) {
@@ -242,7 +252,11 @@ public class ReportingStreamDecoder extends Reader {
   }
 
   private void reportEncodingProblem() {
-    encodingIssuePositions.add(getCurrentInputPosition());
+    if (encodingIssuePositions.size() < MAX_ENCODING_ISSUE_EXAMPLES) {
+      encodingIssuePositions.add(getCurrentInputPosition());
+    }
+
+    encodingIssueCount++;
   }
 
   /**
@@ -306,19 +320,11 @@ public class ReportingStreamDecoder extends Reader {
   }
 
   /** Returns a list of problems encountered during the decoding. */
-  public List<String> getReportedProblems() {
-    if (encodingIssuePositions.isEmpty()) {
+  public List<DecodingProblem> getReportedProblems() {
+    if (encodingIssueCount == 0) {
       return List.of();
     } else {
-      if (encodingIssuePositions.size() == 1) {
-        return List.of("Encoding issues at byte " + encodingIssuePositions.get(0) + ".");
-      }
-
-      String issues =
-          encodingIssuePositions.stream()
-              .map(String::valueOf)
-              .collect(Collectors.joining(", ", "Encoding issues at bytes ", "."));
-      return List.of(issues);
+      return List.of(new DecodingProblem(encodingIssueCount, encodingIssuePositions));
     }
   }
 }

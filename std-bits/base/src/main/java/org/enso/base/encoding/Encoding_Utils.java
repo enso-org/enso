@@ -162,15 +162,21 @@ public class Encoding_Utils {
     return new ResultWithWarnings<>(out.toString(), warnings.toString());
   }
 
-  /** Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset. */
-  private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset) {
+  /** Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset.
+   *
+   * @param stream the input stream to decode
+   * @param charset the character set to use for decoding
+   * @param pollSafepoints whether to poll for safepoints during decoding.
+   *                       This should be true if the decoding will run on the main thread, and false otherwise.
+   */
+  private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset, boolean pollSafepoints) {
     CharsetDecoder decoder =
         charset
             .newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
             .reset();
-    return new ReportingStreamDecoder(stream, decoder);
+    return new ReportingStreamDecoder(stream, decoder, pollSafepoints);
   }
 
   /**
@@ -179,11 +185,11 @@ public class Encoding_Utils {
    * <p>It returns the result returned from the executed action and any encoding problems that
    * occurred when processing it.
    */
-  public static WithProblems<Value, String> with_stream_decoder(
+  public static WithProblems<Value, DecodingProblem> with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, Value> action)
       throws IOException {
     Value result;
-    ReportingStreamDecoder decoder = create_stream_decoder(stream, charset);
+    ReportingStreamDecoder decoder = create_stream_decoder(stream, charset, false);
     try (decoder) {
       result = action.apply(decoder);
     }
