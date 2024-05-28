@@ -32,6 +32,10 @@ public class ReportingStreamDecoder extends Reader {
     this.pollSafepoints = pollSafepoints;
   }
 
+  float averageCharsPerByte() {
+    return decoder.averageCharsPerByte();
+  }
+
   private final BufferedInputStream bufferedInputStream;
   private final CharsetDecoder decoder;
 
@@ -140,7 +144,7 @@ public class ReportingStreamDecoder extends Reader {
     outputBuffer.get(cbuf, off, toTransfer);
     readBytes += toTransfer;
 
-    // If we did not read any new bytes in the call that reachedn EOF, we return EOF immediately
+    // If we did not read any new bytes in the call that reached EOF, we return EOF immediately
     // instead of postponing to the next call. Returning 0 at the end was causing division by zero
     // in the CSV parser.
     return (eof && readBytes <= 0) ? -1 : readBytes;

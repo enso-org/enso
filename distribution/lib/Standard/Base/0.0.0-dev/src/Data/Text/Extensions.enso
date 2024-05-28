@@ -45,11 +45,11 @@ polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.encoding.Encoding_Utils
-polyglot java import org.enso.base.Regex_Utils
-polyglot java import org.enso.base.text.GraphemeSpan
-polyglot java import org.enso.base.text.ResultWithWarnings
-polyglot java import org.enso.base.text.Utf16Span
 polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.WithProblems
+polyglot java import org.enso.base.text.GraphemeSpan
+polyglot java import org.enso.base.text.Utf16Span
 
 ## GROUP Text
    ICON text
@@ -762,9 +762,11 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
-    result = Encoding_Utils.from_bytes bytes (encoding . to_java_charset) : ResultWithWarnings
-    if result.warnings.is_nothing then result.result else
-        on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
+    result = Encoding_Utils.from_bytes bytes (encoding . to_java_charset) : WithProblems
+    if result.problems.is_empty then result.result else
+        problems = result.problems.map decoding_problem->
+            Encoding_Error.Error decoding_problem.getMessage
+        on_problems.attach_problems_after result.result problems
 
 ## ICON convert
    Returns a vector containing bytes representing the UTF-8 encoding of the

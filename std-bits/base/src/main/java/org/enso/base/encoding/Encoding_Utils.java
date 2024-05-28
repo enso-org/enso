@@ -1,5 +1,6 @@
 package org.enso.base.encoding;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,6 +13,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -100,66 +102,32 @@ public class Encoding_Utils {
    *
    * @param bytes the bytes to convert
    * @param charset the character set to use to decode the bytes
-   * @return the resulting string
+   * @return the resulting string, and any potential problems
    */
-  public static ResultWithWarnings<String> from_bytes(byte[] bytes, Charset charset) {
+  public static WithProblems<String, DecodingProblem> from_bytes(byte[] bytes, Charset charset) {
     if (bytes == null || bytes.length == 0) {
-      return new ResultWithWarnings<>("");
+      return new WithProblems<>("", List.of());
     }
 
-    Context context = Context.getCurrent();
+    ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+    ReportingStreamDecoder decoder = create_stream_decoder(inputStream, charset, true);
 
-    CharsetDecoder decoder =
-        charset
-            .newDecoder()
-            .onMalformedInput(CodingErrorAction.REPORT)
-            .onUnmappableCharacter(CodingErrorAction.REPORT)
-            .reset();
-
-    ByteBuffer in = ByteBuffer.wrap(bytes);
     CharBuffer out = CharBuffer.allocate((int) (bytes.length * decoder.averageCharsPerByte()));
-
-    StringBuilder warnings = null;
-    while (in.hasRemaining()) {
-      CoderResult cr = decoder.decode(in, out, true);
-      if (cr.isMalformed() || cr.isUnmappable()) {
-        // Get current position for error reporting
-        int position = in.position();
-
-        if (out.remaining() < INVALID_CHARACTER.length()) {
+    try {
+      int n;
+      do {
+        if (!out.hasRemaining()) {
           out = resize(out, CharBuffer::allocate, CharBuffer::put);
         }
-        out.put(INVALID_CHARACTER);
-        in.position(in.position() + cr.length());
-
-        if (warnings == null) {
-          warnings = new StringBuilder();
-          warnings.append("Encoding issues at ");
-        } else {
-          warnings.append(", ");
-        }
-        warnings.append(position);
-      } else if (cr.isUnderflow()) {
-        // Finished
-        while (decoder.flush(out) == CoderResult.OVERFLOW) {
-          out = resize(out, CharBuffer::allocate, CharBuffer::put);
-        }
-        break;
-      } else if (cr.isOverflow()) {
-        out = resize(out, CharBuffer::allocate, CharBuffer::put);
-      }
-
-      context.safepoint();
+        // read is already polling safepoints so we don't have to
+        n = decoder.read(out);
+      } while (n > 0);
+    } catch (IOException e) {
+      throw new IllegalStateException("Unexpected exception: " + e.getMessage(), e);
     }
 
     out.flip();
-
-    if (warnings == null) {
-      return new ResultWithWarnings<>(out.toString());
-    }
-
-    warnings.append(".");
-    return new ResultWithWarnings<>(out.toString(), warnings.toString());
+    return new WithProblems<>(out.toString(), decoder.getReportedProblems());
   }
 
   /** Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset.
