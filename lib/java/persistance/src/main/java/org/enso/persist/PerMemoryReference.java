@@ -1,6 +1,7 @@
 package org.enso.persist;
 
-final class PerMemoryReference<T> extends Persistance.Reference<T> {
+sealed class PerMemoryReference<T> extends Persistance.Reference<T>
+    permits PerMemoryReference.Deferred {
   static final Persistance.Reference<?> NULL = new PerMemoryReference<>(null);
   private final T value;
 
@@ -10,5 +11,11 @@ final class PerMemoryReference<T> extends Persistance.Reference<T> {
 
   final T value() {
     return value;
+  }
+
+  static final class Deferred<T> extends PerMemoryReference<T> {
+    Deferred(T obj) {
+      super(obj);
+    }
   }
 }
