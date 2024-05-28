@@ -505,13 +505,13 @@ public class ErrorCompilerTest extends CompilerTest {
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 14);
   }
 
-  // Conversion methods cannot be specified as private
+  // Foreign functions cannot be specified as private.
   @Test
-  public void illegalPrivateConversion() throws Exception {
-    var ir = parse("""
-        type My_Type
-        type Other_Type
-        private My_Type.from (other:Other_Type) = 42
+  public void illegalPrivateForeignFunction() throws Exception {
+    var ir =
+        parse("""
+        private foreign js js_func = \"\"\"
+            return 42;
         """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 29, 73);
