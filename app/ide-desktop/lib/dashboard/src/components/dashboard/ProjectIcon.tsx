@@ -131,6 +131,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
 
   const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
+  const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
   const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
 
   const openProject = React.useCallback(
@@ -327,9 +328,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         ) {
           // Projects that are not opened cannot be closed.
           // This is the only way to wait until the project is open.
-          await backend.openProject(item.id, null, item.title)
+          await openProjectMutation.mutateAsync([item.id, null, item.title])
         }
-        await backend.closeProject(item.id, item.title)
+        await closeProjectMutation.mutateAsync([item.id, item.title])
       } catch {
         // Ignored.
       }

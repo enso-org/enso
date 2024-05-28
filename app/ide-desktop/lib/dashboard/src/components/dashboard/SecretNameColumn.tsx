@@ -5,6 +5,7 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import KeyIcon from 'enso-assets/key.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -49,6 +50,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
   const asset = item.item
+
+  const createSecretMutation = backendHooks.useBackendMutation(backend, 'createSecret')
+  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -96,11 +100,13 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             } else {
               rowState.setVisibility(Visibility.faded)
               try {
-                const id = await backend.createSecret({
-                  parentDirectoryId: asset.parentId,
-                  name: asset.title,
-                  value: event.value,
-                })
+                const id = await createSecretMutation.mutateAsync([
+                  {
+                    parentDirectoryId: asset.parentId,
+                    name: asset.title,
+                    value: event.value,
+                  },
+                ])
                 rowState.setVisibility(Visibility.visible)
                 setAsset(object.merger({ id }))
               } catch (error) {
@@ -149,7 +155,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
               name={asset.title}
               doCreate={async (_name, value) => {
                 try {
-                  await backend.updateSecret(asset.id, { value }, asset.title)
+                  await updateSecretMutation.mutateAsync([asset.id, { value }, asset.title])
                 } catch (error) {
                   toastAndLog(null, error)
                 }

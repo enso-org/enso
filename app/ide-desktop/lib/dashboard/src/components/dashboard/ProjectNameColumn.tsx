@@ -5,6 +5,7 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -77,6 +78,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const isOtherUserUsingProject =
     isCloud && projectState.openedBy != null && projectState.openedBy !== user?.email
 
+  const createProjectMutation = backendHooks.useBackendMutation(backend, 'createProject')
+  const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
+  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
+
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
       setRowState(object.merger({ isEditingName }))
@@ -92,11 +98,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await backend.updateProject(
+        await updateProjectMutation.mutateAsync([
           asset.id,
           { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
-          asset.title
-        )
+          asset.title,
+        ])
       } catch (error) {
         toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
@@ -140,12 +146,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           if (asset.id === event.placeholderId) {
             rowState.setVisibility(Visibility.faded)
             try {
-              const createdProject = await backend.createProject({
-                parentDirectoryId: asset.parentId,
-                projectName: asset.title,
-                ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
-                ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
-              })
+              const createdProject = await createProjectMutation.mutateAsync([
+                {
+                  parentDirectoryId: asset.parentId,
+                  projectName: asset.title,
+                  ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
+                  ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
+                },
+              ])
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {
@@ -204,18 +212,18 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   id = await response.text()
                 }
                 const projectId = localBackend.newProjectId(projectManager.UUID(id))
-                const listedProject = await backend.getProjectDetails(
+                const listedProject = await getProjectDetailsMutation.mutateAsync([
                   projectId,
                   asset.parentId,
-                  file.name
-                )
+                  file.name,
+                ])
                 rowState.setVisibility(Visibility.visible)
                 setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
               } else {
-                const createdFile = await backend.uploadFile(
+                const createdFile = await uploadFileMutation.mutateAsync([
                   { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
                   file
-                )
+                ])
                 const project = createdFile.project
                 if (project == null) {
                   throw new Error('The uploaded file was not a project.')

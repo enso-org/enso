@@ -1,6 +1,7 @@
 /** @file Settings section for viewing and editing account information. */
 import * as React from 'react'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -31,13 +32,15 @@ export default function UserAccountSettingsSection(props: UserAccountSettingsSec
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 
+  const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser')
+
   const doUpdateName = async (newName: string) => {
     const oldName = user?.name ?? ''
     if (newName === oldName) {
       return
     } else {
       try {
-        await backend.updateUser({ username: newName })
+        await updateUserMutation.mutateAsync([{ username: newName }])
         setUser(object.merger({ name: newName }))
       } catch (error) {
         toastAndLog(null, error)

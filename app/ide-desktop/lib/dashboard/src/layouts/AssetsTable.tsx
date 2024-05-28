@@ -9,6 +9,7 @@ import DropFilesImage from 'enso-assets/drop_files.svg'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -612,6 +613,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
   )
+
+  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   React.useEffect(() => {
     if (selectedKeys.size === 0) {
@@ -1248,7 +1251,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     name={item.item.title}
                     doCreate={async (_name, value) => {
                       try {
-                        await backend.updateSecret(id, { value }, item.item.title)
+                        await updateSecretMutation.mutateAsync([id, { value }, item.item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }

@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import type * as text from '#/text'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -56,6 +57,8 @@ export default function Permission(props: PermissionProps) {
   const isDisabled = isOnlyOwner && permissionId === self.user.userId
   const assetTypeName = getText(ASSET_TYPE_TO_TEXT_ID[asset.type])
 
+  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
+
   React.useEffect(() => {
     setPermission(initialPermission)
   }, [initialPermission])
@@ -64,11 +67,13 @@ export default function Permission(props: PermissionProps) {
     try {
       setPermission(newPermission)
       outerSetPermission(newPermission)
-      await backend.createPermission({
-        actorsIds: [backendModule.getAssetPermissionId(newPermission)],
-        resourceId: asset.id,
-        action: newPermission.permission,
-      })
+      await createPermissionMutation.mutateAsync([
+        {
+          actorsIds: [backendModule.getAssetPermissionId(newPermission)],
+          resourceId: asset.id,
+          action: newPermission.permission,
+        },
+      ])
     } catch (error) {
       setPermission(permission)
       outerSetPermission(permission)

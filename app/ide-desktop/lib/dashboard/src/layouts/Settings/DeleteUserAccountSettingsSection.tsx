@@ -1,6 +1,8 @@
 /** @file Settings tab for deleting the current user. */
 import * as React from 'react'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -31,6 +33,8 @@ export default function DeleteUserAccountSettingsSection(
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
+  const deleteUserMutation = backendHooks.useBackendMutation(backend, 'deleteUser')
+
   return (
     <SettingsSection
       title={<aria.Text className="text-danger">{getText('dangerZone')}</aria.Text>}
@@ -45,7 +49,7 @@ export default function DeleteUserAccountSettingsSection(
             setModal(
               <ConfirmDeleteUserModal
                 doDelete={async () => {
-                  await backend.deleteUser()
+                  await deleteUserMutation.mutateAsync([])
                   await signOut()
                 }}
               />

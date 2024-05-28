@@ -5,6 +5,7 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import DatalinkIcon from 'enso-assets/datalink.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -45,6 +46,8 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+
+  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -97,12 +100,14 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
             } else {
               rowState.setVisibility(Visibility.faded)
               try {
-                const { id } = await backend.createDatalink({
-                  parentDirectoryId: asset.parentId,
-                  datalinkId: null,
-                  name: asset.title,
-                  value: event.value,
-                })
+                const { id } = await createDatalinkMutation.mutateAsync([
+                  {
+                    parentDirectoryId: asset.parentId,
+                    datalinkId: null,
+                    name: asset.title,
+                    value: event.value,
+                  },
+                ])
                 rowState.setVisibility(Visibility.visible)
                 setAsset(object.merger({ id }))
               } catch (error) {

@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as tailwindMerge from 'tailwind-merge'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -48,6 +49,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
+  const updateFileMutation = backendHooks.useBackendMutation(backend, 'updateFile')
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
+
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
       setRowState(object.merger({ isEditingName }))
@@ -66,7 +70,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          await backend.updateFile(asset.id, { title: newTitle }, asset.title)
+          await updateFileMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
@@ -112,10 +116,10 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
             rowState.setVisibility(Visibility.faded)
             try {
-              const createdFile = await backend.uploadFile(
+              const createdFile = await uploadFileMutation.mutateAsync([
                 { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-                file
-              )
+                file,
+              ])
               rowState.setVisibility(Visibility.visible)
               setAsset(object.merge(asset, { id: createdFile.id }))
             } catch (error) {

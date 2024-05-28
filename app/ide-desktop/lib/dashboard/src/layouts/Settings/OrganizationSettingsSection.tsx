@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import isEmail from 'validator/lib/isEmail'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -37,19 +38,19 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   const websiteRef = React.useRef<HTMLInputElement | null>(null)
   const locationRef = React.useRef<HTMLInputElement | null>(null)
 
+  const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
+
   const doUpdateName = async () => {
     const oldName = organization.name ?? null
     const name = nameRef.current?.value ?? ''
     if (oldName !== name) {
       try {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         setOrganization(object.merger({ name: name }))
-        const newOrganization = await backend.updateOrganization({ name })
+        const newOrganization = await updateOrganizationMutation.mutateAsync([{ name }])
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }
       } catch (error) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         setOrganization(object.merger({ name: oldName }))
         toastAndLog(null, error)
         const ref = nameRef.current
@@ -66,7 +67,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     if (oldEmail !== email) {
       try {
         setOrganization(object.merger({ email }))
-        const newOrganization = await backend.updateOrganization({ email })
+        const newOrganization = await updateOrganizationMutation.mutateAsync([{ email }])
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }
@@ -87,7 +88,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     if (oldWebsite !== website) {
       try {
         setOrganization(object.merger({ website }))
-        await backend.updateOrganization({ website })
+        await updateOrganizationMutation.mutateAsync([{ website }])
       } catch (error) {
         setOrganization(object.merger({ website: oldWebsite }))
         toastAndLog(null, error)
@@ -105,7 +106,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     if (oldLocation !== location) {
       try {
         setOrganization(object.merger({ address: location }))
-        const newOrganization = await backend.updateOrganization({ address: location })
+        const newOrganization = await updateOrganizationMutation.mutateAsync([{ address: location }])
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }

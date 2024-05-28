@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -33,16 +34,21 @@ export default function OrganizationProfilePictureSettingsSection(
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
 
+  const uploadOrganizationPictureMutation = backendHooks.useBackendMutation(
+    backend,
+    'uploadOrganizationPicture'
+  )
+
   const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
       toastAndLog('noNewProfilePictureError')
     } else {
       try {
-        const newOrganization = await backend.uploadOrganizationPicture(
+        const newOrganization = await uploadOrganizationPictureMutation.mutateAsync([
           { fileName: image.name },
-          image
-        )
+          image,
+        ])
         setOrganization(newOrganization)
       } catch (error) {
         toastAndLog(null, error)

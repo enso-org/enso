@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as tailwindMerge from 'tailwind-merge'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -75,6 +76,8 @@ export default function ManageLabelsModal<
   )
   const canCreateNewLabel = canSelectColor
 
+  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
+
   const setLabels = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {
       setLabelsRaw(valueOrUpdater)
@@ -98,7 +101,7 @@ export default function ManageLabelsModal<
       : [...labels, name]
     setLabels(newLabels)
     try {
-      await backend.associateTag(item.id, newLabels, item.title)
+      await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
     } catch (error) {
       toastAndLog(null, error)
       setLabels(labels)
@@ -111,7 +114,7 @@ export default function ManageLabelsModal<
     try {
       await doCreateLabel(query, color ?? leastUsedColor)
       setLabels(newLabels => {
-        void backend.associateTag(item.id, newLabels, item.title)
+        void associateTagMutation.mutateAsync([item.id, newLabels, item.title])
         return newLabels
       })
     } catch (error) {

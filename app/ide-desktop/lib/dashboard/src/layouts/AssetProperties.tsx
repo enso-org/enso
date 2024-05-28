@@ -5,6 +5,7 @@ import PenIcon from 'enso-assets/pen.svg'
 
 import * as datalinkValidator from '#/data/datalinkValidator'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -85,6 +86,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const isDatalink = item.item.type === backendModule.AssetType.datalink
   const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
 
+  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
+  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
+  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
   }, [item.item.description])
@@ -92,7 +97,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await backend.getDatalink(item.item.id, item.item.title)
+        const value = await getDatalinkMutation.mutateAsync([item.item.id, item.item.title])
         setDatalinkValue(value)
         setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
@@ -107,15 +112,15 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
         const projectPath = item.item.projectState?.path
-        await backend.updateAsset(
+        await updateAssetMutation.mutateAsync([
           item.item.id,
           {
             parentDirectoryId: null,
             description,
             ...(projectPath == null ? {} : { projectPath }),
           },
-          item.item.title
-        )
+          item.item.title,
+        ])
       } catch (error) {
         toastAndLog('editDescriptionError')
         setItem(oldItem =>
@@ -266,12 +271,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                           const oldDatalinkValue = datalinkValue
                           try {
                             setDatalinkValue(editedDatalinkValue)
-                            await backend.createDatalink({
-                              datalinkId: item.item.id,
-                              name: item.item.title,
-                              parentDirectoryId: null,
-                              value: editedDatalinkValue,
-                            })
+                            await createDatalinkMutation.mutateAsync([
+                              {
+                                datalinkId: item.item.id,
+                                name: item.item.title,
+                                parentDirectoryId: null,
+                                value: editedDatalinkValue,
+                              },
+                            ])
                           } catch (error) {
                             toastAndLog(null, error)
                             setDatalinkValue(oldDatalinkValue)

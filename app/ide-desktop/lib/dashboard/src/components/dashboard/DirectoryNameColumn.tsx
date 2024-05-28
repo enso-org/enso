@@ -6,6 +6,7 @@ import * as tailwindMerge from 'tailwind-merge'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -53,6 +54,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
+  const createDirectoryMutation = backendHooks.useBackendMutation(backend, 'createDirectory')
+  const updateDirectoryMutation = backendHooks.useBackendMutation(backend, 'updateDirectory')
+
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
       setRowState(object.merger({ isEditingName }))
@@ -68,7 +72,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
+          await updateDirectoryMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
@@ -112,10 +116,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           if (item.key === event.placeholderId) {
             rowState.setVisibility(Visibility.faded)
             try {
-              const createdDirectory = await backend.createDirectory({
-                parentId: asset.parentId,
-                title: asset.title,
-              })
+              const createdDirectory = await createDirectoryMutation.mutateAsync([
+                {
+                  parentId: asset.parentId,
+                  title: asset.title,
+                },
+              ])
               rowState.setVisibility(Visibility.visible)
               setAsset(object.merge(asset, createdDirectory))
             } catch (error) {

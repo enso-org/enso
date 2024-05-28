@@ -220,7 +220,9 @@ function toNonPlaceholder<T extends object>(object: T) {
 // ===========================
 
 /** A list of users, taking into account optimistic state. */
-export function useBackendListUsers(backend: Backend) {
+export function useBackendListUsers(
+  backend: Backend
+): readonly WithPlaceholder<backendModule.User>[] | null {
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
   const changeUserGroupVariables = useBackendMutationVariables('changeUserGroup')
   const users = React.useMemo(() => {
@@ -247,15 +249,15 @@ export function useBackendListUsers(backend: Backend) {
 // ================================
 
 /** A list of user groups, taking into account optimistic state. */
-export function useBackendListUserGroups(backend: Backend) {
+export function useBackendListUserGroups(
+  backend: Backend
+): readonly WithPlaceholder<backendModule.UserGroupInfo>[] | null {
   const { user } = authProvider.useNonPartialUserSession()
   invariant(user != null, 'User must exist for user groups to be listed.')
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const createUserGroupVariables = useBackendMutationVariables('createUserGroup')
   const deleteUserGroupVariables = useBackendMutationVariables('deleteUserGroup')
-  const userGroups = React.useMemo(():
-    | readonly WithPlaceholder<backendModule.UserGroupInfo>[]
-    | null => {
+  const userGroups = React.useMemo(() => {
     if (listUserGroupsQuery.data == null) {
       return null
     } else {
@@ -286,8 +288,15 @@ export function useBackendListUserGroups(backend: Backend) {
 // === useBackendListUserGroupsWithUsers ===
 // =========================================
 
+/** A user group, as well as the users that are a part of the user group. */
+export interface UserGroupInfoWithUsers {
+  readonly users: readonly WithPlaceholder<backendModule.User>[]
+}
+
 /** A list of user groups, taking into account optimistic state. */
-export function useBackendListUserGroupsWithUsers(backend: Backend) {
+export function useBackendListUserGroupsWithUsers(
+  backend: Backend
+): readonly WithPlaceholder<UserGroupInfoWithUsers>[] | null {
   const userGroupsRaw = useBackendListUserGroups(backend)
   // Old user list
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
