@@ -2588,7 +2588,18 @@ lazy val `test-utils` =
   (project in file("lib/java/test-utils"))
     .settings(
       frgaalJavaCompilerSetting,
-      libraryDependencies ++= GraalVM.modules
+      libraryDependencies ++= GraalVM.modules,
+      libraryDependencies ++= Seq(
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+      ),
+      Compile / javacOptions ++= Seq(
+        "-s",
+        (Compile / sourceManaged).value.getAbsolutePath
+      ),
+      Compile / compile := (Compile / compile)
+        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+        .value
     )
     .dependsOn(runtime)
 
