@@ -8,7 +8,6 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
 import { clamp } from '@vueuse/core'
-import { uuidv4 } from 'lib0/random'
 import { computed, ref } from 'vue'
 
 const selection = injectGraphSelection(true)
@@ -19,6 +18,11 @@ const props = defineProps<{
   edge: Edge
   maskSource?: boolean
 }>()
+
+// The padding added around the masking rect for nodes with visible output port. The actual padding
+// is animated together with node's port opening. Required to correctly not draw the edge in space
+// between the port path and node.
+const VISIBLE_PORT_MASK_PADDING = 6
 
 const base = ref<SVGPathElement>()
 
@@ -78,9 +82,7 @@ const targetPos = computed<Vec2 | undefined>(() => {
 })
 
 const sourceNodeRect = computed<Rect | undefined>(() => {
-  const nodeId = sourceNode.value
-  if (!nodeId) return
-  return graph.nodeRects?.get(nodeId)
+  return sourceNode.value && graph.nodeRects.get(sourceNode.value)
 })
 
 const sourceRect = computed<Rect | undefined>(() => {
@@ -113,23 +115,19 @@ type NodeMask = {
   radius: number
 }
 
-const maskId = uuidv4()
-
 const sourceMask = computed<NodeMask | undefined>(() => {
   const startsInPort = currentJunctionPoints.value?.startsInPort
   if (!props.maskSource && !startsInPort) return
 
   const animProgress = (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0
-  const ANIM_MAX_PADDING = 6 // node's --output-port-overlap value.
-  let padding = animProgress * ANIM_MAX_PADDING
-
+  let padding = animProgress * VISIBLE_PORT_MASK_PADDING
   if (padding > 0 && !currentJunctionPoints.value?.startsInPort) padding = 0
   if (!props.maskSource && padding === 0) return
   const nodeRect = sourceNodeRect.value
   if (!nodeRect) return
   const rect = nodeRect.expand(padding)
   const radius = 16 + padding
-  const id = `mask_for_edge_${maskId}`
+  const id = `mask_for_edge_to-${props.edge.target ?? 'unconnected'}`
   return { id, rect, radius }
 })
 
@@ -235,6 +233,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     const radiusY = Math.max(Math.abs(inputs.targetOffset.y) - yAdjustment, 0.0)
     const maxRadius = Math.min(radiusX, radiusY)
     // The radius the edge would have, if the arc portion were as large as possible.
+    const offsetX = Math.abs(inputs.targetOffset.x - sourceX)
     const naturalRadius = Math.min(
       Math.abs(inputs.targetOffset.x - sourceX),
       Math.abs(inputs.targetOffset.y),
@@ -252,7 +251,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       sourceDY = -Math.abs(radius - intersection)
     } else if (halfSourceSize.y != 0) {
       sourceDY = 0 - innerTheme.source_node_overlap
-      startsInPort = naturalRadius === 0
+      startsInPort = offsetX < innerTheme.minimum_tangent_exit_radius
     }
     const source = new Vec2(sourceX, sourceDY)
     return {
