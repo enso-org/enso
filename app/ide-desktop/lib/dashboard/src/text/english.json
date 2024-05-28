@@ -78,6 +78,7 @@
   "restoreUserBackendError": "Could not restore user.",
   "updateUserBackendError": "Could not update user.",
   "deleteUserBackendError": "Could not delete user.",
+  "removeUserBackendError": "Could not delete user.",
   "uploadUserPictureBackendError": "Could not upload user profile picture.",
   "changeUserGroupsBackendError": "Could not change roles for user '$0'.",
   "getOrganizationBackendError": "Could not get organization.",

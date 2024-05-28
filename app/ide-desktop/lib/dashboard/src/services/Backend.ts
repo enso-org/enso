@@ -1,18 +1,11 @@
-;
 /** @file Type definitions common between all backends. */
-import type * as React from 'react';
+import type * as React from 'react'
 
-
-
-import * as array from '#/utilities/array';
-import * as dateTime from '#/utilities/dateTime';
-import * as newtype from '#/utilities/newtype';
-import * as permissions from '#/utilities/permissions';
-import * as uniqueString from '#/utilities/uniqueString';
-
-
-
-
+import * as array from '#/utilities/array'
+import * as dateTime from '#/utilities/dateTime'
+import * as newtype from '#/utilities/newtype'
+import * as permissions from '#/utilities/permissions'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // ================
 // === Newtypes ===
@@ -1259,6 +1252,8 @@ export default abstract class Backend {
   abstract restoreUser(): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
+  /** Delete a user. */
+  abstract removeUser(userId: UserId): Promise<void>
   /** Upload a new profile picture for the current user. */
   abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
   /** Set the list of groups a user is in. */

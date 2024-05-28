@@ -1,117 +1,20 @@
-;
-
 /** @file Module containing the API client for the Cloud backend API.
  *
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
-import * as detect from 'enso-common/src/detect';
+import * as detect from 'enso-common/src/detect'
 
+import type * as text from '#/text'
 
+import type * as loggerProvider from '#/providers/LoggerProvider'
+import type * as textProvider from '#/providers/TextProvider'
 
-import type * as text from '#/text';
+import Backend, * as backend from '#/services/Backend'
+import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-
-
-import type * as loggerProvider from '#/providers/LoggerProvider';
-import type * as textProvider from '#/providers/TextProvider';
-
-
-
-import Backend, * as backend from '#/services/Backend';
-import * as remoteBackendPaths from '#/services/remoteBackendPaths';
-
-
-
-import type HttpClient from '#/utilities/HttpClient';
-import * as object from '#/utilities/object';
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import type HttpClient from '#/utilities/HttpClient'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===
@@ -338,9 +241,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Restore a user that has been soft-deleted.
-   */
+  /** Restore a user that has been soft-deleted. */
   async restoreUser(): Promise<void> {
     const response = await this.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
       clearRemoveAt: true,
@@ -362,6 +263,12 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Delete a user.
+   * FIXME: Not implemented on backend yet. */
+  override async removeUser(): Promise<void> {
+    return await this.throw(null, 'removeUserBackendError')
+  }
+
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
     const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
@@ -372,9 +279,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * List all invitations.
-   */
+  /** List all invitations. */
   override async listInvitations(): Promise<backend.Invitation[]> {
     const response = await this.get<backend.InvitationListRequestBody>(
       remoteBackendPaths.INVITATION_PATH
@@ -387,9 +292,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Delete an invitation.
-   */
+  /** Delete an invitation. */
   override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
 
@@ -400,9 +303,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Resend an invitation to a user.
-   */
+  /** Resend an invitation to a user. */
   override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.post(remoteBackendPaths.INVITATION_PATH, {
       userEmail,

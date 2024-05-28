@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import MembersSettingsTabBar from '#/layouts/Settings/MembersSettingsTabBar'
@@ -76,7 +78,7 @@ export default function MembersSettingsTab(props: MembersSettingsTabProps) {
                   <div className="flex flex-col">
                     {getText('active')}
                     <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
-                      <RemoveMemberButton backend={backend} email={member.email} />
+                      <RemoveMemberButton backend={backend} userId={member.userId} />
                     </ariaComponents.ButtonGroup>
                   </div>
                 </td>
@@ -156,33 +158,27 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
 
 /** Props for a {@link RemoveMemberButton}. */
 interface RemoveMemberButtonProps {
-  readonly email: backendModule.EmailAddress
   readonly backend: Backend
+  readonly userId: backendModule.UserId
 }
 
 /** Action button for removing a member. */
 function RemoveMemberButton(props: RemoveMemberButtonProps) {
-  const { email } = props
+  const { backend, userId } = props
   const { getText } = textProvider.useText()
 
   const queryClient = reactQuery.useQueryClient()
 
-  const removeMutation = reactQuery.useMutation({
-    mutationKey: ['removeUser', email],
-    mutationFn: async () => {
-      // TODO: Implement remove member mutation
-    },
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ['listUsers'],
-      }),
+  const removeMutation = backendHooks.useBackendMutation(backend, 'removeUser', {
+    mutationKey: [userId],
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listUsers'] }),
   })
 
   return (
     <ariaComponents.Button
       variant="icon"
       size="custom"
-      onPress={() => removeMutation.mutateAsync()}
+      onPress={() => removeMutation.mutateAsync([userId])}
     >
       {getText('remove')}
     </ariaComponents.Button>
@@ -193,20 +189,22 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
 // === RemoveInvitationButton ===
 // ==============================
 
+/** Props for a {@link RemoveInvitationButton}. */
+interface RemoveInvitationButtonProps {
+  readonly backend: Backend
+  readonly email: backendModule.EmailAddress
+}
+
 /** Action button for removing an invitation. */
-function RemoveInvitationButton(props: RemoveMemberButtonProps) {
+function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
   const { backend, email } = props
 
   const { getText } = textProvider.useText()
   const queryClient = reactQuery.useQueryClient()
 
-  const removeMutation = reactQuery.useMutation({
-    mutationKey: ['resendInvitation', email],
-    mutationFn: () => backend.deleteInvitation(email),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ['listInvitations'],
-      }),
+  const removeMutation = backendHooks.useBackendMutation(backend, 'resendInvitation', {
+    mutationKey: [email],
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listInvitations'] }),
   })
 
   return (
@@ -214,9 +212,7 @@ function RemoveInvitationButton(props: RemoveMemberButtonProps) {
       variant="icon"
       size="custom"
       loading={removeMutation.isPending}
-      onPress={() => {
-        removeMutation.mutate()
-      }}
+      onPress={() => removeMutation.mutateAsync([email])}
     >
       {getText('remove')}
     </ariaComponents.Button>

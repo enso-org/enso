@@ -8,6 +8,7 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -129,6 +130,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
 
+  const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
+  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
+
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
       setState(backendModule.ProjectState.openInProgress)
@@ -136,28 +140,28 @@ export default function ProjectIcon(props: ProjectIconProps) {
         switch (backend.type) {
           case backendModule.BackendType.remote: {
             if (state !== backendModule.ProjectState.opened) {
-              await backend.openProject(
+              await openProjectMutation.mutateAsync([
                 item.id,
                 {
                   executeAsync: shouldRunInBackground,
                   parentId: item.parentId,
                   cognitoCredentials: session,
                 },
-                item.title
-              )
+                item.title,
+              ])
             }
             break
           }
           case backendModule.BackendType.local: {
-            await backend.openProject(
+            await openProjectMutation.mutateAsync([
               item.id,
               {
                 executeAsync: shouldRunInBackground,
                 parentId: item.parentId,
                 cognitoCredentials: null,
               },
-              item.title
-            )
+              item.title,
+            ])
             setState(oldState =>
               oldState === backendModule.ProjectState.openInProgress
                 ? backendModule.ProjectState.opened
@@ -167,7 +171,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
         }
       } catch (error) {
-        const project = await backend.getProjectDetails(item.id, item.parentId, item.title)
+        const project = await getProjectDetailsMutation.mutateAsync([
+          item.id,
+          item.parentId,
+          item.title,
+        ])
         setItem(object.merger({ projectState: project.state }))
         toastAndLog('openProjectError', error, item.title)
         setState(backendModule.ProjectState.closed)
@@ -179,6 +187,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
       item,
       session,
       toastAndLog,
+      /* should never change */ openProjectMutation,
+      /* should never change */ getProjectDetailsMutation,
       /* should never change */ setState,
       /* should never change */ setItem,
     ]
@@ -267,15 +277,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
           setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
           setIsRunningInBackground(event.runInBackground)
           void openProject(event.runInBackground)
-          void backend.getProjectDetails(item.id, item.parentId, item.title).then(project => {
-            setProjectStartupInfo({
-              project,
-              projectAsset: item,
-              setProjectAsset: setItem,
-              backendType: backend.type,
-              accessToken: session?.accessToken ?? null,
+          void getProjectDetailsMutation
+            .mutateAsync([item.id, item.parentId, item.title])
+            .then(project => {
+              setProjectStartupInfo({
+                project,
+                projectAsset: item,
+                setProjectAsset: setItem,
+                backendType: backend.type,
+                accessToken: session?.accessToken ?? null,
+              })
             })
-          })
         }
         break
       }
