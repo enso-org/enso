@@ -1,6 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -44,7 +46,10 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
   return (
     <Modal
       centered={positionEvent == null}
-      className={`bg-dim ${positionEvent == null ? '' : 'absolute size-full overflow-hidden'}`}
+      className={tailwindMerge.twMerge(
+        'bg-dim',
+        positionEvent != null && 'absolute size-full overflow-hidden'
+      )}
     >
       <form
         data-testid="confirm-delete-modal"

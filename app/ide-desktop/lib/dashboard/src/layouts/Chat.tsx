@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
+import * as tailwindMerge from 'tailwind-merge'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -110,7 +111,12 @@ function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
-    <div className={`m-chat-reaction-bar inline-block rounded-full bg-frame ${className ?? ''}`}>
+    <div
+      className={tailwindMerge.twMerge(
+        'm-chat-reaction-bar inline-block rounded-full bg-frame',
+        className
+      )}
+    >
       {REACTION_EMOJIS.map(emoji => (
         <UnstyledButton
           key={emoji}
@@ -121,9 +127,10 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          className={`m-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0 ${
+          className={tailwindMerge.twMerge(
+            'm-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0',
             selectedReactions.has(emoji) ? 'active' : 'grayscale'
-          }`}
+          )}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
         </UnstyledButton>
@@ -272,9 +279,10 @@ function ChatHeader(props: InternalChatHeaderProps) {
           }}
         >
           <SvgMask
-            className={`shrink-0 transition-transform duration-arrow ${
+            className={tailwindMerge.twMerge(
+              'shrink-0 transition-transform duration-arrow',
               isThreadListVisible ? '-rotate-90' : 'rotate-90'
-            }`}
+            )}
             src={FolderArrowIcon}
           />
           <div className="grow">
@@ -323,19 +331,21 @@ function ChatHeader(props: InternalChatHeaderProps) {
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow ${
+          className={tailwindMerge.twMerge(
+            'absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow',
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
-          }`}
+          )}
         >
           <div className="max-h-chat-thread-list min-h overflow-y-auto">
             {threads.map(thread => (
               <div
                 key={thread.id}
-                className={`flex p-chat-thread-button ${
+                className={tailwindMerge.twMerge(
+                  'flex p-chat-thread-button',
                   thread.id === threadId
                     ? 'cursor-default bg-selected-frame'
                     : 'cursor-pointer hover:bg-frame'
-                }`}
+                )}
                 onClick={event => {
                   event.stopPropagation()
                   if (thread.id !== threadId) {
@@ -683,7 +693,10 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${isOpen ? '' : 'translate-x-full'}`}
+        className={tailwindMerge.twMerge(
+          'fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform',
+          !isOpen && 'translate-x-full'
+        )}
         {...focusWithinProps}
       >
         <ChatHeader
@@ -802,9 +815,10 @@ export default function Chat(props: ChatProps) {
           <div className="flex gap-chat-buttons">
             <UnstyledButton
               isDisabled={!isReplyEnabled}
-              className={`text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white ${
+              className={tailwindMerge.twMerge(
+                'text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white',
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
-              }`}
+              )}
               onPress={() => {
                 sendCurrentMessage(true)
               }}

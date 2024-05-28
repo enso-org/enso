@@ -29,7 +29,7 @@ export default function StartModal(props: StartModalProps) {
         <div className="relative mb-4 flex flex-1 flex-col gap-home text-xs text-primary">
           <aria.Heading
             level={2}
-            className="mx-10 mt-16 self-center py-banner-item text-center text-3xl font-light leading-snug"
+            className="py-banner-item mx-10 mt-16 self-center text-center text-3xl font-light leading-snug"
           >
             <aria.Text className="inline-block max-w-[45rem]">
               {getText('welcomeSubtitle')}

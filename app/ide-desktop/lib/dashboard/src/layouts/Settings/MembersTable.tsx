@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import * as tailwindMerge from 'tailwind-merge'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
@@ -51,7 +52,7 @@ export default function MembersTable(props: MembersTableProps) {
     [membersQuery.data]
   )
 
-  const { onScroll, shadowClass } = scrollHooks.useStickyTableHeaderOnScroll(
+  const { onScroll, shadowClassName } = scrollHooks.useStickyTableHeaderOnScroll(
     scrollContainerRef,
     bodyRef,
     true
@@ -112,7 +113,7 @@ export default function MembersTable(props: MembersTableProps) {
   return (
     <div
       ref={scrollContainerRef}
-      className={`overflow-auto overflow-x-hidden ${shadowClass}`}
+      className={tailwindMerge.twMerge('overflow-auto overflow-x-hidden', shadowClassName)}
       onScroll={onScroll}
     >
       <aria.Table

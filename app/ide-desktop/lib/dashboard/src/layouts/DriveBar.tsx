@@ -90,7 +90,7 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-row py-drive-bar-y">
           <HorizontalMenuBar>
             <UnstyledButton
-              className="border-0.5 flex h-row items-center rounded-full border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
+              className="flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
               onPress={() => {
                 setModal(
                   <ConfirmDeleteModal
@@ -115,7 +115,7 @@ export default function DriveBar(props: DriveBarProps) {
           <HorizontalMenuBar>
             <aria.DialogTrigger>
               <UnstyledButton
-                className="before:bg-accent relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:transition-all hover:before:brightness-90"
+                className="relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90"
                 onPress={() => {}}
               >
                 <aria.Text className="text relative whitespace-nowrap font-bold">
@@ -134,7 +134,7 @@ export default function DriveBar(props: DriveBarProps) {
                 {getText('newEmptyProject')}
               </aria.Text>
             </UnstyledButton>
-            <div className="border-0.5 flex h-row items-center gap-icons rounded-full border-primary/20 px-drive-bar-icons-x text-primary/50">
+            <div className="flex h-row items-center gap-icons rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
               <Button
                 active
                 image={AddFolderIcon}

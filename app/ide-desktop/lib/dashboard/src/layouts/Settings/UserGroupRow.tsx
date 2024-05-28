@@ -1,6 +1,8 @@
 /** @file A row representing a user group. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import Cross2 from 'enso-assets/cross2.svg'
 
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
@@ -59,7 +61,10 @@ export default function UserGroupRow(props: UserGroupRowProps) {
   return (
     <aria.Row
       id={userGroup.id}
-      className={`group h-row rounded-rows-child ${backend.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
+      className={tailwindMerge.twMerge(
+        'group h-row rounded-rows-child',
+        backend.isPlaceholderUserGroupId(userGroup.id) && 'pointer-events-none placeholder'
+      )}
       ref={contextMenuRef}
     >
       <aria.Cell className="text rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">

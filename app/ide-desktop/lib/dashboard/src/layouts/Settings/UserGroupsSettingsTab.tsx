@@ -1,6 +1,8 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -68,7 +70,7 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
     return map
   }, [users])
 
-  const { onScroll: onUserGroupsTableScroll, shadowClass } =
+  const { onScroll: onUserGroupsTableScroll, shadowClassName } =
     scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, true)
 
   React.useEffect(() => {
@@ -263,7 +265,10 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
           </HorizontalMenuBar>
           <div
             ref={rootRef}
-            className={`overflow-auto overflow-x-hidden transition-all lg:mb-2 ${shadowClass}`}
+            className={tailwindMerge.twMerge(
+              'overflow-auto overflow-x-hidden transition-all lg:mb-2',
+              shadowClassName
+            )}
             onScroll={onUserGroupsTableScroll}
           >
             <aria.Table

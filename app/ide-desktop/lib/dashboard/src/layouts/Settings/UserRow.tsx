@@ -1,6 +1,8 @@
 /** @file A row representing a user in a table of users. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import Cross2 from 'enso-assets/cross2.svg'
 
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
@@ -67,7 +69,10 @@ export default function UserRow(props: UserRowProps) {
   return (
     <aria.Row
       id={user.userId}
-      className={`group h-row rounded-rows-child ${draggable ? 'cursor-grab' : ''}`}
+      className={tailwindMerge.twMerge(
+        'group h-row rounded-rows-child',
+        draggable && 'cursor-grab'
+      )}
       ref={contextMenuRef}
     >
       <aria.Cell className="text relative overflow-hidden whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">

@@ -24,7 +24,7 @@ export default function SubmitButton(props: SubmitButtonProps) {
   return (
     <UnstyledButton
       isDisabled={isDisabled}
-      className={`flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 py-auth-input-y text-white transition-all duration-auth selectable enabled:active hover:bg-blue-700 focus:bg-blue-700`}
+      className="flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 py-auth-input-y text-white transition-all duration-auth selectable enabled:active hover:bg-blue-700 focus:bg-blue-700"
       onPress={onPress}
     >
       {text}

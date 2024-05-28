@@ -1,6 +1,8 @@
 /** @file A modal for capturing an arbitrary keyboard shortcut. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as detect from 'enso-common/src/detect'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -107,9 +109,10 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
       >
         <div className="relative">{getText('enterTheNewKeyboardShortcutFor', description)}</div>
         <div
-          className={`relative flex scale-150 items-center justify-center ${
-            doesAlreadyExist ? 'text-red-600' : ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'relative flex scale-150 items-center justify-center',
+            doesAlreadyExist && 'text-red-600'
+          )}
         >
           {shortcut === '' ? (
             <aria.Text className="text text-primary/30">{getText('noShortcutEntered')}</aria.Text>

@@ -97,7 +97,7 @@ export default function ChangePasswordSettingsSection() {
         <ButtonRow>
           <UnstyledButton
             isDisabled={!canSubmitPassword}
-            className={`settings-value rounded-full bg-invite font-medium text-white selectable enabled:active`}
+            className="settings-value rounded-full bg-invite font-medium text-white selectable enabled:active"
             onPress={eventModule.submitForm}
           >
             {getText('change')}

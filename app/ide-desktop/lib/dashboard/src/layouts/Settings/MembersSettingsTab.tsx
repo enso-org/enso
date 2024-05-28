@@ -23,6 +23,7 @@ const LIST_USERS_STALE_TIME_MS = 60_000
 // ==========================
 // === MembersSettingsTab ===
 // ==========================
+
 /** Props for a {@link MembersSettingsTab}. */
 export interface MembersSettingsTabProps {
   readonly backend: Backend
@@ -51,7 +52,7 @@ export default function MembersSettingsTab(props: MembersSettingsTabProps) {
   return (
     <SettingsPage>
       <SettingsSection noFocusArea title={getText('members')} className="overflow-hidden">
-        <MembersSettingsTabBar backend={backend} />
+        <MembersSettingsTabBar />
 
         <table className="table-fixed self-start rounded-rows">
           <thead>

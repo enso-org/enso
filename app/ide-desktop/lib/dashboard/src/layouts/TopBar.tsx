@@ -1,6 +1,8 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as backendProvider from '#/providers/BackendProvider'
 
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
@@ -65,7 +67,10 @@ export default function TopBar(props: TopBarProps) {
         </div>
       )}
       <div
-        className={`grid transition-all duration-side-panel ${isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'}`}
+        className={tailwindMerge.twMerge(
+          'grid transition-all duration-side-panel',
+          isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'
+        )}
       >
         <div className="invisible flex gap-top-bar-right overflow-hidden pointer-events-none-recursive">
           {page === pageSwitcher.Page.drive && (
@@ -90,7 +95,11 @@ export default function TopBar(props: TopBarProps) {
         </div>
       </div>
       <div
-        className={`fixed top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''} ${isAssetPanelVisible ? '-right-asset-panel-w' : 'right'}`}
+        className={tailwindMerge.twMerge(
+          'fixed top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel',
+          shouldMakeSpaceForExtendedEditorMenu && 'mr-extended-editor-menu',
+          isAssetPanelVisible ? '-right-asset-panel-w' : 'right-0'
+        )}
       >
         <div className="flex gap-top-bar-right">
           {page === pageSwitcher.Page.drive && (

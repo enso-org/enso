@@ -1,6 +1,8 @@
 /** @file A modal to select labels for an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -21,6 +23,13 @@ import type Backend from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+
+// =================
+// === Constants ===
+// =================
+
+/** The maximum lightness at which a color is still considered dark. */
+const MAXIMUM_DARK_LIGHTNESS = 50
 
 // =========================
 // === ManageLabelsModal ===
@@ -155,12 +164,12 @@ export default function ManageLabelsModal<
                 <div className="flex gap-input-with-button" {...innerProps}>
                   <FocusRing within>
                     <div
-                      className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${
-                        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                        canSelectColor && color != null && color.lightness <= 50
+                      className={tailwindMerge.twMerge(
+                        'flex grow items-center rounded-full border border-primary/10 px-input-x',
+                        canSelectColor && color != null && color.lightness <= MAXIMUM_DARK_LIGHTNESS
                           ? 'text-tag-text placeholder-tag-text'
                           : 'text-primary'
-                      }`}
+                      )}
                       style={
                         !canSelectColor || color == null
                           ? {}

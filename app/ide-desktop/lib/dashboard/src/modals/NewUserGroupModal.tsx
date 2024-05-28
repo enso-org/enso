@@ -1,6 +1,8 @@
 /** @file A modal to create a user group. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -75,7 +77,10 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   return (
     <Modal
       centered={positionEvent == null}
-      className={`bg-dim ${positionEvent == null ? '' : 'absolute size-full overflow-hidden'}`}
+      className={tailwindMerge.twMerge(
+        'bg-dim',
+        positionEvent != null && 'absolute size-full overflow-hidden'
+      )}
     >
       <form
         data-testid="new-user-group-modal"

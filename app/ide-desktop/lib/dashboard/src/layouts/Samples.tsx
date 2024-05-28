@@ -1,6 +1,8 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import Logo from 'enso-assets/enso_logo.svg'
 import GeoImage from 'enso-assets/geo.svg'
 import HeartIcon from 'enso-assets/heart.svg'
@@ -112,9 +114,10 @@ function ProjectTile(props: InternalProjectTileProps) {
             >
               <div
                 style={{ background }}
-                className={`h-sample-image w-full rounded-t-default ${
-                  background != null ? '' : 'bg-frame'
-                }`}
+                className={tailwindMerge.twMerge(
+                  'h-sample-image w-full rounded-t-default',
+                  background == null && 'bg-frame'
+                )}
               />
               <div className="w-full grow rounded-b-default bg-frame px-sample-description-x pb-sample-description-b pt-sample-description-t backdrop-blur">
                 <aria.Heading className="text-header text-sm font-bold">{title}</aria.Heading>

@@ -1,6 +1,8 @@
 /** @file A modal for creating a Datalink. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import SCHEMA from '#/data/datalinkSchema.json' assert { type: 'json' }
 import * as datalinkValidator from '#/data/datalinkValidator'
 
@@ -76,9 +78,10 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
                 <aria.Input
                   autoFocus
                   placeholder={getText('datalinkNamePlaceholder')}
-                  className={`focus-child text grow rounded-full border bg-transparent px-input-x ${
+                  className={tailwindMerge.twMerge(
+                    'focus-child text grow rounded-full border bg-transparent px-input-x',
                     name !== '' ? 'border-primary/10' : 'border-red-700/60'
-                  }`}
+                  )}
                   value={name}
                   onInput={event => {
                     setName(event.currentTarget.value)

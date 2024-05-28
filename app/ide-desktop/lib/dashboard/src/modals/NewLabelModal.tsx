@@ -1,6 +1,8 @@
 /** @file A modal for creating a new label. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -15,6 +17,13 @@ import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backend from '#/services/Backend'
+
+// =================
+// === Constants ===
+// =================
+
+/** The maximum lightness at which a color is still considered dark. */
+const MAXIMUM_DARK_LIGHTNESS = 50
 
 // =====================
 // === NewLabelModal ===
@@ -86,12 +95,12 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                   autoFocus
                   size={1}
                   placeholder={getText('labelNamePlaceholder')}
-                  className={`focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
-                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                    color != null && color.lightness <= 50
+                  className={tailwindMerge.twMerge(
+                    'focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x',
+                    color != null && color.lightness <= MAXIMUM_DARK_LIGHTNESS
                       ? 'text-tag-text placeholder-selected-frame'
                       : 'text-primary'
-                  }`}
+                  )}
                   style={
                     color == null
                       ? {}

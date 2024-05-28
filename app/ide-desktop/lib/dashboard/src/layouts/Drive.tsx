@@ -1,6 +1,8 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as appUtils from '#/appUtils'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
@@ -302,7 +304,7 @@ export default function Drive(props: DriveProps) {
   switch (status) {
     case DriveStatus.offline: {
       return (
-        <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
+        <div className={tailwindMerge.twMerge('grid grow place-items-center', hidden && 'hidden')}>
           <div className="flex flex-col gap-status-page text-center text-base">
             <div>{getText('youAreNotLoggedIn')}</div>
             <UnstyledButton
@@ -319,7 +321,7 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.noProjectManager: {
       return (
-        <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
+        <div className={tailwindMerge.twMerge('grid grow place-items-center', hidden && 'hidden')}>
           <div className="flex flex-col gap-status-page text-center text-base">
             {getText('couldNotConnectToPM')}
           </div>
@@ -359,9 +361,10 @@ export default function Drive(props: DriveProps) {
       return (
         <div
           data-testid="drive-view"
-          className={`flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x ${
-            hidden ? 'hidden' : ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x',
+            hidden && 'hidden'
+          )}
         >
           <DriveBar
             category={category}

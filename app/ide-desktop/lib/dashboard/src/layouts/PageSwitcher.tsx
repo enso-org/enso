@@ -1,6 +1,8 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import DriveIcon from 'enso-assets/drive.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
@@ -75,9 +77,10 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
-            page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x',
+            page === Page.editor && 'bg-frame backdrop-blur-default'
+          )}
           {...innerProps}
         >
           {PAGE_DATA.map(pageData => {

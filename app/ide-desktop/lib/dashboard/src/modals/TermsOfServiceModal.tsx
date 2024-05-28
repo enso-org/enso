@@ -109,7 +109,8 @@ export function TermsOfServiceModal() {
                           <aria.Input
                             type="checkbox"
                             className={twMerge.twMerge(
-                              `flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2 ${hasError ? 'border-red-700 text-red-500 outline-red-500' : ''}`
+                              'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
+                              hasError && 'border-red-700 text-red-500 outline-red-500'
                             )}
                             id={checkboxId}
                             aria-invalid={hasError}
