@@ -120,10 +120,10 @@ public final class ExecutionService {
       Module module, String typeName, String methodName)
       throws TypeNotFoundException, MethodNotFoundException {
     ModuleScope scope = module.compileScope(context).built();
-    Type type =
-        scope
-            .getType(typeName)
-            .orElseThrow(() -> new TypeNotFoundException(module.getName().toString(), typeName));
+    Type type = scope.getType(typeName);
+    if (type == null) {
+      throw new TypeNotFoundException(module.getName().toString(), typeName);
+    }
     Function function = scope.lookupMethodDefinition(type, methodName);
     if (function == null) {
       throw new MethodNotFoundException(module.getName().toString(), type, methodName);

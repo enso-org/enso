@@ -106,7 +106,7 @@ import org.enso.interpreter.runtime.callable.{
 }
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.scope.{ModuleScope}
+import org.enso.interpreter.runtime.scope.{ImportExportScope, ModuleScope}
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
@@ -194,7 +194,9 @@ class IrToTruffle(
 
     bindingsMap.resolvedExports
       .collect { case ExportedModule(ResolvedModule(module), _, _) => module }
-      .foreach(exp => moduleScope.addExport(asScope(exp.unsafeAsModule())))
+      .foreach(exp =>
+        moduleScope.addExport(new ImportExportScope(exp.unsafeAsModule()))
+      )
     val importDefs = module.imports
     val methodDefs = module.bindings.collect {
       case method: definition.Method.Explicit => method
@@ -206,18 +208,9 @@ class IrToTruffle(
         case ResolvedModule(module) =>
           val mod = module
             .unsafeAsModule()
-          val scope: ModuleScope.Builder = imp.importDef.onlyNames
-            .map(only => {
-              val requestedTypes = only.map(_.name).asJava
-              if (requestedTypes.isEmpty()) {
-                asScope(mod)
-              } else {
-                val c = asScope(mod).withTypes(requestedTypes)
-                c.build()
-                c
-              }
-            })
-            .getOrElse(asScope(mod))
+          val scope: ImportExportScope = imp.importDef.onlyNames
+            .map(only => new ImportExportScope(mod, only.map(_.name).asJava))
+            .getOrElse(new ImportExportScope(mod))
           moduleScope.addImport(scope)
       }
     }

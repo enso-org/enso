@@ -22,8 +22,8 @@ public class FindTypeByFqnNode extends Node {
       var maybeModule = ctx.getTopScope().getModule(moduleName.toString());
       if (maybeModule.isPresent()) {
         var foundType = maybeModule.get().getScope().getType(fullName.item());
-        if (foundType.isPresent()) {
-          return foundType.get();
+        if (foundType != null) {
+          return foundType;
         }
       }
     }

@@ -3,14 +3,12 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -32,8 +30,8 @@ public final class ModuleScope implements EnsoObject {
   private final Map<String, Type> types;
   private final Map<Type, Map<String, Supplier<Function>>> methods;
   private final Map<Type, Map<Type, Function>> conversions;
-  private final Set<ModuleScope.Builder> imports;
-  private final Set<Builder> exports;
+  private final Set<ImportExportScope> imports;
+  private final Set<ImportExportScope> exports;
 
   private static final Type noTypeKey;
 
@@ -48,8 +46,8 @@ public final class ModuleScope implements EnsoObject {
       Map<String, Type> types,
       Map<Type, Map<String, Supplier<Function>>> methods,
       Map<Type, Map<Type, Function>> conversions,
-      Set<ModuleScope.Builder> imports,
-      Set<ModuleScope.Builder> exports) {
+      Set<ImportExportScope> imports,
+      Set<ImportExportScope> exports) {
     this.module = module;
     this.associatedType = associatedType;
     this.polyglotSymbols = polyglotSymbols;
@@ -74,15 +72,6 @@ public final class ModuleScope implements EnsoObject {
     return module;
   }
 
-  private Map<String, Supplier<Function>> getMethodMapFor(Type type) {
-    Type tpeKey = type == null ? noTypeKey : type;
-    Map<String, Supplier<Function>> result = methods.get(tpeKey);
-    if (result == null) {
-      return new LinkedHashMap<>();
-    }
-    return result;
-  }
-
   /**
    * Looks up the definition for a given type and method name.
    *
@@ -96,18 +85,18 @@ public final class ModuleScope implements EnsoObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
-    var definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(name);
+    var definedWithAtom = type.getDefinitionScope().getMethodForType(type, name);
     if (definedWithAtom != null) {
-      return definedWithAtom.get();
+      return definedWithAtom;
     }
 
-    var definedHere = getMethodMapFor(type).get(name);
+    var definedHere = getMethodForType(type, name);
     if (definedHere != null) {
-      return definedHere.get();
+      return definedHere;
     }
 
     return imports.stream()
-        .map(scope -> scope.built().getExportedMethod(type, name))
+        .map(scope -> scope.getExportedMethod(type, name))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
@@ -130,32 +119,31 @@ public final class ModuleScope implements EnsoObject {
       return definedHere;
     }
     return imports.stream()
-        .map(scope -> scope.built().getExportedConversion(original, target))
+        .map(scope -> scope.getExportedConversion(original, target))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
   }
 
-  private Function getExportedMethod(Type type, String name) {
-    var here = getMethodMapFor(type).get(name);
+  Function getExportedMethod(Type type, String name) {
+    var here = getMethodForType(type, name);
     if (here != null) {
-      return here.get();
+      return here;
     }
     return exports.stream()
-        .map(scope -> scope.built().getMethodMapFor(type).get(name))
+        .map(scope -> scope.getMethodForType(type, name))
         .filter(Objects::nonNull)
-        .map(s -> s.get())
         .findFirst()
         .orElse(null);
   }
 
-  private Function getExportedConversion(Type type, Type target) {
+  Function getExportedConversion(Type type, Type target) {
     Function here = getConversionsFor(target).get(type);
     if (here != null) {
       return here;
     }
     return exports.stream()
-        .map(scope -> scope.built().getConversionsFor(target).get(type))
+        .map(scope -> scope.getConversionForType(target, type))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
@@ -163,17 +151,23 @@ public final class ModuleScope implements EnsoObject {
 
   public List<Type> getAllTypes(String name) {
     var tpes = new LinkedList<Type>();
-    getType(name).ifPresent(t -> tpes.add(t));
+    var tpe0 = getType(name);
+    if (tpe0 != null) tpes.add(tpe0);
     tpes.addAll(types.values());
     return tpes;
   }
 
   @ExportMessage.Ignore
-  public Optional<Type> getType(String name) {
+  public Type getType(String name) {
     if (associatedType.getName().equals(name)) {
-      return Optional.of(associatedType);
+      return associatedType;
     }
-    return Optional.ofNullable(types.get(name));
+    return types.get(name);
+  }
+
+  @ExportMessage.Ignore
+  public boolean hasType(Type type) {
+    return types.get(type.getName()) == type;
   }
 
   /**
@@ -217,7 +211,7 @@ public final class ModuleScope implements EnsoObject {
     }
   }
 
-  private Map<Type, Function> getConversionsFor(Type type) {
+  Map<Type, Function> getConversionsFor(Type type) {
     var result = conversions.get(type);
     if (result == null) {
       return new LinkedHashMap<>();
@@ -275,8 +269,8 @@ public final class ModuleScope implements EnsoObject {
     private Map<String, Type> types;
     private Map<Type, Map<String, Supplier<Function>>> methods;
     private Map<Type, Map<Type, Function>> conversions;
-    private Set<ModuleScope.Builder> imports;
-    private Set<ModuleScope.Builder> exports;
+    private Set<ImportExportScope> imports;
+    private Set<ImportExportScope> exports;
 
     public Builder(Module module) {
       this.module = module;
@@ -296,8 +290,8 @@ public final class ModuleScope implements EnsoObject {
         Map<String, Type> types,
         Map<Type, Map<String, Supplier<Function>>> methods,
         Map<Type, Map<Type, Function>> conversions,
-        Set<ModuleScope.Builder> imports,
-        Set<ModuleScope.Builder> exports) {
+        Set<ImportExportScope> imports,
+        Set<ImportExportScope> exports) {
       this.module = module;
       this.associatedType = associatedType;
       this.polyglotSymbols = polyglotSymbols;
@@ -413,7 +407,7 @@ public final class ModuleScope implements EnsoObject {
      *
      * @param scope the scope of the newly added dependency
      */
-    public void addImport(ModuleScope.Builder scope) {
+    public void addImport(ImportExportScope scope) {
       assert moduleScope == null;
       imports.add(scope);
     }
@@ -423,7 +417,7 @@ public final class ModuleScope implements EnsoObject {
      *
      * @param scope the exported scope
      */
-    public void addExport(ModuleScope.Builder scope) {
+    public void addExport(ImportExportScope scope) {
       assert moduleScope == null;
       exports.add(scope);
     }
@@ -449,53 +443,6 @@ public final class ModuleScope implements EnsoObject {
     }
 
     /**
-     * Create a copy of this `ModuleScope` while taking into account only the provided list of
-     * types.
-     *
-     * @param typeNames list of types to copy to the new scope
-     * @return a copy of this scope modulo the requested types
-     */
-    public ModuleScope.Builder withTypes(List<String> typeNames) {
-      Map<String, Object> polyglotSymbols = new LinkedHashMap<>(this.polyglotSymbols);
-      Map<String, Type> requestedTypes = new LinkedHashMap<>(this.types);
-      Map<Type, Map<String, Supplier<Function>>> methods = new LinkedHashMap<>();
-      Map<Type, Map<Type, Function>> conversions = new LinkedHashMap<>();
-      Set<ModuleScope.Builder> imports = new LinkedHashSet<>(this.imports);
-      Set<ModuleScope.Builder> exports = new LinkedHashSet<>(this.exports);
-      this.types
-          .entrySet()
-          .forEach(
-              entry -> {
-                if (typeNames.contains(entry.getKey())) {
-                  requestedTypes.put(entry.getKey(), entry.getValue());
-                }
-              });
-      Collection<Type> validTypes = requestedTypes.values();
-      this.methods.forEach(
-          (tpe, meths) -> {
-            if (validTypes.contains(tpe)) {
-              methods.put(tpe, meths);
-            }
-          });
-      this.conversions.forEach(
-          (tpe, meths) -> {
-            if (validTypes.contains(tpe)) {
-              conversions.put(tpe, meths);
-            }
-          });
-
-      return new ModuleScope.Builder(
-          module,
-          associatedType,
-          polyglotSymbols,
-          requestedTypes,
-          methods,
-          conversions,
-          imports,
-          exports);
-    }
-
-    /**
      * Returns an already built scope.
      *
      * <p>The method assumes that the builder has already been built and can be treated as immutable
@@ -504,7 +451,7 @@ public final class ModuleScope implements EnsoObject {
      * @return `ModuleScope` of this builder
      */
     public ModuleScope built() {
-      assert moduleScope != null;
+      assert moduleScope != null : "Module's scope is not yet built" + module.getName();
       return moduleScope;
     }
 
@@ -537,10 +484,6 @@ public final class ModuleScope implements EnsoObject {
       imports = new LinkedHashSet<>();
       exports = new LinkedHashSet<>();
       moduleScope = null;
-    }
-
-    public boolean isBuilt() {
-      return moduleScope != null;
     }
   }
 }
