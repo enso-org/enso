@@ -51,12 +51,12 @@ add_specs suite_builder =
         group_builder.specify "Invalid ASCII should raise a problem when decoding (error by default)" <|
             action = Text.from_bytes invalid_ascii Encoding.ascii on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Encoding issues at 12."]
+            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 12)."]
             Problems.test_problem_handling action problems tester
 
             default_error = Text.from_bytes invalid_ascii Encoding.ascii
             default_error.should_fail_with Encoding_Error
-            default_error.catch.message . should_equal "Encoding issues at 12."
+            default_error.catch.message . should_equal "Failed to decode 1 code units (at positions: 12)."
 
         group_builder.specify "Invalid ASCII should raise a problem when encoding (warning by default)" <|
             action = invalid.bytes Encoding.ascii on_problems=_
@@ -210,12 +210,12 @@ add_specs suite_builder =
         group_builder.specify "Invalid UTF-8 should raise a problem when decoding (error by default)" <|
             action = Text.from_utf_8 invalid_utf_8 on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Encoding issues at 19."]
+            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 19)."]
             Problems.test_problem_handling action problems tester
 
             default_error = Text.from_utf_8 invalid_utf_8
             default_error.should_fail_with Encoding_Error
-            default_error.catch.message . should_equal "Encoding issues at 19."
+            default_error.catch.message . should_equal "Failed to decode 1 code units (at positions: 19)."
 
         group_builder.specify "should strip the initial BOM, but not subsequent repetitions of it" <|
             bytes = [-17, -69, -65] + [-17, -69, -65] + [65] + [-17, -69, -65]
@@ -314,7 +314,7 @@ add_specs suite_builder =
         group_builder.specify "Invalid Windows-1252 should raise a problem when decoding" <|
             action = Text.from_bytes invalid_windows Encoding.windows_1252 on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Encoding issues at 16."]
+            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 16)."]
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "Invalid Windows-1252 should raise a problem when encoding" <|
