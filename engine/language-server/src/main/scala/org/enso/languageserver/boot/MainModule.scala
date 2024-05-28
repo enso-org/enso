@@ -468,7 +468,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )
 
   private val messagesCallback = {
-    languageServerConfig.profiling.textMessagesPath match {
+    languageServerConfig.profiling.messagesPath match {
       case Some(path) =>
         val messageWriter = system.actorOf(
           MessageWriter.props(path),

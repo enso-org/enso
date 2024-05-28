@@ -31,23 +31,13 @@ case class ProfilingConfig(
       )
     )
 
-  /** Creates a path to the JSON-RPC text messages log. */
-  def textMessagesPath: Option[Path] =
+  /** Creates a path to the messages log. */
+  def messagesPath: Option[Path] =
     profilingPath.map(
       ProfilingConfig.modifyPath(
         _,
         ProfilingConfig.MessagesSuffix,
-        ProfilingConfig.TextMessagesExtension
-      )
-    )
-
-  /** Creates a path to the binary messages log. */
-  def binaryMessagesPath: Option[Path] =
-    profilingPath.map(
-      ProfilingConfig.modifyPath(
-        _,
-        ProfilingConfig.MessagesSuffix,
-        ProfilingConfig.BinaryMessagesExtension
+        ProfilingConfig.MessagesExtension
       )
     )
 }
@@ -57,9 +47,8 @@ object ProfilingConfig {
   private val EventsLogSuffix    = ""
   private val EventsLogExtension = "log"
 
-  private val MessagesSuffix          = "-messages"
-  private val TextMessagesExtension   = "txt"
-  private val BinaryMessagesExtension = "bin"
+  private val MessagesSuffix    = "-messages"
+  private val MessagesExtension = "txt"
 
   /** Modify the path by adding a suffix and changing the file extension.
     *
