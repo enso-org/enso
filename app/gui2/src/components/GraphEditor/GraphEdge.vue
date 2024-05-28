@@ -118,13 +118,12 @@ type NodeMask = {
 const sourceMask = computed<NodeMask | undefined>(() => {
   const startsInPort = currentJunctionPoints.value?.startsInPort
   if (!props.maskSource && !startsInPort) return
-
-  const animProgress = (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0
-  let padding = animProgress * VISIBLE_PORT_MASK_PADDING
-  if (padding > 0 && !currentJunctionPoints.value?.startsInPort) padding = 0
-  if (!props.maskSource && padding === 0) return
   const nodeRect = sourceNodeRect.value
   if (!nodeRect) return
+  const animProgress =
+    startsInPort ? (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0 : 0
+  let padding = animProgress * VISIBLE_PORT_MASK_PADDING
+  if (!props.maskSource && padding === 0) return
   const rect = nodeRect.expand(padding)
   const radius = 16 + padding
   const id = `mask_for_edge_to-${props.edge.target ?? 'unconnected'}`
