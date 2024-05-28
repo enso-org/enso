@@ -380,7 +380,7 @@ watchEffect(() => {
     const headerGroupingMap = new Map()
     headers.forEach((header) => {
       const needsGrouping = rowData.some((row: any) => {
-        if (row[header]) {
+        if (header in row && row[header] != null) {
           const value = typeof row[header] === 'object' ? row[header].value : row[header]
           return value > 9999
         }
