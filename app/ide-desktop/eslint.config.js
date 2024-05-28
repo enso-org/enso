@@ -213,7 +213,6 @@ const RESTRICTED_SYNTAXES = [
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',
     },
-    // TemplateLiteral
     {
         selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
         message:

@@ -2,8 +2,8 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import clsx from 'clsx'
 import * as router from 'react-router'
+import * as tailwindMerge from 'tailwind-merge'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -87,12 +87,12 @@ export function SetOrganizationNameModal() {
             <aria.Label className="mb-1 ml-0.5 block text-sm">{getText('organization')}</aria.Label>
             <aria.Input
               className={values =>
-                clsx('rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]', {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  'outline outline-2 outline-primary': values.isFocused || values.isFocusVisible,
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  'border-red-500 outline-red-500': values.isInvalid,
-                })
+                tailwindMerge.twMerge(
+                  'rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]',
+                  (values.isFocused || values.isFocusVisible) &&
+                    'outline outline-2 outline-primary',
+                  values.isInvalid && 'border-red-500 outline-red-500'
+                )
               }
             />
             <aria.FieldError className="text-sm text-red-500" />
