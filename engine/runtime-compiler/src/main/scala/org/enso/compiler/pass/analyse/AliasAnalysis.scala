@@ -565,7 +565,7 @@ case object AliasAnalysis extends IRPass {
             name,
             _,
             value,
-            susp,
+            suspended,
             _,
             _,
             _
@@ -575,13 +575,11 @@ case object AliasAnalysis extends IRPass {
             name.name
           )
         if (!nameOccursInScope) {
-          val argScope = if (susp) {
-            scope.addChild()
-          } else {
-            scope
-          }
+          val argScope = if (suspended) scope.addChild() else scope
           val newDefault =
-            value.map((ir: Expression) => analyseExpression(ir, graph, argScope))
+            value.map((ir: Expression) =>
+              analyseExpression(ir, graph, argScope)
+            )
 
           val occurrenceId = graph.nextId()
           val definition = alias.Graph.Occurrence.Def(
@@ -589,7 +587,7 @@ case object AliasAnalysis extends IRPass {
             name.name,
             arg.getId(),
             arg.getExternalId,
-            susp
+            suspended
           )
           scope.add(definition)
           scope.addDefinition(definition)
