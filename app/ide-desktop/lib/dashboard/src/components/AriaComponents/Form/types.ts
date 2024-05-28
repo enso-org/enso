@@ -123,11 +123,8 @@ export interface UseFormRegisterReturn<
 > extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onChange'> {
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   readonly onChange: <Value>(value: Value) => Promise<boolean | void> | void
-  // eslint-disable-next-line no-restricted-syntax
   readonly isDisabled?: boolean
-  // eslint-disable-next-line no-restricted-syntax
   readonly isRequired?: boolean
-  // eslint-disable-next-line no-restricted-syntax
   readonly isInvalid?: boolean
 }
 
