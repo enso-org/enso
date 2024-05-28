@@ -27,23 +27,23 @@ collect_benches = Bench.build builder->
     data = Data.create batch_size
 
     builder.group "Vector_Builder" options group_builder->
-        [True, False].map no_warning_propagation->
-            suffix = if no_warning_propagation then "_Without_Warning_Propagation" else "_With_Warning_Propagation"
+        [True, False].map propagate_warnings->
+            suffix = if propagate_warnings then "_With_Warning_Propagation" else "_Without_Warning_Propagation"
             group_builder.specify "Vector_Build_Append_One"+suffix <|
-                Vector.build no_warning_propagation=no_warning_propagation builder->
+                Vector.build propagate_warnings=propagate_warnings builder->
                     0.up_to num_values . map i->
                         builder.append i
             group_builder.specify "Vector_Build_Append_Batch"+suffix <|
-                Vector.build no_warning_propagation=no_warning_propagation builder->
+                Vector.build propagate_warnings=propagate_warnings builder->
                     0.up_to num_batches . map _->
                         builder.append_vector_range data.batch
             group_builder.specify "Builder_New_Append_One"+suffix <|
-                builder = Builder.new no_warning_propagation=no_warning_propagation
+                builder = Builder.new propagate_warnings=propagate_warnings
                 0.up_to num_values . map i->
                     builder.append i
                 builder.to_vector
             group_builder.specify "Builder_New_Append_Batch"+suffix <|
-                builder = Builder.new no_warning_propagation=no_warning_propagation
+                builder = Builder.new propagate_warnings=propagate_warnings
                 0.up_to num_batches . map _->
                     builder.append_vector_range data.batch
                 builder.to_vector

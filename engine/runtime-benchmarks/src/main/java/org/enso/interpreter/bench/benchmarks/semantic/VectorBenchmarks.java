@@ -46,7 +46,7 @@ public class VectorBenchmarks {
             (sum 0 0) / arr.length
 
         fibarr size modulo =
-            Vector.build initial_capacity=size no_warning_propagation=True b->
+            Vector.build initial_capacity=size propagate_warnings=False b->
                 b.append 1
                 b.append 1
 
