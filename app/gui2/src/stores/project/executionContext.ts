@@ -155,7 +155,8 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   set desiredStack(stack: StackItem[]) {
-    this._desiredStack = stack
+    this._desiredStack.length = 0
+    this._desiredStack.push(...stack)
     this.sync()
   }
 

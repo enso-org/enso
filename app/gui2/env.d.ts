@@ -31,3 +31,7 @@ interface FileBrowserApi {
     kind: 'file' | 'directory' | 'default' | 'filePath',
   ) => Promise<string[] | undefined>
 }
+
+interface LogEvent {
+  (message: string, projectId?: string | null, metadata?: object | null): void
+}

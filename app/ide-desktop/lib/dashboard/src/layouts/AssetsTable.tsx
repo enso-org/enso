@@ -386,7 +386,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()

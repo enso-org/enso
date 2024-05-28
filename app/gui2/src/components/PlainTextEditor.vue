@@ -22,7 +22,7 @@ const textSync: LexicalPlugin = {
   },
 }
 
-useLexical(contentElement, 'PlainTextEditor', [plainText, textSync])
+useLexical(contentElement, 'PlainTextEditor', {}, [plainText, textSync])
 </script>
 
 <template>

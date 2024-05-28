@@ -245,7 +245,10 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 ThisBuild / Test / testOptions ++=
-  Seq(Tests.Argument(TestFrameworks.ScalaTest, "-oID")) ++
+  Seq(
+    Tests.Argument(TestFrameworks.ScalaTest, "-oID"),
+    Tests.Argument(TestFrameworks.JUnit, "--verbosity=1")
+  ) ++
   sys.env
     .get("ENSO_TEST_JUNIT_DIR")
     .map { junitDir =>

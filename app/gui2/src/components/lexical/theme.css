@@ -1,0 +1,52 @@
+/*
+Lexical theme. Class names are derived from the `LexicalThemeClasses` type from `lexical`, with the hierarchy flattened
+using `_` to separate levels. See the `lexicalTheme` function in `lexical/formatting.ts`.
+*/
+
+.heading_h1 {
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.75;
+}
+.heading_h2 {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.75;
+}
+.heading_h3,
+.heading_h4,
+.heading_h5,
+.heading_h6 {
+  font-size: 14px;
+  line-height: 2;
+}
+
+.text_strikethrough {
+  text-decoration: line-through;
+}
+.text_italic {
+  font-style: italic;
+}
+.text_quote {
+  margin-left: 0.2em;
+  border-left: 0.3em solid #ccc;
+  padding-left: 1.6em;
+}
+.text_bold {
+  font-weight: bold;
+}
+
+.paragraph {
+  margin-bottom: 0.5em;
+}
+
+.list_ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: 1.6em;
+}
+.list_ul {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 1.6em;
+}
