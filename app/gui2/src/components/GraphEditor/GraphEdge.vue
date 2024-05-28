@@ -8,6 +8,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
 import { clamp } from '@vueuse/core'
+import { uuidv4 } from 'lib0/random'
 import { computed, ref } from 'vue'
 
 const selection = injectGraphSelection(true)
@@ -77,7 +78,9 @@ const targetPos = computed<Vec2 | undefined>(() => {
 })
 
 const sourceNodeRect = computed<Rect | undefined>(() => {
-  return sourceNode.value && graph.nodeRects.get(sourceNode.value)
+  const nodeId = sourceNode.value
+  if (!nodeId) return
+  return graph.nodeRects?.get(nodeId)
 })
 
 const sourceRect = computed<Rect | undefined>(() => {
@@ -109,12 +112,24 @@ type NodeMask = {
   rect: Rect
   radius: number
 }
+
+const maskId = uuidv4()
+
 const sourceMask = computed<NodeMask | undefined>(() => {
-  if (!props.maskSource) return
-  const rect = sourceNodeRect.value
-  if (!rect) return
-  const radius = 16
-  const id = `mask_for_edge_to-${props.edge.target ?? 'unconnected'}`
+  const startsInPort = currentJunctionPoints.value?.startsInPort
+  if (!props.maskSource && !startsInPort) return
+
+  const animProgress = (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0
+  const ANIM_MAX_PADDING = 6 // node's --output-port-overlap value.
+  let padding = animProgress * ANIM_MAX_PADDING
+
+  if (padding > 0 && !currentJunctionPoints.value?.startsInPort) padding = 0
+  if (!props.maskSource && padding === 0) return
+  const nodeRect = sourceNodeRect.value
+  if (!nodeRect) return
+  const rect = nodeRect.expand(padding)
+  const radius = 16 + padding
+  const id = `mask_for_edge_${maskId}`
   return { id, rect, radius }
 })
 
@@ -138,6 +153,7 @@ interface Inputs {
 interface JunctionPoints {
   points: Vec2[]
   maxRadius: number
+  startsInPort: boolean
 }
 
 function circleIntersection(x: number, r1: number, r2: number): number {
@@ -198,6 +214,11 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     targetBeyondSource &&
     Math.abs(inputs.targetOffset.x) - sourceMaxXOffset >=
       3.0 * (theme.edge.radius - theme.edge.three_corner.max_squeeze)
+  const horizontalRoomFor3CornersNoSqueeze =
+    targetBeyondSource &&
+    Math.abs(inputs.targetOffset.x) - sourceMaxXOffset >=
+      3.0 * theme.edge.radius + theme.edge.three_corner.radius_max
+
   if (targetWellBelowSource || (targetBelowSource && !horizontalRoomFor3Corners)) {
     const innerTheme = theme.edge.one_corner
     // The edge can originate anywhere along the length of the node.
@@ -219,6 +240,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       Math.abs(inputs.targetOffset.y),
     )
     let sourceDY = 0
+    let startsInPort = true
     if (naturalRadius > innerTheme.minimum_tangent_exit_radius) {
       // Offset the beginning of the edge so that it is normal to the curve of the source node
       // at the point that it exits the node.
@@ -229,12 +251,14 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       const intersection = circleIntersection(circleOffset, theme.node.corner_radius, radius)
       sourceDY = -Math.abs(radius - intersection)
     } else if (halfSourceSize.y != 0) {
-      sourceDY = -innerTheme.source_node_overlap + halfSourceSize.y
+      sourceDY = 0 - innerTheme.source_node_overlap
+      startsInPort = naturalRadius === 0
     }
     const source = new Vec2(sourceX, sourceDY)
     return {
       points: [source, inputs.targetOffset],
       maxRadius,
+      startsInPort,
     }
   } else {
     const radiusMax = theme.edge.three_corner.radius_max
@@ -283,6 +307,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     return {
       points: [source, j0, j1, attachmentTarget],
       maxRadius: radiusMax,
+      startsInPort: horizontalRoomFor3CornersNoSqueeze,
     }
   }
 }
@@ -349,25 +374,41 @@ function render(sourcePos: Vec2, elements: Element[]): string {
   return out
 }
 
+const sourceOriginPoint = computed(() => {
+  const source = sourceRect.value
+  if (source == null) return null
+  const sourceStartPosY = Math.max(
+    source.top + theme.node.corner_radius,
+    source.bottom - theme.node.corner_radius,
+  )
+  return new Vec2(source.center().x, sourceStartPosY)
+})
+
 const currentJunctionPoints = computed(() => {
   const target = targetPos.value
   const source = sourceRect.value
-  if (target == null || source == null) return null
-  const inputs: Inputs = {
+  const origin = sourceOriginPoint.value
+  if (target == null || source == null || origin == null) return null
+
+  return junctionPoints({
     sourceSize: source.size,
-    targetOffset: target.sub(source.center()),
-  }
-  return junctionPoints(inputs)
+    targetOffset: target.sub(origin),
+  })
+})
+
+const basePathElements = computed(() => {
+  const jp = currentJunctionPoints.value
+  if (jp == null) return undefined
+  return pathElements(jp)
 })
 
 const basePath = computed(() => {
-  if (props.edge.source == null && props.edge.target == null) return undefined
-  const jp = currentJunctionPoints.value
-  if (jp == null) return undefined
-  const { start, elements } = pathElements(jp)
-  const source_ = sourceRect.value
-  if (source_ == null) return undefined
-  return render(source_.center().add(start), elements)
+  const pathElements = basePathElements.value
+  if (!pathElements) return
+  const { start, elements } = pathElements
+  const origin = sourceOriginPoint.value
+  if (origin == null) return undefined
+  return render(origin.add(start), elements)
 })
 
 const activePath = computed(() => {
@@ -449,11 +490,11 @@ const backwardEdgeArrowTransform = computed<string | undefined>(() => {
   const points = currentJunctionPoints.value?.points
   if (points == null || points.length < 3) return
   const target = targetPos.value
-  const source = sourceRect.value
-  if (target == null || source == null) return
-  if (target.y > source.pos.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
+  const origin = sourceOriginPoint.value
+  if (target == null || origin == null) return
+  if (target.y > origin.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
   if (points[1] == null) return
-  return svgTranslate(source.center().add(points[1]))
+  return svgTranslate(origin.add(points[1]))
 })
 
 const targetIsSelfArgument = computed(() => {

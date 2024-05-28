@@ -52,7 +52,8 @@ function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
 }
 
-const realSize = useResizeObserver(contentNode)
+// const realSize = useResizeObserver(contentNode)
+const realSize = computed(() => new Vec2(config.width, config.height))
 
 // Because ResizeHandles are applying the screen mouse movements, the bouds must be in `screen`
 // space.
@@ -86,8 +87,8 @@ const nodeShortType = computed(() =>
 
 const contentStyle = computed(() => {
   return {
-    width: config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-    height: config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
+    width: config.fullscreen ? undefined : `${config.width}px`,
+    height: config.fullscreen ? undefined : `${config.height}px`,
   }
 })
 </script>
