@@ -13,6 +13,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as remoteBackendProvider from '#/providers/RemoteBackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -47,6 +48,8 @@ import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+
+import type * as types from '../../../../types/types'
 
 // ============================
 // === Global configuration ===
@@ -114,7 +117,7 @@ LocalStorage.registerKey('projectStartupInfo', {
 export interface DashboardProps {
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
-  readonly appRunner: AppRunner
+  readonly appRunner: types.EditorRunner | null
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
@@ -127,8 +130,8 @@ export default function Dashboard(props: DashboardProps) {
   const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
-  const { setBackend } = backendProvider.useSetBackend()
+  const { backend } = backendProvider.useStrictBackend()
+  const { setBackend } = backendProvider.useStrictSetBackend()
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -240,7 +243,12 @@ export default function Dashboard(props: DashboardProps) {
                     abortController
                   )
                   if (!abortController.signal.aborted) {
-                    setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+                    setProjectStartupInfo(
+                      object.merge(savedProjectStartupInfo, {
+                        project,
+                        accessToken: session.accessToken,
+                      })
+                    )
                     if (page === pageSwitcher.Page.editor) {
                       setPage(page)
                     }
@@ -363,6 +371,7 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [inputBindings])
 
+  const remoteBackend = remoteBackendProvider.useStrictRemoteBackend()
   const setBackendType = React.useCallback(
     (newBackendType: backendModule.BackendType) => {
       if (newBackendType !== backend.type) {
@@ -374,10 +383,7 @@ export default function Dashboard(props: DashboardProps) {
             break
           }
           case backendModule.BackendType.remote: {
-            const client = new HttpClient([
-              ['Authorization', `Bearer ${session.accessToken ?? ''}`],
-            ])
-            setBackend(new RemoteBackend(client, logger, getText))
+            setBackend(remoteBackend)
             break
           }
         }
@@ -385,9 +391,7 @@ export default function Dashboard(props: DashboardProps) {
     },
     [
       backend.type,
-      session.accessToken,
-      logger,
-      getText,
+      remoteBackend,
       /* should never change */ projectManagerUrl,
       /* should never change */ projectManagerRootDirectory,
       /* should never change */ setBackend,
@@ -532,7 +536,6 @@ export default function Dashboard(props: DashboardProps) {
           />
           <Editor
             hidden={page !== pageSwitcher.Page.editor}
-            supportsLocalBackend={supportsLocalBackend}
             ydocUrl={ydocUrl}
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}

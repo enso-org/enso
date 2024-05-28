@@ -6,27 +6,27 @@
  * element.
  */
 
-import SvgButton from '@/components/SvgButton.vue'
+import MenuButton from '@/components/MenuButton.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconName'
 
-const _props = withDefaults(defineProps<{ icon: Icon; modelValue?: boolean }>(), {
-  modelValue: false,
-})
-const emit = defineEmits<{
-  'update:modelValue': [toggledOn: boolean]
-}>()
+const toggledOn = defineModel<boolean>({ default: false })
+const _props = defineProps<{ icon: Icon; label?: string }>()
 </script>
 
 <template>
-  <SvgButton
-    :name="icon"
-    class="ToggleIcon"
-    :class="{ toggledOn: modelValue, toggledOff: !modelValue }"
-    @click.stop="emit('update:modelValue', !modelValue)"
-  />
+  <MenuButton v-model="toggledOn" class="ToggleIcon">
+    <SvgIcon :name="icon" />
+    <div v-if="label" v-text="label" />
+  </MenuButton>
 </template>
 
 <style scoped>
+.ToggleIcon {
+  margin: -4px;
+  gap: 4px;
+}
+
 .toggledOff {
   opacity: 0.4;
 }

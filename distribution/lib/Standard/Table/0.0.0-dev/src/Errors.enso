@@ -865,6 +865,7 @@ type Mixing_Date_Time_Types
     ## PRIVATE
     Implicit_Time_Zone (related_column_name : Text | Nothing)
 
+    ## PRIVATE
     to_display_text self -> Text =
         location = if self.related_column_name.is_nothing then "" else " (in column ["+self.related_column_name+"])"
         case self of

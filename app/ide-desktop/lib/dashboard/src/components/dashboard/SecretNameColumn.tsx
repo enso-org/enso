@@ -42,7 +42,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax

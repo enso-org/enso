@@ -1,6 +1,5 @@
 import type { NodeCreation } from '@/composables/nodeCreation'
-import type { Node, NodeId } from '@/stores/graph'
-import { useGraphStore } from '@/stores/graph'
+import type { GraphStore, Node, NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { ToValue } from '@/util/reactivity'
@@ -119,11 +118,10 @@ function getClipboard() {
 }
 
 export function useGraphEditorClipboard(
+  graphStore: GraphStore,
   selected: ToValue<Set<NodeId>>,
   createNodes: NodeCreation['createNodes'],
 ) {
-  const graphStore = useGraphStore()
-
   /** Copy the content of the selected node to the clipboard. */
   function copySelectionToClipboard() {
     const nodes = new Array<Node>()

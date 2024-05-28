@@ -3,9 +3,11 @@ import { urlParams } from '@/util/urlParams'
 import { isOnLinux } from 'enso-common/src/detect'
 import * as dashboard from 'enso-dashboard'
 import { isDevMode } from 'shared/util/detect'
-import { appRunner } from './appRunner'
+import { lazyVueInReact } from 'veaury'
 
 import 'enso-dashboard/src/tailwind.css'
+import type { EditorRunner } from '../../ide-desktop/lib/types/types'
+import { AsyncApp } from './asyncApp'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
@@ -43,6 +45,8 @@ window.addEventListener('resize', () => {
   window.clearTimeout(scamWarningHandle)
   scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
 })
+
+const appRunner = lazyVueInReact(AsyncApp as any /* async VueComponent */) as EditorRunner
 
 /** The entrypoint into the IDE. */
 function main() {

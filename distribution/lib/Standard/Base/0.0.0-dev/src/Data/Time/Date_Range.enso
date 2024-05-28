@@ -18,6 +18,7 @@ import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 from project.Runtime import assert
 
 polyglot java import org.enso.base.Time_Utils
@@ -29,7 +30,7 @@ type Date_Range
        allow to verify invariants and may lead to unexpected behavior.
     Internal_Constructor (start : Date) (end : Date) (step : Period) (increasing : Boolean) (cached_length : Integer)
 
-    ## ICON date_and_time
+    ## ICON time
        Create a representation of a right-exclusive range of dates.
 
        The range is increasing or decreasing, depending on if the start date is
@@ -54,7 +55,7 @@ type Date_Range
         Date_Range.Internal_Constructor start end one_day increasing base_length . with_step step
 
     ## GROUP Calculations
-       ICON date_and_time
+       ICON time
        Creates a copy of this range with a changed step.
 
        Arguments:
@@ -161,8 +162,9 @@ type Date_Range
          Get the last element of a range with step.
 
             (Date.new 2023 04 05) . up_to (Date.new 2023 10 07) . with_step Date_Period.Month . get -1 == (Date.new 2023 10 05)
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## ICON parse3
@@ -174,8 +176,9 @@ type Date_Range
          also allowed be negative, then the elements are indexed from the back,
          i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         len = self.length
         effective_index = if index < 0 then len + index else index
         if effective_index >= 0 && effective_index < len then self.internal_at effective_index else
@@ -188,7 +191,7 @@ type Date_Range
     internal_at self i =
         nth_element_of_range self.start self.step self.increasing i
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element in the range, producing a vector of
        results.
 
@@ -214,7 +217,7 @@ type Date_Range
              (Date.new 2021 05 07).up_to (Date.new 2021 05 10) . to_vector
     to_vector : Vector Date
     to_vector self =
-        proxy = Array_Proxy.new self.length self.at
+        proxy = Array_Proxy.new self.length (self.at _)
         Vector.from_polyglot_array proxy
 
     ## GROUP Logical
@@ -336,7 +339,7 @@ type Date_Range
         (0.up_to self.length).each_with_index ix->
             function ix (self.internal_at ix)
 
-    ## ICON sigma
+    ## ICON transform4
        Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
@@ -356,7 +359,7 @@ type Date_Range
         (0.up_to self.length).fold init acc-> ix->
             function acc (self.internal_at ix)
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the range, by iteratively applying the
        passed function with the next element of the range. After each step the
        value is stored resulting in a new Vector of the same size as self.
