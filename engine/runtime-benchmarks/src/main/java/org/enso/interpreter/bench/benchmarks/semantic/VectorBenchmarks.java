@@ -38,7 +38,7 @@ public class VectorBenchmarks {
         import Standard.Base.Data.Vector.Builder
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy
-        from Standard.Base.Data.Boolean import True
+        from Standard.Base.Data.Boolean import False
 
         avg arr =
             sum acc i = if i == arr.length then acc else
