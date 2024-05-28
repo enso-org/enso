@@ -37,7 +37,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax

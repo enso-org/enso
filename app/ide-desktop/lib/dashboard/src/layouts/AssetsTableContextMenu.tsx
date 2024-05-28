@@ -59,7 +59,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { category, pasteData, selectedKeys, clearSelectedKeys, nodeMapRef, event } = props
   const { dispatchAssetEvent, dispatchAssetListEvent, rootDirectoryId, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
