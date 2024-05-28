@@ -13,7 +13,7 @@ import project.System.File.Generic.Writable_File.Writable_File
 
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
-polyglot java import org.enso.base.Encoding_Utils
+polyglot java import org.enso.base.encoding.Encoding_Utils
 
 ## PRIVATE
    An input stream, allowing for interactive reading of contents.

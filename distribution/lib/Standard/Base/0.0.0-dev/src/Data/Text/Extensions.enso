@@ -44,7 +44,7 @@ from project.Widget_Helpers import make_data_cleanse_vector_selector, make_date_
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
-polyglot java import org.enso.base.Encoding_Utils
+polyglot java import org.enso.base.encoding.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.text.GraphemeSpan
 polyglot java import org.enso.base.text.ResultWithWarnings

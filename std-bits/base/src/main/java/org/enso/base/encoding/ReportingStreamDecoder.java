@@ -1,6 +1,6 @@
 package org.enso.base.encoding;
 
-import static org.enso.base.Encoding_Utils.INVALID_CHARACTER;
+import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -13,7 +13,6 @@ import java.nio.charset.CoderResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.base.Encoding_Utils;
 
 /**
  * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
