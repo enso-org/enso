@@ -159,7 +159,6 @@ const numberFormat = new Intl.NumberFormat(undefined, {
 })
 
 function formatNumber(params: ICellRendererParams) {
-  console.log({ params })
   const valueType = params.value?.type
   const value = valueType === 'BigInt' ? BigInt(params.value?.value) : params.value
   const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
