@@ -9,7 +9,7 @@ import type * as z from 'zod'
 /**
  * Field Values type.
  */
-export type FieldValues<Schema extends TSchema> = Schema extends never
+export type FieldValues<Schema extends TSchema> = [Schema] extends [never]
   ? reactHookForm.FieldValues
   : z.infer<Schema>
 
