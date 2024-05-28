@@ -26,6 +26,14 @@ type F
 type G
     G a=4 b=Bar.B
 
+type H
+    H x y
+    eager self a=self b=self.y c=a.y =
+        [ self.x, a, b, c ]
+
+    lazy self ~a=self ~b=self.y ~c=a.y =
+        [ self.x, a, b, c ]
+
 local_fun a b=1 c=local_const = a + b + c
 local_const = 42
 
@@ -61,6 +69,22 @@ add_specs suite_builder =
     suite_builder.group "Functions" group_builder->
         group_builder.specify "should apply default arguments that involve local functions" <|
             local_fun 0 . should_equal 43
+
+        group_builder.specify "accessing default suspended self & args" <|
+            h = H.H 25 37
+
+            h.x . should_equal 25
+            h.y . should_equal 37
+
+            v1 = h.eager
+            v2 = h.lazy
+
+            v1 . should_equal v2
+
+            v1.at 0 . should_equal h.x
+            v1.at 1 . should_equal h
+            v1.at 2 . should_equal h.y
+            v1.at 3 . should_equal h.y
 
 main filter=Nothing =
     suite = Test.build suite_builder->
