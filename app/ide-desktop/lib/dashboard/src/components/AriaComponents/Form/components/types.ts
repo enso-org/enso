@@ -9,22 +9,30 @@ import type * as z from 'zod'
 /**
  * Field Values type.
  */
-export type FieldValues = reactHookForm.FieldValues
+export type FieldValues<Schema extends TSchema> = Schema extends never
+  ? reactHookForm.FieldValues
+  : z.infer<Schema>
+
+/**
+ * Schema type
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TSchema = z.ZodObject<any>
 
 /**
  * Props for the useForm hook.
  */
-export interface UseFormProps<T extends FieldValues>
-  extends Omit<reactHookForm.UseFormProps<T>, 'resetOptions' | 'resolver'> {
-  // eslint-disable-next-line no-restricted-syntax
-  readonly schema?: z.ZodObject<T>
+export interface UseFormProps<Schema extends TSchema, TFieldValues extends FieldValues<Schema>>
+  extends Omit<reactHookForm.UseFormProps<TFieldValues>, 'resetOptions' | 'resolver'> {
+  readonly schema: Schema
 }
 
 /**
  * Return type of the useForm hook.
  */
 export type UseFormReturn<
-  TFieldValues extends Record<string, unknown>,
+  Schema extends TSchema,
+  TFieldValues extends FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends Record<string, unknown> | undefined = undefined,
 > = reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues>
@@ -32,4 +40,7 @@ export type UseFormReturn<
 /**
  * Form State type.
  */
-export type FormState<TFieldValues extends FieldValues> = reactHookForm.FormState<TFieldValues>
+export type FormState<
+  Schema extends TSchema,
+  TFieldValues extends FieldValues<Schema>,
+> = reactHookForm.FormState<TFieldValues>
