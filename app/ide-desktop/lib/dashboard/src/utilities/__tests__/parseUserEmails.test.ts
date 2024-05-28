@@ -1,11 +1,7 @@
-/**
- * @file
- *
- * Tests for the parseUserEmails function.
- */
+/** @file Tests for the `parseUserEmails` function. */
 import * as vitest from 'vitest'
 
-import * as parseUserEmails from './parseUserEmails'
+import * as parseUserEmails from '#/utilities/parseUserEmails'
 
 vitest.describe('parseUserEmails', () => {
   vitest.it.each([

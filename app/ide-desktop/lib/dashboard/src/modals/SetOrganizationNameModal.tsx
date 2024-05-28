@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Modal for setting the organization name.
- */
+/** @file Modal for setting the organization name. */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
@@ -18,18 +14,22 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
+// =================
+// === Constants ===
+// =================
+
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
 
-/**
- * Modal for setting the organization name.
- * Shows up when the user is on the team plan and the organization name is the default.
- */
+// ================================
+// === SetOrganizationNameModal ===
+// ================================
+
+/** Modal for setting the organization name.
+ * Shows up when the user is on the team plan and the organization name is the default. */
 export function SetOrganizationNameModal() {
   const { getText } = textProvider.useText()
-
   const backend = backendProvider.useRemoteBackendStrict()
   const { session } = authProvider.useAuth()
-
   const userId = session && 'user' in session && session.user?.userId ? session.user.userId : null
   const userPlan =
     session && 'user' in session && session.user?.plan != null ? session.user.plan : null

@@ -1,8 +1,5 @@
-/**
- * @file
- * A dialog is an overlay shown above other content in an application.
- * Can be used to display alerts, confirmations, or other content.
- */
+/** @file An overlay element positioned relative to a trigger, used to display additional content
+ * or actions. */
 import * as React from 'react'
 
 import * as twv from 'tailwind-variants'
@@ -10,10 +7,9 @@ import * as twv from 'tailwind-variants'
 import * as aria from '#/components/aria'
 import * as portal from '#/components/Portal'
 
-/**
- * Props for the Popover component.
- */
-export interface PopoverProps extends aria.PopoverProps, twv.VariantProps<typeof POPOVER_STYLES> {}
+// =================
+// === Constants ===
+// =================
 
 export const POPOVER_STYLES = twv.tv({
   base: 'bg-white shadow-lg',
@@ -41,10 +37,15 @@ export const POPOVER_STYLES = twv.tv({
   },
 })
 
-/**
- * A popover is an overlay element positioned relative to a trigger.
- * It can be used to display additional content or actions.*
- */
+// ===============
+// === Popover ===
+// ===============
+
+/** Props for a {@link Popover}. */
+export interface PopoverProps extends aria.PopoverProps, twv.VariantProps<typeof POPOVER_STYLES> {}
+
+/** An overlay element positioned relative to a trigger, used to display additional content
+ * or actions. */
 export function Popover(props: PopoverProps) {
   const { children, className, size = 'small', roundings = 'large', ...ariaPopoverProps } = props
   const root = portal.useStrictPortalContext()

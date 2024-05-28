@@ -16,21 +16,27 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as components from '#/pages/subscribe/Subscribe/components'
+import * as componentForPlan from '#/pages/subscribe/Subscribe/getComponentForPlan'
+
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
-import * as components from './components'
-import * as componentForPlan from './getComponentForPlan'
+// =====================================
+// === CreateCheckoutSessionMutation ===
+// =====================================
 
-/**
- * The mutation data for the `onCompleteMutation` mutation.
- */
+/** Mutation data for the `onCompleteMutation` mutation. */
 interface CreateCheckoutSessionMutation {
   readonly plan: backendModule.Plan
   readonly paymentMethodId: string
 }
+
+// =================
+// === Subscribe ===
+// =================
 
 /** A page in which the currently active payment plan can be changed.
  *
@@ -128,7 +134,7 @@ export function Subscribe() {
                   <div className="w-full rounded-default bg-selected-frame p-8">
                     <div className="flex gap-6 overflow-auto scroll-hidden">
                       {backendModule.PLANS.map(newPlan => {
-                        const planProps = componentForPlan.getComponentPerPlan(newPlan, getText)
+                        const planProps = componentForPlan.getComponentForPlan(newPlan, getText)
 
                         return (
                           <components.Card

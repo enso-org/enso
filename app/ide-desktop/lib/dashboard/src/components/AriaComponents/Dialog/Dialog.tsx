@@ -2,17 +2,20 @@
  * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
 
-import clsx from 'clsx'
+import * as tailwindMerge from 'tailwind-merge'
 import * as twv from 'tailwind-variants'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import type * as types from '#/components/AriaComponents/Dialog/types'
+import * as variants from '#/components/AriaComponents/Dialog/variants'
 import * as portal from '#/components/Portal'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
-import type * as types from './types'
-import * as variants from './variants'
+// =================
+// === Constants ===
+// =================
 
 const OVERLAY_STYLES = twv.tv({
   base: 'fixed inset-0 isolate flex items-center justify-center bg-black/[25%]',
@@ -68,7 +71,6 @@ export function Dialog(props: types.DialogProps) {
   } = props
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
-
   const root = portal.useStrictPortalContext()
   const shouldRenderTitle = typeof title === 'string'
   const dialogSlots = DIALOG_STYLES({ className, type })
@@ -132,9 +134,10 @@ export function Dialog(props: types.DialogProps) {
                   {shouldRenderTitle && (
                     <aria.Header className={dialogSlots.header()}>
                       <ariaComponents.CloseButton
-                        className={clsx('col-start-1 col-end-1 mr-auto mt-0.5', {
-                          hidden: hideCloseButton,
-                        })}
+                        className={tailwindMerge.twMerge(
+                          'col-start-1 col-end-1 mr-auto mt-0.5',
+                          hideCloseButton && 'hidden'
+                        )}
                         onPress={opts.close}
                       />
 

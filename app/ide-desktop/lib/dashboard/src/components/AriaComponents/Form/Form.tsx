@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Form component
- */
+/** @file Form component. */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
@@ -10,22 +6,19 @@ import * as reactHookForm from 'react-hook-form'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as components from './components'
-import type * as types from './types'
+import * as components from '#/components/AriaComponents/Form/components'
+import type * as types from '#/components/AriaComponents/Form/types'
 
-/**
- * Form component. It wraps the form and provides the form context.
- * It also handles the form submission.
- * Provides better error handling and form state management.
- * And serves a better UX out of the box.
+/** Form component. It wraps a `form` and provides form context.
+ * It also handles form submission.
+ * Provides better error handling and form state management and better UX out of the box.
  *
- * ## Component is in BETA and will be improved in the future.
- */
+ * ## Component is in BETA and will be improved in the future. */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
 export const Form = React.forwardRef(function Form<
   TFieldValues extends reactHookForm.FieldValues,
-  // This type is defined on library level and we can't change it
+  // This type is defined at the library level and we can't change it
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends reactHookForm.FieldValues | undefined = undefined,
 >(props: types.FormProps<TFieldValues, TTransformedValues>, ref: React.Ref<HTMLFormElement>) {
@@ -113,7 +106,7 @@ export const Form = React.forwardRef(function Form<
   )
 }) as unknown as (<
   TFieldValues extends reactHookForm.FieldValues,
-  // The type is defined on library level and we can't change it
+  // The type is defined at the library level and we can't change it
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends reactHookForm.FieldValues | undefined = undefined,
 >(

@@ -116,17 +116,17 @@ export default function MembersSettingsTab(props: MembersSettingsTabProps) {
   )
 }
 
-/**
- * Props for the ResendInvitationButton component.
- */
+// ==============================
+// === ResendInvitationButton ===
+// ==============================
+
+/** Props for the ResendInvitationButton component. */
 interface ResendInvitationButtonProps {
   readonly invitation: backendModule.Invitation
   readonly backend: Backend
 }
 
-/**
- * Button for resending an invitation.
- */
+/** Button for resending an invitation. */
 function ResendInvitationButton(props: ResendInvitationButtonProps) {
   const { invitation, backend } = props
 
@@ -150,17 +150,17 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
   )
 }
 
-/**
- * Props for the RemoveMemberButton component.
- */
+// ==========================
+// === RemoveMemberButton ===
+// ==========================
+
+/** Props for a {@link RemoveMemberButton}. */
 interface RemoveMemberButtonProps {
   readonly email: backendModule.EmailAddress
   readonly backend: Backend
 }
 
-/**
- * Action button for removing a member.
- */
+/** Action button for removing a member. */
 function RemoveMemberButton(props: RemoveMemberButtonProps) {
   const { email } = props
   const { getText } = textProvider.useText()
@@ -189,9 +189,11 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   )
 }
 
-/**
- * Action button for removing an invitation.
- */
+// ==============================
+// === RemoveInvitationButton ===
+// ==============================
+
+/** Action button for removing an invitation. */
 function RemoveInvitationButton(props: RemoveMemberButtonProps) {
   const { backend, email } = props
 

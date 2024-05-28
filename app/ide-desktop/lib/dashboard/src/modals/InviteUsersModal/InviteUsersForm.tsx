@@ -14,27 +14,29 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import type * as backendModule from '#/services/Backend'
 
-import * as parserUserEmails from './parseUserEmails'
+import * as parserUserEmails from '#/utilities/parseUserEmails'
 
-/**
- * Props for the {@link InviteUsersForm} component.
- */
-export interface InviteUsersFormProps {
-  readonly onSubmitted: (emails: backendModule.EmailAddress[]) => void
-  readonly organizationId: backendModule.OrganizationId
-}
+// =================================
+// === InviteUsersMutationParams ===
+// =================================
 
-/**
- * Parameters for the invite users mutation.
- */
+/** Parameters for the invite users mutation. */
 interface InviteUsersMutationParams {
   readonly email: backendModule.EmailAddress
   readonly organizationId: backendModule.OrganizationId
 }
 
-/**
- * A modal with inputs for user email and permission level.
- */
+// =======================
+// === InviteUsersForm ===
+// =======================
+
+/** Props for an {@link InviteUsersForm}. */
+export interface InviteUsersFormProps {
+  readonly onSubmitted: (emails: backendModule.EmailAddress[]) => void
+  readonly organizationId: backendModule.OrganizationId
+}
+
+/** A modal with inputs for user email and permission level. */
 export function InviteUsersForm(props: InviteUsersFormProps) {
   const { onSubmitted, organizationId } = props
   const { getText } = textProvider.useText()

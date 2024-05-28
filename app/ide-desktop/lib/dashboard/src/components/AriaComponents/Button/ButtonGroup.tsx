@@ -1,14 +1,11 @@
-/** @file A styled button. */
+/** @file A group of buttons. */
 import * as React from 'react'
 
 import * as twv from 'tailwind-variants'
 
-/**
- * Props for a {@link ButtonGroup}.
- */
-interface ButtonGroupProps extends React.PropsWithChildren, twv.VariantProps<typeof STYLES> {
-  readonly className?: string
-}
+// =================
+// === Constants ===
+// =================
 
 const STYLES = twv.tv({
   base: 'flex w-full flex-auto',
@@ -26,9 +23,16 @@ const STYLES = twv.tv({
   },
 })
 
-/**
- * A group of buttons.
- */
+// ===================
+// === ButtonGroup ===
+// ===================
+
+/** Props for a {@link ButtonGroup}. */
+interface ButtonGroupProps extends React.PropsWithChildren, twv.VariantProps<typeof STYLES> {
+  readonly className?: string
+}
+
+/** A group of buttons. */
 export function ButtonGroup(props: ButtonGroupProps) {
   const {
     children,
@@ -37,7 +41,7 @@ export function ButtonGroup(props: ButtonGroupProps) {
     wrap = false,
     direction = 'row',
     align,
-    ...rest
+    ...passthrough
   } = props
 
   return (
@@ -49,7 +53,7 @@ export function ButtonGroup(props: ButtonGroupProps) {
         align,
         className,
       })}
-      {...rest}
+      {...passthrough}
     >
       {children}
     </div>

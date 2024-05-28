@@ -130,17 +130,11 @@ interface AuthContextType {
    * If the user has not signed in, the session will be `null`. */
   readonly session: UserSession | null
   readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
-  /**
-   * Return `true` if the user is marked for deletion.
-   */
+  /** Return `true` if the user is marked for deletion. */
   readonly isUserMarkedForDeletion: () => boolean
-  /**
-   * Return `true` if the user is deleted completely.
-   */
+  /** Return `true` if the user is deleted completely. */
   readonly isUserDeleted: () => boolean
-  /**
-   * Return `true` if the user is soft deleted.
-   */
+  /** Return `true` if the user is soft deleted. */
   readonly isUserSoftDeleted: () => boolean
 }
 
@@ -785,9 +779,7 @@ export function GuestLayout() {
   }
 }
 
-/**
- * A React Router layout route containing routes only accessible by users that are not deleted.
- */
+/** A React Router layout route containing routes only accessible by users that are not deleted. */
 export function NotDeletedUserLayout() {
   const { session, isUserMarkedForDeletion } = useAuth()
   const shouldPreventNavigation = getShouldPreventNavigation()
@@ -803,9 +795,7 @@ export function NotDeletedUserLayout() {
   }
 }
 
-/**
- * A React Router layout route containing routes only accessible by users that are deleted softly
- */
+/** A React Router layout route containing routes only accessible by users that are deleted softly. */
 export function SoftDeletedUserLayout() {
   const { session, isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
   const shouldPreventNavigation = getShouldPreventNavigation()
