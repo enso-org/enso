@@ -23,7 +23,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
         class="iconButton"
         name="record_once"
         draggable="false"
-        @click.stop="() => (console.log('CLICK'), emit('recordOnce'))"
+        @click.stop="() => emit('recordOnce')"
       />
     </div>
   </div>
