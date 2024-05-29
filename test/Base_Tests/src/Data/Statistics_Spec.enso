@@ -88,7 +88,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to get product of values" <|
             simple_set.compute Statistic.Product . should_equal 120 epsilon=double_error
-            number_set.compute Statistic.Product . should_equal -5.311643150197863*(10 ^ 22) epsilon=double_error
+            number_set.compute Statistic.Product . should_equal -5.311643150197863*(10^22) epsilon=double_error
             missing_set.compute Statistic.Product . should_equal -9.568162356798078*(10^16) epsilon=double_error
             with_nans_set.compute Statistic.Product . should_equal -9.568162356798078*(10^16) epsilon=double_error
 
@@ -155,9 +155,12 @@ add_specs suite_builder =
             number_set.running . should_equal [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
             expected_counts = [1, 2, 3, 4, 4, 5, 6, 7, 8, 8, 9, 10, 11, 12, 12, 13, 14, 15, 16, 16]
             expected_sums = [0.4, -18.16, -35.15, -51.58, -51.58, -38.14, -44.99, -35.31, -43.86, -43.86, -33.48, 0.37, -40.65, -38.78, -38.78, -52.65, -91.71, -65.79, -81.8, -81.8]
+            expected_products = [0.4, -7.424, 126.13376, -2072.3776768, 94997.792704512, 1276770.33394864, -8745876.78754819, -84660087.3034665, 723843746.444639, 7868181523.85322, 81671724217.5964, 2764587864765.64, -113403394212687, -212064347177724, 5623946487153236, -7.80041377768154*(10^16), 3.04684162156241*(10^18), 7.89741348308976*(10^19), -1.26437589864267*(10^21), -5.31164315019786*(10^22)]
             missing_set.running . should_equal expected_counts
             values = missing_set.running Statistic.Sum
             vector_compare values expected_sums
+            product_values = missing_set.running Statistic.Product
+            vector_compare product_values expected_products
 
         group_builder.specify "should allow running computation on vectors with missing" <|
             missing_set = [Nothing, 1, 3, Nothing, Number.nan, 2]
@@ -165,14 +168,16 @@ add_specs suite_builder =
             missing_set.running Statistic.Minimum . should_equal [Nothing, 1, 1, 1, 1, 1]
             missing_set.running Statistic.Maximum . should_equal [Nothing, 1, 3, 3, 3, 3]
             missing_set.running Statistic.Sum . should_equal [0, 1, 4, 4, 4, 6]
+            missing_set.running Statistic.Product . should_equal [0, 1, 3, 3, 3, 6]
             missing_set.running Statistic.Mean . first . is_nan . should_be_true
             missing_set.running Statistic.Mean . drop 1 . should_equal [1, 2, 2, 2, 2]
 
 
     suite_builder.group "Statistics - empty Vector " group_builder->
-        group_builder.specify "should be able to count and sum on empty Vector" <|
+        group_builder.specify "should be able to count and sum and product on empty Vector" <|
             [].compute . should_equal 0
             [].compute Statistic.Sum . should_equal 0
+            [].compute Statistic.Product . should_equal 0
 
         group_builder.specify "should fail with Empty_Error for Minimum and Maximum on empty Vector" <|
             [].compute Statistic.Minimum . should_fail_with (Empty_Error.Error Vector)
@@ -185,11 +190,13 @@ add_specs suite_builder =
             [].compute Statistic.Kurtosis . is_nan . should_equal True
 
     suite_builder.group "Statistics - NaN Vector " group_builder->
-        group_builder.specify "should be able to count and sum on NaN Vector" <|
+        group_builder.specify "should be able to count and sum and product on NaN Vector" <|
             [Number.nan, Number.nan].compute . should_equal 0
             [Number.nan, Number.nan].running . should_equal [0, 0]
             [Number.nan, Number.nan].compute Statistic.Sum . should_equal 0
             [Number.nan, Number.nan].running Statistic.Sum . should_equal [0, 0]
+            [Number.nan, Number.nan].compute Statistic.Product . should_equal 0
+            [Number.nan, Number.nan].running Statistic.Product . should_equal [0, 0]
 
         group_builder.specify "should fail with Empty_Error for Minimum and Maximum on NaN Vector" <|
             [Number.nan, Number.nan].compute Statistic.Minimum . should_fail_with (Empty_Error.Error Vector)
@@ -204,11 +211,13 @@ add_specs suite_builder =
             [Number.nan, Number.nan, Number.nan, Number.nan].compute Statistic.Kurtosis . is_nan . should_equal True
 
     suite_builder.group "Statistics - Nothing Vector " group_builder->
-        group_builder.specify "should be able to count and sum on Nothing Vector" <|
+        group_builder.specify "should be able to count and sum and product on Nothing Vector" <|
             [Nothing, Nothing].compute . should_equal 0
             [Nothing, Nothing].running . should_equal [0, 0]
             [Nothing, Nothing].compute Statistic.Sum . should_equal 0
             [Nothing, Nothing].running Statistic.Sum . should_equal [0, 0]
+            [Nothing, Nothing].compute Statistic.Product . should_equal 0
+            [Nothing, Nothing].running Statistic.Product . should_equal [0, 0]
 
         group_builder.specify "should fail with Empty_Error for Minimum and Maximum on Nothing Vector" <|
             [Nothing, Nothing].compute Statistic.Minimum . should_fail_with (Empty_Error.Error Vector)
@@ -234,6 +243,7 @@ add_specs suite_builder =
         group_builder.specify "should fail with Illegal_Argument on number based statistics for text Vector" <|
             text_set.compute Statistic.Sum . should_fail_with Illegal_Argument
             text_set.compute Statistic.Mean . should_fail_with Illegal_Argument
+            text_set.compute Statistic.Product . should_fail_with Illegal_Argument
             text_set.compute Statistic.Variance . should_fail_with Illegal_Argument
             text_set.compute Statistic.Skew . should_fail_with Illegal_Argument
             text_set.compute Statistic.Kurtosis . should_fail_with Illegal_Argument
