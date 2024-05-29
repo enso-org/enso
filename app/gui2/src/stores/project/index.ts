@@ -53,12 +53,15 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
   if (engine.rpcUrl != null && engine.dataUrl != null) {
     const dataUrl = engine.dataUrl
     const rpcUrl = engine.rpcUrl
-    let ydocUrl
-    if (engine.ydocUrl == null || engine.ydocUrl === '') {
+
+    let ydocUrl: URL
+    if (engine.ydocUrl == '') {
       ydocUrl = new URL(location.origin)
       ydocUrl.protocol = location.protocol.replace(/^http/, 'ws')
+    } else if (URL.canParse(engine.ydocUrl)) {
+      ydocUrl = new URL(engine.ydocUrl)
     } else {
-      ydocUrl = new URL(engine.rpcUrl)
+      ydocUrl = new URL(rpcUrl)
       ydocUrl.port = '1234'
     }
     ydocUrl.pathname = '/project'
