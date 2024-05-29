@@ -69,6 +69,7 @@ add_specs suite_builder =
             Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
 
     suite_builder.group "Default Encoding" group_builder->
+        pending_fallback = "Fallback to Windows-1252 is not implemented yet."
         group_builder.specify "should try reading as UTF-8 by default" <|
             bytes = [65, -60, -123, -60, -103]
             #        A   ą          ę
@@ -112,7 +113,7 @@ add_specs suite_builder =
             bytes.length . should_equal 4*2
             txt.length . should_equal 3
 
-        group_builder.specify "falls back to Windows-1252 if invalid Unicode is detected and no BOM" <|
+        group_builder.specify "falls back to Windows-1252 if invalid Unicode is detected and no BOM" pending=pending_fallback <|
             # These are not valid bytes for UTF-8
             bytes = [-30, -55, -1]
             Text.from_bytes bytes Encoding.utf_8 . should_fail_with Encoding_Error
@@ -147,6 +148,7 @@ add_specs suite_builder =
             empty.should_equal ""
             Problems.assume_no_problems empty
 
+        group_builder.specify "should work on 0 or 1 byte input (TODO merge with above)" pending=pending_fallback <|
             txt = Text.from_bytes [-1] Encoding.Default Problem_Behavior.Report_Warning
             txt.should_equal 'ÿ'
             # No problems, as falling back to Windows-1252.
@@ -161,11 +163,13 @@ add_specs suite_builder =
             f.read . should_equal "Aąę"
 
             # UTF-16 LE BOM
-            ([-1, -2] + [65, 0, 5, 1, 25, 1]).write f Existing_File_Behavior.Overwrite . should_succeed
+            ([-1, -2] + [65, 0, 5, 1, 25, 1]).write_bytes f Existing_File_Behavior.Overwrite . should_succeed
             f.read . should_equal "Aąę"
 
+        group_builder.specify "Default Encoding heuristics also work in File.read (TODO merge with above)" pending=pending_fallback <|
+            f = File.create_temporary_file "utf-heuristics" ".txt"
             # Fallback to Windows-1252
-            ([-30, -55, -1]).write f Existing_File_Behavior.Overwrite . should_succeed
+            ([-30, -55, -1]).write_bytes f Existing_File_Behavior.Overwrite . should_succeed
             f.read . should_equal "âÉÿ"
 
         group_builder.specify "cannot be used in Write operations" <|
