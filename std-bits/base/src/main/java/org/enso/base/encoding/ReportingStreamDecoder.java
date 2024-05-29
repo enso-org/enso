@@ -26,8 +26,8 @@ import org.graalvm.polyglot.Context;
  * then return a bulk report of places where the issues have been encountered.
  */
 public class ReportingStreamDecoder extends Reader {
-  public ReportingStreamDecoder(InputStream stream, CharsetDecoder decoder, boolean pollSafepoints) {
-    bufferedInputStream = new BufferedInputStream(stream);
+  public ReportingStreamDecoder(BufferedInputStream stream, CharsetDecoder decoder, boolean pollSafepoints) {
+    bufferedInputStream = stream;
     this.decoder = decoder;
     this.pollSafepoints = pollSafepoints;
   }

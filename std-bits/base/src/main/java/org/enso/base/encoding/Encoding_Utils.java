@@ -1,5 +1,6 @@
 package org.enso.base.encoding;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,7 +102,7 @@ public class Encoding_Utils {
    * Converts an array of encoded bytes into a string.
    *
    * @param bytes the bytes to convert
-   * @param charset the character set to use to decode the bytes
+   * @param charset the character set to use for decoding, use {@code null} to try auto-detection
    * @return the resulting string, and any potential problems
    */
   public static WithProblems<String, DecodingProblem> from_bytes(byte[] bytes, Charset charset) {
@@ -110,7 +111,12 @@ public class Encoding_Utils {
     }
 
     ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
-    ReportingStreamDecoder decoder = create_stream_decoder(inputStream, charset, true);
+    ReportingStreamDecoder decoder;
+    try {
+      decoder = create_stream_decoder(inputStream, charset, true);
+    } catch (IOException e) {
+      throw new IllegalStateException("Unexpected IO exception in internal code: " + e.getMessage(), e);
+    }
 
     CharBuffer out = CharBuffer.allocate((int) (bytes.length * decoder.averageCharsPerByte()));
     try {
@@ -133,18 +139,22 @@ public class Encoding_Utils {
   /** Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset.
    *
    * @param stream the input stream to decode
-   * @param charset the character set to use for decoding
+   * @param charset the character set to use for decoding, use {@code null} to try auto-detection
    * @param pollSafepoints whether to poll for safepoints during decoding.
    *                       This should be true if the decoding will run on the main thread, and false otherwise.
    */
-  private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset, boolean pollSafepoints) {
+  private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset, boolean pollSafepoints) throws IOException {
+    BufferedInputStream bufferedStream = new BufferedInputStream(stream);
+    EncodingRepresentation representation = EncodingRepresentation.fromCharset(charset);
+    // This may also advance the stream past the BOM
+    Charset detectedCharset = representation.detectCharset(bufferedStream);
     CharsetDecoder decoder =
-        charset
+        detectedCharset
             .newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
             .reset();
-    return new ReportingStreamDecoder(stream, decoder, pollSafepoints);
+    return new ReportingStreamDecoder(bufferedStream, decoder, pollSafepoints);
   }
 
   /**
