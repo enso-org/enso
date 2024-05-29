@@ -439,7 +439,7 @@ type Accumulator
             Statistic.Minimum -> self.minimum
             Statistic.Maximum -> self.maximum
             Statistic.Sum -> self.check_moments statistic self.moments.first
-            Statistic.Product -> self.product
+            Statistic.Product -> self.check_moments statistic self.product
             Statistic.Mean -> self.check_moments statistic (self.moments.first / self.count)
             Statistic.Variance p -> self.check_moments statistic (self.variance p)
             Statistic.Standard_Deviation p -> (self.compute (Statistic.Variance p)) . sqrt
