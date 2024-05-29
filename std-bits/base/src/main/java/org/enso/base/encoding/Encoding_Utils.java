@@ -110,10 +110,11 @@ public class Encoding_Utils {
       return new WithProblems<>("", List.of());
     }
 
+    DecodingProblemAggregator problemAggregator = new DecodingProblemAggregator();
     ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
     ReportingStreamDecoder decoder;
     try {
-      decoder = create_stream_decoder(inputStream, charset, true);
+      decoder = create_stream_decoder(inputStream, charset, problemAggregator, true);
     } catch (IOException e) {
       throw new IllegalStateException("Unexpected IO exception in internal code: " + e.getMessage(), e);
     }
@@ -133,7 +134,7 @@ public class Encoding_Utils {
     }
 
     out.flip();
-    return new WithProblems<>(out.toString(), decoder.getReportedProblems());
+    return new WithProblems<>(out.toString(), problemAggregator.summarize());
   }
 
   /** Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset.
@@ -143,18 +144,18 @@ public class Encoding_Utils {
    * @param pollSafepoints whether to poll for safepoints during decoding.
    *                       This should be true if the decoding will run on the main thread, and false otherwise.
    */
-  private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset, boolean pollSafepoints) throws IOException {
+  private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset, DecodingProblemAggregator problemAggregator, boolean pollSafepoints) throws IOException {
     BufferedInputStream bufferedStream = new BufferedInputStream(stream);
     EncodingRepresentation representation = EncodingRepresentation.fromCharset(charset);
     // This may also advance the stream past the BOM
-    Charset detectedCharset = representation.detectCharset(bufferedStream);
+    Charset detectedCharset = representation.detectCharset(bufferedStream, problemAggregator);
     CharsetDecoder decoder =
         detectedCharset
             .newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
             .reset();
-    return new ReportingStreamDecoder(bufferedStream, decoder, pollSafepoints);
+    return new ReportingStreamDecoder(bufferedStream, decoder, problemAggregator, pollSafepoints);
   }
 
   /**
@@ -166,12 +167,13 @@ public class Encoding_Utils {
   public static WithProblems<Value, DecodingProblem> with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, Value> action)
       throws IOException {
+    DecodingProblemAggregator problemAggregator = new DecodingProblemAggregator();
     Value result;
-    ReportingStreamDecoder decoder = create_stream_decoder(stream, charset, false);
+    ReportingStreamDecoder decoder = create_stream_decoder(stream, charset, problemAggregator, false);
     try (decoder) {
       result = action.apply(decoder);
     }
-    return new WithProblems<>(result, decoder.getReportedProblems());
+    return new WithProblems<>(result, problemAggregator.summarize());
   }
 
   /** Creates a new instance of {@code ReportingStreamEncoder} encoding a given charset. */

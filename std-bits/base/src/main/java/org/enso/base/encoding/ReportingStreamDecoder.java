@@ -1,19 +1,16 @@
 package org.enso.base.encoding;
 
-import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
+import org.graalvm.polyglot.Context;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
-import java.util.ArrayList;
-import java.util.List;
 
-import org.graalvm.polyglot.Context;
+import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
 
 /**
  * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
@@ -26,11 +23,7 @@ import org.graalvm.polyglot.Context;
  * then return a bulk report of places where the issues have been encountered.
  */
 public class ReportingStreamDecoder extends Reader {
-  public ReportingStreamDecoder(BufferedInputStream stream, CharsetDecoder decoder, boolean pollSafepoints) {
-    bufferedInputStream = stream;
-    this.decoder = decoder;
-    this.pollSafepoints = pollSafepoints;
-  }
+  private final DecodingProblemAggregator problemAggregator;
 
   float averageCharsPerByte() {
     return decoder.averageCharsPerByte();
@@ -38,6 +31,12 @@ public class ReportingStreamDecoder extends Reader {
 
   private final BufferedInputStream bufferedInputStream;
   private final CharsetDecoder decoder;
+  public ReportingStreamDecoder(BufferedInputStream stream, CharsetDecoder decoder, DecodingProblemAggregator problemAggregator, boolean pollSafepoints) {
+    bufferedInputStream = stream;
+    this.decoder = decoder;
+    this.problemAggregator = problemAggregator;
+    this.pollSafepoints = pollSafepoints;
+  }
 
 
   /**
@@ -92,15 +91,6 @@ public class ReportingStreamDecoder extends Reader {
    * has been made.
    */
   private boolean hadEofDecodeCall = false;
-
-  /**
-   * A list of positions containing encoding issues like malformed characters.
-   *
-   * <p>Used for reporting warnings.
-   */
-  private final List<Integer> encodingIssuePositions = new ArrayList<>(MAX_ENCODING_ISSUE_EXAMPLES);
-  private int encodingIssueCount = 0;
-  private static final int MAX_ENCODING_ISSUE_EXAMPLES = 3;
 
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
@@ -223,7 +213,7 @@ public class ReportingStreamDecoder extends Reader {
       }
 
       if (cr.isMalformed() || cr.isUnmappable()) {
-        reportEncodingProblem();
+        problemAggregator.reportInvalidCharacterProblem(getCurrentInputPosition());
 
         if (outputBuffer.remaining() < Encoding_Utils.INVALID_CHARACTER.length()) {
           growOutputBuffer();
@@ -253,14 +243,6 @@ public class ReportingStreamDecoder extends Reader {
   private int getCurrentInputPosition() {
     if (inputBuffer == null) return 0;
     return inputBytesConsumedBeforeCurrentBuffer + inputBuffer.position();
-  }
-
-  private void reportEncodingProblem() {
-    if (encodingIssuePositions.size() < MAX_ENCODING_ISSUE_EXAMPLES) {
-      encodingIssuePositions.add(getCurrentInputPosition());
-    }
-
-    encodingIssueCount++;
   }
 
   /**
@@ -321,14 +303,5 @@ public class ReportingStreamDecoder extends Reader {
   @Override
   public void close() throws IOException {
     bufferedInputStream.close();
-  }
-
-  /** Returns a list of problems encountered during the decoding. */
-  public List<DecodingProblem> getReportedProblems() {
-    if (encodingIssueCount == 0) {
-      return List.of();
-    } else {
-      return List.of(new DecodingProblem(encodingIssueCount, encodingIssuePositions));
-    }
   }
 }
