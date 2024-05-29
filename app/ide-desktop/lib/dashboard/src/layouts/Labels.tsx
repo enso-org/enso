@@ -20,7 +20,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
 import NewLabelModal from '#/modals/NewLabelModal'
 
-import Backend from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'

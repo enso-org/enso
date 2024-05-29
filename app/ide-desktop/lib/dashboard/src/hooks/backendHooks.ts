@@ -390,7 +390,7 @@ export function useBackendListUserGroups(
 // =========================================
 
 /** A user group, as well as the users that are a part of the user group. */
-export interface UserGroupInfoWithUsers {
+export interface UserGroupInfoWithUsers extends backendModule.UserGroupInfo {
   readonly users: readonly WithPlaceholder<backendModule.User>[]
 }
 

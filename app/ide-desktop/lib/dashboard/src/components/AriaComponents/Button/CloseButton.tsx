@@ -37,6 +37,7 @@ export function CloseButton(props: CloseButtonProps) {
       className={values =>
         tailwindMerge.twMerge(
           'h-3 w-3 bg-primary/30 hover:bg-red-500/80 focus-visible:bg-red-500/80 focus-visible:outline-offset-1',
+          // @ts-expect-error className can be a function or a string
           typeof className === 'function' ? className(values) : className
         )
       }

@@ -1,7 +1,6 @@
 /** @file A list of members in the organization. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as mimeTypes from '#/data/mimeTypes'
@@ -47,9 +46,12 @@ export default function MembersTable(props: MembersTableProps) {
     () => (user == null ? null : { isPlaceholder: false, ...user }),
     [user]
   )
-  const users =
-    backendHooks.useBackendListUsers(backend) ??
-    (populateWithSelf && userWithPlaceholder != null ? [userWithPlaceholder] : null)
+  const users = React.useMemo(
+    () =>
+      backendHooks.useBackendListUsers(backend) ??
+      (populateWithSelf && userWithPlaceholder != null ? [userWithPlaceholder] : null),
+    [backend, populateWithSelf, userWithPlaceholder]
+  )
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map(member => [member.userId, member])),
     [users]

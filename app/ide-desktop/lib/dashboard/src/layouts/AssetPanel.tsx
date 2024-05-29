@@ -64,13 +64,12 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isReadonly?: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
-  readonly labels: backendModule.Label[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
+  const { backend, item, setItem, setQuery, category, dispatchAssetEvent } = props
   const { isReadonly = false } = props
 
   const { getText } = textProvider.useText()
@@ -149,7 +148,6 @@ export default function AssetPanel(props: AssetPanelProps) {
               item={item}
               setItem={setItem}
               category={category}
-              labels={labels}
               setQuery={setQuery}
               dispatchAssetEvent={dispatchAssetEvent}
             />

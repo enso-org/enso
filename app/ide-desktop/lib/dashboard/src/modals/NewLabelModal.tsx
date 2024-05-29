@@ -46,7 +46,8 @@ export default function NewLabelModal(props: NewLabelModalProps) {
   const [value, setValue] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-  const labels = backendHooks.useBackendListTags(backend) ?? []
+  const labelsRaw = backendHooks.useBackendListTags(backend)
+  const labels = React.useMemo(() => labelsRaw ?? [], [labelsRaw])
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
     [labels]
@@ -56,11 +57,11 @@ export default function NewLabelModal(props: NewLabelModalProps) {
 
   const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
 
-  const doSubmit = () => {
+  const doSubmit = async () => {
     if (value !== '') {
       unsetModal()
       try {
-        createTagMutation.mutateAsync([{ value, color: color ?? leastUsedColor }])
+        await createTagMutation.mutateAsync([{ value, color: color ?? leastUsedColor }])
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -84,7 +85,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           event.preventDefault()
           // Consider not calling `onSubmit()` here to make it harder to accidentally
           // delete an important asset.
-          doSubmit()
+          void doSubmit()
         }}
       >
         <aria.Heading level={2} className="relative text-sm font-semibold">

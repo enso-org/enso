@@ -6,8 +6,6 @@ import invariant from 'tiny-invariant'
 
 import * as common from 'enso-common'
 
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
 

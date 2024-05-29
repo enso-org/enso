@@ -9,7 +9,6 @@ import Play2Icon from 'enso-assets/play2.svg'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TrashIcon from 'enso-assets/trash.svg'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as backendHooks from '#/hooks/backendHooks'
 
 import * as textProvider from '#/providers/TextProvider'

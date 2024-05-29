@@ -142,7 +142,6 @@ export default function Dashboard(props: DashboardProps) {
       array.includes(Object.values(pageSwitcher.Page), value)
   )
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const [labels, setLabels] = React.useState<backendModule.Label[]>([])
   const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
@@ -389,6 +388,7 @@ export default function Dashboard(props: DashboardProps) {
           }}
         >
           <TopBar
+            backend={remoteBackend}
             isCloud={isCloud}
             projectAsset={projectStartupInfo?.projectAsset ?? null}
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
@@ -398,7 +398,6 @@ export default function Dashboard(props: DashboardProps) {
             setIsHelpChatOpen={setIsHelpChatOpen}
             query={query}
             setQuery={setQuery}
-            labels={labels}
             suggestions={suggestions}
             isAssetPanelVisible={isAssetPanelVisible}
             isAssetPanelEnabled={isAssetPanelEnabled}
@@ -413,8 +412,6 @@ export default function Dashboard(props: DashboardProps) {
             initialProjectName={initialProjectName}
             query={query}
             setQuery={setQuery}
-            labels={labels}
-            setLabels={setLabels}
             setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
@@ -466,7 +463,6 @@ export default function Dashboard(props: DashboardProps) {
               setItem={assetPanelProps?.setItem ?? null}
               setQuery={setQuery}
               category={defaultCategory}
-              labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
               isReadonly={category === Category.trash}
             />

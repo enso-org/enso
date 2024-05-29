@@ -13,6 +13,7 @@ import UserBar from '#/layouts/UserBar'
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
 import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 
@@ -22,6 +23,7 @@ import type AssetQuery from '#/utilities/AssetQuery'
 
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
+  readonly backend: Backend | null
   readonly isCloud: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
@@ -31,7 +33,6 @@ export interface TopBarProps {
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly labels: backendModule.Label[]
   readonly suggestions: assetSearchBar.Suggestion[]
   readonly isAssetPanelVisible: boolean
   readonly isAssetPanelEnabled: boolean
@@ -43,9 +44,9 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { isCloud, page, setPage, projectAsset, setProjectAsset } = props
+  const { backend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, setIsHelpChatOpen } = props
-  const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
+  const { query, setQuery, suggestions, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
   const remoteBackend = backendProvider.useRemoteBackend()
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
@@ -58,10 +59,10 @@ export default function TopBar(props: TopBarProps) {
       ) : (
         <div className="flex flex-1 flex-wrap justify-around">
           <AssetSearchBar
+            backend={backend}
             isCloud={isCloud}
             query={query}
             setQuery={setQuery}
-            labels={labels}
             suggestions={suggestions}
           />
         </div>
