@@ -12,7 +12,7 @@ from project.Text import get_lazy_visualization_text_window
 ## PRIVATE
    Specifies that the builtin JSON visualization should be used for any type,
    unless specified otherwise.
-Any.default_visualization self = Id.json
+Any.default_visualization self = Id.table
 
 ## PRIVATE
    Returns a Text used to display this value in the IDE.
