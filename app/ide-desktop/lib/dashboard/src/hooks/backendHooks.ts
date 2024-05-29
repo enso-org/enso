@@ -11,6 +11,62 @@ import * as backendModule from '#/services/Backend'
 
 import * as uniqueString from '#/utilities/uniqueString'
 
+// ============================
+// === revokeUserPictureUrl ===
+// ============================
+
+const USER_PICTURE_URL_REVOKERS = new WeakMap<Backend, () => void>()
+
+/** Create the corresponding "user picture" URL for the given backend. */
+function createUserPictureUrl(backend: Backend | null, picture: Blob) {
+  if (backend != null) {
+    USER_PICTURE_URL_REVOKERS.get(backend)?.()
+    const url = URL.createObjectURL(picture)
+    USER_PICTURE_URL_REVOKERS.set(backend, () => {
+      URL.revokeObjectURL(url)
+    })
+    return url
+  } else {
+    // This should never happen, so use an arbitrary URL.
+    return location.href
+  }
+}
+
+/** Revoke the corresponding "user picture" URL for the given backend. */
+function revokeUserPictureUrl(backend: Backend | null) {
+  if (backend != null) {
+    USER_PICTURE_URL_REVOKERS.get(backend)?.()
+  }
+}
+
+// ====================================
+// === revokeOrganizationPictureUrl ===
+// ====================================
+
+const ORGANIZATION_PICTURE_URL_REVOKERS = new WeakMap<Backend, () => void>()
+
+/** Create the corresponding "organization picture" URL for the given backend. */
+function createOrganizationPictureUrl(backend: Backend | null, picture: Blob) {
+  if (backend != null) {
+    ORGANIZATION_PICTURE_URL_REVOKERS.get(backend)?.()
+    const url = URL.createObjectURL(picture)
+    ORGANIZATION_PICTURE_URL_REVOKERS.set(backend, () => {
+      URL.revokeObjectURL(url)
+    })
+    return url
+  } else {
+    // This should never happen, so use an arbitrary URL.
+    return location.href
+  }
+}
+
+/** Revoke the corresponding "organization picture" URL for the given backend. */
+function revokeOrganizationPictureUrl(backend: Backend | null) {
+  if (backend != null) {
+    ORGANIZATION_PICTURE_URL_REVOKERS.get(backend)?.()
+  }
+}
+
 // =========================
 // === useObserveBackend ===
 // =========================
@@ -58,12 +114,14 @@ export function useObserveBackend(backend: Backend | null) {
     >([backend, method], data => (data == null ? data : updater(data)))
   }
   useObserveMutations('uploadUserPicture', state => {
+    revokeUserPictureUrl(backend)
     setQueryData('usersMe', user => state.data ?? user)
   })
   useObserveMutations('updateOrganization', state => {
     setQueryData('getOrganization', organization => state.data ?? organization)
   })
   useObserveMutations('uploadOrganizationPicture', state => {
+    revokeOrganizationPictureUrl(backend)
     setQueryData('getOrganization', organization => state.data ?? organization)
   })
   useObserveMutations('createUserGroup', state => {
@@ -407,25 +465,28 @@ export function useBackendListTags(
 
 /** The current user, taking into account optimistic state. */
 export function useBackendUsersMe(backend: Backend | null) {
-  const { user } = authProvider.useNonPartialUserSession()
+  const usersMeQuery = useBackendQuery(backend, 'usersMe', [])
   const updateUserVariables = useBackendMutationVariables(backend, 'updateUser')
   const uploadUserPictureVariables = useBackendMutationVariables(backend, 'uploadUserPicture')
   return React.useMemo(() => {
-    if (user == null) {
+    if (usersMeQuery.data == null) {
       return null
     } else {
-      let result = user
+      let result = usersMeQuery.data
       for (const [{ username }] of updateUserVariables) {
         if (username != null) {
           result = { ...result, name: username }
         }
       }
       for (const [, file] of uploadUserPictureVariables) {
-        result = { ...result, profilePicture: backendModule.HttpsUrl(URL.createObjectURL(file)) }
+        result = {
+          ...result,
+          profilePicture: backendModule.HttpsUrl(createUserPictureUrl(backend, file)),
+        }
       }
       return result
     }
-  }, [user, updateUserVariables, uploadUserPictureVariables])
+  }, [backend, usersMeQuery.data, updateUserVariables, uploadUserPictureVariables])
 }
 
 // =================================
@@ -449,9 +510,17 @@ export function useBackendGetOrganization(backend: Backend | null) {
         result = { ...result, ...update }
       }
       for (const [, file] of uploadOrganizationPictureVariables) {
-        result = { ...result, picture: backendModule.HttpsUrl(URL.createObjectURL(file)) }
+        result = {
+          ...result,
+          picture: backendModule.HttpsUrl(createOrganizationPictureUrl(backend, file)),
+        }
       }
       return result
     }
-  }, [getOrganizationQuery, updateOrganizationVariables, uploadOrganizationPictureVariables])
+  }, [
+    backend,
+    getOrganizationQuery.data,
+    updateOrganizationVariables,
+    uploadOrganizationPictureVariables,
+  ])
 }

@@ -29,7 +29,7 @@ export default function ProfilePictureSettingsSection(props: ProfilePictureSetti
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const { user } = authProvider.useNonPartialUserSession()
+  const user = backendHooks.useBackendUsersMe(backend)
   const { getText } = textProvider.useText()
 
   const uploadUserPictureMutation = backendHooks.useBackendMutation(backend, 'uploadUserPicture')
