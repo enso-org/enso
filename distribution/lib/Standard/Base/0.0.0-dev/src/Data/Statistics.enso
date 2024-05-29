@@ -389,7 +389,7 @@ check_if_empty count ~action = if count == 0 then Number.nan else action
 empty_value statistic = case statistic of
     Statistic.Count -> 0
     Statistic.Sum -> 0
-    Statistic.Product -> 0
+    Statistic.Product -> 1
     Statistic.Minimum -> Error.throw (Empty_Error.Error Vector)
     Statistic.Maximum -> Error.throw (Empty_Error.Error Vector)
     _ -> Number.nan
