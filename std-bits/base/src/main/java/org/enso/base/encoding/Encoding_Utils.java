@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
-
 import org.enso.base.WithProblems;
 import org.enso.base.text.ResultWithWarnings;
 import org.graalvm.polyglot.Context;
@@ -116,7 +115,8 @@ public class Encoding_Utils {
     try {
       decoder = create_stream_decoder(inputStream, charset, problemAggregator, true);
     } catch (IOException e) {
-      throw new IllegalStateException("Unexpected IO exception in internal code: " + e.getMessage(), e);
+      throw new IllegalStateException(
+          "Unexpected IO exception in internal code: " + e.getMessage(), e);
     }
 
     CharBuffer out = CharBuffer.allocate((int) (bytes.length * decoder.averageCharsPerByte()));
@@ -137,14 +137,20 @@ public class Encoding_Utils {
     return new WithProblems<>(out.toString(), problemAggregator.summarize());
   }
 
-  /** Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset.
+  /**
+   * Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset.
    *
    * @param stream the input stream to decode
    * @param charset the character set to use for decoding, use {@code null} to try auto-detection
-   * @param pollSafepoints whether to poll for safepoints during decoding.
-   *                       This should be true if the decoding will run on the main thread, and false otherwise.
+   * @param pollSafepoints whether to poll for safepoints during decoding. This should be true if
+   *     the decoding will run on the main thread, and false otherwise.
    */
-  private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset, DecodingProblemAggregator problemAggregator, boolean pollSafepoints) throws IOException {
+  private static ReportingStreamDecoder create_stream_decoder(
+      InputStream stream,
+      Charset charset,
+      DecodingProblemAggregator problemAggregator,
+      boolean pollSafepoints)
+      throws IOException {
     BufferedInputStream bufferedStream = new BufferedInputStream(stream);
     EncodingRepresentation representation = EncodingRepresentation.fromCharset(charset);
     // This may also advance the stream past the BOM
@@ -169,7 +175,8 @@ public class Encoding_Utils {
       throws IOException {
     DecodingProblemAggregator problemAggregator = new DecodingProblemAggregator();
     Value result;
-    ReportingStreamDecoder decoder = create_stream_decoder(stream, charset, problemAggregator, false);
+    ReportingStreamDecoder decoder =
+        create_stream_decoder(stream, charset, problemAggregator, false);
     try (decoder) {
       result = action.apply(decoder);
     }

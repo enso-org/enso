@@ -7,9 +7,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public abstract sealed class EncodingRepresentation {
-  private static final byte[] UTF_8_BOM = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
-  private static final byte[] UTF_16_BE_BOM = new byte[]{(byte) 0xFE, (byte) 0xFF};
-  private static final byte[] UTF_16_LE_BOM = new byte[]{(byte) 0xFF, (byte) 0xFE};
+  private static final byte[] UTF_8_BOM = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+  private static final byte[] UTF_16_BE_BOM = new byte[] {(byte) 0xFE, (byte) 0xFF};
+  private static final byte[] UTF_16_LE_BOM = new byte[] {(byte) 0xFF, (byte) 0xFE};
 
   private static byte[] peekStream(BufferedInputStream stream, int n) throws IOException {
     byte[] buffer = new byte[n];
@@ -60,15 +60,22 @@ public abstract sealed class EncodingRepresentation {
   /**
    * Detects the effective charset based on initial data present in the stream.
    *
-   * @param stream the stream to detect the charset for. Initial BOM header may be deliberately consumed by this method, so that it is ignored for further processing. No other data is consumed (we only peek).
-   * @param problemAggregator an aggregator to report any warnings about detected encoding, or report context metadata to be used in future errors reported by other components.
+   * @param stream the stream to detect the charset for. Initial BOM header may be deliberately
+   *     consumed by this method, so that it is ignored for further processing. No other data is
+   *     consumed (we only peek).
+   * @param problemAggregator an aggregator to report any warnings about detected encoding, or
+   *     report context metadata to be used in future errors reported by other components.
    */
-  public abstract Charset detectCharset(BufferedInputStream stream, DecodingProblemAggregator problemAggregator) throws IOException;
+  public abstract Charset detectCharset(
+      BufferedInputStream stream, DecodingProblemAggregator problemAggregator) throws IOException;
 
   private static final class Default extends EncodingRepresentation {
-    // Note: the Windows-1252 fallback is not implemented as part of this detection - it only allows to distinguish UTF BOMs.
+    // Note: the Windows-1252 fallback is not implemented as part of this detection - it only allows
+    // to distinguish UTF BOMs.
     @Override
-    public Charset detectCharset(BufferedInputStream stream, DecodingProblemAggregator problemAggregator) throws IOException {
+    public Charset detectCharset(
+        BufferedInputStream stream, DecodingProblemAggregator problemAggregator)
+        throws IOException {
       byte[] beginning = peekStream(stream, 3);
       if (startsWith(beginning, UTF_8_BOM)) {
         skipStream(stream, UTF_8_BOM.length);
@@ -94,7 +101,9 @@ public abstract sealed class EncodingRepresentation {
     }
 
     @Override
-    public Charset detectCharset(BufferedInputStream stream, DecodingProblemAggregator problemAggregator) throws IOException {
+    public Charset detectCharset(
+        BufferedInputStream stream, DecodingProblemAggregator problemAggregator)
+        throws IOException {
       // We ignore the stream as we just use the provided encoding as-is.
       return charset;
     }
@@ -103,6 +112,7 @@ public abstract sealed class EncodingRepresentation {
   private static final class UnicodeHandlingBOM extends EncodingRepresentation {
     private final Charset charset;
     private final byte[] expectedBOM;
+
     // TODO unexpected BOM
 
     private UnicodeHandlingBOM(Charset charset, byte[] expectedBOM) {
@@ -111,7 +121,9 @@ public abstract sealed class EncodingRepresentation {
     }
 
     private static boolean isSupported(Charset charset) {
-      return charset.equals(StandardCharsets.UTF_8) || charset.equals(StandardCharsets.UTF_16BE) || charset.equals(StandardCharsets.UTF_16LE);
+      return charset.equals(StandardCharsets.UTF_8)
+          || charset.equals(StandardCharsets.UTF_16BE)
+          || charset.equals(StandardCharsets.UTF_16LE);
     }
 
     private static UnicodeHandlingBOM fromUnicodeCharset(Charset charset) {
@@ -127,7 +139,9 @@ public abstract sealed class EncodingRepresentation {
     }
 
     @Override
-    public Charset detectCharset(BufferedInputStream stream, DecodingProblemAggregator problemAggregator) throws IOException {
+    public Charset detectCharset(
+        BufferedInputStream stream, DecodingProblemAggregator problemAggregator)
+        throws IOException {
       byte[] beginning = peekStream(stream, expectedBOM.length);
       if (startsWith(beginning, expectedBOM)) {
         skipStream(stream, expectedBOM.length);

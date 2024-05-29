@@ -15,9 +15,10 @@ public class DecodingProblemAggregator {
     baseProblems.add(new DecodingProblem(message));
   }
 
-  /** Sets message prefix for the problem indicating characters that could not be decoded.
-   * <p>
-   * This prefix can be used to provide additional context for the problem.
+  /**
+   * Sets message prefix for the problem indicating characters that could not be decoded.
+   *
+   * <p>This prefix can be used to provide additional context for the problem.
    */
   public void setInvalidCharacterErrorPrefix(String prefix) {
     invalidCharacterErrorPrefix = prefix;
@@ -35,9 +36,19 @@ public class DecodingProblemAggregator {
       return null;
     }
 
-    String positions = invalidUnitExamplePositions.stream().map(Object::toString).collect(Collectors.joining(", "));
+    String positions =
+        invalidUnitExamplePositions.stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(", "));
     String suffix = invalidUnitCount > invalidUnitExamplePositions.size() ? ", ..." : "";
-    return new DecodingProblem(invalidCharacterErrorPrefix + "Failed to decode " + invalidUnitCount + " code units (at positions: " + positions + suffix + ").");
+    return new DecodingProblem(
+        invalidCharacterErrorPrefix
+            + "Failed to decode "
+            + invalidUnitCount
+            + " code units (at positions: "
+            + positions
+            + suffix
+            + ").");
   }
 
   public List<DecodingProblem> summarize() {

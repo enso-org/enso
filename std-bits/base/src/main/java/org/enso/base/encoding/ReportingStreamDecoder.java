@@ -1,6 +1,6 @@
 package org.enso.base.encoding;
 
-import org.graalvm.polyglot.Context;
+import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -9,8 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
-
-import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
+import org.graalvm.polyglot.Context;
 
 /**
  * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
@@ -31,19 +30,25 @@ public class ReportingStreamDecoder extends Reader {
 
   private final BufferedInputStream bufferedInputStream;
   private final CharsetDecoder decoder;
-  public ReportingStreamDecoder(BufferedInputStream stream, CharsetDecoder decoder, DecodingProblemAggregator problemAggregator, boolean pollSafepoints) {
+
+  public ReportingStreamDecoder(
+      BufferedInputStream stream,
+      CharsetDecoder decoder,
+      DecodingProblemAggregator problemAggregator,
+      boolean pollSafepoints) {
     bufferedInputStream = stream;
     this.decoder = decoder;
     this.problemAggregator = problemAggregator;
     this.pollSafepoints = pollSafepoints;
   }
 
-
   /**
-   * Currently there is no easy way to check if a Context is available in the current thread and we can use safepoints or not.
-   * The issue tracking this feature can be found at: <a href="https://github.com/oracle/graal/issues/6931">oracle/graal#6931</a>.
-   * For the time being we just manually let the user consciously choose if safepoints shall be enabled or not, based on
-   * the user's knowledge if the thread running the decoding will run on the main thread or in the background.
+   * Currently there is no easy way to check if a Context is available in the current thread and we
+   * can use safepoints or not. The issue tracking this feature can be found at: <a
+   * href="https://github.com/oracle/graal/issues/6931">oracle/graal#6931</a>. For the time being we
+   * just manually let the user consciously choose if safepoints shall be enabled or not, based on
+   * the user's knowledge if the thread running the decoding will run on the main thread or in the
+   * background.
    */
   private final boolean pollSafepoints;
 
