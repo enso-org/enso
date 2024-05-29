@@ -98,34 +98,47 @@ export const BUTTON_STYLES = twv.tv({
 // === Button ===
 // ==============
 
-/** Base props for a button. */
-export interface ButtonPropsBase
-  extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly' | 'isDisabled'> {
-  /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
-  readonly tooltip?: React.ReactNode
-  /** The icon to display in the button */
-  readonly icon?: string | null
-  /** When `true`, icon will be shown only when hovered. */
-  readonly showIconOnHover?: boolean
-  /** Handler that is called when the press is released over the target.
-   * If the handler returns a {@link Promise}, the button will be in a loading state
-   * until the {@link Promise} resolves. */
-  readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
-  readonly testId?: string
-}
+/** Props for a {@link Button}. */
+export type ButtonProps =
+  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
+  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
 
-/** Props for a button with an href. */
-interface PropsWithHref extends ButtonPropsBase, Omit<aria.ButtonProps, 'onPress'> {
+/**
+ * Props for a button with an href.
+ */
+interface PropsWithHref {
   readonly href: string
 }
 
-/** Props for a button without an href. */
-interface PropsWithoutHref extends ButtonPropsBase, Omit<aria.ButtonProps, 'onPress'> {
+/**
+ * Props for a button without an href.
+ */
+interface PropsWithoutHref {
   readonly href?: never
 }
 
-/** Props for a {@link Button}. */
-export type ButtonProps = PropsWithHref | PropsWithoutHref
+/**
+ * Base props for a button.
+ */
+export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
+  /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
+  readonly tooltip?: React.ReactElement | string | false
+  /**
+   * The icon to display in the button
+   */
+  readonly icon?: string | null
+  /**
+   * When `true`, icon will be shown only when hovered.
+   */
+  readonly showIconOnHover?: boolean
+  /**
+   * Handler that is called when the press is released over the target.
+   * If the handler returns a promise, the button will be in a loading state until the promise resolves.
+   */
+  readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
+
+  readonly testId?: string
+}
 
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
 export const Button = React.forwardRef(function Button(
@@ -226,6 +239,7 @@ export const Button = React.forwardRef(function Button(
         // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
         onPressEnd: handlePress,
       })}
+      // @ts-expect-error eventhough typescript is complaining about the type of className, it is actually correct
       className={aria.composeRenderProps(className, (classNames, states) =>
         base({ className: classNames, ...states })
       )}

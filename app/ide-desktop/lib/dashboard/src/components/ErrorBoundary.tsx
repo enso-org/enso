@@ -7,7 +7,7 @@ import * as errorBoundary from 'react-error-boundary'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/AriaComponents'
+import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 // =====================
@@ -62,11 +62,11 @@ function DefaultFallbackComponent(props: errorBoundary.FallbackProps): React.JSX
       title={getText('arbitraryErrorTitle')}
       subtitle={getText('arbitraryErrorSubtitle')}
     >
-      <aria.ButtonGroup align="center">
-        <aria.Button variant="submit" size="medium" onPress={resetErrorBoundary}>
+      <ariaComponents.ButtonGroup align="center">
+        <ariaComponents.Button variant="submit" size="medium" onPress={resetErrorBoundary}>
           {getText('tryAgain')}
-        </aria.Button>
-      </aria.ButtonGroup>
+        </ariaComponents.Button>
+      </ariaComponents.ButtonGroup>
     </result.Result>
   )
 }

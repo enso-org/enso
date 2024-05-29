@@ -1,4 +1,4 @@
-/** @file A component for displaying the result of an operation. */
+/** @file Display the result of an operation. */
 import * as React from 'react'
 
 import * as tailwindMerge from 'tailwind-merge'
@@ -42,7 +42,6 @@ interface StatusIcon {
 
 /** Props for a {@link Result}. */
 export interface ResultProps extends React.PropsWithChildren {
-  readonly 'data-testid'?: string
   readonly className?: string
   readonly title?: React.JSX.Element | string
   readonly subtitle?: React.JSX.Element | string
@@ -50,23 +49,23 @@ export interface ResultProps extends React.PropsWithChildren {
    * @default 'success' */
   readonly status?: React.ReactElement | Status
   readonly icon?: string | false
+  readonly testId?: string
 }
 
 /** Display the result of an operation. */
 export function Result(props: ResultProps) {
-  const { title, children, status = 'success', subtitle, className, icon } = props
+  const {
+    title,
+    children,
+    status = 'success',
+    subtitle,
+    className,
+    icon,
+    testId = 'Result',
+  } = props
 
   const statusIcon = typeof status === 'string' ? STATUS_ICON_MAP[status] : null
   const showIcon = icon !== false
-
-  const titleElement =
-    typeof title === 'string' ? (
-      <aria.Heading level={2} className="mb-2 text-2xl leading-10">
-        {title}
-      </aria.Heading>
-    ) : (
-      title
-    )
 
   return (
     <section
@@ -74,27 +73,40 @@ export function Result(props: ResultProps) {
         'm-auto flex flex-col items-center justify-center px-6 py-4 text-center',
         className
       )}
-      data-testid={props['data-testid'] ?? 'Result'}
+      data-testid={testId}
     >
-      {!showIcon ? null : statusIcon == null ? (
-        status
-      ) : (
-        <div
-          className={tailwindMerge.twMerge(
-            'mb-4 flex rounded-full bg-opacity-25 p-1 text-green',
-            statusIcon.bgClassName
+      {showIcon ? (
+        <>
+          {statusIcon != null ? (
+            <div
+              className={tailwindMerge.twMerge(
+                'mb-4 flex rounded-full bg-opacity-25 p-1 text-green',
+                statusIcon.bgClassName
+              )}
+            >
+              <SvgMask
+                src={icon ?? statusIcon.icon}
+                className={tailwindMerge.twMerge('h-16 w-16 flex-none', statusIcon.colorClassName)}
+              />
+            </div>
+          ) : (
+            status
           )}
-        >
-          <SvgMask
-            src={icon ?? statusIcon.icon}
-            className={tailwindMerge.twMerge('h-16 w-16 flex-none', statusIcon.colorClassName)}
-          />
-        </div>
+        </>
+      ) : null}
+
+      {typeof title === 'string' ? (
+        <aria.Heading level={2} className="mb-2 text-2xl leading-10">
+          {title}
+        </aria.Heading>
+      ) : (
+        title
       )}
-      {titleElement}
+
       <aria.Text elementType="p" className="max-w-[750px] text-balance text-lg leading-6">
         {subtitle}
       </aria.Text>
+
       <div className="mt-6 w-full">{children}</div>
     </section>
   )

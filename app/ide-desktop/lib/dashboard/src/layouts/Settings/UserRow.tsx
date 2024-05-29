@@ -6,7 +6,6 @@ import * as tailwindMerge from 'tailwind-merge'
 import Cross2 from 'enso-assets/cross2.svg'
 
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
-import * as tooltipHooks from '#/hooks/tooltipHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -15,7 +14,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import FocusableText from '#/components/FocusableText'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
@@ -39,7 +37,6 @@ export default function UserRow(props: UserRowProps) {
   const { user: self } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const { needsTooltip, tooltipTargetRef } = tooltipHooks.useNeedsTooltip()
   const isSelf = user.userId === self?.userId
   const doDeleteUser = isSelf ? null : doDeleteUserRaw
 
@@ -83,15 +80,12 @@ export default function UserRow(props: UserRowProps) {
             />
           </aria.FocusRing>
         )}
-        <ariaComponents.TooltipTrigger>
-          <FocusableText
-            ref={tooltipTargetRef}
-            className="block cursor-unset overflow-hidden text-ellipsis whitespace-nowrap"
-          >
+
+        <div className="flex justify-center">
+          <ariaComponents.Text nowrap truncate="1" weight="semibold">
             {user.name}
-          </FocusableText>
-          {needsTooltip && <ariaComponents.Tooltip>{user.name}</ariaComponents.Tooltip>}
-        </ariaComponents.TooltipTrigger>
+          </ariaComponents.Text>
+        </div>
       </aria.Cell>
       <aria.Cell className="text whitespace-nowrap rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0 group-selected:bg-selected-frame">
         {user.email}
