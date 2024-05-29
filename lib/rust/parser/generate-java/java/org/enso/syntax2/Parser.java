@@ -29,7 +29,7 @@ public final class Parser implements AutoCloseable {
         d = d.getParentFile();
       }
       if (d == null) {
-        throw new IllegalStateException(
+        throw new LinkageError(
             "Cannot find parser in " + new File(whereAmI.toURI()).getParentFile());
       }
       parser = path;
