@@ -10,27 +10,20 @@ import * as portal from '#/components/Portal'
 
 /** Props for {@link Root}. */
 export interface RootProps extends React.PropsWithChildren {
+  readonly portalRoot: Element
   readonly navigate: (path: string) => void
   readonly locale?: string
 }
 
 /** The root component with required providers. */
 export function Root(props: RootProps) {
-  const { children, navigate, locale = 'en-US' } = props
-  const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
-  const portalRootId = React.useId()
+  const { children, navigate, locale = 'en-US', portalRoot } = props
 
   return (
-    <>
-      {root != null && (
-        <portal.PortalProvider value={root}>
-          <aria.RouterProvider navigate={navigate}>
-            <aria.I18nProvider locale={locale}>{children}</aria.I18nProvider>
-          </aria.RouterProvider>
-        </portal.PortalProvider>
-      )}
-
-      <div ref={setRoot} className="contents" data-testid="portal-root" id={portalRootId} />
-    </>
+    <portal.PortalProvider value={portalRoot}>
+      <aria.RouterProvider navigate={navigate}>
+        <aria.I18nProvider locale={locale}>{children}</aria.I18nProvider>
+      </aria.RouterProvider>
+    </portal.PortalProvider>
   )
 }

@@ -149,6 +149,7 @@ export interface AppProps {
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
   readonly appRunner: types.EditorRunner | null
+  readonly portalRoot: Element
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -222,6 +223,7 @@ export interface AppRouterProps extends AppProps {
 function AppRouter(props: AppRouterProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
+  const { portalRoot } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
   // eslint-disable-next-line no-restricted-properties
@@ -484,6 +486,10 @@ function AppRouter(props: AppRouterProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-  result = <rootComponent.Root navigate={navigate}>{result}</rootComponent.Root>
+  result = (
+    <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
+      {result}
+    </rootComponent.Root>
+  )
   return result
 }

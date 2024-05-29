@@ -26,9 +26,6 @@ export function useStrictPortalContext() {
 
   invariant(root != null, 'You should use `PortalProvider` to access the `Portal` component')
 
-  // This is safe because we are using `invariant` to check if the `PortalProvider` is in the component tree
-  // and the root element is not `null`
-  // eslint-disable-next-line no-restricted-syntax
   return root
 }
 
