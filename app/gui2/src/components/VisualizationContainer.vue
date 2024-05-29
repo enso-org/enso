@@ -105,11 +105,6 @@ const contentStyle = computed(() => {
         '--node-height': `${config.nodeSize.y}px`,
       }"
     >
-      <SmallPlusButton
-        v-if="config.isCircularMenuVisible"
-        class="below-viz"
-        @createNodes="config.createNodes(...$event)"
-      />
       <div
         ref="contentNode"
         class="content scrollable"
