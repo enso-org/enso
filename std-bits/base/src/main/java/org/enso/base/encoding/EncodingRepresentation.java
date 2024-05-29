@@ -50,8 +50,12 @@ public abstract sealed class EncodingRepresentation {
   public static EncodingRepresentation fromCharset(Charset charset) {
     if (charset == null) {
       return new Default();
-    } else if (UnicodeHandlingBOM.isSupported(charset)) {
-      return UnicodeHandlingBOM.fromUnicodeCharset(charset);
+    } else if (charset.equals(StandardCharsets.UTF_8)) {
+      return UTF8.INSTANCE;
+    } else if (charset.equals(StandardCharsets.UTF_16LE)) {
+      return UTF16.LittleEndian;
+    } else if (charset.equals(StandardCharsets.UTF_16BE)) {
+      return UTF16.BigEndian;
     } else {
       return new Other(charset);
     }
@@ -95,8 +99,14 @@ public abstract sealed class EncodingRepresentation {
       }
     }
 
-    private static void notifyContextAboutAssumedEncoding(DecodingProblemAggregator problemAggregator, String encodingName) {
-      String prefix = "An " + encodingName + " BOM was detected, so " + encodingName + " encoding has been assumed, but some characters seem invalid: ";
+    private static void notifyContextAboutAssumedEncoding(
+        DecodingProblemAggregator problemAggregator, String encodingName) {
+      String prefix =
+          "An "
+              + encodingName
+              + " BOM was detected, so "
+              + encodingName
+              + " encoding has been assumed, but some characters seem invalid: ";
       problemAggregator.setInvalidCharacterErrorPrefix(prefix);
     }
   }
@@ -117,46 +127,87 @@ public abstract sealed class EncodingRepresentation {
     }
   }
 
-  private static final class UnicodeHandlingBOM extends EncodingRepresentation {
+  private static final class UTF8 extends EncodingRepresentation {
+    static final UTF8 INSTANCE = new UTF8();
+
+    @Override
+    public Charset detectCharset(
+        BufferedInputStream stream, DecodingProblemAggregator problemAggregator)
+        throws IOException {
+      byte[] beginning = peekStream(stream, UTF_8_BOM.length);
+      if (startsWith(beginning, UTF_8_BOM)) {
+        skipStream(stream, UTF_8_BOM.length);
+      } else {
+        if (startsWith(beginning, UTF_16_BE_BOM) || startsWith(beginning, UTF_16_LE_BOM)) {
+          problemAggregator.reportOtherProblem("UTF-16 BOM has been found when decoding as UTF-8.");
+        }
+      }
+      return StandardCharsets.UTF_8;
+    }
+  }
+
+  private static final class UTF16 extends EncodingRepresentation {
+    static final UTF16 BigEndian = new UTF16(StandardCharsets.UTF_16BE, Endianness.BigEndian);
+    static final UTF16 LittleEndian = new UTF16(StandardCharsets.UTF_16LE, Endianness.LittleEndian);
+
     private final Charset charset;
     private final byte[] expectedBOM;
+    private final byte[] flippedBOM;
+    private Endianness endianness;
 
-    // TODO unexpected BOM
-
-    private UnicodeHandlingBOM(Charset charset, byte[] expectedBOM) {
+    private UTF16(Charset charset, Endianness endianness) {
       this.charset = charset;
-      this.expectedBOM = expectedBOM;
-    }
-
-    private static boolean isSupported(Charset charset) {
-      return charset.equals(StandardCharsets.UTF_8)
-          || charset.equals(StandardCharsets.UTF_16BE)
-          || charset.equals(StandardCharsets.UTF_16LE);
-    }
-
-    private static UnicodeHandlingBOM fromUnicodeCharset(Charset charset) {
-      if (charset.equals(StandardCharsets.UTF_8)) {
-        return new UnicodeHandlingBOM(charset, UTF_8_BOM);
-      } else if (charset.equals(StandardCharsets.UTF_16BE)) {
-        return new UnicodeHandlingBOM(charset, UTF_16_BE_BOM);
-      } else if (charset.equals(StandardCharsets.UTF_16LE)) {
-        return new UnicodeHandlingBOM(charset, UTF_16_LE_BOM);
-      } else {
-        throw new IllegalArgumentException("Not a supported Unicode charset: " + charset);
-      }
+      this.expectedBOM =
+          switch (endianness) {
+            case BigEndian -> UTF_16_BE_BOM;
+            case LittleEndian -> UTF_16_LE_BOM;
+          };
+      this.flippedBOM =
+          switch (endianness) {
+            case BigEndian -> UTF_16_LE_BOM;
+            case LittleEndian -> UTF_16_BE_BOM;
+          };
+      this.endianness = endianness;
     }
 
     @Override
     public Charset detectCharset(
         BufferedInputStream stream, DecodingProblemAggregator problemAggregator)
         throws IOException {
-      byte[] beginning = peekStream(stream, expectedBOM.length);
+      assert expectedBOM.length == flippedBOM.length;
+      assert expectedBOM.length == 2;
+      byte[] beginning = peekStream(stream, 2);
       if (startsWith(beginning, expectedBOM)) {
         skipStream(stream, expectedBOM.length);
-      } else {
-        // TODO check for unexpected BOMs
+      } else if (startsWith(beginning, flippedBOM)) {
+        problemAggregator.reportOtherProblem(
+            "Decoding as UTF-16 "
+                + endianness
+                + ", but a "
+                + endianness.flip()
+                + " BOM has been found.");
       }
       return charset;
+    }
+
+    enum Endianness {
+      BigEndian,
+      LittleEndian;
+
+      @Override
+      public String toString() {
+        return switch (this) {
+          case BigEndian -> "Big Endian";
+          case LittleEndian -> "Little Endian";
+        };
+      }
+
+      public Endianness flip() {
+        return switch (this) {
+          case BigEndian -> LittleEndian;
+          case LittleEndian -> BigEndian;
+        };
+      }
     }
   }
 }
