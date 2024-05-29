@@ -4,8 +4,8 @@ import * as React from 'react'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
@@ -107,7 +107,9 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                   ? true
                   : data.type !== permissions.Permission.owner)
             ).map(data => (
-              <UnstyledButton
+              <ariaComponents.Button
+                size="custom"
+                variant="custom"
                 key={data.type}
                 className={tailwindMerge.twMerge(
                   'flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5',
@@ -146,7 +148,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                   </>
                 )}
                 <aria.Label className="text">{data.description(assetType)}</aria.Label>
-              </UnstyledButton>
+              </ariaComponents.Button>
             ))}
           </div>
         </div>

@@ -15,6 +15,7 @@ import * as backendHooks from '#/hooks/backendHooks'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import DateInput from '#/components/DateInput'
 import Dropdown from '#/components/Dropdown'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
@@ -22,7 +23,6 @@ import FocusArea from '#/components/styled/FocusArea'
 import SettingsPage from '#/components/styled/settings/SettingsPage'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -197,7 +197,9 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
             <tr className="h-row">
               <th className="w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r text-left text-sm font-semibold last:border-r-0" />
               <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.type
                       ? getText('sortByName')
@@ -239,10 +241,12 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         'rotate-180'
                     )}
                   />
-                </UnstyledButton>
+                </ariaComponents.Button>
               </th>
               <th className="w-activity-log-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.email
                       ? getText('sortByEmail')
@@ -284,10 +288,12 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         'rotate-180'
                     )}
                   />
-                </UnstyledButton>
+                </ariaComponents.Button>
               </th>
               <th className="w-activity-log-timestamp-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.timestamp
                       ? getText('sortByTimestamp')
@@ -329,7 +335,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         'rotate-180'
                     )}
                   />
-                </UnstyledButton>
+                </ariaComponents.Button>
               </th>
             </tr>
           </thead>

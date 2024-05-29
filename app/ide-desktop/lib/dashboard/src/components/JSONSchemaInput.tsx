@@ -7,12 +7,12 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
 import Checkbox from '#/components/styled/Checkbox'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
@@ -223,7 +223,9 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     >
                       <FocusArea active={isOptional} direction="horizontal">
                         {innerProps => (
-                          <UnstyledButton
+                          <ariaComponents.Button
+                            size="custom"
+                            variant="custom"
                             isDisabled={!isOptional}
                             className={tailwindMerge.twMerge(
                               'text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left',
@@ -260,7 +262,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                             >
                               {'title' in childSchema ? String(childSchema.title) : key}
                             </aria.Text>
-                          </UnstyledButton>
+                          </ariaComponents.Button>
                         )}
                       </FocusArea>
                       {value != null && key in value && (

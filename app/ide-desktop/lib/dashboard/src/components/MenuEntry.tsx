@@ -13,9 +13,9 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
@@ -116,7 +116,9 @@ export default function MenuEntry(props: MenuEntryProps) {
   }, [isDisabled, inputBindings, action, doAction])
 
   return hidden ? null : (
-    <UnstyledButton
+    <ariaComponents.Button
+      size="custom"
+      variant="custom"
       isDisabled={isDisabled}
       className="group flex w-full rounded-menu-entry"
       onPress={doAction}
@@ -128,6 +130,6 @@ export default function MenuEntry(props: MenuEntryProps) {
         </div>
         <KeyboardShortcut action={action} />
       </div>
-    </UnstyledButton>
+    </ariaComponents.Button>
   )
 }

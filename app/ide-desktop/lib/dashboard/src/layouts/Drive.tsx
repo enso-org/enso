@@ -28,7 +28,6 @@ import Labels from '#/layouts/Labels'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -223,14 +222,16 @@ export default function Drive(props: DriveProps) {
         <div className={tailwindMerge.twMerge('grid grow place-items-center', hidden && 'hidden')}>
           <div className="flex flex-col gap-status-page text-center text-base">
             <div>{getText('youAreNotLoggedIn')}</div>
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="button self-center bg-help text-white"
               onPress={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
             >
               {getText('login')}
-            </UnstyledButton>
+            </ariaComponents.Button>
           </div>
         </div>
       )

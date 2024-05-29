@@ -15,7 +15,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as chat from '#/layouts/Chat'
 
-import UnstyledButton from '#/components/UnstyledButton'
+import * as ariaComponents from '#/components/AriaComponents'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
@@ -48,9 +48,14 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
       >
         <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
           <div className="grow" />
-          <UnstyledButton className="mx-close-icon" onPress={doClose}>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            className="mx-close-icon"
+            onPress={doClose}
+          >
             <img src={CloseLargeIcon} />
-          </UnstyledButton>
+          </ariaComponents.Button>
         </div>
         <div className="grid grow place-items-center">
           <div className="flex flex-col gap-status-page text-center text-base">
@@ -58,24 +63,28 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
               {getText('placeholderChatPrompt')}
             </div>
             {!hideLoginButtons && (
-              <UnstyledButton
+              <ariaComponents.Button
+                size="custom"
+                variant="custom"
                 className="button self-center bg-help text-white"
                 onPress={() => {
                   navigate(appUtils.LOGIN_PATH)
                 }}
               >
                 {getText('login')}
-              </UnstyledButton>
+              </ariaComponents.Button>
             )}
             {!hideLoginButtons && (
-              <UnstyledButton
+              <ariaComponents.Button
+                size="custom"
+                variant="custom"
                 className="button self-center bg-help text-white"
                 onPress={() => {
                   navigate(appUtils.REGISTRATION_PATH)
                 }}
               >
                 {getText('register')}
-              </UnstyledButton>
+              </ariaComponents.Button>
             )}
           </div>
         </div>

@@ -10,9 +10,9 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import type Backend from '#/services/Backend'
 
@@ -110,16 +110,23 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
           <aria.FieldError className="text-red-700/90">{nameError}</aria.FieldError>
         </aria.TextField>
         <ButtonRow>
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={!canSubmit}
             className="button bg-invite text-white enabled:active"
             onPress={eventModule.submitForm}
           >
             {getText('create')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            className="button bg-selected-frame active"
+            onPress={unsetModal}
+          >
             {getText('cancel')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         </ButtonRow>
       </form>
     </Modal>

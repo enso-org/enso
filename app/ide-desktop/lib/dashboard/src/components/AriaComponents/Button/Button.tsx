@@ -54,10 +54,10 @@ export const BUTTON_STYLES = twv.tv({
         content: 'w-full h-full',
         icon: 'w-fit h-fit',
       },
-
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline:
         'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',
+      bar: 'flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
     },
     iconPosition: {
       start: { content: '' },

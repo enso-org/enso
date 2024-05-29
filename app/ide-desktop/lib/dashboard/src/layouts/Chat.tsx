@@ -17,9 +17,9 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
@@ -118,7 +118,9 @@ function ReactionBar(props: ReactionBarProps) {
       )}
     >
       {REACTION_EMOJIS.map(emoji => (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           key={emoji}
           onPress={() => {
             if (selectedReactions.has(emoji)) {
@@ -133,7 +135,7 @@ function ReactionBar(props: ReactionBarProps) {
           )}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
-        </UnstyledButton>
+        </ariaComponents.Button>
       ))}
     </div>
   )
@@ -272,7 +274,9 @@ function ChatHeader(props: InternalChatHeaderProps) {
   return (
     <>
       <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           className="flex grow items-center gap-icon-with-text"
           onPress={() => {
             setIsThreadListVisible(visible => !visible)
@@ -324,10 +328,15 @@ function ChatHeader(props: InternalChatHeaderProps) {
               }}
             />
           </div>
-        </UnstyledButton>
-        <UnstyledButton className="mx-close-icon" onPress={doClose}>
+        </ariaComponents.Button>
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          className="mx-close-icon"
+          onPress={doClose}
+        >
           <img src={CloseLargeIcon} />
-        </UnstyledButton>
+        </ariaComponents.Button>
       </div>
       <div className="relative text-sm font-semibold">
         <div
@@ -813,7 +822,9 @@ export default function Chat(props: ChatProps) {
             }}
           />
           <div className="flex gap-chat-buttons">
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               isDisabled={!isReplyEnabled}
               className={tailwindMerge.twMerge(
                 'text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white',
@@ -824,8 +835,10 @@ export default function Chat(props: ChatProps) {
               }}
             >
               {getText('clickForNewQuestion')}
-            </UnstyledButton>
-            <UnstyledButton
+            </ariaComponents.Button>
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               isDisabled={!isReplyEnabled}
               className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
               onPress={() => {
@@ -833,18 +846,19 @@ export default function Chat(props: ChatProps) {
               }}
             >
               {getText('replyExclamation')}
-            </UnstyledButton>
+            </ariaComponents.Button>
           </div>
         </form>
         {!isPaidUser && (
-          <UnstyledButton
-            // This UI element does not appear anywhere else.
+          <ariaComponents.Button
+            size="custom"
+            variant="custom" // This UI element does not appear anywhere else.
             // eslint-disable-next-line no-restricted-syntax
             className="bg-call-to-action/90 mx-2 my-1 rounded-default p-2 text-center leading-cozy text-white"
             onPress={upgradeToPro}
           >
             {getText('upgradeToProNag')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         )}
       </div>,
       container

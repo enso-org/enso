@@ -12,13 +12,13 @@ import * as textProvider from '#/providers/TextProvider'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
@@ -141,7 +141,9 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           </Label>
         ))}
       {managesThisAsset && (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           ref={plusButtonRef}
           className="shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
           onPress={() => {
@@ -157,7 +159,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           }}
         >
           <img className="size-plus-icon" src={Plus2Icon} />
-        </UnstyledButton>
+        </ariaComponents.Button>
       )}
     </div>
   )

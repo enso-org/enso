@@ -20,9 +20,9 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -344,7 +344,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
       return (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           className="size-project-icon rounded-full"
           onPress={() => {
             unsetModal()
@@ -352,14 +354,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }}
         >
           <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           isDisabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
           className="size-project-icon rounded-full selectable enabled:active"
@@ -381,12 +385,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
               isRunningInBackground && 'text-green'
             )}
           />
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
     case backendModule.ProjectState.opened:
       return (
         <div>
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
             className="size-project-icon rounded-full selectable enabled:active"
@@ -411,9 +417,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 isRunningInBackground && 'text-green'
               )}
             />
-          </UnstyledButton>
+          </ariaComponents.Button>
           {!isOtherUserUsingProject && !isRunningInBackground && (
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="size-project-icon rounded-full"
               onPress={() => {
                 unsetModal()
@@ -425,7 +433,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 src={ArrowUpIcon}
                 className="size-project-icon"
               />
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
         </div>
       )

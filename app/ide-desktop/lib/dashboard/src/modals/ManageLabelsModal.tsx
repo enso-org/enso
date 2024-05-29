@@ -10,13 +10,13 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -193,7 +193,9 @@ export default function ManageLabelsModal<
                       />
                     </div>
                   </FocusRing>
-                  <UnstyledButton
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={!canCreateNewLabel}
                     className="button bg-invite px-button-x text-tag-text enabled:active"
                     onPress={eventModule.submitForm}
@@ -201,7 +203,7 @@ export default function ManageLabelsModal<
                     <aria.Text className="h-text py-modal-invite-button-text-y">
                       {getText('create')}
                     </aria.Text>
-                  </UnstyledButton>
+                  </ariaComponents.Button>
                 </div>
               )}
             </FocusArea>

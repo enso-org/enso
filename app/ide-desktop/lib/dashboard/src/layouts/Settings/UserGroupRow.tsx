@@ -16,7 +16,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import FocusableText from '#/components/FocusableText'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
@@ -80,7 +79,9 @@ export default function UserGroupRow(props: UserGroupRowProps) {
         </ariaComponents.TooltipTrigger>
       </aria.Cell>
       <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           onPress={() => {
             setModal(
               <ConfirmDeleteModal
@@ -94,7 +95,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
           className="absolute right-full mr-4 size-icon -translate-y-1/2"
         >
           <img src={Cross2} className="size-icon" />
-        </UnstyledButton>
+        </ariaComponents.Button>
       </aria.Cell>
     </aria.Row>
   )

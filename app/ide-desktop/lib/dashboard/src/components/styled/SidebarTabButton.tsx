@@ -4,9 +4,9 @@ import * as React from 'react'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 // ========================
 // === SidebarTabButton ===
@@ -38,7 +38,9 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
   } = props
 
   return (
-    <UnstyledButton
+    <ariaComponents.Button
+      size="custom"
+      variant="custom"
       autoFocus={autoFocus}
       onPress={onPress}
       isDisabled={isDisabled}
@@ -57,6 +59,6 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
         )}
         <aria.Text className="text">{label}</aria.Text>
       </div>
-    </UnstyledButton>
+    </ariaComponents.Button>
   )
 }

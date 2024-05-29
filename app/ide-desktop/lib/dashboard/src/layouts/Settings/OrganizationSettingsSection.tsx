@@ -106,7 +106,9 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     if (oldLocation !== location) {
       try {
         setOrganization(object.merger({ address: location }))
-        const newOrganization = await updateOrganizationMutation.mutateAsync([{ address: location }])
+        const newOrganization = await updateOrganizationMutation.mutateAsync([
+          { address: location },
+        ])
         if (newOrganization != null) {
           setOrganization(newOrganization)
         }

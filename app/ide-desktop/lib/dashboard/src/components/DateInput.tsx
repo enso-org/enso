@@ -12,9 +12,9 @@ import * as focusHooks from '#/hooks/focusHooks'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as dateTime from '#/utilities/dateTime'
 
@@ -127,14 +127,16 @@ export default function DateInput(props: DateInputProps) {
             {date != null ? dateTime.formatDate(date) : getText('noDateSelected')}
           </div>
           {date != null && (
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="flex rounded-full transition-colors hover:bg-hover-bg"
               onPress={() => {
                 onInput(null)
               }}
             >
               <SvgMask src={CrossIcon} className="size-icon" />
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
         </div>
       </FocusRing>
@@ -143,15 +145,19 @@ export default function DateInput(props: DateInputProps) {
           <div className="relative -translate-x-1/2 rounded-2xl border border-primary/10 p-date-input shadow-soft before:absolute before:inset-0 before:rounded-2xl before:backdrop-blur-3xl">
             <div className="relative mb-date-input-gap">
               <div className="flex items-center">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className="inline-flex rounded-small-rectangle-button hover:bg-hover-bg"
                   onPress={() => {
                     setSelectedYear(selectedYear - 1)
                   }}
                 >
                   <SvgMask src={FolderArrowDoubleIcon} className="rotate-180" />
-                </UnstyledButton>
-                <UnstyledButton
+                </ariaComponents.Button>
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
                   onPress={() => {
                     if (selectedMonthIndex === 0) {
@@ -163,11 +169,13 @@ export default function DateInput(props: DateInputProps) {
                   }}
                 >
                   <SvgMask src={FolderArrowIcon} className="rotate-180" />
-                </UnstyledButton>
+                </ariaComponents.Button>
                 <aria.Text className="grow text-center">
                   {dateTime.MONTH_NAMES[selectedMonthIndex]} {selectedYear}
                 </aria.Text>
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
                   onPress={() => {
                     if (selectedMonthIndex === LAST_MONTH_INDEX) {
@@ -179,15 +187,17 @@ export default function DateInput(props: DateInputProps) {
                   }}
                 >
                   <SvgMask src={FolderArrowIcon} />
-                </UnstyledButton>
-                <UnstyledButton
+                </ariaComponents.Button>
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
                   onPress={() => {
                     setSelectedYear(selectedYear + 1)
                   }}
                 >
                   <SvgMask src={FolderArrowDoubleIcon} />
-                </UnstyledButton>
+                </ariaComponents.Button>
               </div>
             </div>
             <table className="relative w-full">
@@ -218,7 +228,9 @@ export default function DateInput(props: DateInputProps) {
                         currentDate.getDate() === date.getDate()
                       return (
                         <td key={j} className="text-tight p">
-                          <UnstyledButton
+                          <ariaComponents.Button
+                            size="custom"
+                            variant="custom"
                             isDisabled={isSelectedDate}
                             className={tailwindMerge.twMerge(
                               'w-full rounded-small-rectangle-button text-center hover:bg-primary/10 disabled:bg-frame disabled:font-bold',
@@ -230,7 +242,7 @@ export default function DateInput(props: DateInputProps) {
                             }}
                           >
                             {day.date}
-                          </UnstyledButton>
+                          </ariaComponents.Button>
                         </td>
                       )
                     })}

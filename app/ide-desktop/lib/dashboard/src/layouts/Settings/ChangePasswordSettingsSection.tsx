@@ -5,10 +5,10 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import ButtonRow from '#/components/styled/ButtonRow'
 import SettingsInput from '#/components/styled/settings/SettingsInput'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -95,14 +95,18 @@ export default function ChangePasswordSettingsSection() {
           />
         </aria.TextField>
         <ButtonRow>
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={!canSubmitPassword}
             className="settings-value rounded-full bg-invite font-medium text-white selectable enabled:active"
             onPress={eventModule.submitForm}
           >
             {getText('change')}
-          </UnstyledButton>
-          <UnstyledButton
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={!canCancel}
             className="settings-value rounded-full bg-selected-frame font-medium selectable enabled:active"
             onPress={() => {
@@ -113,7 +117,7 @@ export default function ChangePasswordSettingsSection() {
             }}
           >
             {getText('cancel')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         </ButtonRow>
       </aria.Form>
     </SettingsSection>

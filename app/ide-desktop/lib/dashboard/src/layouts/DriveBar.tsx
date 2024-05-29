@@ -19,9 +19,9 @@ import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Button from '#/components/styled/Button'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -89,7 +89,9 @@ export default function DriveBar(props: DriveBarProps) {
       return (
         <div className="flex h-row py-drive-bar-y">
           <HorizontalMenuBar>
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
               onPress={() => {
                 setModal(
@@ -103,7 +105,7 @@ export default function DriveBar(props: DriveBarProps) {
               <aria.Text className="text whitespace-nowrap font-semibold">
                 {getText('clearTrash')}
               </aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
           </HorizontalMenuBar>
         </div>
       )
@@ -114,17 +116,20 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-row py-drive-bar-y">
           <HorizontalMenuBar>
             <aria.DialogTrigger>
-              <UnstyledButton
+              <ariaComponents.Button
+                size="custom"
+                variant="custom"
                 className="relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90"
                 onPress={() => {}}
               >
                 <aria.Text className="text relative whitespace-nowrap font-bold">
                   {getText('startWithATemplate')}
                 </aria.Text>
-              </UnstyledButton>
+              </ariaComponents.Button>
               <StartModal createProject={doCreateProject} />
             </aria.DialogTrigger>
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
               variant="bar"
               onPress={() => {
                 doCreateProject()
@@ -133,7 +138,7 @@ export default function DriveBar(props: DriveBarProps) {
               <aria.Text className="text whitespace-nowrap font-bold">
                 {getText('newEmptyProject')}
               </aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
             <div className="flex h-row items-center gap-icons rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
               <Button
                 active

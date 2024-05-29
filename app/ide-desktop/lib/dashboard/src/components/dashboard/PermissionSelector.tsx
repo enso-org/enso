@@ -6,9 +6,9 @@ import * as tailwindMerge from 'tailwind-merge'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
 
@@ -139,7 +139,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissionsModule.Permission.view: {
       permissionDisplay = (
         <div className="flex w-permission-display gap-px">
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
@@ -151,8 +153,10 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             onPress={doShowPermissionTypeSelector}
           >
             <aria.Text>{getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}</aria.Text>
-          </UnstyledButton>
-          <UnstyledButton
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={isDisabled}
             focusRingPlacement="after"
             {...(isDisabled && error != null ? { title: error } : {})}
@@ -176,8 +180,10 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             >
               {getText('docsPermissionModifier')}
             </aria.Text>
-          </UnstyledButton>
-          <UnstyledButton
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={isDisabled}
             focusRingPlacement="after"
             {...(isDisabled && error != null ? { title: error } : {})}
@@ -201,14 +207,16 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             >
               {getText('execPermissionModifier')}
             </aria.Text>
-          </UnstyledButton>
+          </ariaComponents.Button>
         </div>
       )
       break
     }
     default: {
       permissionDisplay = (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
           {...(isDisabled && error != null ? { title: error } : {})}
@@ -220,7 +228,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           onPress={doShowPermissionTypeSelector}
         >
           {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
       break
     }

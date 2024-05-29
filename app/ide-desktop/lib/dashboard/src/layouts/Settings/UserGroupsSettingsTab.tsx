@@ -17,10 +17,10 @@ import UserGroupRow from '#/layouts/Settings/UserGroupRow'
 import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
@@ -126,7 +126,9 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
       <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
         <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
           <HorizontalMenuBar>
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
               onPress={event => {
                 const rect = event.target.getBoundingClientRect()
@@ -137,7 +139,7 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
               <aria.Text className="text whitespace-nowrap font-semibold">
                 {getText('newUserGroup')}
               </aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
           </HorizontalMenuBar>
           <div
             ref={rootRef}

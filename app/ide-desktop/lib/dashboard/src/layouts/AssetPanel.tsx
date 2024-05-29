@@ -12,7 +12,7 @@ import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
-import UnstyledButton from '#/components/UnstyledButton'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -115,7 +115,9 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item != null &&
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className={tailwindMerge.twMerge(
                 'button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame',
                 tab === AssetPanelTab.versions && 'bg-selected-frame active'
@@ -129,7 +131,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               }}
             >
               {getText('versions')}
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />

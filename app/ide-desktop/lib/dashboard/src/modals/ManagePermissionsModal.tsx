@@ -13,12 +13,12 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import Permission from '#/components/dashboard/Permission'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -350,7 +350,9 @@ export default function ManagePermissionsModal<
                       />
                     </div>
                   </div>
-                  <UnstyledButton
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={
                       willInviteNewUser
                         ? email == null || !isEmail(email)
@@ -363,7 +365,7 @@ export default function ManagePermissionsModal<
                     <div className="h-text py-modal-invite-button-text-y">
                       {willInviteNewUser ? getText('invite') : getText('share')}
                     </div>
-                  </UnstyledButton>
+                  </ariaComponents.Button>
                 </form>
               )}
             </FocusArea>

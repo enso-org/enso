@@ -18,12 +18,12 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 
@@ -66,7 +66,9 @@ export default function Login() {
       }
     >
       <div className="flex flex-col gap-auth">
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           onPress={() => {
             shouldReportValidityRef.current = false
             void signInWithGoogle()
@@ -75,8 +77,10 @@ export default function Login() {
         >
           <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
           {getText('signUpOrLoginWithGoogle')}
-        </UnstyledButton>
-        <UnstyledButton
+        </ariaComponents.Button>
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           onPress={() => {
             shouldReportValidityRef.current = false
             void signInWithGitHub()
@@ -85,7 +89,7 @@ export default function Login() {
         >
           <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
           {getText('signUpOrLoginWithGitHub')}
-        </UnstyledButton>
+        </ariaComponents.Button>
       </div>
       <div />
       <form

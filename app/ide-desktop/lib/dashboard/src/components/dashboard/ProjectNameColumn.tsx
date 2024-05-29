@@ -222,7 +222,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               } else {
                 const createdFile = await uploadFileMutation.mutateAsync([
                   { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
-                  file
+                  file,
                 ])
                 const project = createdFile.project
                 if (project == null) {

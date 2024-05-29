@@ -10,12 +10,12 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 
@@ -95,16 +95,23 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
           <DatalinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
         <ButtonRow>
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={!isSubmittable}
             className="button bg-invite text-white enabled:active"
             onPress={doSubmit}
           >
             {getText('create')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            className="button bg-selected-frame active"
+            onPress={unsetModal}
+          >
             {getText('cancel')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         </ButtonRow>
       </form>
     </Modal>

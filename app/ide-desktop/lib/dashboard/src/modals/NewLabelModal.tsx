@@ -10,12 +10,12 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -131,16 +131,23 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           )}
         </FocusArea>
         <ButtonRow>
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={!canSubmit}
             className="button bg-invite text-white enabled:active"
             onPress={doSubmit}
           >
             {getText('create')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            className="button bg-selected-frame active"
+            onPress={unsetModal}
+          >
             {getText('cancel')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         </ButtonRow>
       </form>
     </Modal>

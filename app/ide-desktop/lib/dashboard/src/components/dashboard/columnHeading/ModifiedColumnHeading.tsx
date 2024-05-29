@@ -9,10 +9,10 @@ import TimeIcon from 'enso-assets/time.svg'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import Button from '#/components/styled/Button'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sorting from '#/utilities/sorting'
 
@@ -46,7 +46,9 @@ export default function ModifiedColumnHeading(
           hideColumn(columnUtils.Column.modified)
         }}
       />
-      <UnstyledButton
+      <ariaComponents.Button
+        size="custom"
+        variant="custom"
         className="flex grow gap-icon-with-text"
         onPress={() => {
           const nextDirection = isSortActive
@@ -69,7 +71,7 @@ export default function ModifiedColumnHeading(
             isDescending && 'rotate-180'
           )}
         />
-      </UnstyledButton>
+      </ariaComponents.Button>
     </div>
   )
 }

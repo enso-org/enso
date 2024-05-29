@@ -16,12 +16,12 @@ import type * as assetEvent from '#/events/assetEvent'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import Button from '#/components/styled/Button'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -186,12 +186,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
               <div className="flex gap-buttons">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className="button self-start bg-selected-frame"
                   onPress={doEditDescription}
                 >
                   {getText('update')}
-                </UnstyledButton>
+                </ariaComponents.Button>
               </div>
             </form>
           )}
@@ -259,7 +261,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               />
               {canEditThisAsset && (
                 <div className="flex gap-buttons">
-                  <UnstyledButton
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={isDatalinkDisabled}
                     {...(isDatalinkDisabled
                       ? { title: 'Edit the Datalink before updating it.' }
@@ -289,8 +293,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }}
                   >
                     {getText('update')}
-                  </UnstyledButton>
-                  <UnstyledButton
+                  </ariaComponents.Button>
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={isDatalinkDisabled}
                     className="button bg-selected-frame enabled:active"
                     onPress={() => {
@@ -298,7 +304,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }}
                   >
                     {getText('cancel')}
-                  </UnstyledButton>
+                  </ariaComponents.Button>
                 </div>
               )}
             </>

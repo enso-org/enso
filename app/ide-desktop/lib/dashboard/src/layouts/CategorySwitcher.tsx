@@ -23,9 +23,9 @@ import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
 
@@ -106,15 +106,17 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       className="group relative flex items-center rounded-full drop-target-after"
       onDrop={onDrop}
     >
-      <UnstyledButton
+      <ariaComponents.Button
+        size="custom"
+        variant="custom"
         tooltip={false}
-        className={tailwindMerge.twMerge('rounded-inherit', isCurrent && 'focus-default')}
+        className={tailwindMerge.twMerge('rounded-full', isCurrent && 'focus-default')}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
       >
         <div
           className={tailwindMerge.twMerge(
-            'group flex h-row items-center gap-icon-with-text rounded-inherit px-button-x selectable',
+            'group flex h-row items-center gap-icon-with-text rounded-full px-button-x selectable',
             isCurrent ? 'disabled active' : 'hover:bg-selected-frame'
           )}
         >
@@ -128,7 +130,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           />
           <aria.Text slot="description">{getText(textId)}</aria.Text>
         </div>
-      </UnstyledButton>
+      </ariaComponents.Button>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
         {getText('drop')}
       </div>

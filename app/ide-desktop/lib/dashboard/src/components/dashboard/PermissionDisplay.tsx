@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as tailwindMerge from 'tailwind-merge'
 
 import type * as aria from '#/components/aria'
-import UnstyledButton from '#/components/UnstyledButton'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as permissionsModule from '#/utilities/permissions'
 
@@ -29,7 +29,9 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.admin:
     case permissionsModule.Permission.edit: {
       return (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           isDisabled={!onPress}
           className={tailwindMerge.twMerge(
             'inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y',
@@ -39,13 +41,15 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           onPress={onPress ?? (() => {})}
         >
           {children}
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
     }
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       return (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           className={tailwindMerge.twMerge(
             'relative inline-block whitespace-nowrap rounded-full',
             className
@@ -66,7 +70,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           >
             {children}
           </div>
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
     }
   }

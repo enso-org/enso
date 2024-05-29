@@ -8,9 +8,9 @@ import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sorting from '#/utilities/sorting'
 
@@ -25,7 +25,9 @@ export default function NameColumnHeading(
   const isDescending = sortInfo?.direction === sorting.SortDirection.descending
 
   return (
-    <UnstyledButton
+    <ariaComponents.Button
+      size="custom"
+      variant="custom"
       aria-label={
         !isSortActive
           ? getText('sortByName')
@@ -55,6 +57,6 @@ export default function NameColumnHeading(
           isDescending && 'rotate-180'
         )}
       />
-    </UnstyledButton>
+    </ariaComponents.Button>
   )
 }
