@@ -5,7 +5,7 @@
 - [Added Statistic.Product][10122]
 
 [debug-shortcuts]:
-  https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
+
 [10122]: https://github.com/enso-org/enso/pull/10122
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
