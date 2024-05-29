@@ -207,7 +207,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByName')
                         : getText('sortByNameDescending')
                   }
-                  className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-drive-table-heading w-full items-center justify-start gap-icon-with-text"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.type
@@ -254,7 +254,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByEmail')
                         : getText('sortByEmailDescending')
                   }
-                  className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-drive-table-heading w-full items-center justify-start gap-icon-with-text"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.email
@@ -301,7 +301,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByTimestamp')
                         : getText('sortByTimestampDescending')
                   }
-                  className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-drive-table-heading w-full items-center justify-start gap-icon-with-text"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.timestamp
@@ -353,7 +353,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
               </tr>
             ) : (
               sortedLogs.map((log, i) => (
-                <tr key={i} className="h-row">
+                <tr key={i} className="h-row rounded-rows-child">
                   <td className="border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r first:rounded-l-full last:rounded-r-full last:border-r-0">
                     <div className="flex items-center">
                       <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />

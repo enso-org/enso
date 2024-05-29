@@ -158,7 +158,6 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             size="custom"
             variant="custom"
             isDisabled={isDisabled}
-            focusRingPlacement="after"
             {...(isDisabled && error != null ? { title: error } : {})}
             className="relative h-text grow after:absolute after:inset"
             onPress={() => {
@@ -185,7 +184,6 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             size="custom"
             variant="custom"
             isDisabled={isDisabled}
-            focusRingPlacement="after"
             {...(isDisabled && error != null ? { title: error } : {})}
             className="relative h-text grow rounded-r-full after:absolute after:inset after:rounded-r-full"
             onPress={() => {

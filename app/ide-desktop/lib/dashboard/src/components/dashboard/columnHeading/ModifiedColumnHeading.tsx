@@ -49,7 +49,7 @@ export default function ModifiedColumnHeading(
       <ariaComponents.Button
         size="custom"
         variant="custom"
-        className="flex grow gap-icon-with-text"
+        className="flex grow justify-start gap-icon-with-text"
         onPress={() => {
           const nextDirection = isSortActive
             ? sorting.nextSortDirection(sortInfo.direction)

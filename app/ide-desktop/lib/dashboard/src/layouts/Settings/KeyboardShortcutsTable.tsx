@@ -85,7 +85,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
               {visibleBindings.map(kv => {
                 const [action, info] = kv
                 return (
-                  <tr key={action}>
+                  <tr key={action} className="rounded-rows-child">
                     <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-icon-column-r">
                       <SvgMask
                         src={info.icon ?? BlankIcon}
