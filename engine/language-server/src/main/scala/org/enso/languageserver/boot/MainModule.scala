@@ -497,7 +497,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
-  private val ydoc = new Ydoc.Builder()
+  private val ydoc = Ydoc
+    .builder()
     .hostname(applicationConfig.ydoc.hostname)
     .port(applicationConfig.ydoc.port)
     .build()
