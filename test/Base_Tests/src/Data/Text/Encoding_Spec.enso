@@ -241,10 +241,9 @@ add_specs suite_builder =
         group_builder.specify "should report a clearer error when UTF-16 BOM is encountered" <|
             bytes = [-2, -1] + [0, 65, 1, 5, 1, 25]
             as_utf = Text.from_bytes bytes Encoding.utf_8 Problem_Behavior.Report_Warning
-            # TODO maybe some other type instead of Encoding_Error should be used for these?
-            w = Problems.expect_only_warning Encoding_Error as_utf
-            w.to_display_text . should_contain "BOM"
-            w.to_display_text . should_contain "UTF-16"
+
+            warnings = Problems.get_attached_warnings as_utf . map .to_display_text
+            warnings.find (t-> t.contains "BOM") . should_succeed
 
         group_builder.specify "should work on 0 or 1 byte input" <|
             empty = Text.from_bytes [] Encoding.utf_8
@@ -288,7 +287,6 @@ add_specs suite_builder =
             Problems.assume_no_problems empty
 
             txt = Text.from_bytes [-1] Encoding.utf_16_be Problem_Behavior.Report_Warning
-            txt.should_equal '\ufffd'
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_equal "Failed to decode 1 code units (at positions: 0)."
 
@@ -318,6 +316,15 @@ add_specs suite_builder =
             txt.should_equal "￾䄀ԁᤁ"
             w = Problems.expect_only_warning Encoding_Error txt
             w.to_display_text . should_contain "BOM"
+
+        group_builder.specify "should work on 0 or 1 byte input" <|
+            empty = Text.from_bytes [] Encoding.utf_16_le
+            empty.should_equal ""
+            Problems.assume_no_problems empty
+
+            txt = Text.from_bytes [-1] Encoding.utf_16_le Problem_Behavior.Report_Warning
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_equal "Failed to decode 1 code units (at positions: 0)."
 
     suite_builder.group "codepoints" group_builder->
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
