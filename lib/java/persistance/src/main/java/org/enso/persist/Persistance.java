@@ -90,7 +90,7 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /** Extended output interface for {@link #writeObject(Object)} method. */
-  public static interface Output extends DataOutput {
+  public static sealed interface Output extends DataOutput permits PerGenerator.ReferenceOutput {
     /**
      * Writes an object "inline" - as a value.
      *
@@ -112,7 +112,7 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /** Extended input interface for the {@link #writeObject(T, Output)} method. */
-  public static interface Input extends DataInput {
+  public static sealed interface Input extends DataInput permits PerInputImpl {
     /**
      * Reads objects written down by {@link Output#writeInline}.
      *

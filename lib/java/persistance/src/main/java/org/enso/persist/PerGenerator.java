@@ -194,8 +194,12 @@ final class PerGenerator {
     return tableAt;
   }
 
-  private static final class ReferenceOutput extends DataOutputStream
-      implements Persistance.Output {
+  static int registerReference(Persistance.Output out, Persistance.Reference<?> ref) {
+    var g = ((ReferenceOutput) out).generator;
+    return g.registerReference(ref);
+  }
+
+  static final class ReferenceOutput extends DataOutputStream implements Persistance.Output {
     private final PerGenerator generator;
 
     ReferenceOutput(PerGenerator g, ByteArrayOutputStream out) {
@@ -205,15 +209,6 @@ final class PerGenerator {
 
     @Override
     public <T> void writeInline(Class<T> clazz, T t) throws IOException {
-      if (Persistance.Reference.class == clazz) {
-        Persistance.Reference<?> ref = (Persistance.Reference<?>) t;
-        if (ref.isDeferredWrite()) {
-          var id = this.generator.registerReference(ref);
-          writeInt(id);
-          return;
-        }
-        writeInt(INLINED_REFERENCE_ID);
-      }
       var obj = generator.writeReplace.apply(t);
       var p = generator.map.forType(clazz);
       p.writeInline(obj, this);

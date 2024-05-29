@@ -49,19 +49,20 @@ final class PerInputImpl implements Input {
     return cache.getRef(0);
   }
 
+  static Persistance.Reference<?> findReference(Persistance.Input input, int refId) {
+    if (refId == NULL_REFERENCE_ID) {
+      return Persistance.Reference.none();
+    }
+    if (refId != INLINED_REFERENCE_ID) {
+      var impl = (PerInputImpl) input;
+      var ref = impl.cache.getRef(refId);
+      return ref;
+    }
+    return null;
+  }
+
   @Override
   public <T> T readInline(Class<T> clazz) throws IOException {
-    if (clazz == Persistance.Reference.class) {
-      var refId = readInt();
-      if (refId == NULL_REFERENCE_ID) {
-        var nullReference = Persistance.Reference.none();
-        return clazz.cast(nullReference);
-      }
-      if (refId != INLINED_REFERENCE_ID) {
-        var ref = cache.getRef(refId);
-        return clazz.cast(ref);
-      }
-    }
     Persistance<T> p = cache.map().forType(clazz);
     T res = p.readWith(this);
     var resolve = cache.resolveObject(res);

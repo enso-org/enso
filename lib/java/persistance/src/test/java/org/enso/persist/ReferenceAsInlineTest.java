@@ -15,8 +15,12 @@ import org.openide.util.lookup.ServiceProvider;
  * chain <em>picks a number up</em>. As a result the {@link Chain#getNumber()} values are opposite
  * in each of the test. That demonstrates the difference between <em>inlined and deferred</em>
  * serialization of {@link Reference} objects.
+ *
+ * <p>This test is using {@link Persistance.Output#writeInline(Class<T>, T)} and {@link
+ * Persistance.Input#readInline(Class<T>)} methods to persist the reference. See {@link
+ * ReferenceAsObjectTest} for similar yet different test.
  */
-public class ReferenceTest {
+public class ReferenceAsInlineTest {
   private static Chain eagerChain(String id, int[] counter, Chain next) {
     Reference<Chain> ref = next == null ? Reference.none() : Reference.of(next, false);
     return new Chain(id, counter, ref);
