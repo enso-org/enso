@@ -115,14 +115,13 @@ object JPMSUtils {
     foundFiles
   }
 
-  def filterTruffleAndGraalArtifacts(
-    classPath: Def.Classpath
+  def filterArtifacts(
+    classPath: Def.Classpath,
+    predicates: String*
   ): Def.Classpath = {
-    val truffleRelatedArtifacts = classPath
-      .filter(file =>
-        file.data.getPath.contains("graalvm") || file.data.getPath.contains(
-          "truffle"
-        )
+    val truffleRelatedArtifacts =
+      classPath.filter(file =>
+        predicates.exists(p => file.data.getPath.contains(p))
       )
     truffleRelatedArtifacts
   }
