@@ -33,21 +33,21 @@ final class Timers extends PolyfillBase implements ProxyExecutable {
     this.executor = executor;
   }
 
-  public Future<?> setTimeout(Value func, long delay, Value[] args) {
-    return executor.schedule(runnable(func, args), delay, TIME_UNIT);
+  private Future<?> setTimeout(Value func, long delay, Object[] args) {
+    return executor.schedule(() -> func.executeVoid(args), delay, TIME_UNIT);
   }
 
-  public Future<?> setInterval(Value func, long delay, Value[] args) {
-    return executor.scheduleAtFixedRate(runnable(func, args), delay, delay, TIME_UNIT);
+  private Future<?> setInterval(Value func, long delay, Object[] args) {
+    return executor.scheduleAtFixedRate(() -> func.executeVoid(args), delay, delay, TIME_UNIT);
   }
 
-  public void clearTimeout(Object actionId) {
+  private void clearTimeout(Object actionId) {
     if (actionId instanceof Future<?> action) {
       action.cancel(true);
     }
   }
 
-  public void clearInterval(Object actionId) {
+  private void clearInterval(Object actionId) {
     clearTimeout(actionId);
   }
 
@@ -82,10 +82,6 @@ final class Timers extends PolyfillBase implements ProxyExecutable {
       }
       default -> throw new IllegalStateException(command);
     };
-  }
-
-  private Runnable runnable(Value func, Object[] args) {
-    return () -> executor.execute(() -> func.executeVoid(args));
   }
 
   /**
