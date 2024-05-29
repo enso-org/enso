@@ -14,7 +14,7 @@ import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Value;
 
 /**
- * Utility methods for creating and running Enso projects in tests.
+ * Utility methods for creating and running Enso projects.
  */
 public class ProjectUtils {
   private ProjectUtils() {}
