@@ -79,17 +79,25 @@ public abstract sealed class EncodingRepresentation {
       byte[] beginning = peekStream(stream, 3);
       if (startsWith(beginning, UTF_8_BOM)) {
         skipStream(stream, UTF_8_BOM.length);
+        notifyContextAboutAssumedEncoding(problemAggregator, "UTF-8");
         return StandardCharsets.UTF_8;
       } else if (startsWith(beginning, UTF_16_BE_BOM)) {
         skipStream(stream, UTF_16_BE_BOM.length);
+        notifyContextAboutAssumedEncoding(problemAggregator, "UTF-16 BE");
         return StandardCharsets.UTF_16BE;
       } else if (startsWith(beginning, UTF_16_LE_BOM)) {
         skipStream(stream, UTF_16_LE_BOM.length);
+        notifyContextAboutAssumedEncoding(problemAggregator, "UTF-16 LE");
         return StandardCharsets.UTF_16LE;
       } else {
         // If no BOM we fallback to UTF-8.
         return StandardCharsets.UTF_8;
       }
+    }
+
+    private static void notifyContextAboutAssumedEncoding(DecodingProblemAggregator problemAggregator, String encodingName) {
+      String prefix = "An " + encodingName + " BOM was detected, so " + encodingName + " encoding has been assumed, but some characters seem invalid: ";
+      problemAggregator.setInvalidCharacterErrorPrefix(prefix);
     }
   }
 
