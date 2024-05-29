@@ -87,10 +87,10 @@ add_specs suite_builder =
             with_nans_set.compute Statistic.Sum . should_equal -81.8 epsilon=double_error
 
         group_builder.specify "should be able to get product of values" <|
-            simple_set.compute Statistic.Product . should_equal 15 epsilon=double_error
-            number_set.compute Statistic.Product . should_equal -101.28 epsilon=double_error
-            missing_set.compute Statistic.Product . should_equal -81.8 epsilon=double_error
-            with_nans_set.compute Statistic.Product . should_equal -81.8 epsilon=double_error
+            simple_set.compute Statistic.Product . should_equal 120 epsilon=double_error
+            number_set.compute Statistic.Product . should_equal -5.311643150197863*(10 ^ 22) epsilon=double_error
+            missing_set.compute Statistic.Product . should_equal -9.568162356798078*(10^16) epsilon=double_error
+            with_nans_set.compute Statistic.Product . should_equal -9.568162356798078*(10^16) epsilon=double_error
 
         group_builder.specify "should be able to get mean of values" <|
             simple_set.compute Statistic.Mean . should_equal 3 epsilon=double_error
