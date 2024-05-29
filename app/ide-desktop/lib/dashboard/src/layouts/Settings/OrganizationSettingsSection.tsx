@@ -15,8 +15,6 @@ import SettingsSection from '#/components/styled/settings/SettingsSection'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import * as object from '#/utilities/object'
-
 // ===================================
 // === OrganizationSettingsSection ===
 // ===================================
@@ -24,34 +22,28 @@ import * as object from '#/utilities/object'
 /** Props for a {@link OrganizationSettingsSection}. */
 export interface OrganizationSettingsSectionProps {
   readonly backend: Backend
-  readonly organization: backendModule.OrganizationInfo
-  readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
 }
 
 /** Settings tab for viewing and editing organization information. */
 export default function OrganizationSettingsSection(props: OrganizationSettingsSectionProps) {
-  const { backend, organization, setOrganization } = props
+  const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const nameRef = React.useRef<HTMLInputElement | null>(null)
   const emailRef = React.useRef<HTMLInputElement | null>(null)
   const websiteRef = React.useRef<HTMLInputElement | null>(null)
   const locationRef = React.useRef<HTMLInputElement | null>(null)
+  const organization = backendHooks.useBackendGetOrganization(backend)
 
   const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
 
   const doUpdateName = async () => {
-    const oldName = organization.name ?? null
+    const oldName = organization?.name ?? null
     const name = nameRef.current?.value ?? ''
     if (oldName !== name) {
       try {
-        setOrganization(object.merger({ name: name }))
-        const newOrganization = await updateOrganizationMutation.mutateAsync([{ name }])
-        if (newOrganization != null) {
-          setOrganization(newOrganization)
-        }
+        await updateOrganizationMutation.mutateAsync([{ name }])
       } catch (error) {
-        setOrganization(object.merger({ name: oldName }))
         toastAndLog(null, error)
         const ref = nameRef.current
         if (ref) {
@@ -62,17 +54,12 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   }
 
   const doUpdateEmail = async () => {
-    const oldEmail = organization.email ?? null
+    const oldEmail = organization?.email ?? null
     const email = backendModule.EmailAddress(emailRef.current?.value ?? '')
     if (oldEmail !== email) {
       try {
-        setOrganization(object.merger({ email }))
-        const newOrganization = await updateOrganizationMutation.mutateAsync([{ email }])
-        if (newOrganization != null) {
-          setOrganization(newOrganization)
-        }
+        await updateOrganizationMutation.mutateAsync([{ email }])
       } catch (error) {
-        setOrganization(object.merger({ email: oldEmail }))
         toastAndLog(null, error)
         const ref = emailRef.current
         if (ref) {
@@ -83,14 +70,12 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   }
 
   const doUpdateWebsite = async () => {
-    const oldWebsite = organization.website ?? null
+    const oldWebsite = organization?.website ?? null
     const website = backendModule.HttpsUrl(websiteRef.current?.value ?? '')
     if (oldWebsite !== website) {
       try {
-        setOrganization(object.merger({ website }))
         await updateOrganizationMutation.mutateAsync([{ website }])
       } catch (error) {
-        setOrganization(object.merger({ website: oldWebsite }))
         toastAndLog(null, error)
         const ref = websiteRef.current
         if (ref) {
@@ -101,19 +86,12 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   }
 
   const doUpdateLocation = async () => {
-    const oldLocation = organization.address ?? null
+    const oldLocation = organization?.address ?? null
     const location = locationRef.current?.value ?? ''
     if (oldLocation !== location) {
       try {
-        setOrganization(object.merger({ address: location }))
-        const newOrganization = await updateOrganizationMutation.mutateAsync([
-          { address: location },
-        ])
-        if (newOrganization != null) {
-          setOrganization(newOrganization)
-        }
+        await updateOrganizationMutation.mutateAsync([{ address: location }])
       } catch (error) {
-        setOrganization(object.merger({ address: oldLocation }))
         toastAndLog(null, error)
         const ref = locationRef.current
         if (ref) {
@@ -127,30 +105,30 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
     <SettingsSection title={getText('organization')}>
       <div key={JSON.stringify(organization)} className="flex flex-col">
         <aria.TextField
-          key={organization.name ?? 0}
-          defaultValue={organization.name ?? ''}
+          key={organization?.name ?? 0}
+          defaultValue={organization?.name ?? ''}
           className="flex h-row gap-settings-entry"
         >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('organizationDisplayName')}
           </aria.Label>
           <SettingsInput
-            key={organization.name}
+            key={organization?.name}
             ref={nameRef}
             type="text"
             onSubmit={doUpdateName}
           />
         </aria.TextField>
         <aria.TextField
-          key={organization.email ?? 1}
-          defaultValue={organization.email ?? ''}
+          key={organization?.email ?? 1}
+          defaultValue={organization?.email ?? ''}
           className="flex h-row gap-settings-entry"
         >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('email')}
           </aria.Label>
           <SettingsInput
-            key={organization.email}
+            key={organization?.email}
             ref={emailRef}
             type="text"
             onSubmit={value => {
@@ -168,23 +146,23 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           />
         </aria.TextField>
         <aria.TextField
-          key={organization.website ?? 2}
-          defaultValue={organization.website ?? ''}
+          key={organization?.website ?? 2}
+          defaultValue={organization?.website ?? ''}
           className="flex h-row gap-settings-entry"
         >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('website')}
           </aria.Label>
           <SettingsInput
-            key={organization.website}
+            key={organization?.website}
             ref={websiteRef}
             type="text"
             onSubmit={doUpdateWebsite}
           />
         </aria.TextField>
         <aria.TextField
-          key={organization.address ?? 3}
-          defaultValue={organization.address ?? ''}
+          key={organization?.address ?? 3}
+          defaultValue={organization?.address ?? ''}
           className="flex h-row gap-settings-entry"
         >
           <aria.Label className="text my-auto w-organization-settings-label">
@@ -192,7 +170,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
           </aria.Label>
           <SettingsInput
             ref={locationRef}
-            key={organization.address}
+            key={organization?.address}
             type="text"
             onSubmit={doUpdateLocation}
           />

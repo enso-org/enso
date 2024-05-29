@@ -3,9 +3,9 @@ import * as React from 'react'
 
 import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
@@ -23,7 +23,6 @@ import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
@@ -45,32 +44,12 @@ export default function Settings(props: SettingsProps) {
     SettingsTab.account,
     array.includesPredicate(Object.values(SettingsTab))
   )
-
-  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const root = portal.useStrictPortalContext()
-  const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    id: user?.organizationId ?? backendModule.OrganizationId(''),
-    name: null,
-    email: null,
-    website: null,
-    address: null,
-    picture: null,
-  }))
-
-  React.useEffect(() => {
-    void (async () => {
-      if (sessionType === authProvider.UserSessionType.full) {
-        const newOrganization = await backend?.getOrganization()
-        setIsUserInOrganization(newOrganization != null)
-        if (newOrganization != null) {
-          setOrganization(newOrganization)
-        }
-      }
-    })()
-  }, [sessionType, backend])
+  const user = backendHooks.useBackendUsersMe(backend)
+  const organization = backendHooks.useBackendGetOrganization(backend)
+  const isUserInOrganization = organization != null
 
   let content: React.JSX.Element | null
   switch (settingsTab) {
@@ -79,14 +58,7 @@ export default function Settings(props: SettingsProps) {
       break
     }
     case SettingsTab.organization: {
-      content =
-        backend == null ? null : (
-          <OrganizationSettingsTab
-            backend={backend}
-            organization={organization}
-            setOrganization={setOrganization}
-          />
-        )
+      content = backend == null ? null : <OrganizationSettingsTab backend={backend} />
       break
     }
     case SettingsTab.members: {
@@ -146,7 +118,7 @@ export default function Settings(props: SettingsProps) {
           settingsTab !== SettingsTab.members &&
           settingsTab !== SettingsTab.userGroups
             ? user?.name ?? 'your account'
-            : organization.name ?? 'your organization'}
+            : organization?.name ?? 'your organization'}
         </div>
       </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">

@@ -35,7 +35,6 @@ export default function KeyboardShortcutsSettingsTabBar(
     <HorizontalMenuBar>
       <ariaComponents.Button
         size="custom"
-        variant="custom"
         variant="bar"
         onPress={() => {
           setModal(

@@ -11,9 +11,6 @@ import * as backendModule from '#/services/Backend'
 
 import * as uniqueString from '#/utilities/uniqueString'
 
-// FIXME: key queries on `backend`, not `backend` so that there is a separate set of queries
-// for each backend
-
 // =========================
 // === useObserveBackend ===
 // =========================
@@ -60,6 +57,15 @@ export function useObserveBackend(backend: Backend | null) {
       Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
     >([backend, method], data => (data == null ? data : updater(data)))
   }
+  useObserveMutations('uploadUserPicture', state => {
+    setQueryData('usersMe', user => state.data ?? user)
+  })
+  useObserveMutations('updateOrganization', state => {
+    setQueryData('getOrganization', organization => state.data ?? organization)
+  })
+  useObserveMutations('uploadOrganizationPicture', state => {
+    setQueryData('getOrganization', organization => state.data ?? organization)
+  })
   useObserveMutations('createUserGroup', state => {
     setQueryData('listUserGroups', userGroups =>
       state.data == null ? userGroups : [state.data, ...userGroups]
@@ -264,7 +270,7 @@ export function useBackendListUsers(
 ): readonly WithPlaceholder<backendModule.User>[] | null {
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
   const changeUserGroupVariables = useBackendMutationVariables(backend, 'changeUserGroup')
-  const users = React.useMemo(() => {
+  return React.useMemo(() => {
     if (listUsersQuery.data == null) {
       return null
     } else {
@@ -280,7 +286,6 @@ export function useBackendListUsers(
       return result
     }
   }, [changeUserGroupVariables, listUsersQuery.data])
-  return users
 }
 
 // ================================
@@ -296,7 +301,7 @@ export function useBackendListUserGroups(
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const createUserGroupVariables = useBackendMutationVariables(backend, 'createUserGroup')
   const deleteUserGroupVariables = useBackendMutationVariables(backend, 'deleteUserGroup')
-  const userGroups = React.useMemo(() => {
+  return React.useMemo(() => {
     if (listUserGroupsQuery.data == null) {
       return null
     } else {
@@ -320,7 +325,6 @@ export function useBackendListUserGroups(
     deleteUserGroupVariables,
     listUserGroupsQuery.data,
   ])
-  return userGroups
 }
 
 // =========================================
@@ -341,7 +345,7 @@ export function useBackendListUserGroupsWithUsers(
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
   // Current user list, including optimistic updates
   const users = useBackendListUsers(backend)
-  const userGroups = React.useMemo(() => {
+  return React.useMemo(() => {
     if (userGroupsRaw == null || listUsersQuery.data == null || users == null) {
       return null
     } else {
@@ -363,7 +367,6 @@ export function useBackendListUserGroupsWithUsers(
       return result
     }
   }, [listUsersQuery.data, userGroupsRaw, users])
-  return userGroups
 }
 
 // ==========================
@@ -377,7 +380,7 @@ export function useBackendListTags(
   const listTagsQuery = useBackendQuery(backend, 'listTags', [])
   const createTagVariables = useBackendMutationVariables(backend, 'createTag')
   const deleteTagVariables = useBackendMutationVariables(backend, 'deleteTag')
-  const tags = React.useMemo(() => {
+  return React.useMemo(() => {
     if (listTagsQuery.data == null) {
       return null
     } else {
@@ -396,5 +399,59 @@ export function useBackendListTags(
       ]
     }
   }, [createTagVariables, deleteTagVariables, listTagsQuery.data])
-  return tags
+}
+
+// =========================
+// === useBackendUsersMe ===
+// =========================
+
+/** The current user, taking into account optimistic state. */
+export function useBackendUsersMe(backend: Backend | null) {
+  const { user } = authProvider.useNonPartialUserSession()
+  const updateUserVariables = useBackendMutationVariables(backend, 'updateUser')
+  const uploadUserPictureVariables = useBackendMutationVariables(backend, 'uploadUserPicture')
+  return React.useMemo(() => {
+    if (user == null) {
+      return null
+    } else {
+      let result = user
+      for (const [{ username }] of updateUserVariables) {
+        if (username != null) {
+          result = { ...result, name: username }
+        }
+      }
+      for (const [, file] of uploadUserPictureVariables) {
+        result = { ...result, profilePicture: backendModule.HttpsUrl(URL.createObjectURL(file)) }
+      }
+      return result
+    }
+  }, [user, updateUserVariables, uploadUserPictureVariables])
+}
+
+// =================================
+// === useBackendGetOrganization ===
+// =================================
+
+/** The current user's organization, taking into account optimistic state. */
+export function useBackendGetOrganization(backend: Backend | null) {
+  const getOrganizationQuery = useBackendQuery(backend, 'getOrganization', [])
+  const updateOrganizationVariables = useBackendMutationVariables(backend, 'updateOrganization')
+  const uploadOrganizationPictureVariables = useBackendMutationVariables(
+    backend,
+    'uploadOrganizationPicture'
+  )
+  return React.useMemo(() => {
+    if (getOrganizationQuery.data == null) {
+      return null
+    } else {
+      let result = getOrganizationQuery.data
+      for (const [update] of updateOrganizationVariables) {
+        result = { ...result, ...update }
+      }
+      for (const [, file] of uploadOrganizationPictureVariables) {
+        result = { ...result, picture: backendModule.HttpsUrl(URL.createObjectURL(file)) }
+      }
+      return result
+    }
+  }, [getOrganizationQuery, updateOrganizationVariables, uploadOrganizationPictureVariables])
 }
