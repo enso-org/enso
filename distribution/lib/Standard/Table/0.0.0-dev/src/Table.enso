@@ -62,6 +62,7 @@ import project.Position.Position
 import project.Prefix_Name.Prefix_Name
 import project.Row.Row
 import project.Rows_To_Read.Rows_To_Read
+import project.Column_Count.Column_Count
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
@@ -1283,9 +1284,10 @@ type Table
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
-    split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
-    split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
-        Split_Tokenize.split_to_columns self column delimiter column_count on_problems
+    @column_count Column_Count.default_widget
+    split_to_columns : Text | Integer -> Text -> Column_Count -> Problem_Behavior -> Table
+    split_to_columns self column delimiter="," (column_count : Column_Count = ..All_Columns) on_problems=Report_Error =
+        Split_Tokenize.split_to_columns self column delimiter column_count=column_count.columns_to_split on_problems
 
     ## GROUP Standard.Base.Conversions
        ICON split
