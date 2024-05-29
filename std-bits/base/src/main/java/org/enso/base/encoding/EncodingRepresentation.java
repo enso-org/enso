@@ -50,8 +50,8 @@ public abstract sealed class EncodingRepresentation {
   public static EncodingRepresentation fromCharset(Charset charset) {
     if (charset == null) {
       return new Default();
-    } else if (charset.equals(StandardCharsets.UTF_8) || charset.equals(StandardCharsets.UTF_16BE) || charset.equals(StandardCharsets.UTF_16LE)) {
-      return new UnicodeHandlingBOM(charset);
+    } else if (UnicodeHandlingBOM.isSupported(charset)) {
+      return UnicodeHandlingBOM.fromUnicodeCharset(charset);
     } else {
       return new Other(charset);
     }
@@ -100,17 +100,39 @@ public abstract sealed class EncodingRepresentation {
   }
 
   private static final class UnicodeHandlingBOM extends EncodingRepresentation {
-    private Charset charset;
-    // TODO BOM
+    private final Charset charset;
+    private final byte[] expectedBOM;
+    // TODO unexpected BOM
 
-    private UnicodeHandlingBOM(Charset charset) {
+    private UnicodeHandlingBOM(Charset charset, byte[] expectedBOM) {
       this.charset = charset;
+      this.expectedBOM = expectedBOM;
     }
 
+    private static boolean isSupported(Charset charset) {
+      return charset.equals(StandardCharsets.UTF_8) || charset.equals(StandardCharsets.UTF_16BE) || charset.equals(StandardCharsets.UTF_16LE);
+    }
+
+    private static UnicodeHandlingBOM fromUnicodeCharset(Charset charset) {
+      if (charset.equals(StandardCharsets.UTF_8)) {
+        return new UnicodeHandlingBOM(charset, UTF_8_BOM);
+      } else if (charset.equals(StandardCharsets.UTF_16BE)) {
+        return new UnicodeHandlingBOM(charset, UTF_16_BE_BOM);
+      } else if (charset.equals(StandardCharsets.UTF_16LE)) {
+        return new UnicodeHandlingBOM(charset, UTF_16_LE_BOM);
+      } else {
+        throw new IllegalArgumentException("Not a supported Unicode charset: " + charset);
+      }
+    }
 
     @Override
     public Charset detectCharset(BufferedInputStream stream) throws IOException {
-      // TODO check BOM match and report problems
+      byte[] beginning = peekStream(stream, expectedBOM.length);
+      if (startsWith(beginning, expectedBOM)) {
+        skipStream(stream, expectedBOM.length);
+      } else {
+        // TODO check for unexpected BOMs
+      }
       return charset;
     }
   }
