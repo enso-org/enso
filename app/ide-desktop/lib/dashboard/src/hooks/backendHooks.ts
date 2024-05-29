@@ -11,7 +11,7 @@ import * as backendModule from '#/services/Backend'
 
 import * as uniqueString from '#/utilities/uniqueString'
 
-// FIXME: key queries on `backend`, not `'backend'` so that there is a separate set of queries
+// FIXME: key queries on `backend`, not `backend` so that there is a separate set of queries
 // for each backend
 
 // =========================
@@ -19,8 +19,8 @@ import * as uniqueString from '#/utilities/uniqueString'
 // =========================
 
 /** Listen to all mutations and update state as appropriate when they succeed.
- * MUST be unconditionally called exactly once. */
-export function useObserveBackend() {
+ * MUST be unconditionally called exactly once for each backend type. */
+export function useObserveBackend(backend: Backend | null) {
   const queryClient = reactQuery.useQueryClient()
   const [seen] = React.useState(new WeakSet())
   const useObserveMutations = <Method extends keyof Backend>(
@@ -37,7 +37,7 @@ export function useObserveBackend() {
       Parameters<Extract<Backend[Method], (...args: never) => unknown>>
     >({
       // Errored mutations can be safely ignored as they should not change the state.
-      filters: { mutationKey: ['backend', method], status: 'success' },
+      filters: { mutationKey: [backend, method], status: 'success' },
       // eslint-disable-next-line no-restricted-syntax
       select: mutation => mutation.state as never,
     })
@@ -58,7 +58,7 @@ export function useObserveBackend() {
   ) => {
     queryClient.setQueryData<
       Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
-    >(['backend', method], data => (data == null ? data : updater(data)))
+    >([backend, method], data => (data == null ? data : updater(data)))
   }
   useObserveMutations('createUserGroup', state => {
     setQueryData('listUserGroups', userGroups =>
@@ -143,7 +143,7 @@ export function useBackendQuery<Method extends keyof Backend>(
     readonly unknown[]
   >({
     ...options,
-    queryKey: ['backend', method, ...args, ...(options?.queryKey ?? [])],
+    queryKey: [backend, method, ...args, ...(options?.queryKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     queryFn: () => (backend?.[method] as any)?.(...args),
   })
@@ -174,7 +174,7 @@ export function useBackendMutation<Method extends keyof Backend>(
     unknown
   >({
     ...options,
-    mutationKey: ['backend', method, ...(options?.mutationKey ?? [])],
+    mutationKey: [backend, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: args => (backend[method] as any)(...args),
   })
@@ -186,6 +186,7 @@ export function useBackendMutation<Method extends keyof Backend>(
 
 /** Access mutation variables from a React Query Mutation. */
 export function useBackendMutationVariables<Method extends keyof Backend>(
+  backend: Backend | null,
   method: Method,
   mutationKey?: readonly unknown[]
 ) {
@@ -193,7 +194,7 @@ export function useBackendMutationVariables<Method extends keyof Backend>(
     Parameters<Extract<Backend[Method], (...args: never) => unknown>>
   >({
     filters: {
-      mutationKey: ['backend', method, ...(mutationKey ?? [])],
+      mutationKey: [backend, method, ...(mutationKey ?? [])],
       status: 'pending',
     },
     // eslint-disable-next-line no-restricted-syntax
@@ -224,7 +225,7 @@ export function useBackendMutationWithVariables<Method extends keyof Backend>(
     mutation,
     mutate: mutation.mutate.bind(mutation),
     mutateAsync: mutation.mutateAsync.bind(mutation),
-    variables: useBackendMutationVariables(method, options?.mutationKey),
+    variables: useBackendMutationVariables(backend, method, options?.mutationKey),
   }
 }
 
@@ -262,7 +263,7 @@ export function useBackendListUsers(
   backend: Backend
 ): readonly WithPlaceholder<backendModule.User>[] | null {
   const listUsersQuery = useBackendQuery(backend, 'listUsers', [])
-  const changeUserGroupVariables = useBackendMutationVariables('changeUserGroup')
+  const changeUserGroupVariables = useBackendMutationVariables(backend, 'changeUserGroup')
   const users = React.useMemo(() => {
     if (listUsersQuery.data == null) {
       return null
@@ -293,8 +294,8 @@ export function useBackendListUserGroups(
   const { user } = authProvider.useNonPartialUserSession()
   invariant(user != null, 'User must exist for user groups to be listed.')
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
-  const createUserGroupVariables = useBackendMutationVariables('createUserGroup')
-  const deleteUserGroupVariables = useBackendMutationVariables('deleteUserGroup')
+  const createUserGroupVariables = useBackendMutationVariables(backend, 'createUserGroup')
+  const deleteUserGroupVariables = useBackendMutationVariables(backend, 'deleteUserGroup')
   const userGroups = React.useMemo(() => {
     if (listUserGroupsQuery.data == null) {
       return null
@@ -374,8 +375,8 @@ export function useBackendListTags(
   backend: Backend | null
 ): readonly WithPlaceholder<backendModule.Label>[] | null {
   const listTagsQuery = useBackendQuery(backend, 'listTags', [])
-  const createTagVariables = useBackendMutationVariables('createTag')
-  const deleteTagVariables = useBackendMutationVariables('deleteTag')
+  const createTagVariables = useBackendMutationVariables(backend, 'createTag')
+  const deleteTagVariables = useBackendMutationVariables(backend, 'deleteTag')
   const tags = React.useMemo(() => {
     if (listTagsQuery.data == null) {
       return null

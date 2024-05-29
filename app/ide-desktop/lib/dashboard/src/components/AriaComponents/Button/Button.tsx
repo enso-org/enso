@@ -78,8 +78,8 @@ export const BUTTON_STYLES = twv.tv({
   defaultVariants: {
     loading: false,
     fullWidth: false,
-    size: 'xsmall',
-    rounded: 'large',
+    size: 'small',
+    rounded: 'full',
     variant: 'primary',
     iconPosition: 'start',
     showIconOnHover: false,

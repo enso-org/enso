@@ -74,7 +74,7 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
       <form
         data-testid="new-user-group-modal"
         tabIndex={-1}
-        className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pb-3 pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
         onKeyDown={event => {
           if (event.key !== 'Escape') {
@@ -111,20 +111,13 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
         </aria.TextField>
         <ButtonRow>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
+            variant="submit"
             isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
             onPress={eventModule.submitForm}
           >
             {getText('create')}
           </ariaComponents.Button>
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-selected-frame active"
-            onPress={unsetModal}
-          >
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
         </ButtonRow>
