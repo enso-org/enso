@@ -60,20 +60,17 @@ final class EnsureCompiledJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
-    val writeLockTimestamp             = ctx.locking.acquireWriteCompilationLock()
-    implicit val logger: TruffleLogger = ctx.executionService.getLogger
-
-    try {
-      val compilationResult = ensureCompiledFiles(files)
-      setCacheWeights()
-      compilationResult
-    } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept write compilation lock [EnsureCompiledJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
-      )
-    }
+    ctx.locking.withWriteCompilationLock(
+      this.getClass,
+      () => {
+        val compilationResult = ensureCompiledFiles(files)(
+          implicitly[RuntimeContext],
+          ctx.executionService.getLogger
+        )
+        setCacheWeights()
+        compilationResult
+      }
+    )
   }
 
   /** Run the scheduled compilation and invalidation logic, and send the
@@ -317,45 +314,35 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[Changeset[Rope]] = {
-    val fileLockTimestamp = ctx.locking.acquireFileLock(file)
-    try {
-      val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
-      try {
-        val pendingEdits = ctx.state.pendingEdits.dequeue(file)
-        val edits        = pendingEdits.map(_.edit)
-        val shouldExecute =
-          pendingEdits.isEmpty || pendingEdits.exists(_.execute)
-        val module = ctx.executionService.getContext
-          .getModuleForFile(file)
-          .orElseThrow(() => new ModuleNotFoundForFileException(file))
-        val changesetBuilder = new ChangesetBuilder(
-          module.getLiteralSource,
-          module.getIr
+    ctx.locking.withFileLock(
+      file,
+      this.getClass,
+      () =>
+        ctx.locking.withPendingEditsLock(
+          this.getClass,
+          () => {
+            val pendingEdits = ctx.state.pendingEdits.dequeue(file)
+            val edits        = pendingEdits.map(_.edit)
+            val shouldExecute =
+              pendingEdits.isEmpty || pendingEdits.exists(_.execute)
+            val module = ctx.executionService.getContext
+              .getModuleForFile(file)
+              .orElseThrow(() => new ModuleNotFoundForFileException(file))
+            val changesetBuilder = new ChangesetBuilder(
+              module.getLiteralSource,
+              module.getIr
+            )
+            val changeset = changesetBuilder.build(pendingEdits)
+            ctx.executionService.modifyModuleSources(
+              module,
+              edits,
+              changeset.simpleUpdate.orNull,
+              logger
+            )
+            Option.when(shouldExecute)(changeset)
+          }
         )
-        val changeset = changesetBuilder.build(pendingEdits)
-        ctx.executionService.modifyModuleSources(
-          module,
-          edits,
-          changeset.simpleUpdate.orNull,
-          logger
-        )
-        Option.when(shouldExecute)(changeset)
-      } finally {
-        ctx.locking.releasePendingEditsLock()
-        logger.log(
-          Level.FINEST,
-          "Kept pending edits lock [EnsureCompiledJob] for {} milliseconds",
-          System.currentTimeMillis() - pendingEditsLockTimestamp
-        )
-      }
-    } finally {
-      ctx.locking.releaseFileLock(file)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [EnsureCompiledJob] for {} milliseconds",
-        System.currentTimeMillis() - fileLockTimestamp
-      )
-    }
+    )
   }
 
   /** Create cache invalidation commands after applying the edits.

@@ -2,7 +2,7 @@
 import PlainTextEditor from '@/components/PlainTextEditor.vue'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useFocusDelayed } from '@/composables/focus'
-import { type Node } from '@/stores/graph'
+import { useGraphStore, type Node } from '@/stores/graph'
 import { syncRef } from '@vueuse/core'
 import { computed, ref, type ComponentInstance } from 'vue'
 
@@ -11,7 +11,11 @@ const props = defineProps<{ node: Node }>()
 
 const textEditor = ref<ComponentInstance<typeof PlainTextEditor>>()
 
-const { documentation: astDocumentation } = useAstDocumentation(() => props.node.outerExpr)
+const graphStore = useGraphStore()
+const { documentation: astDocumentation } = useAstDocumentation(
+  graphStore,
+  () => props.node.outerExpr,
+)
 const documentation = computed({
   // This returns the same value as the `astDocumentation` getter, but with fewer reactive dependencies.
   get: () => props.node.documentation ?? '',

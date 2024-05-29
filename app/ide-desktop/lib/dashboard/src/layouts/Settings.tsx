@@ -43,7 +43,7 @@ export default function Settings() {
   )
 
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const root = portal.useStrictPortalContext()
   const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
