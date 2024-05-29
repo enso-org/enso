@@ -37,10 +37,7 @@ add_specs suite_builder = suite_builder.group "State" group_builder->
         data = State.run Lazy_Data 41 <|
             Lazy_Data.Value fill_field
 
-        fourty_two = Panic.recover Uninitialized_State
-            data.lazy_field
-
-        fourty_two . should_fail_with Uninitialized_State
+        Test.expect_panic Uninitialized_State <| data.lazy_field
 
     group_builder.specify "lazy field and state: just get" <|
         data =
