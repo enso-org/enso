@@ -7,7 +7,7 @@ import java.net.URI;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.Consumer;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -21,7 +21,7 @@ public class VectorTest {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
   }
 
   @AfterClass

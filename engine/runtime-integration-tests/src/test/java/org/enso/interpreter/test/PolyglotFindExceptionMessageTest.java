@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.enso.common.HostEnsoUtils;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -17,7 +17,7 @@ public class PolyglotFindExceptionMessageTest {
 
   @BeforeClass
   public static void initCtx() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
   }
 
   @AfterClass
@@ -36,7 +36,7 @@ public class PolyglotFindExceptionMessageTest {
     """;
 
     try {
-      Value res = TestUtils.evalModule(ctx, src);
+      Value res = ContextUtils.evalModule(ctx, src);
       fail("No result expected: " + res);
     } catch (PolyglotException ex) {
       assertExceptionMessage("Error: Wrong!", ex);

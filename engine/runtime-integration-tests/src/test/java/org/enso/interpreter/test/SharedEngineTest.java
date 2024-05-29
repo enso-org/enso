@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
@@ -35,7 +35,7 @@ public class SharedEngineTest {
 
   @Before
   public void initializeContext() {
-    this.ctx = TestUtils.defaultContextBuilder().engine(sharedEngine).build();
+    this.ctx = ContextUtils.defaultContextBuilder().engine(sharedEngine).build();
   }
 
   @AfterClass

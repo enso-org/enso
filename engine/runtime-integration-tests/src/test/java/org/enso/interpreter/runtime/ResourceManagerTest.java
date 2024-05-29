@@ -10,7 +10,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.junit.Test;
 
 public class ResourceManagerTest {
@@ -22,7 +22,7 @@ public class ResourceManagerTest {
     var obj = new ResourceToGc();
     var fn = new FnCallback();
 
-    try (var ctx = TestUtils.createDefaultContext()) {
+    try (var ctx = ContextUtils.createDefaultContext()) {
       ctx.enter();
       var ensoContext =
           (EnsoContext)

@@ -14,8 +14,9 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.TopScope;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.Matcher;
 import org.junit.Rule;
@@ -81,8 +82,8 @@ public class ExtensionMethodResolutionTest {
             main = T.foo
             """);
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(xMod, yMod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("Proj", Set.of(xMod, yMod, mainMod), projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(
@@ -113,8 +114,8 @@ public class ExtensionMethodResolutionTest {
             main = T.foo
             """);
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(xMod, yMod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("Proj", Set.of(xMod, yMod, mainMod), projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(
@@ -154,8 +155,8 @@ public class ExtensionMethodResolutionTest {
             main = T.foo
             """);
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(
@@ -196,8 +197,8 @@ public class ExtensionMethodResolutionTest {
             main = T.foo
             """);
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(
@@ -229,8 +230,8 @@ public class ExtensionMethodResolutionTest {
                 T.method
             """);
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(res.isNumber(), is(true));
@@ -259,8 +260,8 @@ public class ExtensionMethodResolutionTest {
                 T.method
             """);
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(res.isNumber(), is(true));
@@ -296,8 +297,8 @@ public class ExtensionMethodResolutionTest {
                 T.method
             """);
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(mod2, mod1, mainMod), projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("Proj", Set.of(mod2, mod1, mainMod), projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(res.isNumber(), is(true));
@@ -308,7 +309,7 @@ public class ExtensionMethodResolutionTest {
   private void testProjectCompilationFailure(String mainSrc, Matcher<String> errorMessageMatcher)
       throws IOException {
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", mainSrc, projDir);
+    ProjectUtils.createProject("Proj", mainSrc, projDir);
     testProjectCompilationFailure(projDir, errorMessageMatcher);
   }
 
@@ -316,7 +317,7 @@ public class ExtensionMethodResolutionTest {
       Path mainProjDir, Matcher<String> errorMessageMatcher) {
     var out = new ByteArrayOutputStream();
     try (var ctx =
-        TestUtils.defaultContextBuilder()
+        ContextUtils.defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, mainProjDir.toAbsolutePath().toString())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(RuntimeOptions.DISABLE_IR_CACHES, "true")

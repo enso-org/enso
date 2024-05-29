@@ -11,7 +11,7 @@ import org.enso.common.MethodNames;
 import org.enso.compiler.CompilerTest;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.BeforeClass;
@@ -25,7 +25,9 @@ public class ModuleCacheTest {
   @BeforeClass
   public static void initializeContext() throws Exception {
     ctx =
-        TestUtils.defaultContextBuilder().option(RuntimeOptions.DISABLE_IR_CACHES, "true").build();
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+            .build();
   }
 
   @Test

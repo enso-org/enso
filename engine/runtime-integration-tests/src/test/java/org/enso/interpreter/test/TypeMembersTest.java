@@ -8,7 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.net.URI;
 import java.util.Set;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -22,7 +22,7 @@ public class TypeMembersTest {
 
   @Before
   public void prepareCtx() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
   }
 
   @After

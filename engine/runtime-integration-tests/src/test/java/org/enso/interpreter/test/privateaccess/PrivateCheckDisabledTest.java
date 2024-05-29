@@ -5,7 +5,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -20,7 +21,7 @@ public class PrivateCheckDisabledTest {
             private Cons data
         """;
     var libDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Lib", libSrc, libDir);
+    ProjectUtils.createProject("Lib", libSrc, libDir);
     var mainSrc =
         """
         from local.Lib import T
@@ -29,10 +30,10 @@ public class PrivateCheckDisabledTest {
             obj.data
         """;
     var mainDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Main", mainSrc, mainDir);
+    ProjectUtils.createProject("Main", mainSrc, mainDir);
     var ctxBuilder =
-        TestUtils.defaultContextBuilder().option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true");
-    TestUtils.testProjectRun(
+        ContextUtils.defaultContextBuilder().option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true");
+    ProjectUtils.testProjectRun(
         ctxBuilder,
         mainDir,
         res -> {

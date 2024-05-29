@@ -7,7 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
@@ -23,7 +23,7 @@ public class AutoscopedConstructorTest {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = TestUtils.createDefaultContext(out);
+    ctx = ContextUtils.createDefaultContext(out);
   }
 
   @Before

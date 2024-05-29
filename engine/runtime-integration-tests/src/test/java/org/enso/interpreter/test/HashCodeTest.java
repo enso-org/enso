@@ -12,7 +12,8 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -30,18 +31,18 @@ public class HashCodeTest {
   private static HashCodeNode hashCodeNode;
   private static EqualsNode equalsNode;
   private static HostValueToEnsoNode hostValueToEnsoNode;
-  private static TestUtils.TestRootNode testRootNode;
+  private static TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
-    context = TestUtils.createDefaultContext();
-    TestUtils.executeInContext(
+    context = ContextUtils.createDefaultContext();
+    ContextUtils.executeInContext(
         context,
         () -> {
           hashCodeNode = HashCodeNode.build();
           equalsNode = EqualsNode.create();
           hostValueToEnsoNode = HostValueToEnsoNode.build();
-          testRootNode = new TestUtils.TestRootNode();
+          testRootNode = new TestRootNode();
           testRootNode.insertChildren(hashCodeNode, equalsNode, hostValueToEnsoNode);
           return null;
         });
@@ -79,7 +80,7 @@ public class HashCodeTest {
     values.addAll(valGenerator.warnings());
     try {
       return values.stream()
-          .map(value -> TestUtils.unwrapValue(context, value))
+          .map(value -> ContextUtils.unwrapValue(context, value))
           .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
           .collect(Collectors.toList())
           .toArray(new Object[] {});
@@ -90,7 +91,7 @@ public class HashCodeTest {
 
   @Theory
   public void hashCodeContractTheory(Object firstValue, Object secondValue) {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         context,
         () -> {
           long firstHash = hashCodeNode.execute(firstValue);
@@ -124,7 +125,7 @@ public class HashCodeTest {
 
   @Theory
   public void hashCodeIsConsistent(Object value) {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         context,
         () -> {
           long firstHash = hashCodeNode.execute(value);
@@ -136,7 +137,7 @@ public class HashCodeTest {
 
   @Theory
   public void hashCodeCachedNodeIsConsistentWithUncached(Object value) {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         context,
         () -> {
           long uncachedRes = HashCodeNodeGen.getUncached().execute(value);

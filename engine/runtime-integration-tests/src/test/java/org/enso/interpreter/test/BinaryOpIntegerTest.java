@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.Stream;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -71,7 +71,7 @@ public class BinaryOpIntegerTest {
 
   @BeforeClass
   public static void initContext() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
     wrapInt =
         ctx.eval(
                 "enso",
@@ -122,7 +122,7 @@ public class BinaryOpIntegerTest {
 
   @Test
   public void verifyOperationOnForeignObject() {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           var code = """
@@ -142,7 +142,7 @@ public class BinaryOpIntegerTest {
 
   @Test
   public void verifyOperationWithConvertibleObject() {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           var code = """
@@ -169,7 +169,7 @@ public class BinaryOpIntegerTest {
 
   @Test
   public void verifyOperationOnConvertibleObject() {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           var code = """

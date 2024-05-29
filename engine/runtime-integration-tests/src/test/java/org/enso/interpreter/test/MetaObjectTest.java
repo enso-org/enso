@@ -18,7 +18,7 @@ import java.util.Set;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator.Language;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -32,7 +32,7 @@ public class MetaObjectTest {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
   }
 
   @AfterClass
@@ -234,7 +234,7 @@ import Standard.Base.Nothing.Nothing
 
 main = Warning.attach "foo" Nothing
 """;
-    var nothingWithWarn = TestUtils.evalModule(ctx, src);
+    var nothingWithWarn = ContextUtils.evalModule(ctx, src);
     assertThat(nothingWithWarn.isMetaObject(), is(false));
   }
 
@@ -244,7 +244,7 @@ main = Warning.attach "foo" Nothing
 import Standard.Base.Nothing.Nothing
 main = Nothing
 """;
-    var nothing = TestUtils.evalModule(ctx, src);
+    var nothing = ContextUtils.evalModule(ctx, src);
     assertThat(nothing.isNull(), is(true));
   }
 

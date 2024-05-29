@@ -1,34 +1,20 @@
 package org.enso.test.utils;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import java.io.File;
-import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
-import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -36,10 +22,10 @@ import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 /**
- * A collection of classes and methods useful for testing, mostly Truffle-related stuff.
+ * A collection of classes and methods useful for testing {@link Context} related stuff.
  */
-public final class TestUtils {
-  private TestUtils() {}
+public final class ContextUtils {
+  private ContextUtils() {}
 
   public static Context createDefaultContext() {
     var context = defaultContextBuilder().build();
@@ -173,134 +159,6 @@ public final class TestUtils {
   public static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
     Value module = ctx.eval(Source.create("enso", moduleSrc));
     return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
-  }
-
-  /**
-   * Creates temporary project directory structure with a given main source content. No need to
-   * clean it up, as it is managed by JUnit TemporaryFolder rule. Note that we need to create a
-   * project, otherwise the private stuff won't work.
-   *
-   * @param projName Name of the project (as defined in package.yaml).
-   * @param mainSrc Main.enso source content
-   * @param projDir Root directory of the project. Will be populated with the project structure.
-   */
-  public static void createProject(String projName, String mainSrc, Path projDir)
-      throws IOException {
-    var modules = Set.of(new SourceModule(QualifiedName.fromString("Main"), mainSrc));
-    createProject(projName, modules, projDir);
-  }
-
-  /**
-   * Creates a temporary project directory structure with all the given modules and their content.
-   * Creates also the package descriptor. The created project directory structure is eligible for
-   * running via {@code enso --run <projDir>}.
-   *
-   * @param projName Name of the project
-   * @param modules Set of modules. Must contain `Main` module.
-   * @param projDir A directory in which the whole project structure will be created.
-   *                Must exist and be a directory.
-   */
-  public static void createProject(
-      String projName, Set<SourceModule> modules, Path projDir) throws IOException {
-    if (!projDir.toFile().exists() || !projDir.toFile().isDirectory()) {
-      throw new IllegalArgumentException("Project directory " + projDir + " must already be created");
-    }
-    var projYaml =
-        """
-name: %s
-version: 0.0.1
-prefer-local-libraries: true
-        """.formatted(projName);
-    var yamlPath = projDir.resolve("package.yaml");
-    Files.writeString(yamlPath, projYaml);
-    assert yamlPath.toFile().exists();
-    var srcDir = Files.createDirectory(projDir.resolve("src"));
-    assert srcDir.toFile().exists();
-    boolean mainModuleFound = false;
-    for (var module : modules) {
-      var relativePath = String.join(File.pathSeparator, module.name().pathAsJava());
-      var modDirPath = srcDir.resolve(relativePath);
-      Files.createDirectories(modDirPath);
-      var modPath = modDirPath.resolve(module.name().item() + ".enso");
-      Files.writeString(modPath, module.code());
-      if (module.name().equals(QualifiedName.fromString("Main"))) {
-        mainModuleFound = true;
-      }
-    }
-    assert mainModuleFound;
-  }
-
-  /**
-   * Tests running the project located in the given {@code projDir}. Is equal to running {@code enso
-   * --run <projDir>}.
-   *
-   * @param ctxBuilder A context builder that might be initialized with some specific options.
-   * @param projDir Root directory of the project.
-   * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
-   *     main} method
-   */
-  public static void testProjectRun(
-      Context.Builder ctxBuilder, Path projDir, Consumer<Value> resultConsumer) {
-    assert projDir.toFile().exists() && projDir.toFile().isDirectory();
-    try (var ctx =
-        ctxBuilder
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
-      var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
-      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
-      var assocMainModType = mainMod.getAssociatedType();
-      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
-      var res = mainMethod.execute();
-      resultConsumer.accept(res);
-    }
-  }
-
-  /**
-   * Just a wrapper for {@link TestUtils#testProjectRun(Builder, Path, Consumer)}.
-   *
-   * @param projDir Root directory of the project.
-   * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
-   *     main} method
-   */
-  public static void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
-    testProjectRun(defaultContextBuilder(), projDir, resultConsumer);
-  }
-
-  /**
-   * An artificial RootNode. Used for tests of nodes that need to be adopted. Just create this root
-   * node inside a context, all the other nodes, and insert them via {@link
-   * #insertChildren(Node...)}.
-   */
-  public static final class TestRootNode extends RootNode {
-    private final Function<VirtualFrame, Object> callback;
-
-    public TestRootNode() {
-      this(null);
-    }
-
-    public TestRootNode(Function<VirtualFrame, Object> callback) {
-      super(EnsoLanguage.get(null));
-      this.callback = callback;
-    }
-
-    public void insertChildren(Node... children) {
-      for (Node child : children) {
-        insert(child);
-      }
-    }
-
-    /** In the tests, do not execute this root node, but execute directly the child nodes. */
-    @Override
-    public Object execute(VirtualFrame frame) {
-      if (callback == null) {
-        throw new AssertionError("should not reach here");
-      } else {
-        return callback.apply(frame);
-      }
-    }
   }
 
   @ExportLibrary(InteropLibrary.class)

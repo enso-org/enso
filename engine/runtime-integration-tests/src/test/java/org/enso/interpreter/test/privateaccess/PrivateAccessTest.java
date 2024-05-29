@@ -13,7 +13,8 @@ import java.util.List;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,8 +33,8 @@ public class PrivateAccessTest {
             obj = My_Type.Cons 42
             obj.data
         """;
-    try (var ctx = TestUtils.createDefaultContext()) {
-      var res = TestUtils.evalModule(ctx, src);
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      var res = ContextUtils.evalModule(ctx, src);
       assertThat(res.isNumber(), is(true));
       assertThat(res.asInt(), is(42));
     }
@@ -48,8 +49,8 @@ public class PrivateAccessTest {
         main = My_Type.Cons 42
         """;
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("My_Project", mainSrc, projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("My_Project", mainSrc, projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(res.hasMember("data"), is(false));
@@ -65,10 +66,10 @@ public class PrivateAccessTest {
             private Cons data
         """;
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("My_Project", mainSrc, projDir);
+    ProjectUtils.createProject("My_Project", mainSrc, projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
-        TestUtils.defaultContextBuilder()
+        ContextUtils.defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
             .build()) {
       var polyCtx = new PolyglotContext(ctx);
@@ -89,10 +90,10 @@ public class PrivateAccessTest {
             My_Type.Cons 42
         """;
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("My_Project", mainSrc, projDir);
+    ProjectUtils.createProject("My_Project", mainSrc, projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
-        TestUtils.defaultContextBuilder()
+        ContextUtils.defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
             .build()) {
       var polyCtx = new PolyglotContext(ctx);
@@ -124,8 +125,8 @@ public class PrivateAccessTest {
                 _ -> 0
         """;
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("My_Project", mainSrc, projDir);
-    TestUtils.testProjectRun(
+    ProjectUtils.createProject("My_Project", mainSrc, projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(res.isNumber(), is(true));
@@ -142,7 +143,7 @@ public class PrivateAccessTest {
             private Cons data
             create x = My_Type.Cons x
         """;
-    TestUtils.createProject("Lib", libSrc, tempFolder.newFolder("Lib").toPath());
+    ProjectUtils.createProject("Lib", libSrc, tempFolder.newFolder("Lib").toPath());
     var projSrc =
         """
         from local.Lib import My_Type
@@ -152,10 +153,10 @@ public class PrivateAccessTest {
                 My_Type.Cons x -> x
         """;
     var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", projSrc, projDir);
+    ProjectUtils.createProject("Proj", projSrc, projDir);
     var out = new ByteArrayOutputStream();
     try (var ctx =
-        TestUtils.defaultContextBuilder()
+        ContextUtils.defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(RuntimeOptions.DISABLE_IR_CACHES, "true")

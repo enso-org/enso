@@ -14,7 +14,7 @@ import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.instruments.NodeCountingTestInstrument;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.After;
@@ -29,7 +29,7 @@ public class AvoidIdInstrumentationTagTest {
 
   @Before
   public void initContext() {
-    context = TestUtils.defaultContextBuilder().build();
+    context = ContextUtils.defaultContextBuilder().build();
     var engine = context.getEngine();
     var langs = engine.getLanguages();
     Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));

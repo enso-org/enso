@@ -8,7 +8,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.time.format.DateTimeFormatter;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -22,7 +22,7 @@ public class SignaturePolyglotTest {
   @BeforeClass
   public static void prepareCtx() {
     ctx =
-        TestUtils.defaultContextBuilder()
+        ContextUtils.defaultContextBuilder()
             .out(OutputStream.nullOutputStream())
             .err(OutputStream.nullOutputStream())
             .build();

@@ -10,7 +10,8 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.test.ValuesGenerator;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -29,7 +30,7 @@ public class TypeOfNodeTest {
 
   private static Context ctx() {
     if (ctx == null) {
-      ctx = TestUtils.defaultContextBuilder().build();
+      ctx = ContextUtils.defaultContextBuilder().build();
     }
     return ctx;
   }
@@ -38,7 +39,7 @@ public class TypeOfNodeTest {
   public static Object[][] allPossibleEnsoInterpreterValues() throws Exception {
     var g = ValuesGenerator.create(ctx());
     var typeOf =
-        TestUtils.evalModule(
+        ContextUtils.evalModule(
             ctx(),
             """
     from Standard.Base import all
@@ -52,7 +53,7 @@ public class TypeOfNodeTest {
       if (!v.isNull()) {
         assertTrue("Type of " + v + " is " + t, t.isMetaObject());
         var n = t.getMetaSimpleName();
-        var raw = TestUtils.unwrapValue(ctx(), v);
+        var raw = ContextUtils.unwrapValue(ctx(), v);
         data.add(new Object[] {raw, n});
       }
     }
@@ -79,11 +80,11 @@ public class TypeOfNodeTest {
   }
 
   private void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx(),
         () -> {
           var node = TypeOfNode.create();
-          var root = new TestUtils.TestRootNode((frame) -> node.execute(frame.getArguments()[0]));
+          var root = new TestRootNode((frame) -> node.execute(frame.getArguments()[0]));
           root.insertChildren(node);
           var call = root.getCallTarget();
 

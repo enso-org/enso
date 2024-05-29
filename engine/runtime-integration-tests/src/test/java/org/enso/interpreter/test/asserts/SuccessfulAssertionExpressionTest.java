@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 import org.enso.common.LanguageInfo;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -26,7 +26,7 @@ public class SuccessfulAssertionExpressionTest {
   @BeforeClass
   public static void setupCtx() {
     ctx =
-        TestUtils.defaultContextBuilder(LanguageInfo.ID)
+        ContextUtils.defaultContextBuilder(LanguageInfo.ID)
             .environment("ENSO_ENABLE_ASSERTIONS", "true")
             .out(out)
             .err(out)
@@ -69,7 +69,7 @@ eq_method x y =
     sb.append(imports).append("\n");
     sb.append("main = Runtime.assert (").append(succExpr).append(")\n");
     var code = sb.toString();
-    var res = TestUtils.evalModule(ctx, code);
+    var res = ContextUtils.evalModule(ctx, code);
     assertTrue(res.isNull());
   }
 }

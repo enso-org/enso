@@ -8,7 +8,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -23,7 +23,7 @@ public class LazyAtomFieldTest {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = TestUtils.createDefaultContext(out);
+    ctx = ContextUtils.createDefaultContext(out);
   }
 
   @Before

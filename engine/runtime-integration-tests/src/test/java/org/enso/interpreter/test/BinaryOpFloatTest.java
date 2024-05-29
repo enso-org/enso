@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.Stream;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -57,7 +57,7 @@ public class BinaryOpFloatTest {
 
   @BeforeClass
   public static void initContext() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
     wrapReal =
         ctx.eval(
                 "enso",
@@ -103,7 +103,7 @@ public class BinaryOpFloatTest {
 
   @Test
   public void verifyOperationOnForeignObject() {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           var code = """
@@ -123,7 +123,7 @@ public class BinaryOpFloatTest {
 
   @Test
   public void verifyOperationWithConvertibleObject() {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           var code = """
@@ -148,7 +148,7 @@ public class BinaryOpFloatTest {
 
   @Test
   public void verifyOperationOnConvertibleObject() {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           var code = """

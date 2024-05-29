@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -25,7 +25,7 @@ public class AtomConstructorTest {
 
   @BeforeClass
   public static void initContext() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
   }
 
   @AfterClass
@@ -41,7 +41,7 @@ public class AtomConstructorTest {
         """;
     var module = ctx.eval("enso", code);
     var consA = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "NoPrime.A");
-    var raw = TestUtils.unwrapValue(ctx, consA);
+    var raw = ContextUtils.unwrapValue(ctx, consA);
 
     assertTrue("It is atom constructor: " + raw, raw instanceof AtomConstructor);
     var cons = (AtomConstructor) raw;
@@ -60,7 +60,7 @@ public class AtomConstructorTest {
         """;
     var module = ctx.eval("enso", code);
     var xA = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "X.A");
-    var raw = TestUtils.unwrapValue(ctx, xA);
+    var raw = ContextUtils.unwrapValue(ctx, xA);
 
     assertTrue("It is atom constructor: " + raw, raw instanceof AtomConstructor);
     var cons = (AtomConstructor) raw;
@@ -138,7 +138,7 @@ public class AtomConstructorTest {
   }
 
   private static void assertLessArguments(String msg, Function<Object[], Atom> factory) {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           try {
@@ -182,7 +182,7 @@ public class AtomConstructorTest {
     var module = ctx.eval("enso", sb.toString());
     for (var i = 0; i < constructors.length; i++) {
       var c = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "T.V" + i);
-      constructors[i] = (AtomConstructor) TestUtils.unwrapValue(ctx, c);
+      constructors[i] = (AtomConstructor) ContextUtils.unwrapValue(ctx, c);
     }
 
     var typeValue = ctx.asValue(constructors[0].getType());

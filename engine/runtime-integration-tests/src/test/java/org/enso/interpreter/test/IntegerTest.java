@@ -9,7 +9,7 @@ import org.enso.interpreter.node.expression.builtin.number.integer.AbsNode;
 import org.enso.interpreter.node.expression.builtin.number.integer.AddNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -27,8 +27,8 @@ public class IntegerTest {
 
   @BeforeClass
   public static void setup() {
-    ctx = TestUtils.createDefaultContext();
-    TestUtils.executeInContext(
+    ctx = ContextUtils.createDefaultContext();
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           absNode = AbsNode.build();
@@ -49,7 +49,7 @@ public class IntegerTest {
 
   @Test
   public void testAbs() {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           assertEquals(23L, absNode.execute(23L));
@@ -67,7 +67,7 @@ public class IntegerTest {
 
   @Test
   public void testAdd() {
-    TestUtils.executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           assertEquals(23L, addNode.execute(22L, 1L));

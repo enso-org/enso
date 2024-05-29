@@ -3,7 +3,7 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
@@ -17,7 +17,7 @@ public class JsInteropTest {
 
   @Before
   public void initContext() {
-    ctx = TestUtils.createDefaultContext(out);
+    ctx = ContextUtils.createDefaultContext(out);
     out.reset();
   }
 
@@ -41,7 +41,7 @@ public class JsInteropTest {
           }
         json.get "inner"
       """;
-    Value res = TestUtils.evalModule(ctx, src);
+    Value res = ContextUtils.evalModule(ctx, src);
     assertEquals("{\"a\":1}", res.toString());
   }
 }

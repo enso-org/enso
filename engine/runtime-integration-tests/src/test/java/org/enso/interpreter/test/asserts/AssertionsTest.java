@@ -14,7 +14,7 @@ import java.util.List;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.test.utils.TestUtils;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -32,7 +32,7 @@ public class AssertionsTest {
   @BeforeClass
   public static void setupCtx() {
     ctx =
-        TestUtils.defaultContextBuilder(LanguageInfo.ID)
+        ContextUtils.defaultContextBuilder(LanguageInfo.ID)
             .environment("ENSO_ENABLE_ASSERTIONS", "true")
             .out(out)
             .err(out)
@@ -72,7 +72,7 @@ public class AssertionsTest {
   @Test
   public void simpleAssertionFailureWithMessage() {
     try {
-      TestUtils.evalModule(
+      ContextUtils.evalModule(
           ctx,
           """
               from Standard.Base import False, Runtime
@@ -87,7 +87,7 @@ public class AssertionsTest {
   @Test
   public void assertionFailureDisplaysMessage() {
     try {
-      TestUtils.evalModule(
+      ContextUtils.evalModule(
           ctx,
           """
               from Standard.Base import False, Runtime
@@ -104,7 +104,7 @@ public class AssertionsTest {
   @Test
   public void assertionFailureDisplaysStackTrace() {
     try {
-      TestUtils.evalModule(
+      ContextUtils.evalModule(
           ctx,
           """
               from Standard.Base import False, Runtime
@@ -125,7 +125,7 @@ public class AssertionsTest {
   @Test
   public void assertionSuccessReturnsNothing() {
     Value res =
-        TestUtils.evalModule(
+        ContextUtils.evalModule(
             ctx,
             """
                 from Standard.Base import Runtime, True
@@ -137,7 +137,7 @@ public class AssertionsTest {
   @Test
   public void assertChecksTypeOfReturnValue() {
     try {
-      TestUtils.evalModule(
+      ContextUtils.evalModule(
           ctx,
           """
               from Standard.Base import Runtime
@@ -152,7 +152,7 @@ public class AssertionsTest {
   @Test
   public void actionInAssertIsComputedWhenAssertionsAreEnabled() {
     Value res =
-        TestUtils.evalModule(
+        ContextUtils.evalModule(
             ctx,
             """
                 from Standard.Base import Runtime
