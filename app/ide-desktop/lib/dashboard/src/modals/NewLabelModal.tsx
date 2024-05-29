@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as tailwindMerge from 'tailwind-merge'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -16,7 +17,8 @@ import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/UnstyledButton'
 
-import * as backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // =================
 // === Constants ===
@@ -31,32 +33,34 @@ const MAXIMUM_DARK_LIGHTNESS = 50
 
 /** Props for a {@link NewLabelModal}. */
 export interface NewLabelModalProps {
-  readonly labels: backend.Label[]
+  readonly backend: Backend
   readonly eventTarget: HTMLElement
-  readonly doCreate: (value: string, color: backend.LChColor) => void
 }
 
 /** A modal for creating a new label. */
 export default function NewLabelModal(props: NewLabelModalProps) {
-  const { labels, eventTarget, doCreate } = props
+  const { backend, eventTarget } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [value, setValue] = React.useState('')
-  const [color, setColor] = React.useState<backend.LChColor | null>(null)
+  const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
+  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+  const labels = backendHooks.useBackendListTags(backend) ?? []
   const labelNames = React.useMemo(
     () => new Set<string>(labels.map(label => label.value)),
     [labels]
   )
-  const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-  const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
+  const leastUsedColor = React.useMemo(() => backendModule.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
+
+  const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
 
   const doSubmit = () => {
     if (value !== '') {
       unsetModal()
       try {
-        doCreate(value, color ?? leastUsedColor)
+        createTagMutation.mutateAsync([{ value, color: color ?? leastUsedColor }])
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -104,9 +108,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                   style={
                     color == null
                       ? {}
-                      : {
-                          backgroundColor: backend.lChColorToCssColor(color),
-                        }
+                      : { backgroundColor: backendModule.lChColorToCssColor(color) }
                   }
                   onInput={event => {
                     setValue(event.currentTarget.value)

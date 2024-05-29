@@ -43,8 +43,6 @@ export interface ManageLabelsModalProps<
   readonly backend: Backend
   readonly item: Asset
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
-  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
-  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   /** If this is `null`, this modal will be centered. */
   readonly eventTarget: HTMLElement | null
 }
@@ -55,27 +53,28 @@ export interface ManageLabelsModalProps<
 export default function ManageLabelsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
-  const { backend, item, setItem, allLabels, doCreateLabel, eventTarget } = props
+  const { backend, item, setItem, eventTarget } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const allLabels = backendHooks.useBackendListTags(backend)
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const leastUsedColor = React.useMemo(
-    () => backendModule.leastUsedColor(allLabels.values()),
+    () => backendModule.leastUsedColor(allLabels ?? []),
     [allLabels]
   )
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const labelNames = React.useMemo(() => new Set(labels), [labels])
   const regex = React.useMemo(() => new RegExp(string.regexEscape(query), 'i'), [query])
   const canSelectColor = React.useMemo(
-    () =>
-      query !== '' && Array.from(allLabels.keys()).filter(label => regex.test(label)).length === 0,
+    () => query !== '' && (allLabels ?? []).filter(label => regex.test(label.value)).length === 0,
     [allLabels, query, regex]
   )
   const canCreateNewLabel = canSelectColor
 
+  const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
   const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
 
   const setLabels = React.useCallback(
@@ -110,9 +109,10 @@ export default function ManageLabelsModal<
 
   const doSubmit = async () => {
     unsetModal()
-    setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
+    const labelName = backendModule.LabelName(query)
+    setLabels(oldLabels => [...oldLabels, labelName])
     try {
-      await doCreateLabel(query, color ?? leastUsedColor)
+      await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
       setLabels(newLabels => {
         void associateTagMutation.mutateAsync([item.id, newLabels, item.title])
         return newLabels
@@ -214,7 +214,7 @@ export default function ManageLabelsModal<
           <FocusArea direction="vertical">
             {innerProps => (
               <div className="max-h-manage-labels-list overflow-auto" {...innerProps}>
-                {Array.from(allLabels.values())
+                {(allLabels ?? [])
                   .filter(label => regex.test(label.value))
                   .map(label => (
                     <div key={label.id} className="flex h-row items-center">

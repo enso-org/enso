@@ -60,8 +60,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
   const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { backend, category, hasPasteData, labels } = state
-  const { dispatchAssetEvent, dispatchAssetListEvent, doCreateLabel } = state
+  const { backend, category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent } = state
 
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -338,8 +337,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   backend={backend}
                   item={asset}
                   setItem={setAsset}
-                  allLabels={labels}
-                  doCreateLabel={doCreateLabel}
                   eventTarget={eventTarget}
                 />
               )

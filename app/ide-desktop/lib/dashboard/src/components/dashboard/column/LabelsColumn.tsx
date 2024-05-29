@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -34,13 +35,17 @@ import * as uniqueString from '#/utilities/uniqueString'
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, setItem, state, rowState } = props
-  const { backend, category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
+  const { backend, category, setQuery } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const labels = backendHooks.useBackendListTags(backend)
+  const labelsByName = React.useMemo(() => {
+    return new Map(labels?.map(label => [label.value, label]))
+  }, [labels])
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
@@ -64,13 +69,13 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   return (
     <div className="group flex items-center gap-column-items">
       {(asset.labels ?? [])
-        .filter(label => !deletedLabelNames.has(label))
+        .filter(label => labelsByName.has(label))
         .map(label => (
           <Label
             key={label}
             data-testid="asset-label"
             title={getText('rightClickToRemoveLabel')}
-            color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
+            color={labelsByName.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             active={!temporarilyRemovedLabels.has(label)}
             isDisabled={temporarilyRemovedLabels.has(label)}
             negated={temporarilyRemovedLabels.has(label)}
@@ -128,7 +133,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <Label
             isDisabled
             key={label}
-            color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
+            color={labelsByName.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             className="pointer-events-none"
             onPress={() => {}}
           >
@@ -146,8 +151,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 backend={backend}
                 item={asset}
                 setItem={setAsset}
-                allLabels={labels}
-                doCreateLabel={doCreateLabel}
                 eventTarget={plusButtonRef.current}
               />
             )

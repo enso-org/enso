@@ -9,6 +9,11 @@ import * as authProvider from '#/providers/AuthProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import * as uniqueString from '#/utilities/uniqueString'
+
+// FIXME: key queries on `backend`, not `'backend'` so that there is a separate set of queries
+// for each backend
+
 // =========================
 // === useObserveBackend ===
 // =========================
@@ -83,9 +88,42 @@ export function useObserveBackend() {
 // === useBackendQuery ===
 // =======================
 
-/** Wrap a backend method call in a React Query. */
 export function useBackendQuery<Method extends keyof Backend>(
   backend: Backend,
+  method: Method,
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Omit<
+    reactQuery.UseQueryOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Error,
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      readonly unknown[]
+    >,
+    'queryFn'
+  >
+): reactQuery.UseQueryResult<
+  Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+>
+export function useBackendQuery<Method extends keyof Backend>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Omit<
+    reactQuery.UseQueryOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Error,
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      readonly unknown[]
+    >,
+    'queryFn'
+  >
+): reactQuery.UseQueryResult<
+  // eslint-disable-next-line no-restricted-syntax
+  Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>> | undefined
+>
+/** Wrap a backend method call in a React Query. */
+export function useBackendQuery<Method extends keyof Backend>(
+  backend: Backend | null,
   method: Method,
   args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
   options?: Omit<
@@ -107,7 +145,7 @@ export function useBackendQuery<Method extends keyof Backend>(
     ...options,
     queryKey: ['backend', method, ...args, ...(options?.queryKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    queryFn: () => (backend[method] as any)(...args),
+    queryFn: () => (backend?.[method] as any)?.(...args),
   })
 }
 
@@ -325,4 +363,37 @@ export function useBackendListUserGroupsWithUsers(
     }
   }, [listUsersQuery.data, userGroupsRaw, users])
   return userGroups
+}
+
+// ==========================
+// === useBackendListTags ===
+// ==========================
+
+/** A list of asset tags, taking into account optimistic state. */
+export function useBackendListTags(
+  backend: Backend | null
+): readonly WithPlaceholder<backendModule.Label>[] | null {
+  const listTagsQuery = useBackendQuery(backend, 'listTags', [])
+  const createTagVariables = useBackendMutationVariables('createTag')
+  const deleteTagVariables = useBackendMutationVariables('deleteTag')
+  const tags = React.useMemo(() => {
+    if (listTagsQuery.data == null) {
+      return null
+    } else {
+      const deletedTags = new Set(deleteTagVariables.map(variables => variables[0]))
+      const result = listTagsQuery.data
+        .filter(tag => !deletedTags.has(tag.id))
+        .map(toNonPlaceholder)
+      return [
+        ...result,
+        ...createTagVariables.map(variables => ({
+          id: backendModule.TagId(`tag-${uniqueString.uniqueString()}`),
+          value: backendModule.LabelName(variables[0].value),
+          color: variables[0].color,
+          isPlaceholder: true,
+        })),
+      ]
+    }
+  }, [createTagVariables, deleteTagVariables, listTagsQuery.data])
+  return tags
 }

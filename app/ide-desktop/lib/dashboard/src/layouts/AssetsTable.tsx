@@ -305,8 +305,6 @@ export interface AssetsTableState {
   readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   readonly category: Category
-  readonly labels: Map<backendModule.LabelName, backendModule.Label>
-  readonly deletedLabelNames: Set<backendModule.LabelName>
   readonly hasPasteData: boolean
   readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
@@ -337,7 +335,6 @@ export interface AssetsTableState {
     switchPage: boolean
   ) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
-  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -362,11 +359,9 @@ export interface AssetsTableProps {
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
-  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly initialProjectName: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly deletedLabelNames: Set<backendModule.LabelName>
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
@@ -381,21 +376,19 @@ export interface AssetsTableProps {
     switchPage: boolean
   ) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
-  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
 }
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category, allLabels } =
-    props
-  const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
+  const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category } = props
+  const { setSuggestions, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
-  const { setAssetPanelProps, doCreateLabel, targetDirectoryNodeRef } = props
-  const { setIsAssetPanelTemporarilyVisible } = props
+  const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
+  const labels = backendHooks.useBackendListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -466,7 +459,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             ? null
             : fileInfo.fileExtension(node.item.title).toLowerCase()
         const assetModifiedAt = new Date(node.item.modifiedAt)
-        const labels: string[] = node.item.labels ?? []
+        const nodeLabels: string[] = node.item.labels ?? []
         const lowercaseName = node.item.title.toLowerCase()
         const lowercaseDescription = node.item.description?.toLowerCase() ?? ''
         const owners =
@@ -483,7 +476,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           switch (type) {
             case 'label':
             case 'labels': {
-              return labels.length === 0
+              return nodeLabels.length === 0
             }
             case 'name': {
               // Should never be true, but handle it just in case.
@@ -533,7 +526,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           ) &&
           filterTag(query.names, query.negativeNames, name => globMatch(name, lowercaseName)) &&
           filterTag(query.labels, query.negativeLabels, label =>
-            labels.some(assetLabel => globMatch(label, assetLabel))
+            nodeLabels.some(assetLabel => globMatch(label, assetLabel))
           ) &&
           filterTag(query.types, query.negativeTypes, type => type === assetType) &&
           filterTag(
@@ -806,28 +799,24 @@ export default function AssetsTable(props: AssetsTableProps) {
         case 'label':
         case '-label': {
           setSuggestions(
-            !isCloud
-              ? []
-              : Array.from(
-                  allLabels.values(),
-                  (label): assetSearchBar.Suggestion => ({
-                    render: () => (
-                      <Label active color={label.color} onPress={() => {}}>
-                        {label.value}
-                      </Label>
-                    ),
-                    addToQuery: oldQuery =>
-                      oldQuery.addToLastTerm(
-                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                      ),
-                    deleteFromQuery: oldQuery =>
-                      oldQuery.deleteFromLastTerm(
-                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                      ),
-                  })
-                )
+            (labels ?? []).map(
+              (label): assetSearchBar.Suggestion => ({
+                render: () => (
+                  <Label active color={label.color} onPress={() => {}}>
+                    {label.value}
+                  </Label>
+                ),
+                addToQuery: oldQuery =>
+                  oldQuery.addToLastTerm(
+                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                  ),
+                deleteFromQuery: oldQuery =>
+                  oldQuery.deleteFromLastTerm(
+                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                  ),
+              })
+            )
           )
-
           break
         }
         default: {
@@ -836,7 +825,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [isCloud, assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
+  }, [isCloud, assetTree, query, visibilities, labels, /* should never change */ setSuggestions])
 
   React.useEffect(() => {
     setIsLoading(true)
@@ -1914,8 +1903,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       selectedKeys: selectedKeysRef,
       scrollContainerRef: rootRef,
       category,
-      labels: allLabels,
-      deletedLabelNames,
       hasPasteData: pasteData != null,
       setPasteData,
       sortInfo,
@@ -1934,7 +1921,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       doOpenManually,
       doOpenEditor,
       doCloseEditor,
-      doCreateLabel,
       doCopy,
       doCut,
       doPaste,
@@ -1944,8 +1930,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootDirectoryId,
       visibilities,
       category,
-      allLabels,
-      deletedLabelNames,
       pasteData,
       sortInfo,
       assetEvents,
@@ -1954,7 +1938,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       doOpenManually,
       doOpenEditor,
       doCloseEditor,
-      doCreateLabel,
       doCopy,
       doCut,
       doPaste,
@@ -2321,9 +2304,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               }
               let labelsPresent = 0
               for (const selectedKey of ids) {
-                const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (labels != null) {
-                  for (const label of labels) {
+                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                if (nodeLabels != null) {
+                  for (const label of nodeLabels) {
                     if (payload.has(label)) {
                       labelsPresent += 1
                     }
@@ -2365,9 +2348,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               event.stopPropagation()
               let labelsPresent = 0
               for (const selectedKey of ids) {
-                const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (labels != null) {
-                  for (const label of labels) {
+                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                if (nodeLabels != null) {
+                  for (const label of nodeLabels) {
                     if (payload.has(label)) {
                       labelsPresent += 1
                     }

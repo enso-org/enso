@@ -665,7 +665,8 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Return an empty array. This function should never need to be called. */
+  /** Return an empty array. This function is required to be implemented as it is unconditionally
+   * called, but its result should never need to be used. */
   override listTags() {
     return Promise.resolve([])
   }

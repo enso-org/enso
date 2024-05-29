@@ -15,7 +15,6 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
@@ -39,7 +38,6 @@ import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
-import * as uniqueString from '#/utilities/uniqueString'
 
 // ===================
 // === DriveStatus ===
@@ -75,8 +73,6 @@ export interface DriveProps {
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly labels: backendModule.Label[]
-  readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
@@ -94,7 +90,7 @@ export interface DriveProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
   const { hidden, initialProjectName, query, setQuery } = props
-  const { labels, setLabels, setSuggestions, projectStartupInfo, setProjectStartupInfo } = props
+  const { setSuggestions, projectStartupInfo, setProjectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
@@ -102,21 +98,12 @@ export default function Drive(props: DriveProps) {
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
-  const [deletedLabelNames, setDeletedLabelNames] = React.useState(
-    new Set<backendModule.LabelName>()
-  )
-  const allLabels = React.useMemo(
-    () => new Map(labels.map(label => [label.value, label])),
-    [labels]
-  )
   const rootDirectoryId = React.useMemo(
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
     [backend, user]
@@ -154,14 +141,6 @@ export default function Drive(props: DriveProps) {
       )
     }
   }, [])
-
-  React.useEffect(() => {
-    void (async () => {
-      if (remoteBackend != null && user?.isEnabled === true) {
-        setLabels(await remoteBackend.listTags())
-      }
-    })()
-  }, [remoteBackend, user?.isEnabled, /* should never change */ setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
@@ -211,69 +190,6 @@ export default function Drive(props: DriveProps) {
       parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
     })
   }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
-
-  const doCreateLabel = React.useCallback(
-    async (value: string, color: backendModule.LChColor) => {
-      if (remoteBackend == null) {
-        // eslint-disable-next-line no-restricted-syntax
-        throw new Error('Labels can only be created on the Remote Backend.')
-      } else {
-        const newLabelName = backendModule.LabelName(value)
-        const placeholderLabel: backendModule.Label = {
-          id: backendModule.TagId(uniqueString.uniqueString()),
-          value: newLabelName,
-          color,
-        }
-        setNewLabelNames(labelNames => new Set([...labelNames, newLabelName]))
-        setLabels(oldLabels => [...oldLabels, placeholderLabel])
-        try {
-          const newLabel = await remoteBackend.createTag({ value, color })
-          setLabels(oldLabels =>
-            oldLabels.map(oldLabel => (oldLabel.id === placeholderLabel.id ? newLabel : oldLabel))
-          )
-        } catch (error) {
-          toastAndLog(null, error)
-          setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== placeholderLabel.id))
-        }
-        setNewLabelNames(
-          labelNames => new Set([...labelNames].filter(labelName => labelName !== newLabelName))
-        )
-      }
-    },
-    [remoteBackend, toastAndLog, /* should never change */ setLabels]
-  )
-
-  const doDeleteLabel = React.useCallback(
-    async (id: backendModule.TagId, value: backendModule.LabelName) => {
-      if (remoteBackend == null) {
-        // eslint-disable-next-line no-restricted-syntax
-        throw new Error('Labels can only be deleted on the Remote Backend.')
-      } else {
-        setDeletedLabelNames(oldNames => new Set([...oldNames, value]))
-        setQuery(oldQuery => oldQuery.deleteFromEveryTerm({ labels: [value] }))
-        try {
-          await remoteBackend.deleteTag(id, value)
-          dispatchAssetEvent({
-            type: AssetEventType.deleteLabel,
-            labelName: value,
-          })
-          setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel.id !== id))
-        } catch (error) {
-          toastAndLog(null, error)
-        }
-        setDeletedLabelNames(
-          oldNames => new Set([...oldNames].filter(oldValue => oldValue !== value))
-        )
-      }
-    },
-    [
-      remoteBackend,
-      toastAndLog,
-      /* should never change */ setQuery,
-      /* should never change */ dispatchAssetEvent,
-      /* should never change */ setLabels,
-    ]
-  )
 
   const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
@@ -386,14 +302,10 @@ export default function Drive(props: DriveProps) {
               />
               {isCloud && (
                 <Labels
+                  backend={backend}
                   draggable={category !== Category.trash}
-                  labels={labels}
                   query={query}
                   setQuery={setQuery}
-                  doCreateLabel={doCreateLabel}
-                  doDeleteLabel={doDeleteLabel}
-                  newLabelNames={newLabelNames}
-                  deletedLabelNames={deletedLabelNames}
                 />
               )}
             </div>
@@ -404,11 +316,9 @@ export default function Drive(props: DriveProps) {
               setCanDownload={setCanDownload}
               setProjectStartupInfo={setProjectStartupInfo}
               category={category}
-              allLabels={allLabels}
               setSuggestions={setSuggestions}
               initialProjectName={initialProjectName}
               projectStartupInfo={projectStartupInfo}
-              deletedLabelNames={deletedLabelNames}
               assetEvents={assetEvents}
               dispatchAssetEvent={dispatchAssetEvent}
               assetListEvents={assetListEvents}
@@ -418,7 +328,6 @@ export default function Drive(props: DriveProps) {
               targetDirectoryNodeRef={targetDirectoryNodeRef}
               doOpenEditor={doOpenEditor}
               doCloseEditor={doCloseEditor}
-              doCreateLabel={doCreateLabel}
             />
           </div>
         </div>
