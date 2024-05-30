@@ -23,7 +23,7 @@ const OVERLAY_STYLES = twv.tv({
 })
 
 const MODAL_STYLES = twv.tv({
-  base: 'fixed inset-0 flex items-center justify-center text-center p-4',
+  base: 'fixed inset-0 flex items-center justify-center text-center text-xs text-primary p-4',
   variants: {
     isEntering: { true: 'animate-in slide-in-from-top-1 ease-out duration-200' },
     isExiting: { true: 'animate-out slide-out-to-top-1 ease-in duration-200' },
