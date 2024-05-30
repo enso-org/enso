@@ -491,6 +491,8 @@ body::before {
   font-family: "M PLUS 1";
   font-weight: 500;
   font-feature-settings: normal;
+  font-size: 11.5px; /* text-xs */
+  color: rgb(0 0 0 / 60%); /* text-primary */
 }
 
 :where(:is(.enso-dashboard kbd, .enso-chat kbd, .enso-portal-root kbd)) {
