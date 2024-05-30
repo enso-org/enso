@@ -7,7 +7,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
 public final class Parser implements AutoCloseable {
-  private static void initializeLibraries() {
+  static {
     String os = System.getProperty("os.name");
     String name;
     if (os.startsWith("Mac")) {
@@ -87,7 +87,6 @@ public final class Parser implements AutoCloseable {
   static native long getUuidLow(long metadata, long codeOffset, long codeLength);
 
   public static Parser create() {
-    initializeLibraries();
     var state = allocState();
     return new Parser(state);
   }
