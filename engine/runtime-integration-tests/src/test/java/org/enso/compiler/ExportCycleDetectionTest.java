@@ -1,0 +1,74 @@
+package org.enso.compiler;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.fail;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Set;
+import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.PolyglotContext;
+import org.enso.polyglot.RuntimeOptions;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
+import org.graalvm.polyglot.PolyglotException;
+import org.hamcrest.Matcher;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+public class ExportCycleDetectionTest {
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  @Test
+  public void detectSimpleCycle() throws IOException {
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("A_Module"),
+            """
+        from project.Main import B_Type
+        from project.Main export B_Type
+        type A_Type
+        """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        from project.A_Module import A_Type
+        from project.A_Module export A_Type
+        type B_Type
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
+    expectProjectCompilationError(
+        projDir,
+        allOf(
+            containsString("Export statements form a cycle"),
+            containsString("local.Proj.Main exports local.Proj.A_Module"),
+            containsString("which exports local.Proj.Main")));
+  }
+
+  private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
+    var out = new ByteArrayOutputStream();
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .option(RuntimeOptions.STRICT_ERRORS, "true")
+            .out(out)
+            .err(out)
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      try {
+        polyCtx.getTopScope().compile(true);
+        fail("Expected compilation error");
+      } catch (PolyglotException e) {
+        assertThat(e.getMessage(), containsString("Compilation aborted"));
+      }
+    }
+    assertThat(out.toString(), errMsgMatcher);
+  }
+}
