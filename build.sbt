@@ -1207,6 +1207,7 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     libraryDependencies ++= jmh ++ Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ) ++ logbackTest
@@ -1308,6 +1309,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
@@ -2619,6 +2621,7 @@ lazy val `test-utils` =
   (project in file("lib/java/test-utils"))
     .settings(
       frgaalJavaCompilerSetting,
+      annotationProcSetting,
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
