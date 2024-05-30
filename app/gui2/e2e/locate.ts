@@ -44,72 +44,22 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
   return (page: Locator | Page) => a(page).or(b(page))
 }
 
-export function playOrOpenProjectButton(page: Locator | Page) {
-  return page.getByAltText('Open in editor')
+export function toggleVisualizationButton(page: Locator | Page) {
+  return page.getByTitle('Visualization')
 }
 
-// === Auto-evaluation ===
-
-export function enableAutoEvaluationButton(page: Locator | Page) {
-  return page.getByAltText('Enable auto-evaluation')
+export function toggleVisualizationSelectorButton(page: Locator | Page) {
+  return page.getByTitle('Visualization Selector')
 }
-
-export function disableAutoEvaluationButton(page: Locator | Page) {
-  return page.getByAltText('Disable auto-evaluation')
-}
-
-export const toggleAutoEvaluationButton = or(
-  enableAutoEvaluationButton,
-  disableAutoEvaluationButton,
-)
-
-// === Documentation ===
-
-export function showDocumentationButton(page: Locator | Page) {
-  return page.getByAltText('Show documentation')
-}
-
-export function hideDocumentationButton(page: Locator | Page) {
-  return page.getByAltText('Hide documentation')
-}
-
-export const toggleDocumentationButton = or(showDocumentationButton, hideDocumentationButton)
-
-// === Visualization ===
-
-export function showVisualizationButton(page: Locator | Page) {
-  return page.getByAltText('Show visualization')
-}
-
-export function hideVisualizationButton(page: Locator | Page) {
-  return page.getByAltText('Hide visualization')
-}
-
-export const toggleVisualizationButton = or(showVisualizationButton, hideVisualizationButton)
-
-// === Visualization selector ===
-
-export function showVisualizationSelectorButton(page: Locator | Page) {
-  return page.getByAltText('Show visualization selector')
-}
-
-export function hideVisualizationSelectorButton(page: Locator | Page) {
-  return page.getByAltText('Hide visualization selector')
-}
-
-export const toggleVisualizationSelectorButton = or(
-  showVisualizationSelectorButton,
-  hideVisualizationSelectorButton,
-)
 
 // === Fullscreen ===
 
 export function enterFullscreenButton(page: Locator | Page) {
-  return page.getByAltText('Enter fullscreen')
+  return page.getByTitle('Fullscreen')
 }
 
 export function exitFullscreenButton(page: Locator | Page) {
-  return page.getByAltText('Exit fullscreen')
+  return page.getByTitle('Exit Fullscreen')
 }
 
 export const toggleFullscreenButton = or(enterFullscreenButton, exitFullscreenButton)

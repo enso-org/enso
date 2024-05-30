@@ -42,6 +42,7 @@ polyglot java import com.fasterxml.jackson.databind.node.NullNode
 polyglot java import com.fasterxml.jackson.databind.node.ObjectNode
 polyglot java import com.fasterxml.jackson.databind.node.TextNode
 polyglot java import com.fasterxml.jackson.databind.ObjectMapper
+polyglot java import java.util.Iterator
 
 ## Methods for serializing from and to JSON.
 type Json
@@ -151,7 +152,7 @@ type JS_Object
             Vector.build initial_capacity=object.size builder->
                 loop iterator builder =
                     if iterator.hasNext then
-                        builder.append iterator.next
+                        builder.append (iterator:Iterator).next
                         @Tail_Call loop iterator builder
                 loop name_iterator builder
         JS_Object.Value object_node (make_field_names object_node)
@@ -216,7 +217,7 @@ type JS_Object
     field_names : Vector
     field_names self = self.field_array
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Maps a function over each value in this object
 
        Arguments:
@@ -227,7 +228,7 @@ type JS_Object
         kv_func = _ -> function
         self.map_with_key kv_func
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Maps a function over each field-value pair in the object.
 
        Arguments:

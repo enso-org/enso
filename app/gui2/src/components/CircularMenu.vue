@@ -41,33 +41,34 @@ const showColorPicker = ref(false)
         v-if="isFullMenuVisible"
         name="comment"
         class="slot2"
-        :alt="`Edit comment`"
+        title="Comment"
         @click.stop="emit('startEditingComment')"
       />
       <SvgButton
         v-if="isFullMenuVisible"
         name="paint_palette"
         class="slot3"
-        :alt="`Choose color`"
+        title="Color"
         @click.stop="showColorPicker = true"
       />
       <SvgButton
         v-if="isFullMenuVisible"
         name="trash2"
         class="slot4"
-        :alt="`Delete component`"
+        title="Delete"
         @click.stop="emit('delete')"
       />
       <ToggleIcon
         icon="eye"
         class="slot5"
-        :alt="`${props.isVisualizationVisible ? 'Hide' : 'Show'} visualization`"
+        title="Visualization"
         :modelValue="props.isVisualizationVisible"
         @update:modelValue="emit('update:isVisualizationVisible', $event)"
       />
       <SvgButton
         name="edit"
         class="slot6"
+        title="Code Edit"
         data-testid="edit-button"
         @click.stop="emit('startEditing')"
       />
@@ -75,7 +76,7 @@ const showColorPicker = ref(false)
         icon="record"
         class="overrideRecordingButton slot7"
         data-testid="overrideRecordingButton"
-        :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
+        title="Record"
         :modelValue="props.isRecordingOverridden"
         @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />

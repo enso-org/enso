@@ -105,13 +105,35 @@ declare global {
     /** */
     // eslint-disable-next-line no-restricted-syntax
     interface Window {
-        readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
         readonly menuApi: MenuApi
         readonly versionInfo?: VersionInfo
         toggleDevtools: () => void
+    }
+
+    /**
+     * Highlight a range of text.
+     */
+    class Highlight {
+        type: string
+        /**
+         * @param ranges - The range to highlight.
+         */
+        constructor(...ranges: Range[])
+    }
+
+    /**
+     *
+     */
+    namespace CSS {
+        // eslint-disable-next-line no-restricted-syntax
+        export const highlights: {
+            set: (key: string, value: Highlight) => void
+            delete: (key: string) => void
+            clear: () => void
+        }
     }
 
     namespace NodeJS {
@@ -176,6 +198,8 @@ declare global {
             readonly ENSO_CLOUD_DASHBOARD_COMMIT_HASH?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_ENSO_HOST?: string
 
             // === Electron watch script variables ===
 

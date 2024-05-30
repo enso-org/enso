@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -20,14 +21,14 @@ import org.junit.runner.RunWith;
  * This test ensures that any combination of values can be sorted - no attempt to sort should fail.
  */
 @RunWith(Theories.class)
-public class VectorSortTest extends TestBase {
+public class VectorSortTest {
   private static Context context;
   private static Value sortFunc;
   private static Value equalsFunc;
 
   @BeforeClass
   public static void initCtxAndNodes() {
-    context = createDefaultContext();
+    context = ContextUtils.createDefaultContext();
     var code =
         """
     from Standard.Base import all
@@ -35,8 +36,8 @@ public class VectorSortTest extends TestBase {
     sort val1 val2 = [val1, val2].sort
     equals val1 val2 = val1 == val2
     """;
-    sortFunc = getMethodFromModule(context, code, "sort");
-    equalsFunc = getMethodFromModule(context, code, "equals");
+    sortFunc = ContextUtils.getMethodFromModule(context, code, "sort");
+    equalsFunc = ContextUtils.getMethodFromModule(context, code, "equals");
 
     values = new ArrayList<>();
     var valuesGenerator = ValuesGenerator.create(context, Language.ENSO, Language.JAVA);

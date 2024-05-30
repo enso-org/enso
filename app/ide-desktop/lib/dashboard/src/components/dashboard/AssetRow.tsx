@@ -99,7 +99,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef, rootDirectoryId } = state
 
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()

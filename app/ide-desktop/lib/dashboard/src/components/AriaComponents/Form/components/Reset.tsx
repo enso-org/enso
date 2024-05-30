@@ -34,6 +34,7 @@ export function Reset(props: ResetProps): React.JSX.Element {
   return (
     <ariaComponents.Button
       {...props}
+      type="reset"
       variant={variant}
       size={size}
       isDisabled={formState.isSubmitting}

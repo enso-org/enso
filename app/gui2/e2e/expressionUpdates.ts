@@ -11,8 +11,8 @@ export async function mockCollapsedFunctionInfo(
 ) {
   await mockMethodCallInfo(page, expression, {
     methodPointer: {
-      module: 'local.Mock.Main',
-      definedOnType: 'local.Mock.Main',
+      module: 'local.Mock_Project.Main',
+      definedOnType: 'local.Mock_Project.Main',
       name: functionName,
     },
     notAppliedArguments: [],
@@ -35,7 +35,7 @@ export async function mockExpressionUpdate(
   update: Partial<ExpressionUpdate>,
 ) {
   await page.evaluate(
-    ({ expression, update }) => (window as any).mockExpressionUpdate(expression, update),
+    ({ expression, update }) => (window as any)._mockExpressionUpdate(expression, update),
     { expression, update },
   )
 }

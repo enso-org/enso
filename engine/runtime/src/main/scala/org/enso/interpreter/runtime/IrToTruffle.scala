@@ -115,6 +115,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
+import org.enso.interpreter.runtime.error.DataflowError
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle structures that are actually executed.
@@ -231,17 +232,17 @@ class IrToTruffle(
     // Register the imports in scope
     importDefs.foreach {
       case poly @ imports.Polyglot(i: imports.Polyglot.Java, _, _, _, _) =>
-        val hostSymbol = context.lookupJavaClass(i.getJavaName)
-        if (hostSymbol != null) {
-          this.moduleScope.registerPolyglotSymbol(
-            poly.getVisibleName,
-            hostSymbol
+        var hostSymbol = context.lookupJavaClass(i.getJavaName)
+        if (hostSymbol == null) {
+          val err = Text.create(
+            s"Incorrect polyglot java import: ${i.getJavaName}"
           )
-        } else {
-          throw new CompilerError(
-            s"Incorrect polyglot import: Cannot find host symbol (Java class) '${i.getJavaName}'"
-          )
+          hostSymbol = DataflowError.withoutTrace(err, null)
         }
+        this.moduleScope.registerPolyglotSymbol(
+          poly.getVisibleName,
+          hostSymbol
+        )
       case _: Import.Module =>
       case _: Error         =>
     }
@@ -1081,9 +1082,7 @@ class IrToTruffle(
           processCase(caseExpr, subjectToInstrumentation)
         case typ: Tpe => processType(typ)
         case _: Empty =>
-          throw new CompilerError(
-            "Empty IR nodes should not exist during code generation."
-          )
+          processEmpty()
         case _: Comment =>
           throw new CompilerError(
             "Comments should not be present during codegen."
@@ -1813,7 +1812,7 @@ class IrToTruffle(
       * @return the truffle nodes corresponding to `literal`
       */
     @throws[CompilerError]
-    def processLiteral(literal: Literal): RuntimeExpression =
+    private def processLiteral(literal: Literal): RuntimeExpression =
       literal match {
         case lit @ Literal.Number(_, _, location, _, _) =>
           val node = lit.numericValue match {
@@ -1840,7 +1839,7 @@ class IrToTruffle(
       * @param error the IR representing a compile error.
       * @return a runtime node representing the error.
       */
-    def processError(error: Error): RuntimeExpression = {
+    private def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
         case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
@@ -1898,6 +1897,14 @@ class IrToTruffle(
           )
       }
       setLocation(ErrorNode.build(payload), error.location)
+    }
+
+    /** Processes an empty expression.
+      *
+      * @return the Nothing builtin
+      */
+    private def processEmpty(): RuntimeExpression = {
+      ConstantObjectNode.build(context.getBuiltins.nothing())
     }
 
     /** Processes function arguments, generates arguments reads and creates

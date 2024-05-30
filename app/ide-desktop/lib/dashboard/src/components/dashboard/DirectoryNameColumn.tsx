@@ -43,7 +43,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.directory) {

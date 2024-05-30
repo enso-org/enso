@@ -65,7 +65,7 @@ ensure_duration object ~action =
 ## Represents the amount of time between two points in time.
 @Builtin_Type
 type Duration
-    ## ICON date_and_time
+    ## ICON time
        Create an interval representing the duration between two points in time.
 
        Arguments:
@@ -86,7 +86,7 @@ type Duration
         between_builtin start_inclusive end_exclusive timezone_aware
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Create a duration from time units.
 
        Arguments:
@@ -106,7 +106,7 @@ type Duration
     new (hours : Integer = 0) (minutes : Integer = 0) (seconds : Integer = 0) (milliseconds : Integer = 0) (nanoseconds : Integer = 0) =
         new_builtin hours minutes seconds milliseconds nanoseconds
 
-    ## ICON date_and_time
+    ## ICON time
        Create a zero (empty) duration.
        > Example
          Folding a vector of durations.
@@ -119,7 +119,7 @@ type Duration
     zero = Duration.new
 
     ## ADVANCED
-       ICON date_and_time
+       ICON time
 
        Time the evaluation of a function, return a Pair of Duration and Result
 
@@ -135,7 +135,7 @@ type Duration
 
     ## ALIAS add duration
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Add the specified amount of time to this duration.
 
        Arguments:
@@ -162,7 +162,7 @@ type Duration
 
     ## ALIAS subtract duration
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Subtract the specified amount of time from this duration.
 
        Arguments:

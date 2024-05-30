@@ -21,6 +21,10 @@ export const PRODUCT_NAME = 'Enso'
 /** Company name, used as the copyright holder. */
 export const COMPANY_NAME = 'New Byte Order sp. z o.o.'
 
+/** The domain on which the Cloud Dashboard web app is hosted.
+ * Excludes the protocol (`https://`). */
+export const CLOUD_DASHBOARD_DOMAIN = 'cloud.enso.org'
+
 /** @type {[header: string, value: string][]}
  * COOP, COEP, and CORP headers: https://web.dev/coop-coep/
  *
