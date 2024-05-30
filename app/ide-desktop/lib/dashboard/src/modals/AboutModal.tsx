@@ -79,16 +79,14 @@ export default function AboutModal() {
                 ? getText('appNameDesktopEdition')
                 : getText('appNameCloudEdition')}
             </div>
-            <table>
+            <table className="w-full table-fixed">
               <tbody ref={textContainerRef}>
                 {versionsEntries.map(entry => {
                   const [textId, version] = entry
                   return (
                     <tr key={textId}>
-                      <td className="whitespace-nowrap pr-cell-x align-text-top">
-                        {getText(textId)}
-                      </td>
-                      <td>{version}</td>
+                      <td className="w-20 whitespace-nowrap align-text-top">{getText(textId)}</td>
+                      <td className="break-words">{version}</td>
                     </tr>
                   )
                 })}
