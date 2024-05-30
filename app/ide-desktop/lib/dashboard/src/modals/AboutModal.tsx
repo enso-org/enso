@@ -1,6 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import LogoIcon from 'enso-assets/enso_logo.svg'
 
 import type * as text from '#/text'
@@ -79,16 +81,14 @@ export default function AboutModal() {
                 ? getText('appNameDesktopEdition')
                 : getText('appNameCloudEdition')}
             </div>
-            <table>
+            <table className="w-full table-fixed">
               <tbody ref={textContainerRef}>
                 {versionsEntries.map(entry => {
                   const [textId, version] = entry
                   return (
                     <tr key={textId}>
-                      <td className="whitespace-nowrap pr-cell-x align-text-top">
-                        {getText(textId)}
-                      </td>
-                      <td>{version}</td>
+                      <td className="w-20 whitespace-nowrap align-text-top">{getText(textId)}</td>
+                      <td className="break-words">{version}</td>
                     </tr>
                   )
                 })}
