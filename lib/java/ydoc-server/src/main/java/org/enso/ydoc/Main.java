@@ -15,7 +15,7 @@ public class Main {
 
     Sampling.init();
 
-    try (var ydoc = new Ydoc.Builder().build()) {
+    try (var ydoc = Ydoc.builder().build()) {
       ydoc.start();
       lock.acquire();
     }
