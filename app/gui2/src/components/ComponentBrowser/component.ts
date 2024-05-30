@@ -70,11 +70,14 @@ export function labelOfEntry(
 }
 
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
-  return {
-    label:
-      labelInfo.matchedAlias ? `${labelInfo.matchedAlias} (${labelInfo.label})` : labelInfo.label,
-    matchedRanges: labelInfo.matchedRanges,
-  }
+  const shift = labelInfo.label.length + 2
+  const shiftRange = (range: Range) => new Range(range.start + shift, range.end + shift)
+  return !labelInfo.matchedAlias ?
+      { label: labelInfo.label, matchedRanges: labelInfo.matchedRanges }
+    : {
+        label: `${labelInfo.label} (${labelInfo.matchedAlias})`,
+        matchedRanges: labelInfo.matchedRanges?.map(shiftRange),
+      }
 }
 
 export interface MatchedSuggestion {

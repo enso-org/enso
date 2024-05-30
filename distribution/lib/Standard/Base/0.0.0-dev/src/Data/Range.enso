@@ -15,6 +15,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate
+from project.Metadata import Display, Widget
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -60,7 +61,7 @@ type Range
                 Range.Between self.start self.end self.step.signum*new_step
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the first element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range is empty.
@@ -68,7 +69,7 @@ type Range
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the second element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range has less than two elements.
@@ -103,7 +104,7 @@ type Range
         if exact_fit then steps else steps+1
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets an element from the Range at a specified index (0-based).
 
        Arguments:
@@ -120,11 +121,13 @@ type Range
          Get the last element of a range with step.
 
             0.up_to 10 . with_step 2 . get -1 == 8
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-    ## Gets an element from the Range at a specified index (0-based).
+    ## ICON parse3
+       Gets an element from the Range at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
        Arguments:
@@ -132,8 +135,9 @@ type Range
          also allowed be negative, then the elements are indexed from the back,
          i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         len = self.length
         used_index = if index < 0 then len + index else index
         if used_index >= 0 && used_index < len then self.start + used_index * self.step else
@@ -163,7 +167,7 @@ type Range
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element in the range, producing a vector of
        results.
 
@@ -300,7 +304,8 @@ type Range
                     @Tail_Call go ix+1 current+self.step
             go 0 self.start
 
-    ## Combines all the elements of the range, by iteratively applying the
+    ## ICON transform4
+       Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
        Arguments:
@@ -328,7 +333,7 @@ type Range
                     @Tail_Call go new_acc current+self.step
             go init self.start
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the range, by iteratively applying the
        passed function with the next element of the range. After each step the
        value is stored resulting in a new Vector of the same size as self.
@@ -530,9 +535,8 @@ type Range
              1.up_to 6 . to_vector
     to_vector : Vector Integer
     to_vector self =
-        proxy = Array_Proxy.new self.length self.at
+        proxy = Array_Proxy.new self.length (self.at _)
         Vector.from_polyglot_array proxy
-
 
     ## ICON preparation
        Combines all the elements of a non-empty range using a binary operation.

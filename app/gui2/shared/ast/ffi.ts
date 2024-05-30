@@ -19,6 +19,7 @@ export function xxHash128(input: IDataType) {
 }
 
 export async function initializeFFI(path?: string | undefined) {
+  if (xxHasher128 != null) return
   if (isNode) {
     const fs = await import('node:fs/promises')
     const { fileURLToPath, URL: nodeURL } = await import('node:url')

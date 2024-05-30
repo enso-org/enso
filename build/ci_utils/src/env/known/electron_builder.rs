@@ -46,7 +46,18 @@ define_env_var! {
     CSC_FOR_PULL_REQUEST, bool;
 }
 
-
+/// Environment variables set from CI-provided secrets that allow code signing.
+///
+/// These variables might be set to empty strings if the secrets are not available in the CI.
+pub const CI_CSC_SECRETS: &[&str] = &[
+    WIN_CSC_LINK.name,
+    WIN_CSC_KEY_PASSWORD.name,
+    CSC_LINK.name,
+    CSC_KEY_PASSWORD.name,
+    APPLEID.name,
+    APPLEIDPASS.name,
+    APPLETEAMID.name,
+];
 
 /// CSC (Code Signing Certificate) link.
 ///
@@ -86,6 +97,8 @@ impl CscLink {
     /// Create a new certificate file from the environment variable.
     pub fn new_from_env() -> Result<Self> {
         let csc_link = WIN_CSC_LINK.get().or_else(|_| CSC_LINK.get())?;
+        // When secret is not available, we might get a variable with an empty value.
+        ensure!(!csc_link.is_empty(), "CSC link is empty.");
         Self::from_str(&csc_link)
     }
 }

@@ -24,12 +24,13 @@ import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
 type Array
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets an element from the array at a specified index (0-based).
 
        Arguments:
@@ -46,8 +47,9 @@ type Array
          Get the last element of an array.
 
              [1, 2, 3].to_array.at -1 == 3
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = Array_Like_Helpers.at self index
+    at self index:Integer=0 = Array_Like_Helpers.at self index
 
     ## GROUP Metadata
        ICON metadata
@@ -87,7 +89,6 @@ type Array
          two incomparable values are encountered.
 
        By default, elements are sorted in ascending order.
-
 
        This is a stable sort, meaning that items that compare the same will not
        have their order changed by the sorting process.
@@ -149,9 +150,9 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Selections
-       ICON select_row
+       ICON parse3
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -165,9 +166,9 @@ type Array
     take self range=(Index_Sub_Range.First 1) =
         Array_Like_Helpers.take self range
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Selections
-       ICON select_row
+       ICON parse3
        Creates a new `Vector`, removing any elements from the specified range.
 
        Arguments:
@@ -213,7 +214,7 @@ type Array
     remove self at=-1 = Array_Like_Helpers.remove self at
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
 
@@ -225,7 +226,7 @@ type Array
     first self = self.at 0
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the second element from the array, or a `Index_Out_Of_Bounds` if the
        array doesn't have a second element.
 
@@ -343,7 +344,27 @@ type Array
     distinct : (Any -> Any) -> Vector Any
     distinct self (on = x->x) = Array_Like_Helpers.distinct self on
 
-    ## ICON dataframe_map_column
+    ## ALIAS duplicates
+       GROUP Selections
+       ICON preparation
+       Returns only non-unique elements within the array.
+
+       Arguments:
+       - on: A projection from the element type to the value of that element
+             which determines the uniqueness criteria.
+
+       The returned duplicate elements are kept in the same order as the
+       first duplicate appeared in the input.
+
+       > Example
+         Removing repeating entries.
+
+             [1, 3, 1, 2, 2, 1].to_array . duplicates == [1, 2].to_array
+    duplicates : (Any -> Any) -> Vector Any
+    duplicates self (on = x->x) =
+        Array_Like_Helpers.duplicates self on
+
+    ## ICON column_add
        Applies a function to each element of the array, returning the `Vector` of
        results.
 
@@ -382,7 +403,7 @@ type Array
     map self function on_problems=Problem_Behavior.Report_Error =
         Array_Like_Helpers.map self function on_problems
 
-    ## ICON dataframes_union
+    ## ICON union
        Applies a function to each element of the array, returning the `Vector`
        that contains all results concatenated.
 
@@ -441,7 +462,7 @@ type Array
     filter self (filter : Filter_Condition | (Any -> Boolean)) = Array_Like_Helpers.filter self filter
 
     ## GROUP Calculations
-       ICON dataframes_union
+       ICON union
        Transforms an array of arrays into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested arrays.
 
@@ -458,7 +479,7 @@ type Array
     short_display_text self max_entries=10 =
         Array_Like_Helpers.short_display_text self max_entries
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the array, by iteratively applying the
        passed function with the next element of the array. After each step the
        value is stored resulting in a new array of the same size as self.
@@ -475,7 +496,7 @@ type Array
     running_fold self init function =
         Array_Like_Helpers.running_fold self init function
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the array, by iteratively applying the
        passed function with next elements of the array.
 
@@ -496,7 +517,7 @@ type Array
     fold self init function =
         Array_Like_Helpers.fold self init function
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the array, by iteratively applying the
        passed function with next elements of the array.
 
@@ -514,7 +535,7 @@ type Array
         Array_Like_Helpers.fold_with_index self init function
 
     ## GROUP Calculations
-       ICON dataframes_union
+       ICON union
        Extend `self` array to the length of `n` appending elements `elem` to
        the end.
 
@@ -538,7 +559,7 @@ type Array
     pad self n elem = Array_Like_Helpers.pad self n elem
 
     ## GROUP Selections
-       ICON split_text
+       ICON split
        Partitions the array into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -591,7 +612,7 @@ type Array
         Array_Like_Helpers.partition_with_index self predicate
 
     ## GROUP Selections
-       ICON dataframe_map_row
+       ICON map_row
        Swaps the rows and columns of a matrix represented by an array of arrays.
 
        ! Error Conditions
@@ -626,7 +647,7 @@ type Array
     transpose self =
         Array_Like_Helpers.transpose self
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element of the array, returning the `Vector`
        of results.
 
@@ -705,7 +726,7 @@ type Array
     find self (condition : Filter_Condition | (Any -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         Array_Like_Helpers.find self condition start if_missing
 
-    ## ICON select_row
+    ## ICON parse3
        Gets an element from the array at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
@@ -714,8 +735,9 @@ type Array
          also allowed be negative, then the elements are indexed from the back
          of the array, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         Array_Like_Helpers.get self index if_missing
 
     ## GROUP Logical
@@ -773,7 +795,7 @@ type Array
     to_display_text : Text
     to_display_text self = self.short_display_text max_entries=40
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of a non-empty array using a binary operation.
        If the array is empty, it returns `if_empty`.
 
@@ -847,7 +869,7 @@ type Array
 
     ## ALIAS combine, join by row position, merge
        GROUP Calculations
-       ICON dataframes_join
+       ICON join2-1
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -956,7 +978,7 @@ type Array
 
     ## ALIAS append, concatenate, union
        GROUP Operators
-       ICON dataframes_union
+       ICON union
        Concatenates two arrays, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 

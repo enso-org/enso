@@ -23,8 +23,6 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 /** Props for an {@link EditableSpan}. */
 export interface EditableSpanProps {
-  // This matches the capitalization of `data-` attributes in React.
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'data-testid'?: string
   readonly className?: string
   readonly editable?: boolean

@@ -62,7 +62,7 @@ enum ActivityLogSortableColumn {
 
 /** Settings tab for viewing and editing organization members. */
 export default function ActivityLogSettingsSection() {
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const [startDate, setStartDate] = React.useState<Date | null>(null)
   const [endDate, setEndDate] = React.useState<Date | null>(null)
@@ -191,7 +191,7 @@ export default function ActivityLogSettingsSection() {
                       ? getText('stopSortingByName')
                       : getText('sortByNameDescending')
                 }
-                className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                className="h-drive-table-heading group flex w-full items-center gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type
@@ -236,7 +236,7 @@ export default function ActivityLogSettingsSection() {
                       ? getText('stopSortingByEmail')
                       : getText('sortByEmailDescending')
                 }
-                className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                className="h-drive-table-heading group flex w-full items-center gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email
@@ -281,7 +281,7 @@ export default function ActivityLogSettingsSection() {
                       ? getText('stopSortingByTimestamp')
                       : getText('sortByTimestampDescending')
                 }
-                className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                className="h-drive-table-heading group flex w-full items-center gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp

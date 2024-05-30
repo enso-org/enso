@@ -13,7 +13,7 @@ test('node can open and load visualization', async ({ page }) => {
   await locate.toggleVisualizationButton(page).click()
   await expect(locate.anyVisualization(page)).toExist()
   await expect(locate.loadingVisualization(page)).toHaveCount(0)
-  await locate.showVisualizationSelectorButton(page).click()
+  await locate.toggleVisualizationSelectorButton(page).click()
   await page.getByText('JSON').click()
   const vis = locate.jsonVisualization(page)
   await expect(vis).toExist()
@@ -38,7 +38,7 @@ test('Warnings visualization', async ({ page }) => {
   await locate.toggleVisualizationButton(page).click()
   await expect(locate.anyVisualization(page)).toExist()
   await expect(locate.loadingVisualization(page)).toHaveCount(0)
-  await locate.showVisualizationSelectorButton(page).click()
+  await locate.toggleVisualizationSelectorButton(page).click()
   await page.locator('.VisualizationSelector').getByRole('button', { name: 'Warnings' }).click()
   await expect(locate.warningsVisualization(page)).toExist()
   // Click the remove-warnings button, and ensure a node is created.

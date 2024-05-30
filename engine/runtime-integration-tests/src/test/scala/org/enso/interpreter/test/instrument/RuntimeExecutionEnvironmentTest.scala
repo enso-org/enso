@@ -304,6 +304,24 @@ class RuntimeExecutionEnvironmentTest
       .Design()
       .name
 
+    // setting execution environment to the existing one has no effect
+    context.send(
+      Api.Request(
+        requestId,
+        Api.SetExecutionEnvironmentRequest(
+          contextId,
+          Api.ExecutionEnvironment.Design()
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId))
+    )
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
+
     // set execution environment
     context.send(
       Api.Request(

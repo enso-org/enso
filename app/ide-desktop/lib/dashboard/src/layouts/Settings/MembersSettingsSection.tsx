@@ -1,43 +1,223 @@
-/** @file Settings tab for viewing and editing organization members. */
+/** @file Settings section for viewing and editing organization members. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/ModalProvider'
+import * as reactQuery from '@tanstack/react-query'
+
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import MembersTable from '#/layouts/Settings/MembersTable'
-
-import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
+
+import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
+
+// =================
+// === Constants ===
+// =================
+
+const LIST_USERS_STALE_TIME = 60_000
 
 // ==============================
 // === MembersSettingsSection ===
 // ==============================
 
 /** Settings tab for viewing and editing organization members. */
-export default function MembersSettingsSection() {
+export default function MembersSettingsTab() {
   const { getText } = textProvider.useText()
-  const { setModal } = modalProvider.useSetModal()
+  const { backend } = backendProvider.useStrictBackend()
+
+  const [{ data: members }, { data: invitations }] = reactQuery.useSuspenseQueries({
+    queries: [
+      {
+        queryKey: ['listUsers'],
+        queryFn: () => backend.listUsers(),
+        staleTime: LIST_USERS_STALE_TIME,
+      },
+      {
+        queryKey: ['listInvitations'],
+        queryFn: () => backend.listInvitations(),
+        staleTime: LIST_USERS_STALE_TIME,
+      },
+    ],
+  })
 
   return (
     <>
       <HorizontalMenuBar>
-        <UnstyledButton
-          className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-          onPress={event => {
-            const rect = event.target.getBoundingClientRect()
-            const position = { pageX: rect.left, pageY: rect.top }
-            setModal(<InviteUsersModal event={position} />)
-          }}
-        >
-          <aria.Text className="text whitespace-nowrap font-semibold">
+        <ariaComponents.DialogTrigger>
+          <ariaComponents.Button variant="cancel" rounded="full" size="small">
             {getText('inviteMembers')}
-          </aria.Text>
-        </UnstyledButton>
+          </ariaComponents.Button>
+
+          <InviteUsersModal />
+        </ariaComponents.DialogTrigger>
       </HorizontalMenuBar>
-      <MembersTable allowDelete />
+
+      <table className="table-fixed self-start rounded-rows">
+        <thead>
+          <tr className="h-row">
+            <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+              {getText('name')}
+            </th>
+            <th className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+              {getText('status')}
+            </th>
+          </tr>
+        </thead>
+        <tbody className="select-text">
+          {members.map(member => (
+            <tr key={member.email} className="group h-row rounded-rows-child">
+              <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <span className="block text-sm">{member.email}</span>
+                <span className="block text-xs text-primary/50">{member.name}</span>
+              </td>
+              <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <div className="flex flex-col">
+                  {getText('active')}
+                  <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                    <RemoveMemberButton backend={backend} email={member.email} />
+                  </ariaComponents.ButtonGroup>
+                </div>
+              </td>
+            </tr>
+          ))}
+
+          {invitations.map(invitation => (
+            <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
+              <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <span className="block text-sm">{invitation.userEmail}</span>
+              </td>
+              <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <div className="flex flex-col">
+                  {getText('pendingInvitation')}
+                  <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                    <ariaComponents.CopyButton
+                      size="custom"
+                      copyText={`enso://auth/registration?organization_id=${invitation.organizationId}`}
+                      aria-label={getText('copyInviteLink')}
+                      copyIcon={false}
+                    >
+                      {getText('copyInviteLink')}
+                    </ariaComponents.CopyButton>
+
+                    <ResendInvitationButton invitation={invitation} backend={backend} />
+
+                    <RemoveInvitationButton backend={backend} email={invitation.userEmail} />
+                  </ariaComponents.ButtonGroup>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </>
+  )
+}
+
+/**
+ * Props for the ResendInvitationButton component.
+ */
+interface ResendInvitationButtonProps {
+  readonly invitation: backendModule.Invitation
+  readonly backend: Backend
+}
+
+/**
+ * Button for resending an invitation.
+ */
+function ResendInvitationButton(props: ResendInvitationButtonProps) {
+  const { invitation, backend } = props
+
+  const { getText } = textProvider.useText()
+  const resendMutation = reactQuery.useMutation({
+    mutationKey: ['resendInvitation', invitation.userEmail],
+    mutationFn: (email: backendModule.EmailAddress) => backend.resendInvitation(email),
+  })
+
+  return (
+    <ariaComponents.Button
+      variant="icon"
+      size="custom"
+      loading={resendMutation.isPending}
+      onPress={() => {
+        resendMutation.mutate(invitation.userEmail)
+      }}
+    >
+      {getText('resend')}
+    </ariaComponents.Button>
+  )
+}
+
+/**
+ * Props for the RemoveMemberButton component.
+ */
+interface RemoveMemberButtonProps {
+  readonly email: backendModule.EmailAddress
+  readonly backend: Backend
+}
+
+/**
+ * Action button for removing a member.
+ */
+function RemoveMemberButton(props: RemoveMemberButtonProps) {
+  const { email } = props
+  const { getText } = textProvider.useText()
+
+  const queryClient = reactQuery.useQueryClient()
+
+  const removeMutation = reactQuery.useMutation({
+    mutationKey: ['removeUser', email],
+    mutationFn: async () => {
+      // TODO: Implement remove member mutation
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['listUsers'],
+      }),
+  })
+
+  return (
+    <ariaComponents.Button
+      variant="icon"
+      size="custom"
+      onPress={() => removeMutation.mutateAsync()}
+    >
+      {getText('remove')}
+    </ariaComponents.Button>
+  )
+}
+
+/**
+ * Action button for removing an invitation.
+ */
+function RemoveInvitationButton(props: RemoveMemberButtonProps) {
+  const { backend, email } = props
+
+  const { getText } = textProvider.useText()
+  const queryClient = reactQuery.useQueryClient()
+
+  const removeMutation = reactQuery.useMutation({
+    mutationKey: ['resendInvitation', email],
+    mutationFn: () => backend.deleteInvitation(email),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['listInvitations'],
+      }),
+  })
+
+  return (
+    <ariaComponents.Button
+      variant="icon"
+      size="custom"
+      loading={removeMutation.isPending}
+      onPress={() => {
+        removeMutation.mutate()
+      }}
+    >
+      {getText('remove')}
+    </ariaComponents.Button>
   )
 }

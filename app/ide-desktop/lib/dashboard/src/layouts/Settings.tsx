@@ -36,11 +36,12 @@ export default function Settings() {
   const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
-    (value): value is SettingsTabType => array.includes(Object.values(SettingsTabType), value)
+    array.includesPredicate(Object.values(SettingsTabType))
   )
+
   const { type: sessionType, user, accessToken } = authProvider.useNonPartialUserSession()
   const { setUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setSearchBar, unsetSearchBar } = searchBarProvider.useSetSearchBar('Settings')

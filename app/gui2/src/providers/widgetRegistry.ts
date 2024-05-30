@@ -205,12 +205,20 @@ export interface WidgetOptions<T extends WidgetInput> {
   // A list of widget kinds that will be prevented from being used on the same node as this widget,
   // once this widget is used.
   prevent?: WidgetComponent<any>[]
+  /** If false, this widget will be matched only when at least one another widget is guaranteed to
+   * be matched for the same input. `true` by default.
+   *
+   * The widget marked with `false` *must* have a child with the same input,
+   * otherwise it can be selected as leaf.
+   *
+   * It can be useful for widgets that wrap other widgets, but shouldn’t be selected when
+   * no child widget is ever selected. One particular example is `WidgetSelectionArrow`.
+   */
+  allowAsLeaf?: boolean
 }
 
 export interface WidgetDefinition<T extends WidgetInput> {
-  /** The priority number determining the order in which the widgets are matched. Smaller numbers
-   * have higher priority, and are matched first.
-   */
+  /** See {@link WidgetOptions.priority} */
   priority: number
   /**
    * Filter the widget input type to only accept specific types of input. The declared widget props
@@ -218,16 +226,12 @@ export interface WidgetDefinition<T extends WidgetInput> {
    * will be scored and potentially used.
    */
   match: (input: WidgetInput) => input is T
-  /**
-   * Score how well this widget type matches current {@link WidgetProps}, e.g. checking if AST node
-   * or declaration type matches specific patterns. When this method returns
-   * {@link Score::Mismatch}, this widget component will not be used.
-   *
-   * When a static score value is provided, it will be used for all inputs that pass the input
-   * filter. When not provided, the widget will be considered a perfect match for all inputs that
-   */
+  /** See {@link WidgetOptions.score} */
   score: (props: WidgetProps<T>, db: GraphDb) => Score
+  /** See {@link WidgetOptions.prevent} */
   prevent: WidgetComponent<any>[] | undefined
+  /** See {@link WidgetOptions.allowAsLeaf}. */
+  allowAsLeaf: boolean
 }
 
 export interface WidgetModule<T extends WidgetInput> {
@@ -281,6 +285,7 @@ export function defineWidget<M extends InputMatcher<any> | InputMatcher<any>[]>(
     match: makeInputMatcher<InputTy<M>>(matchInputs),
     score,
     prevent: definition.prevent,
+    allowAsLeaf: definition.allowAsLeaf ?? true,
   }
 
   if (import.meta.hot && hmr) {
@@ -363,6 +368,7 @@ export class WidgetRegistry {
     // The type and score of the best widget found so far.
     let best: WidgetModule<T> | undefined = undefined
     let bestScore = Score.Mismatch
+    let foundLeafMatch = false
 
     // Iterate over all loaded widget kinds in order of decreasing priority.
     for (const widgetModule of this.sortedModules.value) {
@@ -374,13 +380,25 @@ export class WidgetRegistry {
 
       // Perform a match and update the best widget if the match is better than the previous one.
       const score = widgetModule.widgetDefinition.score(props, this.db)
-      // If we found a perfect match, we can return immediately, as there can be no better match.
-      if (score === Score.Perfect) return widgetModule
+      if (score > Score.Mismatch) {
+        foundLeafMatch ||= widgetModule.widgetDefinition.allowAsLeaf
+      }
       if (score > bestScore) {
         bestScore = score
         best = widgetModule
       }
+
+      // If we found a perfect match, we can return immediately, as there can be no better match.
+      // We don’t care if this match allows being a leaf or not – we already know
+      // there are other matched widgets without this restriction.
+      if (bestScore === Score.Perfect && foundLeafMatch) {
+        return best
+      }
     }
+
+    // We didn’t find any widget that supports being a leaf, we can’t select any.
+    if (!foundLeafMatch) return undefined
+
     return best
   }
 }

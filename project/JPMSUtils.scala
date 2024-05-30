@@ -1,6 +1,6 @@
 import JPMSPlugin.autoImport.javaModuleName
-import sbt.*
-import sbt.Keys.*
+import sbt._
+import sbt.Keys._
 import sbt.internal.inc.{CompileOutput, PlainVirtualFile}
 import sbt.util.CacheStore
 import sbtassembly.Assembly.{Dependency, JarEntry, Project}
@@ -115,14 +115,13 @@ object JPMSUtils {
     foundFiles
   }
 
-  def filterTruffleAndGraalArtifacts(
-    classPath: Def.Classpath
+  def filterArtifacts(
+    classPath: Def.Classpath,
+    predicates: String*
   ): Def.Classpath = {
-    val truffleRelatedArtifacts = classPath
-      .filter(file =>
-        file.data.getPath.contains("graalvm") || file.data.getPath.contains(
-          "truffle"
-        )
+    val truffleRelatedArtifacts =
+      classPath.filter(file =>
+        predicates.exists(p => file.data.getPath.contains(p))
       )
     truffleRelatedArtifacts
   }

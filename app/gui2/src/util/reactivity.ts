@@ -1,6 +1,7 @@
 /** @file Functions for manipulating Vue reactive objects. */
 
 import { defaultEquality } from '@/util/equals'
+import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
 import {
   callWithErrorHandling,
@@ -11,8 +12,11 @@ import {
   queuePostFlushCb,
   shallowRef,
   watch,
+  type ComputedRef,
+  type MaybeRefOrGetter,
   type Ref,
   type WatchSource,
+  type WritableComputedRef,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -51,8 +55,9 @@ export class LazySyncEffectSet {
         let cleanup: (() => void) | null = null
         const callCleanup = () => {
           if (cleanup != null) {
-            callWithErrorHandling(cleanup, null, 4 /* ErrorCodes.WATCH_CLEANUP */)
+            const tmpCleanup = cleanup
             cleanup = null
+            callWithErrorHandling(tmpCleanup, null, 4 /* ErrorCodes.WATCH_CLEANUP */)
           }
         }
         function onCleanup(fn: () => void) {
@@ -131,23 +136,23 @@ export function cachedGetter<T>(
 
 /**
  * Same as `cachedGetter`, except that any changes will be not applied immediately, but only after
- * the timer set for `delayMs` milliseconds will expire. If any further update arrives in that
- * time, the timer is restarted
+ * the timer set for `debounce` milliseconds will expire. If any further update arrives in that
+ * time, the timer is restarted.
  */
 export function debouncedGetter<T>(
   getter: () => T,
-  delayMs: number,
+  debounce: number,
   equalFn: (a: T, b: T) => boolean = defaultEquality,
 ): Ref<T> {
   const valueRef = shallowRef<T>(getter())
-  let currentTimer: ReturnType<typeof setTimeout> | undefined
-  watch(getter, (newValue) => {
-    clearTimeout(currentTimer)
-    currentTimer = setTimeout(() => {
+  debouncedWatch(
+    getter,
+    (newValue) => {
       const oldValue = valueRef.value
       if (!equalFn(oldValue, newValue)) valueRef.value = newValue
-    }, delayMs)
-  })
+    },
+    { debounce },
+  )
   return valueRef
 }
 
@@ -155,4 +160,21 @@ export function debouncedGetter<T>(
 export function syncSet<T>(target: Set<T>, newState: Set<T>) {
   for (const oldKey of target) if (!newState.has(oldKey)) target.delete(oldKey)
   for (const newKey of newState) if (!target.has(newKey)) target.add(newKey)
+}
+
+/** Type of the parameter of `toValue`. */
+export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+
+/**
+ * A writable proxy computed value that reads a fallback value in case the base is `undefined`.
+ * Useful for cases where we have a user-overridable behavior with a computed default.
+ */
+export function computedFallback<T>(
+  base: Ref<T | undefined>,
+  fallback: () => T,
+): WritableComputedRef<T> {
+  return computed({
+    get: () => base.value ?? fallback(),
+    set: (val: T) => (base.value = val),
+  })
 }

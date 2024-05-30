@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+import project.Network.URI.URI
 
 ## PRIVATE
    Error if the user is not logged into Enso Cloud.
@@ -27,7 +28,7 @@ type Cloud_Session_Expired
 type Enso_Cloud_Error
     ## PRIVATE
        An unhandled error response from Enso Cloud.
-    Unexpected_Service_Error (status_code : HTTP_Status_Code) (payload : Text)
+    Unexpected_Service_Error (uri : URI) (status_code : HTTP_Status_Code) (payload : Text)
 
     ## PRIVATE
        An error response from Enso Cloud that could not be parsed.
@@ -44,10 +45,14 @@ type Enso_Cloud_Error
     ## PRIVATE
     to_display_text : Text
     to_display_text self = case self of
-        Enso_Cloud_Error.Unexpected_Service_Error status_code payload -> "Unexpected error response from Enso Cloud: " + status_code.to_text + ": " + payload
-        Enso_Cloud_Error.Invalid_Response_Payload cause -> "Internal error: A response from Enso Cloud could not be parsed: " + cause.to_display_text
-        Enso_Cloud_Error.Unauthorized -> "Enso Cloud credentials file was found, but the service responded with 401 Unauthorized. You may try logging in again and restarting the workflow."
-        Enso_Cloud_Error.Connection_Error cause -> "Error connecting to Enso Cloud: " + cause.to_display_text
+        Enso_Cloud_Error.Unexpected_Service_Error uri status_code payload ->
+            "Unexpected error response from Enso Cloud: endpoint " + uri.to_text + " replied with status " + status_code.to_text + ": " + payload
+        Enso_Cloud_Error.Invalid_Response_Payload cause ->
+            "Internal error: A response from Enso Cloud could not be parsed: " + cause.to_display_text
+        Enso_Cloud_Error.Unauthorized ->
+            "Enso Cloud credentials file was found, but the service responded with Unauthorized. You may try logging in again and restarting the workflow."
+        Enso_Cloud_Error.Connection_Error cause ->
+            "Error connecting to Enso Cloud: " + cause.to_display_text
 
 ## PRIVATE
 type Missing_Data_Link_Library

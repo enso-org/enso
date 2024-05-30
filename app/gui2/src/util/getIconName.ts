@@ -6,28 +6,6 @@ import {
 import type { Icon } from '@/util/iconName'
 import type { MethodPointer } from 'shared/languageServerTypes'
 
-const oldIconNameToNewIconNameLookup: Record<string, Icon> = {
-  /* eslint-disable camelcase */
-  dataframe_clean: 'table_clean',
-  dataframe_map_row: 'map_row',
-  dataframe_map_column: 'column_add',
-  dataframes_join: 'join2-1',
-  dataframes_union: 'union',
-  sigma: 'transform4',
-  io: 'in_out',
-  date_and_time: 'time',
-  spatial: 'location',
-  predictive: 'predict',
-  machine_learning: 'robot',
-  split_text: 'split',
-  /* eslint-enable camelcase */
-}
-
-export function mapOldIconName(oldIconName: string): Icon {
-  const mappedName = oldIconNameToNewIconNameLookup[oldIconName] ?? oldIconName
-  return mappedName as Icon
-}
-
 const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Text.Text': 'text_input',
   'Standard.Base.Data.Numbers.Integer': 'input_number',
@@ -39,8 +17,17 @@ const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day': 'time',
 }
 
+export const DEFAULT_ICON = 'enso_logo'
+
 export function typeNameToIcon(typeName: string): Icon {
-  return typeNameToIconLookup[typeName] ?? 'enso_logo'
+  return typeNameToIconLookup[typeName] ?? DEFAULT_ICON
+}
+
+export function suggestionEntryToIcon(entry: SuggestionEntry) {
+  if (entry.iconName) return entry.iconName
+  if (entry.kind === SuggestionKind.Local) return 'local_scope2'
+  if (entry.kind === SuggestionKind.Module) return 'collection'
+  return DEFAULT_ICON
 }
 
 export function displayedIconOf(
@@ -49,9 +36,10 @@ export function displayedIconOf(
   actualType?: Typename,
 ): Icon {
   if (entry) {
-    if (entry.iconName) return mapOldIconName(entry.iconName)
-    if (entry.kind === SuggestionKind.Local) return 'local_scope2'
-    if (entry.kind === SuggestionKind.Module) return 'collection'
-  } else if (!methodCall?.name && actualType) return typeNameToIcon(actualType)
-  return 'enso_logo'
+    return suggestionEntryToIcon(entry)
+  } else if (!methodCall?.name && actualType) {
+    return typeNameToIcon(actualType)
+  } else {
+    return DEFAULT_ICON
+  }
 }

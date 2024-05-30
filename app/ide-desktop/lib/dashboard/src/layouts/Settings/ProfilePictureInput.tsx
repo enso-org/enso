@@ -20,7 +20,7 @@ import FocusRing from '#/components/styled/FocusRing'
 export default function ProfilePictureInput() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
 

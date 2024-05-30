@@ -271,8 +271,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
     group_builder.specify "currently does not support metadata for directories" <|
         # TODO this test should be 'reversed' and merged with above once the metadata is implemented
         dir = test_root.get / "test-directory"
-        Test.expect_panic Unimplemented dir.creation_time
-        Test.expect_panic Unimplemented dir.last_modified_time
+        dir.creation_time.should_fail_with Illegal_Argument
+        dir.last_modified_time.should_fail_with Illegal_Argument
 
     group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
         nested_file = Enso_File.root / "test-directory" / "another.txt"

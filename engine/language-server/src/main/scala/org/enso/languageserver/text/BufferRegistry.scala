@@ -38,6 +38,8 @@ import org.enso.languageserver.text.TextProtocol.{
   FileSaved,
   OpenBuffer,
   OpenFile,
+  ReadCollaborativeBuffer,
+  ReadCollaborativeBufferResult,
   SaveFailed,
   SaveFile
 }
@@ -154,6 +156,13 @@ class BufferRegistry(
         context.watch(bufferRef)
         bufferRef.forward(msg)
         context.become(running(registry + (path -> bufferRef)))
+      }
+
+    case msg @ ReadCollaborativeBuffer(path) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        sender() ! ReadCollaborativeBufferResult(None)
       }
 
     case Terminated(bufferRef) =>

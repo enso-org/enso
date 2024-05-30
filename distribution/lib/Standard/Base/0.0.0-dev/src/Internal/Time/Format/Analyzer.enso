@@ -16,7 +16,7 @@ from project.Internal.Time.Format.Parser import all
 type Analyzer
     ## PRIVATE
 
-       Fields:
+       Arguments:
        - nodes: The raw list of nodes as returned from the parser.
        - flattened: The list of nodes after flattening the optional sections and
          removing literals - so it just contains raw patterns.

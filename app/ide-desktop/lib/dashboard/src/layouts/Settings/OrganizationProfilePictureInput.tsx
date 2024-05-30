@@ -29,7 +29,7 @@ export default function OrganizationProfilePictureInput(
 ) {
   const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
 
   const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {

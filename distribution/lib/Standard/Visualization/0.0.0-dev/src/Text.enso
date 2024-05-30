@@ -31,7 +31,7 @@ get_lazy_visualization_text_window text pos size chunk_width =
     y_range = pos_y.up_to ((pos_y + size_y).min lines)
     coordinates = x_range.map (x -> y_range.map (y -> [x,y])) . flatten
     chunks = coordinates.map (ix -> [ix, (get_text_chunk ix)])
-    active_lines = y_range.map text.lines.at
+    active_lines = y_range.map (text.lines.at _)
     max_line_length = (active_lines.map (line -> line.length)).fold 0 (l -> r -> l.max r)
     make_grid_visualization_response chunks lines max_line_length
 

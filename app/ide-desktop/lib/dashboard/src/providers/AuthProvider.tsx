@@ -20,6 +20,7 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -32,7 +33,7 @@ import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
-import HttpClient, * as httpClient from '#/utilities/HttpClient'
+import HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
 import * as cognitoModule from '#/authentication/cognito'
@@ -171,9 +172,10 @@ export default function AuthProvider(props: AuthProviderProps) {
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
-  const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
+  const { setBackendWithoutSavingType } = backendProvider.useStrictSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const { unsetModal } = modalProvider.useSetModal()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
   // and the function call would error.
   // eslint-disable-next-line no-restricted-properties
@@ -249,8 +251,34 @@ export default function AuthProvider(props: AuthProviderProps) {
       platform: detect.platform(),
       architecture: detect.architecture(),
     })
+
     return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_app', 'close_app')
   }, [])
+
+  // This is a duplication of `RemoteBackendProvider`, but we cannot use it here, as it would
+  // introduce a cyclic dependency between two providers (`BackendProvider` uses `AuthProvider`).
+  // FIXME: Refactor `remoteBackend` dependant things out of the `AuthProvider`.
+  const remoteBackend = React.useMemo(() => {
+    if (session) {
+      const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
+      // eslint-disable-next-line no-restricted-syntax
+      return new RemoteBackend(client, logger, getText)
+    }
+  }, [session, getText, logger])
+
+  React.useEffect(() => {
+    if (remoteBackend) {
+      void remoteBackend.logEvent('open_app')
+      const logCloseEvent = () => void remoteBackend.logEvent('close_app')
+      window.addEventListener('beforeunload', logCloseEvent)
+      return () => {
+        window.removeEventListener('beforeunload', logCloseEvent)
+        logCloseEvent()
+      }
+    } else {
+      return
+    }
+  }, [remoteBackend])
 
   // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
   // circular dependency.
@@ -278,16 +306,6 @@ export default function AuthProvider(props: AuthProviderProps) {
     [onSessionError, /* should never change */ goOffline]
   )
 
-  React.useEffect(() => {
-    const onFetchError = () => {
-      void goOffline()
-    }
-    document.addEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
-    return () => {
-      document.removeEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
-    }
-  }, [/* should never change */ goOffline])
-
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
    * When invoked, retrieves the access token (if available) from the storage method chosen when
@@ -298,25 +316,24 @@ export default function AuthProvider(props: AuthProviderProps) {
       if (!navigator.onLine || forceOfflineMode) {
         goOfflineInternal()
         setForceOfflineMode(false)
-      } else if (session == null) {
+      } else if (session == null || remoteBackend == null) {
         setInitialized(true)
         if (!initialized) {
           sentry.setUser(null)
           setUserSession(null)
         }
       } else {
-        const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
-        const backend = new RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
-          setBackendWithoutSavingType(backend)
+          setBackendWithoutSavingType(remoteBackend)
         }
         gtagEvent('cloud_open')
+        void remoteBackend.logEvent('cloud_open')
         let user: backendModule.User | null
         while (true) {
           try {
-            user = await backend.usersMe()
+            user = await remoteBackend.usersMe()
             break
           } catch (error) {
             // The value may have changed after the `await`.
@@ -615,6 +632,8 @@ export default function AuthProvider(props: AuthProviderProps) {
       setInitialized(false)
       sentry.setUser(null)
       setUserSession(null)
+      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
+      unsetModal()
       // This should not omit success and error toasts as it is not possible
       // to render this optimistically.
       await toast.toast.promise(cognito.signOut(), {
@@ -689,6 +708,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     signOut,
     session: userSession,
     setUser,
+    remoteBackend,
   }
 
   return (
@@ -868,4 +888,14 @@ export function usePartialUserSession() {
 /** A React context hook returning the user session for a user that can perform actions. */
 export function useNonPartialUserSession() {
   return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
+}
+
+// ======================
+// === useUserSession ===
+// ======================
+
+/** A React context hook returning the user session for a user that may or may not be logged in. */
+export function useUserSession() {
+  // eslint-disable-next-line no-restricted-syntax
+  return router.useOutletContext<UserSession | undefined>()
 }

@@ -40,7 +40,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)

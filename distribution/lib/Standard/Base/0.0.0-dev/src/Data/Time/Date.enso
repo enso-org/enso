@@ -38,7 +38,7 @@ polyglot java import org.enso.base.Time_Utils
 ## PRIVATE
    Constructs a new Date from a year, month, and day.
 
-   Arguments
+   Arguments:
    - year: The year to represent.
    - month: The month-of-year to represent, from 1 (January) to 12 (December).
    - day: The day-of-month to represent, from 1 to 31. It must be valid for the
@@ -60,7 +60,7 @@ new_builtin year month day = @Builtin_Method "Date.new_builtin"
 type Date
     ## ALIAS current date, now
        GROUP DateTime
-       ICON date_and_time
+       ICON time
 
        Obtains the current date from the system clock in the system timezone.
 
@@ -72,10 +72,10 @@ type Date
     today = @Builtin_Method "Date.today"
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Constructs a new Date from a year, month, and day.
 
-       Arguments
+       Arguments:
        - year: The year to represent.
        - month: The month-of-year to represent, from 1 (January) to 12 (December).
        - day: The day-of-month to represent, from 1 to 31. It must be valid for the
@@ -310,19 +310,19 @@ type Date
             Day_Of_Week.from (Time_Utils.get_field_as_localdate self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the first date within the `Date_Period` containing self.
     start_of : Date_Period -> Date
     start_of self period=Date_Period.Month = period.adjust_start self
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the last date within the `Date_Period` containing self.
     end_of : Date_Period -> Date
     end_of self period=Date_Period.Month = period.adjust_end self
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the next date adding the `Date_Period` to self.
 
        Produces a warning for a Date that is before epoch start.
@@ -334,7 +334,7 @@ type Date
     next self period=Date_Period.Day = self + period.to_period
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the previous date subtracting the `Date_Period` from self.
 
        Produces a warning for a Date that is before epoch start.
@@ -346,7 +346,7 @@ type Date
     previous self period=Date_Period.Day = self - period.to_period
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Creates a `Period` between self and the provided end date.
 
        Produces a warning for a Date that is before epoch start.
@@ -360,7 +360,7 @@ type Date
             Period.between self end
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Counts the days between self (inclusive) and the provided end date
        (exclusive, or inclusive if include_end_date=True).
 
@@ -378,7 +378,7 @@ type Date
                 (Time_Utils.days_between self end) + if include_end_date then 1 else 0
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns a requested date part as integer.
 
        Produces a warning for a Date that is before epoch start.
@@ -393,7 +393,7 @@ type Date
             Date_Period.Day     -> self.day
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Computes a time difference between the two dates.
 
        It returns an integer expressing how many periods fit between the two
@@ -412,7 +412,7 @@ type Date
         Time_Utils.unit_date_difference period.to_java_unit self end
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Shifts the date by a specified period.
 
        Produces a warning for a Date that is before epoch start.
@@ -426,7 +426,7 @@ type Date
         Time_Utils.unit_date_add period.to_java_unit self amount
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Counts workdays between self (inclusive) and the provided end date
        (exclusive).
 
@@ -494,7 +494,7 @@ type Date
 
     ## ALIAS add period
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Add the specified amount of time to this instant to get another date.
 
        Arguments:
@@ -524,7 +524,7 @@ type Date
 
     ## ALIAS date range
        GROUP Input
-       ICON date_and_time
+       ICON time
        Creates an increasing range of dates from `self` to `end`.
 
        Arguments:
@@ -551,7 +551,7 @@ type Date
 
     ## ALIAS date range
        GROUP Input
-       ICON date_and_time
+       ICON time
        Creates a decreasing range of dates from `self` to `end`.
 
        Arguments:
@@ -575,7 +575,7 @@ type Date
         if step == Date_Period.Day then day_range else day_range.with_step step
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Shift the date by the specified amount of business days.
 
        For the purpose of this method, the business days are defined to be
@@ -700,7 +700,7 @@ type Date
 
     ## ALIAS subtract period
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Subtract the specified amount of time from this instant to get another
        date.
 

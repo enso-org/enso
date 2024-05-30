@@ -1,6 +1,6 @@
 /** @file Shortcuts for the dashboard application. */
 
-import AddConnectorIcon from 'enso-assets/add_connector.svg'
+import AddDatalinkIcon from 'enso-assets/add_datalink.svg'
 import AddFolderIcon from 'enso-assets/add_folder.svg'
 import AddKeyIcon from 'enso-assets/add_key.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
@@ -14,6 +14,7 @@ import CopyIcon from 'enso-assets/copy.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
+import LogoIcon from 'enso-assets/enso_logo.svg'
 import OpenIcon from 'enso-assets/open.svg'
 import PasteIcon from 'enso-assets/paste.svg'
 import PenIcon from 'enso-assets/pen.svg'
@@ -80,10 +81,10 @@ export const BINDINGS = inputBindings.defineBindings({
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+N'] : ['Mod+Alt+N', 'Mod+Alt+~'],
     icon: AddKeyIcon,
   },
-  newDataLink: {
-    name: 'New Data Link',
+  newDatalink: {
+    name: 'New Datalink',
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+Shift+N'] : ['Mod+Alt+Shift+N', 'Mod+Alt+Shift+~'],
-    icon: AddConnectorIcon,
+    icon: AddDatalinkIcon,
   },
   useInNewProject: {
     name: 'Use In New Project',
@@ -119,5 +120,11 @@ export const BINDINGS = inputBindings.defineBindings({
     bindings: detect.isOnMacOS() ? ['Mod+ArrowRight', 'Mod+]'] : ['Alt+ArrowRight'],
     rebindable: true,
     icon: ArrowRightIcon,
+  },
+  aboutThisApp: {
+    name: 'About Enso',
+    bindings: ['Mod+/'],
+    rebindable: true,
+    icon: LogoIcon,
   },
 })
