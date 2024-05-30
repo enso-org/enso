@@ -32,7 +32,7 @@ const MODAL_STYLES = twv.tv({
 
 const DIALOG_STYLES = twv.tv({
   extend: variants.DIALOG_STYLES,
-  base: 'text-xs text-primary',
+  base: '',
   variants: {
     type: {
       modal: 'w-full max-w-md min-h-[100px] max-h-[90vh]',
