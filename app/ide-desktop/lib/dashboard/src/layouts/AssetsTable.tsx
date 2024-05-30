@@ -1515,6 +1515,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           placeholderId: dummyId,
           templateId: event.templateId,
           datalinkId: event.datalinkId,
+          originalId: null,
+          versionId: null,
           onSpinnerStateChange: event.onSpinnerStateChange,
         })
         break
@@ -1697,6 +1699,45 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.insertAssets: {
         insertArbitraryAssets(event.assets, event.parentKey, event.parentId)
+        break
+      }
+      case AssetListEventType.duplicateProject: {
+        const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
+        const siblingTitles = new Set(siblings.map(sibling => sibling.item.title))
+        let index = 1
+        let title = `${event.original.title} (${index})`
+        while (siblingTitles.has(title)) {
+          index += 1
+          title = `${event.original.title} (${index})`
+        }
+        const placeholderItem: backendModule.ProjectAsset = {
+          type: backendModule.AssetType.project,
+          id: backendModule.ProjectId(uniqueString.uniqueString()),
+          title,
+          modifiedAt: dateTime.toRfc3339(new Date()),
+          parentId: event.parentId,
+          permissions: permissions.tryGetSingletonOwnerPermission(user),
+          projectState: {
+            type: backendModule.ProjectState.placeholder,
+            volumeId: '',
+            ...(user != null ? { openedBy: user.email } : {}),
+            ...(event.original.projectState.path != null
+              ? { path: event.original.projectState.path }
+              : {}),
+          },
+          labels: [],
+          description: null,
+        }
+        insertAssets([placeholderItem], event.parentKey, event.parentId)
+        dispatchAssetEvent({
+          type: AssetEventType.newProject,
+          placeholderId: placeholderItem.id,
+          templateId: null,
+          datalinkId: null,
+          originalId: event.original.id,
+          versionId: event.versionId,
+          onSpinnerStateChange: null,
+        })
         break
       }
       case AssetListEventType.willDelete: {

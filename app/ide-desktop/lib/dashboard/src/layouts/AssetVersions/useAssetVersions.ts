@@ -7,9 +7,7 @@ import * as reactQuery from '@tanstack/react-query'
 import type Backend from '#/services/Backend'
 import type * as backendService from '#/services/Backend'
 
-/**
- * Parameters for the useAssetVersions hook
- */
+/** Parameters for the {@link useAssetVersions} hook. */
 export interface UseAssetVersionsParams {
   readonly assetId: backendService.AssetId
   readonly title: string
@@ -19,18 +17,10 @@ export interface UseAssetVersionsParams {
   readonly onError?: (error: unknown) => void
 }
 
-/**
- * Fetches the versions of the selected project asset
- */
+/** Fetches the versions of the selected project asset. */
 export function useAssetVersions(params: UseAssetVersionsParams) {
-  const {
-    enabled = true,
-    title,
-    assetId,
-    backend,
-    onError,
-    queryKey = ['assetVersions', assetId, title],
-  } = params
+  const { enabled = true, title, assetId, backend, onError } = params
+  const { queryKey = ['assetVersions', assetId, title] } = params
 
   return reactQuery.useQuery({
     queryKey,
