@@ -446,22 +446,16 @@
 }
 
 body {
-  overflow: hidden;
-  height: 100vh;
-  margin: 0;
   background-blend-mode: lighten;
+  @apply overflow-hidden h-screen m-0 before:fixed before:w-screen before:h-screen;
 }
 
 body:not(.vibrancy) {
   background: url("enso-assets/background.jpg") 0 0;
-  background-size: cover;
+  @apply bg-cover;
 }
 
 body::before {
-  content: "";
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
   background: linear-gradient(rgba(255 255 255 / 80%), rgba(255 255 255 / 80%));
 }
 
@@ -470,15 +464,11 @@ body::before {
 }
 
 .enso-dashboard {
-  position: absolute;
-  pointer-events: none;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  @apply absolute pointer-events-none w-full h-full overflow-hidden;
 }
 
 .enso-dashboard > * {
-  pointer-events: auto;
+  @apply pointer-events-auto;
 }
 
 /* These styles MUST still be copied
@@ -489,10 +479,8 @@ body::before {
   -moz-tab-size: 4;
   tab-size: 4;
   font-family: "M PLUS 1";
-  font-weight: 500;
   font-feature-settings: normal;
-  font-size: 11.5px; /* text-xs */
-  color: rgb(0 0 0 / 60%); /* text-primary */
+  @apply text-xs font-medium text-primary leading-snug;
 }
 
 :where(:is(.enso-dashboard kbd, .enso-chat kbd, .enso-portal-root kbd)) {
