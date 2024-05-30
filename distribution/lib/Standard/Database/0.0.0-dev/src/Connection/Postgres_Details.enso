@@ -27,6 +27,7 @@ type Postgres_Details
          No Authentication or the PGPass file).
        - use_ssl: Whether to use SSL (defaults to `SSL_Mode.Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
+    @credentials Credentials.default_widget
     Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## PRIVATE

@@ -245,7 +245,10 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 ThisBuild / Test / testOptions ++=
-  Seq(Tests.Argument(TestFrameworks.ScalaTest, "-oID")) ++
+  Seq(
+    Tests.Argument(TestFrameworks.ScalaTest, "-oID"),
+    Tests.Argument(TestFrameworks.JUnit, "--verbosity=1")
+  ) ++
   sys.env
     .get("ENSO_TEST_JUNIT_DIR")
     .map { junitDir =>
@@ -435,6 +438,45 @@ val commons = Seq(
   "commons-cli"        % "commons-cli"          % commonsCliVersion
 )
 
+// === Helidon ================================================================
+val jakartaVersion = "2.0.1"
+val helidonVersion = "4.0.8"
+val helidon = Seq(
+  "io.helidon"                 % "helidon"                     % helidonVersion,
+  "io.helidon.builder"         % "helidon-builder-api"         % helidonVersion,
+  "io.helidon.common"          % "helidon-common"              % helidonVersion,
+  "io.helidon.common"          % "helidon-common-buffers"      % helidonVersion,
+  "io.helidon.common"          % "helidon-common-config"       % helidonVersion,
+  "io.helidon.common"          % "helidon-common-configurable" % helidonVersion,
+  "io.helidon.common"          % "helidon-common-context"      % helidonVersion,
+  "io.helidon.common"          % "helidon-common-key-util"     % helidonVersion,
+  "io.helidon.common"          % "helidon-common-mapper"       % helidonVersion,
+  "io.helidon.common"          % "helidon-common-media-type"   % helidonVersion,
+  "io.helidon.common"          % "helidon-common-parameters"   % helidonVersion,
+  "io.helidon.common"          % "helidon-common-socket"       % helidonVersion,
+  "io.helidon.common"          % "helidon-common-security"     % helidonVersion,
+  "io.helidon.common"          % "helidon-common-task"         % helidonVersion,
+  "io.helidon.common"          % "helidon-common-types"        % helidonVersion,
+  "io.helidon.common"          % "helidon-common-tls"          % helidonVersion,
+  "io.helidon.common"          % "helidon-common-uri"          % helidonVersion,
+  "io.helidon.common.features" % "helidon-common-features"     % helidonVersion,
+  "io.helidon.common.features" % "helidon-common-features-api" % helidonVersion,
+  "io.helidon.config"          % "helidon-config"              % helidonVersion,
+  "io.helidon.logging"         % "helidon-logging-common"      % helidonVersion,
+  "io.helidon.inject"          % "helidon-inject-api"          % helidonVersion,
+  "io.helidon.http"            % "helidon-http"                % helidonVersion,
+  "io.helidon.http.encoding"   % "helidon-http-encoding"       % helidonVersion,
+  "io.helidon.http.media"      % "helidon-http-media"          % helidonVersion,
+  "io.helidon.webclient"       % "helidon-webclient"           % helidonVersion,
+  "io.helidon.webclient"       % "helidon-webclient-api"       % helidonVersion,
+  "io.helidon.webclient"       % "helidon-webclient-http1"     % helidonVersion,
+  "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion,
+  "io.helidon.webserver"       % "helidon-webserver"           % helidonVersion,
+  "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
+  "io.helidon.websocket"       % "helidon-websocket"           % helidonVersion,
+  "jakarta.inject"             % "jakarta.inject-api"          % jakartaVersion
+)
+
 // === Jackson ================================================================
 
 val jacksonVersion = "2.15.2"
@@ -496,7 +538,6 @@ val diffsonVersion          = "4.4.0"
 val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "24.3.25"
 val guavaVersion            = "32.0.0-jre"
-val helidonVersion          = "4.0.8"
 val jlineVersion            = "3.23.0"
 val jgitVersion             = "6.7.0.202309050840-r"
 val kindProjectorVersion    = "0.13.2"
@@ -528,7 +569,7 @@ val snowflakeJDBCVersion    = "3.15.0"
 // ============================================================================
 
 lazy val componentModulesPaths =
-  taskKey[Def.Classpath](
+  taskKey[Seq[File]](
     "Gathers all component modules (Jar archives that should be put on module-path" +
     " as files"
   )
@@ -537,12 +578,30 @@ lazy val componentModulesPaths =
   val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
   val fullCp    = (runnerCp ++ runtimeCp).distinct
   val log       = streams.value.log
-  JPMSUtils.filterModulesFromClasspath(
+  val thirdPartyModIds =
+    GraalVM.modules ++
+    GraalVM.langsPkgs ++
+    GraalVM.toolsPkgs ++
+    helidon ++
+    Seq(
+      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+      "ch.qos.logback" % "logback-core"    % logbackClassicVersion
+    )
+  val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
     fullCp,
-    JPMSUtils.componentModules,
+    thirdPartyModIds,
     log,
     shouldContainAll = true
   )
+  val thirdPartyModFiles = thirdPartyMods.map(_.data)
+  val arrow              = (`runtime-language-arrow` / Compile / packageBin).value
+  val runtime            = (`runtime-fat-jar` / assembly / assemblyOutputPath).value
+  val ourMods = Seq(
+    runtime,
+    arrow
+  )
+  ourMods ++ thirdPartyModFiles
 }
 
 lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
@@ -690,6 +749,7 @@ lazy val `syntax-rust-definition` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java"
@@ -946,7 +1006,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / run / connectInput) := true,
     commands += WithDebugCommand.withDebug,
     libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
-    libraryDependencies ++= circe,
+    libraryDependencies ++= circe ++ helidon,
     libraryDependencies ++= Seq(
       "com.typesafe"                % "config"              % typesafeConfigVersion,
       "com.github.pureconfig"      %% "pureconfig"          % pureconfigVersion,
@@ -1015,7 +1075,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     Test / modulePath := {
       val updateReport = (Test / update).value
       val requiredModIds =
-        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
           "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
@@ -1166,75 +1226,31 @@ lazy val `ydoc-server` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    javaModuleName := "org.enso.ydoc",
     crossPaths := false,
     autoScalaLibrary := false,
-    Compile / run / fork := true,
     Test / fork := true,
-    run / connectInput := true,
-    Compile / run := (Compile / run)
-      .dependsOn(
-        Def.task {
-          import scala.sys.process._
-          "npm --workspace=enso-gui2 run build-ydoc-server-polyglot" ! streams.value.log
-        }
-      )
-      .evaluated,
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-        MergeStrategy.discard
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-        MergeStrategy.discard
-      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-        MergeStrategy.discard
-      case PathList("META-INF", "services", xs @ _*) =>
-        MergeStrategy.concat
-      case PathList("module-info.class") =>
-        MergeStrategy.preferProject
-      case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
-        MergeStrategy.discard
-      case _ => MergeStrategy.first
-    },
     commands += WithDebugCommand.withDebug,
+    // GraalVM and helidon modules (3rd party modules)
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
         update.value,
-        GraalVM.modules ++ Seq(
-          "io.helidon.builder"       % "helidon-builder-api"         % helidonVersion,
-          "io.helidon.common"        % "helidon-common"              % helidonVersion,
-          "io.helidon.common"        % "helidon-common-buffers"      % helidonVersion,
-          "io.helidon.common"        % "helidon-common-config"       % helidonVersion,
-          "io.helidon.common"        % "helidon-common-configurable" % helidonVersion,
-          "io.helidon.common"        % "helidon-common-context"      % helidonVersion,
-          "io.helidon.common"        % "helidon-common-mapper"       % helidonVersion,
-          "io.helidon.common"        % "helidon-common-media-type"   % helidonVersion,
-          "io.helidon.common"        % "helidon-common-parameters"   % helidonVersion,
-          "io.helidon.common"        % "helidon-common-socket"       % helidonVersion,
-          "io.helidon.common"        % "helidon-common-security"     % helidonVersion,
-          "io.helidon.common"        % "helidon-common-tls"          % helidonVersion,
-          "io.helidon.common"        % "helidon-common-uri"          % helidonVersion,
-          "io.helidon.config"        % "helidon-config"              % helidonVersion,
-          "io.helidon.http"          % "helidon-http"                % helidonVersion,
-          "io.helidon.http.encoding" % "helidon-http-encoding"       % helidonVersion,
-          "io.helidon.http.media"    % "helidon-http-media"          % helidonVersion,
-          "io.helidon.webclient"     % "helidon-webclient"           % helidonVersion,
-          "io.helidon.webclient"     % "helidon-webclient-api"       % helidonVersion,
-          "io.helidon.webclient"     % "helidon-webclient-http1"     % helidonVersion,
-          "io.helidon.webclient"     % "helidon-webclient-websocket" % helidonVersion,
-          "io.helidon.webserver"     % "helidon-webserver"           % helidonVersion,
-          "io.helidon.webserver"     % "helidon-webserver-websocket" % helidonVersion,
-          "io.helidon.websocket"     % "helidon-websocket"           % helidonVersion,
-          "org.slf4j"                % "slf4j-api"                   % slf4jVersion
+        GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ Seq(
+          "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+          "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+          "ch.qos.logback" % "logback-core"    % logbackClassicVersion
         ),
         streams.value.log,
         shouldContainAll = true
       )
     },
+    // Internal project modules
     modulePath ++= Seq(
       (`syntax-rust-definition` / Compile / productDirectories).value.head,
       (`profiling-utils` / Compile / productDirectories).value.head
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion,
+      "org.graalvm.truffle"  % "truffle-api"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot" % "js"                          % graalMavenPackagesVersion % "runtime",
       "org.slf4j"            % "slf4j-api"                   % slf4jVersion,
@@ -1243,6 +1259,45 @@ lazy val `ydoc-server` = project
       "junit"                % "junit"                       % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"             % junitIfVersion            % Test
     )
+  )
+  // `Compile/run` settings are necessary for the `run` task to work.
+  // We add it here for convenience so that one can start ydoc-server directly
+  // with `ydoc-server/run` task.
+  .settings(
+    Compile / run / fork := true,
+    Compile / run / connectInput := true,
+    Compile / run / javaOptions := Seq(
+      "-ea"
+    ),
+    // We need to assembly the cmd line options here manually, because we need
+    // to add path to this module, and adding that directly to the `modulePath` setting
+    // would result in an sbt caught in an infinite recursion.
+    //
+    Compile / run / javaOptions ++= {
+      val mp        = modulePath.value ++ (`profiling-utils` / modulePath).value
+      val jar       = (Compile / exportedProductJars).value.head
+      val modName   = javaModuleName.value
+      val allMp     = mp ++ Seq(jar.data.absolutePath)
+      val mainKlazz = (Compile / mainClass).value.get
+      val args = Seq(
+        "--module-path",
+        allMp.mkString(File.pathSeparator),
+        "--module",
+        modName + "/" + mainKlazz
+      )
+      args
+    },
+    Compile / resourceGenerators +=
+      Def
+        .task(
+          Ydoc.generateJsBundle(
+            (ThisBuild / baseDirectory).value,
+            baseDirectory.value,
+            (Compile / resourceManaged).value,
+            streams.value
+          )
+        )
+        .taskValue
   )
   .dependsOn(`syntax-rust-definition`)
   .dependsOn(`logging-service-logback`)
@@ -1425,6 +1480,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,
       "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
       "commons-io"                  % "commons-io"           % commonsIoVersion,
+      "com.github.pureconfig"      %% "pureconfig"           % pureconfigVersion,
       akkaTestkit                   % Test,
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion           % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
@@ -1468,7 +1524,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     Test / modulePath := {
       val updateReport = (Test / update).value
       val requiredModIds =
-        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
+        GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
           "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
@@ -1517,7 +1573,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (LocalProject("runtime") / Compile / productDirectories).value ++
         (LocalProject(
           "syntax-rust-definition"
-        ) / Compile / productDirectories).value
+        ) / Compile / productDirectories).value ++
+        (LocalProject("ydoc-server") / Compile / productDirectories).value
       val extraModsToPatch = JPMSUtils.filterModulesFromUpdate(
         (Test / update).value,
         Seq(
@@ -1563,6 +1620,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`ydoc-server`)
 
 lazy val cleanInstruments = taskKey[Unit](
   "Cleans fragile class files to force a full recompilation and preserve" +
@@ -1834,7 +1892,7 @@ lazy val `runtime-integration-tests` =
           Level.Warn
         ),
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
         "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk"      % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
         "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
@@ -1881,7 +1939,7 @@ lazy val `runtime-integration-tests` =
       Test / modulePath := {
         val updateReport = (Test / update).value
         val requiredModIds =
-          GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
+          GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
             "org.slf4j"           % "slf4j-api"               % slf4jVersion,
             "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion,
             "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
@@ -1966,6 +2024,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`logging-service-logback` % "test->test")
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
+    .dependsOn(`test-utils`)
 
 /** A project that holds only benchmarks for `runtime`. Unlike `runtime-integration-tests`, its execution requires
   * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
@@ -1977,7 +2036,7 @@ lazy val `runtime-benchmarks` =
       frgaalJavaCompilerSetting,
       // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
       commands += WithDebugCommand.withDebug,
-      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ Seq(
         "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion,
         "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion,
         "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
@@ -2010,10 +2069,11 @@ lazy val `runtime-benchmarks` =
         .value,
       parallelExecution := false,
       modulePath := {
-        val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion,
-          "org.slf4j" % "slf4j-nop" % slf4jVersion
-        )
+        val requiredModIds =
+          GraalVM.modules ++ GraalVM.langsPkgs ++ helidon ++ Seq(
+            "org.slf4j" % "slf4j-api" % slf4jVersion,
+            "org.slf4j" % "slf4j-nop" % slf4jVersion
+          )
         val requiredMods = JPMSUtils.filterModulesFromUpdate(
           (Compile / update).value,
           requiredModIds,
@@ -2204,11 +2264,12 @@ lazy val `runtime-fat-jar` =
               LocalProject("runtime-instrument-common"),
               LocalProject("runtime-instrument-id-execution"),
               LocalProject("runtime-instrument-repl-debugger"),
-              LocalProject("runtime-instrument-runtime-server")
+              LocalProject("runtime-instrument-runtime-server"),
+              LocalProject("ydoc-server")
             ),
             inConfigurations(Compile)
           ),
-          modulePath = JPMSUtils.componentModules
+          modulePath = JPMSUtils.componentModules ++ helidon
         )
       }
         .dependsOn(Compile / compile)
@@ -2231,7 +2292,8 @@ lazy val `runtime-fat-jar` =
           GraalVM.langsPkgs.map(_.withConfigurations(Some(Runtime.name)))
         val logbackMods =
           logbackPkg.map(_.withConfigurations(Some(Runtime.name)))
-        graalMods ++ langMods ++ logbackMods
+        val helidonMods = helidon.map(_.withConfigurations(Some(Runtime.name)))
+        graalMods ++ langMods ++ logbackMods ++ helidonMods
       }
     )
     /** Assembling Uber Jar */
@@ -2244,7 +2306,7 @@ lazy val `runtime-fat-jar` =
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
       assembly / assemblyExcludedJars := {
-        val pkgsToExclude = JPMSUtils.componentModules
+        val pkgsToExclude = JPMSUtils.componentModules ++ helidon
         val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
@@ -2276,6 +2338,7 @@ lazy val `runtime-fat-jar` =
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
     .dependsOn(`runtime-language-epb`)
+    .dependsOn(`ydoc-server`)
     .dependsOn(yaml)
     .dependsOn(LocalProject("runtime"))
 
@@ -2318,8 +2381,11 @@ lazy val `engine-runner` = project
     assembly / test := {},
     assembly / assemblyOutputPath := file("runner.jar"),
     assembly / assemblyExcludedJars :=
-      JPMSUtils.filterTruffleAndGraalArtifacts(
-        (Compile / fullClasspath).value
+      JPMSUtils.filterArtifacts(
+        (Compile / fullClasspath).value,
+        "graalvm",
+        "truffle",
+        "helidon"
       ),
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
@@ -2435,6 +2501,8 @@ lazy val `engine-runner` = project
             // "-g",
             // "-H:+SourceLevelDebug",
             // "-H:-DeleteLocalSymbols",
+            // you may need to set smallJdk := None to use following flags:
+            // "--trace-class-initialization=org.enso.syntax2.Parser",
             "-Dnic=nic"
           ),
           mainClass = Some("org.enso.runner.Main"),
@@ -2442,7 +2510,6 @@ lazy val `engine-runner` = project
             "org.jline.nativ.JLineLibrary",
             "org.jline.terminal.impl.jna",
             "io.methvin.watchservice.jna.CarbonAPI",
-            "org.enso.syntax2.Parser",
             "zio.internal.ZScheduler$$anon$4",
             "org.enso.runner.Main$",
             "sun.awt",
@@ -2476,6 +2543,7 @@ lazy val `engine-runner` = project
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
   .dependsOn(`edition-updater`)
+  .dependsOn(`runtime-parser`)
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`polyglot-api`)
@@ -2577,6 +2645,25 @@ lazy val `distribution-manager` = project
   .dependsOn(cli)
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
+
+lazy val `test-utils` =
+  (project in file("lib/java/test-utils"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      libraryDependencies ++= GraalVM.modules,
+      libraryDependencies ++= Seq(
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+      ),
+      Compile / javacOptions ++= Seq(
+        "-s",
+        (Compile / sourceManaged).value.getAbsolutePath
+      ),
+      Compile / compile := (Compile / compile)
+        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+        .value
+    )
+    .dependsOn(runtime)
 
 lazy val `benchmarks-common` =
   (project in file("lib/java/benchmarks-common"))
@@ -3314,9 +3401,7 @@ lazy val buildEngineDistribution =
 buildEngineDistribution := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
-  val modulesToCopy = componentModulesPaths.value.map(_.data)
-  val arrow         = Seq((`runtime-language-arrow` / Compile / packageBin).value)
-  val engineModules = Seq(file("runtime.jar")) ++ arrow
+  val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory
@@ -3324,7 +3409,7 @@ buildEngineDistribution := {
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
-    jarModulesToCopy    = modulesToCopy ++ engineModules,
+    jarModulesToCopy    = modulesToCopy,
     graalVersion        = graalMavenPackagesVersion,
     javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
@@ -3348,8 +3433,7 @@ lazy val buildEngineDistributionNoIndex =
 buildEngineDistributionNoIndex := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
-  val modulesToCopy = componentModulesPaths.value.map(_.data)
-  val engineModules = Seq(file("runtime.jar"))
+  val modulesToCopy = componentModulesPaths.value
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory
@@ -3357,7 +3441,7 @@ buildEngineDistributionNoIndex := {
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
-    jarModulesToCopy    = modulesToCopy ++ engineModules,
+    jarModulesToCopy    = modulesToCopy,
     graalVersion        = graalMavenPackagesVersion,
     javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
@@ -3596,7 +3680,7 @@ updateLibraryManifests := {
     JPMSUtils
       .filterModulesFromClasspath(
         fullCp,
-        JPMSUtils.componentModules,
+        JPMSUtils.componentModules ++ helidon,
         log,
         shouldContainAll = true
       )

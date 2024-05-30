@@ -5,7 +5,7 @@ import {
   usePlacement,
 } from '@/components/ComponentBrowser/placement'
 import type { GraphNavigator } from '@/providers/graphNavigator'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type GraphStore, type NodeId } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
@@ -51,12 +51,11 @@ export interface NodeCreationOptions<Placement extends PlacementStrategy = Place
 }
 
 export function useNodeCreation(
+  graphStore: GraphStore,
   viewport: ToValue<GraphNavigator['viewport']>,
   sceneMousePos: ToValue<GraphNavigator['sceneMousePos']>,
   onCreated: (nodes: Set<NodeId>) => void,
 ) {
-  const graphStore = useGraphStore()
-
   function tryMouse() {
     const pos = toValue(sceneMousePos)
     return pos ? mouseDictatedPlacement(pos) : undefined
@@ -109,8 +108,8 @@ export function useNodeCreation(
     const placedNodes = placeNodes(nodesOptions)
     if (placedNodes.length === 0) return new Set()
     const methodAst = graphStore.methodAst
-    if (!methodAst) {
-      console.error(`BUG: Cannot add node: No current function.`)
+    if (!methodAst.ok) {
+      methodAst.error.log(`BUG: Cannot add node: No current function.`)
       return new Set()
     }
     const created = new Set<NodeId>()
@@ -123,7 +122,7 @@ export function useNodeCreation(
         assert(options.metadata?.position != null, 'Node should already be placed')
         graphStore.nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
       }
-      insertNodeStatements(edit.getVersion(methodAst).bodyAsBlock(), statements)
+      insertNodeStatements(edit.getVersion(methodAst.value).bodyAsBlock(), statements)
     })
     onCreated(created)
   }

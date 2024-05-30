@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -347,7 +347,7 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
-    <SvgIcon name="close" class="closeButton button" @click="emit('close')" />
+    <SvgButton name="close" class="closeButton" title="Close Code Editor" @click="emit('close')" />
   </div>
 </template>
 

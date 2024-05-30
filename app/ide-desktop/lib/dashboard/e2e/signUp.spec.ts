@@ -32,10 +32,14 @@ test.test('sign up with organization id', async ({ page }) => {
   await actions.locateConfirmPasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateRegisterButton(page).click()
 
+  await actions.passTermsAndConditionsDialog({ page })
+
   // Log in
   await actions.locateEmailInput(page).fill(actions.VALID_EMAIL)
   await actions.locatePasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateLoginButton(page).click()
+
+  await actions.passTermsAndConditionsDialog({ page })
 
   // Set username
   await actions.locateUsernameInput(page).fill('arbitrary username')
@@ -59,10 +63,14 @@ test.test('sign up without organization id', async ({ page }) => {
   await actions.locateConfirmPasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateRegisterButton(page).click()
 
+  await actions.passTermsAndConditionsDialog({ page })
+
   // Log in
   await actions.locateEmailInput(page).fill(actions.VALID_EMAIL)
   await actions.locatePasswordInput(page).fill(actions.VALID_PASSWORD)
   await actions.locateLoginButton(page).click()
+
+  await actions.passTermsAndConditionsDialog({ page })
 
   // Set username
   await actions.locateUsernameInput(page).fill('arbitrary username')
@@ -85,6 +93,9 @@ test.test('sign up flow', ({ page }) =>
           test.expect(NAME).not.toStrictEqual(api.defaultName)
         })
         .loginAsNewUser(EMAIL, actions.VALID_PASSWORD)
+        .do(async thePage => {
+          await actions.passTermsAndConditionsDialog({ page: thePage })
+        })
         .setUsername(NAME)
         .do(async thePage => {
           await test.expect(actions.locateUpgradeButton(thePage)).toBeVisible()

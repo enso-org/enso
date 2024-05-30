@@ -51,7 +51,7 @@ export function useForm<
 
     return reactHookForm.useForm({
       ...options,
-      ...(schema ? { resolver: zodResolver.zodResolver(schema) } : {}),
+      ...(schema ? { resolver: zodResolver.zodResolver(schema, { async: true }) } : {}),
     })
   }
 }

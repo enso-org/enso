@@ -1824,7 +1824,7 @@ applyMixins(MutableNumericLiteral, [MutableAst])
  *  GUI. We just need to represent them faithfully and create the simple cases. */
 type ArgumentDefinition<T extends TreeRefs = RawRefs> = (T['ast'] | T['token'])[]
 
-interface FunctionFields {
+export interface FunctionFields {
   name: NodeChild<AstId>
   argumentDefinitions: ArgumentDefinition[]
   equals: NodeChild<SyncTokenId>

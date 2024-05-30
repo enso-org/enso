@@ -35,52 +35,45 @@ final class RefactoringRenameJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Seq[File] = {
-    val logger                   = ctx.executionService.getLogger
-    val compilationLockTimestamp = ctx.locking.acquireReadCompilationLock()
-    try {
-      logger.log(
-        Level.FINE,
-        s"Renaming symbol [{0}]...",
-        expressionId
-      )
-      val refactoredFile = applyRefactoringEdits()
-      Seq(refactoredFile)
-    } catch {
-      case _: ModuleNotFoundException =>
-        reply(Api.ModuleNotFound(moduleName))
-        Seq()
-      case ex: RefactoringRenameJob.ExpressionNotFound =>
-        reply(
-          Api.SymbolRenameFailed(
-            Api.SymbolRenameFailed.ExpressionNotFound(ex.expressionId)
+    val logger = ctx.executionService.getLogger
+    ctx.locking.withReadCompilationLock(
+      this.getClass,
+      () =>
+        try {
+          logger.log(
+            Level.FINE,
+            s"Renaming symbol [{0}]...",
+            expressionId
           )
-        )
-        Seq()
-      case ex: RefactoringRenameJob.FailedToApplyEdits =>
-        reply(
-          Api.SymbolRenameFailed(
-            Api.SymbolRenameFailed.FailedToApplyEdits(ex.module)
-          )
-        )
-        Seq()
-      case ex: RefactoringRenameJob.OperationNotSupported =>
-        reply(
-          Api.SymbolRenameFailed(
-            Api.SymbolRenameFailed.OperationNotSupported(ex.expressionId)
-          )
-        )
-        Seq()
-    } finally {
-      ctx.locking.releaseReadCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept read compilation lock [{0}] for {1} milliseconds.",
-        Array(
-          getClass.getSimpleName,
-          System.currentTimeMillis() - compilationLockTimestamp
-        )
-      )
-    }
+          val refactoredFile = applyRefactoringEdits()
+          Seq(refactoredFile)
+        } catch {
+          case _: ModuleNotFoundException =>
+            reply(Api.ModuleNotFound(moduleName))
+            Seq()
+          case ex: RefactoringRenameJob.ExpressionNotFound =>
+            reply(
+              Api.SymbolRenameFailed(
+                Api.SymbolRenameFailed.ExpressionNotFound(ex.expressionId)
+              )
+            )
+            Seq()
+          case ex: RefactoringRenameJob.FailedToApplyEdits =>
+            reply(
+              Api.SymbolRenameFailed(
+                Api.SymbolRenameFailed.FailedToApplyEdits(ex.module)
+              )
+            )
+            Seq()
+          case ex: RefactoringRenameJob.OperationNotSupported =>
+            reply(
+              Api.SymbolRenameFailed(
+                Api.SymbolRenameFailed.OperationNotSupported(ex.expressionId)
+              )
+            )
+            Seq()
+        }
+    )
   }
 
   private def applyRefactoringEdits()(implicit ctx: RuntimeContext): File = {
@@ -143,22 +136,14 @@ final class RefactoringRenameJob(
   private def enqueuePendingEdits(fileEdit: Api.FileEdit)(implicit
     ctx: RuntimeContext
   ): Unit = {
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
-    try {
-      val pendingEdits =
-        fileEdit.edits.map(PendingEdit.ApplyEdit(_, execute = true))
-      ctx.state.pendingEdits.enqueue(fileEdit.path, pendingEdits)
-    } finally {
-      ctx.locking.releasePendingEditsLock()
-      ctx.executionService.getLogger.log(
-        Level.FINEST,
-        s"Kept pending edits lock [{0}] for {1} milliseconds.",
-        Array(
-          getClass.getSimpleName,
-          System.currentTimeMillis() - pendingEditsLockTimestamp
-        )
-      )
-    }
+    ctx.locking.withPendingEditsLock(
+      this.getClass,
+      () => {
+        val pendingEdits =
+          fileEdit.edits.map(PendingEdit.ApplyEdit(_, execute = true))
+        ctx.state.pendingEdits.enqueue(fileEdit.path, pendingEdits)
+      }
+    )
   }
 
   private def getLiteral(ir: IR): Option[Name.Literal] =

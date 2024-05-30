@@ -3,8 +3,6 @@
  * Each exported function in the {@link LocalBackend} in this module corresponds to an API endpoint.
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
-import * as detect from 'enso-common/src/detect'
-
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 import ProjectManager from '#/services/ProjectManager'
@@ -692,6 +690,25 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override getCheckoutSession() {
+    return this.invalidOperation()
+  }
+
+  /**
+   * Invalid operation.
+   */
+  override listInvitations() {
+    return this.invalidOperation()
+  }
+  /**
+   * Invalid operation.
+   */
+  override deleteInvitation(): Promise<void> {
+    return this.invalidOperation()
+  }
+  /**
+   * Invalid operation.
+   */
+  override resendInvitation(): Promise<void> {
     return this.invalidOperation()
   }
 

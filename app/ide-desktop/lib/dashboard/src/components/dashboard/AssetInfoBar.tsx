@@ -25,7 +25,7 @@ export interface AssetInfoBarProps {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
   const { invisible = false, isAssetPanelEnabled, setIsAssetPanelEnabled } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
 
   return (

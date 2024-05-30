@@ -316,10 +316,8 @@ export function locateModalBackground(page: test.Locator | test.Page) {
 
 /** Find an editor container (if any) on the current page. */
 export function locateEditor(page: test.Page) {
-  // This is fine as this element is defined in `index.html`, rather than from React.
-  // Using `data-testid` may be more correct though.
-  // eslint-disable-next-line no-restricted-properties
-  return page.locator('#app')
+  // Test ID of a placeholder editor component used during testing.
+  return page.getByTestId('gui-editor-root')
 }
 
 /** Find an assets table (if any) on the current page. */
@@ -709,6 +707,7 @@ export async function login(
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
     await locateToastCloseButton(page).click()
+    await passTermsAndConditionsDialog({ page })
   })
 }
 
@@ -762,6 +761,23 @@ async function mockDate({ page }: MockParams) {
         Date.now = () => __DateNow() + __DateNowOffset;
     }`)
   })
+}
+
+/**
+ * Passes Terms and conditions dialog
+ */
+export async function passTermsAndConditionsDialog({ page }: MockParams) {
+  // wait for terms and conditions dialog to appear
+  // but don't fail if it doesn't appear
+  try {
+    // wait for terms and conditions dialog to appear
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
+    await page.getByRole('checkbox').click()
+    await page.getByRole('button', { name: 'Accept' }).click()
+  } catch (error) {
+    // do nothing
+  }
 }
 
 // ========================
@@ -819,12 +835,16 @@ export async function mockAllAndLogin({ page }: MockParams) {
   return await test.test.step('Execute all mocks and login', async () => {
     const mocks = await mockAll({ page })
     await login({ page })
+
+    await passTermsAndConditionsDialog({ page })
+
     // This MUST run after login because the element's styles are reset when the browser
     // is navigated to another page.
     await mockIDEContainer({ page })
     // This MUST also run after login because globals are reset when the browser
     // is navigated to another page.
     await mockIsInPlaywrightTest({ page })
+
     return { ...mocks, pageActions: new DrivePageActions(page) }
   })
 }

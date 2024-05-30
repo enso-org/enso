@@ -38,7 +38,12 @@ export type SubmitProps = Omit<ariaComponents.ButtonProps, 'loading' | 'variant'
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
 export function Submit(props: SubmitProps): React.JSX.Element {
-  const { form = reactHookForm.useFormContext(), variant = 'submit', size = 'medium' } = props
+  const {
+    form = reactHookForm.useFormContext(),
+    variant = 'submit',
+    size = 'medium',
+    testId = 'form-submit-button',
+  } = props
   const { formState } = form
 
   return (
@@ -48,6 +53,7 @@ export function Submit(props: SubmitProps): React.JSX.Element {
       variant={variant}
       size={size}
       loading={formState.isSubmitting}
+      testId={testId}
     />
   )
 }

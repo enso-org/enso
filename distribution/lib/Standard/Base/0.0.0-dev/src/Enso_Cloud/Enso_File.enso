@@ -126,7 +126,7 @@ type Enso_File
         asset = Existing_Enso_Asset.get_asset_reference_for self
         if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`creation_time` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
-            Date_Time.parse (get_required_field "created_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
+            Date_Time.parse (get_required_field "createdAt" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
                 . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
@@ -137,7 +137,7 @@ type Enso_File
         asset = Existing_Enso_Asset.get_asset_reference_for self
         if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`last_modified_time` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
-            Date_Time.parse (get_required_field "modified_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
+            Date_Time.parse (get_required_field "modifiedAt" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
                 . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata

@@ -549,6 +549,9 @@ export async function mockApi({ page }: MockParams) {
     await delete_(remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
       await route.fulfill()
     })
+    await post(remoteBackendPaths.POST_LOG_EVENT_PATH, async route => {
+      await route.fulfill()
+    })
 
     // === Entity creation endpoints ===
 
