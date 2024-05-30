@@ -672,14 +672,13 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
 
     suite_builder.group "take/drop Sample non-determinism" group_builder->
-        v = 0.up_to 20 . to_vector
+        v = 0.up_to 60 . to_vector
 
         group_builder.specify "sampling should be deterministic when a seed is supplied" <|
-            v.take (Sample 3 seed=4200000) . should_equal (v.take (Sample 3 seed=4200000))
+            v.take (Sample 5 seed=4200000) . should_equal (v.take (Sample 5 seed=4200000))
 
         group_builder.specify "sampling should be non-deterministic when a seed is not supplied" <|
-            0.up_to 3 . map _->
-                v.take (Sample 3) . should_not_equal (v.take (Sample 3))
+            v.take (Sample 5) . should_not_equal (v.take (Sample 5))
 
     group_builder.specify "take/drop should gracefully handle missing constructor arguments" <|
         Test.expect_panic Type_Error <| [].take "FOO"
