@@ -1862,15 +1862,16 @@ add_specs suite_builder setup =
 
             r0 = t.at "x" / t.at "y"
             r0 . to_vector . should_equal [Nothing]
-            Problems.expect_warning Arithmetic_Error r0
+            nt_error = Arithmetic_Error.Error "Non-terminating decimal expansion; no exact representable decimal result. Please use `.divide` with an explicit `Math_Context` to limit the numeric precision. (at rows [0])."
+            Problems.expect_only_warning nt_error r0
 
             r1 = t.at "x" / t.at "z"
             r1 . to_vector . should_equal [Nothing]
-            Problems.expect_warning Arithmetic_Error r1
+            Problems.expect_only_warning Arithmetic_Error r1
 
             r2 = t.at "x" % t.at "z"
             r2 . to_vector . should_equal [Nothing]
-            Problems.expect_warning Arithmetic_Error r2
+            Problems.expect_only_warning Arithmetic_Error r2
 
 # A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
 type Mixed_Type_Object

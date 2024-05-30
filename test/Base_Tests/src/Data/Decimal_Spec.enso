@@ -651,7 +651,8 @@ add_specs suite_builder =
 
             Decimal.new "12" . div (Decimal.new "0") . should_fail_with Arithmetic_Error
 
-            ((Decimal.new "1") / (Decimal.new "3")) . should_fail_with Arithmetic_Error
+            nt_error = Arithmetic_Error.Error "Non-terminating decimal expansion; no exact representable decimal result. Please use `.divide` with an explicit `Math_Context` to limit the numeric precision."
+            ((Decimal.new "1") / (Decimal.new "3")) . should_fail_with nt_error
 
     suite_builder.group "pow" group_builder->
         group_builder.specify "should define pow" <|
