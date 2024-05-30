@@ -155,7 +155,8 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   set desiredStack(stack: StackItem[]) {
-    this._desiredStack = stack
+    this._desiredStack.length = 0
+    this._desiredStack.push(...stack)
     this.sync()
   }
 
@@ -188,7 +189,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.queue.pushTask(async (state) => {
       if (state.status !== 'created') {
         this.sync()
-        return state
       }
       await this.lsRpc.recomputeExecutionContext(this.id, expressionIds, executionEnvironment)
       return state

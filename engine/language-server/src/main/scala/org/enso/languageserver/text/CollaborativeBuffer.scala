@@ -357,6 +357,9 @@ class CollaborativeBuffer(
             failure
           )
       }
+
+    case ReadCollaborativeBuffer(_) =>
+      sender() ! ReadCollaborativeBufferResult(Some(buffer))
   }
 
   private def waitingOnReloadedContent(

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 
 const emit = defineEmits<{
   createNodes: [options: NodeCreationOptions[]]
@@ -12,9 +12,7 @@ function addNode() {
 </script>
 
 <template>
-  <div class="SmallPlusButton add-node button" @click.stop="addNode">
-    <SvgIcon name="add" class="icon" />
-  </div>
+  <SvgButton name="add" class="SmallPlusButton" title="Add Component" @click.stop="addNode" />
 </template>
 
 <style scoped>
@@ -40,6 +38,5 @@ function addNode() {
   margin: 8px;
   padding: 0;
   border: none;
-  opacity: 30%;
 }
 </style>

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
 polyglot java import java.nio.CharBuffer
@@ -29,7 +30,7 @@ add_specs suite_builder =
             fragment = 'Hello 😎🚀🚧!'
             contents = 1.up_to 1000 . map _->fragment . join '\n'
             contents.write f . should_succeed
-            all_codepoints = Vector.new_builder
+            all_codepoints = Builder.new
             read_chars decoder n =
                 case read_characters decoder n of
                     Nothing -> Nothing

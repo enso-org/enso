@@ -74,7 +74,9 @@ type File_Permissions
     group_write : Boolean
     group_write self = self.group.contains Permission.Write
 
-    ## Checks if the given file can be executed by the group.
+    ## GROUP Metadata
+       ICON metadata
+       Checks if the given file can be executed by the group.
     group_execute : Boolean
     group_execute self = self.group.contains Permission.Execute
 

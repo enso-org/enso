@@ -3,6 +3,7 @@ import { assert } from '@/util/assert'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
+const DEBUG_LOG = false
 
 // ======================
 // === Modifier flags ===
@@ -406,6 +407,11 @@ export function defineKeybinds<
           if (keybinds.has(bindingName as BindingName)) {
             const handle = handlers[bindingName as BindingName]
             handled = handle && handle(event) !== false
+            if (DEBUG_LOG)
+              console.log(
+                `Event ${event.type} (${event instanceof KeyboardEvent ? event.key : buttonFlagsForEvent(event)})`,
+                `${handled ? 'handled' : 'processed'} by ${namespace}.${bindingName}`,
+              )
             if (handled) break
           }
         }

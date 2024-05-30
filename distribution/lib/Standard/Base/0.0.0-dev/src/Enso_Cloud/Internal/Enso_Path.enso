@@ -18,7 +18,7 @@ from project.Data.Text.Extensions import all
    This is a helper for handling `enso://` paths.
 type Enso_Path
     ## PRIVATE
-    Value (organization_name : Text) (path_segments : Vector Text)
+    private Value (organization_name : Text) (path_segments : Vector Text)
 
     ## PRIVATE
     parse (path : Text) -> Enso_Path =

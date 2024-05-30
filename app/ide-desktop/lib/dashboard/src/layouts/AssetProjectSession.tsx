@@ -26,7 +26,7 @@ export interface AssetProjectSessionProps {
 /** Displays information describing a specific version of an asset. */
 export default function AssetProjectSession(props: AssetProjectSessionProps) {
   const { project, projectSession } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 

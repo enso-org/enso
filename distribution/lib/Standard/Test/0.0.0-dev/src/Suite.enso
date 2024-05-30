@@ -1,5 +1,6 @@
 
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.State
 from Standard.Base.Runtime import assert
@@ -57,7 +58,8 @@ type Suite
        - should_exit: If true, executes `System.exit` at the end, so the method does not return.
          If false, return boolean from the method indicating whether some tests failed.
 
-       Returns: Boolean if `should_exit` is False, otherwise exits the process.
+       Returns:
+       Boolean if `should_exit` is False, otherwise exits the process.
     run_with_filter self (filter : (Text | Nothing) = Nothing) (should_exit : Boolean = True) -> (Boolean | Nothing) =
         config = Suite_Config.from_environment
 
@@ -84,7 +86,7 @@ type Suite
             False ->
                 Test_Reporter.Ignore_Progress_Reporter
 
-        all_results_bldr = Vector.new_builder
+        all_results_bldr = Builder.new
         junit_sb_builder = if config.should_output_junit then StringBuilder.new else Nothing
         Test_Reporter.wrap_junit_testsuites config junit_sb_builder <|
             matching_specs.each p->
@@ -105,10 +107,12 @@ type Suite
         pending_groups = matching_specs.filter (p-> p.first.is_pending) . length
         case should_exit of
             True ->
+                IO.println ""
                 IO.println <| succ_tests.to_text + " tests succeeded."
                 IO.println <| failed_tests.to_text + " tests failed."
                 IO.println <| skipped_tests.to_text + " tests skipped."
                 IO.println <| pending_groups.to_text + " groups skipped."
+                IO.println ""
                 exit_code = if failed_tests > 0 then 1 else 0
                 System.exit exit_code
             False ->

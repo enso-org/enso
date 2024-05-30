@@ -53,6 +53,7 @@ type Response
         URI.parse uri_string
 
     ## GROUP Metadata
+       ICON metadata
        Get the response headers.
 
        It returns a vector of Header objects and not a mapping, because the
@@ -181,7 +182,7 @@ type Response
        - file: The file to write the body to.
        - on_existing_file: Specifies how to proceed if the file already exists.
 
-       > Examples
+       > Example
          Write the contents of the request body to a scratch file on disk. The
          file will be created if it does not exist, and will be overwritten if
          it does.

@@ -77,7 +77,7 @@ watch(textContents, (value) => (editedContents.value = value))
 
 <script lang="ts">
 export const widgetDefinition = defineWidget(
-  WidgetInput.isAstOrPlaceholder,
+  WidgetInput.placeholderOrAstMatcher(Ast.TextLiteral),
   {
     priority: 1001,
     score: (props) => {

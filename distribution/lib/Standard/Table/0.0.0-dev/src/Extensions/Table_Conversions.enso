@@ -67,7 +67,8 @@ JS_Object.to_table self fields=Nothing =
    - fields: a Vector of Text representing the names of fields to look up.
      If `Nothing` then all fields found are added.
 
-   > Example Converts a set of objects into a table using the provided headers.
+   > Example
+     Converts a set of objects into a table using the provided headers.
 
          from Standard.Table import Table
          import Standard.Examples
@@ -111,13 +112,13 @@ Text.parse_to_table self (pattern : Text | Regex) case_sensitivity=Case_Sensitiv
    ADVANCED
    Implements the `Table.write` for this `JSON_File`.
 
-    Arguments:
-    - file: The file to write to.
-    - table: The table to write.
-    - on_existing_file: What to do if the file already exists.
-    - match_columns: How to match columns between the table and the file.
-      Not used for JSON.
-    - on_problems: What to do if there are problems reading the file.
+   Arguments:
+   - file: The file to write to.
+   - table: The table to write.
+   - on_existing_file: What to do if the file already exists.
+   - match_columns: How to match columns between the table and the file.
+     Not used for JSON.
+   - on_problems: What to do if there are problems reading the file.
 JSON_Format.write_table : Writable_File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
 JSON_Format.write_table self file:Writable_File table on_existing_file match_columns on_problems =
     _ = match_columns

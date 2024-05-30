@@ -124,15 +124,18 @@ function RadioGroup(props: aria.RadioGroupProps, ref: React.ForwardedRef<HTMLDiv
 
   const renderProps = useRenderProps({
     ...props,
+    defaultClassName: 'react-aria-RadioGroup',
     values: {
       orientation: props.orientation || 'vertical',
+      isInvalid: state.isInvalid,
       isDisabled: state.isDisabled,
       isReadOnly: state.isReadOnly,
       isRequired: state.isRequired,
-      isInvalid: state.isInvalid,
       state,
+      defaultClassName: 'react-aria-RadioGroup',
+      defaultStyle: {},
+      defaultChildren: null,
     },
-    defaultClassName: 'react-aria-RadioGroup',
   })
 
   return (

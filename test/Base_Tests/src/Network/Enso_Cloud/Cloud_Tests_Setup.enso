@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Problems
 import Standard.Test.Test_Environment
@@ -175,16 +176,25 @@ type Mock_Credentials
         Mock_Credentials.Value self.access_token new_expire_at self.refresh_token self.refresh_url self.client_id
 
 type Temporary_Directory
-    Value ~get
+    Value was_initialized:Ref ~get
 
     timestamp_text -> Text = Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "."
 
-    make (name : Text) (with_initializer : (Enso_File -> Any) = (_->Nothing)) -> Temporary_Directory = Temporary_Directory.Value <|
-        directory_name = "test-run-"+name+"-"+Temporary_Directory.timestamp_text
-        test_root = (Enso_File.root / directory_name).create_directory
-        with_initializer test_root . if_not_error test_root
+    make (name : Text) (with_initializer : (Enso_File -> Any) = (_->Nothing)) -> Temporary_Directory =
+        was_initialized = Ref.new False
+        Temporary_Directory.Value was_initialized <|
+            directory_name = "test-run-"+name+"-"+Temporary_Directory.timestamp_text
+            test_root = (Enso_File.root / directory_name).create_directory
+            test_root.if_not_error <|
+                was_initialized.put True
+                with_initializer test_root . if_not_error test_root
 
-    cleanup self = self.get.delete_if_exists recursive=True
+    cleanup self =
+        ## Only run the cleanup if the directory was initialized.
+           Otherwise, the mere cleanup action would, unnecessarily,
+           initialize it - creating a new directory just to delete it, wasting time.
+        if self.was_initialized.get then
+            self.get.delete_if_exists recursive=True
 
 create_local_datalink_to enso_file:Enso_File =
     config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", enso_file.path]]

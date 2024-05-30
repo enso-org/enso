@@ -33,7 +33,7 @@ export interface AssetProjectSessionsProps {
 /** A list of previous versions of an asset. */
 export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
   const { item } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
 
   const projectSessions = asyncEffectHooks.useAsyncEffect(
     null,

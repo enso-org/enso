@@ -89,6 +89,7 @@ type Panic
     rethrow value = value.catch Any Panic.throw
 
     ## ADVANCED
+       ICON panic
        Executes the provided action and if a panic matching the provided type was
        thrown, calls the provided callback.
 
@@ -155,6 +156,7 @@ type Panic
         result
 
     ## ADVANCED
+       ICON panic
        Executes the provided action and converts a possible panic matching any of
        the provided types into a dataflow Error.
 
@@ -268,12 +270,14 @@ type Caught_Panic
          the source of this panic. Only for internal use.
     Panic payload internal_original_exception
 
-    ## Converts this caught panic into a dataflow error containing the same
+    ## ICON panic
+       Converts this caught panic into a dataflow error containing the same
        payload and stack trace.
     convert_to_dataflow_error : Error
     convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
-    ## Returns the stack trace of the caught panic.
+    ## ICON metadata
+       Returns the stack trace of the caught panic.
     stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self

@@ -10,6 +10,7 @@ import org.enso.projectmanager.infrastructure.repository.ProjectFileRepositoryFa
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.FileSystemManagementApi.FileSystemList
 import org.enso.projectmanager.service.filesystem.{
+  FileSystemEntry,
   FileSystemService,
   FileSystemServiceApi,
   FileSystemServiceFailure
@@ -24,6 +25,7 @@ final class FileSystemListCommand[
   def run: F[FileSystemServiceFailure, FileSystemList.Result] =
     service
       .list(path)
+      .map(FileSystemListCommand.filterNotHidden)
       .map(FileSystemList.Result)
 }
 
@@ -47,4 +49,15 @@ object FileSystemListCommand {
 
     new FileSystemListCommand[F](service, path)
   }
+
+  /** Filters the files system entries that are not hidden.
+    *
+    * @param entries the file system entries
+    * @return the filtered list of entries
+    */
+  private def filterNotHidden(
+    entries: Seq[FileSystemEntry]
+  ): Seq[FileSystemEntry] =
+    entries.filterNot(_.path.isHidden)
+
 }

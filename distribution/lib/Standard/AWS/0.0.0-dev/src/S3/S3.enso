@@ -88,6 +88,7 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
     iterator request 0 [] [] True
 
 ## ADVANCED
+   ICON data_input
    Gets the metadata of a bucket or object.
 
    Arguments:
@@ -120,6 +121,7 @@ raw_head bucket key credentials =
             handle_s3_errors bucket=bucket key=key <| client.headObject request
 
 ## ADVANCED
+   ICON data_input
    Gets an object from an S3 bucket.
    Returns a raw stream which can be read once.
 

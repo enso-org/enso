@@ -1,17 +1,35 @@
 <script setup lang="ts">
-import AstDocumentation from '@/components/AstDocumentation.vue'
-import { type Node } from '@/stores/graph'
+import PlainTextEditor from '@/components/PlainTextEditor.vue'
+import { useAstDocumentation } from '@/composables/astDocumentation'
+import { useFocusDelayed } from '@/composables/focus'
+import { useGraphStore, type Node } from '@/stores/graph'
+import { syncRef } from '@vueuse/core'
+import { computed, ref, type ComponentInstance } from 'vue'
 
 const editing = defineModel<boolean>('editing', { required: true })
 const props = defineProps<{ node: Node }>()
+
+const textEditor = ref<ComponentInstance<typeof PlainTextEditor>>()
+
+const graphStore = useGraphStore()
+const { documentation: astDocumentation } = useAstDocumentation(
+  graphStore,
+  () => props.node.outerExpr,
+)
+const documentation = computed({
+  // This returns the same value as the `astDocumentation` getter, but with fewer reactive dependencies.
+  get: () => props.node.documentation ?? '',
+  set: (value) => (astDocumentation.value = value),
+})
+
+syncRef(editing, useFocusDelayed(textEditor).focused)
 </script>
 <template>
   <div v-if="editing || props.node.documentation?.trimStart()" class="GraphNodeComment">
-    <AstDocumentation
-      v-model:editing="editing"
-      :ast="props.node.outerExpr"
-      :documentation="props.node.documentation ?? ''"
-      preferSingleLine
+    <PlainTextEditor
+      ref="textEditor"
+      v-model="documentation"
+      @keydown.enter.capture.stop="editing = false"
     />
   </div>
 </template>

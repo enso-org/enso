@@ -28,7 +28,7 @@ export interface AssetVersionsProps {
 /** A list of previous versions of an asset. */
 export default function AssetVersions(props: AssetVersionsProps) {
   const { item } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const isCloud = backend.type === backendService.BackendType.remote

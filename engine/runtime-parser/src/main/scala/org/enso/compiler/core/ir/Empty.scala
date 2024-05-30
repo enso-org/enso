@@ -17,7 +17,6 @@ sealed case class Empty(
   diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends IR
     with Expression
-    with Diagnostic
     with IRKind.Primitive
     with LazyId {
 
@@ -78,13 +77,6 @@ sealed case class Empty(
 
   /** @inheritdoc */
   override def children: List[IR] = List()
-
-  /** @inheritdoc */
-  override def message(source: (IdentifiedLocation => String)): String =
-    "Empty IR: Please report this as a compiler bug."
-
-  /** @inheritdoc */
-  override def diagnosticKeys(): Array[Any] = Array()
 
   /** @inheritdoc */
   override def showCode(indent: Int): String = "IR.Empty"
