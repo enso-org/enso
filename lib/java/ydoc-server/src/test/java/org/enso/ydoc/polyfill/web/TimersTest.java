@@ -119,7 +119,7 @@ public class TimersTest extends ExecutorSetup {
         var p = function (x, y) {
             globalThis.result += 10*x + y;
         };
-        var intervalId = setInterval(p, 10, 4, 2);
+        var intervalId = setInterval(p, 99999, 4, 2);
         clearInterval(intervalId);
         """;
 

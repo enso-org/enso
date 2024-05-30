@@ -33,7 +33,7 @@ import * as object from '#/utilities/object'
 
 /** Settings tab for viewing and editing organization members. */
 export default function UserGroupsSettingsTab() {
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()

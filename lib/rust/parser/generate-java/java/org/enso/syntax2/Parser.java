@@ -21,8 +21,18 @@ public final class Parser implements AutoCloseable {
     File parser = null;
     try {
       var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
-      File dir = new File(whereAmI.toURI()).getParentFile();
-      parser = new File(dir, name);
+      var d = new File(whereAmI.toURI()).getParentFile();
+      File path = null;
+      while (d != null) {
+        path = new File(d, name);
+        if (path.exists()) break;
+        d = d.getParentFile();
+      }
+      if (d == null) {
+        throw new LinkageError(
+            "Cannot find parser in " + new File(whereAmI.toURI()).getParentFile());
+      }
+      parser = path;
       System.load(parser.getAbsolutePath());
     } catch (URISyntaxException | LinkageError e) {
       File root = new File(".").getAbsoluteFile();

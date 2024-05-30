@@ -18,7 +18,7 @@ export interface VisualizationConfig {
   readonly isFocused: boolean
   readonly nodeType: string | undefined
   isBelowToolbar: boolean
-  width: number | null
+  width: number
   height: number
   nodePosition: Vec2
   fullscreen: boolean

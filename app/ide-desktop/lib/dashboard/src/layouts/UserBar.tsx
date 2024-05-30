@@ -48,7 +48,7 @@ export default function UserBar(props: UserBarProps) {
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const self =
     user != null

@@ -1,6 +1,7 @@
-import type { EditorState, LexicalEditor } from 'lexical'
+import type { ToValue } from '@/util/reactivity'
+import type { LexicalEditor } from 'lexical'
 import { $createParagraphNode, $createTextNode, $getRoot, $setSelection } from 'lexical'
-import { computed, ref } from 'vue'
+import { computed, shallowRef, toValue } from 'vue'
 
 const SYNC_TAG = 'ENSO_SYNC'
 
@@ -9,12 +10,22 @@ const SYNC_TAG = 'ENSO_SYNC'
  * By default, the editor's text contents are synchronized with the string. A content getter and setter may be provided
  * to synchronize a different view of the state, e.g. to transform to an encoding that keeps rich text information.
  */
-export function useLexicalSync(
+export function useLexicalStringSync(
   editor: LexicalEditor,
   $getEditorContent: () => string = $getRootText,
-  $setEditorContent: (content: string) => void = $setRootText,
+  $setEditorContent: (content: string) => void = $setRootTextClearingSelection,
 ) {
-  const state = ref<EditorState>()
+  return useLexicalSync(editor, $getEditorContent, (content, prevContent) => {
+    if (content !== toValue(prevContent)) $setEditorContent(content)
+  })
+}
+
+export function useLexicalSync<T>(
+  editor: LexicalEditor,
+  $read: () => T,
+  $write: (content: T, prevContent: ToValue<T>) => void,
+) {
+  const state = shallowRef(editor.getEditorState())
 
   const unregister = editor.registerUpdateListener(({ editorState, tags }) => {
     if (tags.has(SYNC_TAG)) return
@@ -22,40 +33,37 @@ export function useLexicalSync(
   })
 
   const getContent = computed(() => {
-    if (!state.value) return ''
-    return state.value.read(() => $getEditorContent())
+    return state.value.read($read)
   })
 
   return {
     content: computed({
       get: () => getContent.value,
       set: (content) => {
-        editor.update(
-          () => {
-            if (getContent.value !== content) $setEditorContent(content)
-          },
-          {
-            discrete: true,
-            skipTransforms: true,
-            tag: SYNC_TAG,
-          },
-        )
+        editor.update(() => $write(content, getContent), {
+          discrete: true,
+          skipTransforms: true,
+          tag: SYNC_TAG,
+        })
       },
     }),
     unregister,
   }
 }
 
-function $getRootText() {
+export function $getRootText() {
   return $getRoot().getTextContent()
 }
 
-function $setRootText(text: string) {
-  if (text === $getRoot().getTextContent()) return
+export function $setRootText(text: string) {
   const root = $getRoot()
   root.clear()
   const paragraph = $createParagraphNode()
   paragraph.append($createTextNode(text))
   root.append(paragraph)
+}
+
+function $setRootTextClearingSelection(text: string) {
+  $setRootText(text)
   $setSelection(null)
 }

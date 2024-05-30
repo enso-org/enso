@@ -3,7 +3,7 @@ import ResizeHandles from '@/components/ResizeHandles.vue'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import { isTriggeredByKeyboard, useResizeObserver } from '@/composables/events'
+import { isTriggeredByKeyboard } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -11,7 +11,7 @@ import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
 import { computed, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
-  /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
+  /** If true, the visualization should be `overflow: visible` instead of `overflow: auto`. */
   overflow?: boolean
   /** If true, the visualization should display below the node background. */
   belowNode?: boolean
@@ -52,13 +52,13 @@ function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
 }
 
-const realSize = useResizeObserver(contentNode)
+const contentSize = computed(() => new Vec2(config.width, config.height))
 
 // Because ResizeHandles are applying the screen mouse movements, the bouds must be in `screen`
 // space.
 const clientBounds = computed({
   get() {
-    return new Rect(Vec2.Zero, realSize.value.scale(config.scale))
+    return new Rect(Vec2.Zero, contentSize.value.scale(config.scale))
   },
   set(value) {
     if (resizing.left || resizing.right) config.width = value.width / config.scale
@@ -68,9 +68,7 @@ const clientBounds = computed({
 
 let resizing: BoundsSet = {}
 
-// When dragging left resizer, we need to move node position accordingly. It may be done only by
-// reading the real width change, as `config.width` does not consider node's minimum width.
-watch(realSize, (newVal, oldVal) => {
+watch(contentSize, (newVal, oldVal) => {
   if (!resizing.left) return
   const delta = newVal.x - oldVal.x
   if (delta !== 0)
@@ -83,6 +81,13 @@ const nodeShortType = computed(() =>
     qnLastSegment(config.nodeType)
   : UNKNOWN_TYPE,
 )
+
+const contentStyle = computed(() => {
+  return {
+    width: config.fullscreen ? undefined : `${config.width}px`,
+    height: config.fullscreen ? undefined : `${config.height}px`,
+  }
+})
 </script>
 
 <template>
@@ -109,12 +114,7 @@ const nodeShortType = computed(() =>
         ref="contentNode"
         class="content scrollable"
         :class="{ overflow: props.overflow }"
-        :style="{
-          width:
-            config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-          height:
-            config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
-        }"
+        :style="contentStyle"
         @wheel.passive="onWheel"
       >
         <slot></slot>

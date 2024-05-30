@@ -38,7 +38,7 @@ interface PropsWithoutHref {
  */
 export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
-  readonly tooltip?: React.ReactNode
+  readonly tooltip?: React.ReactElement | string | false
   /**
    * The icon to display in the button
    */
@@ -96,7 +96,6 @@ export const BUTTON_STYLES = twv.tv({
         content: 'w-full h-full',
         icon: 'w-fit h-fit',
       },
-
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline:
         'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',

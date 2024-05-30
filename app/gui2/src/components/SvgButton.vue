@@ -1,47 +1,30 @@
 <script setup lang="ts">
+import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { URLString } from '@/util/data/urlString'
 import type { Icon } from '@/util/iconName'
 
 const _props = defineProps<{
   name: Icon | URLString
+  label?: string
   disabled?: boolean
 }>()
 </script>
 
 <template>
-  <button class="SvgButton button" :class="{ disabled }" :disabled="disabled ?? false">
-    <SvgIcon :name="name" draggable="false" />
-  </button>
+  <MenuButton :disabled="disabled" class="SvgButton">
+    <SvgIcon :name="name" />
+    <div v-if="label" v-text="label" />
+  </MenuButton>
 </template>
 
 <style scoped>
 .SvgButton {
-  border: none;
-  display: flex;
-  justify-items: center;
-  align-items: center;
-  padding: 4px;
-  cursor: pointer;
-  margin: -4px -4px;
-  border-radius: var(--radius-full);
-  transition: background-color 0.3s;
-
-  &:hover {
-    background-color: var(--color-menu-entry-hover-bg);
-  }
-
-  & > svg {
-    transform: var(--icon-transform);
-    transform-origin: var(--icon-transform-origin);
-  }
+  margin: -4px;
+  gap: 4px;
 
   &.disabled {
     opacity: 0.3;
-
-    &:hover {
-      background-color: unset;
-    }
   }
 }
 </style>
