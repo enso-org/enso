@@ -29,7 +29,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Language;
@@ -212,12 +211,12 @@ prefer-local-libraries: true
     assert srcDir.exists();
     boolean mainModuleFound = false;
     for (var module : modules) {
-      var relativePath = String.join(File.pathSeparator, module.name().pathAsJava());
+      var relativePath = String.join(File.pathSeparator, module.name.pathAsJava());
       var modDirPath = srcDirPath.resolve(relativePath);
       modDirPath.toFile().mkdirs();
-      var modPath = modDirPath.resolve(module.name().item() + ".enso");
-      Files.writeString(modPath, module.code());
-      if (module.name().equals(QualifiedName.fromString("Main"))) {
+      var modPath = modDirPath.resolve(module.name.item() + ".enso");
+      Files.writeString(modPath, module.code);
+      if (module.name.equals(QualifiedName.fromString("Main"))) {
         mainModuleFound = true;
       }
     }
@@ -254,7 +253,7 @@ prefer-local-libraries: true
   }
 
   /**
-   * Just a wrapper for {@link TestUtils#testProjectRun(Builder, Path, Consumer)}.
+   * Just a wrapper for {@link TestBase#testProjectRun(Builder, Path, Consumer)}.
    *
    * @param projDir Root directory of the project.
    * @param resultConsumer Any action that is to be evaluated on the result of running the {@code
@@ -263,6 +262,9 @@ prefer-local-libraries: true
   protected void testProjectRun(Path projDir, Consumer<Value> resultConsumer) {
     testProjectRun(defaultContextBuilder(), projDir, resultConsumer);
   }
+
+  /** A simple structure corresponding to an Enso module. */
+  public record SourceModule(QualifiedName name, String code) {}
 
   /**
    * An artificial RootNode. Used for tests of nodes that need to be adopted. Just create this root

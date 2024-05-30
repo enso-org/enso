@@ -7,7 +7,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -15,13 +14,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class PrintTest {
+public class PrintTest extends TestBase {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
   private Context ctx;
 
   @Before
   public void prepareCtx() {
-    ctx = TestUtils.createDefaultContext(out);
+    ctx = createDefaultContext(out);
     out.reset();
   }
 

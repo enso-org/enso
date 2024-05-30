@@ -7,7 +7,6 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
@@ -15,7 +14,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class AutoscopedConstructorTest {
+public class AutoscopedConstructorTest extends TestBase {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
   private static Context ctx;
 
@@ -23,7 +22,7 @@ public class AutoscopedConstructorTest {
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = TestUtils.createDefaultContext(out);
+    ctx = createDefaultContext(out);
   }
 
   @Before

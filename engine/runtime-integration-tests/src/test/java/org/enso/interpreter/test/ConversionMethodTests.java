@@ -5,7 +5,6 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.hamcrest.MatcherAssert;
@@ -15,14 +14,14 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ConversionMethodTests {
+public class ConversionMethodTests extends TestBase {
   private static Context ctx;
 
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @BeforeClass
   public static void initCtx() {
-    ctx = TestUtils.createDefaultContext(out);
+    ctx = createDefaultContext(out);
   }
 
   @AfterClass
@@ -55,7 +54,7 @@ public class ConversionMethodTests {
 
        main = (Foo.from (Baz.Mk_Baz 10)).foo + (Foo.from (Bar.Mk_Bar 20)).foo
         """;
-    Value res = TestUtils.evalModule(ctx, src);
+    Value res = evalModule(ctx, src);
     assertEquals(30, res.asInt());
   }
 
@@ -75,7 +74,7 @@ public class ConversionMethodTests {
            jmap = Java_Map.of "A" 1 "B" 2 "C" 3
            Foo.from jmap . data . size
        """;
-    Value res = TestUtils.evalModule(ctx, src);
+    Value res = evalModule(ctx, src);
     assertEquals(3, res.asInt());
   }
 
@@ -99,7 +98,7 @@ public class ConversionMethodTests {
        main =
            Foo.from js_map . data . size
        """;
-    Value res = TestUtils.evalModule(ctx, src);
+    Value res = evalModule(ctx, src);
     assertEquals(2, res.asInt());
   }
 
@@ -120,7 +119,7 @@ public class ConversionMethodTests {
        main =
           Foo.from (js_date 2023 2 7 23 59 0 10) . data . day
        """;
-    Value res = TestUtils.evalModule(ctx, src);
+    Value res = evalModule(ctx, src);
     assertEquals(7, res.asInt());
   }
 
@@ -139,7 +138,7 @@ public class ConversionMethodTests {
        main = 42
        """;
     try {
-      Value res = TestUtils.evalModule(ctx, src);
+      Value res = evalModule(ctx, src);
       fail("Expected an exception, but got " + res);
     } catch (Exception e) {
       MatcherAssert.assertThat(e.getMessage(), Matchers.containsString("Ambiguous conversion:"));

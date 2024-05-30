@@ -5,19 +5,18 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.List;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class EqualsConversionsTest {
+public class EqualsConversionsTest extends TestBase {
   private static Context context;
 
   @BeforeClass
   public static void initContextAndData() {
-    context = TestUtils.createDefaultContext();
+    context = createDefaultContext();
   }
 
   @AfterClass
@@ -28,7 +27,7 @@ public class EqualsConversionsTest {
   @Test
   public void testBasicInequalities() {
     var results =
-        TestUtils.evalModule(
+        TestBase.evalModule(
                 context,
                 """
     from Standard.Base import all
@@ -168,7 +167,7 @@ public class EqualsConversionsTest {
           r0
       """;
       var res =
-          TestUtils.evalModule(context, block0 + block1 + block2 + block3 + mainBlock + extraBlock);
+          TestBase.evalModule(context, block0 + block1 + block2 + block3 + mainBlock + extraBlock);
       return res.asBoolean();
     }
   }

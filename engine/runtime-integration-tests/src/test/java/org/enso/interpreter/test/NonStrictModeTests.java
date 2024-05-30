@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.Map;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Value;
@@ -14,7 +13,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class NonStrictModeTests {
+public class NonStrictModeTests extends TestBase {
   private static Context nonStrictCtx;
   private static MockLogHandler logHandler;
 
@@ -26,7 +25,7 @@ public class NonStrictModeTests {
 
   protected static Context createNonStrictContext() {
     var context =
-        TestUtils.defaultContextBuilder()
+        defaultContextBuilder()
             .logHandler(logHandler)
             .option(RuntimeOptions.STRICT_ERRORS, "false")
             .build();
@@ -59,7 +58,7 @@ public class NonStrictModeTests {
 
         main = 42
         """;
-    Value res = TestUtils.evalModule(nonStrictCtx, src);
+    Value res = evalModule(nonStrictCtx, src);
     assertEquals(42, res.asInt());
 
     // Even if the conversion is unused and non-strict mode, we still get a diagnostic report:
@@ -89,7 +88,7 @@ public class NonStrictModeTests {
         main = (Foo.from (Bar.Mk_Bar 42)) . data
         """;
 
-    Value res = TestUtils.evalModule(nonStrictCtx, src);
+    Value res = evalModule(nonStrictCtx, src);
     assertEquals(142, res.asInt());
 
     logHandler.assertMessage(
@@ -107,7 +106,7 @@ public class NonStrictModeTests {
 
         main = 2+2
         """;
-    Value res = TestUtils.evalModule(nonStrictCtx, src);
+    Value res = evalModule(nonStrictCtx, src);
     assertEquals(4, res.asInt());
 
     String line1 =

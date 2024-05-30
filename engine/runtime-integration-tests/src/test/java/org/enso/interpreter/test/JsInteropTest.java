@@ -3,21 +3,20 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class JsInteropTest {
+public class JsInteropTest extends TestBase {
 
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
   private Context ctx;
 
   @Before
   public void initContext() {
-    ctx = TestUtils.createDefaultContext(out);
+    ctx = createDefaultContext(out);
     out.reset();
   }
 
@@ -41,7 +40,7 @@ public class JsInteropTest {
           }
         json.get "inner"
       """;
-    Value res = TestUtils.evalModule(ctx, src);
+    Value res = evalModule(ctx, src);
     assertEquals("{\"a\":1}", res.toString());
   }
 }

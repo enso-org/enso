@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
 import java.util.function.Function;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -16,14 +15,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class InsightForEnsoTest {
+public class InsightForEnsoTest extends TestBase {
   private Context ctx;
   private AutoCloseable insightHandle;
   private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @Before
   public void initContext() throws Exception {
-    this.ctx = TestUtils.defaultContextBuilder().out(out).build();
+    this.ctx = defaultContextBuilder().out(out).build();
 
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();

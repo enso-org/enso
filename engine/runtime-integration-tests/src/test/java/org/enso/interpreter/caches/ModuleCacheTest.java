@@ -10,22 +10,21 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.compiler.CompilerTest;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ModuleCacheTest {
+public class ModuleCacheTest extends TestBase {
   private static Context ctx;
 
   public ModuleCacheTest() {}
 
   @BeforeClass
   public static void initializeContext() throws Exception {
-    ctx =
-        TestUtils.defaultContextBuilder().option(RuntimeOptions.DISABLE_IR_CACHES, "true").build();
+    ctx = defaultContextBuilder().option(RuntimeOptions.DISABLE_IR_CACHES, "true").build();
   }
 
   @Test

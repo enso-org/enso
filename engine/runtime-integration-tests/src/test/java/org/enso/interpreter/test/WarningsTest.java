@@ -12,7 +12,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -22,7 +21,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class WarningsTest {
+public class WarningsTest extends TestBase {
 
   private static Context ctx;
   private static ValuesGenerator generator;
@@ -31,7 +30,7 @@ public class WarningsTest {
 
   @BeforeClass
   public static void initEnsoContext() {
-    ctx = TestUtils.createDefaultContext();
+    ctx = createDefaultContext();
     generator = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
     ensoContext =
         (EnsoContext)

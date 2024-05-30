@@ -14,8 +14,6 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
 import org.enso.polyglot.TopScope;
-import org.enso.test.utils.SourceModule;
-import org.enso.test.utils.TestUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.hamcrest.Matcher;
 import org.junit.Rule;
@@ -28,7 +26,7 @@ import org.junit.rules.TemporaryFolder;
  * affecting the resolution of extension methods. In other words, we need to make sure that the
  * method resolution is deterministic.
  */
-public class ExtensionMethodResolutionTest {
+public class ExtensionMethodResolutionTest extends TestBase {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
   private static final Matcher<String> methodsOverloadErrorMessageMatcher =
       allOf(
@@ -80,9 +78,8 @@ public class ExtensionMethodResolutionTest {
             T.foo = "Main"
             main = T.foo
             """);
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(xMod, yMod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("Proj", Set.of(xMod, yMod, mainMod), tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(
@@ -112,9 +109,8 @@ public class ExtensionMethodResolutionTest {
             T.foo = "Main"
             main = T.foo
             """);
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(xMod, yMod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("Proj", Set.of(xMod, yMod, mainMod), tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(
@@ -153,9 +149,8 @@ public class ExtensionMethodResolutionTest {
             from project.Z import all
             main = T.foo
             """);
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(
@@ -195,9 +190,8 @@ public class ExtensionMethodResolutionTest {
             from project.Y import all
             main = T.foo
             """);
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(
@@ -228,9 +222,8 @@ public class ExtensionMethodResolutionTest {
             main =
                 T.method
             """);
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("Proj", Set.of(mod, mainMod), tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(res.isNumber(), is(true));
@@ -258,9 +251,8 @@ public class ExtensionMethodResolutionTest {
             main =
                 T.method
             """);
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("Proj", Set.of(mod, mainMod), tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(res.isNumber(), is(true));
@@ -295,9 +287,8 @@ public class ExtensionMethodResolutionTest {
             main =
                 T.method
             """);
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", Set.of(mod2, mod1, mainMod), projDir);
-    TestUtils.testProjectRun(
+    var projDir = createProject("Proj", Set.of(mod2, mod1, mainMod), tempFolder);
+    testProjectRun(
         projDir,
         res -> {
           assertThat(res.isNumber(), is(true));
@@ -307,8 +298,7 @@ public class ExtensionMethodResolutionTest {
 
   private void testProjectCompilationFailure(String mainSrc, Matcher<String> errorMessageMatcher)
       throws IOException {
-    var projDir = tempFolder.newFolder().toPath();
-    TestUtils.createProject("Proj", mainSrc, projDir);
+    var projDir = createProject("Proj", mainSrc, tempFolder);
     testProjectCompilationFailure(projDir, errorMessageMatcher);
   }
 
@@ -316,7 +306,7 @@ public class ExtensionMethodResolutionTest {
       Path mainProjDir, Matcher<String> errorMessageMatcher) {
     var out = new ByteArrayOutputStream();
     try (var ctx =
-        TestUtils.defaultContextBuilder()
+        defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, mainProjDir.toAbsolutePath().toString())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
