@@ -173,8 +173,8 @@ const AUTHENTICATION_API = {
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
 
 const FILE_BROWSER_API = {
-    openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath') =>
-        electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind),
+    openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
+        electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
 }
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
 

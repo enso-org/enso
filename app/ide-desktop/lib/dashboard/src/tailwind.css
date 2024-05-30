@@ -562,3 +562,11 @@ body[data-debug] [data-navigator2d-neighbor] {
 :root::highlight(field-existing-email) {
   @apply text-amber-500;
 }
+
+:where([popover]) {
+  inset: unset;
+  margin: unset;
+  width: unset;
+  height: unset;
+  overflow: unset;
+}

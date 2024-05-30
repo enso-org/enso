@@ -19,6 +19,7 @@ export const ALERT_STYLES = twv.tv({
   variants: {
     variant: {
       custom: '',
+      neutral: 'bg-gray-200 border-gray-800 text-gray-800',
       error: 'bg-red-200 border-red-800 text-red-800',
       info: 'bg-blue-200 border-blue-800 text-blue-800',
       success: 'bg-green-200 border-green-800 text-green-800',
