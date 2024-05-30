@@ -282,8 +282,8 @@ export default class RemoteBackend extends Backend {
   /**
    * List all invitations.
    */
-  override async listInvitations(): Promise<backend.Invitation[]> {
-    const response = await this.get<backend.InvitationListRequestBody>(
+  override async listInvitations(): Promise<readonly backend.Invitation[]> {
+    const response = await this.get<backend.ListInvitationsResponseBody>(
       remoteBackendPaths.INVITATION_PATH
     )
 

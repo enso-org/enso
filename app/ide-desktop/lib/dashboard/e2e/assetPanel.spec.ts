@@ -34,7 +34,8 @@ test.test('asset panel contents', async ({ page }) => {
         permission: permissions.PermissionAction.own,
         user: {
           organizationId: defaultOrganizationId,
-          userId: defaultUserId,
+          // Using the default ID causes the asset to have a dynamic username, of course.
+          userId: backend.UserId(defaultUserId + '2'),
           name: username,
           email: backend.EmailAddress(email),
         },

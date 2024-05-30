@@ -786,18 +786,18 @@ async function mockDate({ page }: MockParams) {
     }`)
 }
 
-/**
- * Passes Terms and conditions dialog
- */
+/** Pass the Terms and conditions dialog. */
 export async function passTermsAndConditionsDialog({ page }: MockParams) {
   // wait for terms and conditions dialog to appear
   // but don't fail if it doesn't appear
   try {
-    // wait for terms and conditions dialog to appear
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
-    await page.getByRole('checkbox').click()
-    await page.getByRole('button', { name: 'Accept' }).click()
+    await test.test.step('Accept Terms and Conditions', async () => {
+      // wait for terms and conditions dialog to appear
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
+      await page.getByRole('checkbox').click()
+      await page.getByRole('button', { name: 'Accept' }).click()
+    })
   } catch (error) {
     // do nothing
   }
@@ -811,12 +811,15 @@ export async function passTermsAndConditionsDialog({ page }: MockParams) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockIDEContainer({ page }: MockParams) {
-  await page.evaluate(() => {
-    const ideContainer = document.getElementById('app')
-    if (ideContainer) {
-      ideContainer.style.height = '100vh'
-      ideContainer.style.width = '100vw'
-    }
+  await test.test.step('Mock IDE container', async () => {
+    await page.evaluate(() => {
+      const ideContainer = document.getElementById('app')
+      if (ideContainer) {
+        ideContainer.style.position = 'absolute'
+        ideContainer.style.height = '100vh'
+        ideContainer.style.width = '100vw'
+      }
+    })
   })
 }
 

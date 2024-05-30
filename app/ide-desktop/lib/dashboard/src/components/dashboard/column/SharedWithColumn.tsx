@@ -64,6 +64,8 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     [setItem]
   )
 
+  console.log(JSON.stringify(asset.permissions))
+
   return (
     <div className="group flex items-center gap-column-items">
       {(asset.permissions ?? []).map(other => (
