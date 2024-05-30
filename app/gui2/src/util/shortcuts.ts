@@ -3,6 +3,7 @@ import { assert } from '@/util/assert'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
+const DEBUG_LOG = false
 
 // ======================
 // === Modifier flags ===
@@ -295,7 +296,7 @@ export const DefaultHandler = Symbol('default handler')
  * if the event should be considered not handled (and thus propagated). Returning true or just
  * nothing from the function will cause propagation of event stop.
  *
- * @param namespace should be unique among other `defineKebinds` calls.
+ * @param namespace should be unique among other `defineKeybinds` calls.
  * @param bindings is an object defining actions and their key bindings. Each property name is an
  * action name, and value is list of default key bindings. See "Keybinds should be parsed
  * correctly" test for examples of valid strings.
@@ -406,6 +407,11 @@ export function defineKeybinds<
           if (keybinds.has(bindingName as BindingName)) {
             const handle = handlers[bindingName as BindingName]
             handled = handle && handle(event) !== false
+            if (DEBUG_LOG)
+              console.log(
+                `Event ${event.type} (${event instanceof KeyboardEvent ? event.key : buttonFlagsForEvent(event)})`,
+                `${handled ? 'handled' : 'processed'} by ${namespace}.${bindingName}`,
+              )
             if (handled) break
           }
         }

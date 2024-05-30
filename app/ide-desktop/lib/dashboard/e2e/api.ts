@@ -442,6 +442,9 @@ export async function mockApi({ page }: MockParams) {
     await page.route(BASE_URL + remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
       await route.fulfill()
     })
+    await page.route(BASE_URL + remoteBackendPaths.POST_LOG_EVENT_PATH, async route => {
+      await route.fulfill()
+    })
 
     // === Other endpoints ===
 

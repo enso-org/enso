@@ -12,7 +12,7 @@ import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
-import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
+import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
@@ -36,7 +36,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { hidden = false, hasPasteData, directoryKey, directoryId, rootDirectoryId } = props
   const { dispatchAssetListEvent } = props
   const { doPaste } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const filesInputRef = React.useRef<HTMLInputElement>(null)
@@ -145,13 +145,13 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <ContextMenuEntry
           hidden={hidden}
-          action="newDataLink"
+          action="newDatalink"
           doAction={() => {
             setModal(
-              <UpsertDataLinkModal
+              <UpsertDatalinkModal
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
-                    type: AssetListEventType.newDataLink,
+                    type: AssetListEventType.newDatalink,
                     parentKey: directoryKey ?? rootDirectoryId,
                     parentId: directoryId ?? rootDirectoryId,
                     name,

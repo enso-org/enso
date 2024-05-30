@@ -27,6 +27,10 @@ export const DELETE_ORGANIZATION_PATH = 'organizations/me'
 export const UPLOAD_ORGANIZATION_PICTURE_PATH = 'organizations/me/picture'
 /** Relative HTTP path to the "invite user" endpoint of the Cloud backend API. */
 export const INVITE_USER_PATH = 'users/invite'
+/**
+ * Relative HTTP path to the "list invitations" endpoint of the Cloud backend API.
+ */
+export const INVITATION_PATH = 'invitations'
 /** Relative HTTP path to the "create permission" endpoint of the Cloud backend API. */
 export const CREATE_PERMISSION_PATH = 'permissions'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
@@ -47,8 +51,8 @@ export const UPLOAD_FILE_PATH = 'files'
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
 export const LIST_SECRETS_PATH = 'secrets'
-/** Relative HTTP path to the "create connector" endpoint of the Cloud backend API. */
-export const CREATE_CONNECTOR_PATH = 'connectors'
+/** Relative HTTP path to the "create datalink" endpoint of the Cloud backend API. */
+export const CREATE_DATALINK_PATH = 'datalinks'
 /** Relative HTTP path to the "create tag" endpoint of the Cloud backend API. */
 export const CREATE_TAG_PATH = 'tags'
 /** Relative HTTP path to the "list tags" endpoint of the Cloud backend API. */
@@ -65,6 +69,8 @@ export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
 export const GET_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
 /** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
 export const GET_LOG_EVENTS_PATH = 'log_events'
+/** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
+export const POST_LOG_EVENT_PATH = 'logs'
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
 export function changeUserGroupPath(userId: backend.UserId) {
   return `users/${userId}/usergroups`
@@ -125,9 +131,9 @@ export function updateSecretPath(secretId: backend.SecretId) {
 export function getSecretPath(secretId: backend.SecretId) {
   return `secrets/${secretId}`
 }
-/** Relative HTTP path to the "get connector" endpoint of the Cloud backend API. */
-export function getConnectorPath(connectorId: backend.ConnectorId) {
-  return `connectors/${connectorId}`
+/** Relative HTTP path to the "get datalink" endpoint of the Cloud backend API. */
+export function getDatalinkPath(datalinkId: backend.DatalinkId) {
+  return `datalinks/${datalinkId}`
 }
 /** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */
 export function associateTagPath(assetId: backend.AssetId) {

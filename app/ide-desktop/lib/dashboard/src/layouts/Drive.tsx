@@ -25,7 +25,6 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 import type * as spinner from '#/components/Spinner'
@@ -106,7 +105,7 @@ export default function Drive(props: DriveProps) {
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const [canDownload, setCanDownload] = React.useState(false)
@@ -285,10 +284,10 @@ export default function Drive(props: DriveProps) {
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
   )
 
-  const doCreateDataLink = React.useCallback(
+  const doCreateDatalink = React.useCallback(
     (name: string, value: unknown) => {
       dispatchAssetListEvent({
-        type: AssetListEventType.newDataLink,
+        type: AssetListEventType.newDatalink,
         parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
         parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
         name,
@@ -330,14 +329,14 @@ export default function Drive(props: DriveProps) {
         <result.Result
           status="error"
           title={getText('notEnabledTitle')}
-          qa="not-enabled-stub"
+          testId="not-enabled-stub"
           subtitle={`${getText('notEnabledSubtitle')}${!supportsLocalBackend ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
           {!supportsLocalBackend && (
             <ariaComponents.Button
               variant="primary"
               size="medium"
-              rounding="full"
+              rounded="full"
               data-testid="download-free-edition"
               onPress={async () => {
                 const downloadUrl = await github.getDownloadUrl()
@@ -363,12 +362,9 @@ export default function Drive(props: DriveProps) {
           }`}
         >
           <div className="flex flex-col items-start gap-icons self-start">
-            <aria.Heading
-              level={1}
-              className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug"
-            >
+            <ariaComponents.Text.Heading>
               {isCloud ? getText('cloudDrive') : getText('localDrive')}
-            </aria.Heading>
+            </ariaComponents.Text.Heading>
             <DriveBar
               category={category}
               canDownload={canDownload}
@@ -377,7 +373,7 @@ export default function Drive(props: DriveProps) {
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
               doCreateSecret={doCreateSecret}
-              doCreateDataLink={doCreateDataLink}
+              doCreateDatalink={doCreateDatalink}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>

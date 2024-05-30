@@ -1,0 +1,53 @@
+from Standard.Base import all
+from Standard.Base.Metadata import make_single_choice, Widget
+
+import project.Errors.Not_All_Rows_Downloaded
+import project.Table.Table
+
+## PRIVATE
+type Rows_To_Read
+    ## Read all rows.
+    All_Rows
+
+    ## Read the first specified number of rows.
+    First rows:Integer=1000
+
+    ## Read a limited number of rows, attaching warning if there is more.
+       By default, a 1000 rows are read.
+       This is the default for database reading.
+    First_With_Warning rows:Integer=1000
+
+    ## PRIVATE
+    default_widget -> Widget =
+        make_single_choice [["All_Rows", "..All_Rows"], ["First", "..First"]]
+
+    ## PRIVATE
+       Gets the number of rows to read (or Nothing if all rows).
+       For the First_With_Warning case, the number of rows is one more than maximum rows.
+    rows_to_read self -> Integer | Nothing = case self of
+        Rows_To_Read.All_Rows -> Nothing
+        Rows_To_Read.First rows -> rows
+        Rows_To_Read.First_With_Warning rows -> rows+1
+
+    ## PRIVATE
+       Gets the number of rows to write (or Nothing if all rows).
+    rows_to_write self -> Integer | Nothing = case self of
+        Rows_To_Read.All_Rows -> Nothing
+        Rows_To_Read.First rows -> rows
+        Rows_To_Read.First_With_Warning rows -> rows
+
+    ## PRIVATE
+    attach_warning self input:Table -> Table = case self of
+        Rows_To_Read.First_With_Warning rows -> if input.row_count <= rows then input else
+            Problem_Behavior.Report_Warning.attach_problem_after (input.take (First rows)) <|
+                Not_All_Rows_Downloaded.Warning rows
+        _ -> input
+
+## PRIVATE
+Rows_To_Read.from (that:Nothing) =
+    _ = that
+    Rows_To_Read.All_Rows
+
+## PRIVATE
+Rows_To_Read.from (that:Integer) =
+    Rows_To_Read.First that

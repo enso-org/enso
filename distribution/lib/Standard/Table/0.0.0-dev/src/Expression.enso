@@ -4,7 +4,7 @@ polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 
-## ICON dataframe_map_column
+## ICON column_add
    Create an expression from a Text value.
 
    Arguments:

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { isConnected, useGraphStore, type Edge } from '@/stores/graph'
+import type { Edge } from '@/stores/graph'
+import { isConnected, useGraphStore } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -18,35 +19,48 @@ const props = defineProps<{
   maskSource?: boolean
 }>()
 
+// The padding added around the masking rect for nodes with visible output port. The actual padding
+// is animated together with node's port opening. Required to correctly not draw the edge in space
+// between the port path and node.
+const VISIBLE_PORT_MASK_PADDING = 6
+
 const base = ref<SVGPathElement>()
 
+const mouseAnchor = computed(() => 'anchor' in props.edge && props.edge.anchor.type === 'mouse')
+const mouseAnchorPos = computed(() => (mouseAnchor.value ? navigator?.sceneMousePos : undefined))
+const hoveredNode = computed(() => (mouseAnchor.value ? selection?.hoveredNode : undefined))
+const hoveredPort = computed(() => (mouseAnchor.value ? selection?.hoveredPort : undefined))
+
+const connectedSourceNode = computed(
+  () => props.edge.source && graph.db.getPatternExpressionNodeId(props.edge.source),
+)
+
 const sourceNode = computed(() => {
-  const setSource = props.edge.source
-  if (setSource != null) {
-    return graph.db.getPatternExpressionNodeId(setSource)
-  } else {
+  if (connectedSourceNode.value) {
+    return connectedSourceNode.value
+  } else if (hoveredNode.value != null && props.edge.target) {
     // When the source is not set (i.e. edge is dragged), use the currently hovered over expression
     // as the source, as long as it is not from the same node as the target.
-    if (selection?.hoveredNode != null) {
-      const rawTargetNode = props.edge.target && graph.getPortNodeId(props.edge.target)
-      if (selection.hoveredNode != rawTargetNode) return selection.hoveredNode
-    }
+    const rawTargetNode = graph.getPortNodeId(props.edge.target)
+    if (hoveredNode.value != rawTargetNode) return hoveredNode.value
   }
   return undefined
 })
 
 const targetExpr = computed(() => {
   const setTarget = props.edge.target
-  // When the target is not set (i.e. edge is dragged), use the currently hovered over expression
-  // as the target, as long as it is not from the same node as the source.
-  if (setTarget == null && selection?.hoveredNode != null) {
-    if (selection.hoveredNode != props.edge.source) return selection.hoveredPort
+  if (setTarget) {
+    return setTarget
+  } else if (hoveredNode.value != null && hoveredNode.value !== connectedSourceNode.value) {
+    // When the target is not set (i.e. edge is dragged), use the currently hovered over expression
+    // as the target, as long as it is not from the same node as the source.
+    return hoveredPort.value
   }
-  return setTarget
+  return undefined
 })
 
 const targetNode = computed(
-  () => targetExpr.value && (graph.getPortNodeId(targetExpr.value) ?? selection?.hoveredNode),
+  () => targetExpr.value && (graph.getPortNodeId(targetExpr.value) ?? hoveredNode.value),
 )
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
@@ -58,8 +72,10 @@ const targetPos = computed<Vec2 | undefined>(() => {
     const yAdjustment =
       targetIsSelfArgument.value ? -(selfArgumentArrowHeight + selfArgumentArrowYOffset) : 0
     return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, yAdjustment))
-  } else if (navigator?.sceneMousePos != null) {
-    return navigator.sceneMousePos
+  } else if (mouseAnchorPos.value != null) {
+    return mouseAnchorPos.value
+  } else if ('anchor' in props.edge && props.edge.anchor.type === 'fixed') {
+    return props.edge.anchor.scenePos
   } else {
     return undefined
   }
@@ -72,8 +88,13 @@ const sourceNodeRect = computed<Rect | undefined>(() => {
 const sourceRect = computed<Rect | undefined>(() => {
   if (sourceNodeRect.value) {
     return sourceNodeRect.value
-  } else if (navigator?.sceneMousePos != null) {
-    return new Rect(navigator.sceneMousePos, Vec2.Zero)
+  } else if (
+    'anchor' in props.edge &&
+    props.edge.anchor.type === 'mouse' &&
+    props.edge.target != null &&
+    mouseAnchorPos.value != null
+  ) {
+    return new Rect(mouseAnchorPos.value, Vec2.Zero)
   } else {
     return undefined
   }
@@ -93,19 +114,27 @@ type NodeMask = {
   rect: Rect
   radius: number
 }
+
 const sourceMask = computed<NodeMask | undefined>(() => {
-  if (!props.maskSource) return
-  const rect = sourceNodeRect.value
-  if (!rect) return
-  const radius = 16
+  const startsInPort = currentJunctionPoints.value?.startsInPort
+  if (!props.maskSource && !startsInPort) return
+  const nodeRect = sourceNodeRect.value
+  if (!nodeRect) return
+  const animProgress =
+    startsInPort ? (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0 : 0
+  let padding = animProgress * VISIBLE_PORT_MASK_PADDING
+  if (!props.maskSource && padding === 0) return
+  const rect = nodeRect.expand(padding)
+  const radius = 16 + padding
   const id = `mask_for_edge_to-${props.edge.target ?? 'unconnected'}`
   return { id, rect, radius }
 })
 
-const edgeColor = computed(
-  () =>
-    (targetNode.value && graph.db.getNodeColorStyle(targetNode.value)) ??
-    (sourceNode.value && graph.db.getNodeColorStyle(sourceNode.value)),
+const edgeColor = computed(() =>
+  'color' in props.edge ? props.edge.color
+  : targetNode.value ? graph.db.getNodeColorStyle(targetNode.value)
+  : sourceNode.value ? graph.db.getNodeColorStyle(sourceNode.value)
+  : undefined,
 )
 
 /** The inputs to the edge state computation. */
@@ -121,6 +150,7 @@ interface Inputs {
 interface JunctionPoints {
   points: Vec2[]
   maxRadius: number
+  startsInPort: boolean
 }
 
 function circleIntersection(x: number, r1: number, r2: number): number {
@@ -181,6 +211,11 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     targetBeyondSource &&
     Math.abs(inputs.targetOffset.x) - sourceMaxXOffset >=
       3.0 * (theme.edge.radius - theme.edge.three_corner.max_squeeze)
+  const horizontalRoomFor3CornersNoSqueeze =
+    targetBeyondSource &&
+    Math.abs(inputs.targetOffset.x) - sourceMaxXOffset >=
+      3.0 * theme.edge.radius + theme.edge.three_corner.radius_max
+
   if (targetWellBelowSource || (targetBelowSource && !horizontalRoomFor3Corners)) {
     const innerTheme = theme.edge.one_corner
     // The edge can originate anywhere along the length of the node.
@@ -197,11 +232,13 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     const radiusY = Math.max(Math.abs(inputs.targetOffset.y) - yAdjustment, 0.0)
     const maxRadius = Math.min(radiusX, radiusY)
     // The radius the edge would have, if the arc portion were as large as possible.
+    const offsetX = Math.abs(inputs.targetOffset.x - sourceX)
     const naturalRadius = Math.min(
       Math.abs(inputs.targetOffset.x - sourceX),
       Math.abs(inputs.targetOffset.y),
     )
     let sourceDY = 0
+    let startsInPort = true
     if (naturalRadius > innerTheme.minimum_tangent_exit_radius) {
       // Offset the beginning of the edge so that it is normal to the curve of the source node
       // at the point that it exits the node.
@@ -212,12 +249,14 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
       const intersection = circleIntersection(circleOffset, theme.node.corner_radius, radius)
       sourceDY = -Math.abs(radius - intersection)
     } else if (halfSourceSize.y != 0) {
-      sourceDY = -innerTheme.source_node_overlap + halfSourceSize.y
+      sourceDY = 0 - innerTheme.source_node_overlap
+      startsInPort = offsetX < innerTheme.minimum_tangent_exit_radius
     }
     const source = new Vec2(sourceX, sourceDY)
     return {
       points: [source, inputs.targetOffset],
       maxRadius,
+      startsInPort,
     }
   } else {
     const radiusMax = theme.edge.three_corner.radius_max
@@ -266,6 +305,7 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     return {
       points: [source, j0, j1, attachmentTarget],
       maxRadius: radiusMax,
+      startsInPort: horizontalRoomFor3CornersNoSqueeze,
     }
   }
 }
@@ -332,25 +372,41 @@ function render(sourcePos: Vec2, elements: Element[]): string {
   return out
 }
 
+const sourceOriginPoint = computed(() => {
+  const source = sourceRect.value
+  if (source == null) return null
+  const sourceStartPosY = Math.max(
+    source.top + theme.node.corner_radius,
+    source.bottom - theme.node.corner_radius,
+  )
+  return new Vec2(source.center().x, sourceStartPosY)
+})
+
 const currentJunctionPoints = computed(() => {
   const target = targetPos.value
   const source = sourceRect.value
-  if (target == null || source == null) return null
-  const inputs: Inputs = {
+  const origin = sourceOriginPoint.value
+  if (target == null || source == null || origin == null) return null
+
+  return junctionPoints({
     sourceSize: source.size,
-    targetOffset: target.sub(source.center()),
-  }
-  return junctionPoints(inputs)
+    targetOffset: target.sub(origin),
+  })
+})
+
+const basePathElements = computed(() => {
+  const jp = currentJunctionPoints.value
+  if (jp == null) return undefined
+  return pathElements(jp)
 })
 
 const basePath = computed(() => {
-  if (props.edge.source == null && props.edge.target == null) return undefined
-  const jp = currentJunctionPoints.value
-  if (jp == null) return undefined
-  const { start, elements } = pathElements(jp)
-  const source_ = sourceRect.value
-  if (source_ == null) return undefined
-  return render(source_.center().add(start), elements)
+  const pathElements = basePathElements.value
+  if (!pathElements) return
+  const { start, elements } = pathElements
+  const origin = sourceOriginPoint.value
+  if (origin == null) return undefined
+  return render(origin.add(start), elements)
 })
 
 const activePath = computed(() => {
@@ -432,14 +488,15 @@ const backwardEdgeArrowTransform = computed<string | undefined>(() => {
   const points = currentJunctionPoints.value?.points
   if (points == null || points.length < 3) return
   const target = targetPos.value
-  const source = sourceRect.value
-  if (target == null || source == null) return
-  if (target.y > source.pos.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
+  const origin = sourceOriginPoint.value
+  if (target == null || origin == null) return
+  if (target.y > origin.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
   if (points[1] == null) return
-  return svgTranslate(source.center().add(points[1]))
+  return svgTranslate(origin.add(points[1]))
 })
 
 const targetIsSelfArgument = computed(() => {
+  if ('targetIsSelfArgument' in props.edge && props.edge?.targetIsSelfArgument) return true
   if (!targetExpr.value) return
   const nodeId = graph.getPortNodeId(targetExpr.value)
   if (!nodeId) return

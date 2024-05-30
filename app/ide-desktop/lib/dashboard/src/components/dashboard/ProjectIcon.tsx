@@ -83,7 +83,7 @@ export interface ProjectIconProps {
 export default function ProjectIcon(props: ProjectIconProps) {
   const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
   const { doCloseEditor, doOpenEditor } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
@@ -236,7 +236,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     switch (event.type) {
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
-      case AssetEventType.newDataLink:
+      case AssetEventType.newDatalink:
       case AssetEventType.newSecret:
       case AssetEventType.copy:
       case AssetEventType.updateFiles:

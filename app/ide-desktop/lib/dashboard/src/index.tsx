@@ -12,9 +12,11 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as app from '#/App'
 import App from '#/App'
-import * as reactQueryClient from '#/reactQueryClient'
+import * as reactQueryClientModule from '#/reactQueryClient'
 
-import * as loader from '#/components/Loader'
+import LoadingScreen from '#/pages/authentication/LoadingScreen'
+
+import * as errorBoundary from '#/components/ErrorBoundary'
 
 // =================
 // === Constants ===
@@ -82,12 +84,13 @@ function run(props: app.AppProps) {
     // via the browser.
     const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
     const actualProjectManagerUrl = supportsLocalBackend ? projectManagerUrl : null
-    const queryClient = reactQueryClient.createReactQueryClient()
+    const queryClient = reactQueryClientModule.createReactQueryClient()
+
     reactDOM.createRoot(root).render(
       <React.StrictMode>
-        <sentry.ErrorBoundary>
-          <React.Suspense fallback={<loader.Loader size={64} />}>
-            <reactQuery.QueryClientProvider client={queryClient}>
+        <reactQuery.QueryClientProvider client={queryClient}>
+          <errorBoundary.ErrorBoundary>
+            <React.Suspense fallback={<LoadingScreen />}>
               {detect.IS_DEV_MODE ? (
                 <App {...props} />
               ) : (
@@ -97,9 +100,9 @@ function run(props: app.AppProps) {
                   projectManagerUrl={actualProjectManagerUrl}
                 />
               )}
-            </reactQuery.QueryClientProvider>
-          </React.Suspense>
-        </sentry.ErrorBoundary>
+            </React.Suspense>
+          </errorBoundary.ErrorBoundary>
+        </reactQuery.QueryClientProvider>
       </React.StrictMode>
     )
   }

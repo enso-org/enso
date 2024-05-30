@@ -53,6 +53,7 @@ type Warning
         Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 
     ## GROUP Errors
+       ICON error
        Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:
@@ -242,11 +243,14 @@ type Warning
                 Warning.attach warning acc
 
     ## GROUP Metadata
+       ICON metadata
        Returns the warning value – usually its explanation or other contents.
     value : Any
     value self = @Builtin_Method "Warning.value"
 
     ## ADVANCED
+       GROUP Metadata
+       ICON metadata
 
        A stack trace for the original warning creation.
     origin : Vector Stack_Trace_Element

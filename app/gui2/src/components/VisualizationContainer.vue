@@ -1,26 +1,23 @@
 <script setup lang="ts">
+import ResizeHandles from '@/components/ResizeHandles.vue'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import { isTriggeredByKeyboard, usePointer, useResizeObserver } from '@/composables/events'
+import { isTriggeredByKeyboard } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps<{
-  /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
+  /** If true, the visualization should be `overflow: visible` instead of `overflow: auto`. */
   overflow?: boolean
   /** If true, the visualization should display below the node background. */
   belowNode?: boolean
   /** If true, the visualization should display below the toolbar buttons. */
   belowToolbar?: boolean
 }>()
-
-/** The minimum width must be at least the total width of:
- * - both of toolbars that are always visible (32px + 60px), and
- * - the 4px flex gap between the toolbars. */
-const MIN_WIDTH_PX = 200
 
 const config = useVisualizationConfig()
 
@@ -51,57 +48,28 @@ function blur(event: Event) {
 
 const contentNode = ref<HTMLElement>()
 
-onMounted(() => (config.width = MIN_WIDTH_PX))
-
 function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
 }
 
-const realSize = useResizeObserver(contentNode)
+const contentSize = computed(() => new Vec2(config.width, config.height))
 
-let initialWidth: number | undefined
-let initialHeight: number | undefined
-let leftDragging: boolean = false
-function resizeHandler(resizeX: 'left' | 'right' | false, resizeY: boolean) {
-  return usePointer((pos, _, type) => {
-    switch (type) {
-      case 'start':
-        initialWidth = realSize.value.x
-        initialHeight = realSize.value.y
-        leftDragging = resizeX === 'left'
-        break
-      case 'move':
-        if (resizeX === 'right' && pos.delta.x !== 0) {
-          const width = (initialWidth ?? 0) + pos.relative.x / config.scale
-          config.width = Math.max(0, width)
-        }
-        if (resizeX === 'left' && pos.delta.x !== 0) {
-          const width = (initialWidth ?? 0) - pos.relative.x / config.scale
-          config.width = Math.max(0, width)
-          // Updating the node's position is done in the watch below.
-        }
-        if (resizeY && pos.delta.y !== 0) {
-          const height = (initialHeight ?? 0) + pos.relative.y / config.scale
-          config.height = Math.max(0, height)
-        }
-        break
-      case 'stop':
-        leftDragging = false
-        break
-    }
-  })
-}
+// Because ResizeHandles are applying the screen mouse movements, the bouds must be in `screen`
+// space.
+const clientBounds = computed({
+  get() {
+    return new Rect(Vec2.Zero, contentSize.value.scale(config.scale))
+  },
+  set(value) {
+    if (resizing.left || resizing.right) config.width = value.width / config.scale
+    if (resizing.bottom) config.height = value.height / config.scale
+  },
+})
 
-const resizeRight = resizeHandler('right', false)
-const resizeLeft = resizeHandler('left', false)
-const resizeBottom = resizeHandler(false, true)
-const resizeBottomRight = resizeHandler('right', true)
-const resizeBottomLeft = resizeHandler('left', true)
+let resizing: BoundsSet = {}
 
-// When dragging left resizer, we need to move node position accordingly. It may be done only by
-// reading the real width change, as `config.width` does not consider node's minimum width.
-watch(realSize, (newVal, oldVal) => {
-  if (!leftDragging) return
+watch(contentSize, (newVal, oldVal) => {
+  if (!resizing.left) return
   const delta = newVal.x - oldVal.x
   if (delta !== 0)
     config.nodePosition = new Vec2(config.nodePosition.x - delta, config.nodePosition.y)
@@ -113,6 +81,13 @@ const nodeShortType = computed(() =>
     qnLastSegment(config.nodeType)
   : UNKNOWN_TYPE,
 )
+
+const contentStyle = computed(() => {
+  return {
+    width: config.fullscreen ? undefined : `${config.width}px`,
+    height: config.fullscreen ? undefined : `${config.height}px`,
+  }
+})
 </script>
 
 <template>
@@ -139,21 +114,18 @@ const nodeShortType = computed(() =>
         ref="contentNode"
         class="content scrollable"
         :class="{ overflow: props.overflow }"
-        :style="{
-          width:
-            config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-          height:
-            config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
-        }"
+        :style="contentStyle"
         @wheel.passive="onWheel"
       >
         <slot></slot>
       </div>
-      <div class="resizer-left" v-on="resizeLeft.events" />
-      <div class="resizer-right" v-on="resizeRight.events" />
-      <div class="resizer-bottom" v-on="resizeBottom.events" />
-      <div class="resizer-bottom-left" v-on="resizeBottomLeft.events" />
-      <div class="resizer-bottom-right" v-on="resizeBottomRight.events" />
+      <ResizeHandles
+        v-model="clientBounds"
+        left
+        right
+        bottom
+        @update:resizing="resizing = $event"
+      />
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
         class="below-viz"
@@ -167,37 +139,23 @@ const nodeShortType = computed(() =>
             hidden: config.fullscreen,
           }"
         >
-          <button class="image-button active" @click.stop="config.hide()">
-            <SvgIcon class="icon" name="eye" alt="Hide visualization" />
-          </button>
+          <SvgButton name="eye" alt="Hide visualization" @click.stop="config.hide()" />
         </div>
         <div class="toolbar">
-          <button
-            class="image-button active"
+          <SvgButton
+            :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
+            :title="config.fullscreen ? 'Exit Fullscreen' : 'Fullscreen'"
             @click.stop.prevent="(config.fullscreen = !config.fullscreen), blur($event)"
-          >
-            <SvgIcon
-              class="icon"
-              :name="config.fullscreen ? 'exit_fullscreen' : 'fullscreen'"
-              :alt="config.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
-            />
-          </button>
+          />
           <div class="icon-container">
-            <button
-              class="image-button active"
+            <SvgButton
+              :name="config.icon ?? 'columns_increasing'"
+              title="Visualization Selector"
               @click.stop.prevent="
                 (!isSelectorVisible || isTriggeredByKeyboard($event)) &&
                   (isSelectorVisible = !isSelectorVisible)
               "
-            >
-              <SvgIcon
-                class="icon"
-                :name="config.icon ?? 'columns_increasing'"
-                :alt="
-                  isSelectorVisible ? 'Hide visualization selector' : 'Show visualization selector'
-                "
-              />
-            </button>
+            />
             <Suspense>
               <VisualizationSelector
                 v-if="isSelectorVisible"
@@ -226,6 +184,8 @@ const nodeShortType = computed(() =>
 .VisualizationContainer {
   --node-height: 32px;
   --permanent-toolbar-width: 200px;
+  --resize-handle-inside: var(--visualization-resize-handle-inside);
+  --resize-handle-outside: var(--visualization-resize-handle-outside);
   color: var(--color-text);
   background: var(--color-visualization-bg);
   position: absolute;
@@ -236,7 +196,7 @@ const nodeShortType = computed(() =>
 }
 
 .VisualizationContainer.below-node {
-  padding-top: --node-height;
+  padding-top: var(--node-height);
 }
 
 .VisualizationContainer.below-toolbar {
@@ -322,6 +282,7 @@ const nodeShortType = computed(() =>
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: -1;
     border-radius: var(--radius-full);
     background: var(--color-app-bg);
     backdrop-filter: var(--blur-app-bg);
@@ -339,64 +300,6 @@ const nodeShortType = computed(() =>
   overflow-x: hidden;
 }
 
-.resizer-right {
-  position: absolute;
-  cursor: ew-resize;
-  left: calc(100% - var(--visualization-resize-handle-inside));
-  width: calc(
-    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
-  );
-  top: 0px;
-  height: 100%;
-}
-
-.resizer-left {
-  position: absolute;
-  cursor: ew-resize;
-  left: calc(0px - var(--visualization-resize-handle-outside));
-  width: calc(
-    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
-  );
-  top: 0px;
-  height: 100%;
-}
-
-.resizer-bottom {
-  position: absolute;
-  cursor: ns-resize;
-  top: calc(100% - var(--visualization-resize-handle-inside));
-  width: 100%;
-  height: calc(
-    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
-  );
-}
-
-.resizer-bottom-right {
-  position: absolute;
-  cursor: nwse-resize;
-  left: calc(100% - var(--visualization-resize-handle-inside));
-  top: calc(100% - var(--visualization-resize-handle-inside));
-  width: calc(
-    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
-  );
-  height: calc(
-    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
-  );
-}
-
-.resizer-bottom-left {
-  position: absolute;
-  cursor: nesw-resize;
-  left: calc(0px - var(--visualization-resize-handle-inside));
-  top: calc(100% - var(--visualization-resize-handle-inside));
-  width: calc(
-    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
-  );
-  height: calc(
-    var(--visualization-resize-handle-inside) + var(--visualization-resize-handle-outside)
-  );
-}
-
 .invisible {
   opacity: 0;
 }
@@ -411,20 +314,5 @@ const nodeShortType = computed(() =>
 
 .VisualizationContainer :deep(> .toolbars > .toolbar > *) {
   position: relative;
-}
-
-:deep(.image-button) {
-  background: none;
-  padding: 0;
-  border: none;
-  opacity: 30%;
-}
-
-:deep(.image-button.active) {
-  opacity: unset;
-}
-
-:deep(.image-button > *) {
-  vertical-align: top;
 }
 </style>

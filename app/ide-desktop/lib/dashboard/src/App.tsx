@@ -52,12 +52,13 @@ import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
-import ModalProvider from '#/providers/ModalProvider'
+import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import RemoteBackendProvider from '#/providers/RemoteBackendProvider'
 import SessionProvider from '#/providers/SessionProvider'
+import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ErrorScreen from '#/pages/authentication/ErrorScreen'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
@@ -74,7 +75,9 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
 import * as rootComponent from '#/components/Root'
 
+import AboutModal from '#/modals/AboutModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
+import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -84,6 +87,9 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
+
+import type * as types from '../../types/types'
+import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
 // === Global configuration ===
@@ -143,7 +149,7 @@ export interface AppProps {
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly appRunner: AppRunner
+  readonly appRunner: types.EditorRunner | null
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -153,10 +159,13 @@ export interface AppProps {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 export default function App(props: AppProps) {
   const { projectManagerUrl } = props
-  // This is a React component even though it does not contain JSX.
-  // eslint-disable-next-line no-restricted-syntax
-  const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
   const projectManagerQuery = projectManagerHooks.useProjectManager(projectManagerUrl)
+
+  const routerFuture: Partial<router.FutureConfig> = {
+    /* we want to use startTransition to enable concurrent rendering */
+    /* eslint-disable-next-line @typescript-eslint/naming-convention */
+    v7_startTransition: true,
+  }
 
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
@@ -170,15 +179,19 @@ export default function App(props: AppProps) {
         theme="light"
         closeOnClick={false}
         draggable={false}
-        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
+        toastClassName="text-sm leading-cozy bg-selected-frame rounded-lg backdrop-blur-default"
         transition={toastify.Zoom}
         limit={3}
       />
-      <Router basename={getMainPageUrl().pathname}>
+      <router.BrowserRouter basename={getMainPageUrl().pathname} future={routerFuture}>
         <LocalStorageProvider>
-          <AppRouter {...props} />
+          <ModalProvider>
+            <AppRouter {...props} />
+          </ModalProvider>
         </LocalStorageProvider>
-      </Router>
+      </router.BrowserRouter>
+
+      <reactQueryDevtools.ReactQueryDevtools />
     </>
   ) : (
     <LoadingScreen />
@@ -202,6 +215,7 @@ function AppRouter(props: AppProps) {
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { setModal } = modalProvider.useSetModal()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const projectManagerQuery = projectManagerHooks.useProjectManager(projectManagerUrl)
   if (detect.IS_DEV_MODE) {
@@ -298,6 +312,14 @@ function AppRouter(props: AppProps) {
         null!
 
   React.useEffect(() => {
+    if ('menuApi' in window) {
+      window.menuApi.setShowAboutModalHandler(() => {
+        setModal(<AboutModal />)
+      })
+    }
+  }, [/* should never change */ setModal])
+
+  React.useEffect(() => {
     const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
     document.addEventListener('keydown', onKeyDown)
     return () => {
@@ -350,31 +372,30 @@ function AppRouter(props: AppProps) {
       {/* Login & registration pages are visible to unauthenticated users. */}
       <router.Route element={<authProvider.GuestLayout />}>
         <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-        <router.Route
-          path={appUtils.LOGIN_PATH}
-          element={<Login supportsLocalBackend={supportsLocalBackend} />}
-        />
+        <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
       </router.Route>
 
       {/* Protected pages are visible to authenticated users. */}
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
-          <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
-            <router.Route
-              path={appUtils.DASHBOARD_PATH}
-              element={shouldShowDashboard && <Dashboard {...props} />}
-            />
+          <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+            <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
+              <router.Route
+                path={appUtils.DASHBOARD_PATH}
+                element={shouldShowDashboard && <Dashboard {...props} />}
+              />
 
-            <router.Route
-              path={appUtils.SUBSCRIBE_PATH}
-              element={
-                <errorBoundary.ErrorBoundary>
-                  <React.Suspense fallback={<loader.Loader />}>
-                    <subscribe.Subscribe />
-                  </React.Suspense>
-                </errorBoundary.ErrorBoundary>
-              }
-            />
+              <router.Route
+                path={appUtils.SUBSCRIBE_PATH}
+                element={
+                  <errorBoundary.ErrorBoundary>
+                    <React.Suspense fallback={<loader.Loader />}>
+                      <subscribe.Subscribe />
+                    </React.Suspense>
+                  </errorBoundary.ErrorBoundary>
+                }
+              />
+            </router.Route>
           </router.Route>
 
           <router.Route
@@ -390,10 +411,12 @@ function AppRouter(props: AppProps) {
         </router.Route>
       </router.Route>
 
-      {/* Semi-protected pages are visible to users currently registering. */}
-      <router.Route element={<authProvider.NotDeletedUserLayout />}>
-        <router.Route element={<authProvider.SemiProtectedLayout />}>
-          <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+      <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+        {/* Semi-protected pages are visible to users currently registering. */}
+        <router.Route element={<authProvider.NotDeletedUserLayout />}>
+          <router.Route element={<authProvider.SemiProtectedLayout />}>
+            <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+          </router.Route>
         </router.Route>
       </router.Route>
 
@@ -401,7 +424,6 @@ function AppRouter(props: AppProps) {
       <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
       <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
       <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-      <router.Route path={appUtils.ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
 
       {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
       <router.Route element={<authProvider.ProtectedLayout />}>
@@ -414,9 +436,16 @@ function AppRouter(props: AppProps) {
       <router.Route path="*" element={<router.Navigate to="/" replace />} />
     </router.Routes>
   )
+
   let result = routes
+
+  result = (
+    <SupportsLocalBackendProvider supportsLocalBackend={supportsLocalBackend}>
+      {result}
+    </SupportsLocalBackendProvider>
+  )
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = <ModalProvider>{result}</ModalProvider>
+  result = <RemoteBackendProvider>{result}</RemoteBackendProvider>
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}

@@ -34,7 +34,7 @@ export interface MembersTableProps {
 export default function MembersTable(props: MembersTableProps) {
   const { populateWithSelf = false, draggable = false, allowDelete = false } = props
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())

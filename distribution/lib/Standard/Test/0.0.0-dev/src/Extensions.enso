@@ -415,7 +415,7 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
    Arguments:
    - typ: The type to assert that `self` is a value of.
 
-   > Examples
+   > Example
      Assert that 1 is of type Boolean.
 
          from Standard.Test import Test

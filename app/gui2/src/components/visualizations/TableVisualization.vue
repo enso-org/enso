@@ -3,9 +3,18 @@ import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import type { ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
+import type { CellClassParams, ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
-import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  shallowRef,
+  watchEffect,
+  type Ref,
+} from 'vue'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -95,6 +104,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+const dataGroupingMap = shallowRef<Map<string, boolean>>()
 useAutoBlur(tableNode)
 const widths = reactive(new Map<string, number>())
 const defaultColDef = {
@@ -105,6 +115,7 @@ const defaultColDef = {
   minWidth: 25,
   headerValueGetter: (params: HeaderValueGetterParams) => params.colDef.field,
   cellRenderer: cellRenderer,
+  cellClass: cellClass,
 }
 const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
   headerHeight: 26,
@@ -135,11 +146,24 @@ const selectableRowLimits = computed(() => {
 })
 const wasAutomaticallyAutosized = ref(false)
 
+const numberFormatGroupped = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumFractionDigits: 12,
+  useGrouping: true,
+})
+
 const numberFormat = new Intl.NumberFormat(undefined, {
   style: 'decimal',
   maximumFractionDigits: 12,
-  useGrouping: 'min2' as any,
+  useGrouping: false,
 })
+
+function formatNumber(params: ICellRendererParams) {
+  const valueType = params.value?.type
+  const value = valueType === 'BigInt' ? BigInt(params.value?.value) : params.value
+  const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
+  return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
+}
 
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
@@ -164,12 +188,22 @@ function escapeHTML(str: string) {
   return str.replace(/[&<>"']/g, (m) => mapping[m]!)
 }
 
+function cellClass(params: CellClassParams) {
+  if (params.colDef.field === '#') return null
+  if (typeof params.value === 'number' || params.value === null) return 'ag-right-aligned-cell'
+  if (typeof params.value === 'object') {
+    const valueType = params.value?.type
+    if (valueType === 'BigInt' || valueType === 'Float') return 'ag-right-aligned-cell'
+  }
+  return null
+}
+
 function cellRenderer(params: ICellRendererParams) {
   // Convert's the value into a display string.
   if (params.value === null) return '<span style="color:grey; font-style: italic;">Nothing</span>'
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
-  else if (typeof params.value === 'number') return numberFormat.format(params.value)
+  else if (typeof params.value === 'number') return formatNumber(params)
   else if (Array.isArray(params.value)) {
     const content = params.value
     if (isMatrix({ json: content })) {
@@ -181,7 +215,7 @@ function cellRenderer(params: ICellRendererParams) {
     }
   } else if (typeof params.value === 'object') {
     const valueType = params.value?.type
-    if (valueType === 'BigInt') return numberFormat.format(BigInt(params.value?.value))
+    if (valueType === 'BigInt') return formatNumber(params)
     else if (valueType === 'Float')
       return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
     else if ('_display_text_' in params.value && params.value['_display_text_'])
@@ -339,6 +373,21 @@ watchEffect(() => {
   pageLimit.value = newPageLimit
   if (page.value > newPageLimit) {
     page.value = newPageLimit
+  }
+
+  if (rowData.length) {
+    const headers = Object.keys(rowData[0] as object)
+    const headerGroupingMap = new Map()
+    headers.forEach((header) => {
+      const needsGrouping = rowData.some((row: any) => {
+        if (header in row && row[header] != null) {
+          const value = typeof row[header] === 'object' ? row[header].value : row[header]
+          return value > 9999
+        }
+      })
+      headerGroupingMap.set(header, needsGrouping)
+    })
+    dataGroupingMap.value = headerGroupingMap
   }
 
   // If an existing grid, merge width from manually sized columns.

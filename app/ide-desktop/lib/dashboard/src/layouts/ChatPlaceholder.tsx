@@ -18,14 +18,16 @@ import UnstyledButton from '#/components/UnstyledButton'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
-  /** This should only be false when the panel is closing. */
+  /** This should only be `true` when in the auth flow. */
+  readonly hideLoginButtons?: true
+  /** This should only be `false` when the panel is closing. */
   readonly isOpen: boolean
   readonly doClose: () => void
 }
 
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 export default function ChatPlaceholder(props: ChatPlaceholderProps) {
-  const { isOpen, doClose } = props
+  const { hideLoginButtons = false, isOpen, doClose } = props
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const navigate = navigateHooks.useNavigate()
@@ -51,22 +53,26 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
             <div className="px-missing-functionality-text-x">
               {getText('placeholderChatPrompt')}
             </div>
-            <UnstyledButton
-              className="button self-center bg-help text-white"
-              onPress={() => {
-                navigate(appUtils.LOGIN_PATH)
-              }}
-            >
-              {getText('login')}
-            </UnstyledButton>
-            <UnstyledButton
-              className="button self-center bg-help text-white"
-              onPress={() => {
-                navigate(appUtils.REGISTRATION_PATH)
-              }}
-            >
-              {getText('register')}
-            </UnstyledButton>
+            {!hideLoginButtons && (
+              <UnstyledButton
+                className="button self-center bg-help text-white"
+                onPress={() => {
+                  navigate(appUtils.LOGIN_PATH)
+                }}
+              >
+                {getText('login')}
+              </UnstyledButton>
+            )}
+            {!hideLoginButtons && (
+              <UnstyledButton
+                className="button self-center bg-help text-white"
+                onPress={() => {
+                  navigate(appUtils.REGISTRATION_PATH)
+                }}
+              >
+                {getText('register')}
+              </UnstyledButton>
+            )}
           </div>
         </div>
       </div>,

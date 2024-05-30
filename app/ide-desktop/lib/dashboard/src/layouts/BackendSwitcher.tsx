@@ -26,7 +26,7 @@ export interface BackendSwitcherProps {
 /** Switcher for choosing the project management backend. */
 export default function BackendSwitcher(props: BackendSwitcherProps) {
   const { setBackendType } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const isCloud = backend.type === backendModule.BackendType.remote
 

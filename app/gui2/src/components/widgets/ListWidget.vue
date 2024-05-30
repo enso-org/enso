@@ -516,6 +516,7 @@ div {
     -2px 0 0 transparent;
   transition: box-shadow 0.2s ease;
   pointer-events: none;
+  cursor: grab;
 
   &:before {
     content: '';

@@ -9,7 +9,7 @@ import * as appConfig from 'enso-common/src/appConfig'
 
 appConfig.loadTestEnvironmentVariables()
 // @ts-expect-error This is required, otherwise importing node modules is broken.
-// This is required for `dataLinkSchema.test.ts`.
+// This is required for `datalinkSchema.test.ts`.
 process.env.NODE_ENV = 'development'
 
 const VITE_CONFIG = (await import('./vite.config')).default

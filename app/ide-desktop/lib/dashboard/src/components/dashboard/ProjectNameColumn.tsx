@@ -47,7 +47,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -110,7 +110,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     async event => {
       switch (event.type) {
         case AssetEventType.newFolder:
-        case AssetEventType.newDataLink:
+        case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
         case AssetEventType.openProject:
         case AssetEventType.closeProject:

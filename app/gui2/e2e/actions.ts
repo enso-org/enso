@@ -8,10 +8,13 @@ import { graphNodeByBinding } from './locate'
 // =================
 
 /** Perform a successful login. */
-export async function goToGraph(page: Page) {
+export async function goToGraph(page: Page, closeDocPanel: boolean = true) {
   await page.goto('/')
   // Initial load through vite can take a while. Make sure that the first locator has enough time.
   await expect(page.locator('.GraphEditor')).toBeVisible({ timeout: 100000 })
+  if (closeDocPanel) {
+    await page.locator('.rightDock > .closeButton').click()
+  }
   // Wait until nodes are loaded.
   await expect(locate.graphNode(page)).toExist()
   // Wait for position initialization
@@ -33,7 +36,7 @@ export async function expectNodePositionsInitialized(page: Page, yPos: number) {
 }
 
 export async function exitFunction(page: Page, x = 300, y = 300) {
-  await page.mouse.dblclick(x, y, { delay: 10 })
+  await locate.graphEditor(page).dblclick({ position: { x, y } })
 }
 
 // =================

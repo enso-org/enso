@@ -110,7 +110,7 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_B
                     error_code = json_payload.get "code"
                     handler = error_code.if_not_nothing <| error_handlers.get error_code
                     case handler of
-                        Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error response.code payload)
+                        Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error url response.code payload)
                         _ : Function -> handler json_payload
 
 ## PRIVATE
