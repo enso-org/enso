@@ -1,8 +1,6 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import LogoIcon from 'enso-assets/enso_logo.svg'
 
 import type * as text from '#/text'
