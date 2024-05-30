@@ -2751,19 +2751,17 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
     modulePath := {
-      val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion,
+      val allRuntimeMods = componentModulesPaths.value
+      val otherModIds = Seq(
         "org.slf4j" % "slf4j-nop" % slf4jVersion
       )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         (Compile / update).value,
-        requiredModIds,
+        otherModIds,
         streams.value.log,
         shouldContainAll = true
       )
-      val runtimeMod =
-        (`runtime-fat-jar` / assembly / assemblyOutputPath).value
-      requiredMods ++ Seq(runtimeMod)
+      allRuntimeMods ++ requiredMods
     },
     addModules := {
       val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
