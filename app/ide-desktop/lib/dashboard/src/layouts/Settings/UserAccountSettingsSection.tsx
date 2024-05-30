@@ -1,6 +1,7 @@
 /** @file Settings section for viewing and editing account information. */
 import * as React from 'react'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -26,21 +27,28 @@ export interface UserAccountSettingsSectionProps {
 /** Settings section for viewing and editing account information. */
 export default function UserAccountSettingsSection(props: UserAccountSettingsSectionProps) {
   const { backend } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const { user } = authProvider.useNonPartialUserSession()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
+  const nameRef = React.useRef<HTMLInputElement | null>(null)
+  const user = backendHooks.useBackendUsersMe(backend)
+
+  const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser')
 
   const doUpdateName = async (newName: string) => {
-    const oldName = user?.name ?? ''
+    const oldName = user?.name ?? null
     if (newName === oldName) {
       return
     } else {
       try {
-        await backend.updateUser({ username: newName })
+        await updateUserMutation.mutateAsync([{ username: newName }])
         setUser(object.merger({ name: newName }))
       } catch (error) {
         toastAndLog(null, error)
+        const ref = nameRef.current
+        if (ref) {
+          ref.value = oldName ?? ''
+        }
       }
       return
     }
@@ -53,7 +61,7 @@ export default function UserAccountSettingsSection(props: UserAccountSettingsSec
           <aria.Label className="text my-auto w-user-account-settings-label">
             {getText('name')}
           </aria.Label>
-          <SettingsInput type="text" onSubmit={doUpdateName} />
+          <SettingsInput ref={nameRef} type="text" onSubmit={doUpdateName} />
         </aria.TextField>
         <div className="flex h-row gap-settings-entry">
           <aria.Text className="text my-auto w-user-account-settings-label">

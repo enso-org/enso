@@ -1,10 +1,12 @@
 /** @file A styled button representing a tab on a sidebar. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 // ========================
 // === SidebarTabButton ===
@@ -36,14 +38,19 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
   } = props
 
   return (
-    <UnstyledButton
+    <ariaComponents.Button
+      size="custom"
+      variant="custom"
       autoFocus={autoFocus}
       onPress={onPress}
       isDisabled={isDisabled}
-      className={`relative rounded-full ${active ? 'focus-default' : ''}`}
+      className={tailwindMerge.twMerge('relative rounded-full', active && 'focus-default')}
     >
       <div
-        className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
+        className={tailwindMerge.twMerge(
+          'button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame',
+          active && 'disabled bg-selected-frame active'
+        )}
       >
         {active && isPending ? (
           <StatelessSpinner state={statelessSpinner.SpinnerState.loadingMedium} size={16} />
@@ -52,6 +59,6 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
         )}
         <aria.Text className="text">{label}</aria.Text>
       </div>
-    </UnstyledButton>
+    </ariaComponents.Button>
   )
 }

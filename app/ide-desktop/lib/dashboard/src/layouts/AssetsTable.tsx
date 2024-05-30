@@ -2,12 +2,14 @@
 import * as React from 'react'
 
 import * as toast from 'react-toastify'
+import * as tailwindMerge from 'tailwind-merge'
 
 import DropFilesImage from 'enso-assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -31,6 +33,7 @@ import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -43,7 +46,6 @@ import Spinner, * as spinner from '#/components/Spinner'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
@@ -301,8 +303,6 @@ export interface AssetsTableState {
   readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   readonly category: Category
-  readonly labels: Map<backendModule.LabelName, backendModule.Label>
-  readonly deletedLabelNames: Set<backendModule.LabelName>
   readonly hasPasteData: boolean
   readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
@@ -333,7 +333,6 @@ export interface AssetsTableState {
     switchPage: boolean
   ) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
-  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -358,11 +357,9 @@ export interface AssetsTableProps {
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
-  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly initialProjectName: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly deletedLabelNames: Set<backendModule.LabelName>
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
@@ -377,21 +374,19 @@ export interface AssetsTableProps {
     switchPage: boolean
   ) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
-  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
 }
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category, allLabels } =
-    props
-  const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
+  const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category } = props
+  const { setSuggestions, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
-  const { setAssetPanelProps, doCreateLabel, targetDirectoryNodeRef } = props
-  const { setIsAssetPanelTemporarilyVisible } = props
+  const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
+  const labels = backendHooks.useBackendListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -462,7 +457,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             ? null
             : fileInfo.fileExtension(node.item.title).toLowerCase()
         const assetModifiedAt = new Date(node.item.modifiedAt)
-        const labels: string[] = node.item.labels ?? []
+        const nodeLabels: string[] = node.item.labels ?? []
         const lowercaseName = node.item.title.toLowerCase()
         const lowercaseDescription = node.item.description?.toLowerCase() ?? ''
         const owners =
@@ -479,7 +474,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           switch (type) {
             case 'label':
             case 'labels': {
-              return labels.length === 0
+              return nodeLabels.length === 0
             }
             case 'name': {
               // Should never be true, but handle it just in case.
@@ -529,7 +524,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           ) &&
           filterTag(query.names, query.negativeNames, name => globMatch(name, lowercaseName)) &&
           filterTag(query.labels, query.negativeLabels, label =>
-            labels.some(assetLabel => globMatch(label, assetLabel))
+            nodeLabels.some(assetLabel => globMatch(label, assetLabel))
           ) &&
           filterTag(query.types, query.negativeTypes, type => type === assetType) &&
           filterTag(
@@ -609,6 +604,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
   )
+
+  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   React.useEffect(() => {
     if (selectedKeys.size === 0) {
@@ -800,28 +797,24 @@ export default function AssetsTable(props: AssetsTableProps) {
         case 'label':
         case '-label': {
           setSuggestions(
-            !isCloud
-              ? []
-              : Array.from(
-                  allLabels.values(),
-                  (label): assetSearchBar.Suggestion => ({
-                    render: () => (
-                      <Label active color={label.color} onPress={() => {}}>
-                        {label.value}
-                      </Label>
-                    ),
-                    addToQuery: oldQuery =>
-                      oldQuery.addToLastTerm(
-                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                      ),
-                    deleteFromQuery: oldQuery =>
-                      oldQuery.deleteFromLastTerm(
-                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                      ),
-                  })
-                )
+            (labels ?? []).map(
+              (label): assetSearchBar.Suggestion => ({
+                render: () => (
+                  <Label active color={label.color} onPress={() => {}}>
+                    {label.value}
+                  </Label>
+                ),
+                addToQuery: oldQuery =>
+                  oldQuery.addToLastTerm(
+                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                  ),
+                deleteFromQuery: oldQuery =>
+                  oldQuery.deleteFromLastTerm(
+                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                  ),
+              })
+            )
           )
-
           break
         }
         default: {
@@ -830,7 +823,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [isCloud, assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
+  }, [isCloud, assetTree, query, visibilities, labels, /* should never change */ setSuggestions])
 
   React.useEffect(() => {
     setIsLoading(true)
@@ -1245,7 +1238,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     name={item.item.title}
                     doCreate={async (_name, value) => {
                       try {
-                        await backend.updateSecret(id, { value }, item.item.title)
+                        await updateSecretMutation.mutateAsync([id, { value }, item.item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }
@@ -1908,8 +1901,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       selectedKeys: selectedKeysRef,
       scrollContainerRef: rootRef,
       category,
-      labels: allLabels,
-      deletedLabelNames,
       hasPasteData: pasteData != null,
       setPasteData,
       sortInfo,
@@ -1928,7 +1919,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       doOpenManually,
       doOpenEditor,
       doCloseEditor,
-      doCreateLabel,
       doCopy,
       doCut,
       doPaste,
@@ -1938,8 +1928,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootDirectoryId,
       visibilities,
       category,
-      allLabels,
-      deletedLabelNames,
       pasteData,
       sortInfo,
       assetEvents,
@@ -1948,7 +1936,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       doOpenManually,
       doOpenEditor,
       doCloseEditor,
-      doCreateLabel,
       doCopy,
       doCut,
       doPaste,
@@ -2315,9 +2302,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               }
               let labelsPresent = 0
               for (const selectedKey of ids) {
-                const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (labels != null) {
-                  for (const label of labels) {
+                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                if (nodeLabels != null) {
+                  for (const label of nodeLabels) {
                     if (payload.has(label)) {
                       labelsPresent += 1
                     }
@@ -2359,9 +2346,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               event.stopPropagation()
               let labelsPresent = 0
               for (const selectedKey of ids) {
-                const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (labels != null) {
-                  for (const label of labels) {
+                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                if (nodeLabels != null) {
+                  for (const label of nodeLabels) {
                     if (payload.has(label)) {
                       labelsPresent += 1
                     }
@@ -2457,7 +2444,10 @@ export default function AssetsTable(props: AssetsTableProps) {
       </table>
       <div
         data-testid="root-directory-dropzone"
-        className={`group sticky left grid max-w-container grow place-items-center ${category !== Category.cloud && category !== Category.local ? 'hidden' : ''}`}
+        className={tailwindMerge.twMerge(
+          'group sticky left grid max-w-container grow place-items-center',
+          category !== Category.cloud && category !== Category.local && 'hidden'
+        )}
         onClick={() => {
           setSelectedKeys(new Set())
         }}
@@ -2498,13 +2488,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
           }}
         >
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="my-20 flex flex-col items-center gap-3 text-black/30 transition-colors duration-200 group-hover:text-black/50"
             onPress={() => {}}
           >
             <SvgMask src={DropFilesImage} className="size-[186px]" />
-            <aria.Text className="text">{getText('assetsDropzoneDescription')}</aria.Text>
-          </UnstyledButton>
+            {getText('assetsDropzoneDescription')}
+          </ariaComponents.Button>
         </aria.FileTrigger>
       </div>
     </div>

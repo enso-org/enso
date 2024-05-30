@@ -8,8 +8,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
@@ -33,8 +33,9 @@ export default function KeyboardShortcutsSettingsTabBar(
 
   return (
     <HorizontalMenuBar>
-      <UnstyledButton
-        variant="regular"
+      <ariaComponents.Button
+        size="custom"
+        variant="bar"
         onPress={() => {
           setModal(
             <ConfirmDeleteModal
@@ -54,7 +55,7 @@ export default function KeyboardShortcutsSettingsTabBar(
         <aria.Text className="text whitespace-nowrap font-semibold">
           {getText('resetAll')}
         </aria.Text>
-      </UnstyledButton>
+      </ariaComponents.Button>
     </HorizontalMenuBar>
   )
 }

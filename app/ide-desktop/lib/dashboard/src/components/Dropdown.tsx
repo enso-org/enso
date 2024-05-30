@@ -1,6 +1,8 @@
 /** @file A styled dropdown. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CheckMarkIcon from 'enso-assets/check_mark.svg'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 
@@ -166,9 +168,10 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
           rootRef.current = element
         }}
         tabIndex={0}
-        className={`focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy ${
-          className ?? ''
-        }`}
+        className={tailwindMerge.twMerge(
+          'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
+          className
+        )}
         onFocus={event => {
           if (!justBlurredRef.current && !readOnly && event.target === event.currentTarget) {
             setIsDropdownVisible(true)
@@ -191,14 +194,18 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
         }}
       >
         <div
-          className={`absolute left-0 h-full w-full min-w-max ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
+          className={tailwindMerge.twMerge(
+            'absolute left-0 h-full w-full min-w-max',
+            isDropdownVisible ? 'z-1' : 'overflow-hidden'
+          )}
         >
           <div
-            className={`relative before:absolute before:top before:w-full before:rounded-input before:border before:border-primary/10 before:backdrop-blur-default before:transition-colors ${
+            className={tailwindMerge.twMerge(
+              'relative before:absolute before:top before:w-full before:rounded-input before:border before:border-primary/10 before:backdrop-blur-default before:transition-colors',
               isDropdownVisible
                 ? 'before:h-full before:shadow-soft'
                 : 'before:h-text group-hover:before:bg-hover-bg'
-            }`}
+            )}
           >
             {/* Spacing. */}
             <div
@@ -212,21 +219,22 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
               }}
             />
             <div
-              className={`relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows ${
+              className={tailwindMerge.twMerge(
+                'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
                 isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
-              }`}
+              )}
             >
               <div className="overflow-hidden">
                 {items.map((item, i) => (
                   <div
                     tabIndex={-1}
-                    className={`flex h-text items-center gap-dropdown-arrow rounded-input px-input-x transition-colors ${
-                      multiple ? 'hover:font-semibold' : ''
-                    } ${
+                    className={tailwindMerge.twMerge(
+                      'flex h-text items-center gap-dropdown-arrow rounded-input px-input-x transition-colors',
+                      multiple && 'hover:font-semibold',
                       i === visuallySelectedIndex
-                        ? `cursor-default bg-frame font-bold focus-ring`
+                        ? 'cursor-default bg-frame font-bold focus-ring'
                         : 'hover:bg-hover-bg'
-                    }`}
+                    )}
                     key={i}
                     onMouseDown={event => {
                       event.preventDefault()
@@ -279,9 +287,11 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
           </div>
         </div>
         <div
-          className={`relative flex h-text items-center gap-dropdown-arrow px-input-x ${isDropdownVisible ? 'z-1' : ''} ${
-            readOnly ? 'read-only' : ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'relative flex h-text items-center gap-dropdown-arrow px-input-x',
+            isDropdownVisible && 'z-1',
+            readOnly && 'read-only'
+          )}
           onClick={event => {
             event.stopPropagation()
             if (!justFocusedRef.current && !readOnly) {
@@ -319,4 +329,4 @@ function Dropdown<T>(props: DropdownProps<T>, ref: React.ForwardedRef<HTMLDivEle
 // eslint-disable-next-line no-restricted-syntax
 export default React.forwardRef(Dropdown) as <T>(
   props: DropdownProps<T> & React.RefAttributes<HTMLDivElement>
-) => JSX.Element
+) => React.JSX.Element

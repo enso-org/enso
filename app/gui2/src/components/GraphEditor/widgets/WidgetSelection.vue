@@ -411,7 +411,6 @@ declare module '@/providers/widgetRegistry' {
 
 .arrow {
   position: absolute;
-  pointer-events: none;
   bottom: -8px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);

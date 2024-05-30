@@ -26,7 +26,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
         'not-selected': 'rgb(0 0 0 / 15%)',
-        'window-close': '#ff605c',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
         help: '#3f68ce',
@@ -99,8 +98,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'plus-icon': 'var(--plus-icon-size)',
         'chat-profile-picture': 'var(--chat-profile-picture-size)',
         'selection-brush-border': 'var(--selection-brush-border-width)',
-        'button-focus-ring-inset': 'var(--button-focus-ring-inset)',
-        'negative-button-focus-ring-inset': 'calc(var(--button-focus-ring-inset) * -1)',
         'row-h': 'var(--row-height)',
         'text-h': 'var(--text-height)',
         'asset-panel-w': 'var(--asset-panel-width)',
@@ -339,7 +336,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
         'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
         'context-menu-half-x': 'var(--context-menu-half-width)',
-        'floating-buttons': 'var(--floating-buttons-margin)',
         'chat-header-x': 'var(--chat-header-margin-x)',
         'chat-header-t': 'var(--chat-header-margin-top)',
         'chat-form-x': 'var(--chat-form-margin-x)',
@@ -496,9 +492,6 @@ inset 0 -36px 51px -51px #00000014`,
           '.selectable': {
             '@apply disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
               '',
-          },
-          '.selectable-light': {
-            '@apply opacity-25': '',
           },
           '.active': {
             '@apply opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default':

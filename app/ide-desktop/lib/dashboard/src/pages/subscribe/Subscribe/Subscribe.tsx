@@ -16,21 +16,17 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as components from '#/pages/subscribe/Subscribe/components'
+import * as componentForPlan from '#/pages/subscribe/Subscribe/getComponentForPlan'
+
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
-import * as components from './components'
-import * as componentForPlan from './getComponentForPlan'
-
-/**
- * The mutation data for the `onCompleteMutation` mutation.
- */
-interface CreateCheckoutSessionMutation {
-  readonly plan: backendModule.Plan
-  readonly paymentMethodId: string
-}
+// =================
+// === Subscribe ===
+// =================
 
 /** A page in which the currently active payment plan can be changed.
  *
@@ -48,10 +44,8 @@ interface CreateCheckoutSessionMutation {
 export function Subscribe() {
   const navigate = navigateHooks.useNavigate()
   const { getText } = textProvider.useText()
-
   const [searchParams] = router.useSearchParams()
   const backend = backendProvider.useRemoteBackendStrict()
-
   const plan = searchParams.get('plan')
 
   const { data: stripeInstance } = reactQuery.useSuspenseQuery({
@@ -59,7 +53,6 @@ export function Subscribe() {
     staleTime: Infinity,
     queryFn: async () => {
       const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
-
       if (stripeKey == null) {
         throw new Error('Stripe key not found')
       } else {
@@ -82,11 +75,8 @@ export function Subscribe() {
   })
 
   const onCompleteMutation = reactQuery.useMutation({
-    mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
-      const { id } = await backend.createCheckoutSession({
-        plan: mutationData.plan,
-        paymentMethodId: mutationData.paymentMethodId,
-      })
+    mutationFn: async (data: backendModule.CreateCheckoutSessionRequestParams) => {
+      const { id } = await backend.createCheckoutSession(data)
       return backend.getCheckoutSession(id)
     },
     onSuccess: (data, mutationData) => {
@@ -128,7 +118,7 @@ export function Subscribe() {
                   <div className="w-full rounded-default bg-selected-frame p-8">
                     <div className="flex gap-6 overflow-auto scroll-hidden">
                       {backendModule.PLANS.map(newPlan => {
-                        const planProps = componentForPlan.getComponentPerPlan(newPlan, getText)
+                        const planProps = componentForPlan.getComponentForPlan(newPlan, getText)
 
                         return (
                           <components.Card

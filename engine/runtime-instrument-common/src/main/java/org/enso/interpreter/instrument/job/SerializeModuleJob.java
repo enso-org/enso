@@ -22,37 +22,34 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
     var ensoContext = ctx.executionService().getContext();
     var compiler = ensoContext.getCompiler();
     boolean useGlobalCacheLocations = ensoContext.isUseGlobalCache();
-    var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
-    try {
-      ctx.executionService()
-          .getContext()
-          .findModule(moduleName.toString())
-          .ifPresent(
-              module -> {
-                if (module.getCompilationStage().isBefore(CompilationStage.AFTER_CODEGEN)) {
-                  ctx.executionService()
-                      .getLogger()
-                      .log(
-                          Level.WARNING,
-                          "Attempt to serialize the module [{}] at stage [{}].",
-                          new Object[] {module.getName(), module.getCompilationStage()});
-                  return;
-                }
-                compiler
-                    .context()
-                    .serializeModule(
-                        compiler, module.asCompilerModule(), useGlobalCacheLocations, false);
-              });
-    } finally {
-      ctx.locking().releaseWriteCompilationLock();
-      ctx.executionService()
-          .getLogger()
-          .log(
-              Level.FINEST,
-              "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
-                  + (System.currentTimeMillis() - writeLockTimestamp)
-                  + " milliseconds");
-    }
+    ctx.locking()
+        .withWriteCompilationLock(
+            this.getClass(),
+            () -> {
+              ctx.executionService()
+                  .getContext()
+                  .findModule(moduleName.toString())
+                  .ifPresent(
+                      module -> {
+                        if (module.getCompilationStage().isBefore(CompilationStage.AFTER_CODEGEN)) {
+                          ctx.executionService()
+                              .getLogger()
+                              .log(
+                                  Level.WARNING,
+                                  "Attempt to serialize the module [{}] at stage [{}].",
+                                  new Object[] {module.getName(), module.getCompilationStage()});
+                          return;
+                        }
+                        compiler
+                            .context()
+                            .serializeModule(
+                                compiler,
+                                module.asCompilerModule(),
+                                useGlobalCacheLocations,
+                                false);
+                      });
+              return null;
+            });
     return null;
   }
 

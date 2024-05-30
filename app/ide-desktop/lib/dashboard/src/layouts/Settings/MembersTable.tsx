@@ -1,10 +1,11 @@
 /** @file A list of members in the organization. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import * as tailwindMerge from 'tailwind-merge'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -41,17 +42,22 @@ export default function MembersTable(props: MembersTableProps) {
   const rootRef = React.useRef<HTMLTableElement>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const membersQuery = reactQuery.useQuery({
-    initialData: () => (populateWithSelf && user != null ? [user] : null),
-    queryKey: ['members'],
-    queryFn: () => backend.listUsers(),
-  })
-  const membersMap = React.useMemo(
-    () => new Map((membersQuery.data ?? []).map(member => [member.userId, member])),
-    [membersQuery.data]
+  const userWithPlaceholder = React.useMemo(
+    () => (user == null ? null : { isPlaceholder: false, ...user }),
+    [user]
+  )
+  const users = React.useMemo(
+    () =>
+      backendHooks.useBackendListUsers(backend) ??
+      (populateWithSelf && userWithPlaceholder != null ? [userWithPlaceholder] : null),
+    [backend, populateWithSelf, userWithPlaceholder]
+  )
+  const usersMap = React.useMemo(
+    () => new Map((users ?? []).map(member => [member.userId, member])),
+    [users]
   )
 
-  const { onScroll, shadowClass } = scrollHooks.useStickyTableHeaderOnScroll(
+  const { onScroll, shadowClassName } = scrollHooks.useStickyTableHeaderOnScroll(
     scrollContainerRef,
     bodyRef,
     true
@@ -61,7 +67,7 @@ export default function MembersTable(props: MembersTableProps) {
     getItems: keys =>
       [...keys].flatMap(key => {
         const userId = backendModule.UserId(String(key))
-        const member = membersMap.get(userId)
+        const member = usersMap.get(userId)
         return member != null ? [{ [mimeTypes.USER_MIME_TYPE]: JSON.stringify(member) }] : []
       }),
     renderDragPreview: items => {
@@ -112,7 +118,7 @@ export default function MembersTable(props: MembersTableProps) {
   return (
     <div
       ref={scrollContainerRef}
-      className={`overflow-auto overflow-x-hidden ${shadowClass}`}
+      className={tailwindMerge.twMerge('overflow-auto overflow-x-hidden', shadowClassName)}
       onScroll={onScroll}
     >
       <aria.Table
@@ -140,8 +146,8 @@ export default function MembersTable(props: MembersTableProps) {
         </aria.TableHeader>
         <aria.TableBody
           ref={bodyRef}
-          items={membersQuery.data ?? []}
-          dependencies={[membersQuery.data]}
+          items={users ?? []}
+          dependencies={[users]}
           className="select-text"
         >
           {member => (

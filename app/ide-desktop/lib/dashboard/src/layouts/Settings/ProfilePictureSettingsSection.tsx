@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -28,8 +29,10 @@ export default function ProfilePictureSettingsSection(props: ProfilePictureSetti
   const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const { user } = authProvider.useNonPartialUserSession()
+  const user = backendHooks.useBackendUsersMe(backend)
   const { getText } = textProvider.useText()
+
+  const uploadUserPictureMutation = backendHooks.useBackendMutation(backend, 'uploadUserPicture')
 
   const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
@@ -37,7 +40,10 @@ export default function ProfilePictureSettingsSection(props: ProfilePictureSetti
       toastAndLog('noNewProfilePictureError')
     } else {
       try {
-        const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
+        const newUser = await uploadUserPictureMutation.mutateAsync([
+          { fileName: image.name },
+          image,
+        ])
         setUser(newUser)
       } catch (error) {
         toastAndLog(null, error)

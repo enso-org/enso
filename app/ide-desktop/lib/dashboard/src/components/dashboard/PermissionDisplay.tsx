@@ -1,8 +1,10 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import type * as aria from '#/components/aria'
-import UnstyledButton from '#/components/UnstyledButton'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as permissionsModule from '#/utilities/permissions'
 
@@ -27,24 +29,31 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.admin:
     case permissionsModule.Permission.edit: {
       return (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           isDisabled={!onPress}
-          className={`${
-            permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y ${
-            className ?? ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y',
+            permissionsModule.PERMISSION_CLASS_NAME[permission.type],
+            className
+          )}
           onPress={onPress ?? (() => {})}
         >
           {children}
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
     }
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       return (
-        <UnstyledButton
-          className={`relative inline-block whitespace-nowrap rounded-full ${className ?? ''}`}
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          className={tailwindMerge.twMerge(
+            'relative inline-block whitespace-nowrap rounded-full',
+            className
+          )}
           onPress={onPress ?? (() => {})}
         >
           {permission.docs && (
@@ -54,13 +63,15 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
             <div className="absolute size-full rounded-full border-2 border-permission-exec clip-path-bottom" />
           )}
           <div
-            className={`${
-              permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } ${permission.docs || permission.execute ? 'm-permission-with-border' : ''} h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y`}
+            className={tailwindMerge.twMerge(
+              'm-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y',
+              permissionsModule.PERMISSION_CLASS_NAME[permission.type],
+              (permission.docs || permission.execute) && 'm-permission-with-border'
+            )}
           >
             {children}
           </div>
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
     }
   }

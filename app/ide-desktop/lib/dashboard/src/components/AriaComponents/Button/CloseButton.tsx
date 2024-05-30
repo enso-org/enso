@@ -1,30 +1,26 @@
-/**
- * @file
- *
- * Button component for closing a modal.
- */
+/** @file A button for closing a modal. */
 
 import * as React from 'react'
 
-import * as twMerge from 'tailwind-merge'
+import * as tailwindMerge from 'tailwind-merge'
 
 import Dismiss from 'enso-assets/dismiss.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as button from './Button'
+import * as button from '#/components/AriaComponents/Button'
 
-/**
- * Props for a {@link CloseButton}.
- */
+// ===================
+// === CloseButton ===
+// ===================
+
+/** Props for a {@link CloseButton}. */
 export type CloseButtonProps = Omit<
   button.ButtonProps,
   'children' | 'rounding' | 'size' | 'variant'
 >
 
-/**
- * A close button. This is a styled button with a close icon that appears on hover
- */
+/** A styled button with a close icon that appears on hover. */
 export function CloseButton(props: CloseButtonProps) {
   const { getText } = textProvider.useText()
   const {
@@ -39,7 +35,7 @@ export function CloseButton(props: CloseButtonProps) {
     <button.Button
       variant="icon"
       className={values =>
-        twMerge.twJoin(
+        tailwindMerge.twMerge(
           'h-3 w-3 bg-primary/30 hover:bg-red-500/80 focus-visible:bg-red-500/80 focus-visible:outline-offset-1',
           // @ts-expect-error className can be a function or a string
           typeof className === 'function' ? className(values) : className

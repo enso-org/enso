@@ -1,8 +1,11 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import BlankIcon from 'enso-assets/blank.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -121,9 +124,22 @@ export default function AssetRow(props: AssetRowProps) {
       : outerVisibility
   const hidden = hiddenRaw || visibility === Visibility.hidden
 
+  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+  const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
+  const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
+  const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
+  const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
+  const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
+  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
+  const getFileDetailsMutation = backendHooks.useBackendMutation(backend, 'getFileDetails')
+  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
+  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
+  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
+
   React.useEffect(() => {
     setItem(rawItem)
   }, [rawItem])
+
   React.useEffect(() => {
     // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
     // re-rendering the parent.
@@ -156,12 +172,12 @@ export default function AssetRow(props: AssetRowProps) {
           })
         )
         newParentId ??= rootDirectoryId
-        const copiedAsset = await backend.copyAsset(
+        const copiedAsset = await copyAssetMutation.mutateAsync([
           asset.id,
           newParentId,
           asset.title,
-          nodeMap.current.get(newParentId)?.item.title ?? '(unknown)'
-        )
+          nodeMap.current.get(newParentId)?.item.title ?? '(unknown)',
+        ])
         setAsset(
           // This is SAFE, as the type of the copied asset is guaranteed to be the same
           // as the type of the original asset.
@@ -175,12 +191,12 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      backend,
       user,
       rootDirectoryId,
       asset,
       item.key,
       toastAndLog,
+      /* should never change */ copyAssetMutation,
       /* should never change */ nodeMap,
       /* should never change */ setAsset,
       /* should never change */ dispatchAssetListEvent,
@@ -254,15 +270,15 @@ export default function AssetRow(props: AssetRowProps) {
           item: newAsset,
         })
         setAsset(newAsset)
-        await backend.updateAsset(
+        await updateAssetMutation.mutateAsync([
           asset.id,
           {
             parentDirectoryId: newParentId ?? rootDirectoryId,
             description: null,
             ...(asset.projectState?.path == null ? {} : { projectPath: asset.projectState.path }),
           },
-          asset.title
-        )
+          asset.title,
+        ])
       } catch (error) {
         toastAndLog('moveAssetError', error, asset.title)
         setAsset(
@@ -289,13 +305,13 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [
       isCloud,
-      backend,
       asset,
       rootDirectoryId,
       item.directoryId,
       item.directoryKey,
       item.key,
       toastAndLog,
+      /* should never change */ updateAssetMutation,
       /* should never change */ setAsset,
       /* should never change */ dispatchAssetListEvent,
     ]
@@ -336,19 +352,19 @@ export default function AssetRow(props: AssetRowProps) {
             asset.projectState.type !== backendModule.ProjectState.placeholder &&
             asset.projectState.type !== backendModule.ProjectState.closed
           ) {
-            await backend.openProject(asset.id, null, asset.title)
+            await openProjectMutation.mutateAsync([asset.id, null, asset.title])
           }
           try {
-            await backend.closeProject(asset.id, asset.title)
+            await closeProjectMutation.mutateAsync([asset.id, asset.title])
           } catch {
             // Ignored. The project was already closed.
           }
         }
-        await backend.deleteAsset(
+        await deleteAssetMutation.mutateAsync([
           asset.id,
           { force: forever, parentId: asset.parentId },
-          asset.title
-        )
+          asset.title,
+        ])
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
@@ -356,9 +372,12 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      backend,
+      backend.type,
       dispatchAssetListEvent,
       asset,
+      /* should never change */ openProjectMutation,
+      /* should never change */ closeProjectMutation,
+      /* should never change */ deleteAssetMutation,
       /* should never change */ item.key,
       /* should never change */ toastAndLog,
     ]
@@ -368,13 +387,19 @@ export default function AssetRow(props: AssetRowProps) {
     // Visually, the asset is deleted from the Trash view.
     setInsertionVisibility(Visibility.hidden)
     try {
-      await backend.undoDeleteAsset(asset.id, asset.title)
+      await undoDeleteAssetMutation.mutateAsync([asset.id, asset.title])
       dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog('restoreAssetError', error, asset.title)
     }
-  }, [backend, dispatchAssetListEvent, asset, toastAndLog, /* should never change */ item.key])
+  }, [
+    dispatchAssetListEvent,
+    asset,
+    toastAndLog,
+    /* should never change */ undoDeleteAssetMutation,
+    /* should never change */ item.key,
+  ])
 
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(
@@ -478,11 +503,11 @@ export default function AssetRow(props: AssetRowProps) {
               switch (asset.type) {
                 case backendModule.AssetType.project: {
                   try {
-                    const details = await backend.getProjectDetails(
+                    const details = await getProjectDetailsMutation.mutateAsync([
                       asset.id,
                       asset.parentId,
-                      asset.title
-                    )
+                      asset.title,
+                    ])
                     if (details.url != null) {
                       download.download(details.url, asset.title)
                     } else {
@@ -496,7 +521,10 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 case backendModule.AssetType.file: {
                   try {
-                    const details = await backend.getFileDetails(asset.id, asset.title)
+                    const details = await getFileDetailsMutation.mutateAsync([
+                      asset.id,
+                      asset.title,
+                    ])
                     if (details.url != null) {
                       download.download(details.url, asset.title)
                     } else {
@@ -510,7 +538,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 case backendModule.AssetType.datalink: {
                   try {
-                    const value = await backend.getDatalink(asset.id, asset.title)
+                    const value = await getDatalinkMutation.mutateAsync([asset.id, asset.title])
                     const fileName = `${asset.title}.datalink`
                     download.download(
                       URL.createObjectURL(
@@ -547,11 +575,13 @@ export default function AssetRow(props: AssetRowProps) {
           if (event.id === asset.id && user != null && user.isEnabled) {
             setInsertionVisibility(Visibility.hidden)
             try {
-              await backend.createPermission({
-                action: null,
-                resourceId: asset.id,
-                actorsIds: [user.userId],
-              })
+              await createPermissionMutation.mutateAsync([
+                {
+                  action: null,
+                  resourceId: asset.id,
+                  actorsIds: [user.userId],
+                },
+              ])
               dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
             } catch (error) {
               setInsertionVisibility(Visibility.visible)
@@ -603,7 +633,7 @@ export default function AssetRow(props: AssetRowProps) {
             ]
             setAsset(object.merger({ labels: newLabels }))
             try {
-              await backend.associateTag(asset.id, newLabels, asset.title)
+              await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
             } catch (error) {
               setAsset(object.merger({ labels }))
               toastAndLog(null, error)
@@ -626,7 +656,7 @@ export default function AssetRow(props: AssetRowProps) {
             const newLabels = labels.filter(label => !event.labelNames.has(label))
             setAsset(object.merger({ labels: newLabels }))
             try {
-              await backend.associateTag(asset.id, newLabels, asset.title)
+              await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
             } catch (error) {
               setAsset(object.merger({ labels }))
               toastAndLog(null, error)
@@ -721,7 +751,11 @@ export default function AssetRow(props: AssetRowProps) {
                     element.focus()
                   }
                 }}
-                className={`h-table-row rounded-full transition-all ease-in-out rounded-rows-child ${visibility} ${isDraggedOver || selected ? 'selected' : ''}`}
+                className={tailwindMerge.twMerge(
+                  'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
+                  visibility,
+                  (isDraggedOver || selected) && 'selected'
+                )}
                 onClick={event => {
                   unsetModal()
                   onClick(innerProps, event)
@@ -906,9 +940,10 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex h-row w-container justify-center rounded-full rounded-rows-child ${indent.indentClass(
-                item.depth
-              )}`}
+              className={tailwindMerge.twMerge(
+                'flex h-row w-container justify-center rounded-full rounded-rows-child',
+                indent.indentClass(item.depth)
+              )}
             >
               <StatelessSpinner size={24} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
@@ -921,7 +956,10 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex h-row items-center rounded-full rounded-rows-child ${indent.indentClass(item.depth)}`}
+              className={tailwindMerge.twMerge(
+                'flex h-row items-center rounded-full rounded-rows-child',
+                indent.indentClass(item.depth)
+              )}
             >
               <img src={BlankIcon} />
               <aria.Text className="px-name-column-x placeholder">

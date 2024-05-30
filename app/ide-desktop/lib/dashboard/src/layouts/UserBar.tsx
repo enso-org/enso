@@ -16,7 +16,6 @@ import UserMenu from '#/layouts/UserMenu'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
@@ -130,7 +129,9 @@ export default function UserBar(props: UserBarProps) {
               <aria.Text slot="label">{getText('share')}</aria.Text>
             </ariaComponents.Button>
           )}
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="size-row flex select-none items-center overflow-clip rounded-full transition-colors hover:bg-black/10"
             aria-label={getText('userMenuAltText')}
             onPress={() => {
@@ -148,7 +149,7 @@ export default function UserBar(props: UserBarProps) {
               height={32}
               width={32}
             />
-          </UnstyledButton>
+          </ariaComponents.Button>
           {/* Required for shortcuts to work. */}
           <div className="hidden">
             <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />

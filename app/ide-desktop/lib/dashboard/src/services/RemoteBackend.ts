@@ -71,7 +71,6 @@ export async function waitUntilProjectIsReady(
     await remoteBackend.openProject(item.id, null, item.title)
   }
   let nextCheckTimestamp = 0
-  console.log(abortController.signal.aborted, project.state.type)
   while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
     await new Promise<void>(resolve => {
       const delayMs = nextCheckTimestamp - Number(new Date())
@@ -134,6 +133,11 @@ type GetText = ReturnType<typeof textProvider.useText>['getText']
 interface DefaultVersionInfo {
   readonly version: backend.VersionNumber
   readonly lastUpdatedEpochMs: number
+}
+
+/** Options for {@link RemoteBackend.post} private method. */
+interface RemoteBackendPostOptions {
+  readonly keepalive?: boolean
 }
 
 /** Class for sending requests to the Cloud backend API endpoints. */
@@ -237,9 +241,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Restore a user that has been soft-deleted.
-   */
+  /** Restore a user that has been soft-deleted. */
   async restoreUser(): Promise<void> {
     const response = await this.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
       clearRemoveAt: true,
@@ -261,6 +263,12 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Delete a user.
+   * FIXME: Not implemented on backend yet. */
+  override async removeUser(): Promise<void> {
+    return await this.throw(null, 'removeUserBackendError')
+  }
+
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
     const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
@@ -271,9 +279,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * List all invitations.
-   */
+  /** List all invitations. */
   override async listInvitations(): Promise<backend.Invitation[]> {
     const response = await this.get<backend.InvitationListRequestBody>(
       remoteBackendPaths.INVITATION_PATH
@@ -286,9 +292,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Delete an invitation.
-   */
+  /** Delete an invitation. */
   override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
 
@@ -299,9 +303,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Resend an invitation to a user.
-   */
+  /** Resend an invitation to a user. */
   override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.post(remoteBackendPaths.INVITATION_PATH, {
       userEmail,
@@ -1032,6 +1034,33 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Log an event that will be visible in the organization audit log. */
+  async logEvent(
+    message: string,
+    projectId?: string | null,
+    metadata?: object | null
+  ): Promise<void> {
+    const path = remoteBackendPaths.POST_LOG_EVENT_PATH
+    const response = await this.post(
+      path,
+      {
+        message,
+        projectId,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          ...(metadata ?? {}),
+        },
+      },
+      {
+        keepalive: true,
+      }
+    )
+    if (!responseIsSuccessful(response)) {
+      // eslint-disable-next-line no-restricted-syntax
+      return this.throw(response, 'logEventBackendError', message)
+    }
+  }
+
   /** Get the default version given the type of version (IDE or backend). */
   protected async getDefaultVersion(versionType: backend.VersionType) {
     const cached = this.defaultVersions[versionType]
@@ -1056,8 +1085,8 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Send a JSON HTTP POST request to the given path. */
-  private post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+  private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
+    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload, options)
   }
 
   /** Send a binary HTTP POST request to the given path. */

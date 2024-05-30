@@ -12,7 +12,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ButtonRow from '#/components/styled/ButtonRow'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 // =================
 // === Constants ===
@@ -95,14 +94,16 @@ export default function AboutModal() {
               </tbody>
             </table>
             <ButtonRow>
-              <UnstyledButton
+              <ariaComponents.Button
+                size="custom"
+                variant="custom"
                 className="button relative bg-invite text-inversed active"
                 onPress={doCopy}
               >
                 <aria.Text className="text">
                   {isCopied ? getText('copied') : getText('copy')}
                 </aria.Text>
-              </UnstyledButton>
+              </ariaComponents.Button>
             </ButtonRow>
           </div>
         </div>

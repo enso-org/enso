@@ -8,26 +8,18 @@ import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 
-import type Backend from '#/services/Backend'
-
 // =============================
 // === MembersSettingsTabBar ===
 // =============================
 
-/** Props for a {@link MembersSettingsTabBar}. */
-export interface MembersSettingsTabBarProps {
-  readonly backend: Backend
-}
-
 /** Button bar for managing organization members. */
-export default function MembersSettingsTabBar(props: MembersSettingsTabBarProps) {
-  const { backend } = props
+export default function MembersSettingsTabBar() {
   const { getText } = textProvider.useText()
 
   return (
     <HorizontalMenuBar>
       <ariaComponents.DialogTrigger>
-        <ariaComponents.Button variant="cancel" rounded="full" size="small">
+        <ariaComponents.Button variant="bar" rounded="full" size="small">
           {getText('inviteMembers')}
         </ariaComponents.Button>
 

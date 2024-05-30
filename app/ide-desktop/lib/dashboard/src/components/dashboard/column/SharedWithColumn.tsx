@@ -10,9 +10,9 @@ import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
@@ -90,7 +90,9 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         </PermissionDisplay>
       ))}
       {managesThisAsset && (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           ref={plusButtonRef}
           className="shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
           onPress={() => {
@@ -113,7 +115,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
           }}
         >
           <img className="size-plus-icon" src={Plus2Icon} />
-        </UnstyledButton>
+        </ariaComponents.Button>
       )}
     </div>
   )

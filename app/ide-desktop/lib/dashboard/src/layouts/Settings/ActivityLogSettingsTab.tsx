@@ -1,17 +1,20 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import KeyIcon from 'enso-assets/key.svg'
 import Play2Icon from 'enso-assets/play2.svg'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TrashIcon from 'enso-assets/trash.svg'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import DateInput from '#/components/DateInput'
 import Dropdown from '#/components/Dropdown'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
@@ -19,7 +22,6 @@ import FocusArea from '#/components/styled/FocusArea'
 import SettingsPage from '#/components/styled/settings/SettingsPage'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -30,6 +32,8 @@ import * as sorting from '#/utilities/sorting'
 // =================
 // === Constants ===
 // =================
+
+const EMPTY_ARRAY: never[] = []
 
 const EVENT_TYPE_ICON: Record<backendModule.EventType, string> = {
   [backendModule.EventType.GetSecret]: KeyIcon,
@@ -79,9 +83,10 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>(() => [])
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<ActivityLogSortableColumn> | null>(null)
-  const users = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
+  const users = backendHooks.useBackendListUsers(backend) ?? EMPTY_ARRAY
   const allEmails = React.useMemo(() => users.map(user => user.email), [users])
-  const logs = asyncEffectHooks.useAsyncEffect(null, () => backend.getLogEvents(), [backend])
+  const logsQuery = backendHooks.useBackendQuery(backend, 'getLogEvents', [])
+  const logs = logsQuery.data
   const filteredLogs = React.useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : backendModule.EVENT_TYPES)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
@@ -191,7 +196,9 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
             <tr className="h-row">
               <th className="w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r text-left text-sm font-semibold last:border-r-0" />
               <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.type
                       ? getText('sortByName')
@@ -199,7 +206,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByName')
                         : getText('sortByNameDescending')
                   }
-                  className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.type
@@ -223,20 +230,22 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         : getText('sortAscending')
                     }
                     src={SortAscendingIcon}
-                    className={`transition-all duration-arrow ${
+                    className={tailwindMerge.twMerge(
+                      'transition-all duration-arrow',
                       sortInfo?.field === ActivityLogSortableColumn.type
                         ? 'selectable active'
-                        : 'transparent group-hover:selectable'
-                    } ${
-                      sortInfo?.field === ActivityLogSortableColumn.type && isDescending
-                        ? 'rotate-180'
-                        : ''
-                    }`}
+                        : 'transparent group-hover:selectable',
+                      sortInfo?.field === ActivityLogSortableColumn.type &&
+                        isDescending &&
+                        'rotate-180'
+                    )}
                   />
-                </UnstyledButton>
+                </ariaComponents.Button>
               </th>
               <th className="w-activity-log-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.email
                       ? getText('sortByEmail')
@@ -244,7 +253,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByEmail')
                         : getText('sortByEmailDescending')
                   }
-                  className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.email
@@ -268,20 +277,22 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         : getText('sortAscending')
                     }
                     src={SortAscendingIcon}
-                    className={`transition-all duration-arrow ${
+                    className={tailwindMerge.twMerge(
+                      'transition-all duration-arrow',
                       sortInfo?.field === ActivityLogSortableColumn.email
                         ? 'selectable active'
-                        : 'transparent group-hover:selectable'
-                    } ${
-                      sortInfo?.field === ActivityLogSortableColumn.email && isDescending
-                        ? 'rotate-180'
-                        : ''
-                    }`}
+                        : 'transparent group-hover:selectable',
+                      sortInfo?.field === ActivityLogSortableColumn.email &&
+                        isDescending &&
+                        'rotate-180'
+                    )}
                   />
-                </UnstyledButton>
+                </ariaComponents.Button>
               </th>
               <th className="w-activity-log-timestamp-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   aria-label={
                     sortInfo?.field !== ActivityLogSortableColumn.timestamp
                       ? getText('sortByTimestamp')
@@ -289,7 +300,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByTimestamp')
                         : getText('sortByTimestampDescending')
                   }
-                  className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
+                  className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.timestamp
@@ -313,17 +324,17 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         : getText('sortAscending')
                     }
                     src={SortAscendingIcon}
-                    className={`transition-all duration-arrow ${
+                    className={tailwindMerge.twMerge(
+                      'transition-all duration-arrow',
                       sortInfo?.field === ActivityLogSortableColumn.timestamp
                         ? 'selectable active'
-                        : 'transparent group-hover:selectable'
-                    } ${
-                      sortInfo?.field === ActivityLogSortableColumn.timestamp && isDescending
-                        ? 'rotate-180'
-                        : ''
-                    }`}
+                        : 'transparent group-hover:selectable',
+                      sortInfo?.field === ActivityLogSortableColumn.timestamp &&
+                        isDescending &&
+                        'rotate-180'
+                    )}
                   />
-                </UnstyledButton>
+                </ariaComponents.Button>
               </th>
             </tr>
           </thead>
@@ -341,7 +352,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
               </tr>
             ) : (
               sortedLogs.map((log, i) => (
-                <tr key={i} className="h-row">
+                <tr key={i} className="h-row rounded-rows-child">
                   <td className="border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r first:rounded-l-full last:rounded-r-full last:border-r-0">
                     <div className="flex items-center">
                       <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />

@@ -1,7 +1,7 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
-import clsx from 'clsx'
+import * as tailwindMerge from 'tailwind-merge'
 
 import DriveIcon from 'enso-assets/drive.svg'
 import WorkspaceIcon from 'enso-assets/workspace.svg'
@@ -11,10 +11,9 @@ import type * as text from '#/text'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import WindowButton from '#/components/styled/WindowButton'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 // ============
 // === Page ===
@@ -30,6 +29,10 @@ export enum Page {
 // =================
 // === Constants ===
 // =================
+
+/** Configuration flag determining whether to show the close button.
+ * This is present in order to match the Figma design as closely as possible. */
+const SHOW_CLOSE_BUTTON: boolean = false
 
 const PAGE_DATA: PageUIData[] = [
   { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName' },
@@ -91,17 +94,22 @@ export default function PageSwitcher(props: PageSwitcherProps) {
           className="pointer-events-auto flex h-12 shrink-0 grow cursor-default items-center rounded-full"
           {...innerProps}
         >
-          <div
-            className={`flex bg-primary/5 py-[18px] pl-[19px] pr-[29px] ${pageIndex === 0 ? 'rounded-br-3xl' : ''}`}
-          >
-            <WindowButton role="close" onPress={closeWindow} />
-          </div>
+          {SHOW_CLOSE_BUTTON && (
+            <div
+              className={tailwindMerge.twMerge(
+                'flex bg-primary/5 py-[18px] pl-[19px] pr-[29px]',
+                pageIndex === 0 && 'rounded-br-3xl'
+              )}
+            >
+              <ariaComponents.CloseButton onPress={closeWindow} />
+            </div>
+          )}
           {PAGE_DATA.map((pageData, i) => {
             const active = page === pageData.page
             return (
               <div
                 key={pageData.page}
-                className={clsx(
+                className={tailwindMerge.twMerge(
                   'h-full pr-4 transition-[padding-left]',
                   page === pageData.page
                     ? 'pl-[19px]'
@@ -111,8 +119,11 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                   pageIndex != null && i === pageIndex - 1 && 'rounded-br-3xl'
                 )}
               >
-                <UnstyledButton
-                  className={`flex h-full items-center gap-3 selectable ${active ? 'disabled active' : ''}`}
+                <ariaComponents.Button
+                  className={tailwindMerge.twMerge(
+                    'flex h-full items-center gap-3 selectable',
+                    active && 'disabled active'
+                  )}
                   isDisabled={pageData.page === Page.editor && isEditorDisabled}
                   onPress={() => {
                     setPage(pageData.page)
@@ -120,12 +131,15 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                 >
                   <SvgMask src={pageData.icon} />
                   <aria.Text className="text">{getText(pageData.nameId)}</aria.Text>
-                </UnstyledButton>
+                </ariaComponents.Button>
               </div>
             )
           })}
           <div
-            className={`h-full grow bg-primary/5 ${isLastPageSelected ? 'rounded-bl-3xl' : ''}`}
+            className={tailwindMerge.twMerge(
+              'h-full grow bg-primary/5',
+              isLastPageSelected && 'rounded-bl-3xl'
+            )}
           />
         </div>
       )}

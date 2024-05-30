@@ -10,51 +10,9 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinnerModule from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
-// ==============
-// === Button ===
-// ==============
-
-/** Props for a {@link Button}. */
-export type ButtonProps =
-  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
-  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
-
-/**
- * Props for a button with an href.
- */
-interface PropsWithHref {
-  readonly href: string
-}
-
-/**
- * Props for a button without an href.
- */
-interface PropsWithoutHref {
-  readonly href?: never
-}
-
-/**
- * Base props for a button.
- */
-export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
-  /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
-  readonly tooltip?: React.ReactNode
-  /**
-   * The icon to display in the button
-   */
-  readonly icon?: string | null
-  /**
-   * When `true`, icon will be shown only when hovered.
-   */
-  readonly showIconOnHover?: boolean
-  /**
-   * Handler that is called when the press is released over the target.
-   * If the handler returns a promise, the button will be in a loading state until the promise resolves.
-   */
-  readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
-
-  readonly testId?: string
-}
+// =================
+// === Constants ===
+// =================
 
 export const BUTTON_STYLES = twv.tv({
   base: 'group flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out select-none text-center items-center justify-center appearance-none',
@@ -100,6 +58,7 @@ export const BUTTON_STYLES = twv.tv({
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline:
         'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',
+      bar: 'flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
     },
     iconPosition: {
       start: { content: '' },
@@ -120,8 +79,8 @@ export const BUTTON_STYLES = twv.tv({
   defaultVariants: {
     loading: false,
     fullWidth: false,
-    size: 'xsmall',
-    rounded: 'large',
+    size: 'small',
+    rounded: 'full',
     variant: 'primary',
     iconPosition: 'start',
     showIconOnHover: false,
@@ -136,6 +95,52 @@ export const BUTTON_STYLES = twv.tv({
   ],
 })
 
+// ==============
+// === Button ===
+// ==============
+
+/** Props for a {@link Button}. */
+export type ButtonProps =
+  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
+  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
+
+/**
+ * Props for a button with an href.
+ */
+interface PropsWithHref {
+  readonly href: string
+}
+
+/**
+ * Props for a button without an href.
+ */
+interface PropsWithoutHref {
+  readonly href?: never
+}
+
+/**
+ * Base props for a button.
+ */
+export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
+  /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
+  readonly tooltip?: React.ReactElement | string | false
+  /**
+   * The icon to display in the button
+   */
+  readonly icon?: string | null
+  /**
+   * When `true`, icon will be shown only when hovered.
+   */
+  readonly showIconOnHover?: boolean
+  /**
+   * Handler that is called when the press is released over the target.
+   * If the handler returns a promise, the button will be in a loading state until the promise resolves.
+   */
+  readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
+
+  readonly testId?: string
+}
+
 /** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
 export const Button = React.forwardRef(function Button(
   props: ButtonProps,
@@ -147,7 +152,7 @@ export const Button = React.forwardRef(function Button(
     variant,
     icon,
     loading = false,
-    isDisabled: disabled,
+    isDisabled: isDisabledRaw = false,
     showIconOnHover,
     iconPosition,
     size,
@@ -174,7 +179,7 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
-  const isDisabled = disabled || isLoading
+  const isDisabled = isDisabledRaw || isLoading
 
   const handlePress = (event: aria.PressEvent): void => {
     const result = onPress(event)

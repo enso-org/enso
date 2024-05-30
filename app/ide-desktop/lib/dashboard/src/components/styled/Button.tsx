@@ -61,13 +61,18 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
           ref,
           className: tailwindMerge.twMerge(
-            'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring m-button-focus-ring-inset p-negative-button-focus-ring-inset',
+            'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring -m-1 p-1',
             buttonClassName
           ),
         })}
       >
         <div
-          className={`group flex selectable ${light ? 'selectable-light' : ''} ${isDisabled ? 'disabled' : ''} ${active ? 'active' : ''}`}
+          className={tailwindMerge.twMerge(
+            'group flex selectable',
+            light && 'opacity-25',
+            isDisabled && 'disabled',
+            active && 'active'
+          )}
         >
           <SvgMask
             src={image}

@@ -71,16 +71,8 @@
   height: 16px;
 }
 
-.button {
-  cursor: pointer;
-}
-
 .hidden {
   display: none;
-}
-
-.button.disabled {
-  cursor: default;
 }
 
 /* Scrollbar style definitions for textual visualizations which need support for scrolling.

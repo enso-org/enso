@@ -1,6 +1,8 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
@@ -66,7 +68,10 @@ export default function UserMenu(props: UserMenuProps) {
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className={`absolute right-2 top-2 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'p-profile-picture size-row-h'}`}
+        className={tailwindMerge.twMerge(
+          'absolute right-2 top-2 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
+          initialized ? 'w-user-menu p-user-menu' : 'p-profile-picture size-row-h'
+        )}
         onClick={event => {
           event.stopPropagation()
         }}
@@ -74,7 +79,10 @@ export default function UserMenu(props: UserMenuProps) {
         {user != null ? (
           <>
             <div
-              className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
+              className={tailwindMerge.twMerge(
+                'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
+                initialized && 'px-menu-entry'
+              )}
             >
               <div className="size-profile-picture flex shrink-0 items-center overflow-clip rounded-full">
                 <img
@@ -85,7 +93,10 @@ export default function UserMenu(props: UserMenuProps) {
               <aria.Text className="text">{user.name}</aria.Text>
             </div>
             <div
-              className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
+              className={tailwindMerge.twMerge(
+                'grid transition-all duration-user-menu',
+                initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
+              )}
             >
               <FocusArea direction="vertical">
                 {innerProps => (

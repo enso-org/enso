@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * A form for subscribing to a plan.
- */
+/** @file A form for subscribing to a plan. */
 import * as React from 'react'
 
 import * as stripeReact from '@stripe/react-stripe-js'
@@ -14,18 +10,18 @@ import * as text from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
-/**
- *
- */
+// =====================
+// === SubscribeForm ===
+// =====================
+
+/** Props for a {@link SubscribeForm}. */
 export interface SubscribeFormProps {
   readonly stripe: stripeJs.Stripe
   readonly elements: stripeJs.StripeElements
   readonly onSubmit: (paymentMethodId: stripeJs.PaymentMethod['id']) => Promise<void>
 }
 
-/**
- * A form for subscribing to a plan.
- */
+/** A form for subscribing to a plan. */
 export function SubscribeForm(props: SubscribeFormProps) {
   const { stripe, elements, onSubmit } = props
 

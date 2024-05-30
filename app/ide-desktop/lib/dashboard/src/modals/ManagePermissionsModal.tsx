@@ -1,10 +1,10 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -12,12 +12,12 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import Permission from '#/components/dashboard/Permission'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -63,6 +63,8 @@ export default function ManagePermissionsModal<
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
+  const listedUsers = backendHooks.useBackendListUsers(backend)
+  const listedUserGroups = backendHooks.useBackendListUserGroups(backend)
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
   const [usersAndUserGroups, setUserAndUserGroups] = React.useState<
     readonly (backendModule.UserGroupInfo | backendModule.UserInfo)[]
@@ -103,6 +105,9 @@ export default function ManagePermissionsModal<
     [user?.userId, permissions, self.permission]
   )
 
+  const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser')
+  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
+
   React.useEffect(() => {
     // This is SAFE, as the type of asset is not being changed.
     // eslint-disable-next-line no-restricted-syntax
@@ -116,28 +121,18 @@ export default function ManagePermissionsModal<
     // This MUST be an error, otherwise the hooks below are considered as conditionally called.
     throw new Error('Cannot share assets on the local backend.')
   } else {
-    const usersQuery = reactQuery.useQuery({
-      initialData: [],
-      queryKey: ['users'],
-      queryFn: () => backend.listUsers(),
-    })
-    const userGroupsQuery = reactQuery.useQuery({
-      initialData: [],
-      queryKey: ['user groups'],
-      queryFn: () => backend.listUserGroups(),
-    })
     const canAdd = React.useMemo(
       () => [
-        ...usersQuery.data.filter(
+        ...(listedUsers ?? []).filter(
           listedUser =>
             !permissionsHoldersNames.has(listedUser.name) &&
             !emailsOfUsersWithPermission.has(listedUser.email)
         ),
-        ...userGroupsQuery.data.filter(
+        ...(listedUserGroups ?? []).filter(
           userGroup => !permissionsHoldersNames.has(userGroup.groupName)
         ),
       ],
-      [emailsOfUsersWithPermission, permissionsHoldersNames, usersQuery.data, userGroupsQuery.data]
+      [emailsOfUsersWithPermission, permissionsHoldersNames, listedUsers, listedUserGroups]
     )
     const willInviteNewUser = React.useMemo(() => {
       if (usersAndUserGroups.length !== 0 || email == null || email === '') {
@@ -170,10 +165,12 @@ export default function ManagePermissionsModal<
           setUserAndUserGroups([])
           setEmail('')
           if (email != null) {
-            await backend.inviteUser({
-              organizationId: user.organizationId,
-              userEmail: backendModule.EmailAddress(email),
-            })
+            await inviteUserMutation.mutateAsync([
+              {
+                organizationId: user.organizationId,
+                userEmail: backendModule.EmailAddress(email),
+              },
+            ])
             toast.toast.success(getText('inviteSuccess', email))
           }
         } catch (error) {
@@ -208,15 +205,17 @@ export default function ManagePermissionsModal<
               backendModule.compareAssetPermissions
             )
           )
-          await backend.createPermission({
-            actorsIds: addedPermissions.map(permission =>
-              backendModule.isUserPermission(permission)
-                ? permission.user.userId
-                : permission.userGroup.id
-            ),
-            resourceId: item.id,
-            action: action,
-          })
+          await createPermissionMutation.mutateAsync([
+            {
+              actorsIds: addedPermissions.map(permission =>
+                backendModule.isUserPermission(permission)
+                  ? permission.user.userId
+                  : permission.userGroup.id
+              ),
+              resourceId: item.id,
+              action: action,
+            },
+          ])
         } catch (error) {
           setPermissions(oldPermissions =>
             [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...oldPermissions].sort(
@@ -241,11 +240,13 @@ export default function ManagePermissionsModal<
               permission => backendModule.getAssetPermissionId(permission) !== permissionId
             )
           )
-          await backend.createPermission({
-            actorsIds: [permissionId],
-            resourceId: item.id,
-            action: null,
-          })
+          await createPermissionMutation.mutateAsync([
+            {
+              actorsIds: [permissionId],
+              resourceId: item.id,
+              action: null,
+            },
+          ])
         } catch (error) {
           if (oldPermission != null) {
             setPermissions(oldPermissions =>
@@ -313,8 +314,8 @@ export default function ManagePermissionsModal<
                         multiple
                         autoFocus
                         placeholder={
-                          // `usersQuery.data` will always include the current user.
-                          usersQuery.data.length > 1
+                          // `listedUsers` will always include the current user.
+                          (listedUsers ?? []).length > 1
                             ? getText('inviteUserPlaceholder')
                             : getText('inviteFirstUserPlaceholder')
                         }
@@ -350,7 +351,9 @@ export default function ManagePermissionsModal<
                       />
                     </div>
                   </div>
-                  <UnstyledButton
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={
                       willInviteNewUser
                         ? email == null || !isEmail(email)
@@ -363,7 +366,7 @@ export default function ManagePermissionsModal<
                     <div className="h-text py-modal-invite-button-text-y">
                       {willInviteNewUser ? getText('invite') : getText('share')}
                     </div>
-                  </UnstyledButton>
+                  </ariaComponents.Button>
                 </form>
               )}
             </FocusArea>

@@ -2,6 +2,8 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as detect from 'enso-common/src/detect'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -38,6 +40,8 @@ import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+
+import type * as types from '../../../../types/types'
 
 // ============================
 // === Global configuration ===
@@ -103,7 +107,9 @@ LocalStorage.registerKey('projectStartupInfo', {
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
-  readonly appRunner: AppRunner
+  /** Whether the application may have the local backend running. */
+  readonly supportsLocalBackend: boolean
+  readonly appRunner: types.EditorRunner | null
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
@@ -131,7 +137,6 @@ export default function Dashboard(props: DashboardProps) {
     (value: unknown): value is pageSwitcher.Page =>
       array.includes(Object.values(pageSwitcher.Page), value)
   )
-  const [labels, setLabels] = React.useState<backendModule.Label[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
   const [openProjectAbortController, setOpenProjectAbortController] =
@@ -344,9 +349,10 @@ export default function Dashboard(props: DashboardProps) {
   return (
     <Page hideInfoBar>
       <div
-        className={`flex text-xs text-primary ${
-          page === pageSwitcher.Page.editor ? 'pointer-events-none cursor-none' : ''
-        }`}
+        className={tailwindMerge.twMerge(
+          'flex text-xs text-primary',
+          page === pageSwitcher.Page.editor && 'pointer-events-none cursor-none'
+        )}
       >
         <div
           className="relative flex h-screen grow select-none flex-col container-size"
@@ -370,8 +376,6 @@ export default function Dashboard(props: DashboardProps) {
             setCategory={setCategory}
             hidden={page !== pageSwitcher.Page.drive}
             initialProjectName={initialProjectName}
-            labels={labels}
-            setLabels={setLabels}
             projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
             assetListEvents={assetListEvents}

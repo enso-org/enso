@@ -2,11 +2,13 @@
 import * as React from 'react'
 
 import * as toast from 'react-toastify'
+import * as tailwindMerge from 'tailwind-merge'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -18,9 +20,9 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -124,9 +126,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
   const toastId: toast.Id = React.useId()
   const isOpening = backendModule.IS_OPENING[item.projectState.type]
-  const isCloud = backend.type !== backendModule.BackendType.local
+  const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
+
+  const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
+  const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
+  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
@@ -135,28 +141,28 @@ export default function ProjectIcon(props: ProjectIconProps) {
         switch (backend.type) {
           case backendModule.BackendType.remote: {
             if (state !== backendModule.ProjectState.opened) {
-              await backend.openProject(
+              await openProjectMutation.mutateAsync([
                 item.id,
                 {
                   executeAsync: shouldRunInBackground,
                   parentId: item.parentId,
                   cognitoCredentials: session,
                 },
-                item.title
-              )
+                item.title,
+              ])
             }
             break
           }
           case backendModule.BackendType.local: {
-            await backend.openProject(
+            await openProjectMutation.mutateAsync([
               item.id,
               {
                 executeAsync: shouldRunInBackground,
                 parentId: item.parentId,
                 cognitoCredentials: null,
               },
-              item.title
-            )
+              item.title,
+            ])
             setState(oldState =>
               oldState === backendModule.ProjectState.openInProgress
                 ? backendModule.ProjectState.opened
@@ -166,7 +172,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
         }
       } catch (error) {
-        const project = await backend.getProjectDetails(item.id, item.parentId, item.title)
+        const project = await getProjectDetailsMutation.mutateAsync([
+          item.id,
+          item.parentId,
+          item.title,
+        ])
         setItem(object.merger({ projectState: project.state }))
         toastAndLog('openProjectError', error, item.title)
         setState(backendModule.ProjectState.closed)
@@ -178,6 +188,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
       item,
       session,
       toastAndLog,
+      /* should never change */ openProjectMutation,
+      /* should never change */ getProjectDetailsMutation,
       /* should never change */ setState,
       /* should never change */ setItem,
     ]
@@ -266,15 +278,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
           setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
           setIsRunningInBackground(event.runInBackground)
           void openProject(event.runInBackground)
-          void backend.getProjectDetails(item.id, item.parentId, item.title).then(project => {
-            setProjectStartupInfo({
-              project,
-              projectAsset: item,
-              setProjectAsset: setItem,
-              backendType: backend.type,
-              accessToken: session?.accessToken ?? null,
+          void getProjectDetailsMutation
+            .mutateAsync([item.id, item.parentId, item.title])
+            .then(project => {
+              setProjectStartupInfo({
+                project,
+                projectAsset: item,
+                setProjectAsset: setItem,
+                backendType: backend.type,
+                accessToken: session?.accessToken ?? null,
+              })
             })
-          })
         }
         break
       }
@@ -314,9 +328,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         ) {
           // Projects that are not opened cannot be closed.
           // This is the only way to wait until the project is open.
-          await backend.openProject(item.id, null, item.title)
+          await openProjectMutation.mutateAsync([item.id, null, item.title])
         }
-        await backend.closeProject(item.id, item.title)
+        await closeProjectMutation.mutateAsync([item.id, item.title])
       } catch {
         // Ignored.
       }
@@ -330,7 +344,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
       return (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           className="size-project-icon rounded-full"
           onPress={() => {
             unsetModal()
@@ -338,14 +354,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }}
         >
           <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           isDisabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
           className="size-project-icon rounded-full selectable enabled:active"
@@ -354,20 +372,27 @@ export default function ProjectIcon(props: ProjectIconProps) {
             void closeProject(!isRunningInBackground)
           }}
         >
-          <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+          <div
+            className={tailwindMerge.twMerge('relative h-0', isRunningInBackground && 'text-green')}
+          >
             <Spinner size={ICON_SIZE_PX} state={spinnerState} />
           </div>
           <SvgMask
             alt={getText('stopExecution')}
             src={StopIcon}
-            className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
+            className={tailwindMerge.twMerge(
+              'size-project-icon',
+              isRunningInBackground && 'text-green'
+            )}
           />
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
     case backendModule.ProjectState.opened:
       return (
         <div>
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
             className="size-project-icon rounded-full selectable enabled:active"
@@ -376,17 +401,27 @@ export default function ProjectIcon(props: ProjectIconProps) {
               void closeProject(!isRunningInBackground)
             }}
           >
-            <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+            <div
+              className={tailwindMerge.twMerge(
+                'relative h-0',
+                isRunningInBackground && 'text-green'
+              )}
+            >
               <Spinner className="size-project-icon" state={spinnerState} />
             </div>
             <SvgMask
               alt={getText('stopExecution')}
               src={StopIcon}
-              className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
+              className={tailwindMerge.twMerge(
+                'size-project-icon',
+                isRunningInBackground && 'text-green'
+              )}
             />
-          </UnstyledButton>
+          </ariaComponents.Button>
           {!isOtherUserUsingProject && !isRunningInBackground && (
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="size-project-icon rounded-full"
               onPress={() => {
                 unsetModal()
@@ -398,7 +433,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 src={ArrowUpIcon}
                 className="size-project-icon"
               />
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
         </div>
       )

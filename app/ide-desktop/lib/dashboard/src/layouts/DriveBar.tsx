@@ -19,21 +19,22 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import Start from '#/layouts/Start'
+import StartModal from '#/layouts/StartModal'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Button from '#/components/styled/Button'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import type * as backend from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === DriveBar ===
@@ -41,9 +42,9 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
+  readonly backend: Backend
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly labels: readonly backend.Label[]
   readonly suggestions: readonly assetSearchBar.Suggestion[]
   readonly category: Category
   readonly canDownload: boolean
@@ -61,7 +62,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { query, setQuery, labels, suggestions, category, canDownload } = props
+  const { backend, query, setQuery, suggestions, category, canDownload } = props
   const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles, dispatchAssetEvent } = props
   const { isAssetPanelOpen, setIsAssetPanelOpen } = props
@@ -103,8 +104,10 @@ export default function DriveBar(props: DriveBarProps) {
       return (
         <div className="flex h-9 items-center">
           <HorizontalMenuBar>
-            <UnstyledButton
-              className="flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
+              className="border-0.5 flex h-row items-center rounded-full border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
               onPress={() => {
                 setModal(
                   <ConfirmDeleteModal
@@ -117,7 +120,7 @@ export default function DriveBar(props: DriveBarProps) {
               <aria.Text className="text whitespace-nowrap font-semibold">
                 {getText('clearTrash')}
               </aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
           </HorizontalMenuBar>
         </div>
       )
@@ -128,20 +131,26 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
             <aria.DialogTrigger>
-              <UnstyledButton variant="accent" className="px-2.5" onPress={() => {}}>
-                <aria.Text>{getText('startWithATemplate')}</aria.Text>
-              </UnstyledButton>
-              <Start createProject={doCreateProject} />
+              <ariaComponents.Button
+                size="custom"
+                variant="tertiary"
+                className="px-2.5"
+                onPress={() => {}}
+              >
+                {getText('startWithATemplate')}
+              </ariaComponents.Button>
+              <StartModal createProject={doCreateProject} />
             </aria.DialogTrigger>
-            <UnstyledButton
-              variant="regular"
+            <ariaComponents.Button
+              size="custom"
+              variant="bar"
               onPress={() => {
                 doCreateProject()
               }}
             >
               {getText('newEmptyProject')}
-            </UnstyledButton>
-            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
+            </ariaComponents.Button>
+            <div className="border-0.5 flex h-row items-center gap-4 rounded-full border-primary/20 px-[11px] text-primary/50">
               <Button
                 active
                 image={AddFolderIcon}
@@ -210,18 +219,24 @@ export default function DriveBar(props: DriveBarProps) {
               />
             </div>
             <AssetSearchBar
+              backend={backend}
               isCloud={isCloud}
               query={query}
               setQuery={setQuery}
-              labels={labels}
               suggestions={suggestions}
-              className="mx-auto"
+            />
+            {/* Spacing. */}
+            <div
+              className={tailwindMerge.twMerge(
+                'transition-all duration-side-panel',
+                !isAssetPanelOpen && 'w-5'
+              )}
             />
             <div
-              className={`transition-all duration-side-panel ${isAssetPanelOpen ? '' : 'w-5'}`}
-            />
-            <div
-              className={`absolute right top z-1 m-[15px] transition-all duration-side-panel ${isAssetPanelOpen ? '' : 'mt-[26px]'}`}
+              className={tailwindMerge.twMerge(
+                'absolute right top z-1 m-[15px] transition-all duration-side-panel',
+                !isAssetPanelOpen && 'mt-[26px]'
+              )}
             >
               <Button
                 image={RightPanelIcon}

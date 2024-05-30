@@ -1,6 +1,8 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -10,8 +12,7 @@ import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
-import * as aria from '#/components/aria'
-import UnstyledButton from '#/components/UnstyledButton'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -61,13 +62,12 @@ export interface AssetPanelRequiredProps {
 export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isReadonly?: boolean
   readonly category: Category
-  readonly labels: backendModule.Label[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, item, setItem, category, labels, dispatchAssetEvent } = props
+  const { backend, item, setItem, category, dispatchAssetEvent } = props
   const { isReadonly = false } = props
 
   const { getText } = textProvider.useText()
@@ -112,10 +112,13 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item != null &&
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
-            <UnstyledButton
-              className={`button pointer-events-auto h-8 select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-primary/[8%] ${
-                tab !== AssetPanelTab.versions ? '' : 'bg-primary/[8%] active'
-              }`}
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
+              className={tailwindMerge.twMerge(
+                'button pointer-events-auto h-8 select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-primary/[8%]',
+                tab === AssetPanelTab.versions && 'bg-primary/[8%] active'
+              )}
               onPress={() => {
                 setTab(oldTab =>
                   oldTab === AssetPanelTab.versions
@@ -125,14 +128,14 @@ export default function AssetPanel(props: AssetPanelProps) {
               }}
             >
               {getText('versions')}
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </div>
       {item == null || setItem == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
-          <aria.Text>{getText('selectExactlyOneAssetToViewItsDetails')}</aria.Text>
+          {getText('selectExactlyOneAssetToViewItsDetails')}
         </div>
       ) : (
         <>
@@ -143,7 +146,6 @@ export default function AssetPanel(props: AssetPanelProps) {
               item={item}
               setItem={setItem}
               category={category}
-              labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}

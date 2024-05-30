@@ -1,11 +1,7 @@
-/**
- * @file
- *
- * This file contains the logic to get the component for a given plan.
- */
+/** @file Logic to get the component for a given plan. */
 import * as React from 'react'
 
-import type * as stripeJs from '@stripe/stripe-js'
+import type * as stripe from '@stripe/stripe-js'
 
 import OpenInNewTabIcon from 'enso-assets/open.svg'
 
@@ -13,29 +9,33 @@ import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as constants from '#/pages/subscribe/constants'
+import * as components from '#/pages/subscribe/Subscribe/components'
+
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
 import * as string from '#/utilities/string'
 
-import * as constants from '../constants'
-import * as components from './components'
+// =========================
+// === SubmitButtonProps ===
+// =========================
 
-/**
- * The props for the submit button.
- */
+/** The props for the submit button. */
 interface SubmitButtonProps {
   readonly onSubmit: (paymentMethodId: string) => Promise<void>
-  readonly elements: stripeJs.StripeElements
-  readonly stripe: stripeJs.Stripe
+  readonly elements: stripe.StripeElements
+  readonly stripe: stripe.Stripe
   readonly plan: backendModule.Plan
   readonly defaultOpen?: boolean
 }
 
-/**
- * The component for a plan.
- */
+// ========================
+// === ComponentForPlan ===
+// ========================
+
+/** The component for a plan. */
 export interface ComponentForPlan {
   readonly pricing: text.TextId
   readonly features: text.TextId
@@ -45,27 +45,11 @@ export interface ComponentForPlan {
   readonly submitButton: (props: SubmitButtonProps) => React.ReactNode
 }
 
-/**
- * Get the component for a given plan.
- * @throws Error if the plan is invalid.
- */
-export function getComponentPerPlan(plan: backendModule.Plan, getText: textProvider.GetText) {
-  // we double check that the plan is valid
-  // eslint-disable-next-line no-restricted-syntax
-  const result = COMPONENT_PER_PLAN[plan]
+// ===========================
+// === getComponentForPlan ===
+// ===========================
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (result == null) {
-    throw new Error(`Invalid plan: ${plan}`)
-  } else {
-    return {
-      ...result,
-      features: getText(result.features).split(';'),
-    }
-  }
-}
-
-const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
+const COMPONENT_FOR_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
   [backendModule.Plan.solo]: {
     learnMore: () => {
       const { getText } = textProvider.useText()
@@ -176,4 +160,19 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
       )
     },
   },
+}
+
+/** Get the component for a given plan.
+ * @throws {Error} if the plan is invalid. */
+export function getComponentForPlan(plan: backendModule.Plan, getText: textProvider.GetText) {
+  const result = COMPONENT_FOR_PLAN[plan]
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (result == null) {
+    throw new Error(`Invalid plan: ${plan}`)
+  } else {
+    return {
+      ...result,
+      features: getText(result.features).split(';'),
+    }
+  }
 }

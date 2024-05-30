@@ -33,92 +33,88 @@ class RenameProjectCmd(
     } yield ()
 
   private def doRename(implicit ctx: RuntimeContext): Unit = {
-    val logger             = ctx.executionService.getLogger
-    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
-    try {
-      logger.log(
-        Level.FINE,
-        s"Renaming project [old:${request.namespace}.${request.oldName},new:${request.namespace}.${request.newName}]..."
-      )
-      val packageRepository =
-        ctx.executionService.getContext.getPackageRepository
-      val mainPackage = packageRepository.getMainProjectPackage
-        .getOrElse(throw new RenameProjectCmd.MainProjectPackageNotFound)
-      val projectModules =
-        packageRepository.getModulesForLibrary(mainPackage.libraryName)
+    val logger = ctx.executionService.getLogger
+    ctx.locking.withWriteCompilationLock(
+      this.getClass,
+      () =>
+        try {
+          logger.log(
+            Level.FINE,
+            s"Renaming project [old:${request.namespace}.${request.oldName},new:${request.namespace}.${request.newName}]..."
+          )
+          val packageRepository =
+            ctx.executionService.getContext.getPackageRepository
+          val mainPackage = packageRepository.getMainProjectPackage
+            .getOrElse(throw new RenameProjectCmd.MainProjectPackageNotFound)
+          val projectModules =
+            packageRepository.getModulesForLibrary(mainPackage.libraryName)
 
-      val oldConfig = mainPackage.getConfig()
-      val newConfig = mainPackage
-        .reloadConfig()
-        .fold(
-          cause => throw new RenameProjectCmd.FailedToReloadConfig(cause),
-          identity
-        )
+          val oldConfig = mainPackage.getConfig()
+          val newConfig = mainPackage
+            .reloadConfig()
+            .fold(
+              cause => throw new RenameProjectCmd.FailedToReloadConfig(cause),
+              identity
+            )
 
-      projectModules.foreach { module =>
-        ctx.state.suggestions.markIndexAsDirty(
-          Module.fromCompilerModule(module)
-        )
-        ctx.endpoint.sendToClient(
-          Api.Response(
-            Api.SuggestionsDatabaseModuleUpdateNotification(
-              module = module.getName.toString,
-              actions = Vector(
-                Api.SuggestionsDatabaseAction.Clean(module.getName.toString)
-              ),
-              exports = Vector(),
-              updates = Tree.empty
+          projectModules.foreach { module =>
+            ctx.state.suggestions.markIndexAsDirty(
+              Module.fromCompilerModule(module)
+            )
+            ctx.endpoint.sendToClient(
+              Api.Response(
+                Api.SuggestionsDatabaseModuleUpdateNotification(
+                  module = module.getName.toString,
+                  actions = Vector(
+                    Api.SuggestionsDatabaseAction.Clean(module.getName.toString)
+                  ),
+                  exports = Vector(),
+                  updates = Tree.empty
+                )
+              )
+            )
+          }
+
+          val context = ctx.executionService.getContext
+          context.renameProject(
+            request.namespace,
+            request.oldName,
+            request.newName
+          )
+
+          ctx.contextManager.getAllContexts.values.foreach { stack =>
+            updateMethodPointers(request.newName, stack)
+            clearCache(stack)
+          }
+
+          reply(
+            Api.ProjectRenamed(
+              oldConfig.moduleName,
+              newConfig.moduleName,
+              newConfig.name
             )
           )
-        )
-      }
-
-      val context = ctx.executionService.getContext
-      context.renameProject(
-        request.namespace,
-        request.oldName,
-        request.newName
-      )
-
-      ctx.contextManager.getAllContexts.values.foreach { stack =>
-        updateMethodPointers(request.newName, stack)
-        clearCache(stack)
-      }
-
-      reply(
-        Api.ProjectRenamed(
-          oldConfig.moduleName,
-          newConfig.moduleName,
-          newConfig.name
-        )
-      )
-      logger.log(
-        Level.INFO,
-        s"Project renamed to ${request.namespace}.${request.newName}"
-      )
-    } catch {
-      case ex: RenameProjectCmd.MainProjectPackageNotFound =>
-        logger.log(
-          Level.SEVERE,
-          "Main project package is not found.",
-          ex
-        )
-        reply(Api.ProjectRenameFailed(request.oldName, request.newName))
-      case ex: RenameProjectCmd.FailedToReloadConfig =>
-        logger.log(
-          Level.SEVERE,
-          "Failed to reload package config.",
-          ex
-        )
-        reply(Api.ProjectRenameFailed(request.oldName, request.newName))
-    } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      logger.log(
-        Level.FINEST,
-        "Kept write compilation lock [RenameProjectCmd] for " + (System.currentTimeMillis - writeLockTimestamp) + " milliseconds"
-      )
-
-    }
+          logger.log(
+            Level.INFO,
+            s"Project renamed to ${request.namespace}.${request.newName}"
+          )
+        } catch {
+          case ex: RenameProjectCmd.MainProjectPackageNotFound =>
+            logger.log(
+              Level.SEVERE,
+              "Main project package is not found.",
+              ex
+            )
+            reply(Api.ProjectRenameFailed(request.oldName, request.newName))
+          case ex: RenameProjectCmd.FailedToReloadConfig =>
+            logger.log(
+              Level.SEVERE,
+              "Failed to reload package config.",
+              ex
+            )
+            reply(Api.ProjectRenameFailed(request.oldName, request.newName))
+        }
+    )
   }
 
   private def reExecute(implicit

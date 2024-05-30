@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import data_link_extension, secure_value_to_json
 
 import project.Connection.Credentials.Credentials
@@ -20,7 +21,7 @@ type Postgres_Data_Link_Setup
 
     ## PRIVATE
     save_as_data_link self destination on_existing_file:Existing_File_Behavior = case self of
-        Postgres_Data_Link_Setup.Available details ->
+        Postgres_Data_Link_Setup.Available details -> Context.Output.if_enabled disabled_message="Saving a connection to data link requires the Output context." panic=False <|
             case destination of
                 _ : Enso_File ->
                     replace_existing = case on_existing_file of

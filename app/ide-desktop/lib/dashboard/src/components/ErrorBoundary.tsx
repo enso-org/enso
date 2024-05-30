@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * ErrorBoundary component to catch errors in the child components
- */
+/** @file Catches errors in child components. */
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
@@ -11,26 +7,21 @@ import * as errorBoundary from 'react-error-boundary'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/AriaComponents'
+import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
-/**
- * Props for the ErrorBoundary component
- */
-export interface ErrorBoundaryProps {
-  readonly children?: React.ReactNode
-  readonly onError?: errorBoundary.ErrorBoundaryProps['onError']
-  readonly onReset?: errorBoundary.ErrorBoundaryProps['onReset']
-  // Field comes from an external library and we don't want to change the name
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  readonly FallbackComponent?: errorBoundary.ErrorBoundaryProps['FallbackComponent']
-}
+// =====================
+// === ErrorBoundary ===
+// =====================
 
-/**
- * ErrorBoundary component to catch errors in the child components
- * Shows a fallback UI when there is an error
- * You can also log the error to an error reporting service
- */
+/** Props for an {@link ErrorBoundary}. */
+export interface ErrorBoundaryProps
+  extends Readonly<React.PropsWithChildren>,
+    Readonly<Pick<errorBoundary.ErrorBoundaryProps, 'FallbackComponent' | 'onError' | 'onReset'>> {}
+
+/** Catches errors in the child components
+ * Shows a fallback UI when there is an error.
+ * The error can also be logged. to an error reporting service. */
 export function ErrorBoundary(props: ErrorBoundaryProps) {
   const {
     FallbackComponent = DefaultFallbackComponent,
@@ -58,9 +49,7 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
   )
 }
 
-/**
- * Default fallback component to show when there is an error
- */
+/** Default fallback component to show when there is an error. */
 function DefaultFallbackComponent(props: errorBoundary.FallbackProps): React.JSX.Element {
   const { resetErrorBoundary } = props
 
@@ -73,15 +62,13 @@ function DefaultFallbackComponent(props: errorBoundary.FallbackProps): React.JSX
       title={getText('arbitraryErrorTitle')}
       subtitle={getText('arbitraryErrorSubtitle')}
     >
-      <aria.ButtonGroup align="center">
-        <aria.Button variant="submit" size="medium" onPress={resetErrorBoundary}>
+      <ariaComponents.ButtonGroup align="center">
+        <ariaComponents.Button variant="submit" size="medium" onPress={resetErrorBoundary}>
           {getText('tryAgain')}
-        </aria.Button>
-      </aria.ButtonGroup>
+        </ariaComponents.Button>
+      </ariaComponents.ButtonGroup>
     </result.Result>
   )
 }
 
-// Re-exporting the ErrorBoundary component
-// eslint-disable-next-line no-restricted-syntax
 export { useErrorBoundary, withErrorBoundary } from 'react-error-boundary'
