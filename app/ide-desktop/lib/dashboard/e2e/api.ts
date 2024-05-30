@@ -531,6 +531,11 @@ export async function mockApi({ page }: MockParams) {
         await route.fulfill({ json })
       }
     })
+    await get(remoteBackendPaths.INVITATION_PATH + '*', async route => {
+      await route.fulfill({
+        json: { invitations: [] } satisfies backend.ListInvitationsResponseBody,
+      })
+    })
     await post(remoteBackendPaths.INVITE_USER_PATH + '*', async route => {
       await route.fulfill()
     })

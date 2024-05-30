@@ -991,16 +991,12 @@ export interface InviteUserRequestBody {
   readonly userEmail: EmailAddress
 }
 
-/**
- * HTTP request body for the "list invitations" endpoint.
- */
-export interface InvitationListRequestBody {
-  readonly invitations: Invitation[]
+/** HTTP response body for the "list invitations" endpoint. */
+export interface ListInvitationsResponseBody {
+  readonly invitations: readonly Invitation[]
 }
 
-/**
- * Invitation to join an organization.
- */
+/** Invitation to join an organization. */
 export interface Invitation {
   readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
@@ -1009,7 +1005,7 @@ export interface Invitation {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly actorsIds: UserPermissionIdentifier[]
+  readonly actorsIds: readonly UserPermissionIdentifier[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }
@@ -1263,7 +1259,7 @@ export default abstract class Backend {
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
-  abstract listInvitations(): Promise<Invitation[]>
+  abstract listInvitations(): Promise<readonly Invitation[]>
   /** Delete an invitation. */
   abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
   /** Resend an invitation. */

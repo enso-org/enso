@@ -64,6 +64,9 @@ test.test('asset panel contents', ({ page }) =>
           })
         })
         .login()
+        .do(async thePage => {
+          await actions.passTermsAndConditionsDialog({ page: thePage })
+        })
         .driveTable.clickRow(0)
         .toggleAssetPanel()
         .do(async () => {
