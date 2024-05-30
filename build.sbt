@@ -2122,6 +2122,7 @@ lazy val `runtime-benchmarks` =
     )
     .dependsOn(`runtime-fat-jar`)
     .dependsOn(`benchmarks-common`)
+    .dependsOn(`test-utils`)
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
