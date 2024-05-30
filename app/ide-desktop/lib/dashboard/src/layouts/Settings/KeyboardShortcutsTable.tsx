@@ -122,33 +122,37 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                 </div>
                               ))}
                               <div className="grow" />
-                              <div className="flex min-w-max shrink-0 gap-keyboard-shortcuts-button">
-                                <UnstyledButton
-                                  className="focus-default relative my-auto flex rounded-full transition-all selectable after:absolute after:inset-0 after:rounded-inherit after:border after:border-primary/10 after:transition-all after:hover:bg-primary/5"
-                                  onPress={() => {
-                                    setModal(
-                                      <CaptureKeyboardShortcutModal
-                                        description={`'${info.name}'`}
-                                        existingShortcuts={allShortcuts}
-                                        onSubmit={shortcut => {
-                                          inputBindings.add(action, shortcut)
-                                          doRefresh()
-                                        }}
-                                      />
-                                    )
-                                  }}
-                                >
-                                  <SvgMask className="size-icon" src={Plus2Icon} />
-                                </UnstyledButton>
-                                <UnstyledButton
-                                  className="relative my-auto flex rounded-full transition-all selectable after:absolute after:inset-0 after:rounded-inherit after:border after:border-primary/10 after:transition-all after:hover:bg-primary/5"
-                                  onPress={() => {
-                                    inputBindings.reset(action)
-                                    doRefresh()
-                                  }}
-                                >
-                                  <SvgMask className="size-icon" src={ReloadIcon} />
-                                </UnstyledButton>
+                              <div className="flex min-w-max shrink-0 items-center gap-keyboard-shortcuts-button">
+                                <div className="flex rounded-full border border-primary/20">
+                                  <UnstyledButton
+                                    className="focus-default relative my-auto flex rounded-full transition-all selectable after:absolute after:inset-0 after:rounded-inherit after:hover:bg-primary/5"
+                                    onPress={() => {
+                                      setModal(
+                                        <CaptureKeyboardShortcutModal
+                                          description={`'${info.name}'`}
+                                          existingShortcuts={allShortcuts}
+                                          onSubmit={shortcut => {
+                                            inputBindings.add(action, shortcut)
+                                            doRefresh()
+                                          }}
+                                        />
+                                      )
+                                    }}
+                                  >
+                                    <SvgMask className="size-icon" src={Plus2Icon} />
+                                  </UnstyledButton>
+                                </div>
+                                <div className="flex rounded-full border border-primary/20">
+                                  <UnstyledButton
+                                    className="relative my-auto flex rounded-full transition-all selectable after:absolute after:inset-0 after:rounded-inherit after:hover:bg-primary/5"
+                                    onPress={() => {
+                                      inputBindings.reset(action)
+                                      doRefresh()
+                                    }}
+                                  >
+                                    <SvgMask className="size-icon" src={ReloadIcon} />
+                                  </UnstyledButton>
+                                </div>
                               </div>
                             </div>
                           </div>
