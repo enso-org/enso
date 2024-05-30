@@ -505,18 +505,6 @@ public class ErrorCompilerTest extends CompilerTest {
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 14);
   }
 
-  // Foreign functions cannot be specified as private.
-  @Test
-  public void illegalPrivateForeignFunction() throws Exception {
-    var ir =
-        parse("""
-        private foreign js js_func = \"\"\"
-            return 42;
-        """);
-    assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 29, 73);
-  }
-
   @Test
   public void illegalEscapeSequence() throws Exception {
     var ir = parse("""
