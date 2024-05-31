@@ -120,6 +120,8 @@ public class ReportingStreamDecoder extends Reader {
       readBytes += toTransfer;
     }
 
+    assert readBytes >= 0;
+
     // If the request is satisfied, we do not continue.
     if (len <= 0) {
       return readBytes;
@@ -127,12 +129,18 @@ public class ReportingStreamDecoder extends Reader {
 
     // If we are at EOF and no cached characters were available, we return -1 indicating that there
     // will be no more data.
-    if (eof && readBytes == 0) {
+    if (eof) {
       // If the previous invocation of read set the EOF flag, it must have finished the decoding
       // process and flushed the decoder, so the input buffer must have been consumed in whole.
       assert !inputBuffer.hasRemaining();
       assert hadEofDecodeCall : "decoding should have been finalized before returning EOF";
-      return -1;
+      if (readBytes == 0) {
+        // No cached data was present, and we already processed EOF on the input, so we can signal EOF.
+        return -1;
+      } else {
+        // We have read some cached data, so we report that. The next call will yield EOF.
+        return readBytes;
+      }
     }
 
     // At this point we ran out of cached characters, so we will read some more input to try to get
@@ -221,6 +229,7 @@ public class ReportingStreamDecoder extends Reader {
    * one final call to the decode method signifying end of input).
    *
    * <p>After this call, the output buffer is in reading mode.
+   * If EOF on the input was encountered, all buffered input has been consumed after this method finishes.
    */
   private void runDecoderOnInputBuffer() {
     Context context = pollSafepoints ? Context.getCurrent() : null;
@@ -252,6 +261,7 @@ public class ReportingStreamDecoder extends Reader {
 
     if (eof) {
       assert hadEofDecodeCall;
+      assert !inputBuffer.hasRemaining();
       flushDecoder();
     }
 
