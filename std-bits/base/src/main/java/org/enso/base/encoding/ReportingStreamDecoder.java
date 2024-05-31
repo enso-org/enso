@@ -99,6 +99,16 @@ public class ReportingStreamDecoder extends Reader {
 
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
+    if (off < 0) {
+      throw new IndexOutOfBoundsException("read: off < 0");
+    }
+    if (len < 0) {
+      throw new IndexOutOfBoundsException("read: len < 0");
+    }
+    if (off + len > cbuf.length) {
+      throw new IndexOutOfBoundsException("read: off + len > cbuf.length");
+    }
+
     int readBytes = 0;
 
     // First feed the pending characters that were already decoded.
@@ -115,12 +125,12 @@ public class ReportingStreamDecoder extends Reader {
       return readBytes;
     }
 
-    // If we reached end of file, we won't be able to read any more data from the input. We also ran
-    // out of cached characters, so we indicate that there is no more input.
-    if (eof) {
+    // If we are at EOF and no cached characters were available, we return -1 indicating that there will be no more data.
+    if (eof && readBytes == 0) {
       // If the previous invocation of read set the EOF flag, it must have finished the decoding
       // process and flushed the decoder, so the input buffer must have been consumed in whole.
       assert !inputBuffer.hasRemaining();
+      assert hadEofDecodeCall;
       return -1;
     }
 
@@ -212,7 +222,9 @@ public class ReportingStreamDecoder extends Reader {
     Context context = pollSafepoints ? Context.getCurrent() : null;
 
     while (inputBuffer.hasRemaining() || (eof && !hadEofDecodeCall)) {
+      System.out.println("decode " + inputBuffer + " " + outputBuffer + " " + eof);
       CoderResult cr = decoder.decode(inputBuffer, outputBuffer, eof);
+      System.out.println("   --> " + cr);
       if (eof) {
         hadEofDecodeCall = true;
       }
@@ -237,6 +249,7 @@ public class ReportingStreamDecoder extends Reader {
     }
 
     if (eof) {
+      assert hadEofDecodeCall;
       flushDecoder();
     }
 
