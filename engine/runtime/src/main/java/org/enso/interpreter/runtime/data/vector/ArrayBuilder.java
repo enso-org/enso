@@ -12,16 +12,19 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 final class ArrayBuilder implements EnsoObject {
   private static final String[] MEMBERS =
       new String[] {"isEmpty", "add", "appendTo", "get", "getSize", "toArray"};
-  private static final Object[] EMPTY_ARRAY = new Object[0];
   private final int initialCapacity;
   private int size;
   private Object primitiveArray;
   private Object[] objectArray;
+
+  /** becomes {@code true} when a non trivial value is being added to the builder */
+  private boolean nonTrivialEnsoValue;
 
   private ArrayBuilder(int initialCapacity) {
     this.initialCapacity = Math.max(1, initialCapacity);
@@ -41,64 +44,87 @@ final class ArrayBuilder implements EnsoObject {
    * Adds an element to the builder
    *
    * @param e the element to add
+   * @param warnings library to check for values with warnings
    */
-  void add(Object e) {
-    if (objectArray != null) {
-      if (size == objectArray.length) {
-        CompilerDirectives.transferToInterpreter();
-        objectArray = Arrays.copyOf(objectArray, size * 2);
+  void add(Object e, WarningsLibrary warnings) {
+    if (!nonTrivialEnsoValue) {
+      if (warnings.hasWarnings(e)) {
+        nonTrivialEnsoValue = true;
+      } else {
+        var isEnsoValue = e instanceof EnsoObject || e instanceof Long || e instanceof Double;
+        if (!isEnsoValue) {
+          nonTrivialEnsoValue = true;
+        }
       }
-      objectArray[size++] = e;
-    } else if (primitiveArray instanceof long[] longArray) {
-      if (e instanceof Long l) {
-        if (size == longArray.length) {
+    }
+    addImpl(e);
+  }
+
+  private void addImpl(Object e) {
+    while (true) {
+      // loop at most twice thanks to continue and break
+      if (objectArray != null) {
+        if (size == objectArray.length) {
           CompilerDirectives.transferToInterpreter();
-          primitiveArray = longArray = Arrays.copyOf(longArray, size * 2);
+          objectArray = Arrays.copyOf(objectArray, size * 2);
         }
-        longArray[size++] = l;
-      } else {
-        CompilerDirectives.transferToInterpreter();
-        objectArray = new Object[longArray.length];
-        for (int i = 0; i < size; i++) {
-          objectArray[i] = longArray[i];
-        }
-        primitiveArray = null;
-        add(e);
-      }
-    } else if (primitiveArray instanceof double[] doubleArray) {
-      if (e instanceof Double d) {
-        if (size == doubleArray.length) {
+        objectArray[size++] = e;
+      } else if (primitiveArray instanceof long[] longArray) {
+        if (e instanceof Long l) {
+          if (size == longArray.length) {
+            CompilerDirectives.transferToInterpreter();
+            primitiveArray = longArray = Arrays.copyOf(longArray, size * 2);
+          }
+          longArray[size++] = l;
+        } else {
           CompilerDirectives.transferToInterpreter();
-          primitiveArray = doubleArray = Arrays.copyOf(doubleArray, size * 2);
+          objectArray = new Object[longArray.length];
+          for (int i = 0; i < size; i++) {
+            objectArray[i] = longArray[i];
+          }
+          primitiveArray = null;
+          continue;
         }
-        doubleArray[size++] = d;
-      } else {
-        CompilerDirectives.transferToInterpreter();
-        objectArray = new Object[doubleArray.length];
-        for (int i = 0; i < size; i++) {
-          objectArray[i] = doubleArray[i];
+      } else if (primitiveArray instanceof double[] doubleArray) {
+        if (e instanceof Double d) {
+          if (size == doubleArray.length) {
+            CompilerDirectives.transferToInterpreter();
+            primitiveArray = doubleArray = Arrays.copyOf(doubleArray, size * 2);
+          }
+          doubleArray[size++] = d;
+        } else {
+          CompilerDirectives.transferToInterpreter();
+          objectArray = new Object[doubleArray.length];
+          for (int i = 0; i < size; i++) {
+            objectArray[i] = doubleArray[i];
+          }
+          primitiveArray = null;
+          continue;
         }
-        primitiveArray = null;
-        add(e);
-      }
-    } else {
-      assert objectArray == null;
-      assert primitiveArray == null;
-      assert size == 0;
-      if (e instanceof Long l) {
-        var arr = new long[initialCapacity];
-        arr[0] = l;
-        primitiveArray = arr;
-      } else if (e instanceof Double d) {
-        var arr = new double[initialCapacity];
-        arr[0] = d;
-        primitiveArray = arr;
       } else {
-        var arr = new Object[initialCapacity];
-        arr[0] = e;
-        objectArray = arr;
+        assert objectArray == null;
+        assert primitiveArray == null;
+        assert size == 0;
+        switch (e) {
+          case Long l -> {
+            var arr = new long[initialCapacity];
+            arr[0] = l;
+            primitiveArray = arr;
+          }
+          case Double d -> {
+            var arr = new double[initialCapacity];
+            arr[0] = d;
+            primitiveArray = arr;
+          }
+          default -> {
+            var arr = new Object[initialCapacity];
+            arr[0] = e;
+            objectArray = arr;
+          }
+        }
+        size = 1;
       }
-      size = 1;
+      break;
     }
   }
 
@@ -121,7 +147,7 @@ final class ArrayBuilder implements EnsoObject {
   }
 
   /** Returns the current array of the builder. */
-  Object toArray() {
+  private Object toArray() {
     if (objectArray != null) {
       return objectArray.length == size ? objectArray : Arrays.copyOf(objectArray, size);
     } else if (primitiveArray instanceof long[] longArray) {
@@ -129,7 +155,7 @@ final class ArrayBuilder implements EnsoObject {
     } else if (primitiveArray instanceof double[] doubleArray) {
       return doubleArray.length == size ? doubleArray : Arrays.copyOf(doubleArray, size);
     } else {
-      return EMPTY_ARRAY;
+      return null;
     }
   }
 
@@ -138,12 +164,16 @@ final class ArrayBuilder implements EnsoObject {
   }
 
   @ExportMessage
-  Object invokeMember(String name, Object[] args, @CachedLibrary(limit = "3") InteropLibrary iop)
+  Object invokeMember(
+      String name,
+      Object[] args,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnknownIdentifierException, UnsupportedTypeException, UnsupportedMessageException {
     return switch (name) {
       case "isEmpty" -> isEmpty();
       case "add" -> {
-        add(args[0]);
+        add(args[0], warnings);
         yield this;
       }
       case "appendTo" -> {
@@ -151,7 +181,7 @@ final class ArrayBuilder implements EnsoObject {
         for (var i = 0; i < len; i++) {
           try {
             var e = iop.readArrayElement(args[0], i);
-            add(e);
+            add(e, warnings);
           } catch (InvalidArrayIndexException ex) {
             throw UnsupportedTypeException.create(args);
           }
@@ -169,16 +199,7 @@ final class ArrayBuilder implements EnsoObject {
         yield get(index, iop);
       }
       case "getSize" -> getSize();
-      case "toArray" -> {
-        var arr = toArray();
-        if (arr instanceof long[] longs) {
-          yield Vector.fromLongArray(longs);
-        }
-        if (arr instanceof double[] doubles) {
-          yield Vector.fromDoubleArray(doubles);
-        }
-        yield Vector.fromInteropArray(Array.wrap((Object[]) arr));
-      }
+      case "toArray" -> asVector();
       default -> throw UnknownIdentifierException.create(name);
     };
   }
@@ -206,5 +227,20 @@ final class ArrayBuilder implements EnsoObject {
   @ExportMessage
   String toDisplayString(boolean ignore) {
     return "Array_Builder";
+  }
+
+  Object asVector() {
+    var res = toArray();
+    if (res instanceof long[] longs) {
+      return Vector.fromLongArray(longs);
+    }
+    if (res instanceof double[] doubles) {
+      return Vector.fromDoubleArray(doubles);
+    }
+    if (nonTrivialEnsoValue) {
+      return Vector.fromInteropArray(Array.wrap((Object[]) res));
+    } else {
+      return Vector.fromEnsoOnlyArray((Object[]) res);
+    }
   }
 }
