@@ -125,7 +125,8 @@ public class ReportingStreamDecoder extends Reader {
       return readBytes;
     }
 
-    // If we are at EOF and no cached characters were available, we return -1 indicating that there will be no more data.
+    // If we are at EOF and no cached characters were available, we return -1 indicating that there
+    // will be no more data.
     if (eof && readBytes == 0) {
       // If the previous invocation of read set the EOF flag, it must have finished the decoding
       // process and flushed the decoder, so the input buffer must have been consumed in whole.
@@ -153,7 +154,8 @@ public class ReportingStreamDecoder extends Reader {
     // instead of postponing to the next call. Returning 0 at the end was causing division by zero
     // in the CSV parser.
     int returnValue = (eof && readBytes <= 0) ? -1 : readBytes;
-    assert (returnValue >= 0 || hadEofDecodeCall) : "decoding should have been finalized before returning EOF";
+    assert (returnValue >= 0 || hadEofDecodeCall)
+        : "decoding should have been finalized before returning EOF";
     return returnValue;
   }
 
