@@ -842,6 +842,15 @@ type Not_All_Rows_Downloaded
     to_display_text self =
         "The query has returned more than the maximum of "+self.max_rows.to_text+" rows, so some rows have been dropped from the result. If you want to get the full result, change the row limit."
 
+type Not_All_Columns_Added
+    ## PRIVATE
+    Warning (max_columns:Integer)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "The query has returned more than the maximum of "+self.max_rows.to_text+" columns, so some columns have been dropped from the result. If you want to get the full result, change the column limit."        
+
 type Nothing_Value_In_Filter_Condition
     ## PRIVATE
        Indicates that a Nothing/NULL value was used as a parameter to a

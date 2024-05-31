@@ -2,12 +2,14 @@ from Standard.Base import all
 from Standard.Base.Metadata import make_single_choice, Widget
 
 ## PRIVATE
-type Column_Count
+type Columns_To_Add
     ## Read all rows.
     All_Columns
 
     ## Read the first specified number of columns.
     First columns:Integer=3
+
+    First_With_Warning columns:Integer=3
 
     ## PRIVATE
     default_widget -> Widget = 
@@ -16,5 +18,5 @@ type Column_Count
     ## PRIVATE
        Gets the number of columns to read (or Nothing if all columns).
     columns_to_split self -> Integer | Nothing = case self of
-        Column_Count.All_Columns -> Nothing
-        Column_Count.First columns -> columns
+        Columns_To_Add.All_Columns -> Nothing
+        Columns_To_Add.First columns -> columns
