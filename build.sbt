@@ -2279,11 +2279,14 @@ lazy val `runtime-fat-jar` =
       assembly / assemblyExcludedJars := {
         val pkgsToExclude = JPMSUtils.componentModules ++ helidon
         val ourFullCp     = (Runtime / fullClasspath).value
-        JPMSUtils.filterModulesFromClasspath(
+        val excludedExternalPkgs = JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
           pkgsToExclude,
           streams.value.log
         )
+        val syntaxJar = (`syntax-rust-definition` / Compile / packageBin).value
+        val syntaxJarWithAttrs = sbt.Attributed[File](syntaxJar)(sbt.AttributeMap.empty)
+        Seq(syntaxJarWithAttrs) ++ excludedExternalPkgs
       },
       assembly / assemblyMergeStrategy := {
         case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
