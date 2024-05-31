@@ -179,7 +179,7 @@ add_specs suite_builder =
                 table.at 'a' . to_vector . should_equal ['ą']
                 table.at 'b' . to_vector . should_equal ['\uFFFF']
                 table.at 'c' . to_vector . should_equal ['\uFFFD(\uFFFD(']
-            problems_1 = [Encoding_Error.Error "Encoding issues at bytes 13, 15."]
+            problems_1 = [Encoding_Error.Error "Failed to decode 2 code units (at positions: 13, 15)."]
             Problems.test_problem_handling action_1 problems_1 tester_1
             utf8_file.delete
 
@@ -192,7 +192,7 @@ add_specs suite_builder =
                 table.at 'b' . to_vector . should_equal ['\uFFFF']
                 # However, this column will raise a problem as the '\uFFFD' comes from replacing an invalid codepoint.
                 table.at 'c' . to_vector . should_equal ['\uFFFD']
-            problems_2 = [Encoding_Error.Error "Encoding issues at byte 22."]
+            problems_2 = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 20)."]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
         group_builder.specify "should handle duplicated columns" <|
@@ -480,7 +480,7 @@ add_specs suite_builder =
             bytes.write_bytes f . should_succeed
             table = f.read
             table.column_names.should_equal ["a", "b"]
-            table.at "a" . to_vector . should_equal ["1"]
+            table.at "a" . to_vector . should_equal [1]
             # No hidden BOM in the column name
             table.column_names.first.utf_8 . should_equal [97]
 
@@ -507,8 +507,8 @@ add_specs suite_builder =
 
             # If we read without specifying the encoding, we will infer UTF-16 LE encoding because of the BOM and get garbage:
             r2 = f.read
-            r2.column_names . should_equal ["愀Ⰰ戀਀㄀Ⰰ㈀"]
-            r2.first_column.to_vector . should_equal []
+            r2.column_names . should_equal ["Column 1"]
+            r2.first_column.to_vector . should_equal ["愀Ⰰ戀਀㄀Ⰰ㈀"]
 
         group_builder.specify "should gracefully handle malformed data edge cases: 1 byte file with multi-byte encoding (UTF-8)" <|
             f = File.create_temporary_file "delimited-malformed-utf-16" ".csv"
