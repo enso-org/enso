@@ -382,7 +382,7 @@ type Array
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -421,7 +421,7 @@ type Array
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -668,7 +668,7 @@ type Array
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -891,7 +891,7 @@ type Array
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
