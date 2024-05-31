@@ -244,7 +244,7 @@ type Table
 
              example_at = Examples.inventory_table.at -1
     @selector Widget_Helpers.make_column_name_selector
-    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
+    at : Integer | Text -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self (selector:(Integer | Text)=0) = case selector of
         _ : Integer ->
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
@@ -272,7 +272,7 @@ type Table
 
              example_at = Examples.inventory_table.get -1
     @selector Widget_Helpers.make_column_name_selector
-    get : Text | Integer -> Any -> Column | Any
+    get : Integer | Text -> Any -> Column | Any
     get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
         java_column = case selector of
             _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
@@ -2286,7 +2286,7 @@ type Table
          Finally, if no common type is found using the rules above, everything
          is converted to text.
 
-       ? Problem Conditions
+       ! Error Conditions
 
          - If no common type is found and the text conversion fallback is used,
            the `No_Common_Type` problem is reported.
@@ -2984,7 +2984,7 @@ type Table
          Finally, if no common type is found using the rules above, everything
          is converted to text.
 
-       ? Problem Conditions
+       ! Error Conditions
 
          - If no common type is found and the text conversion fallback is used,
            the `No_Common_Type` problem is reported.

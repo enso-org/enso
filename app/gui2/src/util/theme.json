@@ -2,8 +2,8 @@
   "node": {
     "height": 32,
     "corner_radius": 16,
-    "vertical_gap": 32,
-    "horizontal_gap": 32
+    "vertical_gap": 40,
+    "horizontal_gap": 40
   },
   "edge": {
     "min_approach_height": 32,
