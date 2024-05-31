@@ -1,58 +1,35 @@
-;
 /** @file Display and modify the properties of an asset. */
-import * as React from 'react';
+import * as React from 'react'
 
+import PenIcon from 'enso-assets/pen.svg'
 
+import * as datalinkValidator from '#/data/datalinkValidator'
 
-import PenIcon from 'enso-assets/pen.svg';
+import * as backendHooks from '#/hooks/backendHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
 
+import type * as assetEvent from '#/events/assetEvent'
 
-import * as datalinkValidator from '#/data/datalinkValidator';
+import type Category from '#/layouts/CategorySwitcher/Category'
 
+import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
+import DatalinkInput from '#/components/dashboard/DatalinkInput'
+import Label from '#/components/dashboard/Label'
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import Button from '#/components/styled/Button'
 
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
-import * as backendHooks from '#/hooks/backendHooks';
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks';
-
-
-
-import * as authProvider from '#/providers/AuthProvider';
-import * as textProvider from '#/providers/TextProvider';
-
-
-
-import type * as assetEvent from '#/events/assetEvent';
-
-
-
-import type Category from '#/layouts/CategorySwitcher/Category';
-
-
-
-import * as aria from '#/components/aria';
-import * as ariaComponents from '#/components/AriaComponents';
-import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn';
-import DatalinkInput from '#/components/dashboard/DatalinkInput';
-import Label from '#/components/dashboard/Label';
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner';
-import Button from '#/components/styled/Button';
-
-
-
-import * as backendModule from '#/services/Backend';
-import type Backend from '#/services/Backend';
-
-
-
-import type AssetQuery from '#/utilities/AssetQuery';
-import type * as assetTreeNode from '#/utilities/AssetTreeNode';
-import * as object from '#/utilities/object';
-import * as permissions from '#/utilities/permissions';
-
-
-
-
+import type AssetQuery from '#/utilities/AssetQuery'
+import type * as assetTreeNode from '#/utilities/AssetTreeNode'
+import * as object from '#/utilities/object'
+import * as permissions from '#/utilities/permissions'
 
 // =======================
 // === AssetProperties ===

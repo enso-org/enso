@@ -33,7 +33,6 @@ import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -45,6 +44,7 @@ import SelectionBrush from '#/components/SelectionBrush'
 import Spinner, * as spinner from '#/components/Spinner'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 import DragModal from '#/modals/DragModal'
@@ -2490,15 +2490,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
           }}
         >
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="m-4 flex flex-col items-center gap-3 text-black/30 transition-colors duration-200 hover:text-black/50"
-            onPress={() => {}}
-          >
-            <SvgMask src={DropFilesImage} className="size-[186px]" />
-            {getText('assetsDropzoneDescription')}
-          </ariaComponents.Button>
+          <FocusRing>
+            <aria.Button
+              className="m-4 flex flex-col items-center gap-3 text-black/30 transition-colors duration-200 hover:text-black/50"
+              onPress={() => {}}
+            >
+              <SvgMask src={DropFilesImage} className="size-[186px]" />
+              {getText('assetsDropzoneDescription')}
+            </aria.Button>
+          </FocusRing>
         </aria.FileTrigger>
       </div>
     </div>
@@ -2536,7 +2536,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               <div className="flex-0 sticky top flex h flex-col">
                 <div
                   data-testid="extra-columns"
-                  className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
+                  className="px-extra-columns-panel-x py-extra-columns-panel-y sticky right flex self-end"
                 >
                   <FocusArea direction="horizontal">
                     {columnsBarProps => (
