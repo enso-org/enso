@@ -522,10 +522,13 @@ class IrToTruffle(
                         builtinRootNode
                           .setModuleName(moduleScope.getModule.getName)
                         builtinRootNode.setTypeName(cons.getQualifiedName)
-                        val funcSchema = FunctionSchema
+                        val funcSchemaBldr = FunctionSchema
                           .newBuilder()
                           .argumentDefinitions(bodyBuilder.args(): _*)
-                          .build()
+                        if (methodDef.isPrivate) {
+                          funcSchemaBldr.projectPrivate();
+                        }
+                        val funcSchema = funcSchemaBldr.build()
                         new RuntimeFunction(
                           m.getFunction.getCallTarget,
                           null,
@@ -633,12 +636,14 @@ class IrToTruffle(
                           )
                         }
                   }
-
-                val funcSchema = FunctionSchema
+                val funcSchemaBldr = FunctionSchema
                   .newBuilder()
                   .annotations(annotations: _*)
                   .argumentDefinitions(arguments: _*)
-                  .build()
+                if (methodDef.isPrivate) {
+                  funcSchemaBldr.projectPrivate();
+                }
+                val funcSchema = funcSchemaBldr.build();
                 Right(
                   Some(
                     new RuntimeFunction(
