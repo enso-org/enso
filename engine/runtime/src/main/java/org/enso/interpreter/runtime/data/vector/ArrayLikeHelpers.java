@@ -166,4 +166,12 @@ public final class ArrayLikeHelpers {
   public static EnsoObject asVectorFromArray(Object storage) {
     return Vector.fromInteropArray(storage);
   }
+
+  public static EnsoObject asVectorEnsoObjects(EnsoObject... arr) {
+    return Vector.fromEnsoOnlyArray(arr);
+  }
+
+  public static EnsoObject asVectorEmpty() {
+    return Vector.fromEnsoOnlyArray(null);
+  }
 }
