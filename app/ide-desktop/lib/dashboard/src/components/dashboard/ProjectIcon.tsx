@@ -1,6 +1,7 @@
 /** @file An interactive button indicating the status of a project. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import * as tailwindMerge from 'tailwind-merge'
 
@@ -13,7 +14,6 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -26,7 +26,6 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-import * as remoteBackend from '#/services/RemoteBackend'
 
 import * as object from '#/utilities/object'
 
@@ -75,20 +74,18 @@ export interface ProjectIconProps {
   readonly item: backendModule.ProjectAsset
   readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly assetEvents: assetEvent.AssetEvent[]
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
-  /** Called when the project is opened via the {@link ProjectIcon}. */
-  readonly doOpenManually: (projectId: backendModule.ProjectId) => void
   readonly doCloseEditor: () => void
   readonly doOpenEditor: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, setItem, assetEvents, setProjectStartupInfo, doOpenManually } = props
+  const { backend, item, setItem, assetEvents, setProjectStartupInfo, dispatchAssetEvent } = props
   const { doCloseEditor, doOpenEditor } = props
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const itemRef = React.useRef(item)
@@ -133,58 +130,41 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
   const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
   const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
+  const waitUntilProjectIsReadyMutation = backendHooks.useBackendMutation(
+    backend,
+    'waitUntilProjectIsReady'
+  )
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
-      setState(backendModule.ProjectState.openInProgress)
-      try {
-        switch (backend.type) {
-          case backendModule.BackendType.remote: {
-            if (state !== backendModule.ProjectState.opened) {
-              await openProjectMutation.mutateAsync([
-                item.id,
-                {
-                  executeAsync: shouldRunInBackground,
-                  parentId: item.parentId,
-                  cognitoCredentials: session,
-                },
-                item.title,
-              ])
-            }
-            break
-          }
-          case backendModule.BackendType.local: {
-            await openProjectMutation.mutateAsync([
-              item.id,
-              {
-                executeAsync: shouldRunInBackground,
-                parentId: item.parentId,
-                cognitoCredentials: null,
-              },
-              item.title,
-            ])
-            setState(oldState =>
-              oldState === backendModule.ProjectState.openInProgress
-                ? backendModule.ProjectState.opened
-                : oldState
-            )
-            break
-          }
+      if (state !== backendModule.ProjectState.opened) {
+        setState(backendModule.ProjectState.openInProgress)
+        try {
+          await openProjectMutation.mutateAsync([
+            item.id,
+            {
+              executeAsync: shouldRunInBackground,
+              parentId: item.parentId,
+              cognitoCredentials: session,
+            },
+            item.title,
+          ])
+        } catch (error) {
+          const project = await getProjectDetailsMutation.mutateAsync([
+            item.id,
+            item.parentId,
+            item.title,
+          ])
+          // `setState` is not used here as `project` contains the full state information,
+          // not just the state type.
+          setItem(object.merger({ projectState: project.state }))
+          toastAndLog('openProjectError', error, item.title)
+          setState(backendModule.ProjectState.closed)
         }
-      } catch (error) {
-        const project = await getProjectDetailsMutation.mutateAsync([
-          item.id,
-          item.parentId,
-          item.title,
-        ])
-        setItem(object.merger({ projectState: project.state }))
-        toastAndLog('openProjectError', error, item.title)
-        setState(backendModule.ProjectState.closed)
       }
     },
     [
       state,
-      backend,
       item,
       session,
       toastAndLog,
@@ -195,36 +175,43 @@ export default function ProjectIcon(props: ProjectIconProps) {
     ]
   )
 
-  React.useEffect(() => {
-    if (isOpening) {
-      const abortController = new AbortController()
+  const openEditorMutation = reactQuery.useMutation({
+    mutationKey: ['openEditor', item.id],
+    mutationFn: async (abortController: AbortController) => {
       if (!isRunningInBackground) {
         toast.toast.loading(LOADING_MESSAGE, { toastId })
       }
-      void (async () => {
-        await remoteBackend.waitUntilProjectIsReady(backend, itemRef.current, abortController)
-        if (!abortController.signal.aborted) {
-          toast.toast.dismiss(toastId)
-          setState(oldState =>
-            backendModule.IS_OPENING_OR_OPENED[oldState]
-              ? backendModule.ProjectState.opened
-              : oldState
-          )
-        }
-      })()
+      const project = await waitUntilProjectIsReadyMutation.mutateAsync([
+        itemRef.current.id,
+        itemRef.current.parentId,
+        itemRef.current.title,
+        abortController,
+      ])
+      setProjectStartupInfo({
+        project,
+        projectAsset: item,
+        setProjectAsset: setItem,
+        backendType: backend.type,
+        accessToken: session?.accessToken ?? null,
+      })
+      if (!abortController.signal.aborted) {
+        toast.toast.dismiss(toastId)
+        setState(backendModule.ProjectState.opened)
+      }
+    },
+  })
+
+  React.useEffect(() => {
+    if (isOpening) {
+      const abortController = new AbortController()
+      openEditorMutation.mutate(abortController)
       return () => {
         abortController.abort()
       }
     } else {
       return
     }
-  }, [
-    isOpening,
-    isRunningInBackground,
-    /* should never change */ backend,
-    /* should never change */ setState,
-    /* should never change */ toastId,
-  ])
+  }, [isOpening, openEditorMutation])
 
   React.useEffect(() => {
     // Ensure that the previous spinner state is visible for at least one frame.
@@ -239,38 +226,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   eventHooks.useEventHandler(assetEvents, event => {
     switch (event.type) {
-      case AssetEventType.newFolder:
-      case AssetEventType.newProject:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newDatalink:
-      case AssetEventType.newSecret:
-      case AssetEventType.copy:
-      case AssetEventType.updateFiles:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
       case AssetEventType.openProject: {
         if (event.id !== item.id) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
             if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
-              void closeProject(false)
+              void closeProject()
             }
           }
         } else {
@@ -278,25 +239,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
           setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
           setIsRunningInBackground(event.runInBackground)
           void openProject(event.runInBackground)
-          void getProjectDetailsMutation
-            .mutateAsync([item.id, item.parentId, item.title])
-            .then(project => {
-              setProjectStartupInfo({
-                project,
-                projectAsset: item,
-                setProjectAsset: setItem,
-                backendType: backend.type,
-                accessToken: session?.accessToken ?? null,
-              })
-            })
         }
         break
       }
       case AssetEventType.closeProject: {
         if (event.id === item.id) {
           setShouldOpenWhenReady(false)
-          void closeProject(false)
+          void closeProject()
         }
+        break
+      }
+      default: {
+        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
     }
@@ -313,28 +269,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
-  const closeProject = async (triggerOnClose = true) => {
-    if (triggerOnClose) {
+  const closeProject = async () => {
+    if (!isRunningInBackground) {
       doCloseEditor()
     }
     toast.toast.dismiss(toastId)
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)
-    if (backendModule.IS_OPENING_OR_OPENED[state]) {
-      try {
-        if (
-          backend.type === backendModule.BackendType.local &&
-          state === backendModule.ProjectState.openInProgress
-        ) {
-          // Projects that are not opened cannot be closed.
-          // This is the only way to wait until the project is open.
-          await openProjectMutation.mutateAsync([item.id, null, item.title])
-        }
-        await closeProjectMutation.mutateAsync([item.id, item.title])
-      } catch {
-        // Ignored.
-      }
-    }
+    await closeProjectMutation.mutateAsync([item.id, item.title])
   }
 
   switch (state) {
@@ -349,8 +291,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
           variant="custom"
           className="size-project-icon rounded-full"
           onPress={() => {
-            unsetModal()
-            doOpenManually(item.id)
+            dispatchAssetEvent({
+              type: AssetEventType.openProject,
+              id: item.id,
+              shouldAutomaticallySwitchPage: true,
+              runInBackground: false,
+            })
           }}
         >
           <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
@@ -367,10 +313,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           isDisabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
           className="size-project-icon rounded-full selectable enabled:active"
-          onPress={() => {
-            unsetModal()
-            void closeProject(!isRunningInBackground)
-          }}
+          onPress={closeProject}
         >
           <div
             className={tailwindMerge.twMerge('relative h-0', isRunningInBackground && 'text-green')}
@@ -396,10 +339,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             isDisabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
             className="size-project-icon rounded-full selectable enabled:active"
-            onPress={() => {
-              unsetModal()
-              void closeProject(!isRunningInBackground)
-            }}
+            onPress={closeProject}
           >
             <div
               className={tailwindMerge.twMerge(
@@ -424,7 +364,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
               variant="custom"
               className="size-project-icon rounded-full"
               onPress={() => {
-                unsetModal()
                 doOpenEditor(true)
               }}
             >

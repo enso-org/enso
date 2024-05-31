@@ -1408,4 +1408,11 @@ export default abstract class Backend {
     projectId?: string | null,
     metadata?: object | null
   ): Promise<void>
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  abstract waitUntilProjectIsReady(
+    projectId: ProjectId,
+    directory: DirectoryId | null,
+    title: string,
+    abortController?: AbortController
+  ): Promise<Project>
 }

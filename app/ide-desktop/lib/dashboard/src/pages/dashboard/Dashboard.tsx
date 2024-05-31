@@ -37,7 +37,6 @@ import Page from '#/components/Page'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 import type * as projectManager from '#/services/ProjectManager'
-import * as remoteBackendModule from '#/services/RemoteBackend'
 
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -198,9 +197,10 @@ export default function Dashboard(props: DashboardProps) {
                 savedProjectStartupInfo.projectAsset.title
               )
               if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                const project = await remoteBackendModule.waitUntilProjectIsReady(
-                  remoteBackend,
-                  savedProjectStartupInfo.projectAsset,
+                const project = await remoteBackend.waitUntilProjectIsReady(
+                  savedProjectStartupInfo.projectAsset.id,
+                  savedProjectStartupInfo.projectAsset.parentId,
+                  savedProjectStartupInfo.projectAsset.title,
                   abortController
                 )
                 if (!abortController.signal.aborted) {

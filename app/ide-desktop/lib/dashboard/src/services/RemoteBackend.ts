@@ -32,6 +32,9 @@ const STATUS_SERVER_ERROR = 500
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
 
+/** The interval between requests checking whether a project is ready to be opened in the IDE. */
+const CHECK_STATUS_INTERVAL_MS = 5000
+
 // =============
 // === Types ===
 // =============
@@ -51,35 +54,6 @@ interface RemoteBackendError {
 /** Whether a response has a success HTTP status code (200-299). */
 function responseIsSuccessful(response: Response) {
   return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
-}
-
-// ===============================
-// === waitUntilProjectIsReady ===
-// ===============================
-
-/** The interval between requests checking whether the IDE is ready. */
-const CHECK_STATUS_INTERVAL_MS = 5000
-
-/** Return a {@link Promise} that resolves only when a project is ready to open. */
-export async function waitUntilProjectIsReady(
-  remoteBackend: Backend,
-  item: backend.ProjectAsset,
-  abortController: AbortController = new AbortController()
-) {
-  let project = await remoteBackend.getProjectDetails(item.id, item.parentId, item.title)
-  if (!backend.IS_OPENING_OR_OPENED[project.state.type]) {
-    await remoteBackend.openProject(item.id, null, item.title)
-  }
-  let nextCheckTimestamp = 0
-  while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
-    await new Promise<void>(resolve => {
-      const delayMs = nextCheckTimestamp - Number(new Date())
-      setTimeout(resolve, Math.max(0, delayMs))
-    })
-    nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await remoteBackend.getProjectDetails(item.id, item.parentId, item.title)
-  }
-  return project
 }
 
 // =============
@@ -1090,6 +1064,23 @@ export default class RemoteBackend extends Backend {
       // eslint-disable-next-line no-restricted-syntax
       return this.throw(response, 'logEventBackendError', message)
     }
+  }
+
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  override async waitUntilProjectIsReady(
+    projectId: backend.ProjectId,
+    directory: backend.DirectoryId | null,
+    title: string,
+    abortController: AbortController = new AbortController()
+  ) {
+    let project = await this.getProjectDetails(projectId, directory, title)
+    while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, CHECK_STATUS_INTERVAL_MS)
+      })
+      project = await this.getProjectDetails(projectId, directory, title)
+    }
+    return project
   }
 
   /** Get the default version given the type of version (IDE or backend). */

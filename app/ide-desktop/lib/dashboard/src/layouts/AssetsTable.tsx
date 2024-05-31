@@ -327,8 +327,6 @@ export interface AssetsTableState {
     title?: string | null,
     override?: boolean
   ) => void
-  /** Called when the project is opened via the `ProjectActionButton`. */
-  readonly doOpenManually: (projectId: backendModule.ProjectId) => void
   readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
@@ -1799,18 +1797,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   })
 
-  const doOpenManually = React.useCallback(
-    (projectId: backendModule.ProjectId) => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: projectId,
-        shouldAutomaticallySwitchPage: true,
-        runInBackground: false,
-      })
-    },
-    [/* should never change */ dispatchAssetEvent]
-  )
-
   const doOpenEditor = React.useCallback(
     (
       project: backendModule.ProjectAsset,
@@ -1964,7 +1950,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       nodeMap: nodeMapRef,
       hideColumn,
       doToggleDirectoryExpansion,
-      doOpenManually,
       doOpenEditor,
       doCloseEditor,
       doCopy,
@@ -1981,7 +1966,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       assetEvents,
       query,
       doToggleDirectoryExpansion,
-      doOpenManually,
       doOpenEditor,
       doCloseEditor,
       doCopy,

@@ -810,23 +810,6 @@ export async function passTermsAndConditionsDialog({ page }: MockParams) {
   }
 }
 
-// ========================
-// === mockIDEContainer ===
-// ========================
-
-/** Make the IDE container have a non-zero size. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
-export async function mockIDEContainer({ page }: MockParams) {
-  await page.evaluate(() => {
-    const ideContainer = document.getElementById('app')
-    if (ideContainer) {
-      ideContainer.style.height = '100vh'
-      ideContainer.style.width = '100vw'
-    }
-  })
-}
-
 // ===============
 // === mockApi ===
 // ===============
@@ -845,7 +828,6 @@ export const mockApi = apiModule.mockApi
 export async function mockAll({ page }: MockParams) {
   const api = await mockApi({ page })
   await mockDate({ page })
-  await mockIDEContainer({ page })
   return { api }
 }
 
@@ -859,12 +841,6 @@ export async function mockAll({ page }: MockParams) {
 export async function mockAllAndLogin({ page }: MockParams) {
   const mocks = await mockAll({ page })
   await login({ page })
-
   await passTermsAndConditionsDialog({ page })
-
-  // This MUST run after login, otherwise the element's styles are reset when the browser
-  // is navigated to another page.
-  await mockIDEContainer({ page })
-
   return mocks
 }
