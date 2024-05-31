@@ -57,75 +57,71 @@ final class ArrayBuilder implements EnsoObject {
         }
       }
     }
-    addImpl(e);
+    if (objectArray != null) {
+      addToObjectArray(e);
+    } else if (primitiveArray instanceof long[] longArray) {
+      if (e instanceof Long l) {
+        if (size == longArray.length) {
+          CompilerDirectives.transferToInterpreter();
+          primitiveArray = longArray = Arrays.copyOf(longArray, size * 2);
+        }
+        longArray[size++] = l;
+      } else {
+        CompilerDirectives.transferToInterpreter();
+        objectArray = new Object[longArray.length];
+        for (int i = 0; i < size; i++) {
+          objectArray[i] = longArray[i];
+        }
+        primitiveArray = null;
+        addToObjectArray(e);
+      }
+    } else if (primitiveArray instanceof double[] doubleArray) {
+      if (e instanceof Double d) {
+        if (size == doubleArray.length) {
+          CompilerDirectives.transferToInterpreter();
+          primitiveArray = doubleArray = Arrays.copyOf(doubleArray, size * 2);
+        }
+        doubleArray[size++] = d;
+      } else {
+        CompilerDirectives.transferToInterpreter();
+        objectArray = new Object[doubleArray.length];
+        for (int i = 0; i < size; i++) {
+          objectArray[i] = doubleArray[i];
+        }
+        primitiveArray = null;
+        addToObjectArray(e);
+      }
+    } else {
+      assert objectArray == null;
+      assert primitiveArray == null;
+      assert size == 0;
+      switch (e) {
+        case Long l -> {
+          var arr = new long[initialCapacity];
+          arr[0] = l;
+          primitiveArray = arr;
+        }
+        case Double d -> {
+          var arr = new double[initialCapacity];
+          arr[0] = d;
+          primitiveArray = arr;
+        }
+        default -> {
+          var arr = new Object[initialCapacity];
+          arr[0] = e;
+          objectArray = arr;
+        }
+      }
+      size = 1;
+    }
   }
 
-  private void addImpl(Object e) {
-    while (true) {
-      // loop at most twice thanks to continue and break
-      if (objectArray != null) {
-        if (size == objectArray.length) {
-          CompilerDirectives.transferToInterpreter();
-          objectArray = Arrays.copyOf(objectArray, size * 2);
-        }
-        objectArray[size++] = e;
-      } else if (primitiveArray instanceof long[] longArray) {
-        if (e instanceof Long l) {
-          if (size == longArray.length) {
-            CompilerDirectives.transferToInterpreter();
-            primitiveArray = longArray = Arrays.copyOf(longArray, size * 2);
-          }
-          longArray[size++] = l;
-        } else {
-          CompilerDirectives.transferToInterpreter();
-          objectArray = new Object[longArray.length];
-          for (int i = 0; i < size; i++) {
-            objectArray[i] = longArray[i];
-          }
-          primitiveArray = null;
-          continue;
-        }
-      } else if (primitiveArray instanceof double[] doubleArray) {
-        if (e instanceof Double d) {
-          if (size == doubleArray.length) {
-            CompilerDirectives.transferToInterpreter();
-            primitiveArray = doubleArray = Arrays.copyOf(doubleArray, size * 2);
-          }
-          doubleArray[size++] = d;
-        } else {
-          CompilerDirectives.transferToInterpreter();
-          objectArray = new Object[doubleArray.length];
-          for (int i = 0; i < size; i++) {
-            objectArray[i] = doubleArray[i];
-          }
-          primitiveArray = null;
-          continue;
-        }
-      } else {
-        assert objectArray == null;
-        assert primitiveArray == null;
-        assert size == 0;
-        switch (e) {
-          case Long l -> {
-            var arr = new long[initialCapacity];
-            arr[0] = l;
-            primitiveArray = arr;
-          }
-          case Double d -> {
-            var arr = new double[initialCapacity];
-            arr[0] = d;
-            primitiveArray = arr;
-          }
-          default -> {
-            var arr = new Object[initialCapacity];
-            arr[0] = e;
-            objectArray = arr;
-          }
-        }
-        size = 1;
-      }
-      break;
+  private void addToObjectArray(Object e) {
+    if (size == objectArray.length) {
+      CompilerDirectives.transferToInterpreter();
+      objectArray = Arrays.copyOf(objectArray, size * 2);
     }
+    objectArray[size++] = e;
   }
 
   /** Obtains an element from the builder */
