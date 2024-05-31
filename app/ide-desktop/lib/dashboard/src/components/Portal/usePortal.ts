@@ -25,14 +25,13 @@ export function usePortal(props: types.PortalProps) {
     if (!isDisabled) {
       const contextRoot = portalContext.root
       const currentRoot = root?.current ?? null
-      const currentContextRoot = contextRoot?.current ?? null
 
       invariant(
         !(contextRoot == null && currentRoot == null),
         'Before using Portal, you need to specify a root, where the component should be mounted or put the component under the <Root /> component'
       )
 
-      setMountRoot(currentRoot ?? currentContextRoot)
+      setMountRoot(currentRoot ?? contextRoot)
     }
   }, [root, portalContext.root, isDisabled])
 

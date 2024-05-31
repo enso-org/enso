@@ -99,7 +99,7 @@ export function SetOrganizationNameModal() {
           </aria.TextField>
 
           {submit.error && (
-            <ariaComponents.Alert variant="error" size="medium">
+            <ariaComponents.Alert variant="error" size="medium" className="mt-4">
               {submit.error.message}
             </ariaComponents.Alert>
           )}

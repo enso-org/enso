@@ -673,7 +673,7 @@ type Vector a
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -712,7 +712,7 @@ type Vector a
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -766,7 +766,7 @@ type Vector a
        The function is called with both the element index as well as the
        element itself.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -1008,7 +1008,7 @@ type Vector a
        The result of this function is a `Vector` of length being the shorter of
        `self` and `that`, containing results of calling `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:

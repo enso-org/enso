@@ -59,7 +59,7 @@ export function Popover(props: PopoverProps) {
           className: typeof className === 'function' ? className(values) : className,
         })
       }
-      UNSTABLE_portalContainer={root.current}
+      UNSTABLE_portalContainer={root}
       {...ariaPopoverProps}
     >
       {opts => (
