@@ -513,10 +513,14 @@ add_specs suite_builder =
         group_builder.specify "should gracefully handle malformed data edge cases: 1 byte file with multi-byte encoding (UTF-8)" <|
             f = File.create_temporary_file "delimited-malformed-utf-16" ".csv"
             [-1].write_bytes f . should_succeed
+            error = f.read (Delimited_Format.Delimited "," encoding=Encoding.utf_16_be) on_problems=..Report_Error
+            error.should_fail_with Encoding_Error
+
             r = f.read (Delimited_Format.Delimited "," encoding=Encoding.utf_16_be)
-            IO.println r
-            # TODO clarify what error should happen here?
-            r.should_fail_with File_Error
+            r.should_be_a Table
+            r.column_names . should_equal ["Column 1"]
+            r.first_column.to_vector . should_equal ['\uFFFD']
+            Problems.expect_only_warning Encoding_Error r
 
 main filter=Nothing =
     suite = Test.build suite_builder->
