@@ -507,9 +507,6 @@ inset 0 -36px 51px -51px #00000014`,
           '.read-only': {
             '@apply opacity-75 cursor-not-allowed': '',
           },
-          '.transparent': {
-            '@apply opacity-0': '',
-          },
 
           // === Visbility classes ===
 

@@ -41,7 +41,6 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // eslint-disable-next-line no-restricted-syntax
 function run(props: app.AppProps) {
   const { logger, vibrancy, supportsDeepLinks } = props
-  logger.log('Starting authentication/dashboard UI.')
   if (
     !detect.IS_DEV_MODE &&
     process.env.ENSO_CLOUD_SENTRY_DSN != null &&

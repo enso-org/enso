@@ -422,6 +422,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       -1
     )
   })
+  const [isDropzoneVisible, setIsDropzoneVisible] = React.useState(false)
+  const [droppedFilesCount, setDroppedFilesCount] = React.useState(0)
   const isCloud = backend.type === backendModule.BackendType.remote
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
@@ -1929,8 +1931,11 @@ export default function AssetsTable(props: AssetsTableProps) {
   const onDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
     const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
-    if ((filtered != null && filtered.length > 0) || event.dataTransfer.types.includes('Files')) {
+    if (filtered != null && filtered.length > 0) {
       event.preventDefault()
+    } else if (event.dataTransfer.types.includes('Files')) {
+      setIsDropzoneVisible(true)
+      setDroppedFilesCount(event.dataTransfer.items.length)
     }
   }
 
@@ -2416,6 +2421,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     })
   )
 
+  const dropzoneText = isDropzoneVisible
+    ? droppedFilesCount === 1
+      ? getText('assetsDropFileDescription')
+      : getText('assetsDropFilesDescription', droppedFilesCount)
+    : getText('assetsDropzoneDescription')
+
   const table = (
     <div
       className="flex grow flex-col"
@@ -2440,6 +2451,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           />
         )
       }}
+      onDragEnter={onDragOver}
       onDragLeave={event => {
         const payload = drag.LABELS.lookup(event)
         if (
@@ -2485,39 +2497,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         </tbody>
       </table>
       <div
-        data-testid="root-directory-dropzone"
         className={tailwindMerge.twMerge(
           'sticky left grid max-w-container grow place-items-center',
           category !== Category.cloud && category !== Category.local && 'hidden'
         )}
         onClick={() => {
           setSelectedKeys(new Set())
-        }}
-        onDragEnter={onDragOver}
-        onDragOver={onDragOver}
-        onDrop={event => {
-          const payload = drag.ASSET_ROWS.lookup(event)
-          const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
-          if (filtered != null && filtered.length > 0) {
-            event.preventDefault()
-            event.stopPropagation()
-            unsetModal()
-            dispatchAssetEvent({
-              type: AssetEventType.move,
-              newParentKey: rootDirectoryId,
-              newParentId: rootDirectoryId,
-              ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
-            })
-          } else if (event.dataTransfer.types.includes('Files')) {
-            event.preventDefault()
-            event.stopPropagation()
-            dispatchAssetListEvent({
-              type: AssetListEventType.uploadFiles,
-              parentKey: rootDirectoryId,
-              parentId: rootDirectoryId,
-              files: Array.from(event.dataTransfer.files),
-            })
-          }
         }}
       >
         <aria.FileTrigger
@@ -2532,11 +2517,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         >
           <FocusRing>
             <aria.Button
-              className="m-4 flex flex-col items-center gap-3 text-black/30 transition-colors duration-200 hover:text-black/50"
+              className="my-20 flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
               onPress={() => {}}
             >
               <SvgMask src={DropFilesImage} className="size-[186px]" />
-              {getText('assetsDropzoneDescription')}
+              {dropzoneText}
             </aria.Button>
           </FocusRing>
         </aria.FileTrigger>
@@ -2545,78 +2530,111 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <FocusArea direction="vertical">
-      {innerProps => (
-        <div
-          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-            ref: rootRef,
-            className: 'flex-1 overflow-auto container-size',
-            onKeyDown,
-            onScroll,
-            onBlur: event => {
-              if (
-                event.relatedTarget instanceof HTMLElement &&
-                !event.currentTarget.contains(event.relatedTarget)
-              ) {
-                setKeyboardSelectedIndex(null)
-              }
-            },
-          })}
-        >
-          {!hidden && hiddenContextMenu}
-          {!hidden && (
-            <SelectionBrush
-              onDrag={onSelectionDrag}
-              onDragEnd={onSelectionDragEnd}
-              onDragCancel={onSelectionDragCancel}
-            />
-          )}
-          <div className="flex h-max min-h-full w-max min-w-full flex-col">
-            {isCloud && (
-              <div className="flex-0 sticky top flex h flex-col">
-                <div
-                  data-testid="extra-columns"
-                  className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
-                >
-                  <FocusArea direction="horizontal">
-                    {columnsBarProps => (
-                      <div
-                        {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                          className: 'inline-flex gap-icons',
-                          onFocus: () => {
-                            setKeyboardSelectedIndex(null)
-                          },
-                        })}
-                      >
-                        {columnUtils.CLOUD_COLUMNS.filter(
-                          column => !enabledColumns.has(column)
-                        ).map(column => (
-                          <Button
-                            key={column}
-                            light
-                            image={columnUtils.COLUMN_ICONS[column]}
-                            alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
-                            onPress={() => {
-                              const newExtraColumns = new Set(enabledColumns)
-                              if (enabledColumns.has(column)) {
-                                newExtraColumns.delete(column)
-                              } else {
-                                newExtraColumns.add(column)
-                              }
-                              setEnabledColumns(newExtraColumns)
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </FocusArea>
-                </div>
-              </div>
+    <div className="relative grow">
+      <FocusArea direction="vertical">
+        {innerProps => (
+          <div
+            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
+              ref: rootRef,
+              className: 'flex-1 overflow-auto container-size w-full h-full',
+              onKeyDown,
+              onScroll,
+              onBlur: event => {
+                if (
+                  event.relatedTarget instanceof HTMLElement &&
+                  !event.currentTarget.contains(event.relatedTarget)
+                ) {
+                  setKeyboardSelectedIndex(null)
+                }
+              },
+            })}
+          >
+            {!hidden && hiddenContextMenu}
+            {!hidden && (
+              <SelectionBrush
+                onDrag={onSelectionDrag}
+                onDragEnd={onSelectionDragEnd}
+                onDragCancel={onSelectionDragCancel}
+              />
             )}
-            <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
+            <div className="flex h-max min-h-full w-max min-w-full flex-col">
+              {isCloud && (
+                <div className="flex-0 sticky top flex h flex-col">
+                  <div
+                    data-testid="extra-columns"
+                    className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
+                  >
+                    <FocusArea direction="horizontal">
+                      {columnsBarProps => (
+                        <div
+                          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                            className: 'inline-flex gap-icons',
+                            onFocus: () => {
+                              setKeyboardSelectedIndex(null)
+                            },
+                          })}
+                        >
+                          {columnUtils.CLOUD_COLUMNS.filter(
+                            column => !enabledColumns.has(column)
+                          ).map(column => (
+                            <Button
+                              key={column}
+                              light
+                              image={columnUtils.COLUMN_ICONS[column]}
+                              alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
+                              onPress={() => {
+                                const newExtraColumns = new Set(enabledColumns)
+                                if (enabledColumns.has(column)) {
+                                  newExtraColumns.delete(column)
+                                } else {
+                                  newExtraColumns.add(column)
+                                }
+                                setEnabledColumns(newExtraColumns)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </FocusArea>
+                  </div>
+                </div>
+              )}
+              <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
+            </div>
           </div>
+        )}
+      </FocusArea>
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          onDragEnter={onDragOver}
+          onDragOver={onDragOver}
+          onDragLeave={event => {
+            if (event.currentTarget === event.target) {
+              setIsDropzoneVisible(false)
+            }
+          }}
+          onDrop={event => {
+            setIsDropzoneVisible(false)
+            if (event.dataTransfer.types.includes('Files')) {
+              event.preventDefault()
+              event.stopPropagation()
+              dispatchAssetListEvent({
+                type: AssetListEventType.uploadFiles,
+                parentKey: rootDirectoryId,
+                parentId: rootDirectoryId,
+                files: Array.from(event.dataTransfer.files),
+              })
+            }
+          }}
+          className={tailwindMerge.twMerge(
+            'pointer-events-none sticky left-0 top-0 flex h-full w-full flex-col items-center justify-center gap-3 rounded-default bg-selected-frame text-primary/50 opacity-0 backdrop-blur-3xl transition-all',
+            isDropzoneVisible && 'pointer-events-auto opacity-100'
+          )}
+        >
+          <SvgMask src={DropFilesImage} className="size-[186px]" />
+          {dropzoneText}
         </div>
-      )}
-    </FocusArea>
+      </div>
+    </div>
   )
 }

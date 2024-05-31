@@ -938,7 +938,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialLoading: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
+          <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
                 'flex h-row w-container justify-center rounded-full rounded-rows-child',
@@ -954,7 +954,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialEmpty: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
+          <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
                 'flex h-row items-center rounded-full rounded-rows-child',

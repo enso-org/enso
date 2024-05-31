@@ -52,7 +52,7 @@ export default function SvgMask(props: SvgMaskProps) {
       className={tailwindMerge.twMerge('inline-block h-max w-max', className)}
     >
       {/* This is required for this component to have the right size. */}
-      <img alt={alt} src={src} className="transparent" draggable={false} />
+      <img alt={alt} src={src} className="opacity-0" draggable={false} />
     </div>
   )
 }

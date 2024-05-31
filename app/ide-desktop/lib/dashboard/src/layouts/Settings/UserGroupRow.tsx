@@ -71,7 +71,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
           </ariaComponents.Text>
         </div>
       </aria.Cell>
-      <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
+      <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
         <ariaComponents.Button
           size="custom"
           variant="custom"
