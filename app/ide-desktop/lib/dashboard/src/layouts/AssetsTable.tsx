@@ -1928,7 +1928,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
-  const onDragOver = (event: React.DragEvent<Element>) => {
+  const onDropzoneDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
     const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
     if (filtered != null && filtered.length > 0) {
@@ -2452,7 +2452,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           />
         )
       }}
-      onDragEnter={onDragOver}
+      onDragEnter={onDropzoneDragOver}
       onDragLeave={event => {
         const payload = drag.LABELS.lookup(event)
         if (
@@ -2502,6 +2502,23 @@ export default function AssetsTable(props: AssetsTableProps) {
           'sticky left grid max-w-container grow place-items-center',
           category !== Category.cloud && category !== Category.local && 'hidden'
         )}
+        onDragEnter={onDropzoneDragOver}
+        onDragOver={onDropzoneDragOver}
+        onDrop={event => {
+          const payload = drag.ASSET_ROWS.lookup(event)
+          const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
+          if (filtered != null && filtered.length > 0) {
+            event.preventDefault()
+            event.stopPropagation()
+            unsetModal()
+            dispatchAssetEvent({
+              type: AssetEventType.move,
+              newParentKey: rootDirectoryId,
+              newParentId: rootDirectoryId,
+              ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
+            })
+          }
+        }}
         onClick={() => {
           setSelectedKeys(new Set())
         }}
@@ -2607,8 +2624,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       </FocusArea>
       <div className="pointer-events-none absolute inset-0">
         <div
-          onDragEnter={onDragOver}
-          onDragOver={onDragOver}
+          data-testid="root-directory-dropzone"
+          onDragEnter={onDropzoneDragOver}
+          onDragOver={onDropzoneDragOver}
           onDragLeave={event => {
             if (event.currentTarget === event.target) {
               setIsDropzoneVisible(false)
