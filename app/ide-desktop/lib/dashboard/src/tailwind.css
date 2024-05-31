@@ -235,12 +235,6 @@
 
   --menu-entry-padding: 0.25rem;
 
-  --delete-color: rgba(243 24 10 / 87%);
-  --cta-color: rgb(250, 108, 8);
-  --frame-color: rgb(255 255 255 / 40%);
-  --selected-frame-color: rgb(255 255 255 / 70%);
-  --selection-brush-color: rgb(171 171 171 / 50%);
-
   --radio-button-size: 1rem;
   --radio-button-dot-size: 0.5rem;
   --radio-button-dot-padding: calc(
