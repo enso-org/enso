@@ -28,7 +28,7 @@ add_specs suite_builder =
         group_builder.specify "should work correctly when reading chunks of varying sizes" <|
             f = enso_project.data / "transient" / "varying_chunks.txt"
             fragment = 'Hello 😎🚀🚧!'
-            contents = 1.up_to 1000 . map _->fragment . join '\n'
+            contents = 1.up_to 10000 . map _->fragment . join '\n'
             contents.write f . should_succeed
             all_codepoints = Builder.new
             read_chars decoder n =
@@ -39,37 +39,36 @@ add_specs suite_builder =
                         chars
 
             result = f.with_input_stream [File_Access.Read] stream->
-                stream.with_stream_decoder Encoding.utf_8 Problem_Behavior.Report_Error decoder->
-                    read_chars decoder 1 . should_equal "H".codepoints
-                    read_chars decoder 2 . should_equal "el".codepoints
-                    read_chars decoder 3 . should_equal "lo ".codepoints
-                    v1 = read_chars decoder 6
-                    Text.from_codepoints v1 . should_equal '😎🚀🚧'
+                available_bytes_counts = Vector.build available_bytes_counter->
+                    stream.with_stream_decoder Encoding.utf_8 Problem_Behavior.Report_Error decoder->
+                        read_chars decoder 1 . should_equal "H".codepoints
+                        read_chars decoder 2 . should_equal "el".codepoints
+                        read_chars decoder 3 . should_equal "lo ".codepoints
+                        v1 = read_chars decoder 6
+                        Text.from_codepoints v1 . should_equal '😎🚀🚧'
 
-                    v2 = read_chars decoder 200
-                    ## Here we show that while the decoder is trying to read
-                       200 codepoints, some codepoints require more than one
-                       byte in UTF-8 to represent, so the actual result
-                       should be slightly smaller.
-                    (v2.length < 200) . should_be_true
+                        available_bytes_counter.append (stream.with_java_stream .available)
 
-                    ## Now we read increasingly larger amounts, to trigger
-                       and test all paths of the input buffer resizing
-                       mechanism.
-                    read_chars decoder 40
-                    read_chars decoder 500
-                    read_chars decoder 1000
-                    read_chars decoder 1
-                    read_chars decoder 2
-                    read_chars decoder 10
+                        ## Now we read increasingly larger amounts, to trigger
+                           and test all paths of the input buffer resizing
+                           mechanism.
+                        read_chars decoder 40
+                        read_chars decoder 500
+                        read_chars decoder 1000
+                        read_chars decoder 1
+                        read_chars decoder 2
+                        read_chars decoder 10
 
-                    ## Finally read all the remaining contents of the file
-                       to verify they were decoded correctly as a whole.
-                    read_rest _ =
-                        case read_chars decoder 100 of
-                            Nothing -> Nothing
-                            _ -> @Tail_Call read_rest Nothing
-                    read_rest Nothing
+                        ## Finally read all the remaining contents of the file
+                           to verify they were decoded correctly as a whole.
+                        read_rest _ =
+                            available_bytes_counter.append (stream.with_java_stream .available)
+                            case read_chars decoder 1000 of
+                                Nothing -> Nothing
+                                _ -> @Tail_Call read_rest Nothing
+                        read_rest Nothing
+                # We now check that not all bytes were read in one go on the first read, instead the file should have been read incrementally as needed:
+                available_bytes_counts.any (x-> x != available_bytes_counts.first) . should_be_true
             Text.from_codepoints all_codepoints.to_vector . should_equal contents
             result.should_succeed
             f.delete
