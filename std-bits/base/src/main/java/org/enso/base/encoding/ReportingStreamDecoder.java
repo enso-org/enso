@@ -130,7 +130,7 @@ public class ReportingStreamDecoder extends Reader {
       // If the previous invocation of read set the EOF flag, it must have finished the decoding
       // process and flushed the decoder, so the input buffer must have been consumed in whole.
       assert !inputBuffer.hasRemaining();
-      assert hadEofDecodeCall;
+      assert hadEofDecodeCall : "decoding should have been finalized before returning EOF";
       return -1;
     }
 
@@ -152,7 +152,9 @@ public class ReportingStreamDecoder extends Reader {
     // If we did not read any new bytes in the call that reached EOF, we return EOF immediately
     // instead of postponing to the next call. Returning 0 at the end was causing division by zero
     // in the CSV parser.
-    return (eof && readBytes <= 0) ? -1 : readBytes;
+    int returnValue = (eof && readBytes <= 0) ? -1 : readBytes;
+    assert (returnValue >= 0 || hadEofDecodeCall) : "decoding should have been finalized before returning EOF";
+    return returnValue;
   }
 
   /**
@@ -222,9 +224,7 @@ public class ReportingStreamDecoder extends Reader {
     Context context = pollSafepoints ? Context.getCurrent() : null;
 
     while (inputBuffer.hasRemaining() || (eof && !hadEofDecodeCall)) {
-      System.out.println("decode " + inputBuffer + " " + outputBuffer + " " + eof);
       CoderResult cr = decoder.decode(inputBuffer, outputBuffer, eof);
-      System.out.println("   --> " + cr);
       if (eof) {
         hadEofDecodeCall = true;
       }

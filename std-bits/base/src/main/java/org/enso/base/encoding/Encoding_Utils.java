@@ -128,7 +128,7 @@ public class Encoding_Utils {
         }
         // read is already polling safepoints so we don't have to
         n = decoder.read(out);
-      } while (n > 0);
+      } while (n >= 0);
     } catch (IOException e) {
       throw new IllegalStateException("Unexpected exception: " + e.getMessage(), e);
     }
