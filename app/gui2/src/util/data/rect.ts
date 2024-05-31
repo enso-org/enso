@@ -196,6 +196,11 @@ export class Rect {
       height: this.size.y,
     })
   }
+
+  expand(padding: number): Rect {
+    const padVector = new Vec2(padding, padding)
+    return new Rect(this.pos.sub(padVector), this.size.add(padVector).add(padVector))
+  }
 }
 
 Rect.Zero = new Rect(Vec2.Zero, Vec2.Zero)

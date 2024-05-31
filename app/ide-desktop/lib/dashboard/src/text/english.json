@@ -10,6 +10,7 @@
   "updateProjectError": "Could not update project",
   "findProjectError": "Could not find project '$0'",
   "openProjectError": "Could not open project '$0'",
+  "restoreProjectError": "Could not restore project '$0'",
   "copyAssetError": "Could not copy '$0'",
   "moveAssetError": "Could not move '$0'",
   "deleteAssetError": "Could not delete '$0'",
@@ -101,6 +102,8 @@
   "copyAssetBackendError": "Could not copy '$0' to '$1'.",
   "listProjectsBackendError": "Could not list projects.",
   "createProjectBackendError": "Could not create project with name '$0'",
+  "restoreProjectBackendError": "Could not restore project '$0'",
+  "duplicateProjectBackendError": "Could not duplicate project as '$0'",
   "closeProjectBackendError": "Could not close project '$0'.",
   "getProjectDetailsBackendError": "Could not get details of project '$0'.",
   "openProjectBackendError": "Could not open project '$0'.",
@@ -602,6 +605,9 @@
   "userContextMenuLabel": "User context menu",
   "userGroupContextMenuLabel": "User Group context menu",
   "userGroupUserContextMenuLabel": "User Group User context menu",
+
+  "restoreThisVersion": "Restore this version",
+  "duplicateThisVersion": "Duplicate this version",
 
   "appNameDesktopEdition": "Enso Desktop Edition",
   "appNameCloudEdition": "Enso Cloud Edition",

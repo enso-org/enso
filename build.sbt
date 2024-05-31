@@ -749,7 +749,6 @@ lazy val `syntax-rust-definition` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java"
@@ -1208,6 +1207,7 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     libraryDependencies ++= jmh ++ Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ) ++ logbackTest
@@ -1309,6 +1309,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
@@ -1359,19 +1360,11 @@ lazy val `interpreter-dsl-test` =
     .settings(
       version := "0.1",
       frgaalJavaCompilerSetting,
+      annotationProcSetting,
       Test / fork := true,
       Test / javaOptions ++= Seq(
         "-Dpolyglotimpl.DisableClassPathIsolation=true"
       ),
-      Test / javacOptions ++= Seq(
-        "-s",
-        (Test / sourceManaged).value.getAbsolutePath
-      ),
-      Compile / logManager :=
-        sbt.internal.util.CustomLogManager.excludeMsg(
-          "Could not determine source for class ",
-          Level.Warn
-        ),
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
         "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
@@ -1652,6 +1645,30 @@ lazy val truffleDslSuppressWarnsSetting = Seq(
   )
 )
 
+/** Common settings for projects whose sources are processed by some annotation
+  * processors. These settings ensure that the generated sources are placed under
+  * `(Compile/sourceManaged)` directory, usually pointing to `target/classes/src_managed`.
+  */
+lazy val annotationProcSetting = Seq(
+  Compile / javacOptions ++= Seq(
+    "-s",
+    (Compile / sourceManaged).value.getAbsolutePath,
+    "-Xlint:unchecked"
+  ),
+  Compile / compile := (Compile / compile)
+    .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+    .value,
+  // zinc cannot see who is generating the java files so it adds some
+  // spurious warning messages. The following setting filters out such
+  // spurious warnings.
+  // See https://stackoverflow.com/questions/55558849/how-do-i-build-a-mixed-java-scala-project-which-uses-java-annotation-code-genera
+  Compile / logManager :=
+    sbt.internal.util.CustomLogManager.excludeMsg(
+      "Could not determine source for class ",
+      Level.Warn
+    )
+)
+
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 17
   */
@@ -1676,27 +1693,20 @@ def customFrgaalJavaCompilerSettings(targetJdk: String) = Seq(
   )
 )
 
-lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
-  version := ensoVersion,
-  commands += WithDebugCommand.withDebug,
-  Compile / logManager :=
-    sbt.internal.util.CustomLogManager
-      .excludeMsg("Could not determine source for class ", Level.Warn),
-  Compile / javacOptions --= Seq(
-    "-source",
-    frgaalSourceLevel,
-    "--enable-preview"
-  ),
-  libraryDependencies ++= Seq(
-    "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-    "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
-  ),
-  (Compile / javacOptions) ++= Seq(
-    "-s",
-    (Compile / sourceManaged).value.getAbsolutePath,
-    "-Xlint:unchecked"
+lazy val instrumentationSettings =
+  frgaalJavaCompilerSetting ++ annotationProcSetting ++ Seq(
+    version := ensoVersion,
+    commands += WithDebugCommand.withDebug,
+    Compile / javacOptions --= Seq(
+      "-source",
+      frgaalSourceLevel,
+      "--enable-preview"
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+    )
   )
-)
 
 lazy val `runtime-language-epb` =
   (project in file("engine/runtime-language-epb"))
@@ -1800,12 +1810,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     truffleDslSuppressWarnsSetting,
-    Compile / logManager :=
-      sbt.internal.util.CustomLogManager.excludeMsg(
-        "Could not determine source for class ",
-        Level.Warn
-      ),
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
@@ -1837,18 +1843,6 @@ lazy val runtime = (project in file("engine/runtime"))
         GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
       necessaryModules ++ langs ++ tools
     }
-  )
-  .settings(
-    (Compile / javacOptions) ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath,
-      "-Xlint:unchecked"
-    )
-  )
-  .settings(
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .value
   )
   .settings(
     (Runtime / compile) := (Runtime / compile)
@@ -1886,11 +1880,7 @@ lazy val `runtime-integration-tests` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      Compile / logManager :=
-        sbt.internal.util.CustomLogManager.excludeMsg(
-          "Could not determine source for class ",
-          Level.Warn
-        ),
+      annotationProcSetting,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
         "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
@@ -1908,13 +1898,7 @@ lazy val `runtime-integration-tests` =
         "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test,
         "org.slf4j"            % "slf4j-api"             % slf4jVersion              % Test
       ),
-      Test / javacOptions ++= Seq(
-        "-s",
-        (Compile / sourceManaged).value.getAbsolutePath,
-        "-Xlint:unchecked"
-      ),
       Test / compile := (Test / compile)
-        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
         .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
         .value,
       Test / fork := true,
@@ -2024,6 +2008,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`logging-service-logback` % "test->test")
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
+    .dependsOn(`test-utils`)
 
 /** A project that holds only benchmarks for `runtime`. Unlike `runtime-integration-tests`, its execution requires
   * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
@@ -2033,6 +2018,7 @@ lazy val `runtime-benchmarks` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      annotationProcSetting,
       // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ helidon ++ Seq(
@@ -2047,24 +2033,13 @@ lazy val `runtime-benchmarks` =
       ),
       mainClass :=
         Some("org.enso.interpreter.bench.benchmarks.RuntimeBenchmarksRunner"),
-      Compile / logManager :=
-        sbt.internal.util.CustomLogManager.excludeMsg(
-          "Could not determine source for class ",
-          Level.Warn
-        ),
       javacOptions --= Seq(
         "-source",
         frgaalSourceLevel,
         "--enable-preview"
       ),
-      javacOptions ++= Seq(
-        "-s",
-        (Compile / sourceManaged).value.getAbsolutePath,
-        "-Xlint:unchecked"
-      ),
       Compile / compile := (Compile / compile)
         .dependsOn(`runtime-fat-jar` / assembly)
-        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
         .value,
       parallelExecution := false,
       modulePath := {
@@ -2126,6 +2101,7 @@ lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .settings(
       frgaalJavaCompilerSetting,
+      annotationProcSetting,
       commands += WithDebugCommand.withDebug,
       fork := true,
       Test / javaOptions ++= Seq(
@@ -2137,12 +2113,7 @@ lazy val `runtime-parser` =
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-      ),
-      (Compile / logManager) :=
-        sbt.internal.util.CustomLogManager.excludeMsg(
-          "Could not determine source for class ",
-          Level.Warn
-        )
+      )
     )
     .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
@@ -2153,6 +2124,7 @@ lazy val `runtime-compiler` =
   (project in file("engine/runtime-compiler"))
     .settings(
       frgaalJavaCompilerSetting,
+      annotationProcSetting,
       (Test / fork) := true,
       libraryDependencies ++= Seq(
         "com.chuusai"     %% "shapeless"               % shapelessVersion   % "provided",
@@ -2645,6 +2617,26 @@ lazy val `distribution-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
+lazy val `test-utils` =
+  (project in file("lib/java/test-utils"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      annotationProcSetting,
+      libraryDependencies ++= GraalVM.modules,
+      libraryDependencies ++= Seq(
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
+      ),
+      Compile / javacOptions ++= Seq(
+        "-s",
+        (Compile / sourceManaged).value.getAbsolutePath
+      ),
+      Compile / compile := (Compile / compile)
+        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+        .value
+    )
+    .dependsOn(runtime)
+
 lazy val `benchmarks-common` =
   (project in file("lib/java/benchmarks-common"))
     .settings(
@@ -2700,6 +2692,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
       "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion,
       "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion,
@@ -2707,12 +2700,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       "org.slf4j"            % "slf4j-api"                % slf4jVersion,
       "org.slf4j"            % "slf4j-nop"                % slf4jVersion
     ),
-    commands += WithDebugCommand.withDebug,
-    (Compile / logManager) :=
-      sbt.internal.util.CustomLogManager.excludeMsg(
-        "Could not determine source for class ",
-        Level.Warn
-      )
+    commands += WithDebugCommand.withDebug
   )
   .settings(
     parallelExecution := false,
@@ -2724,26 +2712,22 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       .dependsOn(`runtime-fat-jar` / assembly)
       .value,
     Compile / javacOptions ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath,
       "-Xlint:unchecked",
       "-J-Dpolyglotimpl.DisableClassPathIsolation=true",
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
     modulePath := {
-      val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion,
+      val allRuntimeMods = componentModulesPaths.value
+      val otherModIds = Seq(
         "org.slf4j" % "slf4j-nop" % slf4jVersion
       )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         (Compile / update).value,
-        requiredModIds,
+        otherModIds,
         streams.value.log,
         shouldContainAll = true
       )
-      val runtimeMod =
-        (`runtime-fat-jar` / assembly / assemblyOutputPath).value
-      requiredMods ++ Seq(runtimeMod)
+      allRuntimeMods ++ requiredMods
     },
     addModules := {
       val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
