@@ -114,7 +114,7 @@ export default function ManageLabelsModal<
     try {
       await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
       setLabels(newLabels => {
-        void associateTagMutation.mutateAsync([item.id, newLabels, item.title])
+        associateTagMutation.mutate([item.id, newLabels, item.title])
         return newLabels
       })
     } catch (error) {

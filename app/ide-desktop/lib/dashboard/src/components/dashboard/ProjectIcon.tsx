@@ -134,13 +134,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
     backend,
     'waitUntilProjectIsReady'
   )
+  const openProjectMutate = openProjectMutation.mutateAsync
+  const getProjectDetailsMutate = getProjectDetailsMutation.mutateAsync
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
       if (state !== backendModule.ProjectState.opened) {
         setState(backendModule.ProjectState.openInProgress)
         try {
-          await openProjectMutation.mutateAsync([
+          await openProjectMutate([
             item.id,
             {
               executeAsync: shouldRunInBackground,
@@ -150,11 +152,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             item.title,
           ])
         } catch (error) {
-          const project = await getProjectDetailsMutation.mutateAsync([
-            item.id,
-            item.parentId,
-            item.title,
-          ])
+          const project = await getProjectDetailsMutate([item.id, item.parentId, item.title])
           // `setState` is not used here as `project` contains the full state information,
           // not just the state type.
           setItem(object.merger({ projectState: project.state }))
@@ -168,8 +166,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
       item,
       session,
       toastAndLog,
-      /* should never change */ openProjectMutation,
-      /* should never change */ getProjectDetailsMutation,
+      /* should never change */ openProjectMutate,
+      /* should never change */ getProjectDetailsMutate,
       /* should never change */ setState,
       /* should never change */ setItem,
     ]
@@ -200,18 +198,19 @@ export default function ProjectIcon(props: ProjectIconProps) {
       }
     },
   })
+  const openEditorMutate = openEditorMutation.mutate
 
   React.useEffect(() => {
     if (isOpening) {
       const abortController = new AbortController()
-      openEditorMutation.mutate(abortController)
+      openEditorMutate(abortController)
       return () => {
         abortController.abort()
       }
     } else {
       return
     }
-  }, [isOpening, openEditorMutation])
+  }, [isOpening, openEditorMutate])
 
   React.useEffect(() => {
     // Ensure that the previous spinner state is visible for at least one frame.

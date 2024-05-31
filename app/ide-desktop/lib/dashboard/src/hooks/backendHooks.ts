@@ -287,8 +287,8 @@ export function useBackendMutationWithVariables<Method extends keyof Backend>(
   const mutation = useBackendMutation(backend, method, options)
   return {
     mutation,
-    mutate: mutation.mutate.bind(mutation),
-    mutateAsync: mutation.mutateAsync.bind(mutation),
+    mutate: mutation.mutate,
+    mutateAsync: mutation.mutateAsync,
     variables: useBackendMutationVariables(backend, method, options?.mutationKey),
   }
 }
