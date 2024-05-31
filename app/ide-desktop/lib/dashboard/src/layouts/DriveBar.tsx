@@ -90,24 +90,59 @@ export default function DriveBar(props: DriveBarProps) {
     })
   }, [isCloud, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
+  const searchBar = (
+    <AssetSearchBar
+      backend={backend}
+      isCloud={isCloud}
+      query={query}
+      setQuery={setQuery}
+      suggestions={suggestions}
+    />
+  )
+  const assetPanelToggle = (
+    <>
+      {/* Spacing. */}
+      <div
+        className={tailwindMerge.twMerge(
+          'transition-all duration-side-panel',
+          !isAssetPanelOpen && 'w-5'
+        )}
+      />
+      <div
+        className={tailwindMerge.twMerge(
+          'absolute right top z-1 m-[15px] transition-all duration-side-panel',
+          !isAssetPanelOpen && 'mt-[26px]'
+        )}
+      >
+        <Button
+          image={RightPanelIcon}
+          active={isAssetPanelOpen}
+          alt={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
+          onPress={() => {
+            setIsAssetPanelOpen(isOpen => !isOpen)
+          }}
+        />
+      </div>
+    </>
+  )
+
   switch (category) {
     case Category.recent: {
-      // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
-      // in the given directory, to avoid name collisions.
       return (
         <div className="flex h-9 items-center">
-          <HorizontalMenuBar />
+          <HorizontalMenuBar grow>
+            {searchBar}
+            {assetPanelToggle}
+          </HorizontalMenuBar>
         </div>
       )
     }
     case Category.trash: {
       return (
         <div className="flex h-9 items-center">
-          <HorizontalMenuBar>
+          <HorizontalMenuBar grow>
             <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="border-0.5 flex h-row items-center rounded-full border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10"
+              variant="bar"
               onPress={() => {
                 setModal(
                   <ConfirmDeleteModal
@@ -117,10 +152,10 @@ export default function DriveBar(props: DriveBarProps) {
                 )
               }}
             >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('clearTrash')}
-              </aria.Text>
+              {getText('clearTrash')}
             </ariaComponents.Button>
+            {searchBar}
+            {assetPanelToggle}
           </HorizontalMenuBar>
         </div>
       )
@@ -131,18 +166,12 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
             <aria.DialogTrigger>
-              <ariaComponents.Button
-                size="custom"
-                variant="tertiary"
-                className="px-2.5"
-                onPress={() => {}}
-              >
+              <ariaComponents.Button variant="tertiary" onPress={() => {}}>
                 {getText('startWithATemplate')}
               </ariaComponents.Button>
               <StartModal createProject={doCreateProject} />
             </aria.DialogTrigger>
             <ariaComponents.Button
-              size="custom"
               variant="bar"
               onPress={() => {
                 doCreateProject()
@@ -150,7 +179,7 @@ export default function DriveBar(props: DriveBarProps) {
             >
               {getText('newEmptyProject')}
             </ariaComponents.Button>
-            <div className="border-0.5 flex h-row items-center gap-4 rounded-full border-primary/20 px-[11px] text-primary/50">
+            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px] text-primary/50">
               <Button
                 active
                 image={AddFolderIcon}
@@ -218,35 +247,8 @@ export default function DriveBar(props: DriveBarProps) {
                 }}
               />
             </div>
-            <AssetSearchBar
-              backend={backend}
-              isCloud={isCloud}
-              query={query}
-              setQuery={setQuery}
-              suggestions={suggestions}
-            />
-            {/* Spacing. */}
-            <div
-              className={tailwindMerge.twMerge(
-                'transition-all duration-side-panel',
-                !isAssetPanelOpen && 'w-5'
-              )}
-            />
-            <div
-              className={tailwindMerge.twMerge(
-                'absolute right top z-1 m-[15px] transition-all duration-side-panel',
-                !isAssetPanelOpen && 'mt-[26px]'
-              )}
-            >
-              <Button
-                image={RightPanelIcon}
-                active={isAssetPanelOpen}
-                alt={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
-                onPress={() => {
-                  setIsAssetPanelOpen(isOpen => !isOpen)
-                }}
-              />
-            </div>
+            {searchBar}
+            {assetPanelToggle}
           </HorizontalMenuBar>
         </div>
       )

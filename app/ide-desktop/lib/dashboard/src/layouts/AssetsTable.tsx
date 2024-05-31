@@ -33,7 +33,6 @@ import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -2488,15 +2487,13 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
           }}
         >
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="my-20 flex flex-col items-center gap-3 text-black/30 transition-colors duration-200 group-hover:text-black/50"
+          <aria.Button
+            className="my-20 flex animate-none flex-col items-center gap-3 text-black/30 transition-colors duration-200 group-hover:text-black/50"
             onPress={() => {}}
           >
             <SvgMask src={DropFilesImage} className="size-[186px]" />
             {getText('assetsDropzoneDescription')}
-          </ariaComponents.Button>
+          </aria.Button>
         </aria.FileTrigger>
       </div>
     </div>

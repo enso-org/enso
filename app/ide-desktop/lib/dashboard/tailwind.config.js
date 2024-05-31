@@ -283,7 +283,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'input-x': 'var(--input-padding-x)',
         'multiline-input': 'var(--multiline-input-padding)',
         'json-schema-object-input': 'var(--json-schema-object-input-padding)',
-        'new-project-button-x': 'var(--new-project-button-padding-x)',
         'name-column-x': 'var(--name-column-padding-x)',
         'name-column-y': 'var(--name-column-padding-y)',
         'home-page-b': 'var(--home-page-padding-b)',

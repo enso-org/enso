@@ -1,6 +1,7 @@
 /** @file A styled button. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
 import * as twv from 'tailwind-variants'
 
 import * as focusHooks from '#/hooks/focusHooks'
@@ -27,8 +28,8 @@ export const BUTTON_STYLES = twv.tv({
       custom: '',
       hero: 'px-8 py-4 text-lg',
       large: 'px-6 py-3 text-base',
-      medium: 'px-4 py-2 text-sm',
-      small: 'px-3 py-1 text-xs',
+      medium: 'px-2.5 py-1.5 h-8 text-xs',
+      small: 'px-2.5 py-1 text-xs',
       xsmall: 'px-2 py-1 text-xs',
       xxsmall: 'px-1.5 py-0.5 text-xs',
     },
@@ -46,7 +47,7 @@ export const BUTTON_STYLES = twv.tv({
       link: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary focus-visible:outline-offset-0',
       primary: 'bg-primary text-white hover:bg-primary/70 focus-visible:outline-offset-2',
       tertiary:
-        'relative px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90 *:relative',
+        'relative text-white before:absolute before:-inset-px before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90 *:relative',
       cancel: 'bg-selected-frame opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       delete: 'bg-delete text-white focus-visible:outline-offset-2',
       icon: {
@@ -58,7 +59,7 @@ export const BUTTON_STYLES = twv.tv({
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline:
         'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',
-      bar: 'flex h-row items-center rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
+      bar: 'flex items-center rounded-full border-0.5 border-primary/20 transition-colors hover:bg-primary/10',
     },
     iconPosition: {
       start: { content: '' },
@@ -137,7 +138,7 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
-
+  readonly contentClassName?: string
   readonly testId?: string
 }
 
@@ -148,6 +149,7 @@ export const Button = React.forwardRef(function Button(
 ) {
   const {
     className,
+    contentClassName,
     children,
     variant,
     icon,
@@ -246,7 +248,9 @@ export const Button = React.forwardRef(function Button(
       )}
     >
       <span className={wrapper()}>
-        <span className={content()}>{childrenFactory()}</span>
+        <span className={tailwindMerge.twMerge(content(), contentClassName)}>
+          {childrenFactory()}
+        </span>
 
         {isLoading && (
           <span className={loader()}>

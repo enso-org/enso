@@ -67,9 +67,13 @@ export default function PageSwitcher(props: PageSwitcherProps) {
   const { getText } = textProvider.useText()
   const selectedChildIndexRef = React.useRef(0)
   const lastChildIndexRef = React.useRef(0)
-  const pageIndexRaw = PAGE_DATA.findIndex(pageData => page === pageData.page)
+  const visiblePageData = React.useMemo(
+    () => PAGE_DATA.filter(pageData => (pageData.page !== Page.editor ? true : !isEditorDisabled)),
+    [isEditorDisabled]
+  )
+  const pageIndexRaw = visiblePageData.findIndex(pageData => page === pageData.page)
   const pageIndex = pageIndexRaw === -1 ? null : pageIndexRaw
-  const isLastPageSelected = pageIndexRaw === PAGE_DATA.length - 1
+  const isLastPageSelected = pageIndexRaw === visiblePageData.length - 1
 
   React.useEffect(() => {
     selectedChildIndexRef.current = PAGE_DATA.findIndex(data => data.page === page)
@@ -104,7 +108,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
               <ariaComponents.CloseButton onPress={closeWindow} />
             </div>
           )}
-          {PAGE_DATA.map((pageData, i) => {
+          {visiblePageData.map((pageData, i) => {
             const active = page === pageData.page
             return (
               <div
@@ -120,11 +124,12 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                 )}
               >
                 <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className={tailwindMerge.twMerge(
                     'flex h-full items-center gap-3 selectable',
                     active && 'disabled active'
                   )}
-                  isDisabled={pageData.page === Page.editor && isEditorDisabled}
                   onPress={() => {
                     setPage(pageData.page)
                   }}
