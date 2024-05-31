@@ -6,32 +6,15 @@ type Column_Count
     ## Read all rows.
     All_Columns
 
-    ## Read the first specified number of rows.
-    ##5 for testing 
+    ## Read the first specified number of columns.
     First columns:Integer=3
 
     ## PRIVATE
-    default_widget -> Widget =
+    default_widget -> Widget = 
         make_single_choice [["All_Columns", "..All_Columns"], ["First", "..First"]]
 
     ## PRIVATE
-       Gets the number of rows to read (or Nothing if all rows).
-       For the First_With_Warning case, the number of rows is one more than maximum rows.
+       Gets the number of columns to read (or Nothing if all columns).
     columns_to_split self -> Integer | Nothing = case self of
         Column_Count.All_Columns -> Nothing
         Column_Count.First columns -> columns
-
-    ## PRIVATE
-       Gets the number of rows to write (or Nothing if all rows).
-    columns_to_write self -> Integer | Nothing = case self of
-        Column_Count.All_Columns -> Nothing
-        Column_Count.First columns -> columns
-
-## PRIVATE
-Column_Count.from (that:Nothing) =
-    _ = that
-    Column_Count.All_Columns
-
-## PRIVATE
-Column_Count.from (that:Integer) =
-    Column_Count.First that
