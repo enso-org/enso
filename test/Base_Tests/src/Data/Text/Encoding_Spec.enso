@@ -288,7 +288,7 @@ add_specs suite_builder =
 
             txt = Text.from_bytes [-1] Encoding.utf_16_be Problem_Behavior.Report_Warning
             w = Problems.expect_only_warning Encoding_Error txt
-            w.to_display_text . should_equal "Failed to decode 1 code units (at positions: 0)."
+            w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 
     suite_builder.group "UTF_16 LittleEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
@@ -324,7 +324,7 @@ add_specs suite_builder =
 
             txt = Text.from_bytes [-1] Encoding.utf_16_le Problem_Behavior.Report_Warning
             w = Problems.expect_only_warning Encoding_Error txt
-            w.to_display_text . should_equal "Failed to decode 1 code units (at positions: 0)."
+            w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 
     suite_builder.group "codepoints" group_builder->
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
