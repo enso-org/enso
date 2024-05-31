@@ -9,17 +9,17 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
+
 import org.graalvm.polyglot.Context;
 
 /**
- * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
- * CharsetDecoder}.
+ * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code CharsetDecoder}.
  *
  * <p>Functionally, it should be equivalent to {@code java.io.InputStreamReader}. The major
- * difference is that this class allows more granular reporting of decoding issues - instead of just
- * replacing malformed characters with a replacement or failing at the first error, it allows to
- * both perform the replacements but also remember the positions at which the problems occurred and
- * then return a bulk report of places where the issues have been encountered.
+ * difference is that this class allows more granular reporting of decoding issues - instead of just replacing malformed
+ * characters with a replacement or failing at the first error, it allows to both perform the replacements but also
+ * remember the positions at which the problems occurred and then return a bulk report of places where the issues have
+ * been encountered.
  */
 public class ReportingStreamDecoder extends Reader {
   private final DecodingProblemAggregator problemAggregator;
@@ -43,18 +43,16 @@ public class ReportingStreamDecoder extends Reader {
   }
 
   /**
-   * Currently there is no easy way to check if a Context is available in the current thread and we
-   * can use safepoints or not. The issue tracking this feature can be found at: <a
-   * href="https://github.com/oracle/graal/issues/6931">oracle/graal#6931</a>. For the time being we
-   * just manually let the user consciously choose if safepoints shall be enabled or not, based on
-   * the user's knowledge if the thread running the decoding will run on the main thread or in the
-   * background.
+   * Currently there is no easy way to check if a Context is available in the current thread and we can use safepoints
+   * or not. The issue tracking this feature can be found at: <a
+   * href="https://github.com/oracle/graal/issues/6931">oracle/graal#6931</a>. For the time being we just manually let
+   * the user consciously choose if safepoints shall be enabled or not, based on the user's knowledge if the thread
+   * running the decoding will run on the main thread or in the background.
    */
   private final boolean pollSafepoints;
 
   /**
-   * The buffer keeping any characters that have already been decoded, but not consumed by the user
-   * yet.
+   * The buffer keeping any characters that have already been decoded, but not consumed by the user yet.
    *
    * <p>Between the calls to read, it satisfies the invariant that it is in 'reading' mode.
    */
@@ -72,14 +70,13 @@ public class ReportingStreamDecoder extends Reader {
    * Indicates the amount of bytes consumed before the start of the current input buffer.
    *
    * <p>The input buffer is reset many times and so its position will only indicate the bytes that
-   * were consumed in some current iteration, this counter allows us to compute the overall amount
-   * of bytes.
+   * were consumed in some current iteration, this counter allows us to compute the overall amount of bytes.
    */
   private int inputBytesConsumedBeforeCurrentBuffer = 0;
 
   /**
-   * We re-use the work array between calls to read, to avoid re-allocating it on each call. It is
-   * only re-allocated if it needs to be bigger than before.
+   * We re-use the work array between calls to read, to avoid re-allocating it on each call. It is only re-allocated if
+   * it needs to be bigger than before.
    */
   private byte[] workArray = null;
 
@@ -92,16 +89,15 @@ public class ReportingStreamDecoder extends Reader {
   private boolean eof = false;
 
   /**
-   * Specifies if the last {@code decoder.decode} call with the {@code endOfInput = true} argument
-   * has been made.
+   * Specifies if the last {@code decoder.decode} call with the {@code endOfInput = true} argument has been made.
    */
   private boolean hadEofDecodeCall = false;
 
   /**
    * Our read method tries to read as many characters as requested by the user.
    *
-   * <p>It will never return 0 - it will either return a positive number of characters read, or -1
-   * if EOF was reached.
+   * <p>Unless user specifically asks for `len == 0`, it will never return 0 otherwise - it will either return a
+   * positive number of characters read, or -1 if EOF was reached.
    */
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
@@ -183,7 +179,7 @@ public class ReportingStreamDecoder extends Reader {
       len -= toTransfer;
       assert (len == 0 || !outputBuffer.hasRemaining())
           : "if we did not yet satisfy the request, the output buffer should have been completely"
-              + " emptied";
+          + " emptied";
 
       // No safepoint is needed here, because the inner loop of `runDecoderOnInputBuffer` already
       // polls.
@@ -202,12 +198,11 @@ public class ReportingStreamDecoder extends Reader {
   }
 
   /**
-   * Ensures that the output buffer is allocated and has enough space to fit as many characters as
-   * we expect to read.
+   * Ensures that the output buffer is allocated and has enough space to fit as many characters as we expect to read.
    *
    * <p>When this method is called, the output buffer should not have any remaining cached
-   * characters and should be in read mode. After the method returns, the output buffer is empty and
-   * left in write mode.
+   * characters and should be in read mode. After the method returns, the output buffer is empty and left in write
+   * mode.
    */
   private void prepareOutputBuffer(int expectedCharactersCount) {
     assert outputBuffer == null || !outputBuffer.hasRemaining();
@@ -247,7 +242,9 @@ public class ReportingStreamDecoder extends Reader {
     inputBuffer.flip();
   }
 
-  /** Allocates or grows the work array so that it can fit the amount of bytes we want to read. */
+  /**
+   * Allocates or grows the work array so that it can fit the amount of bytes we want to read.
+   */
   private void ensureWorkArraySize(int bytesToRead) {
     if (workArray == null || workArray.length < bytesToRead) {
       workArray = new byte[bytesToRead];
@@ -255,12 +252,12 @@ public class ReportingStreamDecoder extends Reader {
   }
 
   /**
-   * Runs the decoder on the input buffer, transferring any decoded characters to the output buffer
-   * and growing it as needed.
+   * Runs the decoder on the input buffer, transferring any decoded characters to the output buffer and growing it as
+   * needed.
    *
    * <p>Even if the input buffer does not contain any remaining data, but end-of-input has been
-   * encountered, one decoding step is performed to satisfy the contract of the decoder (it requires
-   * one final call to the decode method signifying end of input).
+   * encountered, one decoding step is performed to satisfy the contract of the decoder (it requires one final call to
+   * the decode method signifying end of input).
    *
    * <p>After this call, the output buffer is in reading mode. If EOF on the input was encountered,
    * all buffered input has been consumed after this method finishes.
@@ -307,15 +304,16 @@ public class ReportingStreamDecoder extends Reader {
     outputBuffer.flip();
   }
 
-  /** Returns the amount of bytes that have already been consumed by the decoder. */
+  /**
+   * Returns the amount of bytes that have already been consumed by the decoder.
+   */
   private int getCurrentInputPosition() {
     if (inputBuffer == null) return 0;
     return inputBytesConsumedBeforeCurrentBuffer + inputBuffer.position();
   }
 
   /**
-   * Flushes the decoder, growing the buffer as needed to ensure that any additional output from the
-   * decoder fits.
+   * Flushes the decoder, growing the buffer as needed to ensure that any additional output from the decoder fits.
    */
   private void flushDecoder() {
     while (decoder.flush(outputBuffer) == CoderResult.OVERFLOW) {
@@ -324,8 +322,7 @@ public class ReportingStreamDecoder extends Reader {
   }
 
   /**
-   * Ensures that the input buffer has enough free space to hold the number of bytes that we want to
-   * read.
+   * Ensures that the input buffer has enough free space to hold the number of bytes that we want to read.
    *
    * <p>If necessary, the buffer is allocated or grown, preserving any existing content.
    *
