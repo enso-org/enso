@@ -1,8 +1,10 @@
 /** @file Vue composables for listening to DOM events. */
 
+import { assert } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { type VueInstance } from '@vueuse/core'
+import { event } from 'enso-common/src/gtag'
 import {
   computed,
   onScopeDispose,
@@ -16,6 +18,7 @@ import {
   type ShallowRef,
   type WatchSource,
 } from 'vue'
+import { useRaf } from './animation'
 
 export function isTriggeredByKeyboard(e: MouseEvent | PointerEvent) {
   if (e instanceof PointerEvent) return e.pointerType !== 'mouse'
@@ -396,4 +399,99 @@ function computePosition(event: PointerEvent, initial: Vec2, last: Vec2): EventP
     relative: new Vec2(event.clientX - initial.x, event.clientY - initial.y),
     delta: new Vec2(event.clientX - last.x, event.clientY - last.y),
   }
+}
+
+type ArrowKey = 'ArrowLeft' | 'ArrowUp' | 'ArrowRight' | 'ArrowDown'
+type PressedKeys = Record<ArrowKey, boolean>
+function isArrowKey(key: string): key is ArrowKey {
+  return key === 'ArrowLeft' || key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowDown'
+}
+
+export function useArrows(
+  handler: (
+    pos: EventPosition,
+    eventType: PointerEventType,
+    event?: KeyboardEvent,
+  ) => void | boolean,
+  velocity: number,
+) {
+  const clearedKeys: PressedKeys = {
+    ArrowLeft: false,
+    ArrowUp: false,
+    ArrowRight: false,
+    ArrowDown: false,
+  }
+  const pressedKeys: Ref<PressedKeys> = ref({ ...clearedKeys })
+  watch(pressedKeys, (v) => console.log(v))
+  const moving = computed(
+    () =>
+      pressedKeys.value.ArrowLeft ||
+      pressedKeys.value.ArrowUp ||
+      pressedKeys.value.ArrowRight ||
+      pressedKeys.value.ArrowDown,
+  )
+  const v = computed(
+    () =>
+      new Vec2(
+        (pressedKeys.value.ArrowLeft ? -velocity : 0) +
+          (pressedKeys.value.ArrowRight ? velocity : 0),
+        (pressedKeys.value.ArrowUp ? -velocity : 0) + (pressedKeys.value.ArrowDown ? velocity : 0),
+      ),
+  )
+  const referencePosition = ref(Vec2.Zero)
+  const lastPosition = ref(Vec2.Zero)
+  const referenceFrame = ref(0)
+
+  const positionAt = (t: number) =>
+    referencePosition.value.add(v.value.scale(t - referenceFrame.value))
+
+  const callHandler = (t: number, eventType: PointerEventType, event?: KeyboardEvent) => {
+    const offset = positionAt(t)
+    const delta = offset.sub(lastPosition.value)
+    lastPosition.value = offset
+    const positions = {
+      initial: Vec2.Zero,
+      absolute: offset,
+      relative: offset,
+      delta,
+    }
+    if (handler(positions, eventType, event) !== false && event) {
+      event.stopImmediatePropagation()
+      event.preventDefault()
+    }
+  }
+
+  useRaf(moving, (t, _) => callHandler(t, 'move'))
+
+  const events = {
+    keydown(e: KeyboardEvent) {
+      console.log(e.key in pressedKeys.value)
+      if (e.repeat) return
+      if (!isArrowKey(e.key)) return
+      const starting = !moving.value
+      if (starting) {
+        referencePosition.value = Vec2.Zero
+      } else {
+        referencePosition.value = positionAt(e.timeStamp)
+      }
+      referenceFrame.value = e.timeStamp
+      pressedKeys.value[e.key] = true
+      if (starting) callHandler(e.timeStamp, 'start', e)
+    },
+    keyup(e: KeyboardEvent) {
+      if (e.repeat) return
+      if (!moving.value) return
+      if (!isArrowKey(e.key)) return
+      referencePosition.value = positionAt(e.timeStamp)
+      referenceFrame.value = e.timeStamp
+      pressedKeys.value[e.key] = false
+      if (!moving.value) callHandler(e.timeStamp, 'stop', e)
+    },
+    focusout() {
+      // Each focus change may make us miss some events, so it's safer to just cancel the movement.
+      pressedKeys.value = clearedKeys
+    },
+  }
+
+  return { events, moving }
 }
