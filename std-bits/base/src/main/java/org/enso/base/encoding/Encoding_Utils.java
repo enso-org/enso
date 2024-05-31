@@ -169,6 +169,11 @@ public class Encoding_Utils {
    *
    * <p>It returns the result returned from the executed action and any encoding problems that
    * occurred when processing it.
+   *
+   * @param stream the input stream to decode
+   * @param charset the character set to use for decoding, use {@code null} to try auto-detection
+   * @param action the action to run with the created decoder
+   * @return the result of the action and any problems that occurred during decoding
    */
   public static WithProblems<Value, DecodingProblem> with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, Value> action)
