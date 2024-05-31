@@ -284,7 +284,6 @@ lazy val enso = (project in file("."))
     `language-server`,
     `polyglot-api`,
     `project-manager`,
-    `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
     yaml,
@@ -330,7 +329,6 @@ lazy val enso = (project in file("."))
     `library-manager-test`,
     `connected-lock-manager`,
     `connected-lock-manager-server`,
-    syntax,
     testkit,
     `common-polyglot-core-utils`,
     `std-base`,
@@ -609,26 +607,6 @@ lazy val compileModuleInfo = taskKey[Unit]("Compiles `module-info.java`")
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
-
-lazy val `syntax-definition` =
-  project in file("lib/scala/syntax/definition")
-
-lazy val syntax = (project in file("lib/scala/syntax/specialization"))
-  .dependsOn(`syntax-definition`)
-  .settings(
-    commands += WithDebugCommand.withDebug,
-    testFrameworks := Nil,
-    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    Compile / run / mainClass := Some("org.enso.syntax.text.Main"),
-    version := "0.1",
-    logBuffered := false,
-    libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test
-    ),
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(RecompileParser.run(`syntax-definition`))
-      .value
-  )
 
 lazy val `text-buffer` = project
   .in(file("lib/scala/text-buffer"))
@@ -2115,7 +2093,6 @@ lazy val `runtime-parser` =
         "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
-    .dependsOn(syntax)
     .dependsOn(`syntax-rust-definition`)
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
