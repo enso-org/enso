@@ -2206,7 +2206,10 @@ lazy val `runtime-fat-jar` =
   (project in file("engine/runtime-fat-jar"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      Compile / compileModuleInfo := {
+      Compile / compileModuleInfo := Def.task {
+        val extraMp = Seq(
+          (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
+        )
         JPMSUtils.compileModuleInfo(
           copyDepsFilter = ScopeFilter(
             inProjects(
@@ -2220,7 +2223,8 @@ lazy val `runtime-fat-jar` =
             ),
             inConfigurations(Compile)
           ),
-          modulePath = JPMSUtils.componentModules ++ helidon
+          modulePath = JPMSUtils.componentModules ++ helidon,
+          modulePathExtra = extraMp
         )
       }
         .dependsOn(Compile / compile)
