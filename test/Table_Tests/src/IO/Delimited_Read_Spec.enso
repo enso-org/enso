@@ -510,6 +510,14 @@ add_specs suite_builder =
             r2.column_names . should_equal ["愀Ⰰ戀਀㄀Ⰰ㈀"]
             r2.first_column.to_vector . should_equal []
 
+        group_builder.specify "should gracefully handle malformed data edge cases: 1 byte file with multi-byte encoding (UTF-8)" <|
+            f = File.create_temporary_file "delimited-malformed-utf-16" ".csv"
+            [-1].write_bytes f . should_succeed
+            r = f.read (Delimited_Format.Delimited "," encoding=Encoding.utf_16_be)
+            IO.println r
+            # TODO clarify what error should happen here?
+            r.should_fail_with File_Error
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
