@@ -33,8 +33,6 @@ import * as object from '#/utilities/object'
 // === Constants ===
 // =================
 
-/** The size of the icon, in pixels. */
-const ICON_SIZE_PX = 24
 const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -306,48 +304,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <ariaComponents.Button
-          size="custom"
-          variant="custom"
-          isDisabled={isOtherUserUsingProject}
-          {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="size-project-icon rounded-full selectable enabled:active"
-          onPress={closeProject}
-        >
-          <div
-            className={tailwindMerge.twMerge('relative h-0', isRunningInBackground && 'text-green')}
-          >
-            <Spinner size={ICON_SIZE_PX} state={spinnerState} />
-          </div>
-          <SvgMask
-            alt={getText('stopExecution')}
-            src={StopIcon}
-            className={tailwindMerge.twMerge(
-              'size-project-icon',
-              isRunningInBackground && 'text-green'
-            )}
-          />
-        </ariaComponents.Button>
-      )
-    case backendModule.ProjectState.opened:
-      return (
-        <div>
+        <div className="relative">
           <ariaComponents.Button
             size="custom"
             variant="custom"
             isDisabled={isOtherUserUsingProject}
-            {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
+            {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
             className="size-project-icon rounded-full selectable enabled:active"
             onPress={closeProject}
           >
-            <div
-              className={tailwindMerge.twMerge(
-                'relative h-0',
-                isRunningInBackground && 'text-green'
-              )}
-            >
-              <Spinner className="size-project-icon" state={spinnerState} />
-            </div>
             <SvgMask
               alt={getText('stopExecution')}
               src={StopIcon}
@@ -357,6 +322,44 @@ export default function ProjectIcon(props: ProjectIconProps) {
               )}
             />
           </ariaComponents.Button>
+          <Spinner
+            state={spinnerState}
+            className={tailwindMerge.twMerge(
+              'pointer-events-none absolute top-0 size-project-icon',
+              isRunningInBackground && 'text-green'
+            )}
+          />
+        </div>
+      )
+    case backendModule.ProjectState.opened:
+      return (
+        <div className="flex flex-row gap-0.5">
+          <div className="relative">
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
+              isDisabled={isOtherUserUsingProject}
+              {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
+              className="size-project-icon rounded-full selectable enabled:active"
+              onPress={closeProject}
+            >
+              <SvgMask
+                alt={getText('stopExecution')}
+                src={StopIcon}
+                className={tailwindMerge.twMerge(
+                  'size-project-icon',
+                  isRunningInBackground && 'text-green'
+                )}
+              />
+            </ariaComponents.Button>
+            <Spinner
+              state={spinnerState}
+              className={tailwindMerge.twMerge(
+                'pointer-events-none absolute top-0 size-project-icon',
+                isRunningInBackground && 'text-green'
+              )}
+            />
+          </div>
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <ariaComponents.Button
               size="custom"
