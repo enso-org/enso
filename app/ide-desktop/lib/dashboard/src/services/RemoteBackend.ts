@@ -631,6 +631,37 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Restore a project from a different version. */
+  override async restoreProject(
+    projectId: backend.ProjectId,
+    versionId: backend.S3ObjectVersionId,
+    title: string
+  ): Promise<void> {
+    const path = remoteBackendPaths.restoreProjectPath(projectId)
+    const response = await this.post(path, { versionId })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'restoreProjectBackendError', title)
+    } else {
+      return
+    }
+  }
+
+  /** Duplicate a specific version of a project. */
+  override async duplicateProject(
+    projectId: backend.ProjectId,
+    versionId: backend.S3ObjectVersionId,
+    title: string
+  ): Promise<backend.CreatedProject> {
+    const path = remoteBackendPaths.duplicateProjectPath(projectId)
+    const response = await this.post<backend.CreatedProject>(path, { versionId })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'duplicateProjectBackendError', title)
+    } else {
+      const json = await response.json()
+      return json
+    }
+  }
+
   /** Close a project.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async closeProject(projectId: backend.ProjectId, title: string): Promise<void> {

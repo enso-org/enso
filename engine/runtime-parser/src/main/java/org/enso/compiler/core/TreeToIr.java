@@ -605,7 +605,8 @@ final class TreeToIr {
         loc = getIdentifiedLocation(sig);
       }
       case Tree.OprApp app when isDotOperator(app.getOpr().getRight()) -> {
-        type = Option.apply(buildQualifiedName(app.getLhs()));
+        var typeLoc = getIdentifiedLocation(app.getLhs());
+        type = Option.apply(buildQualifiedName(app.getLhs(), typeLoc, false));
         method = buildName(app.getRhs());
         if (alwaysLocation) {
           loc = getIdentifiedLocation(sig);
