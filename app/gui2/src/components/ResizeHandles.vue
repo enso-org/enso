@@ -95,4 +95,10 @@ const handler = {
 .bottom.left {
   cursor: nesw-resize;
 }
+
+.left,
+.right,
+.bottom {
+  z-index: 1;
+}
 </style>

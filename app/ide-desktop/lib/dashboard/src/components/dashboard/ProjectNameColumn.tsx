@@ -80,6 +80,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   const createProjectMutation = backendHooks.useBackendMutation(backend, 'createProject')
   const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
+  const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
   const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
   const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
 
@@ -146,14 +147,23 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           if (asset.id === event.placeholderId) {
             rowState.setVisibility(Visibility.faded)
             try {
-              const createdProject = await createProjectMutation.mutateAsync([
-                {
-                  parentDirectoryId: asset.parentId,
-                  projectName: asset.title,
-                  ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
-                  ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
-                },
-              ])
+              const createdProject =
+                event.originalId == null || event.versionId == null
+                  ? await createProjectMutation.mutateAsync([
+                      {
+                        parentDirectoryId: asset.parentId,
+                        projectName: asset.title,
+                        ...(event.templateId == null
+                          ? {}
+                          : { projectTemplateName: event.templateId }),
+                        ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
+                      },
+                    ])
+                  : await duplicateProjectMutation.mutateAsync([
+                      event.originalId,
+                      event.versionId,
+                      asset.title,
+                    ])
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {

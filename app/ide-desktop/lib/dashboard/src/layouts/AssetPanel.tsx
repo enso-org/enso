@@ -7,6 +7,7 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
+import type * as assetListEvent from '#/events/assetListEvent'
 
 import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
@@ -65,12 +66,13 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, item, setItem, setQuery, category, dispatchAssetEvent } = props
-  const { isReadonly = false } = props
+  const { backend, item, isReadonly = false, setItem, setQuery, category } = props
+  const { dispatchAssetEvent, dispatchAssetListEvent } = props
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -152,7 +154,13 @@ export default function AssetPanel(props: AssetPanelProps) {
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}
-          {tab === AssetPanelTab.versions && <AssetVersions backend={backend} item={item} />}
+          {tab === AssetPanelTab.versions && (
+            <AssetVersions
+              backend={backend}
+              item={item}
+              dispatchAssetListEvent={dispatchAssetListEvent}
+            />
+          )}
         </>
       )}
     </div>

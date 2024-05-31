@@ -62,6 +62,8 @@ export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newP
   readonly placeholderId: backend.ProjectId
   readonly templateId: string | null
   readonly datalinkId: backend.DatalinkId | null
+  readonly originalId: backend.ProjectId | null
+  readonly versionId: backend.S3ObjectVersionId | null
 }
 
 /** A signal to create a directory. */

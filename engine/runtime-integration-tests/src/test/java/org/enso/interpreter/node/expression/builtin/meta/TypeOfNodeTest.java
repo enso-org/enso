@@ -9,8 +9,9 @@ import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
-import org.enso.interpreter.test.TestBase;
 import org.enso.interpreter.test.ValuesGenerator;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -18,7 +19,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class TypeOfNodeTest extends TestBase {
+public class TypeOfNodeTest {
   @Parameterized.Parameter(0)
   public Object value;
 
@@ -29,7 +30,7 @@ public class TypeOfNodeTest extends TestBase {
 
   private static Context ctx() {
     if (ctx == null) {
-      ctx = defaultContextBuilder().build();
+      ctx = ContextUtils.defaultContextBuilder().build();
     }
     return ctx;
   }
@@ -38,7 +39,7 @@ public class TypeOfNodeTest extends TestBase {
   public static Object[][] allPossibleEnsoInterpreterValues() throws Exception {
     var g = ValuesGenerator.create(ctx());
     var typeOf =
-        evalModule(
+        ContextUtils.evalModule(
             ctx(),
             """
     from Standard.Base import all
@@ -52,7 +53,7 @@ public class TypeOfNodeTest extends TestBase {
       if (!v.isNull()) {
         assertTrue("Type of " + v + " is " + t, t.isMetaObject());
         var n = t.getMetaSimpleName();
-        var raw = unwrapValue(ctx(), v);
+        var raw = ContextUtils.unwrapValue(ctx(), v);
         data.add(new Object[] {raw, n});
       }
     }
@@ -79,7 +80,7 @@ public class TypeOfNodeTest extends TestBase {
   }
 
   private void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
-    executeInContext(
+    ContextUtils.executeInContext(
         ctx(),
         () -> {
           var node = TypeOfNode.create();

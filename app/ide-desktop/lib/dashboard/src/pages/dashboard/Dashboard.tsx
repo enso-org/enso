@@ -464,6 +464,7 @@ export default function Dashboard(props: DashboardProps) {
               setQuery={setQuery}
               category={defaultCategory}
               dispatchAssetEvent={dispatchAssetEvent}
+              dispatchAssetListEvent={dispatchAssetListEvent}
               isReadonly={category === Category.trash}
             />
           )}
