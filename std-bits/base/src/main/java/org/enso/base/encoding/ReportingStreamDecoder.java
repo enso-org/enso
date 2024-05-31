@@ -135,7 +135,8 @@ public class ReportingStreamDecoder extends Reader {
       assert !inputBuffer.hasRemaining();
       assert hadEofDecodeCall : "decoding should have been finalized before returning EOF";
       if (readBytes == 0) {
-        // No cached data was present, and we already processed EOF on the input, so we can signal EOF.
+        // No cached data was present, and we already processed EOF on the input, so we can signal
+        // EOF.
         return -1;
       } else {
         // We have read some cached data, so we report that. The next call will yield EOF.
@@ -143,20 +144,38 @@ public class ReportingStreamDecoder extends Reader {
       }
     }
 
-    // At this point we ran out of cached characters, so we will read some more input to try to get
-    // new characters for the request.
+    /*
+     * At this point we ran out of cached characters, so we will read some more input to try to get
+     * new characters for the request.
+     *
+     * Repeat the input read process as many times as needed to satisfy the request, or until we hit EOF at input.
+     *
+     * Note: it is valid for the decoder to read less than the user requested. But that may mean we may sometimes
+     * read 0 characters, and unfortunately some clients (e.g. our current CSV parser) do not deal well with such
+     * cases (failing with division by zero).
+     */
+    while (len > 0 && !eof) {
+      prepareOutputBuffer(len);
+      int expectedInputSize = Math.max((int) (len / decoder.averageCharsPerByte()), 10);
+      readInputStreamToInputBuffer(expectedInputSize);
+      runDecoderOnInputBuffer();
 
-    prepareOutputBuffer(len);
+      // We transfer as much as the user requested, anything that is remaining will be cached for
+      // the
+      // next invocation.
+      int toTransfer = Math.min(len, outputBuffer.remaining());
+      assert off + toTransfer <= cbuf.length;
+      outputBuffer.get(cbuf, off, toTransfer);
+      readBytes += toTransfer;
+      off += toTransfer;
+      len -= toTransfer;
+      assert (len == 0 || !outputBuffer.hasRemaining())
+          : "if we did not yet satisfy the request, the output buffer should have been completely"
+              + " emptied";
 
-    int expectedInputSize = Math.max((int) (len / decoder.averageCharsPerByte()), 10);
-    readInputStreamToInputBuffer(expectedInputSize);
-    runDecoderOnInputBuffer();
-
-    // We transfer as much as the user requested, anything that is remaining will be cached for the
-    // next invocation.
-    int toTransfer = Math.min(len, outputBuffer.remaining());
-    outputBuffer.get(cbuf, off, toTransfer);
-    readBytes += toTransfer;
+      // No safepoint is needed here, because the inner loop of `runDecoderOnInputBuffer` already
+      // polls.
+    }
 
     // If we did not read any new bytes in the call that reached EOF, we return EOF immediately
     // instead of postponing to the next call. Returning 0 at the end was causing division by zero
@@ -228,10 +247,10 @@ public class ReportingStreamDecoder extends Reader {
    * encountered, one decoding step is performed to satisfy the contract of the decoder (it requires
    * one final call to the decode method signifying end of input).
    *
-   * <p>After this call, the output buffer is in reading mode.
-   * If EOF on the input was encountered, all buffered input has been consumed after this method finishes.
+   * <p>After this call, the output buffer is in reading mode. If EOF on the input was encountered,
+   * all buffered input has been consumed after this method finishes.
    */
-  private void runDecoderOnInputBuffer() {
+  private void runDecoderOnInputBuffer() throws IOException {
     Context context = pollSafepoints ? Context.getCurrent() : null;
 
     while (inputBuffer.hasRemaining() || (eof && !hadEofDecodeCall)) {
@@ -249,6 +268,10 @@ public class ReportingStreamDecoder extends Reader {
         outputBuffer.put(INVALID_CHARACTER);
         inputBuffer.position(inputBuffer.position() + cr.length());
       } else if (cr.isUnderflow()) {
+        // The input buffer may still have some remaining data, but it was not enough for the
+        // decoder. We need to
+        // break the inner loop and try to read more data (if available), or find out if we are at
+        // EOF.
         break;
       } else if (cr.isOverflow()) {
         growOutputBuffer();
