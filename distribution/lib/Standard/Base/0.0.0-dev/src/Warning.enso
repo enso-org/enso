@@ -307,7 +307,7 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
 
    Builtin function that gets all the warnings attached to the given value.
 get_all_vector : Any -> Boolean -> Vector Warning
-get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_array"
+get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
 
 ## PRIVATE
 
