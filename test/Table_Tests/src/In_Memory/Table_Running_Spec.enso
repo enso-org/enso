@@ -191,6 +191,28 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 74           | 187.2
             expected_table = data.integer_table.zip expected_column
             result.should_equal expected_table
+    suite_builder.group "running product" group_builder->
+        data = Data.setup
+        group_builder.specify "Not setting the as name gives default name based on of column" <|
+            result = data.table.take 3 . running Statistic.Product "Ticket Price"
+            expected_column = Column.from_vector "Running Product of Ticket Price" [100.5, 57886.995, 4239064.643850001]
+            #   | Flight | Passenger | Ticket Price | Running Product of Ticket Price
+            #---+--------+-----------+--------------+-------------------------
+            # 0 | BA0123 | A         | 100.5        | 100.5
+            # 1 | BA0123 | B         | 575.99       | 57886.99
+            # 2 | SG0456 | A         | 73.23        | 4239064.643850001
+            expected_table = data.table.take 3 . zip expected_column
+            result.should_equal expected_table
+        group_builder.specify "Can provide running product of integer columns (returning column of floats)" <|
+            result = data.integer_table.take 3 . running Statistic.Product "Ticket Price" "Product ticket cost"
+            expected_column = Column.from_vector "Product ticket cost" [101.0, 58176.0, 4246848.0]
+            #   | Flight | Passenger | Ticket Price | Product ticket cost
+            #---+--------+-----------+--------------+-------------------------
+            # 0 | BA0123 | A         | 101          | 101.0
+            # 1 | BA0123 | B         | 576          | 58176.0
+            # 2 | SG0456 | A         | 73           | 4246848.0
+            expected_table = data.integer_table.take 3 . zip expected_column
+            result.should_equal expected_table
     suite_builder.group "running max" group_builder->
         data = Data.setup
         group_builder.specify "Not setting the as name gives default name based on of column" <|
