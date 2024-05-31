@@ -12,35 +12,41 @@ public final class ArrowParser {
 
   public static Result parse(Source source) {
     String src = source.getCharacters().toString();
-    Matcher m = NEW_ARRAY_CONSTR.matcher(src);
+    Matcher m = PATTERN.matcher(src);
     if (m.find()) {
       try {
-        var layout = LogicalLayout.valueOf(m.group(1));
-        return new Result(PhysicalLayout.Primitive, layout, Mode.Allocate);
+        var layout = LogicalLayout.valueOf(m.group(2));
+        var mode = Mode.parse(m.group(1));
+        if (layout != null && mode != null) {
+          return new Result(PhysicalLayout.Primitive, layout, mode);
+        }
       } catch (IllegalArgumentException iae) {
         // propagate warning
-        return null;
-      }
-    }
-
-    m = CAST_PATTERN.matcher(src);
-    if (m.find()) {
-      try {
-        var layout = LogicalLayout.valueOf(m.group(1));
-        return new Result(PhysicalLayout.Primitive, layout, Mode.Cast);
-      } catch (IllegalArgumentException iae) {
-        // propagate warning
-        return null;
       }
     }
     return null;
   }
 
-  private static final Pattern NEW_ARRAY_CONSTR = Pattern.compile("^new\\[(.+)\\]$");
-  private static final Pattern CAST_PATTERN = Pattern.compile("^cast\\[(.+)\\]$");
+  private static final Pattern PATTERN = Pattern.compile("^([a-z\\+]+)\\[(.+)\\]$");
 
   public enum Mode {
-    Allocate,
-    Cast
+    Allocate("new"),
+    Cast("cast"),
+    Plus("+");
+
+    private final String op;
+
+    private Mode(String text) {
+      this.op = text;
+    }
+
+    static Mode parse(String operation) {
+      for (var m : values()) {
+        if (m.op.equals(operation)) {
+          return m;
+        }
+      }
+      return null;
+    }
   }
 }

@@ -27,6 +27,8 @@ public class ArrowEvalNode extends RootNode {
       case Primitive -> switch (code.mode()) {
         case Allocate -> fixedPhysicalLayout.execute(code.logicalLayout());
         case Cast -> castToFixedPhysicalLayout.execute(code.logicalLayout());
+        case Plus -> throw CompilerDirectives.shouldNotReachHere("unsupported +");
+        default -> throw CompilerDirectives.shouldNotReachHere("unsupported mode");
       };
       default -> throw CompilerDirectives.shouldNotReachHere("unsupported physical layout");
     };
