@@ -97,6 +97,12 @@ public class ReportingStreamDecoder extends Reader {
    */
   private boolean hadEofDecodeCall = false;
 
+  /**
+   * Our read method tries to read as many characters as requested by the user.
+   *
+   * <p>It will never return 0 - it will either return a positive number of characters read, or -1
+   * if EOF was reached.
+   */
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
     if (off < 0) {
@@ -107,6 +113,11 @@ public class ReportingStreamDecoder extends Reader {
     }
     if (off + len > cbuf.length) {
       throw new IndexOutOfBoundsException("read: off + len > cbuf.length");
+    }
+
+    if (len == 0) {
+      // early exit
+      return 0;
     }
 
     int readBytes = 0;
@@ -124,6 +135,7 @@ public class ReportingStreamDecoder extends Reader {
 
     // If the request is satisfied, we do not continue.
     if (len <= 0) {
+      assert readBytes > 0;
       return readBytes;
     }
 
@@ -177,12 +189,15 @@ public class ReportingStreamDecoder extends Reader {
       // polls.
     }
 
+    assert eof || readBytes > 0 : "we either read a positive number of characters or reached EOF";
+
     // If we did not read any new bytes in the call that reached EOF, we return EOF immediately
     // instead of postponing to the next call. Returning 0 at the end was causing division by zero
     // in the CSV parser.
     int returnValue = (eof && readBytes <= 0) ? -1 : readBytes;
     assert (returnValue >= 0 || hadEofDecodeCall)
         : "decoding should have been finalized before returning EOF";
+    assert returnValue != 0 : "we never return 0";
     return returnValue;
   }
 
