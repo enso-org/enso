@@ -1936,6 +1936,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     } else if (event.dataTransfer.types.includes('Files')) {
       setIsDropzoneVisible(true)
       setDroppedFilesCount(event.dataTransfer.items.length)
+      event.preventDefault()
     }
   }
 
