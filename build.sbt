@@ -727,6 +727,9 @@ lazy val `syntax-rust-definition` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    // exportJars := true forces `exportedProducts` to output the path to the
+    // jar file rather than to the exploded dir with classes.
+    Compile / exportJars := true,
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java"
@@ -2249,6 +2252,10 @@ lazy val `runtime-fat-jar` =
       assembly := assembly
         .dependsOn(Compile / compile)
         .dependsOn(Compile / compileModuleInfo)
+        // syntax-rust-definition / packageBin dependency is needed because of
+        // assemblyExcludedJars can only exclude JAR archives, not exploded
+        // directories with classes.
+        .dependsOn(`syntax-rust-definition` / Compile / packageBin)
         .value,
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
@@ -2261,9 +2268,12 @@ lazy val `runtime-fat-jar` =
           pkgsToExclude,
           streams.value.log
         )
-        val syntaxJar = (`syntax-rust-definition` / Compile / packageBin).value
-        val syntaxJarWithAttrs = sbt.Attributed[File](syntaxJar)(sbt.AttributeMap.empty)
-        Seq(syntaxJarWithAttrs) ++ excludedExternalPkgs
+        val syntaxJar = (`syntax-rust-definition` / Compile / exportedProducts).value
+        val log = streams.value.log
+        if (!syntaxJar.head.data.exists()) {
+          log.error(s"Syntax jar not found at ${syntaxJar} its classes might not be excluded from the runtime.jar fat jar")
+        }
+        syntaxJar ++ excludedExternalPkgs
       },
       assembly / assemblyMergeStrategy := {
         case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
