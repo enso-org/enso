@@ -54,14 +54,13 @@ type Int
 # The Benchmarks ==============================================================
 
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 4) . set_measure (Bench.phase_conf 1 3)
+options = Bench.options . set_warmup (Bench.phase_conf 3 4) . set_measure (Bench.phase_conf 3 1)
 
 
 type Data
-    Value ~sorted_vec ~partially_sorted_vec ~random_vec ~random_vec_wrapped
+    Value ~sorted_vec ~partially_sorted_vec ~random_vec ~random_vec_wrapped ~rational_vec
 
-    create vec_size =
-        Data.Value (Data.make_sorted_vec vec_size) (make_partially_sorted_vec vec_size) (Data.make_random_vec vec_size) ((Data.make_random_vec vec_size).map (v -> Int.Value v))
+    create vec_size = Data.Value (Data.make_sorted_vec vec_size) (make_partially_sorted_vec vec_size) (Data.make_random_vec vec_size) ((Data.make_random_vec vec_size).map (v -> Int.Value v)) (Utils.make_random_rational_vec vec_size)
 
     make_sorted_vec vec_size =
         make_sorted_ascending_vec vec_size
@@ -107,5 +106,13 @@ collect_benches = Bench.build builder->
         group_builder.specify "Sorting_with_the_Default_Ordered_Comparator" <|
             data.random_vec.sort by=comparator
 
+        group_builder.specify "Sort_Rational_Vector" <|
+            data.rational_vec.sort
 
-main = collect_benches . run_main
+        group_builder.specify "Sort_Rational_Vector_by_comparator" <|
+            data.rational_vec.sort by=(a-> b-> b.compare a)
+
+        group_builder.specify "Sort_Rational_Vector_by_converting_to_float" <|
+            data.rational_vec.sort on=(.to_float)
+
+main filter=Nothing = collect_benches . run_main filter
