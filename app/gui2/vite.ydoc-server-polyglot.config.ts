@@ -1,4 +1,3 @@
-import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import defaultConfig from './vite.config'
@@ -14,8 +13,14 @@ export default defineConfig({
   cacheDir,
   publicDir,
   envDir,
-  resolve,
-  plugins: [usePolyglotFfi()],
+  resolve: {
+    ...resolve,
+    alias: {
+      ...resolve?.alias,
+      // Use `ffiPolyglot` module as `ffi` interface during the build.
+      'shared/ast/ffi': fileURLToPath(new URL('./shared/ast/ffiPolyglot.ts', import.meta.url)),
+    },
+  },
   define: {
     ...defaultConfig.define,
     self: 'globalThis',
@@ -34,23 +39,3 @@ export default defineConfig({
     },
   },
 })
-
-/**
- * Use `ffiPolyglot` module as `ffi` interface during the build.
- */
-function usePolyglotFfi(): Plugin {
-  const ffiPolyglot = fileURLToPath(new URL('./shared/ast/ffiPolyglot.ts', import.meta.url))
-  const ffiBackup = fileURLToPath(new URL('./shared/ast/ffiBackup.ts', import.meta.url))
-  const ffi = fileURLToPath(new URL('./shared/ast/ffi.ts', import.meta.url))
-
-  return {
-    name: 'use-polyglot-ffi',
-    options: () => {
-      fs.renameSync(ffi, ffiBackup)
-      fs.copyFileSync(ffiPolyglot, ffi)
-    },
-    buildEnd: () => {
-      fs.renameSync(ffiBackup, ffi)
-    },
-  }
-}

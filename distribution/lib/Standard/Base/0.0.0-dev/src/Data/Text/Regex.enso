@@ -157,7 +157,7 @@ type Regex
        self.match_all input . map match_to_group_maybe
 
     ## GROUP Conversions
-       ICON split_text
+       ICON split
        Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
@@ -201,7 +201,7 @@ type Regex
             go it.next
 
     ## GROUP Conversions
-       ICON split_text
+       ICON split
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned. Non-participating
@@ -311,7 +311,8 @@ type Regex
        Arguments:
        - id: The name or number of the group that was asked for.
 
-       Returns: a group number.
+       Returns:
+       A group number.
 
        A group number is invalid if it is outside the range of groups
        that were in the original pattern.
@@ -333,7 +334,6 @@ type Regex
        In this case, the group id for "(d)", which is 3, is a valid group id and
        (Regex.lookup_group 3) will return 3. If the caller tries to get group 3,
        Match.group will return Nothing.
-
     lookup_group : Integer | Text -> Integer ! No_Such_Group
     lookup_group self id =
         case id of

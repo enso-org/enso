@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { codeEditorBindings, documentationEditorBindings } from '@/bindings'
+import DropdownMenu from '@/components/DropdownMenu.vue'
+import MenuButton from '@/components/MenuButton.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { targetIsOutside } from '@/util/autoBlur'
 import { ref } from 'vue'
-import SvgButton from './SvgButton.vue'
 
 const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
 const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
@@ -17,48 +17,19 @@ const emit = defineEmits<{
   fitToAllClicked: []
 }>()
 
-const buttonElement = ref<HTMLElement>()
-const menuElement = ref<HTMLElement>()
-
-const isDropdownOpen = ref(false)
-
-const interaction = injectInteractionHandler()
-const dropdownInteraction: Interaction = {
-  cancel: () => (isDropdownOpen.value = false),
-  end: () => (isDropdownOpen.value = false),
-  pointerdown: (e: PointerEvent) => {
-    if ([buttonElement.value, menuElement.value].every((area) => targetIsOutside(e, area)))
-      closeDropdown()
-    return false
-  },
-}
-function openDropdown() {
-  isDropdownOpen.value = true
-  interaction.setCurrent(dropdownInteraction)
-}
-function closeDropdown() {
-  interaction.cancel(dropdownInteraction)
-}
-function toggleDropdown() {
-  isDropdownOpen.value ? closeDropdown() : openDropdown()
-}
+const open = ref(false)
 
 const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadable
 const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.toggle.humanReadable
 </script>
 
 <template>
-  <div
-    ref="buttonElement"
-    class="ExtendedMenu"
-    title="Additional Options"
-    @click.stop="toggleDropdown"
-  >
-    <SvgIcon name="3_dot_menu" class="moreIcon" />
-  </div>
-  <Transition name="dropdown">
-    <div v-show="isDropdownOpen" ref="menuElement" class="ExtendedMenuPane">
-      <div class="row">
+  <DropdownMenu v-model:open="open" placement="bottom-end" class="ExtendedMenu">
+    <template #button
+      ><SvgIcon name="3_dot_menu" class="moreIcon" title="Additional Options"
+    /></template>
+    <template #entries>
+      <div>
         <div class="label">Zoom</div>
         <div class="zoomControl">
           <SvgButton
@@ -81,81 +52,50 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
           />
         </div>
       </div>
-      <div
-        class="row clickableRow"
-        :class="{ selected: showCodeEditor }"
-        @click="(showCodeEditor = !showCodeEditor), closeDropdown()"
-      >
-        <div class="label">Code Editor</div>
+      <MenuButton v-model="showCodeEditor" @click="open = false">
+        Code Editor
         <div v-text="toggleCodeEditorShortcut" />
-      </div>
-      <div
-        class="row clickableRow"
-        :class="{ selected: showDocumentationEditor }"
-        @click="(showDocumentationEditor = !showDocumentationEditor), closeDropdown()"
-      >
-        <div class="label">Documentation Editor</div>
+      </MenuButton>
+      <MenuButton v-model="showDocumentationEditor" @click="open = false">
+        Documentation Editor
         <div v-text="toggleDocumentationEditorShortcut" />
-      </div>
-    </div>
-  </Transition>
+      </MenuButton>
+    </template>
+  </DropdownMenu>
 </template>
 
 <style scoped>
 .ExtendedMenu {
-  display: flex;
-  place-items: center;
-  gap: 12px;
-  width: 32px;
-  height: 32px;
-  margin-left: auto;
-  margin-right: 125px;
+  background: var(--color-frame-bg);
   border-radius: var(--radius-full);
-  background: var(--color-frame-bg);
-  backdrop-filter: var(--blur-app-bg);
-  cursor: pointer;
+  margin: 0 125px 0 auto;
 }
 
-.ExtendedMenuPane {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
+.moreIcon {
+  margin: 4px;
+}
+
+.ExtendedMenu :deep(.DropdownMenuContent) {
   width: 250px;
-  top: 40px;
-  margin-top: 6px;
+  margin-top: 2px;
   padding: 4px;
-  right: 8px;
-  border-radius: 12px;
-  background: var(--color-frame-bg);
-  backdrop-filter: var(--blur-app-bg);
+
+  > * {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
 }
 
-.clickableRow {
-  cursor: pointer;
-  transition: background-color 0.3s;
-  &:hover {
-    background-color: var(--color-menu-entry-hover-bg);
-  }
-  &:active {
-    background-color: var(--color-menu-entry-active-bg);
-  }
-  &.selected {
-    background-color: var(--color-menu-entry-selected-bg);
-  }
+.toggledOn {
+  background-color: var(--color-menu-entry-selected-bg);
 }
 
 .label {
   user-select: none;
   pointer-events: none;
-}
-
-.row {
-  width: 100%;
-  display: flex;
-  padding: 0 8px 0 8px;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 12px;
 }
 
 .divider {
@@ -176,24 +116,5 @@ const toggleDocumentationEditorShortcut = documentationEditorBindings.bindings.t
 .zoomScaleLabel {
   width: 4em;
   text-align: center;
-}
-
-.moreIcon {
-  position: relative;
-  left: 8px;
-}
-
-.zoomButton {
-  --icon-transform: scale(12/16);
-}
-
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
 }
 </style>

@@ -445,24 +445,36 @@ class App {
         )
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
-            async (_event, kind: 'default' | 'directory' | 'file') => {
+            async (_event, kind: 'default' | 'directory' | 'file' | 'filePath') => {
                 logger.log('Request for opening browser for ', kind)
-                /** Helper for `showOpenDialog`, which has weird types by default. */
-                type Properties = ('openDirectory' | 'openFile')[]
-                const properties: Properties =
-                    kind === 'file'
-                        ? ['openFile']
-                        : kind === 'directory'
-                          ? ['openDirectory']
-                          : process.platform === 'darwin'
-                            ? ['openFile', 'openDirectory']
-                            : ['openFile']
-                const { canceled, filePaths } = await electron.dialog.showOpenDialog({ properties })
-                if (!canceled) {
-                    return filePaths
+                let retval = null
+                if (kind === 'filePath') {
+                    // "Accept", as the file won't be created immediately.
+                    const { canceled, filePath } = await electron.dialog.showSaveDialog({
+                        buttonLabel: 'Accept',
+                    })
+                    if (!canceled) {
+                        retval = [filePath]
+                    }
                 } else {
-                    return null
+                    /** Helper for `showOpenDialog`, which has weird types by default. */
+                    type Properties = ('openDirectory' | 'openFile')[]
+                    const properties: Properties =
+                        kind === 'file'
+                            ? ['openFile']
+                            : kind === 'directory'
+                              ? ['openDirectory']
+                              : process.platform === 'darwin'
+                                ? ['openFile', 'openDirectory']
+                                : ['openFile']
+                    const { canceled, filePaths } = await electron.dialog.showOpenDialog({
+                        properties,
+                    })
+                    if (!canceled) {
+                        retval = filePaths
+                    }
                 }
+                return retval
             }
         )
 

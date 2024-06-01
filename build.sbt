@@ -245,7 +245,10 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 ThisBuild / Test / testOptions ++=
-  Seq(Tests.Argument(TestFrameworks.ScalaTest, "-oID")) ++
+  Seq(
+    Tests.Argument(TestFrameworks.ScalaTest, "-oID"),
+    Tests.Argument(TestFrameworks.JUnit, "--verbosity=1")
+  ) ++
   sys.env
     .get("ENSO_TEST_JUNIT_DIR")
     .map { junitDir =>
@@ -1255,6 +1258,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
+    inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,

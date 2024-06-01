@@ -17,7 +17,7 @@ type Convertible_To_Columns
 
 ## PRIVATE
 Convertible_To_Columns.from (that:JS_Object) =
-    Convertible_To_Columns.Value that.field_names that.get
+    Convertible_To_Columns.Value that.field_names (that.get _)
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Map) =
@@ -38,7 +38,7 @@ Convertible_To_Columns.from (that:Column) =
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Row) =
-    Convertible_To_Columns.Value that.column_names that.get
+    Convertible_To_Columns.Value that.column_names (that.get _)
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Vector) =
