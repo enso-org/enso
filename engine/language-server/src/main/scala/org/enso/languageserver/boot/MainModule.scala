@@ -64,6 +64,7 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
+
 import scala.concurrent.duration._
 
 /** A main module containing all components of the server.
@@ -459,7 +460,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
 
   val secureConfig = SecureConnectionConfig
-    .fromApplicationConfig(applicationConfig())
+    .fromApplicationConfig(akkaHttpsConfig())
     .fold(
       v => v.flatMap(msg => { log.warn(s"invalid secure config: $msg"); None }),
       Some(_)
@@ -504,7 +505,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Closed Language Server main module.")
   }
 
-  private def applicationConfig(): com.typesafe.config.Config = {
+  private def akkaHttpsConfig(): com.typesafe.config.Config = {
     val empty = ConfigFactory.empty().atPath("akka.https")
     ConfigFactory
       .load()

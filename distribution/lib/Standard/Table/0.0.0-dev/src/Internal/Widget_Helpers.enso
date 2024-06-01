@@ -57,7 +57,7 @@ make_aggregate_column_selector table display=Display.Always =
     maximum = Option "Maximum" fqn+".Maximum" [column_widget]
     minimum = Option "Minimum" fqn+".Minimum" [column_widget]
 
-    Single_Choice display=display values=[count, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, sum, average, median, percentile, mode, standard_deviation, maximum, minimum]
+    Single_Choice display=display values=[count, sum, average, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation, maximum, minimum]
 
 ## PRIVATE
    Make an Aggregate_Column list editor
