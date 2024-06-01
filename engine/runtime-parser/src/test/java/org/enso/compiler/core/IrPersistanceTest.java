@@ -332,14 +332,14 @@ public class IrPersistanceTest {
   @Test
   public void inlineReferenceIsLazy() throws Exception {
     var s1 = new LazyString("Hello");
-    var in = new InlineReferenceHolder(Persistance.InlineReference.of(s1));
+    var in = new InlineReferenceHolder(Persistance.Reference.of(s1, false));
 
     LazyString.forbidden = true;
     InlineReferenceHolder out = serde(InlineReferenceHolder.class, in, -1);
-    Persistance.InlineReference<CharSequence> ref = out.ref();
+    Persistance.Reference<CharSequence> ref = out.ref();
     LazyString.forbidden = false;
 
-    assertEquals(s1, ref.get());
+    assertEquals(s1, ref.get(Object.class));
   }
 
   @Test
@@ -560,5 +560,5 @@ public class IrPersistanceTest {
   }
 
   @Persistable(clazz = InlineReferenceHolder.class, id = 432437)
-  public record InlineReferenceHolder(Persistance.InlineReference<CharSequence> ref) {}
+  public record InlineReferenceHolder(Persistance.Reference<CharSequence> ref) {}
 }

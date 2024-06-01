@@ -279,7 +279,7 @@ public class PersistableProcessor extends AbstractProcessor {
     var cnt = 0;
     for (var p : parameters) {
       var type = tu.asElement(tu.erasure(p.asType()));
-      if (type != null && type.getSimpleName().toString().equals("InlineReference")) {
+      if (type != null && type.getSimpleName().toString().equals("Reference")) {
         cnt++;
       }
     }

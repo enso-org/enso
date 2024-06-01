@@ -7,7 +7,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
-import org.openide.util.lookup.ServiceProvider;
 
 /**
  * Central persistance class. Use static {@link Persistance#write write} method to turn a graph of
@@ -91,7 +90,7 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /** Extended output interface for {@link #writeObject(Object)} method. */
-  public static interface Output extends DataOutput {
+  public static sealed interface Output extends DataOutput permits PerGenerator.ReferenceOutput {
     /**
      * Writes an object "inline" - as a value.
      *
@@ -113,7 +112,7 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /** Extended input interface for the {@link #writeObject(T, Output)} method. */
-  public static interface Input extends DataInput {
+  public static sealed interface Input extends DataInput permits PerInputImpl {
     /**
      * Reads objects written down by {@link Output#writeInline}.
      *
@@ -253,82 +252,38 @@ public abstract class Persistance<T> implements Cloneable {
     }
 
     /**
-     * Creates a reference to existing object.
+     * Creates a reference to existing object. Behaves like {@link #of(V, boolean) of(obj, false)}
+     * when the {@code Reference} is being written into the stream.
      *
      * @param <V> the type of the object
      * @param obj the object to "reference"
      * @return reference pointing to the provided object
      */
     public static <V> Reference<V> of(V obj) {
-      return new PerMemoryReference<>(obj);
+      return of(obj, false);
     }
-  }
-
-  /**
-   * Reference to an object.
-   *
-   * <p>This is a sibling to {@link Reference} that has the same lazy behaviour upon read, but it is
-   * written eagerly. This class is not meant to be used when cycles in the structure are expected -
-   * use {@link Reference} instead. It should be used when we want to ensure that a part of a
-   * structure is only read lazily.
-   */
-  public abstract static sealed class InlineReference<T>
-      permits DirectInlineReference, IndirectInlineReference {
 
     /**
-     * Extract object from the reference.
+     * Creates a reference to existing object and specifies how to persist it. The {@code
+     * deferWrite} value controls the order of serialization:
      *
-     * @return the referenced object
+     * <ul>
+     *   <li>if {@code false} then the {@code obj} is stored in the stream immediatelly and only
+     *       then the {@link Persistance.Output#writeObject(Object)} returns - <b>more effective</b>
+     *   <li>if {@code true} then the {@link Persistance.Output#writeObject(Object)} makes <em>a
+     *       note</em> to persist also {@code obj}, but returns almost immediatelly - useful to deal
+     *       with <b>cycles in the references</b>
+     * </ul>
+     *
+     * @param <V> the type of the object
+     * @param obj the object to "reference"
+     * @param deferWrite {@code false} or {@code true} as described in the method description
+     * @return reference pointing to the provided object
      */
-    public abstract T get();
-
-    public static <T> InlineReference<T> of(T obj) {
-      return new DirectInlineReference<>(obj);
-    }
-  }
-
-  private static final class DirectInlineReference<T> extends InlineReference<T> {
-    private final T value;
-
-    public DirectInlineReference(T value) {
-      this.value = value;
+    public static <V> Reference<V> of(V obj, boolean deferWrite) {
+      return deferWrite ? new PerMemoryReference.Deferred<>(obj) : new PerMemoryReference<>(obj);
     }
 
-    @Override
-    public T get() {
-      return value;
-    }
-  }
-
-  private static final class IndirectInlineReference<T> extends InlineReference<T> {
-    private final Reference<T> ref;
-
-    public IndirectInlineReference(Reference<T> ref) {
-      this.ref = ref;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public T get() {
-      return (T) ref.get(Object.class);
-    }
-  }
-
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistInlineReference extends Persistance<InlineReference> {
-    public PersistInlineReference() {
-      super(InlineReference.class, true, 0);
-    }
-
-    @Override
-    protected void writeObject(InlineReference obj, Output out) throws IOException {
-      out.writeObject(obj.get());
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    protected InlineReference readObject(Input in) throws IOException, ClassNotFoundException {
-      return new IndirectInlineReference(in.readReference(Object.class));
-    }
+    abstract boolean isDeferredWrite();
   }
 }

@@ -49,7 +49,7 @@ object Method {
     */
   sealed case class Explicit(
     override val methodReference: Name.MethodReference,
-    val bodyReference: Persistance.InlineReference[Expression],
+    val bodyReference: Persistance.Reference[Expression],
     val isStatic: Boolean,
     val isStaticWrapperForInstanceMethod: Boolean,
     override val location: Option[IdentifiedLocation],
@@ -67,7 +67,7 @@ object Method {
     ) = {
       this(
         methodReference,
-        Persistance.InlineReference.of(body),
+        Persistance.Reference.of(body, false),
         Explicit.computeIsStatic(body),
         Explicit.computeIsStaticWrapperForInstanceMethod(body),
         location,
@@ -76,7 +76,7 @@ object Method {
       );
     }
 
-    lazy val body: Expression = bodyReference.get()
+    lazy val body: Expression = bodyReference.get(classOf[Expression])
 
     /** Creates a copy of `this`.
       *
@@ -101,7 +101,7 @@ object Method {
     ): Explicit = {
       val res = Explicit(
         methodReference,
-        Persistance.InlineReference.of(body),
+        Persistance.Reference.of(body, false),
         isStatic,
         isStaticWrapperForInstanceMethod,
         location,

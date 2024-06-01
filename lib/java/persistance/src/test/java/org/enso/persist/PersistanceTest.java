@@ -100,7 +100,7 @@ public class PersistanceTest {
     assertEquals("Multiplied on write", 15, (int) plain.get(IntegerSupply.class).supply().get());
   }
 
-  private static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
+  static <T> T serde(Class<T> clazz, T l, int expectedSize) throws IOException {
     var arr = Persistance.write(l, (Function<Object, Object>) null);
     if (expectedSize >= 0) {
       assertEquals(expectedSize, arr.length - 12);
@@ -192,7 +192,7 @@ public class PersistanceTest {
   public void testReferenceLoopsInPersistance() throws Exception {
     var obj = new SelfLoop(null);
     // make the loop
-    obj.self = Persistance.Reference.of(obj);
+    obj.self = Persistance.Reference.of(obj, true);
 
     var loaded = serde(SelfLoop.class, obj, -1);
     var next = loaded.self.get(SelfLoop.class);
@@ -229,9 +229,9 @@ public class PersistanceTest {
   @Test
   public void testLoopsBetweenDifferentTypes() throws Exception {
     var obj3 = new LongerLoop3("a", null);
-    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3));
-    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2));
-    obj3.y = Persistance.Reference.of(obj1);
+    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3, true));
+    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2, true));
+    obj3.y = Persistance.Reference.of(obj1, true);
 
     var loaded1 = serde(LongerLoop1.class, obj1, -1);
     var r2 = loaded1.y().get(LongerLoop2.class);
@@ -252,15 +252,14 @@ public class PersistanceTest {
   @Test
   public void testReferenceLoopsSavedTwiceInPersistance() throws Exception {
     var obj3 = new LongerLoop3("a", null);
-    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3));
-    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2));
-    obj3.y = Persistance.Reference.of(obj1);
+    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3, true));
+    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2, true));
+    obj3.y = Persistance.Reference.of(obj1, true);
 
     var loaded1 = serde(LongerLoop1.class, obj1, -1);
     // Now we serialize the deserialized object again - this is to test that references read from
     // file can be serialized back to a file.
     var loadedAgain = serde(LongerLoop1.class, loaded1, -1);
-    System.out.println(loadedAgain.y());
     var r2 =
         loadedAgain
             .y()

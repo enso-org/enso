@@ -46,7 +46,7 @@ object Function {
     */
   sealed case class Lambda(
     override val arguments: List[DefinitionArgument],
-    bodyReference: Persistance.InlineReference[Expression],
+    bodyReference: Persistance.Reference[Expression],
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean,
     passData: MetadataStorage,
@@ -65,7 +65,7 @@ object Function {
     ) = {
       this(
         arguments,
-        Persistance.InlineReference.of(body),
+        Persistance.Reference.of(body, true),
         location,
         canBeTCO,
         passData,
@@ -73,7 +73,7 @@ object Function {
       )
     }
 
-    override lazy val body: Expression = bodyReference.get()
+    override lazy val body: Expression = bodyReference.get(classOf[Expression])
 
     /** Creates a copy of `this`.
       *
@@ -98,7 +98,7 @@ object Function {
       val res =
         Lambda(
           arguments,
-          Persistance.InlineReference.of(body),
+          Persistance.Reference.of(body, false),
           location,
           canBeTCO,
           passData,
