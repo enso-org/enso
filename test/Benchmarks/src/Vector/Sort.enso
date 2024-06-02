@@ -58,9 +58,16 @@ options = Bench.options . set_warmup (Bench.phase_conf 3 4) . set_measure (Bench
 
 
 type Data
-    Value ~sorted_vec ~partially_sorted_vec ~random_vec ~random_vec_wrapped ~rational_vec
+    Value ~sorted_vec ~partially_sorted_vec ~random_vec ~random_vec_wrapped ~rational_vec ~integer_vec
 
-    create vec_size = Data.Value (Data.make_sorted_vec vec_size) (make_partially_sorted_vec vec_size) (Data.make_random_vec vec_size) ((Data.make_random_vec vec_size).map (v -> Int.Value v)) (Utils.make_random_rational_vec vec_size)
+    create vec_size =
+        f1 s =  Data.make_sorted_vec s
+        f2 s = make_partially_sorted_vec s
+        f3 s = Data.make_random_vec s
+        f4 s = (Data.make_random_vec s).map (v -> Int.Value v)
+        f5 s = Utils.make_random_rational_vec s
+        f6 s = f5 s . map (x-> x.to_float . floor + 2)
+        Data.Value (f1 vec_size) (f2 vec_size) (f3 vec_size) (f4 vec_size) (f5 vec_size) (f6 vec_size)
 
     make_sorted_vec vec_size =
         make_sorted_ascending_vec vec_size
@@ -105,6 +112,24 @@ collect_benches = Bench.build builder->
 
         group_builder.specify "Sorting_with_the_Default_Ordered_Comparator" <|
             data.random_vec.sort by=comparator
+
+        group_builder.specify "Sorting_Prime_Numbers_First" <|
+            is_prime p -> Boolean =
+                test n = if n*n > p then True else
+                    if p % n == 0 then False else
+                        @Tail_Call test n+1
+
+                test 2
+
+            prime_first a:Integer b:Integer -> Ordering =
+                prime_a = is_prime a
+                prime_b = is_prime b
+
+                if prime_a == prime_b then Ordering.compare a b else
+                    if prime_a then Ordering.Less else
+                        Ordering.Greater
+
+            data.integer_vec.sort by=prime_first
 
         group_builder.specify "Sort_Rational_Vector" <|
             data.rational_vec.sort
