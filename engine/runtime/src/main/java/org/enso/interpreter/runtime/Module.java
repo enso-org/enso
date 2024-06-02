@@ -55,7 +55,7 @@ import org.enso.text.buffer.Rope;
 public final class Module implements EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
-  private final ModuleScope.Builder scopeBuilder;
+  private ModuleScope.Builder scopeBuilder;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
@@ -321,14 +321,14 @@ public final class Module implements EnsoObject {
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    */
-  public ModuleScope.Builder compileScope(EnsoContext context) {
+  public ModuleScope compileScope(EnsoContext context) {
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
       } catch (IOException ignored) {
       }
     }
-    return scopeBuilder;
+    return scopeBuilder.build();
   }
 
   /**
@@ -456,11 +456,18 @@ public final class Module implements EnsoObject {
    * @return the runtime scope of this module.
    */
   public ModuleScope getScope() {
-    return scopeBuilder.built();
+    if (scopeBuilder.isBuilt()) return scopeBuilder.built();
+    else return scopeBuilder.proxy();
   }
 
   public ModuleScope.Builder getScopeBuilder() {
     return scopeBuilder;
+  }
+
+  public ModuleScope.Builder newScopeBuilder() {
+    var builder = new ModuleScope.Builder(this);
+    this.scopeBuilder = builder;
+    return builder;
   }
 
   public void resetScope() {
@@ -569,14 +576,14 @@ public final class Module implements EnsoObject {
       }
     }
 
-    private static Type getType(ModuleScope.Builder scope, Object[] args)
+    private static Type getType(ModuleScope scope, Object[] args)
         throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
       var iop = InteropLibrary.getUncached();
       if (!iop.isString(args[0])) {
         throw UnsupportedTypeException.create(args, "First argument must be a string");
       }
       String name = iop.asString(args[0]);
-      return scope.getType(name);
+      return scope.getType(name, true);
     }
 
     private static Module reparse(Module module, Object[] args, EnsoContext context)
@@ -620,10 +627,7 @@ public final class Module implements EnsoObject {
     }
 
     private static Object evalExpression(
-        ModuleScope.Builder scope,
-        Object[] args,
-        EnsoContext context,
-        CallOptimiserNode callOptimiserNode)
+        ModuleScope scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
         throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
       if (args.length != 1) {
         throw ArityException.create(1, 1, args.length);
@@ -671,13 +675,13 @@ public final class Module implements EnsoObject {
             UnsupportedTypeException,
             UnsupportedMessageException {
       EnsoContext context = EnsoContext.get(null);
-      ModuleScope.Builder scope;
+      ModuleScope scope;
       switch (member) {
         case MethodNames.Module.GET_NAME:
           return module.getName().toString();
         case MethodNames.Module.GET_METHOD:
           scope = module.compileScope(context);
-          Function result = getMethod(scope.built(), arguments);
+          Function result = getMethod(scope, arguments);
           return result == null ? context.getBuiltins().nothing() : result;
         case MethodNames.Module.GET_TYPE:
           scope = module.compileScope(context);
@@ -694,7 +698,7 @@ public final class Module implements EnsoObject {
           return setSourceFile(module, arguments, context);
         case MethodNames.Module.GET_ASSOCIATED_TYPE:
           scope = module.compileScope(context);
-          return getAssociatedType(scope.built(), arguments);
+          return getAssociatedType(scope, arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
           scope = module.compileScope(context);
           return evalExpression(scope, arguments, context, callOptimiserNode);

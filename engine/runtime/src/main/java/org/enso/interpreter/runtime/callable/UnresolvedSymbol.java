@@ -28,8 +28,6 @@ public final class UnresolvedSymbol implements EnsoObject {
   private final String name;
   private final ModuleScope scope;
 
-  private final ModuleScope.Builder scopeBuilder;
-
   /**
    * Creates a new unresolved symbol.
    *
@@ -39,13 +37,6 @@ public final class UnresolvedSymbol implements EnsoObject {
   private UnresolvedSymbol(String name, ModuleScope scope) {
     this.name = name;
     this.scope = scope;
-    this.scopeBuilder = null;
-  }
-
-  private UnresolvedSymbol(String name, ModuleScope.Builder scopeBuilder) {
-    this.name = name;
-    this.scope = null;
-    this.scopeBuilder = scopeBuilder;
   }
 
   /**
@@ -61,7 +52,7 @@ public final class UnresolvedSymbol implements EnsoObject {
    * @return the scope this symbol was used in.
    */
   public ModuleScope getScope() {
-    return scopeBuilder != null ? scopeBuilder.build() : scope;
+    return scope;
   }
 
   /**
@@ -105,10 +96,6 @@ public final class UnresolvedSymbol implements EnsoObject {
    * @param scope the scope in which the lookup will occur
    * @return a node representing an unresolved symbol {@code name} in {@code scope}
    */
-  public static UnresolvedSymbol build(String name, ModuleScope.Builder scope) {
-    return new UnresolvedSymbol(name, scope);
-  }
-
   public static UnresolvedSymbol build(String name, ModuleScope scope) {
     return new UnresolvedSymbol(name, scope);
   }

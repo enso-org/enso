@@ -58,7 +58,7 @@ public abstract class CustomComparatorNode extends Node {
   UnresolvedConversion createConversion() {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
-    return UnresolvedConversion.build(comparableType.getDefinitionScopeBuilder());
+    return UnresolvedConversion.build(comparableType.getDefinitionScope());
   }
 
   @NeverDefault

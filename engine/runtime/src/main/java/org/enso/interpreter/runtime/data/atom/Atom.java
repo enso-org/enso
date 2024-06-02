@@ -144,7 +144,7 @@ public abstract class Atom implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   EnsoObject getMembers(boolean includeInternal) throws UnsupportedMessageException {
     Set<Function> members =
-        constructor.getMaterializedDefinitionScope().getMethodsForType(constructor.getType());
+        constructor.getDefinitionScope().getMethodsForType(constructor.getType());
     Set<Function> allFuncMembers = new HashSet<>();
     if (members != null) {
       allFuncMembers.addAll(members);
@@ -163,8 +163,7 @@ public abstract class Atom implements EnsoObject {
   }
 
   protected boolean isMethodProjectPrivate(Type type, String methodName) {
-    Function method =
-        constructor.getMaterializedDefinitionScope().getMethodForType(type, methodName);
+    Function method = constructor.getDefinitionScope().getMethodForType(type, methodName);
     if (method != null) {
       return method.getSchema().isProjectPrivate();
     }
@@ -177,7 +176,7 @@ public abstract class Atom implements EnsoObject {
   @CompilerDirectives.TruffleBoundary
   final boolean isMemberInvocable(String member) {
     var type = constructor.getType();
-    Set<String> members = constructor.getMaterializedDefinitionScope().getMethodNamesForType(type);
+    Set<String> members = constructor.getDefinitionScope().getMethodNamesForType(type);
     if (members != null && members.contains(member)) {
       return !isMethodProjectPrivate(type, member);
     }
@@ -290,8 +289,7 @@ public abstract class Atom implements EnsoObject {
     @Idempotent
     @TruffleBoundary
     protected static boolean isProjectPrivate(AtomConstructor cons, String member) {
-      Function method =
-          cons.getMaterializedDefinitionScope().getMethodForType(cons.getType(), member);
+      Function method = cons.getDefinitionScope().getMethodForType(cons.getType(), member);
       if (method != null) {
         return method.getSchema().isProjectPrivate();
       }

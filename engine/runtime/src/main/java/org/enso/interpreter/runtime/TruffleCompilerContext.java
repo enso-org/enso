@@ -137,10 +137,16 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config)
+  public void truffleRunCodegen(
+      CompilerContext.Module module,
+      CompilerContext.ModuleScopeBuilder scopeBuilder,
+      CompilerConfig config)
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    new IrToTruffle(context, m.getSource(), m.getScopeBuilder(), config).run(module.getIr());
+    var s =
+        org.enso.interpreter.runtime.scope.ModuleScope.Builder.fromCompilerModuleScopeBuilder(
+            scopeBuilder);
+    new IrToTruffle(context, m.getSource(), s, config).run(module.getIr());
   }
 
   // module related
@@ -241,9 +247,13 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void runStubsGenerator(CompilerContext.Module module) {
+  public void runStubsGenerator(
+      CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
     var m = ((Module) module).unsafeModule();
-    stubsGenerator.run(m.getIr(), m.getScopeBuilder());
+    var s =
+        ((org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder) scopeBuilder)
+            .unsafeScopeBuilder();
+    stubsGenerator.run(m.getIr(), s);
   }
 
   @Override
@@ -815,6 +825,18 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public boolean isPrivate() {
       return module.isPrivate();
+    }
+
+    @Override
+    public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
+      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
+          module.getScopeBuilder());
+    }
+
+    @Override
+    public ModuleScopeBuilder newScopeBuilder() {
+      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
+          module.newScopeBuilder());
     }
 
     @Override

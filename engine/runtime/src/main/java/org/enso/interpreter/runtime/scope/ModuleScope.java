@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
@@ -151,15 +152,15 @@ public final class ModuleScope implements EnsoObject {
 
   public List<Type> getAllTypes(String name) {
     var tpes = new LinkedList<Type>();
-    var tpe0 = getType(name);
+    var tpe0 = getType(name, false);
     if (tpe0 != null) tpes.add(tpe0);
     tpes.addAll(types.values());
     return tpes;
   }
 
   @ExportMessage.Ignore
-  public Type getType(String name) {
-    if (associatedType.getName().equals(name)) {
+  public Type getType(String name, boolean ignoreAssociatedType) {
+    if (!ignoreAssociatedType && associatedType.getName().equals(name)) {
       return associatedType;
     }
     return types.get(name);
@@ -455,6 +456,10 @@ public final class ModuleScope implements EnsoObject {
       return moduleScope;
     }
 
+    public boolean isBuilt() {
+      return moduleScope != null;
+    }
+
     public ModuleScope build() {
       if (moduleScope == null) {
         synchronized (this) {
@@ -484,6 +489,35 @@ public final class ModuleScope implements EnsoObject {
       imports = new LinkedHashSet<>();
       exports = new LinkedHashSet<>();
       moduleScope = null;
+    }
+
+    public static ModuleScope.Builder fromCompilerModuleScopeBuilder(
+        CompilerContext.ModuleScopeBuilder scopeBuilder) {
+      return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
+    }
+
+    public ModuleScope proxy() {
+      return new ModuleScope(
+          module, associatedType, polyglotSymbols, types, methods, conversions, imports, exports);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      StringBuilder builder = new StringBuilder();
+      builder.append("ModuleScope builder for " + module.getName());
+      builder.append(",\n");
+      builder.append("Polyglot Symbols: " + polyglotSymbols);
+      builder.append(",\n");
+      builder.append("Methods: " + methods);
+      builder.append(",\n");
+      builder.append("Conversions: " + conversions);
+      builder.append(",\n");
+      builder.append("Imports: " + imports);
+      builder.append(",\n");
+      builder.append("Exports: " + exports);
+      builder.append(",\n");
+      builder.append("Types: " + types);
+      return builder.toString();
     }
   }
 }

@@ -44,9 +44,9 @@ public abstract class CaptureCallerInfoNode extends Node {
 
   static class ScopeInfo {
     private final LocalScope localScope;
-    private final ModuleScope.Builder moduleScope;
+    private final ModuleScope moduleScope;
 
-    public ScopeInfo(LocalScope localScope, ModuleScope.Builder moduleScope) {
+    public ScopeInfo(LocalScope localScope, ModuleScope moduleScope) {
       this.localScope = localScope;
       this.moduleScope = moduleScope;
     }
@@ -55,7 +55,7 @@ public abstract class CaptureCallerInfoNode extends Node {
       return localScope;
     }
 
-    public ModuleScope.Builder getModuleScope() {
+    public ModuleScope getModuleScope() {
       return moduleScope;
     }
   }

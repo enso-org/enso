@@ -171,7 +171,7 @@ public final class AtomConstructor implements EnsoObject {
     BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
         MethodRootNode.buildConstructor(
-            language, localScope, definitionScope, instantiateBlock, section, this);
+            language, localScope, definitionScope.proxy(), instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
     var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
     if (type.isProjectPrivate()) {
@@ -221,17 +221,9 @@ public final class AtomConstructor implements EnsoObject {
    *
    * @return the scope in which this constructor was defined
    */
-  public ModuleScope.Builder getDefinitionScope() {
-    return definitionScope;
-  }
-
-  /**
-   * Gets the scope in which this constructor was defined.
-   *
-   * @return the scope in which this constructor was defined
-   */
-  public ModuleScope getMaterializedDefinitionScope() {
-    return definitionScope.built();
+  public ModuleScope getDefinitionScope() {
+    if (definitionScope.isBuilt()) return definitionScope.built();
+    else return definitionScope.proxy();
   }
 
   /**

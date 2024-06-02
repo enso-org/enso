@@ -286,12 +286,18 @@ class Compiler(
           )
         )
         context.updateModule(module, _.invalidateCache())
-        parseModule(module, irCachingEnabled && !context.isInteractive(module))
+        parseModule(
+          module,
+          irCachingEnabled && !context.isInteractive(module)
+        )
         importedModules
           .filter(isLoadedFromSource)
           .map(m => {
             if (m.getBindingsMap() == null) {
-              parseModule(m, irCachingEnabled && !context.isInteractive(module))
+              parseModule(
+                m,
+                irCachingEnabled && !context.isInteractive(module)
+              )
             }
           })
         runImportsAndExportsResolution(module, generateCode)
@@ -360,7 +366,7 @@ class Compiler(
 
     runErrorHandling(requiredModules)
 
-    requiredModules.foreach { module =>
+    val requiredModulesWithScope = requiredModules.map { module =>
       if (
         !context
           .getCompilationStage(module)
@@ -368,16 +374,21 @@ class Compiler(
             CompilationStage.AFTER_RUNTIME_STUBS
           )
       ) {
-        context.runStubsGenerator(module)
+        val moduleScopeBuilder = module.getScopeBuilder()
+        context.runStubsGenerator(module, moduleScopeBuilder)
         context.updateModule(
           module,
           { u =>
             u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
           }
         )
+        (module, Some(moduleScopeBuilder))
+      } else {
+        (module, None)
       }
     }
-    requiredModules.foreach { module =>
+
+    requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
       if (
         !context
           .getCompilationStage(module)
@@ -393,7 +404,11 @@ class Compiler(
             context.getModuleName(module)
           )
 
-          context.truffleRunCodegen(module, config)
+          context.truffleRunCodegen(
+            module,
+            moduleScopeBuilder.getOrElse(module.getScopeBuilder),
+            config
+          )
         }
         context.updateModule(
           module,

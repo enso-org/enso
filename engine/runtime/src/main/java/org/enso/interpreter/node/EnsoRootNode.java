@@ -22,7 +22,7 @@ public abstract class EnsoRootNode extends RootNode {
   private final int sourceStartIndex;
   private final int sourceLength;
   private final LocalScope localScope;
-  private final ModuleScope.Builder moduleScope;
+  private final ModuleScope moduleScope;
   private final Source inlineSource;
 
   /**
@@ -37,7 +37,7 @@ public abstract class EnsoRootNode extends RootNode {
   protected EnsoRootNode(
       EnsoLanguage language,
       LocalScope localScope,
-      ModuleScope.Builder moduleScope,
+      ModuleScope moduleScope,
       String name,
       SourceSection sourceSection) {
     super(language, buildFrameDescriptor(localScope));
@@ -143,12 +143,8 @@ public abstract class EnsoRootNode extends RootNode {
    *
    * @return the module scope for this node
    */
-  public ModuleScope.Builder getModuleScope() {
+  public ModuleScope getModuleScope() {
     return moduleScope;
-  }
-
-  public ModuleScope getMaterializedScope() {
-    return moduleScope.built();
   }
 
   public Module getModule() {

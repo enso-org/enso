@@ -127,7 +127,7 @@ public final class EqualsNode extends Node {
 
     private static boolean isDefinedIn(ModuleScope scope, Function fn) {
       if (fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
-        return ensoRoot.getMaterializedScope() == scope;
+        return ensoRoot.getModuleScope().getModule() == scope.getModule();
       } else {
         return false;
       }
@@ -244,7 +244,7 @@ public final class EqualsNode extends Node {
         InteropConversionCallNode convertNode,
         EqualsSimpleNode equalityNode)
         throws PanicException {
-      var convert = UnresolvedConversion.build(selfType.getDefinitionScopeBuilder());
+      var convert = UnresolvedConversion.build(selfType.getDefinitionScope());
 
       var ctx = EnsoContext.get(this);
       var state = State.create(ctx);

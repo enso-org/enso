@@ -126,7 +126,8 @@ public final class Builtins {
   public Builtins(EnsoContext context) {
     EnsoLanguage language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
-    ModuleScope.Builder scopeBuilder = module.compileScope(context);
+    module.compileScope(context); // Dummy compilation for an empty module
+    ModuleScope.Builder scopeBuilder = module.newScopeBuilder();
 
     builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scopeBuilder);
     builtinsByName =

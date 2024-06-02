@@ -25,7 +25,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 public final class UnresolvedConversion implements EnsoObject {
 
   private final ModuleScope scope;
-  private final ModuleScope.Builder scopeBuilder;
 
   /**
    * Creates a new unresolved conversion.
@@ -34,19 +33,13 @@ public final class UnresolvedConversion implements EnsoObject {
    */
   private UnresolvedConversion(ModuleScope scope) {
     this.scope = scope;
-    this.scopeBuilder = null;
-  }
-
-  private UnresolvedConversion(ModuleScope.Builder scopeBuilder) {
-    this.scope = null;
-    this.scopeBuilder = scopeBuilder;
   }
 
   /**
    * @return the scope this symbol was used in.
    */
   public ModuleScope getScope() {
-    return scopeBuilder != null ? scopeBuilder.built() : scope;
+    return scope;
   }
 
   /**
@@ -92,10 +85,6 @@ public final class UnresolvedConversion implements EnsoObject {
    */
   public static UnresolvedConversion build(ModuleScope scope) {
     return new UnresolvedConversion(scope);
-  }
-
-  public static UnresolvedConversion build(ModuleScope.Builder scopeBuilder) {
-    return new UnresolvedConversion(scopeBuilder);
   }
 
   /**

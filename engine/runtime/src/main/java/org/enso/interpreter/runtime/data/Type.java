@@ -98,7 +98,7 @@ public final class Type implements EnsoObject {
   }
 
   public QualifiedName getQualifiedName() {
-    if (this == this.getDefinitionScopeBuilder().getAssociatedType()) {
+    if (this == this.getDefinitionScope().getAssociatedType()) {
       return definitionScope.getModule().getName();
     } else {
       return definitionScope.getModule().getName().createChild(getName());
@@ -127,12 +127,9 @@ public final class Type implements EnsoObject {
     return name;
   }
 
-  public ModuleScope.Builder getDefinitionScopeBuilder() {
-    return definitionScope;
-  }
-
   public ModuleScope getDefinitionScope() {
-    return definitionScope.built();
+    if (definitionScope.isBuilt()) return definitionScope.built();
+    else return definitionScope.proxy();
   }
 
   public boolean isBuiltin() {

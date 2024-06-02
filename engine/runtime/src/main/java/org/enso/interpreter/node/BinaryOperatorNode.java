@@ -102,7 +102,7 @@ final class BinaryOperatorNode extends ExpressionNode {
     }
 
     final Function findSymbol(String symbol, Type type) {
-      var unresolved = UnresolvedSymbol.build(symbol, type.getDefinitionScopeBuilder());
+      var unresolved = UnresolvedSymbol.build(symbol, type.getDefinitionScope());
       var found = unresolved.resolveFor(this, type);
       if (found != null) {
         return found.getLeft();
@@ -187,7 +187,7 @@ final class BinaryOperatorNode extends ExpressionNode {
         InteropConversionCallNode convertNode,
         InvokeFunctionNode invokeNode)
         throws PanicException {
-      var convert = UnresolvedConversion.build(thatType.getDefinitionScopeBuilder());
+      var convert = UnresolvedConversion.build(thatType.getDefinitionScope());
 
       var ctx = EnsoContext.get(this);
       var state = State.create(ctx);
