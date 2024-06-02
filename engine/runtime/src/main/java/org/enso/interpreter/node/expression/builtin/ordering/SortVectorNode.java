@@ -13,7 +13,6 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,7 +29,6 @@ import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -779,7 +777,7 @@ public abstract class SortVectorNode extends Node {
     private final Compare onFunc;
     private final boolean hasCustomOnFunc;
     private final Type comparator;
-    private final CallRootNode callNode;
+    private final CallOptimiserNode callNode;
     private final State state;
     private final Atom less;
     private final Atom equal;
@@ -814,7 +812,7 @@ public abstract class SortVectorNode extends Node {
         this.hasCustomOnFunc = true;
         this.onFunc = checkAndConvertOnFunc(onFunc, typesLibrary, methodResolverNode);
       }
-      this.callNode = new CallRootNode(callNode);
+      this.callNode = callNode;
       this.less = less;
       this.equal = equal;
       this.greater = greater;
@@ -933,39 +931,6 @@ public abstract class SortVectorNode extends Node {
     private CompareException(Object leftOperand, Object rightOperand) {
       this.leftOperand = leftOperand;
       this.rightOperand = rightOperand;
-    }
-  }
-
-  private static final class CallRootNode extends RootNode {
-
-    @Child private CallOptimiserNode callNode;
-
-    private CallRootNode(CallOptimiserNode node) {
-      super(null);
-      this.callNode = node;
-    }
-
-    final Object executeDispatch(
-        VirtualFrame frame,
-        Function callable,
-        CallerInfo callerInfo,
-        State state,
-        Object[] arguments,
-        Warning[] warnings) {
-      return getCallTarget().call(callable, callerInfo, state, arguments, warnings);
-    }
-
-    @Override
-    public final Object execute(VirtualFrame frame) {
-      var callable = (Function) frame.getArguments()[0];
-      var callerInfo = (CallerInfo) frame.getArguments()[1];
-      var state = (State) frame.getArguments()[2];
-      var arguments = (Object[]) frame.getArguments()[3];
-      var warnings = (Warning[]) frame.getArguments()[4];
-
-      var ret = callNode.executeDispatch(frame, callable, callerInfo, state, arguments, warnings);
-
-      return ret;
     }
   }
 }
