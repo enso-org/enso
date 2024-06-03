@@ -7,7 +7,7 @@ type Columns_To_Add
     All_Columns
 
     ## Read the first specified number of columns.
-    First columns:Integer=2
+    First columns:Integer=1
 
     ## PRIVATE
     default_widget -> Widget = 
