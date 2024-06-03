@@ -284,6 +284,17 @@ public final class ModuleScope implements EnsoObject {
       this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
     }
 
+    public Builder(Module module, Map<String, Type> types) {
+      this.module = module;
+      this.polyglotSymbols = new LinkedHashMap<>();
+      this.types = types;
+      this.methods = new LinkedHashMap<>();
+      this.conversions = new LinkedHashMap<>();
+      this.imports = new LinkedHashSet<>();
+      this.exports = new LinkedHashSet<>();
+      this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
+    }
+
     public Builder(
         Module module,
         Type associatedType,
@@ -432,6 +443,10 @@ public final class ModuleScope implements EnsoObject {
       return types.get(typeName);
     }
 
+    public Builder newBuilderInheritingTypes() {
+      return new Builder(this.module, new LinkedHashMap<>(this.types));
+    }
+
     /**
      * @return the associated type of this module.
      */
@@ -478,17 +493,6 @@ public final class ModuleScope implements EnsoObject {
         }
       }
       return moduleScope;
-    }
-
-    public void reset() {
-      polyglotSymbols = new LinkedHashMap<>();
-      // can't clear types because on recompilation methods etc will be assigned to the new one
-      // types = new LinkedHashMap<>();
-      methods = new LinkedHashMap<>();
-      conversions = new LinkedHashMap<>();
-      imports = new LinkedHashSet<>();
-      exports = new LinkedHashSet<>();
-      moduleScope = null;
     }
 
     public static ModuleScope.Builder fromCompilerModuleScopeBuilder(

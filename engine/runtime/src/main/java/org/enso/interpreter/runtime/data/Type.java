@@ -61,9 +61,7 @@ public final class Type implements EnsoObject {
       Type supertype,
       boolean builtin,
       boolean isProjectPrivate) {
-    var result = new Type(name, definitionScope, supertype, null, builtin, isProjectPrivate);
-    result.generateQualifiedAccessor();
-    return result;
+    return new Type(name, definitionScope, supertype, null, builtin, isProjectPrivate);
   }
 
   public static Type create(
