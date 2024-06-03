@@ -2241,7 +2241,6 @@ lazy val `runtime-fat-jar` =
               LocalProject("runtime-instrument-id-execution"),
               LocalProject("runtime-instrument-repl-debugger"),
               LocalProject("runtime-instrument-runtime-server"),
-              LocalProject("ydoc-server")
             ),
             inConfigurations(Compile)
           ),
