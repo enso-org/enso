@@ -1,0 +1,18 @@
+## PRIVATE
+   An input stream that can be read multiple times.
+
+   It may be useful when multiple passes over the data are required.
+
+   A generic stream can be converted to `Restartable_Input_Stream` by reading
+   all its contents and storing them either in memory or in a temporary file.
+   A stream backed by an existing file can be converted to
+   `Restartable_Input_Stream` at no cost.
+type Restartable_Input_Stream
+    ## PRIVATE
+    private From_Bytes bytes
+
+    ## PRIVATE
+    private From_Existing_File file:File
+
+    ## PRIVATE
+    private From_Temporary_File temporary_file:Temporary_File

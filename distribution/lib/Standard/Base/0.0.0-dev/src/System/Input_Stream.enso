@@ -23,10 +23,17 @@ type Input_Stream
 
        Given a Java InputStream, wraps as a Managed_Resource and returns a new
        Input_Stream.
-    new : Java_Input_Stream -> Any -> (Nothing | File | Temporary_File) -> Input_Stream
+    new : Java_Input_Stream -> Any -> (Nothing | File | Temporary_File | Vector) -> Input_Stream
     new java_stream error_handler associated_file=Nothing =
         resource = Managed_Resource.register java_stream close_stream
         Input_Stream.Value resource error_handler associated_file
+
+    ## PRIVATE
+       ADVANCED
+       Creates a new input stream from a vector of bytes.
+    from_bytes (bytes : Vector Integer) -> Input_Stream =
+        raw_stream = ByteArrayInputStream.new bytes
+        Input_Stream.new raw_stream (File_Error.handle_java_exceptions Nothing) bytes
 
     ## PRIVATE
        An input stream, allowing for interactive reading of contents.
@@ -36,7 +43,7 @@ type Input_Stream
          stream.
        - error_handler: An error handler for IOExceptions thrown when reading.
        - associated_file: The file associated with this stream, if any.
-    Value stream_resource error_handler (associated_file:Nothing|File|Temporary_File)
+    private Value stream_resource error_handler (associated_file:Nothing|File|Temporary_File)
 
     ## PRIVATE
        ADVANCED
@@ -104,6 +111,10 @@ type Input_Stream
         problems = Vector.from_polyglot_array results.problems . map decoding_problem->
             Encoding_Error.Error decoding_problem.message
         on_problems.attach_problems_after results.result problems
+
+    ## PRIVATE
+    as_restartable_stream self -> Restartable_Input_Stream =
+        "TODO"
 
     ## PRIVATE
        Reads the contents of this stream into a given file.
