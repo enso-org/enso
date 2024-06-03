@@ -784,6 +784,7 @@ lazy val `profiling-utils` = project
   .settings(
     frgaalJavaCompilerSetting,
     compileOrder := CompileOrder.JavaThenScala,
+    javaModuleName := "org.enso.profiling",
     Compile / exportJars := true,
     version := "0.1",
     libraryDependencies ++= Seq(
@@ -1907,7 +1908,9 @@ lazy val `runtime-integration-tests` =
       Test / javaOptions ++= testLogProviderOptions,
       Test / addModules := Seq(
         (`runtime-test-instruments` / javaModuleName).value,
-        (`runtime-fat-jar` / javaModuleName).value
+        (`runtime-fat-jar` / javaModuleName).value,
+        (`syntax-rust-definition` / javaModuleName).value,
+        (`profiling-utils` / javaModuleName).value
       ),
       Test / modulePath := {
         val updateReport = (Test / update).value
@@ -1915,6 +1918,7 @@ lazy val `runtime-integration-tests` =
           GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
             "org.slf4j"           % "slf4j-api"               % slf4jVersion,
             "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion,
+            "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
             "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
             "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
             "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
@@ -1930,9 +1934,16 @@ lazy val `runtime-integration-tests` =
           (`runtime-test-instruments` / Compile / exportedProducts).value.head.data
         val runtimeMod =
           (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
-        requiredMods ++
-        Seq(runtimeTestInstrumentsMod) ++
-        Seq(runtimeMod)
+        val syntaxMod =
+          (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
+        val profilingMod =
+          (`profiling-utils` / Compile / exportedProducts).value.head.data
+        requiredMods ++ Seq(
+          runtimeTestInstrumentsMod,
+          runtimeMod,
+          syntaxMod,
+          profilingMod
+        )
       },
       Test / patchModules := {
 
