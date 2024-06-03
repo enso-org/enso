@@ -4,6 +4,10 @@ open module org.enso.runtime {
   // Because of akka.util.Unsafe
   requires jdk.unsupported;
   requires org.enso.syntax;
+  // profiling-utils is not needed for runtime. It is needed for runner.jar,
+  // but we have to include it here so that the forwarding in IsolatedClassLoader
+  // works.
+  requires org.enso.profiling;
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires static org.slf4j;
