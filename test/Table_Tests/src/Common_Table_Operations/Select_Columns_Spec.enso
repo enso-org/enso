@@ -257,6 +257,14 @@ add_specs suite_builder setup =
             expect_column_names ["int", "float", "text"] <| data.table.remove_columns_by_type [Value_Type.Boolean]
 
         group_builder.specify "should be able to select by strict type" <|
+            expect_column_names ["int"] <| data.table.select_columns [..By_Type ..Integer strict=True]
+            data.table.select_columns [..By_Type (..Integer Bits.Bits_16) strict=True] . should_fail_with No_Output_Columns
+            expect_column_names ["float"] <| data.table.select_columns [..By_Type ..Float strict=True]
+            data.table.select_columns [..By_Type (..Float Bits.Bits_32) strict=True] . should_fail_with No_Output_Columns
+            expect_column_names ["text"] <| data.table.select_columns [..By_Type ..Char strict=True]
+            data.table.select_columns [..By_Type (..Char 3 False) strict=True] . should_fail_with No_Output_Columns
+
+        group_builder.specify "should be able to select by strict type  (deprecated)" <|
             expect_column_names ["int"] <| data.table.select_columns_by_type [Value_Type.Integer] strict=True
             data.table.select_columns_by_type [Value_Type.Integer Bits.Bits_16] strict=True . should_fail_with No_Output_Columns
             expect_column_names ["float"] <| data.table.select_columns_by_type [Value_Type.Float] strict=True
