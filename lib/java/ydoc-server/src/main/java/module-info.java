@@ -9,4 +9,5 @@ module org.enso.ydoc {
   requires org.slf4j;
 
   opens org.enso.ydoc.polyfill.web;
+  exports org.enso.ydoc;
 }
