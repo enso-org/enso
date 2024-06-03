@@ -24,7 +24,7 @@ import org.enso.languageserver.monitoring.{
   IdlenessEndpoint,
   IdlenessMonitor
 }
-import org.enso.languageserver.profiling.ProfilingManager
+import org.enso.languageserver.profiling.{EventsMonitorActor, ProfilingManager}
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -172,22 +172,39 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     "lock-manager-service"
   )
 
-  val runtimeEventsMonitor =
+  private val (runtimeEventsMonitor, messagesCallbackOpt) =
     languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
         val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
-        new RuntimeEventsMonitor(out)
+        new RuntimeEventsMonitor(out) -> Some(())
       case None =>
-        new NoopEventsMonitor()
+        new NoopEventsMonitor() -> None
     }
   log.trace(
     "Started runtime events monitor [{}].",
     runtimeEventsMonitor.getClass.getName
   )
 
+  private val eventsMonitor =
+    system.actorOf(
+      EventsMonitorActor.props(runtimeEventsMonitor),
+      "events-monitor"
+    )
+
+  private val messagesCallback =
+    messagesCallbackOpt
+      .map(_ => EventsMonitorActor.messagesCallback(eventsMonitor))
+      .toList
+
+  private val profilingManager =
+    system.actorOf(
+      ProfilingManager.props(eventsMonitor, distributionManager),
+      "profiling-manager"
+    )
+
   lazy val runtimeConnector =
     system.actorOf(
-      RuntimeConnector.props(lockManagerService, runtimeEventsMonitor),
+      RuntimeConnector.props(lockManagerService, eventsMonitor),
       "runtime-connector"
     )
 
@@ -370,12 +387,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     "project-settings-manager"
   )
 
-  val profilingManager =
-    system.actorOf(
-      ProfilingManager.props(runtimeConnector, distributionManager),
-      "profiling-manager"
-    )
-
   val libraryLocations =
     LibraryLocations.resolve(
       distributionManager,
@@ -476,7 +487,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           lazyMessageTimeout = 10.seconds,
           secureConfig       = secureConfig
         ),
-      List(healthCheckEndpoint, idlenessEndpoint)
+      List(healthCheckEndpoint, idlenessEndpoint),
+      messagesCallback
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
 
@@ -489,7 +501,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         outgoingBufferSize = 100,
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
-      )
+      ),
+      messagesCallback
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
@@ -502,6 +515,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     context.close()
+    runtimeEventsMonitor.close()
     log.info("Closed Language Server main module.")
   }
 
