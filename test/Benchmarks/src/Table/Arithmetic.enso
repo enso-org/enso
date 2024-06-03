@@ -35,13 +35,15 @@ foreign arrow int64_plus = """
     +[Int64]
 
 to_arrow t:Table =
-    column_to_arrow name:Text =
+    column_to_arrow name:Text -> Array =
         v = t.at name . to_vector
         builder = int64_new.new v.length
         v.map e-> builder.append e
         builder.build
 
-    [column_to_arrow "X", column_to_arrow "Y"]
+    x = column_to_arrow "X"
+    y = column_to_arrow "Y"
+    [x, y]
 
 type Data
     private Value ~lazy
@@ -73,7 +75,6 @@ collect_benches = Bench.build builder->
 
     builder.group ("Arrow_Arithmetic_" + num_rows.to_text) options group_builder->
         group_builder.specify "Plus_Fitting" <|
-            v = data.arrow_plus data.arrow_x data.arrow_y
-            IO.println <| v . take 100
+            data.arrow_plus data.arrow_x data.arrow_y
 
 main = collect_benches . run_main
