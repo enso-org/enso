@@ -1502,13 +1502,17 @@ lazy val `language-server` = (project in file("engine/language-server"))
       necessaryModules
     },
     Test / addModules := Seq(
-      (`runtime-fat-jar` / javaModuleName).value
+      (`runtime-fat-jar` / javaModuleName).value,
+      (`syntax-rust-definition` / javaModuleName).value,
+      (`profiling-utils` / javaModuleName).value,
+      (`ydoc-server` / javaModuleName).value
     ),
     Test / modulePath := {
       val updateReport = (Test / update).value
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion
+          "org.slf4j" % "slf4j-api" % slf4jVersion,
+          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1518,7 +1522,18 @@ lazy val `language-server` = (project in file("engine/language-server"))
       )
       val runtimeMod =
         (`runtime-fat-jar` / Compile / productDirectories).value.head
-      requiredMods ++ Seq(runtimeMod)
+      val syntaxMod =
+        (`syntax-rust-definition` / Compile / productDirectories).value.head
+      val ydocMod =
+        (`ydoc-server` / Compile / productDirectories).value.head
+      val profilingMod =
+        (`profiling-utils` / Compile / productDirectories).value.head
+      requiredMods ++ Seq(
+        runtimeMod,
+        syntaxMod,
+        ydocMod,
+        profilingMod
+      )
     },
     Test / javaOptions ++= testLogProviderOptions,
     Test / patchModules := {
@@ -1553,11 +1568,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
         ) / Compile / productDirectories).value ++
         // We have to patch the `runtime` project as well, as it contains BuiltinTypes.metadata in
         // runtime/target/classes/META-INF directory
-        (LocalProject("runtime") / Compile / productDirectories).value ++
-        (LocalProject(
-          "syntax-rust-definition"
-        ) / Compile / productDirectories).value ++
-        (LocalProject("ydoc-server") / Compile / productDirectories).value
+        (LocalProject("runtime") / Compile / productDirectories).value
       val extraModsToPatch = JPMSUtils.filterModulesFromUpdate(
         (Test / update).value,
         Seq(
@@ -1573,6 +1584,12 @@ lazy val `language-server` = (project in file("engine/language-server"))
     Test / addReads := {
       Map(
         (`runtime-fat-jar` / javaModuleName).value -> Seq("ALL-UNNAMED")
+      )
+    },
+    Test / addExports := {
+      val profModName = (`profiling-utils` / javaModuleName).value
+      Map (
+        profModName + "/org.enso.profiling.snapshot" -> Seq("ALL-UNNAMED")
       )
     }
   )
