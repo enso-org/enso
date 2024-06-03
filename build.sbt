@@ -1927,7 +1927,8 @@ lazy val `runtime-integration-tests` =
         (`runtime-test-instruments` / javaModuleName).value,
         (`runtime-fat-jar` / javaModuleName).value,
         (`syntax-rust-definition` / javaModuleName).value,
-        (`profiling-utils` / javaModuleName).value
+        (`profiling-utils` / javaModuleName).value,
+        (`ydoc-server` / javaModuleName).value,
       ),
       Test / modulePath := {
         val updateReport = (Test / update).value
@@ -1951,6 +1952,8 @@ lazy val `runtime-integration-tests` =
           (`runtime-test-instruments` / Compile / exportedProducts).value.head.data
         val runtimeMod =
           (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
+        val ydocMod =
+          (`ydoc-server` / Compile / exportedProducts).value.head.data
         val syntaxMod =
           (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
         val profilingMod =
@@ -1958,6 +1961,7 @@ lazy val `runtime-integration-tests` =
         requiredMods ++ Seq(
           runtimeTestInstrumentsMod,
           runtimeMod,
+          ydocMod,
           syntaxMod,
           profilingMod
         )
@@ -2244,11 +2248,13 @@ lazy val `runtime-fat-jar` =
     .settings(
       // extra module path for compileModuleInfo task
       Compile / JPMSUtils.extraMp := {
+        val ydocMod =
+          (`ydoc-server` / Compile / exportedProductJars).value
         val syntaxMod =
           (`syntax-rust-definition` / Compile / exportedProductJars).value
         val profilingMod =
           (`profiling-utils` / Compile / exportedProductJars).value
-        syntaxMod ++ profilingMod
+        ydocMod ++ syntaxMod ++ profilingMod
       },
       Compile / compileModuleInfo := {
         JPMSUtils.compileModuleInfo(
