@@ -727,9 +727,8 @@ lazy val `syntax-rust-definition` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
-    // exportJars := true forces `exportedProducts` to output the path to the
-    // jar file rather than to the exploded dir with classes.
     Compile / exportJars := true,
+    javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java"
@@ -778,6 +777,7 @@ lazy val `profiling-utils` = project
   .settings(
     frgaalJavaCompilerSetting,
     compileOrder := CompileOrder.JavaThenScala,
+    Compile / exportJars := true,
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
@@ -1208,6 +1208,7 @@ lazy val `ydoc-server` = project
   .settings(
     frgaalJavaCompilerSetting,
     javaModuleName := "org.enso.ydoc",
+    Compile / exportJars := true,
     crossPaths := false,
     autoScalaLibrary := false,
     Test / fork := true,
@@ -2206,10 +2207,11 @@ lazy val `runtime-fat-jar` =
   (project in file("engine/runtime-fat-jar"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      Compile / compileModuleInfo := Def.task {
-        val extraMp = Seq(
-          (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
-        )
+      // extra module path for compileModuleInfo task
+      Compile / JPMSUtils.extraMp := {
+        (`syntax-rust-definition` / Compile / exportedProductJars).value
+      },
+      Compile / compileModuleInfo := {
         JPMSUtils.compileModuleInfo(
           copyDepsFilter = ScopeFilter(
             inProjects(
@@ -2223,8 +2225,7 @@ lazy val `runtime-fat-jar` =
             ),
             inConfigurations(Compile)
           ),
-          modulePath = JPMSUtils.componentModules ++ helidon,
-          modulePathExtra = extraMp
+          modulePath = JPMSUtils.componentModules ++ helidon
         )
       }
         .dependsOn(Compile / compile)
@@ -2256,10 +2257,12 @@ lazy val `runtime-fat-jar` =
       assembly := assembly
         .dependsOn(Compile / compile)
         .dependsOn(Compile / compileModuleInfo)
-        // syntax-rust-definition / packageBin dependency is needed because of
+        //`pakcageBin`dependencies are needed because
         // assemblyExcludedJars can only exclude JAR archives, not exploded
         // directories with classes.
         .dependsOn(`syntax-rust-definition` / Compile / packageBin)
+        .dependsOn(`ydoc-server` / Compile / packageBin)
+        .dependsOn(`profiling-utils` / Compile / packageBin)
         .value,
       assembly / assemblyJarName := "runtime.jar",
       assembly / test := {},
@@ -2273,11 +2276,18 @@ lazy val `runtime-fat-jar` =
           streams.value.log
         )
         val syntaxJar = (`syntax-rust-definition` / Compile / exportedProducts).value
+        val ydocJar = (`ydoc-server` / Compile / exportedProducts).value
+        val profilingJar = (`profiling-utils` / Compile / exportedProducts).value
+        val excludedInternalPkgs = syntaxJar ++ ydocJar ++ profilingJar
         val log = streams.value.log
-        if (!syntaxJar.head.data.exists()) {
-          log.error(s"Syntax jar not found at ${syntaxJar} its classes might not be excluded from the runtime.jar fat jar")
+        excludedInternalPkgs.foreach { internalPkg =>
+          val isJar = internalPkg.data.exists() && internalPkg.data.name.endsWith(".jar")
+          if (!isJar) {
+            log.error(internalPkg.data.absolutePath + " is not a JAR archive." +
+              " It might not be excluded from runtime.jar fat jar.")
+          }
         }
-        syntaxJar ++ excludedExternalPkgs
+        excludedExternalPkgs ++ excludedInternalPkgs
       },
       assembly / assemblyMergeStrategy := {
         case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
