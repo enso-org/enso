@@ -160,13 +160,13 @@ public class VerifyArrowTest {
     var constr = ctx.eval("arrow", "new[Int64]");
     assertNotNull(constr);
 
-    var arrLength = 10;
+    var arrLength = 48;
     Value builder = constr.newInstance(arrLength);
     for (var i = 0; i < arrLength; i++) {
       builder.invokeMember("append", i);
     }
     var arr = builder.invokeMember("build");
-    assertEquals(10, arr.getArraySize());
+    assertEquals(arrLength, arr.getArraySize());
     for (var i = 0; i < arrLength; i++) {
       var ith = arr.getArrayElement(i);
       assertEquals("Checking value at " + i, i, ith.asLong());
