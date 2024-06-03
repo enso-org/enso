@@ -154,6 +154,33 @@ public class VerifyArrowTest {
   }
 
   @Test
+  public void arrowInt64() {
+    var arrow = ctx.getEngine().getLanguages().get("arrow");
+    assertNotNull("Arrow is available", arrow);
+    var constr = ctx.eval("arrow", "new[Int64]");
+    assertNotNull(constr);
+
+    var arrLength = 10;
+    Value builder = constr.newInstance(arrLength);
+    for (var i = 0; i < arrLength; i++) {
+      builder.invokeMember("append", i);
+    }
+    var arr = builder.invokeMember("build");
+    assertEquals(10, arr.getArraySize());
+    for (var i = 0; i < arrLength; i++) {
+      var ith = arr.getArrayElement(i);
+      assertEquals("Checking value at " + i, i, ith.asLong());
+    }
+
+    var plus = ctx.eval("arrow", "+[Int64]");
+    var doubled = plus.execute(arr, arr);
+    for (var i = 0; i < arrLength; i++) {
+      var ith = doubled.getArrayElement(i);
+      assertEquals("Checking double value at " + i, 2 * i, ith.asInt());
+    }
+  }
+
+  @Test
   public void castInt() {
     var typeLength = LogicalLayout.Int32;
     var testValues = new Object[] {3, 1, 5, 3};
