@@ -582,9 +582,9 @@ lazy val componentModulesPaths =
     GraalVM.toolsPkgs ++
     helidon ++
     Seq(
-      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
-      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-      "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
+      "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+      "ch.qos.logback"   % "logback-classic"              % logbackClassicVersion,
+      "ch.qos.logback"   % "logback-core"                 % logbackClassicVersion,
       "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
     )
   val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
@@ -595,9 +595,9 @@ lazy val componentModulesPaths =
   )
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
   val arrow              = (`runtime-language-arrow` / Compile / packageBin).value
-  val syntax = (`syntax-rust-definition` / Compile / packageBin).value
-  val ydoc = (`ydoc-server` / Compile / packageBin).value
-  val profilingUtils = (`profiling-utils` / Compile / packageBin).value
+  val syntax             = (`syntax-rust-definition` / Compile / packageBin).value
+  val ydoc               = (`ydoc-server` / Compile / packageBin).value
+  val profilingUtils     = (`profiling-utils` / Compile / packageBin).value
   val runtime            = (`runtime-fat-jar` / assembly / assemblyOutputPath).value
   val ourMods = Seq(
     runtime,
@@ -1511,8 +1511,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       val updateReport = (Test / update).value
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion,
-          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
+          "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1588,7 +1588,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     },
     Test / addExports := {
       val profModName = (`profiling-utils` / javaModuleName).value
-      Map (
+      Map(
         profModName + "/org.enso.profiling.snapshot" -> Seq("ALL-UNNAMED")
       )
     }
@@ -1933,13 +1933,13 @@ lazy val `runtime-integration-tests` =
         val updateReport = (Test / update).value
         val requiredModIds =
           GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ Seq(
-            "org.slf4j"           % "slf4j-api"               % slf4jVersion,
-            "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion,
-            "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion,
-            "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
-            "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion
+            "org.slf4j"           % "slf4j-api"                    % slf4jVersion,
+            "org.netbeans.api"    % "org-openide-util-lookup"      % netbeansApiVersion,
+            "org.netbeans.api"    % "org-netbeans-modules-sampler" % netbeansApiVersion,
+            "org.graalvm.sdk"     % "polyglot-tck"                 % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck"                  % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-common"           % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-tests"            % graalMavenPackagesVersion
           )
         val requiredMods = JPMSUtils.filterModulesFromUpdate(
           updateReport,
@@ -2244,8 +2244,10 @@ lazy val `runtime-fat-jar` =
     .settings(
       // extra module path for compileModuleInfo task
       Compile / JPMSUtils.extraMp := {
-        val syntaxMod = (`syntax-rust-definition` / Compile / exportedProductJars).value
-        val profilingMod = (`profiling-utils` / Compile / exportedProductJars).value
+        val syntaxMod =
+          (`syntax-rust-definition` / Compile / exportedProductJars).value
+        val profilingMod =
+          (`profiling-utils` / Compile / exportedProductJars).value
         syntaxMod ++ profilingMod
       },
       Compile / compileModuleInfo := {
@@ -2257,7 +2259,7 @@ lazy val `runtime-fat-jar` =
               LocalProject("runtime-instrument-common"),
               LocalProject("runtime-instrument-id-execution"),
               LocalProject("runtime-instrument-repl-debugger"),
-              LocalProject("runtime-instrument-runtime-server"),
+              LocalProject("runtime-instrument-runtime-server")
             ),
             inConfigurations(Compile)
           ),
@@ -2307,22 +2309,27 @@ lazy val `runtime-fat-jar` =
         val pkgsToExclude = JPMSUtils.componentModules ++ helidon ++ Seq(
           "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
         )
-        val ourFullCp     = (Runtime / fullClasspath).value
+        val ourFullCp = (Runtime / fullClasspath).value
         val excludedExternalPkgs = JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
           pkgsToExclude,
           streams.value.log
         )
-        val syntaxJar = (`syntax-rust-definition` / Compile / exportedProducts).value
+        val syntaxJar =
+          (`syntax-rust-definition` / Compile / exportedProducts).value
         val ydocJar = (`ydoc-server` / Compile / exportedProducts).value
-        val profilingJar = (`profiling-utils` / Compile / exportedProducts).value
+        val profilingJar =
+          (`profiling-utils` / Compile / exportedProducts).value
         val excludedInternalPkgs = syntaxJar ++ ydocJar ++ profilingJar
-        val log = streams.value.log
+        val log                  = streams.value.log
         excludedInternalPkgs.foreach { internalPkg =>
-          val isJar = internalPkg.data.exists() && internalPkg.data.name.endsWith(".jar")
+          val isJar =
+            internalPkg.data.exists() && internalPkg.data.name.endsWith(".jar")
           if (!isJar) {
-            log.error(internalPkg.data.absolutePath + " is not a JAR archive." +
-              " It might not be excluded from runtime.jar fat jar.")
+            log.error(
+              internalPkg.data.absolutePath + " is not a JAR archive." +
+              " It might not be excluded from runtime.jar fat jar."
+            )
           }
         }
         excludedExternalPkgs ++ excludedInternalPkgs
@@ -2400,16 +2407,20 @@ lazy val `engine-runner` = project
         "truffle",
         "helidon"
       )
-      val syntaxJar = (`syntax-rust-definition` / Compile / exportedProducts).value
-      val ydocJar = (`ydoc-server` / Compile / exportedProducts).value
-      val profilingJar = (`profiling-utils` / Compile / exportedProducts).value
+      val syntaxJar =
+        (`syntax-rust-definition` / Compile / exportedProducts).value
+      val ydocJar              = (`ydoc-server` / Compile / exportedProducts).value
+      val profilingJar         = (`profiling-utils` / Compile / exportedProducts).value
       val excludedInternalPkgs = syntaxJar ++ ydocJar ++ profilingJar
-      val log = streams.value.log
+      val log                  = streams.value.log
       excludedInternalPkgs.foreach { internalPkg =>
-        val isJar = internalPkg.data.exists() && internalPkg.data.name.endsWith(".jar")
+        val isJar =
+          internalPkg.data.exists() && internalPkg.data.name.endsWith(".jar")
         if (!isJar) {
-          log.error(internalPkg.data.absolutePath + " is not a JAR archive." +
-            " It might not be excluded from runtime.jar fat jar.")
+          log.error(
+            internalPkg.data.absolutePath + " is not a JAR archive." +
+            " It might not be excluded from runtime.jar fat jar."
+          )
         }
       }
       excludedInternalPkgs ++ excludedExternalPkgs
@@ -3693,9 +3704,9 @@ updateLibraryManifests := {
   val libraries = Editions.standardLibraries.map(libName =>
     BundledLibrary(libName, stdLibVersion)
   )
-  val runnerCp  = (LocalProject("engine-runner") / Runtime / fullClasspath).value
-  val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
-  val fullCp    = (runnerCp ++ runtimeCp).distinct
+  val runnerCp   = (LocalProject("engine-runner") / Runtime / fullClasspath).value
+  val runtimeCp  = (LocalProject("runtime") / Runtime / fullClasspath).value
+  val fullCp     = (runnerCp ++ runtimeCp).distinct
   val modulePath = componentModulesPaths.value
   val runnerJar  = (LocalProject("engine-runner") / assembly).value
   val javaOpts = Seq(

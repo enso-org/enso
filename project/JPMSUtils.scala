@@ -126,7 +126,9 @@ object JPMSUtils {
     truffleRelatedArtifacts
   }
 
-  lazy val extraMp = taskKey[Def.Classpath]("Additional internal projects to put on the module path")
+  lazy val extraMp = taskKey[Def.Classpath](
+    "Additional internal projects to put on the module path"
+  )
 
   /** Compiles a single `module-info.java` source file with the default java compiler (
     * the one that is defined for the project). Before the module-info is compiled, all the
@@ -141,11 +143,11 @@ object JPMSUtils {
     *
     * Compilation of `module-info.java` is skipped iff none of all the classes from all the dependencies
     * changed and if the `module-info.java` itself have not changed.
-   *
-   * To put internal modules (any sbt project defined in `build.sbt`) on module path, use `extraMp` setting.
-   *
-   * Note that this task will only work if it is defined inside `Compile` scope. In other words, it won't work
-   * e.g. in `Test` scope.
+    *
+    * To put internal modules (any sbt project defined in `build.sbt`) on module path, use `extraMp` setting.
+    *
+    * Note that this task will only work if it is defined inside `Compile` scope. In other words, it won't work
+    * e.g. in `Test` scope.
     *
     * @param copyDepsFilter The filter of scopes of the projects from which the class files are first
     *                    copied into the `target` directory before `module-info.java` is compiled.
@@ -157,7 +159,7 @@ object JPMSUtils {
     */
   def compileModuleInfo(
     copyDepsFilter: ScopeFilter,
-    modulePath: Seq[ModuleID]  = Seq()
+    modulePath: Seq[ModuleID] = Seq()
   ): Def.Initialize[Task[Unit]] =
     Def
       .task {
@@ -175,10 +177,10 @@ object JPMSUtils {
           productDirectories.all(copyDepsFilter).value.flatten
 
         val extraModuleDirs = (Compile / extraMp).value.map(_.data)
-        val moduleName     = javaModuleName.value
-        val cacheStore     = streams.value.cacheStoreFactory
-        val repoRootDir    = (LocalProject("enso") / baseDirectory).value
-        var someDepChanged = false
+        val moduleName      = javaModuleName.value
+        val cacheStore      = streams.value.cacheStoreFactory
+        val repoRootDir     = (LocalProject("enso") / baseDirectory).value
+        var someDepChanged  = false
         sourceProducts.foreach(sourceProduct => {
           if (!sourceProduct.exists()) {
             log.error(s"Source product ${sourceProduct} does not exist")
