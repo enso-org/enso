@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Test.Extensions
 
 from Standard.Table import Table
+from Standard.Table.Columns_To_Add import Columns_To_Add
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, No_Such_Column
 from Standard.Test import all
 from project.Util import all
@@ -198,22 +199,12 @@ add_specs suite_builder =
             actual = input.tokenize_to_rows "bar" "(\d)(\d)" at_least_one_row=True
             actual.should_equal expected
 
-    suite_builder.group "Table.split/tokenize column count" group_builder->
-        group_builder.specify "should generate extra empty columns if column_count is set" <|
-            cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
-            t = Table.new cols
-            expected_rows = [[0, "a", "c", Nothing, Nothing], [1, "c", "d", "ef", Nothing], [2, "gh", "ij", "u", Nothing]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 3"] expected_rows
-            t2 = t.split_to_columns "bar" "b" column_count=4
-            t2.should_equal expected
-            t2.at "bar 3" . value_type . is_text . should_be_true
-
         group_builder.specify "split should limit columns and return problems when exceeding the column limit" <|
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c"], [1, "c", "d"], [2, "gh", "ij"]]
             expected = Table.from_rows ["foo", "bar 1", "bar 2"] expected_rows
-            action = t.split_to_columns "bar" "b" column_count=2 on_problems=_
+            action = t.split_to_columns "bar" "b" column_count=Columns_To_Add.First on_problems=_
             tester = t-> t.should_equal expected
             problems = [Column_Count_Exceeded.Error 2 3]
             Problems.test_problem_handling action problems tester
@@ -223,19 +214,10 @@ add_specs suite_builder =
             t = Table.new cols
             expected_rows = [[0, "a1", "b12", "d50"], [1, "b10", "c20", Nothing]]
             expected = Table.from_rows ["foo", "bar 1", "bar 2"] expected_rows
-            action = t.tokenize_to_columns "bar" "([a-z]).(\d+)" column_count=2 on_problems=_
+            action = t.tokenize_to_columns "bar" "([a-z]).(\d+)" column_count=Columns_To_Add.First on_problems=_
             tester = t-> t.should_equal expected
             problems = [Column_Count_Exceeded.Error 2 3]
             Problems.test_problem_handling action problems tester
-
-        group_builder.specify "should generate extra empty columns if column_count is set (with rows in a different order)" <|
-            cols = [["foo", [0, 1, 2]], ["bar", ["ghbijbu", "cbdbef", "abc"]]]
-            t = Table.new cols
-            expected_rows = [[0, "gh", "ij", "u", Nothing], [1, "c", "d", "ef", Nothing], [2, "a", "c", Nothing, Nothing]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 3"] expected_rows
-            t2 = t.split_to_columns "bar" "b" column_count=4
-            t2.should_equal expected
-            t2.at "bar 3" . value_type . is_text . should_be_true
 
     suite_builder.group "Table.split/tokenize errors" group_builder->
         group_builder.specify "won't work on a non-text column" <|
