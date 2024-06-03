@@ -41,8 +41,12 @@ public class VectorBenchmarks {
         from Standard.Base.Data.Boolean import False
 
         avg arr =
-            sum acc i = if i == arr.length then acc else
-                @Tail_Call sum (acc + arr.at i) i+1
+            sum acc i =
+                stop = i == arr.length
+                if stop then acc else
+                    value = arr.at i
+                    both = acc + value
+                    @Tail_Call sum both i+1
             (sum 0 0) / arr.length
 
         fibarr size modulo =

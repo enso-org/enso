@@ -681,7 +681,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -720,7 +720,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -774,7 +774,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -1016,7 +1016,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -1515,17 +1515,16 @@ type Builder
     ## GROUP Conversions
        ICON convert
        Clones the builder into a Vector.
-    to_vector : Vector Any
-    to_vector self =
+    to_vector self -> Vector =
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
 
            This also reattaches any warnings that were attached to the added
            values. It attaches them to the whole array, not the individual
            values.
-        without_warnings = Vector.from_polyglot_array self.elements_java_builder.toArray
+        without_warnings = self.elements_java_builder.toArray
         if self.propagate_warnings.not then without_warnings else
-            warnings_vector = Vector.from_polyglot_array self.warnings_java_builder.toArray
+            warnings_vector = self.warnings_java_builder.toArray
             Warning.attach_multiple warnings_vector without_warnings
 
 ## PRIVATE

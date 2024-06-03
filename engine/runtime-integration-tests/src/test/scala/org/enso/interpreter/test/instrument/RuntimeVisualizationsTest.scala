@@ -2027,7 +2027,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
 
-      new String(data) shouldEqual "(Builtin 'JSON')"
+      new String(data) shouldEqual "(Builtin 'Table')"
 
       val loadedLibraries = attachVisualizationResponses
         .collect {
