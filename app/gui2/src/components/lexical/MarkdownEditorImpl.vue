@@ -93,6 +93,9 @@ const formatting = useFormatting(editor)
   color: inherit;
   opacity: inherit;
 }
+:deep(.DropdownMenuContent .MenuButton) {
+  justify-content: unset;
+}
 </style>
 
 <style module="lexicalTheme" src="@/components/lexical/theme.css" />
