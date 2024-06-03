@@ -1,9 +1,12 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
@@ -12,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -29,6 +33,7 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -320,6 +325,32 @@ public abstract class InvokeCallableNode extends BaseNode {
       }
     } catch (TailCallException e) {
       throw new TailCallException(e, extracted);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "iop.isExecutable(self)",
+      })
+  Object doPolyglot(
+      Object self,
+      VirtualFrame frame,
+      State state,
+      Object[] arguments,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Cached ThunkExecutorNode thunkNode) {
+    try {
+      for (int i = 0; i < arguments.length; i++) {
+        arguments[i] = thunkNode.executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
+      }
+      return iop.execute(self, arguments);
+    } catch (InteropException e) {
+      throw EnsoContext.get(this).raiseAssertionPanic(this, "Cannot execute", e);
     }
   }
 
