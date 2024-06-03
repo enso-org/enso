@@ -172,9 +172,9 @@ add_specs suite_builder =
             ([-30, -55, -1]).write_bytes f Existing_File_Behavior.Overwrite . should_succeed
             f.read . should_equal "âÉÿ"
 
-        group_builder.specify "cannot be used in Write operations" <|
+        group_builder.specify "should not be used in Write operations" <|
             r = "foo".write (enso_project.data / "transient" / "my-file.txt") Encoding.default
-            r.should_fail_with Illegal_Argument
+            Problems.expect_only_warning Illegal_Argument r
 
     suite_builder.group "UTF_8" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'

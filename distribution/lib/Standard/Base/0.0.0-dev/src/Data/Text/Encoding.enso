@@ -8,6 +8,7 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Warning.Warning
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
@@ -87,7 +88,8 @@ type Encoding
        Default encoding. In such places, usage of Default encoding will be forbidden.
     to_java_charset self -> Charset ! Illegal_Argument =
         self.to_java_charset_or_null.if_nothing <|
-            Error.throw (Illegal_Argument.Error "The Default encoding cannot be converted to a Java Charset. Please select a specific encoding for this operation.")
+            warning = Illegal_Argument.Error "The Default encoding has been used in an unexpected place (e.g. Write operation). It will be replaced with UTF-8. Please specify the desired encoding explicitly)"
+            Warning.attach warning (Encoding.utf_8.to_java_charset)
 
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset or null if it is the Default encoding.
