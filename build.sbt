@@ -2355,13 +2355,27 @@ lazy val `engine-runner` = project
     assembly / assemblyJarName := "runner.jar",
     assembly / test := {},
     assembly / assemblyOutputPath := file("runner.jar"),
-    assembly / assemblyExcludedJars :=
-      JPMSUtils.filterArtifacts(
+    assembly / assemblyExcludedJars := {
+      val excludedExternalPkgs = JPMSUtils.filterArtifacts(
         (Compile / fullClasspath).value,
         "graalvm",
         "truffle",
         "helidon"
-      ),
+      )
+      val syntaxJar = (`syntax-rust-definition` / Compile / exportedProducts).value
+      val ydocJar = (`ydoc-server` / Compile / exportedProducts).value
+      val profilingJar = (`profiling-utils` / Compile / exportedProducts).value
+      val excludedInternalPkgs = syntaxJar ++ ydocJar ++ profilingJar
+      val log = streams.value.log
+      excludedInternalPkgs.foreach { internalPkg =>
+        val isJar = internalPkg.data.exists() && internalPkg.data.name.endsWith(".jar")
+        if (!isJar) {
+          log.error(internalPkg.data.absolutePath + " is not a JAR archive." +
+            " It might not be excluded from runtime.jar fat jar.")
+        }
+      }
+      excludedInternalPkgs ++ excludedExternalPkgs
+    },
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
         MergeStrategy.discard
