@@ -250,7 +250,7 @@ type File
         new_input_stream file open_options =
             opts = open_options . map (_.to_java)
             stream = File_Error.handle_java_exceptions file (file.input_stream_builtin opts)
-            Input_Stream.new stream (File_Error.handle_java_exceptions self)
+            Input_Stream.new stream (File_Error.handle_java_exceptions self) associated_file=self
 
         if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
