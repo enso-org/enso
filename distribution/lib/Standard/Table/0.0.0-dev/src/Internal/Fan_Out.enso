@@ -23,6 +23,8 @@ polyglot java import org.enso.table.data.mask.OrderMask
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
+   - column_count: The number of columns to split to.
+     If `All_Columns` then columns will be added to fit all data.  
 fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Columns_To_Add -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
 fan_out_to_columns table input_column_id function column_count column_builder=make_string_builder on_problems=Report_Error =
     input_column = table.get input_column_id

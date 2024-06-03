@@ -2277,7 +2277,7 @@ type DB_Table
        - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
        - column_count: The number of columns to split to.
-         If `Nothing` then columns will be added to fit all data.
+         If `All_Columns` then columns will be added to fit all data.
        - on_problems: Specifies the behavior when a problem occurs.
 
        ! Error Conditions

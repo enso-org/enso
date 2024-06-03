@@ -3,7 +3,7 @@ from Standard.Base.Metadata import make_single_choice, Widget
 
 ## PRIVATE
 type Columns_To_Add
-    ## Read all rows.
+    ##split to all availible columns.
     All_Columns
 
     ## Add the first specified number of columns.
@@ -14,7 +14,7 @@ type Columns_To_Add
         make_single_choice [["All_Columns", "..All_Columns"], ["First", "..First"]]
 
     ## PRIVATE
-       Gets the number of columns to read (or Nothing if all columns).
+       Gets the number of columns to add (or Nothing if all columns).
     columns_to_split self -> Integer | Nothing = case self of
         Columns_To_Add.All_Columns -> Nothing
         Columns_To_Add.First columns -> columns
