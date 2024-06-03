@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.cast;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -29,6 +30,7 @@ public interface StorageConverter<T> {
       case TextType textType -> new ToTextStorageConverter(textType);
       case TimeOfDayType timeOfDayType -> new ToTimeOfDayStorageConverter();
       case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
+      case BigDecimalType bigDecimalType -> throw new UnsupportedOperationException("Conversion to BigDecimal is not yet supported.");
     };
   }
 }
