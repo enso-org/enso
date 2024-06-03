@@ -92,7 +92,8 @@ public final class Type implements EnsoObject {
       schemaBldr.projectPrivate();
     }
     var function = new Function(node.getCallTarget(), null, schemaBldr.build());
-    definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
+    definitionScope.registerMethod(
+        definitionScope.asModuleScope().getAssociatedType(), this.name, function);
   }
 
   public QualifiedName getQualifiedName() {

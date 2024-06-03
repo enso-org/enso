@@ -440,11 +440,6 @@ public final class ModuleScope implements EnsoObject {
       return module;
     }
 
-    public Type getType(String typeName) {
-      // assert moduleScope == null;
-      return types.get(typeName);
-    }
-
     /**
      * Create a new ModuleScope.Builder which inherits from `this` `module` and `types` that need to
      * survive the compilation.
@@ -453,13 +448,6 @@ public final class ModuleScope implements EnsoObject {
      */
     public Builder newBuilderInheritingTypes() {
       return new Builder(this.module, new LinkedHashMap<>(this.types));
-    }
-
-    /**
-     * @return the associated type of this module.
-     */
-    public Type getAssociatedType() {
-      return associatedType;
     }
 
     /**

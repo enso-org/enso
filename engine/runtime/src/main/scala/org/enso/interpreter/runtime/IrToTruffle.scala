@@ -126,13 +126,13 @@ import org.enso.interpreter.runtime.error.DataflowError
   * @param context        the language context instance for which this is executing
   * @param source         the source code that corresponds to the text for which code
   *                       is being generated
-  * @param moduleScope    the scope of the module for which code is being generated
+  * @param scopeBuilder   the scope's builder of the module for which code is being generated
   * @param compilerConfig the configuration for the compiler
   */
 class IrToTruffle(
   val context: EnsoContext,
   val source: Source,
-  val moduleScope: ModuleScope.Builder,
+  val scopeBuilder: ModuleScope.Builder,
   val compilerConfig: CompilerConfig
 ) {
 
@@ -195,7 +195,7 @@ class IrToTruffle(
     bindingsMap.resolvedExports
       .collect { case ExportedModule(ResolvedModule(module), _, _) => module }
       .foreach(exp =>
-        moduleScope.addExport(new ImportExportScope(exp.unsafeAsModule()))
+        scopeBuilder.addExport(new ImportExportScope(exp.unsafeAsModule()))
       )
     val importDefs = module.imports
     val methodDefs = module.bindings.collect {
@@ -211,7 +211,7 @@ class IrToTruffle(
           val scope: ImportExportScope = imp.importDef.onlyNames
             .map(only => new ImportExportScope(mod, only.map(_.name).asJava))
             .getOrElse(new ImportExportScope(mod))
-          moduleScope.addImport(scope)
+          scopeBuilder.addImport(scope)
       }
     }
 
@@ -225,7 +225,7 @@ class IrToTruffle(
           )
           hostSymbol = DataflowError.withoutTrace(err, null)
         }
-        this.moduleScope.registerPolyglotSymbol(
+        this.scopeBuilder.registerPolyglotSymbol(
           poly.getVisibleName,
           hostSymbol
         )
@@ -237,7 +237,7 @@ class IrToTruffle(
     typeDefs.foreach { tpDef =>
       // Register the atoms and their constructors in scope
       val atomDefs = tpDef.members
-      val asType   = moduleScope.getType(tpDef.name.name)
+      val asType   = scopeBuilder.asModuleScope().getType(tpDef.name.name, true)
       val atomConstructors =
         atomDefs.map(cons => asType.getConstructors.get(cons.name.name))
       atomConstructors
@@ -316,9 +316,9 @@ class IrToTruffle(
             val closureRootNode = ClosureRootNode.build(
               language,
               expressionProcessor.scope,
-              moduleScope.asModuleScope(),
+              scopeBuilder.asModuleScope(),
               expressionNode,
-              makeSection(moduleScope.getModule, annotation.location),
+              makeSection(scopeBuilder.getModule, annotation.location),
               closureName,
               true,
               false
@@ -328,7 +328,7 @@ class IrToTruffle(
           if (!atomCons.isInitialized) {
             atomCons.initializeFields(
               language,
-              makeSection(moduleScope.getModule, atomDefn.location),
+              makeSection(scopeBuilder.getModule, atomDefn.location),
               localScope,
               assignments.toArray,
               reads.toArray,
@@ -372,7 +372,7 @@ class IrToTruffle(
       val declaredConsOpt =
         methodDef.methodReference.typePointer match {
           case None =>
-            Some(moduleScope.getAssociatedType)
+            Some(scopeAssociatedType)
           case Some(tpePointer) =>
             tpePointer
               .getMetadata(MethodDefinitions)
@@ -418,7 +418,7 @@ class IrToTruffle(
           dataflowInfo
         )
 
-        moduleScope.registerMethod(
+        scopeBuilder.registerMethod(
           cons,
           methodDef.methodName.name,
           () => {
@@ -499,7 +499,7 @@ class IrToTruffle(
                           m.getFunction.getCallTarget.getRootNode
                             .asInstanceOf[BuiltinRootNode]
                         builtinRootNode
-                          .setModuleName(moduleScope.getModule.getName)
+                          .setModuleName(scopeBuilder.getModule.getName)
                         builtinRootNode.setTypeName(cons.getQualifiedName)
                         val funcSchema = FunctionSchema
                           .newBuilder()
@@ -537,11 +537,11 @@ class IrToTruffle(
                     MethodRootNode.buildOperator(
                       language,
                       expressionProcessor.scope,
-                      moduleScope.asModuleScope(),
+                      scopeBuilder.asModuleScope(),
                       () => bodyBuilder.argsExpr._1(0),
                       () => bodyBuilder.argsExpr._1(1),
                       () => bodyBuilder.argsExpr._2,
-                      makeSection(moduleScope.getModule, methodDef.location),
+                      makeSection(scopeBuilder.getModule, methodDef.location),
                       cons,
                       methodDef.methodName.name
                     )
@@ -549,9 +549,9 @@ class IrToTruffle(
                     MethodRootNode.build(
                       language,
                       expressionProcessor.scope,
-                      moduleScope.asModuleScope(),
+                      scopeBuilder.asModuleScope(),
                       () => bodyBuilder.bodyNode(),
-                      makeSection(moduleScope.getModule, methodDef.location),
+                      makeSection(scopeBuilder.getModule, methodDef.location),
                       cons,
                       methodDef.methodName.name
                     )
@@ -599,10 +599,10 @@ class IrToTruffle(
                           val closureRootNode = ClosureRootNode.build(
                             language,
                             expressionProcessor.scope,
-                            moduleScope.asModuleScope(),
+                            scopeBuilder.asModuleScope(),
                             expressionNode,
                             makeSection(
-                              moduleScope.getModule,
+                              scopeBuilder.getModule,
                               annotation.location
                             ),
                             closureName,
@@ -674,7 +674,7 @@ class IrToTruffle(
           case Some(tpePointer) =>
             getTypeResolution(tpePointer)
           case None =>
-            Some(moduleScope.getAssociatedType)
+            Some(scopeAssociatedType)
         }
       val fromOpt = getTypeResolution(methodDef.sourceTypeName)
       toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
@@ -697,9 +697,9 @@ class IrToTruffle(
             val rootNode = MethodRootNode.build(
               language,
               expressionProcessor.scope,
-              moduleScope.asModuleScope(),
+              scopeBuilder.asModuleScope(),
               () => bodyBuilder.bodyNode(),
-              makeSection(moduleScope.getModule, methodDef.location),
+              makeSection(scopeBuilder.getModule, methodDef.location),
               toType,
               methodDef.methodName.name
             )
@@ -719,10 +719,10 @@ class IrToTruffle(
               "Conversion bodies must be functions at the point of codegen."
             )
         }
-        moduleScope.registerConversionMethod(toType, fromType, function)
+        scopeBuilder.registerConversionMethod(toType, fromType, function)
       }
     })
-    moduleScope.build()
+    scopeBuilder.build()
   }
 
   // ==========================================================================
@@ -912,15 +912,15 @@ class IrToTruffle(
         if (
           resolution.isInstanceOf[ResolvedConstructor] || !resolution.module
             .unsafeAsModule()
-            .equals(moduleScope.getModule.asCompilerModule)
+            .equals(scopeBuilder.getModule.asCompilerModule)
         ) {
           resolution match {
             case binding @ BindingsMap.ResolvedType(_, _) =>
               val runtimeTp =
                 asType(binding)
               val fun = mkTypeGetter(runtimeTp)
-              moduleScope.registerMethod(
-                moduleScope.getAssociatedType,
+              scopeBuilder.registerMethod(
+                scopeAssociatedType,
                 name,
                 fun
               )
@@ -930,8 +930,8 @@ class IrToTruffle(
                 tpe.getConstructors
                   .get(cons.name)
               val fun = mkConsGetter(runtimeCons)
-              moduleScope.registerMethod(
-                moduleScope.getAssociatedType,
+              scopeBuilder.registerMethod(
+                scopeAssociatedType,
                 name,
                 fun
               )
@@ -939,8 +939,8 @@ class IrToTruffle(
               val runtimeCons =
                 asAssociatedType(module.unsafeAsModule())
               val fun = mkTypeGetter(runtimeCons)
-              moduleScope.registerMethod(
-                moduleScope.getAssociatedType,
+              scopeBuilder.registerMethod(
+                scopeAssociatedType,
                 name,
                 fun
               )
@@ -955,8 +955,8 @@ class IrToTruffle(
                 fun != null,
                 s"exported symbol `${method.name}` needs to be registered first in the module "
               )
-              moduleScope.registerMethod(
-                moduleScope.getAssociatedType,
+              scopeBuilder.registerMethod(
+                scopeAssociatedType,
                 name,
                 fun
               )
@@ -1114,9 +1114,9 @@ class IrToTruffle(
         val defaultRootNode = ClosureRootNode.build(
           language,
           childScope,
-          moduleScope.asModuleScope(),
+          scopeBuilder.asModuleScope(),
           blockNode,
-          makeSection(moduleScope.getModule, block.location),
+          makeSection(scopeBuilder.getModule, block.location),
           currentVarName,
           false,
           false
@@ -1644,11 +1644,11 @@ class IrToTruffle(
             nodeForResolution(resolution)
           } else if (nameStr == ConstantsNames.FROM_MEMBER) {
             ConstantObjectNode.build(
-              UnresolvedConversion.build(moduleScope.asModuleScope())
+              UnresolvedConversion.build(scopeBuilder.asModuleScope())
             )
           } else {
             DynamicSymbolNode.build(
-              UnresolvedSymbol.build(nameStr, moduleScope.asModuleScope())
+              UnresolvedSymbol.build(nameStr, scopeBuilder.asModuleScope())
             )
           }
         case Name.MethodReference(
@@ -1972,9 +1972,9 @@ class IrToTruffle(
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
-        moduleScope.asModuleScope(),
+        scopeBuilder.asModuleScope(),
         bodyBuilder.bodyNode(),
-        makeSection(moduleScope.getModule, location),
+        makeSection(scopeBuilder.getModule, location),
         scopeName,
         false,
         binding
@@ -2165,7 +2165,7 @@ class IrToTruffle(
             val closureRootNode = ClosureRootNode.build(
               language,
               childScope,
-              moduleScope.asModuleScope(),
+              scopeBuilder.asModuleScope(),
               argumentExpression,
               section,
               displayName,
@@ -2246,10 +2246,10 @@ class IrToTruffle(
             val defaultRootNode = ClosureRootNode.build(
               language,
               scope,
-              moduleScope.asModuleScope(),
+              scopeBuilder.asModuleScope(),
               defaultExpression,
               makeSection(
-                moduleScope.getModule,
+                scopeBuilder.getModule,
                 arg.defaultValue.get.location()
               ),
               s"<default::$scopeName::${arg.name.showCode()}>",
@@ -2299,4 +2299,7 @@ class IrToTruffle(
     val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
     m.getScope().getAssociatedType()
   }
+
+  private def scopeAssociatedType =
+    scopeBuilder.asModuleScope().getAssociatedType
 }

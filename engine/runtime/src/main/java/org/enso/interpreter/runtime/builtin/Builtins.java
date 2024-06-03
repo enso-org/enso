@@ -239,7 +239,7 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.getType(builtinMethodOwner))
+          Optional.ofNullable(scope.asModuleScope().getType(builtinMethodOwner, true))
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
@@ -415,7 +415,7 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.getType(builtinMethodOwner))
+          Optional.ofNullable(scope.asModuleScope().getType(builtinMethodOwner, true))
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
