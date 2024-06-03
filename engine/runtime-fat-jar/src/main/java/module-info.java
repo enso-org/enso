@@ -3,6 +3,7 @@ open module org.enso.runtime {
   requires java.net.http;
   // Because of akka.util.Unsafe
   requires jdk.unsupported;
+  requires org.enso.syntax;
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires static org.slf4j;
