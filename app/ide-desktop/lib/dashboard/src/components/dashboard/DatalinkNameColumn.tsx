@@ -6,14 +6,9 @@ import * as tailwindMerge from 'tailwind-merge'
 import DatalinkIcon from 'enso-assets/datalink.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -23,7 +18,6 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import Visibility from '#/utilities/Visibility'
 
 // ====================
 // === DatalinkName ===
@@ -36,16 +30,14 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DatalinkAsset}.
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { item, setItem, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { backend, setIsAssetPanelTemporarilyVisible } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DatalinkNameColumn` can only display Datalinks.')
   }
-  const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(item, setItem)
 
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
 
@@ -62,67 +54,6 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     await Promise.resolve(null)
   }
 
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
-      switch (event.type) {
-        case AssetEventType.newProject:
-        case AssetEventType.newFolder:
-        case AssetEventType.uploadFiles:
-        case AssetEventType.newSecret:
-        case AssetEventType.openProject:
-        case AssetEventType.updateFiles:
-        case AssetEventType.closeProject:
-        case AssetEventType.copy:
-        case AssetEventType.cut:
-        case AssetEventType.cancelCut:
-        case AssetEventType.move:
-        case AssetEventType.delete:
-        case AssetEventType.deleteForever:
-        case AssetEventType.restore:
-        case AssetEventType.download:
-        case AssetEventType.downloadSelected:
-        case AssetEventType.removeSelf:
-        case AssetEventType.temporarilyAddLabels:
-        case AssetEventType.temporarilyRemoveLabels:
-        case AssetEventType.addLabels:
-        case AssetEventType.removeLabels:
-        case AssetEventType.deleteLabel: {
-          // Ignored. These events should all be unrelated to secrets.
-          // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
-          // are handled by `AssetRow`.
-          break
-        }
-        case AssetEventType.newDatalink: {
-          if (item.key === event.placeholderId) {
-            if (backend.type !== backendModule.BackendType.remote) {
-              toastAndLog('localBackendDatalinkError')
-            } else {
-              rowState.setVisibility(Visibility.faded)
-              try {
-                const { id } = await createDatalinkMutation.mutateAsync([
-                  {
-                    parentDirectoryId: asset.parentId,
-                    datalinkId: null,
-                    name: asset.title,
-                    value: event.value,
-                  },
-                ])
-                rowState.setVisibility(Visibility.visible)
-                setAsset(object.merger({ id }))
-              } catch (error) {
-                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-                toastAndLog('createDatalinkError', error)
-              }
-            }
-          }
-          break
-        }
-      }
-    },
-    { isDisabled: !isEditable }
-  )
-
   const handleClick = inputBindings.handler({
     editName: () => {
       setIsEditing(true)
@@ -133,7 +64,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(depth)
       )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
@@ -157,8 +88,8 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         onSubmit={async newTitle => {
           setIsEditing(false)
 
-          if (newTitle !== asset.title) {
-            const oldTitle = asset.title
+          if (newTitle !== item.title) {
+            const oldTitle = item.title
             setAsset(object.merger({ title: newTitle }))
             try {
               await doRename()
@@ -172,7 +103,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }}
         className="text grow bg-transparent"
       >
-        {asset.title}
+        {item.title}
       </EditableSpan>
     </div>
   )

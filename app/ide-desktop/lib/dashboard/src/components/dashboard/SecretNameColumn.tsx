@@ -6,15 +6,10 @@ import * as tailwindMerge from 'tailwind-merge'
 import KeyIcon from 'enso-assets/key.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import * as aria from '#/components/aria'
 import type * as column from '#/components/dashboard/column'
@@ -27,7 +22,6 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import Visibility from '#/utilities/Visibility'
 
 // =====================
 // === ConnectorName ===
@@ -40,8 +34,8 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
  * This should never happen. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, assetEvents, dispatchAssetListEvent } = state
+  const { item, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { backend } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -49,9 +43,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
-  const asset = item.item
 
-  const createSecretMutation = backendHooks.useBackendMutation(backend, 'createSecret')
   const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   const setIsEditing = (isEditingName: boolean) => {
@@ -59,71 +51,6 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       setRowState(object.merger({ isEditingName }))
     }
   }
-
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
-      switch (event.type) {
-        case AssetEventType.newProject:
-        case AssetEventType.newFolder:
-        case AssetEventType.uploadFiles:
-        case AssetEventType.newDatalink:
-        case AssetEventType.openProject:
-        case AssetEventType.updateFiles:
-        case AssetEventType.closeProject:
-        case AssetEventType.copy:
-        case AssetEventType.cut:
-        case AssetEventType.cancelCut:
-        case AssetEventType.move:
-        case AssetEventType.delete:
-        case AssetEventType.deleteForever:
-        case AssetEventType.restore:
-        case AssetEventType.download:
-        case AssetEventType.downloadSelected:
-        case AssetEventType.removeSelf:
-        case AssetEventType.temporarilyAddLabels:
-        case AssetEventType.temporarilyRemoveLabels:
-        case AssetEventType.addLabels:
-        case AssetEventType.removeLabels:
-        case AssetEventType.deleteLabel: {
-          // Ignored. These events should all be unrelated to secrets.
-          // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-          // are handled by`AssetRow`.
-          break
-        }
-        case AssetEventType.newSecret: {
-          if (item.key === event.placeholderId) {
-            if (backend.type !== backendModule.BackendType.remote) {
-              toastAndLog('localBackendSecretError')
-            } else {
-              rowState.setVisibility(Visibility.faded)
-              try {
-                const id = await createSecretMutation.mutateAsync([
-                  {
-                    parentDirectoryId: asset.parentId,
-                    name: asset.title,
-                    value: event.value,
-                  },
-                ])
-                rowState.setVisibility(Visibility.visible)
-                setAsset(object.merger({ id }))
-              } catch (error) {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.delete,
-                  key: item.key,
-                })
-                toastAndLog('createSecretError', error)
-              }
-            }
-          }
-          break
-        }
-      }
-    },
-    { isDisabled: !isEditable }
-  )
 
   const handleClick = inputBindings.handler({
     editName: () => {
@@ -135,7 +62,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(depth)
       )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
@@ -151,11 +78,11 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
           event.stopPropagation()
           setModal(
             <UpsertSecretModal
-              id={asset.id}
-              name={asset.title}
+              id={item.id}
+              name={item.title}
               doCreate={async (_name, value) => {
                 try {
-                  await updateSecretMutation.mutateAsync([asset.id, { value }, asset.title])
+                  await updateSecretMutation.mutateAsync([item.id, { value }, item.title])
                 } catch (error) {
                   toastAndLog(null, error)
                 }
@@ -168,7 +95,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       <SvgMask src={KeyIcon} className="m-name-column-icon size-icon" />
       {/* Secrets cannot be renamed. */}
       <aria.Text data-testid="asset-row-name" className="text grow bg-transparent">
-        {asset.title}
+        {item.title}
       </aria.Text>
     </div>
   )

@@ -4,14 +4,10 @@ import * as React from 'react'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -24,7 +20,6 @@ import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
-import Visibility from '#/utilities/Visibility'
 
 // ================
 // === FileName ===
@@ -37,20 +32,18 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, nodeMap, assetEvents, dispatchAssetListEvent } = state
+  const { item, setItem, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { backend, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`FileNameColumn` can only display files.')
   }
-  const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(item, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const updateFileMutation = backendHooks.useBackendMutation(backend, 'updateFile')
-  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -66,11 +59,11 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       setIsEditing(false)
       if (string.isWhitespaceOnly(newTitle)) {
         // Do nothing.
-      } else if (!isCloud && newTitle !== asset.title) {
-        const oldTitle = asset.title
+      } else if (!isCloud && newTitle !== item.title) {
+        const oldTitle = item.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          await updateFileMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
+          await updateFileMutation.mutateAsync([item.id, { title: newTitle }, item.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
@@ -78,70 +71,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       }
     }
   }
-
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
-      switch (event.type) {
-        case AssetEventType.newProject:
-        case AssetEventType.newFolder:
-        case AssetEventType.newDatalink:
-        case AssetEventType.newSecret:
-        case AssetEventType.openProject:
-        case AssetEventType.closeProject:
-        case AssetEventType.copy:
-        case AssetEventType.cut:
-        case AssetEventType.cancelCut:
-        case AssetEventType.move:
-        case AssetEventType.delete:
-        case AssetEventType.deleteForever:
-        case AssetEventType.restore:
-        case AssetEventType.download:
-        case AssetEventType.downloadSelected:
-        case AssetEventType.removeSelf:
-        case AssetEventType.temporarilyAddLabels:
-        case AssetEventType.temporarilyRemoveLabels:
-        case AssetEventType.addLabels:
-        case AssetEventType.removeLabels:
-        case AssetEventType.deleteLabel: {
-          // Ignored. These events should all be unrelated to projects.
-          // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
-          // are handled by `AssetRow`.
-          break
-        }
-        case AssetEventType.updateFiles:
-        case AssetEventType.uploadFiles: {
-          const file = event.files.get(item.item.id)
-          if (file != null) {
-            const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const createdFile = await uploadFileMutation.mutateAsync([
-                { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-                file,
-              ])
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, { id: createdFile.id }))
-            } catch (error) {
-              switch (event.type) {
-                case AssetEventType.uploadFiles: {
-                  dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-                  toastAndLog(null, error)
-                  break
-                }
-                case AssetEventType.updateFiles: {
-                  toastAndLog(null, error)
-                  break
-                }
-              }
-            }
-          }
-          break
-        }
-      }
-    },
-    { isDisabled: !isEditable }
-  )
 
   const handleClick = inputBindings.handler({
     editName: () => {
@@ -153,7 +82,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(depth)
       )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
@@ -176,11 +105,11 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         editable={rowState.isEditingName}
         className="text grow bg-transparent"
         checkSubmittable={newTitle =>
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
+          newTitle !== item.title &&
+          (nodeMap.current.get(item.parentId)?.children ?? []).every(
             child =>
               // All siblings,
-              child.key === item.key ||
+              child === item.id ||
               // that are not directories,
               backendModule.assetIsDirectory(child.item) ||
               // must have a different name.
@@ -192,7 +121,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           setIsEditing(false)
         }}
       >
-        {asset.title}
+        {item.title}
       </EditableSpan>
     </div>
   )

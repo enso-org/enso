@@ -14,10 +14,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-import type * as assetListEvent from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
-
 import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTable from '#/layouts/AssetsTable'
@@ -34,7 +30,6 @@ import type Backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
 import type AssetQuery from '#/utilities/AssetQuery'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 
@@ -66,10 +61,6 @@ export interface DriveProps {
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly assetListEvents: assetListEvent.AssetListEvent[]
-  readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
@@ -90,7 +81,6 @@ export interface DriveProps {
 export default function Drive(props: DriveProps) {
   const { hidden, initialProjectName, query, setQuery } = props
   const { setSuggestions, projectStartupInfo, setProjectStartupInfo } = props
-  const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
 
@@ -107,9 +97,7 @@ export default function Drive(props: DriveProps) {
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
     [backend, user]
   )
-  const targetDirectoryNodeRef = React.useRef<AssetTreeNode<backendModule.DirectoryAsset> | null>(
-    null
-  )
+  const targetDirectoryNodeRef = React.useRef<backendModule.DirectoryAsset | null>(null)
   const isCloud = categoryModule.isCloud(category)
   const status =
     !isCloud && didLoadingProjectManagerFail
@@ -147,6 +135,7 @@ export default function Drive(props: DriveProps) {
         // This should never happen, however display a nice error message in case it does.
         toastAndLog('offlineUploadFilesError')
       } else {
+        // FIXME: Just mutating is not an option, as conflict resolution needs to display a modal.
         dispatchAssetListEvent({
           type: AssetListEventType.uploadFiles,
           parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
@@ -155,13 +144,7 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [
-      isCloud,
-      rootDirectoryId,
-      sessionType,
-      toastAndLog,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [isCloud, rootDirectoryId, sessionType, toastAndLog]
   )
 
   const doEmptyTrash = React.useCallback(() => {
@@ -292,15 +275,10 @@ export default function Drive(props: DriveProps) {
             doCreateDirectory={doCreateDirectory}
             doCreateSecret={doCreateSecret}
             doCreateDatalink={doCreateDatalink}
-            dispatchAssetEvent={dispatchAssetEvent}
           />
           <div className="flex flex-1 gap-drive overflow-hidden">
             <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
-              <CategorySwitcher
-                category={category}
-                setCategory={onSetCategory}
-                dispatchAssetEvent={dispatchAssetEvent}
-              />
+              <CategorySwitcher category={category} setCategory={onSetCategory} />
               {isCloud && (
                 <Labels
                   backend={backend}
@@ -320,10 +298,6 @@ export default function Drive(props: DriveProps) {
               setSuggestions={setSuggestions}
               initialProjectName={initialProjectName}
               projectStartupInfo={projectStartupInfo}
-              assetEvents={assetEvents}
-              dispatchAssetEvent={dispatchAssetEvent}
-              assetListEvents={assetListEvents}
-              dispatchAssetListEvent={dispatchAssetListEvent}
               setAssetPanelProps={setAssetPanelProps}
               setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
               targetDirectoryNodeRef={targetDirectoryNodeRef}

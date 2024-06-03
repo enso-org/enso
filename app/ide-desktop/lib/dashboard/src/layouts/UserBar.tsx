@@ -38,14 +38,13 @@ export interface UserBarProps {
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
-  readonly doRemoveSelf: () => void
   readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
   const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
-  const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { projectAsset, setProjectAsset, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -113,7 +112,6 @@ export default function UserBar(props: UserBarProps) {
                     item={projectAsset}
                     setItem={setProjectAsset}
                     self={self}
-                    doRemoveSelf={doRemoveSelf}
                     eventTarget={null}
                   />
                 )

@@ -43,11 +43,7 @@ export interface ManagePermissionsModalProps<
 > {
   readonly backend: Backend
   readonly item: Asset
-  readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
   readonly self: backendModule.UserPermission
-  /** Remove the current user's permissions from this asset. This MUST be a prop because it should
-   * change the assets list. */
-  readonly doRemoveSelf: () => void
   /** If this is `null`, this modal will be centered. */
   readonly eventTarget: HTMLElement | null
 }
@@ -58,7 +54,7 @@ export interface ManagePermissionsModalProps<
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
-  const { backend, item, setItem, self, doRemoveSelf, eventTarget } = props
+  const { backend, item, self, eventTarget } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -105,14 +101,9 @@ export default function ManagePermissionsModal<
     [user?.userId, permissions, self.permission]
   )
 
+  const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
   const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser')
   const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
-
-  React.useEffect(() => {
-    // This is SAFE, as the type of asset is not being changed.
-    // eslint-disable-next-line no-restricted-syntax
-    setItem(object.merger({ permissions } as Partial<Asset>))
-  }, [permissions, /* should never change */ setItem])
 
   if (backend.type === backendModule.BackendType.local || user == null) {
     // This should never happen - the local backend does not have the "shared with" column,
@@ -229,7 +220,7 @@ export default function ManagePermissionsModal<
 
     const doDelete = async (permissionId: backendModule.UserPermissionIdentifier) => {
       if (permissionId === self.user.userId) {
-        doRemoveSelf()
+        deleteAssetMutation.mutate([item.id, { force: false, parentId: item.parentId }, item.title])
       } else {
         const oldPermission = permissions.find(
           permission => backendModule.getAssetPermissionId(permission) === permissionId

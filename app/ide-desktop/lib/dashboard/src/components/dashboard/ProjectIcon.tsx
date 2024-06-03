@@ -10,15 +10,11 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
@@ -71,8 +67,6 @@ export interface ProjectIconProps {
   readonly backend: Backend
   readonly item: backendModule.ProjectAsset
   readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly doCloseEditor: () => void
   readonly doOpenEditor: (switchPage: boolean) => void
@@ -80,7 +74,7 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, setItem, assetEvents, setProjectStartupInfo, dispatchAssetEvent } = props
+  const { backend, item, setItem, setProjectStartupInfo } = props
   const { doCloseEditor, doOpenEditor } = props
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
@@ -221,39 +215,28 @@ export default function ProjectIcon(props: ProjectIconProps) {
     })
   }, [state, backend.type])
 
-  eventHooks.useEventHandler(assetEvents, event => {
-    switch (event.type) {
-      case AssetEventType.openProject: {
-        if (event.id !== item.id) {
-          if (!event.runInBackground && !isRunningInBackground) {
-            setShouldOpenWhenReady(false)
-            if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
-              void closeProject()
-            }
-          }
-        } else {
-          setShouldOpenWhenReady(!event.runInBackground)
-          setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
-          setIsRunningInBackground(event.runInBackground)
-          void openProject(event.runInBackground)
-        }
-        break
-      }
-      case AssetEventType.closeProject: {
-        if (event.id === item.id) {
-          setShouldOpenWhenReady(false)
+  const onOpenProjectEvent = event => {
+    if (event.id !== item.id) {
+      if (!event.runInBackground && !isRunningInBackground) {
+        setShouldOpenWhenReady(false)
+        if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
           void closeProject()
         }
-        break
       }
-      default: {
-        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
+    } else {
+      setShouldOpenWhenReady(!event.runInBackground)
+      setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
+      setIsRunningInBackground(event.runInBackground)
+      void openProject(event.runInBackground)
     }
-  })
+  }
+
+  const onCloseProjectEvent = event => {
+    if (event.id === item.id) {
+      setShouldOpenWhenReady(false)
+      void closeProject()
+    }
+  }
 
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
@@ -288,12 +271,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
           variant="custom"
           className="size-project-icon rounded-full"
           onPress={() => {
-            dispatchAssetEvent({
-              type: AssetEventType.openProject,
-              id: item.id,
-              shouldAutomaticallySwitchPage: true,
-              runInBackground: false,
-            })
+            // FIXME: This component should listen on the state updates caused by this mutation.
+            void openProjectMutation.mutateAsync([
+              item.id,
+              {
+                executeAsync: false,
+                parentId: item.parentId,
+                cognitoCredentials: session,
+              },
+              item.title,
+            ])
           }}
         >
           <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
@@ -322,13 +309,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
               )}
             />
           </ariaComponents.Button>
-          <Spinner
-            state={spinnerState}
-            className={tailwindMerge.twMerge(
-              'pointer-events-none absolute top-0 size-project-icon',
-              isRunningInBackground && 'text-green'
-            )}
-          />
+          {/* The spinner MUST NOT be shown in the `placeholder` state because the ID changes when
+           * the actual asset is recieved, causing the DOM nodes to be re-created due to the
+           * different ID (different key) and causing the CSS animation to restart. */}
+          {state !== backendModule.ProjectState.placeholder && (
+            <Spinner
+              state={spinnerState}
+              className={tailwindMerge.twMerge(
+                'pointer-events-none absolute top-0 size-project-icon',
+                isRunningInBackground && 'text-green'
+              )}
+            />
+          )}
         </div>
       )
     case backendModule.ProjectState.opened:

@@ -1,9 +1,18 @@
+;
 /** @file Various types of drag event payloads. */
-import type * as React from 'react'
+import type * as React from 'react';
 
-import type * as backend from '#/services/Backend'
 
-import * as uniqueString from '#/utilities/uniqueString'
+
+import type * as backend from '#/services/Backend';
+
+
+
+import * as uniqueString from '#/utilities/uniqueString';
+
+
+
+
 
 // ===========================
 // === setDragImageToBlank ===
@@ -68,14 +77,8 @@ export const ASSET_ROWS = new DragPayloadManager<AssetRowsDragPayload>(
   'application/x-enso-asset-list'
 )
 
-/** Metadata for an asset row. */
-interface AssetRowsDragPayloadItem {
-  readonly key: backend.AssetId
-  readonly asset: backend.AnyAsset
-}
-
 /** Data for a {@link DragEvent} started from an `AssetsTable`. */
-export type AssetRowsDragPayload = readonly AssetRowsDragPayloadItem[]
+export type AssetRowsDragPayload = readonly backend.AnyAsset[]
 
 // ========================
 // === LabelDragPayload ===

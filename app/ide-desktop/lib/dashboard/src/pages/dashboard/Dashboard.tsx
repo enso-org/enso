@@ -6,7 +6,6 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as eventHooks from '#/hooks/eventHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -14,11 +13,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
@@ -144,11 +138,6 @@ export default function Dashboard(props: DashboardProps) {
   const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
-  const [openProjectAbortController, setOpenProjectAbortController] =
-    React.useState<AbortController | null>(null)
-  const [assetListEvents, dispatchAssetListEvent] =
-    eventHooks.useEvent<assetListEvent.AssetListEvent>()
-  const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
   const [assetPanelProps, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
   const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
@@ -188,8 +177,6 @@ export default function Dashboard(props: DashboardProps) {
         if (remoteBackend != null) {
           setPage(pageSwitcher.Page.drive)
           void (async () => {
-            const abortController = new AbortController()
-            setOpenProjectAbortController(abortController)
             try {
               const oldProject = await remoteBackend.getProjectDetails(
                 savedProjectStartupInfo.projectAsset.id,
@@ -197,17 +184,15 @@ export default function Dashboard(props: DashboardProps) {
                 savedProjectStartupInfo.projectAsset.title
               )
               if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
+                // FIXME: Re-add AbortController
                 const project = await remoteBackend.waitUntilProjectIsReady(
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.parentId,
-                  savedProjectStartupInfo.projectAsset.title,
-                  abortController
+                  savedProjectStartupInfo.projectAsset.title
                 )
-                if (!abortController.signal.aborted) {
-                  setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-                  if (page === pageSwitcher.Page.editor) {
-                    setPage(page)
-                  }
+                setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+                if (page === pageSwitcher.Page.editor) {
+                  setPage(page)
                 }
               }
             } catch {
@@ -243,20 +228,6 @@ export default function Dashboard(props: DashboardProps) {
     // This MUST only run when the component is mounted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  eventHooks.useEventHandler(assetEvents, event => {
-    switch (event.type) {
-      case AssetEventType.openProject: {
-        openProjectAbortController?.abort()
-        setOpenProjectAbortController(null)
-        break
-      }
-      default: {
-        // Ignored.
-        break
-      }
-    }
-  })
 
   React.useEffect(() => {
     if (initialized) {
@@ -357,14 +328,6 @@ export default function Dashboard(props: DashboardProps) {
     )
   }, [])
 
-  const doRemoveSelf = React.useCallback(() => {
-    if (projectStartupInfo?.projectAsset != null) {
-      const id = projectStartupInfo.projectAsset.id
-      dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
-      setProjectStartupInfo(null)
-    }
-  }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
-
   const onSignOut = React.useCallback(() => {
     if (page === pageSwitcher.Page.editor) {
       setPage(pageSwitcher.Page.drive)
@@ -402,7 +365,6 @@ export default function Dashboard(props: DashboardProps) {
             isAssetPanelVisible={isAssetPanelVisible}
             isAssetPanelEnabled={isAssetPanelEnabled}
             setIsAssetPanelEnabled={setIsAssetPanelEnabled}
-            doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}
           />
           <Drive
@@ -415,10 +377,6 @@ export default function Dashboard(props: DashboardProps) {
             setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
-            assetListEvents={assetListEvents}
-            dispatchAssetListEvent={dispatchAssetListEvent}
-            assetEvents={assetEvents}
-            dispatchAssetEvent={dispatchAssetEvent}
             setAssetPanelProps={setAssetPanelProps}
             setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
             doOpenEditor={doOpenEditor}
@@ -457,14 +415,11 @@ export default function Dashboard(props: DashboardProps) {
         >
           {isAssetPanelVisible && (
             <AssetPanel
-              key={assetPanelProps?.item?.item.id}
+              key={assetPanelProps?.item?.id}
               backend={assetPanelProps?.backend ?? null}
               item={assetPanelProps?.item ?? null}
-              setItem={assetPanelProps?.setItem ?? null}
               setQuery={setQuery}
               category={defaultCategory}
-              dispatchAssetEvent={dispatchAssetEvent}
-              dispatchAssetListEvent={dispatchAssetListEvent}
               isReadonly={category === Category.trash}
             />
           )}

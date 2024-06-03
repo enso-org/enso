@@ -48,7 +48,7 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
+import BackendProvider, * as backendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
@@ -195,7 +195,7 @@ export default function App(props: AppProps) {
       <router.BrowserRouter basename={getMainPageUrl().pathname} future={routerFuture}>
         <LocalStorageProvider>
           <ModalProvider>
-            <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+            <AppIntermediate {...props} projectManagerRootDirectory={rootDirectoryPath} />
           </ModalProvider>
         </LocalStorageProvider>
       </router.BrowserRouter>
@@ -205,22 +205,22 @@ export default function App(props: AppProps) {
   )
 }
 
-// =================
-// === AppRouter ===
-// =================
+// =======================
+// === AppIntermediate ===
+// =======================
 
-/** Props for an {@link AppRouter}. */
-export interface AppRouterProps extends AppProps {
+/** Props for an {@link AppIntermediate}. */
+export interface AppIntermediateProps extends AppProps {
   readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** Router definition for the app.
  *
- * The only reason the {@link AppRouter} component is separate from the {@link App} component is
- * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
+ * The only reason the {@link AppIntermediate} component is separate from the {@link App} component is
+ * because the {@link AppIntermediate} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
-function AppRouter(props: AppRouterProps) {
-  const { logger, isAuthenticationDisabled, shouldShowDashboard } = props
+function AppIntermediate(props: AppIntermediateProps) {
+  const { logger, isAuthenticationDisabled } = props
   const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
@@ -235,8 +235,6 @@ function AppRouter(props: AppRouterProps) {
       ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
       : null
   )
-  backendHooks.useObserveBackend(remoteBackend)
-  backendHooks.useObserveBackend(localBackend)
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -394,7 +392,55 @@ function AppRouter(props: AppRouterProps) {
     }
   }, [])
 
-  const routes = (
+  return (
+    <rootComponent.Root rootRef={root} navigate={navigate}>
+      <LoggerProvider logger={logger}>
+        <SessionProvider
+          mainPageUrl={mainPageUrl}
+          userSession={userSession}
+          registerAuthEventListener={registerAuthEventListener}
+          refreshUserSession={
+            refreshUserSession
+              ? async () => {
+                  await refreshUserSession()
+                }
+              : null
+          }
+        >
+          <AuthProvider
+            shouldStartInOfflineMode={isAuthenticationDisabled}
+            setRemoteBackend={setRemoteBackend}
+            authService={authService}
+            onAuthenticated={onAuthenticated}
+          >
+            <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
+              <InputBindingsProvider inputBindings={inputBindings}>
+                <AppRouter {...props} />
+              </InputBindingsProvider>
+            </BackendProvider>
+          </AuthProvider>
+        </SessionProvider>
+      </LoggerProvider>
+    </rootComponent.Root>
+  )
+}
+
+// =================
+// === AppRouter ===
+// =================
+
+/** Props for an {@link AppRouter}. */
+export interface AppRouterProps extends AppIntermediateProps {}
+
+/** The routes for the app. */
+function AppRouter(props: AppRouterProps) {
+  const { shouldShowDashboard } = props
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
+  backendHooks.useObserveBackend(remoteBackend)
+  backendHooks.useObserveBackend(localBackend)
+
+  return (
     <router.Routes>
       {/* Login & registration pages are visible to unauthenticated users. */}
       <router.Route element={<authProvider.GuestLayout />}>
@@ -463,45 +509,4 @@ function AppRouter(props: AppRouterProps) {
       <router.Route path="*" element={<router.Navigate to="/" replace />} />
     </router.Routes>
   )
-
-  let result = routes
-  result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = (
-    <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-      {result}
-    </BackendProvider>
-  )
-  result = (
-    <AuthProvider
-      shouldStartInOfflineMode={isAuthenticationDisabled}
-      setRemoteBackend={setRemoteBackend}
-      authService={authService}
-      onAuthenticated={onAuthenticated}
-    >
-      {result}
-    </AuthProvider>
-  )
-  result = (
-    <SessionProvider
-      mainPageUrl={mainPageUrl}
-      userSession={userSession}
-      registerAuthEventListener={registerAuthEventListener}
-      refreshUserSession={
-        refreshUserSession
-          ? async () => {
-              await refreshUserSession()
-            }
-          : null
-      }
-    >
-      {result}
-    </SessionProvider>
-  )
-  result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-  result = (
-    <rootComponent.Root rootRef={root} navigate={navigate}>
-      {result}
-    </rootComponent.Root>
-  )
-  return result
 }

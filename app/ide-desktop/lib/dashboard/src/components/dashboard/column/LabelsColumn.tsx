@@ -37,7 +37,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, setItem, state, rowState } = props
   const { backend, category, setQuery } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
-  const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -47,28 +46,19 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     return new Map(labels?.map(label => [label.value, label]))
   }, [labels])
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
-  const self = asset.permissions?.find(
+  const self = item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem(oldItem =>
-        oldItem.with({
-          item:
-            typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        })
-      )
-    },
-    [/* should never change */ setItem]
-  )
+
+  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.labels ?? [])
+      {(item.labels ?? [])
         .filter(label => labelsByName.has(label))
         .map(label => (
           <Label
@@ -89,22 +79,8 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               event.stopPropagation()
               const doDelete = () => {
                 unsetModal()
-                setAsset(oldAsset => {
-                  const newLabels = oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                  void backend
-                    .associateTag(asset.id, newLabels, asset.title)
-                    .catch((error: unknown) => {
-                      toastAndLog(null, error)
-                      setAsset(oldAsset2 =>
-                        oldAsset2.labels?.some(oldLabel => oldLabel === label) === true
-                          ? oldAsset2
-                          : object.merge(oldAsset2, {
-                              labels: [...(oldAsset2.labels ?? []), label],
-                            })
-                      )
-                    })
-                  return object.merge(oldAsset, { labels: newLabels })
-                })
+                const newLabels = item.labels?.filter(oldLabel => oldLabel !== label) ?? []
+                associateTagMutation.mutate([item.id, newLabels, item.title])
               }
               setModal(
                 <ContextMenus key={`label-${label}`} event={event}>
@@ -128,7 +104,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           </Label>
         ))}
       {...[...temporarilyAddedLabels]
-        .filter(label => asset.labels?.includes(label) !== true)
+        .filter(label => item.labels?.includes(label) !== true)
         .map(label => (
           <Label
             isDisabled
@@ -151,8 +127,8 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               <ManageLabelsModal
                 key={uniqueString.uniqueString()}
                 backend={backend}
-                item={asset}
-                setItem={setAsset}
+                item={item}
+                setItem={setItem}
                 eventTarget={plusButtonRef.current}
               />
             )

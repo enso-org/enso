@@ -7,15 +7,11 @@ import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -41,9 +37,8 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
-  const { doToggleDirectoryExpansion } = state
+  const { item, setItem, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { backend, selectedKeys, nodeMap, doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -51,8 +46,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display folders.')
   }
-  const asset = item.item
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const setAsset = setAssetHooks.useSetAsset(item, setItem)
 
   const createDirectoryMutation = backendHooks.useBackendMutation(backend, 'createDirectory')
   const updateDirectoryMutation = backendHooks.useBackendMutation(backend, 'updateDirectory')
@@ -68,11 +62,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       setIsEditing(false)
       if (string.isWhitespaceOnly(newTitle)) {
         // Do nothing.
-      } else if (newTitle !== asset.title) {
-        const oldTitle = asset.title
+      } else if (newTitle !== item.title) {
+        const oldTitle = item.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          await updateDirectoryMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
+          await updateDirectoryMutation.mutateAsync([item.id, { title: newTitle }, item.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
@@ -80,61 +74,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }
     }
   }
-
-  eventHooks.useEventHandler(
-    assetEvents,
-    async event => {
-      switch (event.type) {
-        case AssetEventType.newProject:
-        case AssetEventType.uploadFiles:
-        case AssetEventType.newDatalink:
-        case AssetEventType.newSecret:
-        case AssetEventType.openProject:
-        case AssetEventType.updateFiles:
-        case AssetEventType.closeProject:
-        case AssetEventType.copy:
-        case AssetEventType.cut:
-        case AssetEventType.cancelCut:
-        case AssetEventType.move:
-        case AssetEventType.delete:
-        case AssetEventType.deleteForever:
-        case AssetEventType.restore:
-        case AssetEventType.download:
-        case AssetEventType.downloadSelected:
-        case AssetEventType.removeSelf:
-        case AssetEventType.temporarilyAddLabels:
-        case AssetEventType.temporarilyRemoveLabels:
-        case AssetEventType.addLabels:
-        case AssetEventType.removeLabels:
-        case AssetEventType.deleteLabel: {
-          // Ignored. These events should all be unrelated to directories.
-          // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-          // are handled by`AssetRow`.
-          break
-        }
-        case AssetEventType.newFolder: {
-          if (item.key === event.placeholderId) {
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const createdDirectory = await createDirectoryMutation.mutateAsync([
-                {
-                  parentId: asset.parentId,
-                  title: asset.title,
-                },
-              ])
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, createdDirectory))
-            } catch (error) {
-              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-              toastAndLog('createFolderError', error)
-            }
-          }
-          break
-        }
-      }
-    },
-    { isDisabled: !isEditable }
-  )
 
   const handleClick = inputBindings.handler({
     editName: () => {
@@ -146,7 +85,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     <div
       className={tailwindMerge.twMerge(
         'group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
-        indent.indentClass(item.depth)
+        indent.indentClass(depth)
       )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
@@ -174,7 +113,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           item.children != null && 'rotate-90'
         )}
         onPress={() => {
-          doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+          doToggleDirectoryExpansion(item.id, item.title)
         }}
       />
       <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
@@ -186,11 +125,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         )}
         checkSubmittable={newTitle =>
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
+          newTitle !== item.title &&
+          (nodeMap.current.get(item.parentId)?.children ?? []).every(
             child =>
               // All siblings,
-              child.key === item.key ||
+              child.key === item.id ||
               // that are directories,
               !backendModule.assetIsDirectory(child.item) ||
               // must have a different name.
@@ -202,7 +141,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           setIsEditing(false)
         }}
       >
-        {asset.title}
+        {item.title}
       </EditableSpan>
     </div>
   )

@@ -6,9 +6,6 @@ import * as tailwindMerge from 'tailwind-merge'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-import type * as assetListEvent from '#/events/assetListEvent'
-
 import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
@@ -20,7 +17,6 @@ import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 
 // =====================
@@ -56,8 +52,7 @@ LocalStorage.registerKey('assetPanelTab', {
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
   readonly backend: Backend | null
-  readonly item: assetTreeNode.AnyAssetTreeNode | null
-  readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
+  readonly item: backendModule.AnyAsset | null
 }
 
 /** Props for an {@link AssetPanel}. */
@@ -65,14 +60,11 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isReadonly?: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, item, isReadonly = false, setItem, setQuery, category } = props
-  const { dispatchAssetEvent, dispatchAssetListEvent } = props
+  const { backend, item, isReadonly = false, setQuery, category } = props
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -80,8 +72,8 @@ export default function AssetPanel(props: AssetPanelProps) {
   const [tab, setTab] = React.useState(() => {
     const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
     if (
-      (item?.item.type === backendModule.AssetType.secret ||
-        item?.item.type === backendModule.AssetType.directory) &&
+      (item?.type === backendModule.AssetType.secret ||
+        item?.type === backendModule.AssetType.directory) &&
       savedTab === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
@@ -114,8 +106,8 @@ export default function AssetPanel(props: AssetPanelProps) {
     >
       <div className="flex">
         {item != null &&
-          item.item.type !== backendModule.AssetType.secret &&
-          item.item.type !== backendModule.AssetType.directory && (
+          item.type !== backendModule.AssetType.secret &&
+          item.type !== backendModule.AssetType.directory && (
             <ariaComponents.Button
               size="custom"
               variant="custom"
@@ -137,7 +129,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </div>
-      {item == null || setItem == null || backend == null ? (
+      {item == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}
         </div>
@@ -148,19 +140,11 @@ export default function AssetPanel(props: AssetPanelProps) {
               backend={backend}
               isReadonly={isReadonly}
               item={item}
-              setItem={setItem}
               category={category}
               setQuery={setQuery}
-              dispatchAssetEvent={dispatchAssetEvent}
             />
           )}
-          {tab === AssetPanelTab.versions && (
-            <AssetVersions
-              backend={backend}
-              item={item}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-            />
-          )}
+          {tab === AssetPanelTab.versions && <AssetVersions backend={backend} item={item} />}
         </>
       )}
     </div>

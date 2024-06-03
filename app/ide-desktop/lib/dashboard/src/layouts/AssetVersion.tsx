@@ -7,10 +7,9 @@ import CompareIcon from 'enso-assets/compare.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
 import RestoreIcon from 'enso-assets/restore.svg'
 
-import * as textProvider from '#/providers/TextProvider'
+import * as backendHooks from '#/hooks/backendHooks'
 
-import type * as assetListEvent from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as assetDiffView from '#/layouts/AssetDiffView'
 
@@ -20,7 +19,6 @@ import ButtonRow from '#/components/styled/ButtonRow'
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 
 // ====================
@@ -30,32 +28,25 @@ import * as dateTime from '#/utilities/dateTime'
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
   readonly placeholder?: boolean
-  readonly item: AssetTreeNode
+  readonly item: backendService.AnyAsset
   readonly number: number
   readonly version: backendService.S3ObjectVersion
   readonly latestVersion: backendService.S3ObjectVersion
   readonly backend: Backend
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly doRestore: () => Promise<void> | void
 }
 
 /** Displays information describing a specific version of an asset. */
 export default function AssetVersion(props: AssetVersionProps) {
-  const { placeholder = false, number, version, item, backend, latestVersion } = props
-  const { dispatchAssetListEvent, doRestore } = props
+  const { placeholder = false, number, version, item, backend, latestVersion, doRestore } = props
   const { getText } = textProvider.useText()
-  const asset = item.item
-  const isProject = asset.type === backendService.AssetType.project
+  const isProject = item.type === backendService.AssetType.project
+
+  const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
 
   const doDuplicate = () => {
     if (isProject) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.duplicateProject,
-        parentKey: item.directoryKey,
-        parentId: asset.parentId,
-        original: asset,
-        versionId: version.versionId,
-      })
+      duplicateProjectMutation.mutate([item.id, version.versionId, item.title])
     }
   }
 
@@ -129,7 +120,7 @@ export default function AssetVersion(props: AssetVersionProps) {
                   <assetDiffView.AssetDiffView
                     latestVersionId={latestVersion.versionId}
                     versionId={version.versionId}
-                    project={asset}
+                    project={item}
                     backend={backend}
                   />
                 </div>

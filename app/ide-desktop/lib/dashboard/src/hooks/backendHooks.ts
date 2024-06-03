@@ -9,7 +9,11 @@ import * as authProvider from '#/providers/AuthProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import * as dateTime from '#/utilities/dateTime'
+import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
+
+// FIXME: Listeners and optimistic state for duplicateProjectMutation
 
 // ============================
 // === revokeUserPictureUrl ===
@@ -76,6 +80,7 @@ function revokeOrganizationPictureUrl(backend: Backend | null) {
 export function useObserveBackend(backend: Backend | null) {
   const queryClient = reactQuery.useQueryClient()
   const [seen] = React.useState(new WeakSet())
+  const { user } = authProvider.useNonPartialUserSession()
   const useObserveMutations = <Method extends keyof Backend>(
     method: Method,
     onSuccess: (
@@ -113,17 +118,54 @@ export function useObserveBackend(backend: Backend | null) {
       Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
     >([backend, method], data => (data == null ? data : updater(data)))
   }
-  useObserveMutations('uploadUserPicture', state => {
-    revokeUserPictureUrl(backend)
-    setQueryData('usersMe', user => state.data ?? user)
+  const setQueryDataWithKey = <Method extends keyof Backend>(
+    method: Method,
+    key: reactQuery.QueryKey,
+    updater: (
+      variable: Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+    ) => Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+  ) => {
+    queryClient.setQueryData<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+    >([backend, method, ...key], data => (data == null ? data : updater(data)))
+  }
+
+  // === Users ===
+
+  useObserveMutations('updateUser', state => {
+    if (state.variables != null) {
+      const [body] = state.variables
+      setQueryData('usersMe', currentUser =>
+        currentUser == null ? null : { ...currentUser, name: body.username ?? currentUser.name }
+      )
+    }
   })
+  useObserveMutations('uploadUserPicture', state => {
+    if (state.data != null) {
+      revokeUserPictureUrl(backend)
+      const data = state.data
+      setQueryData('usersMe', () => data)
+    }
+  })
+
+  // === Organizations ===
+
   useObserveMutations('updateOrganization', state => {
-    setQueryData('getOrganization', organization => state.data ?? organization)
+    if (state.data != null) {
+      const data = state.data
+      setQueryData('getOrganization', () => data)
+    }
   })
   useObserveMutations('uploadOrganizationPicture', state => {
-    revokeOrganizationPictureUrl(backend)
-    setQueryData('getOrganization', organization => state.data ?? organization)
+    if (state.data != null) {
+      revokeOrganizationPictureUrl(backend)
+      const data = state.data
+      setQueryData('getOrganization', () => data)
+    }
   })
+
+  // === User groups ===
+
   useObserveMutations('createUserGroup', state => {
     if (state.data != null) {
       const data = state.data
@@ -139,12 +181,15 @@ export function useObserveBackend(backend: Backend | null) {
     if (state.variables != null) {
       const [userId, body] = state.variables
       setQueryData('listUsers', users =>
-        users.map(user =>
-          user.userId !== userId ? user : { ...user, userGroups: body.userGroups }
+        users.map(otherUser =>
+          otherUser.userId !== userId ? otherUser : { ...otherUser, userGroups: body.userGroups }
         )
       )
     }
   })
+
+  // === Tags ===
+
   useObserveMutations('createTag', state => {
     if (state.data != null) {
       const data = state.data
@@ -156,6 +201,136 @@ export function useObserveBackend(backend: Backend | null) {
       const [tagId] = state.variables
       setQueryData('listTags', tags => tags.filter(tag => tag.id !== tagId))
     }
+  })
+
+  // === Create assets ===
+
+  const createAssetObject = <T extends Partial<backendModule.AnyAsset>>(rest: T) => ({
+    description: null,
+    labels: [],
+    permissions: permissions.tryGetSingletonOwnerPermission(user),
+    projectState: null,
+    modifiedAt: dateTime.toRfc3339(new Date()),
+    ...rest,
+  })
+
+  useObserveMutations('createDirectory', state => {
+    if (state.variables != null && state.data != null) {
+      const [body] = state.variables
+      const data = state.data
+      setQueryDataWithKey(
+        'listDirectory',
+        [data.parentId, backendModule.FilterBy.active],
+        items => [
+          ...items,
+          createAssetObject({
+            type: backendModule.AssetType.directory,
+            id: data.id,
+            title: body.title,
+            parentId: data.parentId,
+          }),
+        ]
+      )
+    }
+  })
+  useObserveMutations('createProject', state => {
+    if (state.variables != null && state.data != null) {
+      const [body] = state.variables
+      const data = state.data
+      const parentId = body.parentDirectoryId ?? backend?.rootDirectoryId(user)
+      if (parentId != null) {
+        setQueryDataWithKey('listDirectory', [parentId, backendModule.FilterBy.active], items => [
+          ...items,
+          createAssetObject({
+            type: backendModule.AssetType.project,
+            id: data.projectId,
+            title: data.name,
+            parentId,
+            projectState: data.state,
+          }),
+        ])
+      }
+    }
+  })
+  useObserveMutations('createDatalink', state => {
+    if (state.variables != null && state.data != null) {
+      const [body] = state.variables
+      const data = state.data
+      const parentId = body.parentDirectoryId ?? backend?.rootDirectoryId(user)
+      if (parentId != null) {
+        setQueryDataWithKey('listDirectory', [parentId, backendModule.FilterBy.active], items => [
+          ...items,
+          createAssetObject({
+            type: backendModule.AssetType.datalink,
+            id: data.id,
+            title: body.name,
+            parentId,
+          }),
+        ])
+      }
+    }
+  })
+  useObserveMutations('createSecret', state => {
+    if (state.variables != null && state.data != null) {
+      const [body] = state.variables
+      const id = state.data
+      const parentId = body.parentDirectoryId ?? backend?.rootDirectoryId(user)
+      if (parentId != null) {
+        setQueryDataWithKey('listDirectory', [parentId, backendModule.FilterBy.active], items => [
+          ...items,
+          createAssetObject({
+            type: backendModule.AssetType.secret,
+            id,
+            title: body.name,
+            parentId,
+          }),
+        ])
+      }
+    }
+  })
+
+  // === Update assets ===
+
+  useObserveMutations('uploadFile', state => {
+    if (state.data != null && state.variables != null) {
+      const [body] = state.variables
+      const data = state.data
+      const parentId = body.parentDirectoryId ?? backend?.rootDirectoryId(user)
+      if (parentId != null) {
+        setQueryDataWithKey('listDirectory', [parentId, backendModule.FilterBy.active], items => [
+          ...items,
+          data.project == null
+            ? createAssetObject({
+                type: backendModule.AssetType.file,
+                id: data.id,
+                title: body.fileName,
+                parentId,
+              })
+            : createAssetObject({
+                type: backendModule.AssetType.project,
+                id: data.project.projectId,
+                title: data.project.name,
+                projectState: data.project.state,
+                parentId,
+              }),
+        ])
+      }
+    }
+  })
+  useObserveMutations('updateAsset', state => {
+    if (state.data != null && state.variables != null) {
+      const [body] = state.variables
+      setQueryDataWithKey('listDirectory', [parentId], items => items)
+    }
+  })
+
+  // === Delete assets ===
+
+  useObserveMutations('deleteAsset', state => {
+    // TODO: update both "active" and "deleted" queries
+  })
+  useObserveMutations('undoDeleteAsset', state => {
+    // TODO: update both "active" and "deleted" queries
   })
 }
 
@@ -533,5 +708,137 @@ export function useBackendGetOrganization(backend: Backend | null) {
     getOrganizationQuery.data,
     updateOrganizationVariables,
     uploadOrganizationPictureVariables,
+  ])
+}
+
+/** The directory with the given ID, taking into account optimistic state. */
+export function useBackendListDirectory(
+  backend: Backend,
+  directoryId: backendModule.DirectoryId,
+  title: string,
+  filterBy = backendModule.FilterBy.active
+) {
+  const { user } = authProvider.useNonPartialUserSession()
+  const listDirectoryQuery = useBackendQuery(
+    backend,
+    'listDirectory',
+    [
+      {
+        filterBy,
+        labels: null,
+        parentId: directoryId,
+        recentProjects: false,
+      },
+      title,
+    ],
+    {
+      queryKey: [directoryId, filterBy],
+    }
+  )
+  // FIXME: Create a query storing all the results in a map keyed by parent directory
+  // to avoid filtering the entire list for every single component listing the directory.
+  // Also create a query for each individual asset.
+  const createDirectoryVariables = useBackendMutationVariables(backend, 'createDirectory')
+  const createProjectVariables = useBackendMutationVariables(backend, 'createProject')
+  const createDatalinkVariables = useBackendMutationVariables(backend, 'createDatalink')
+  const createSecretVariables = useBackendMutationVariables(backend, 'createSecret')
+  const uploadFileVariables = useBackendMutationVariables(backend, 'uploadFile')
+  return React.useMemo(() => {
+    if (listDirectoryQuery.data == null) {
+      return null
+    } else {
+      const result = listDirectoryQuery.data.map(toNonPlaceholder)
+      const placeholderProjectState = { type: backendModule.ProjectState.new, volumeId: '' }
+      const createAssetObject = <T extends Partial<backendModule.AnyAsset>>(rest: T) => ({
+        description: null,
+        labels: [],
+        permissions: permissions.tryGetSingletonOwnerPermission(user),
+        projectState: null,
+        modifiedAt: dateTime.toRfc3339(new Date()),
+        parentId: directoryId,
+        isPlaceholder: true,
+        ...rest,
+      })
+      for (const [body] of createDirectoryVariables) {
+        result.push(
+          createAssetObject({
+            type: backendModule.AssetType.directory,
+            id: backendModule.DirectoryId(
+              `${backendModule.AssetType.directory}-${uniqueString.uniqueString()}`
+            ),
+            title: body.title,
+          })
+        )
+      }
+      for (const [body] of createProjectVariables) {
+        result.push(
+          createAssetObject({
+            type: backendModule.AssetType.project,
+            id: backendModule.ProjectId(
+              `${backendModule.AssetType.project}-${uniqueString.uniqueString()}`
+            ),
+            title: body.projectName,
+            projectState: placeholderProjectState,
+          })
+        )
+      }
+      for (const [body] of createDatalinkVariables) {
+        if (body.datalinkId == null) {
+          result.push(
+            createAssetObject({
+              type: backendModule.AssetType.datalink,
+              id: backendModule.DatalinkId(
+                `${backendModule.AssetType.datalink}-${uniqueString.uniqueString()}`
+              ),
+              title: body.name,
+            })
+          )
+        }
+      }
+      for (const [body] of createSecretVariables) {
+        result.push(
+          createAssetObject({
+            type: backendModule.AssetType.secret,
+            id: backendModule.SecretId(
+              `${backendModule.AssetType.secret}-${uniqueString.uniqueString()}`
+            ),
+            title: body.name,
+          })
+        )
+      }
+      for (const [body] of uploadFileVariables) {
+        const projectNameAndExtension = backendModule.extractProjectExtension(body.fileName)
+        const projectName =
+          projectNameAndExtension.extension === '' ? null : projectNameAndExtension.basename
+        result.push(
+          projectName == null
+            ? createAssetObject({
+                type: backendModule.AssetType.file,
+                id: backendModule.FileId(
+                  `${backendModule.AssetType.file}-${uniqueString.uniqueString()}`
+                ),
+                title: body.fileName,
+              })
+            : createAssetObject({
+                type: backendModule.AssetType.project,
+                id: backendModule.ProjectId(
+                  `${backendModule.AssetType.project}-${uniqueString.uniqueString()}`
+                ),
+                title: projectName,
+                projectState: placeholderProjectState,
+              })
+        )
+      }
+      return result
+    }
+  }, [
+    directoryId,
+    user,
+    listDirectoryQuery.data,
+    createDatalinkVariables,
+    createDirectoryVariables,
+    createProjectVariables,
+    createSecretVariables,
+    uploadFileVariables,
   ])
 }

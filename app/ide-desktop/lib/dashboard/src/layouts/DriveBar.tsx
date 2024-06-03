@@ -12,9 +12,6 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
@@ -43,14 +40,13 @@ export interface DriveBarProps {
   readonly doCreateSecret: (name: string, value: string) => void
   readonly doCreateDatalink: (name: string, value: unknown) => void
   readonly doUploadFiles: (files: File[]) => void
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
   const { category, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
-  const { doCreateSecret, doCreateDatalink, doUploadFiles, dispatchAssetEvent } = props
+  const { doCreateSecret, doCreateDatalink, doUploadFiles } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()

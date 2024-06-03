@@ -37,7 +37,6 @@ export interface TopBarProps {
   readonly isAssetPanelVisible: boolean
   readonly isAssetPanelEnabled: boolean
   readonly setIsAssetPanelEnabled: React.Dispatch<React.SetStateAction<boolean>>
-  readonly doRemoveSelf: () => void
   readonly onSignOut: () => void
 }
 
@@ -47,7 +46,7 @@ export default function TopBar(props: TopBarProps) {
   const { backend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, setIsHelpChatOpen } = props
   const { query, setQuery, suggestions, isAssetPanelEnabled } = props
-  const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
+  const { isAssetPanelVisible, setIsAssetPanelEnabled, onSignOut } = props
   const remoteBackend = backendProvider.useRemoteBackend()
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
@@ -90,7 +89,6 @@ export default function TopBar(props: TopBarProps) {
             setIsHelpChatOpen={setIsHelpChatOpen}
             projectAsset={projectAsset}
             setProjectAsset={setProjectAsset}
-            doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}
           />
         </div>
@@ -117,7 +115,6 @@ export default function TopBar(props: TopBarProps) {
             setIsHelpChatOpen={setIsHelpChatOpen}
             projectAsset={projectAsset}
             setProjectAsset={setProjectAsset}
-            doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}
           />
         </div>

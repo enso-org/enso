@@ -146,13 +146,11 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 export interface CategorySwitcherProps {
   readonly category: Category
   readonly setCategory: (category: Category) => void
-  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory } = props
-  const { dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()

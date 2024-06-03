@@ -10,7 +10,6 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as backendHooks from '#/hooks/backendHooks'
-import * as eventHooks from '#/hooks/eventHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -21,11 +20,6 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
@@ -58,8 +52,6 @@ import LocalBackend from '#/services/LocalBackend'
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
@@ -194,83 +186,6 @@ const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
   },
 ]
 
-// ===================================
-// === insertAssetTreeNodeChildren ===
-// ===================================
-
-/** Return a directory, with new children added into its list of children.
- * All children MUST have the same asset type. */
-function insertAssetTreeNodeChildren(
-  item: assetTreeNode.AnyAssetTreeNode,
-  children: backendModule.AnyAsset[],
-  directoryKey: backendModule.DirectoryId,
-  directoryId: backendModule.DirectoryId
-): assetTreeNode.AnyAssetTreeNode {
-  const depth = item.depth + 1
-  const typeOrder = children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].type] : 0
-  const nodes = (item.children ?? []).filter(
-    node => node.item.type !== backendModule.AssetType.specialEmpty
-  )
-  const nodesToInsert = children.map(asset =>
-    AssetTreeNode.fromAsset(asset, directoryKey, directoryId, depth)
-  )
-  const newNodes = array.splicedBefore(
-    nodes,
-    nodesToInsert,
-    innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
-  )
-  return item.with({ children: newNodes })
-}
-
-/** Return a directory, with new children added into its list of children.
- * The children MAY be of different asset types. */
-function insertArbitraryAssetTreeNodeChildren(
-  item: assetTreeNode.AnyAssetTreeNode,
-  children: backendModule.AnyAsset[],
-  directoryKey: backendModule.DirectoryId,
-  directoryId: backendModule.DirectoryId,
-  getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
-): assetTreeNode.AnyAssetTreeNode {
-  const depth = item.depth + 1
-  const nodes = (item.children ?? []).filter(
-    node => node.item.type !== backendModule.AssetType.specialEmpty
-  )
-  const byType: Readonly<Record<backendModule.AssetType, backendModule.AnyAsset[]>> = {
-    [backendModule.AssetType.directory]: [],
-    [backendModule.AssetType.project]: [],
-    [backendModule.AssetType.file]: [],
-    [backendModule.AssetType.datalink]: [],
-    [backendModule.AssetType.secret]: [],
-    [backendModule.AssetType.specialLoading]: [],
-    [backendModule.AssetType.specialEmpty]: [],
-  }
-  for (const child of children) {
-    byType[child.type].push(child)
-  }
-  let newNodes = nodes
-  for (const childrenOfSpecificType of Object.values(byType)) {
-    const firstChild = childrenOfSpecificType[0]
-    if (firstChild) {
-      const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.type]
-      const nodesToInsert = childrenOfSpecificType.map(asset =>
-        AssetTreeNode.fromAsset(
-          asset,
-          directoryKey,
-          directoryId,
-          depth,
-          getKey?.(asset) ?? asset.id
-        )
-      )
-      newNodes = array.splicedBefore(
-        newNodes,
-        nodesToInsert,
-        innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.type] >= typeOrder
-      )
-    }
-  }
-  return newNodes === nodes ? item : item.with({ children: newNodes })
-}
-
 // =========================
 // === DragSelectionInfo ===
 // =========================
@@ -312,18 +227,14 @@ export interface AssetsTableState {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly nodeMap: Readonly<
-    React.MutableRefObject<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
+    React.MutableRefObject<ReadonlyMap<backendModule.AssetId, backendModule.AnyAsset>>
   >
   readonly hideColumn: (column: columnUtils.Column) => void
   readonly doToggleDirectoryExpansion: (
     directoryId: backendModule.DirectoryId,
-    key: backendModule.DirectoryId,
     title?: string | null,
     override?: boolean
   ) => void
@@ -360,10 +271,6 @@ export interface AssetsTableProps {
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly initialProjectName: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly assetListEvents: assetListEvent.AssetListEvent[]
-  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  readonly assetEvents: assetEvent.AssetEvent[]
-  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>

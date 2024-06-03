@@ -6,8 +6,6 @@ import Plus2Icon from 'enso-assets/plus2.svg'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
-import AssetEventType from '#/events/AssetEventType'
-
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -27,25 +25,21 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp
-  extends Pick<
-    column.AssetColumnProps['state'],
-    'backend' | 'category' | 'dispatchAssetEvent' | 'setQuery'
-  > {}
+  extends Pick<column.AssetColumnProps['state'], 'backend' | 'category' | 'setQuery'> {}
 
 /** Props for a {@link SharedWithColumn}. */
-interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
+interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item'> {
   readonly isReadonly?: boolean
   readonly state: SharedWithColumnStateProp
 }
 
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
-  const { item, setItem, state, isReadonly = false } = props
-  const { backend, category, dispatchAssetEvent, setQuery } = state
-  const asset = item.item
+  const { item, state, isReadonly = false } = props
+  const { backend, category, setQuery } = state
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const self = asset.permissions?.find(
+  const self = item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
@@ -54,21 +48,10 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem(oldItem =>
-        oldItem.with({
-          item:
-            typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        })
-      )
-    },
-    [/* should never change */ setItem]
-  )
 
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map(other => (
+      {(item.permissions ?? []).map(other => (
         <PermissionDisplay
           key={backendModule.getAssetPermissionId(other)}
           action={other.permission}
@@ -97,16 +80,9 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
               <ManagePermissionsModal
                 key={uniqueString.uniqueString()}
                 backend={backend}
-                item={asset}
-                setItem={setAsset}
+                item={item}
                 self={self}
                 eventTarget={plusButtonRef.current}
-                doRemoveSelf={() => {
-                  dispatchAssetEvent({
-                    type: AssetEventType.removeSelf,
-                    id: asset.id,
-                  })
-                }}
               />
             )
           }}
