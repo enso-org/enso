@@ -77,7 +77,7 @@ public class TimersTest extends ExecutorSetup {
         var p = function (x, y) {
             globalThis.result = 10*x + y;
         };
-        var timeoutId = setTimeout(p, 99999, 4, 2);
+        var timeoutId = setTimeout(p, 0, 4, 2);
         clearTimeout(timeoutId);
         """;
 
@@ -119,15 +119,12 @@ public class TimersTest extends ExecutorSetup {
         var p = function (x, y) {
             globalThis.result += 10*x + y;
         };
-        var intervalId = setInterval(p, 10, 4, 2);
+        var intervalId = setInterval(p, 0, 4, 2);
         clearInterval(intervalId);
         """;
 
     var result =
         CompletableFuture.supplyAsync(() -> context.eval("js", code), executor)
-            .thenAcceptAsync(
-                NULL_CONSUMER,
-                CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS, executor))
             .thenApplyAsync(v -> context.eval("js", "result"), executor)
             .get();
 

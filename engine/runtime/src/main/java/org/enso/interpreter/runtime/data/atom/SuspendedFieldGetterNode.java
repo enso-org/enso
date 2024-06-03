@@ -7,13 +7,11 @@ import java.util.List;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldSetterNode;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * Getter node that reads a field value. If the value is a thunk the node evaluates it and replaces
@@ -94,8 +92,8 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
     java.lang.Object value = get.execute(atom);
     if (value instanceof Function fn && shallBeExtracted(fn)) {
       try {
-        org.enso.interpreter.runtime.EnsoContext ctx = EnsoContext.get(this);
-        java.lang.Object newValue = invoke.execute(fn, null, State.create(ctx), new Object[0]);
+        var state = Function.ArgumentsHelper.getState(fn.getScope().getArguments());
+        var newValue = invoke.execute(fn, null, state, new Object[0]);
         set.execute(atom, newValue);
         return newValue;
       } catch (AbstractTruffleException ex) {

@@ -5,7 +5,7 @@ import {
   usePlacement,
 } from '@/components/ComponentBrowser/placement'
 import type { GraphNavigator } from '@/providers/graphNavigator'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { type GraphStore, type NodeId } from '@/stores/graph'
 import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
@@ -51,12 +51,11 @@ export interface NodeCreationOptions<Placement extends PlacementStrategy = Place
 }
 
 export function useNodeCreation(
+  graphStore: GraphStore,
   viewport: ToValue<GraphNavigator['viewport']>,
   sceneMousePos: ToValue<GraphNavigator['sceneMousePos']>,
   onCreated: (nodes: Set<NodeId>) => void,
 ) {
-  const graphStore = useGraphStore()
-
   function tryMouse() {
     const pos = toValue(sceneMousePos)
     return pos ? mouseDictatedPlacement(pos) : undefined

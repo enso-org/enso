@@ -9,6 +9,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Named_Pattern.Named_Pattern
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
@@ -45,10 +46,10 @@ polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
-polyglot java import org.enso.base.Text_Utils
-polyglot java import org.enso.base.text.Utf16Span
 polyglot java import org.enso.base.text.GraphemeSpan
 polyglot java import org.enso.base.text.ResultWithWarnings
+polyglot java import org.enso.base.text.Utf16Span
+polyglot java import org.enso.base.Text_Utils
 
 ## GROUP Text
    ICON text
@@ -108,7 +109,7 @@ Text.each self function =
 
 ## ALIAS get character
    GROUP Selections
-   ICON split_text
+   ICON split
 
    Returns a character from the text at the specified index (0-based).
 
@@ -127,13 +128,13 @@ Text.each self function =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".at 1 == "반"
-@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
-Text.at self index =
+Text.at self index:Integer=0 =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
 ## ALIAS get character
-   ICON split_text
+   ICON split
 
    Returns a character from the text at the specified index (0-based).
    If the index is invalid then `if_missing` is returned.
@@ -154,9 +155,9 @@ Text.at self index =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".get 1 == "반"
-@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
 Text.get : Integer -> Any -> Any
-Text.get self index ~if_missing=Nothing =
+Text.get self index:Integer=0 ~if_missing=Nothing =
     new_index = if index < 0 then index + self.length else index
     if new_index < 0 then if_missing else
         iterator = BreakIterator.getCharacterInstance
@@ -167,7 +168,7 @@ Text.get self index ~if_missing=Nothing =
             Text_Utils.substring self first next
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the first character from the text.
 
    ! What is a Character?
@@ -183,7 +184,7 @@ Text.first : Text ! Index_Out_Of_Bounds
 Text.first self = self.at 0
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the second character from the text.
 
    ! What is a Character?
@@ -199,7 +200,7 @@ Text.second : Text ! Index_Out_Of_Bounds
 Text.second self = self.at 1
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the last character from the text.
 
    ! What is a Character?
@@ -345,7 +346,7 @@ Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
 ## ALIAS split text
    GROUP Conversions
-   ICON split_text
+   ICON split
 
    Takes a delimiter and returns the vector that results from splitting `self`
    on each of its occurrences.
@@ -411,7 +412,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
 
 ## ADVANCED
    GROUP Conversions
-   ICON split_text
+   ICON split
    Takes an input string and and a pattern and returns all the matches as a
    `Vector Text`. If the pattern contains marked groups, the values are
    concatenated together; otherwise the whole match is returned.
@@ -541,13 +542,13 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
    Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the text cleanings to remove from the text. The text cleansings are
-      applied in the order they are provided. The same text cleansing can be used multiple
-      times. The text cleansings are:
-      - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-      - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-      - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-      - ..All_Whitespace: Removes all whitspace from the string.
+   - remove: A vector of the named patterns to cleanse from the text. The named patterns are 
+      applied in the order they are provided. The same named pattern can be used multiple
+      times. The named patterns are:
+      - ..Leading_Whitespace: Removes all whitespace from the start of the string.
+      - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
+      - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
+      - ..All_Whitespace: Removes all whitespace from the string.
       - ..Leading_Numbers: Removes all numbers from the start of the string.
       - ..Trailing_Numbers: Removes all numbers from the end of the string.
       - ..Non_ASCII: Removes all non-ascii characters from the string.
@@ -562,9 +563,9 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
 
          text.cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
 @remove make_data_cleanse_vector_selector
-Text.cleanse : Vector Text_Cleanse -> Text
+Text.cleanse : Vector Named_Pattern -> Text
 Text.cleanse self remove =
-   remove.fold self (current-> tc-> tc.apply current)
+   remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
 ## PRIVATE
 Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (Regex.compile pattern) replace_with)
@@ -927,7 +928,9 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
    ICON preparation
 
    Checks whether `self` contains `sequence` as its substring.
-   Returns: `True` if term is found within `self`. `False` otherwise.
+
+   Returns:
+   `True` if term is found within `self`. `False` otherwise.
 
    Arguments:
    - term: The term to find.
@@ -1009,9 +1012,9 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, head, last, left, limit, mid, right, slice, substring, tail, top, keep
+## ALIAS first, head, keep, last, left, limit, mid, right, slice, substring, tail, top
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by selecting the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1060,7 +1063,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
 
 ## ALIAS remove, skip
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1879,7 +1882,7 @@ Text.parse_time_zone self = Time_Zone.parse self
 
 ## ALIAS mid, slice, substring
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by selecting the specified range of the input.
 
    Arguments:

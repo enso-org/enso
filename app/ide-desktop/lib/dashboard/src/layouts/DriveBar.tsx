@@ -53,7 +53,7 @@ export interface DriveBarProps {
 export default function DriveBar(props: DriveBarProps) {
   const { category, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles, dispatchAssetEvent } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()

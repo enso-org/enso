@@ -2,8 +2,10 @@ package org.enso.languageserver.runtime.events;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -30,6 +32,7 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
   private static final String RECORDS_TAG_CLOSE = "</records>";
   private static final String MESSAGE_SEPARATOR = ",";
   private static final String MESSAGE_EMPTY_REQUEST_ID = "";
+  private static final String HEARTBEAT_PATTERN = "\"method\": \"heartbeat/";
 
   /**
    * Create an instance of {@link RuntimeEventsMonitor}.
@@ -61,12 +64,28 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
   }
 
   @Override
-  public void registerEvent(Object event) {
+  public void registerRuntimeMessage(Object event) {
     if (event instanceof Runtime.ApiEnvelope envelope) {
       registerApiEnvelope(envelope);
     } else if (event instanceof RuntimeConnector.MessageFromRuntime messageFromRuntime) {
       registerApiEnvelope(messageFromRuntime.message());
     }
+  }
+
+  @Override
+  public void registerTextRpcMessage(String message) {
+    if (message.contains(HEARTBEAT_PATTERN)) return;
+    String entry = buildEntry(Direction.REQUEST, Option.empty(), message);
+    out.print(entry);
+  }
+
+  @Override
+  public void registerBinaryRpcMessage(ByteBuffer message) {
+    byte[] bytes = new byte[message.remaining()];
+    message.get(bytes);
+    String payload = Base64.getEncoder().encodeToString(bytes);
+    String entry = buildEntry(Direction.REQUEST, Option.empty(), payload);
+    out.print(entry);
   }
 
   @Override
@@ -77,19 +96,18 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
 
   private void registerApiEnvelope(Runtime.ApiEnvelope event) {
     if (event instanceof Runtime$Api$Request request) {
-      String entry =
-          buildEntry(Direction.REQUEST, request.requestId(), request.payload().getClass());
+      String payload = request.payload().getClass().getSimpleName();
+      String entry = buildEntry(Direction.REQUEST, request.requestId(), payload);
       out.print(entry);
     } else if (event instanceof Runtime$Api$Response response) {
-      String entry =
-          buildEntry(Direction.RESPONSE, response.correlationId(), response.payload().getClass());
+      String payload = response.payload().getClass().getSimpleName();
+      String entry = buildEntry(Direction.RESPONSE, response.correlationId(), payload);
       out.print(entry);
     }
   }
 
-  private String buildEntry(Direction direction, Option<UUID> requestId, Class<?> payload) {
+  private String buildEntry(Direction direction, Option<UUID> requestId, String payload) {
     String requestIdEntry = requestId.fold(() -> MESSAGE_EMPTY_REQUEST_ID, UUID::toString);
-    String payloadEntry = payload.getSimpleName();
     Instant timeEntry = clock.instant();
 
     String message =
@@ -98,7 +116,7 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
             .append(MESSAGE_SEPARATOR)
             .append(requestIdEntry)
             .append(MESSAGE_SEPARATOR)
-            .append(payloadEntry)
+            .append(payload)
             .toString();
 
     LogRecord record = new LogRecord(Level.INFO, message);

@@ -64,11 +64,14 @@ export const LIST_USER_GROUPS_PATH = 'usergroups'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
 export const LIST_VERSIONS_PATH = 'versions'
 /** Relative HTTP path to the "create checkout session" endpoint of the Cloud backend API. */
-export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
+export const CREATE_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
-export const GET_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
+export const GET_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
+export const CANCEL_SUBSCRIPTION_PATH = 'payments/subscription'
 /** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
 export const GET_LOG_EVENTS_PATH = 'log_events'
+/** Relative HTTP path to the "post log event" endpoint of the Cloud backend API. */
+export const POST_LOG_EVENT_PATH = 'logs'
 /** Relative HTTP path to the "change user groups" endpoint of the Cloud backend API. */
 export function changeUserGroupPath(userId: backend.UserId) {
   return `users/${userId}/usergroups`
@@ -104,6 +107,14 @@ export function closeProjectPath(projectId: backend.ProjectId) {
 /** Relative HTTP path to the "get project details" endpoint of the Cloud backend API. */
 export function getProjectDetailsPath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
+}
+/** Relative HTTP path to the "duplicate project" endpoint of the Cloud backend API. */
+export function duplicateProjectPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/versions/clone`
+}
+/** Relative HTTP path to the "restore project" endpoint of the Cloud backend API. */
+export function restoreProjectPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/versions/restore`
 }
 /** Relative HTTP path to the "open project" endpoint of the Cloud backend API. */
 export function openProjectPath(projectId: backend.ProjectId) {
@@ -147,5 +158,5 @@ export function deleteUserGroupPath(groupId: backend.UserGroupId) {
 }
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
 export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
-  return `payments/checkout-sessions/${checkoutSessionId}`
+  return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
 }

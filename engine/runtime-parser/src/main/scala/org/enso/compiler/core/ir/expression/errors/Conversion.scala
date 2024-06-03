@@ -103,6 +103,11 @@ object Conversion {
     def explain: String
   }
 
+  case object DeclaredAsPrivate extends Reason {
+    override def explain: String =
+      "Conversion methods cannot be private."
+  }
+
   case object MissingArgs extends Reason {
     override def explain: String =
       "A conversion definition must have at least one argument."

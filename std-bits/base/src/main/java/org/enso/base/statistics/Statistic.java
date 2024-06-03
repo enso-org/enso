@@ -5,6 +5,7 @@ public enum Statistic {
   Minimum,
   Maximum,
   Sum,
+  Product,
   Mean,
   VariancePopulation,
   VarianceSample,

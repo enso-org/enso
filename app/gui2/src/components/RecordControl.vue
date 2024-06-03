@@ -8,17 +8,23 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 
 <template>
   <div class="RecordControl">
-    <div class="control left-end" @click.stop="() => emit('update:recordMode', !props.recordMode)">
+    <div class="control left-end">
       <ToggleIcon
         icon="record"
-        class="button"
+        class="iconButton"
         title="Record"
         :modelValue="props.recordMode"
         @update:modelValue="emit('update:recordMode', $event)"
       />
     </div>
-    <div class="control right-end" @click.stop="() => emit('recordOnce')">
-      <SvgButton title="Record Once" class="button" name="record_once" draggable="false" />
+    <div class="control right-end">
+      <SvgButton
+        title="Record Once"
+        class="iconButton"
+        name="record_once"
+        draggable="false"
+        @click.stop="() => emit('recordOnce')"
+      />
     </div>
   </div>
 </template>
@@ -42,7 +48,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 .left-end {
   border-radius: var(--radius-full) 0 0 var(--radius-full);
 
-  .button {
+  .iconButton {
     margin: 0 0 0 auto;
   }
 }
@@ -50,13 +56,10 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 .right-end {
   border-radius: 0 var(--radius-full) var(--radius-full) 0;
 
-  .button {
+  .iconButton {
     position: relative;
     margin: 0 auto 0 0;
-    width: 32px;
-    height: 24px;
-    --icon-transform: scale(1.5) translateY(calc(-4px / 1.5));
-    --icon-transform-origin: left top;
+    --icon-width: 24px;
   }
 }
 
@@ -64,7 +67,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
   color: #ba4c40;
 }
 
-.button:active {
+.iconButton:active {
   color: #ba4c40;
 }
 </style>

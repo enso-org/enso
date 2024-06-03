@@ -19,7 +19,7 @@ function onClick() {
 
 <template>
   <button
-    class="MenuButton button"
+    class="MenuButton"
     :class="{ toggledOn, toggledOff: toggledOn === false, disabled }"
     :disabled="disabled ?? false"
     @click.stop="onClick"
@@ -31,7 +31,7 @@ function onClick() {
 <style scoped>
 .MenuButton {
   display: flex;
-  justify-items: center;
+  justify-content: center;
   align-items: center;
   min-width: max-content;
   padding: 4px;
@@ -46,6 +46,7 @@ function onClick() {
     background-color: var(--color-menu-entry-active-bg);
   }
   &.disabled {
+    cursor: default;
     &:hover {
       background-color: unset;
     }

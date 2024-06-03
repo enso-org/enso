@@ -29,5 +29,10 @@ interface FileBrowserApi {
    */
   readonly openFileBrowser: (
     kind: 'file' | 'directory' | 'default' | 'filePath',
+    defaultPath?: string,
   ) => Promise<string[] | undefined>
+}
+
+interface LogEvent {
+  (message: string, projectId?: string | null, metadata?: object | null): void
 }

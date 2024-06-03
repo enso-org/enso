@@ -6,28 +6,6 @@ import {
 import type { Icon } from '@/util/iconName'
 import type { MethodPointer } from 'shared/languageServerTypes'
 
-const oldIconNameToNewIconNameLookup: Record<string, Icon> = {
-  /* eslint-disable camelcase */
-  dataframe_clean: 'table_clean',
-  dataframe_map_row: 'map_row',
-  dataframe_map_column: 'column_add',
-  dataframes_join: 'join2-1',
-  dataframes_union: 'union',
-  sigma: 'transform4',
-  io: 'in_out',
-  date_and_time: 'time',
-  spatial: 'location',
-  predictive: 'predict',
-  machine_learning: 'robot',
-  split_text: 'split',
-  /* eslint-enable camelcase */
-}
-
-export function mapOldIconName(oldIconName: string): Icon {
-  const mappedName = oldIconNameToNewIconNameLookup[oldIconName] ?? oldIconName
-  return mappedName as Icon
-}
-
 const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Text.Text': 'text_input',
   'Standard.Base.Data.Numbers.Integer': 'input_number',
@@ -46,7 +24,7 @@ export function typeNameToIcon(typeName: string): Icon {
 }
 
 export function suggestionEntryToIcon(entry: SuggestionEntry) {
-  if (entry.iconName) return mapOldIconName(entry.iconName)
+  if (entry.iconName) return entry.iconName
   if (entry.kind === SuggestionKind.Local) return 'local_scope2'
   if (entry.kind === SuggestionKind.Module) return 'collection'
   return DEFAULT_ICON
