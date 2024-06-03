@@ -9,7 +9,6 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
@@ -155,13 +154,8 @@ public class Encoding_Utils {
     EncodingRepresentation representation = EncodingRepresentation.fromCharset(charset);
     // This may also advance the stream past the BOM
     Charset detectedCharset = representation.detectCharset(bufferedStream, problemAggregator);
-    CharsetDecoder decoder =
-        detectedCharset
-            .newDecoder()
-            .onMalformedInput(CodingErrorAction.REPORT)
-            .onUnmappableCharacter(CodingErrorAction.REPORT)
-            .reset();
-    return new ReportingStreamDecoder(bufferedStream, decoder, problemAggregator, pollSafepoints);
+    return new ReportingStreamDecoder(
+        bufferedStream, detectedCharset, problemAggregator, pollSafepoints);
   }
 
   /**

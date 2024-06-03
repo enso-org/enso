@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -30,14 +32,25 @@ public class ReportingStreamDecoder extends Reader {
 
   private final BufferedInputStream bufferedInputStream;
   private final CharsetDecoder decoder;
+  private final Charset charset;
+
+  public Charset getCharset() {
+    return charset;
+  }
 
   public ReportingStreamDecoder(
       BufferedInputStream stream,
-      CharsetDecoder decoder,
+      Charset charset,
       DecodingProblemAggregator problemAggregator,
       boolean pollSafepoints) {
     bufferedInputStream = stream;
-    this.decoder = decoder;
+    this.charset = charset;
+    this.decoder =
+        charset
+            .newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .reset();
     this.problemAggregator = problemAggregator;
     this.pollSafepoints = pollSafepoints;
   }

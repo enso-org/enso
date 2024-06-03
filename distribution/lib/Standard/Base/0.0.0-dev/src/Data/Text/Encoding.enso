@@ -49,6 +49,10 @@ type Encoding
             charset = Charset.forName name
             Encoding.Value charset.name
 
+    ## PRIVATE
+    from_java_charset (charset : Charset) -> Encoding =
+        Encoding.Value charset.name
+
     ## ICON convert
        A default encoding that will try to guess the encoding based on some
        heuristics.

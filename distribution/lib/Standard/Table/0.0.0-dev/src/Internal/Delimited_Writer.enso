@@ -40,10 +40,14 @@ write_file : Table -> Delimited_Format -> Writable_File -> Existing_File_Behavio
 write_file table format (file : Writable_File) on_existing_file match_columns on_problems =
     case on_existing_file of
         Existing_File_Behavior.Append ->
+            # The default encoding may be used for detecting the effective encoding in append mode.
             append_to_file table format file match_columns on_problems
         _ ->
+            # Override Encoding.Default to be just UTF-8 for writing a new file.
+            amended_format = if format.encoding != Encoding.Default then format else
+                format.clone encoding=Encoding.utf_8
             file.write_handling_dry_run on_existing_file effective_file-> stream->
-                r = write_to_stream table format stream on_problems related_file=effective_file
+                r = write_to_stream table amended_format stream on_problems related_file=effective_file
                 r.if_not_error effective_file
 
 ## PRIVATE
@@ -92,13 +96,14 @@ append_to_local_file table format (file : File) match_columns on_problems =
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
         reordered_table = Table.Value reordered_java_table
         writing_new_file = preexisting_headers == Nothing
-        amended_format = case writing_new_file && (should_write_headers format.headers) of
+        amended_format_1 = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers
             False -> format.without_headers
+        amended_format_2 = amended_format_1.clone encoding=metadata.detected_encoding
         needs_leading_newline =
             metadata.has_any_content && metadata.ends_with_newline.not
         (file : Writable_File).write_handling_dry_run Existing_File_Behavior.Append effective_file-> stream->
-            r = write_to_stream reordered_table amended_format stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
+            r = write_to_stream reordered_table amended_format_2 stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
             r.if_not_error effective_file
 
 ## PRIVATE
