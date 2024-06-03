@@ -243,6 +243,13 @@ add_specs suite_builder setup =
             expect_column_names ["bool"] <| data.table.select_columns_by_type [Value_Type.Boolean]
 
         group_builder.specify "should be able to drop by type of columns" <|
+            expect_column_names ["float", "text", "bool"] <| data.table.remove_columns [..By_Type ..Integer]
+            expect_column_names ["int", "text", "bool"] <| data.table.remove_columns [..By_Type ..Float]
+            expect_column_names ["text", "bool"] <| data.table.remove_columns [..By_Type ..Integer, ..By_Type ..Float]
+            expect_column_names ["int", "float", "bool"] <| data.table.remove_columns [..By_Type ..Char]
+            expect_column_names ["int", "float", "text"] <| data.table.remove_columns [..By_Type ..Boolean]
+        
+        group_builder.specify "should be able to drop by type of columns (deprecated)" <|
             expect_column_names ["float", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer]
             expect_column_names ["int", "text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Float]
             expect_column_names ["text", "bool"] <| data.table.remove_columns_by_type [Value_Type.Integer, Value_Type.Float]
