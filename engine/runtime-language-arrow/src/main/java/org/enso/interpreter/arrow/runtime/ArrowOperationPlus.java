@@ -25,38 +25,44 @@ public final class ArrowOperationPlus implements TruffleObject {
   }
 
   @ExportMessage
-  Object execute(Object[] args, @CachedLibrary(limit = "3") InteropLibrary iop)
+  Object execute(
+      Object[] args,
+      @CachedLibrary(limit = "10") InteropLibrary iop,
+      @CachedLibrary(limit = "3") InteropLibrary iopArray0,
+      @CachedLibrary(limit = "3") InteropLibrary iopArray1,
+      @CachedLibrary(limit = "3") InteropLibrary iopElem,
+      @CachedLibrary(limit = "3") InteropLibrary iopBuilder)
       throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
     if (args.length != 2) {
       throw ArityException.create(2, 2, args.length);
     }
     var arr0 = args[0];
     var arr1 = args[1];
-    if (!iop.hasArrayElements(arr0) || !iop.hasArrayElements(arr1)) {
+    if (!iopArray0.hasArrayElements(arr0) || !iopArray1.hasArrayElements(arr1)) {
       throw UnsupportedTypeException.create(args);
     }
-    var len = iop.getArraySize(arr0);
-    if (len != iop.getArraySize(arr1)) {
+    var len = iopArray0.getArraySize(arr0);
+    if (len != iopArray1.getArraySize(arr1)) {
       throw UnsupportedTypeException.create(args, "Arrays must have the same length");
     }
     var builder = iop.instantiate(factory, len);
     try {
       for (long i = 0; i < len; i++) {
-        var elem0 = iop.readArrayElement(arr0, i);
-        var elem1 = iop.readArrayElement(arr1, i);
+        var elem0 = iopArray0.readArrayElement(arr0, i);
+        var elem1 = iopArray1.readArrayElement(arr1, i);
         Object res;
-        if (iop.isNull(elem0)) {
+        if (iopElem.isNull(elem0)) {
           res = elem1;
-        } else if (iop.isNull(elem1)) {
+        } else if (iopElem.isNull(elem1)) {
           res = elem0;
         } else {
-          var l0 = iop.asLong(elem0);
-          var l1 = iop.asLong(elem1);
+          var l0 = iopElem.asLong(elem0);
+          var l1 = iopElem.asLong(elem1);
           res = l0 + l1;
         }
-        iop.invokeMember(builder, "append", res);
+        iopBuilder.invokeMember(builder, "append", res);
       }
-      return iop.invokeMember(builder, "build");
+      return iopBuilder.invokeMember(builder, "build");
     } catch (InvalidArrayIndexException | UnknownIdentifierException ex) {
       throw raise(RuntimeException.class, ex);
     }
