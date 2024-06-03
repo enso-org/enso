@@ -18,3 +18,12 @@ type Columns_To_Add
     columns_to_split self -> Integer | Nothing = case self of
         Columns_To_Add.All_Columns -> Nothing
         Columns_To_Add.First columns -> columns
+
+## PRIVATE
+Columns_To_Add.from (that:Nothing) =
+    _ = that
+    Columns_To_Add.All_Columns
+
+## PRIVATE
+Columns_To_Add.from (that:Integer) =
+    Columns_To_Add.First that
