@@ -739,7 +739,7 @@ Text.is_whitespace self =
          "Hello".bytes (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
-Text.bytes self encoding (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
@@ -761,7 +761,7 @@ Text.bytes self encoding (on_problems : Problem_Behavior = Problem_Behavior.Repo
          Text.from_bytes [72, 101, 108, 108, 111] (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
-Text.from_bytes bytes encoding (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
+Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
     result = Encoding_Utils.from_bytes bytes encoding.to_java_charset_or_null : WithProblems
     if result.problems.is_empty then result.result else
         problems = result.problems.map decoding_problem->
