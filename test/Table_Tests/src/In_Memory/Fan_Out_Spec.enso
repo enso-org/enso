@@ -14,7 +14,7 @@ add_specs suite_builder =
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing], [1, "c", "d", "ef"], [2, "gh", "ij", "u"]]
             expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3"] expected_rows
-            t2 = Fan_Out.fan_out_to_columns t "bar" (_.split "b")
+            t2 = Fan_Out.fan_out_to_columns t "bar" Columns_To_Add.All_Columns (_.split "b")
             t2.should_equal expected
 
         group_builder.specify "can do fan_out_to_rows" <|
@@ -22,7 +22,7 @@ add_specs suite_builder =
             t = Table.new cols
             expected_rows = [[0, "a"], [0, "c"], [1, "c"], [1, "d"], [1, "ef"], [2, "gh"], [2, "ij"], [2, "u"]]
             expected = Table.from_rows ["foo", "bar"] expected_rows
-            t2 = Fan_Out.fan_out_to_rows t "bar" (_.split "b")
+            t2 = Fan_Out.fan_out_to_rows t "bar" Columns_To_Add.All_Columns (_.split "b")
             t2.should_equal expected
 
 main filter=Nothing =
