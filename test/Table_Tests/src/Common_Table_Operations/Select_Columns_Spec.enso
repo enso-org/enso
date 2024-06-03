@@ -229,6 +229,13 @@ add_specs suite_builder setup =
             data.teardown
 
         group_builder.specify "should be able to select by type of columns" <|
+            expect_column_names ["int"] <| data.table.select_columns [..By_Type ..Integer]
+            expect_column_names ["float"] <| data.table.select_columns [..By_Type ..Float]
+            expect_column_names ["int", "float"] <| data.table.select_columns [..By_Type ..Integer, ..By_Type ..Float]
+            expect_column_names ["text"] <| data.table.select_columns [..By_Type ..Char]
+            expect_column_names ["bool"] <| data.table.select_columns [..By_Type ..Boolean]
+
+        group_builder.specify "should be able to select by type of columns (deprecated)" <|
             expect_column_names ["int"] <| data.table.select_columns_by_type [Value_Type.Integer]
             expect_column_names ["float"] <| data.table.select_columns_by_type [Value_Type.Float]
             expect_column_names ["int", "float"] <| data.table.select_columns_by_type [Value_Type.Integer, Value_Type.Float]
