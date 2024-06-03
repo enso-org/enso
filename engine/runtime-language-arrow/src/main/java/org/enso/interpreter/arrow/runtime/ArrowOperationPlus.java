@@ -44,9 +44,17 @@ public final class ArrowOperationPlus implements TruffleObject {
       for (long i = 0; i < len; i++) {
         var elem0 = iop.readArrayElement(arr0, i);
         var elem1 = iop.readArrayElement(arr1, i);
-        var l0 = iop.asLong(elem0);
-        var l1 = iop.asLong(elem1);
-        iop.invokeMember(builder, "append", l0 + l1);
+        Object res;
+        if (iop.isNull(elem0)) {
+          res = elem1;
+        } else if (iop.isNull(elem1)) {
+          res = elem0;
+        } else {
+          var l0 = iop.asLong(elem0);
+          var l1 = iop.asLong(elem1);
+          res = l0 + l1;
+        }
+        iop.invokeMember(builder, "append", res);
       }
       return iop.invokeMember(builder, "build");
     } catch (InvalidArrayIndexException | UnknownIdentifierException ex) {
