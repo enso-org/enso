@@ -1,7 +1,13 @@
 package org.enso.interpreter.arrow.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateInline;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NeverDefault;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
@@ -183,7 +189,7 @@ abstract class WriteToBuilderNode extends Node {
   public static void doWriteLong(
       ArrowFixedSizeArrayBuilder receiver,
       long index,
-      long value,
+      Object value,
       @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
       throws UnsupportedTypeException {
     validAccess(receiver, index);
@@ -191,7 +197,15 @@ abstract class WriteToBuilderNode extends Node {
       receiver.getBuffer().setNull((int) index);
       return;
     }
-    receiver.getBuffer().putLong(typeAdjustedIndex(index, receiver.getUnit()), value);
+    if (!iop.fitsInLong(value)) {
+      throw UnsupportedTypeException.create(
+          new Object[] {value}, "value does not fit a 8 byte int");
+    }
+    try {
+      receiver.getBuffer().putLong(typeAdjustedIndex(index, receiver.getUnit()), iop.asLong(value));
+    } catch (UnsupportedMessageException e) {
+      throw UnsupportedTypeException.create(new Object[] {value}, "value is not a long");
+    }
   }
 
   @Fallback
