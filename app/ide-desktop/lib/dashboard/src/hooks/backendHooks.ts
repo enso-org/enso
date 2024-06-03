@@ -125,9 +125,10 @@ export function useObserveBackend(backend: Backend | null) {
     setQueryData('getOrganization', organization => state.data ?? organization)
   })
   useObserveMutations('createUserGroup', state => {
-    setQueryData('listUserGroups', userGroups =>
-      state.data == null ? userGroups : [state.data, ...userGroups]
-    )
+    if (state.data != null) {
+      const data = state.data
+      setQueryData('listUserGroups', userGroups => [data, ...userGroups])
+    }
   })
   useObserveMutations('deleteUserGroup', state => {
     setQueryData('listUserGroups', userGroups =>
@@ -135,16 +136,26 @@ export function useObserveBackend(backend: Backend | null) {
     )
   })
   useObserveMutations('changeUserGroup', state => {
-    setQueryData('listUsers', users => {
-      if (state.variables == null) {
-        return users
-      } else {
-        const [userId, body] = state.variables
-        return users.map(user =>
+    if (state.variables != null) {
+      const [userId, body] = state.variables
+      setQueryData('listUsers', users =>
+        users.map(user =>
           user.userId !== userId ? user : { ...user, userGroups: body.userGroups }
         )
-      }
-    })
+      )
+    }
+  })
+  useObserveMutations('createTag', state => {
+    if (state.data != null) {
+      const data = state.data
+      setQueryData('listTags', tags => [...tags, data])
+    }
+  })
+  useObserveMutations('deleteTag', state => {
+    if (state.variables != null) {
+      const [tagId] = state.variables
+      setQueryData('listTags', tags => tags.filter(tag => tag.id !== tagId))
+    }
   })
 }
 
