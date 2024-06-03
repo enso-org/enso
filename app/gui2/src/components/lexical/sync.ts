@@ -1,4 +1,4 @@
-import type { ToValue } from '@/util/reactivity'
+import { useBufferedWritable, type ToValue } from '@/util/reactivity'
 import type { LexicalEditor } from 'lexical'
 import { $createParagraphNode, $createTextNode, $getRoot, $setSelection } from 'lexical'
 import { computed, shallowRef, toValue } from 'vue'
@@ -37,7 +37,7 @@ export function useLexicalSync<T>(
   })
 
   return {
-    content: computed({
+    content: useBufferedWritable({
       get: () => getContent.value,
       set: (content) => {
         editor.update(() => $write(content, getContent), {

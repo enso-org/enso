@@ -178,3 +178,29 @@ export function computedFallback<T>(
     set: (val: T) => (base.value = val),
   })
 }
+
+/** Given a "raw" getter and setter, returns a writable-computed that buffers `set` operations.
+ *
+ * When the setter of the returned ref is invoked, the raw setter will be called during the next callback flush if and
+ * only if the most recently set value does not compare strictly-equal to the current value (read from the raw getter).
+ *
+ * The getter of the returned ref immediately reflects the value of any pending write.
+ */
+export function useBufferedWritable<T>(raw: {
+  get: () => T
+  set: (value: T) => void
+}): WritableComputedRef<T> {
+  const pendingWrite = shallowRef<{ pending: T }>()
+  watch(pendingWrite, () => {
+    if (pendingWrite.value) {
+      if (pendingWrite.value.pending !== raw.get()) {
+        raw.set(pendingWrite.value.pending)
+      }
+      pendingWrite.value = undefined
+    }
+  })
+  return computed({
+    get: () => (pendingWrite.value ? pendingWrite.value.pending : raw.get()),
+    set: (value: T) => (pendingWrite.value = { pending: value }),
+  })
+}

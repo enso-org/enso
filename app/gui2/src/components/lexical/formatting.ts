@@ -1,3 +1,4 @@
+import { useBufferedWritable } from '@/util/reactivity'
 import { $createCodeNode } from '@lexical/code'
 import {
   $isListNode,
@@ -30,7 +31,7 @@ import {
   FORMAT_TEXT_COMMAND,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 export function useFormatting(editor: LexicalEditor) {
   const selectionReaders = new Array<(selection: RangeSelection) => void>()
@@ -77,11 +78,9 @@ function useFormatProperty(
 
   onReadSelection((selection) => (state.value = selection.hasFormat(property)))
 
-  return computed({
+  return useBufferedWritable({
     get: () => state.value,
-    set: (value) => {
-      if (value !== state.value) editor.dispatchCommand(FORMAT_TEXT_COMMAND, property)
-    },
+    set: (_value) => editor.dispatchCommand(FORMAT_TEXT_COMMAND, property),
   })
 }
 
@@ -227,10 +226,8 @@ function useBlockType(
     h3: () => $setBlocksType($getSelection(), () => $createHeadingNode('h3')),
   }
 
-  return computed({
+  return useBufferedWritable({
     get: () => state.value,
-    set: (value) => {
-      if (value !== state.value) editor.update($setBlockType[value])
-    },
+    set: (value) => editor.update($setBlockType[value]),
   })
 }
