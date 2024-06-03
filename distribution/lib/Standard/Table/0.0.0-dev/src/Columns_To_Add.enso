@@ -6,7 +6,7 @@ type Columns_To_Add
     ## Read all rows.
     All_Columns
 
-    ## Read the first specified number of columns.
+    ## Add the first specified number of columns.
     First columns:Integer=1
 
     ## PRIVATE
