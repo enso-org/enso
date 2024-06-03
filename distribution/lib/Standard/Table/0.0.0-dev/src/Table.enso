@@ -389,7 +389,8 @@ type Table
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         Table.new new_columns
 
-    ## ALIAS select fields by type
+    ## PRIVATE
+       ALIAS select fields by type
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtered by the type
@@ -404,7 +405,8 @@ type Table
     select_columns_by_type : Vector Value_Type -> Boolean -> Table
     select_columns_by_type self types:Vector strict:Boolean=False =
         new_columns = self.columns_helper.select_by_type types strict
-        Table.new new_columns
+        result = Table.new new_columns
+        Warning.attach (Deprecated.Warning "Standard.Database.Table.Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
 
     ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
@@ -460,7 +462,8 @@ type Table
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
-    ## ALIAS remove fields by type, select columns by type, select fields by type
+    ## PRIVATE
+       ALIAS remove fields by type, select columns by type, select fields by type
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
@@ -475,7 +478,8 @@ type Table
     remove_columns_by_type : Vector Value_Type -> Boolean -> Table
     remove_columns_by_type self types:Vector strict:Boolean=False =
         new_columns = self.columns_helper.remove_by_type types strict
-        Table.new new_columns
+        result = Table.new new_columns
+        Warning.attach (Deprecated.Warning "Standard.Database.Table.Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
 
     ## ALIAS select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
