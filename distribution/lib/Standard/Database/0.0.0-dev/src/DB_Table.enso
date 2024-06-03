@@ -135,7 +135,7 @@ type DB_Table
        Arguments:
        - selector: The name or index of the column to get.
     @selector Widget_Helpers.make_column_name_selector
-    at : Text | Integer -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds
+    at : Integer | Text -> DB_Column ! No_Such_Column | Index_Out_Of_Bounds
     at self (selector:(Integer | Text)=0) = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
@@ -147,7 +147,7 @@ type DB_Table
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
-    get : Text | Integer -> Any -> DB_Column | Any
+    get : Integer | Text -> Any -> DB_Column | Any
     get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
         internal_column = case selector of
             _ : Integer -> self.internal_columns.get selector if_missing=Nothing
@@ -1759,7 +1759,7 @@ type DB_Table
          Finally, if no common type is found using the rules above, everything
          is converted to text.
 
-       ? Problem Conditions
+       ! Error Conditions
 
          - If no common type is found and the text conversion fallback is used,
            the `No_Common_Type` problem is reported.

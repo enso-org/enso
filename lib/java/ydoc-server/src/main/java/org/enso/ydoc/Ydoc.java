@@ -3,8 +3,8 @@ package org.enso.ydoc;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
@@ -17,7 +17,7 @@ public final class Ydoc implements AutoCloseable {
   private static final String YDOC_EXECUTOR_THREAD_NAME = "Ydoc executor thread";
   private static final String YDOC_SERVER_PATH = "ydocServer.js";
 
-  private final ExecutorService executor;
+  private final ScheduledExecutorService executor;
   private final ParserPolyfill parser;
   private final Context.Builder contextBuilder;
   private final String hostname;
@@ -26,7 +26,7 @@ public final class Ydoc implements AutoCloseable {
   private Context context;
 
   public Ydoc(
-      ExecutorService executor,
+      ScheduledExecutorService executor,
       ParserPolyfill parser,
       Context.Builder contextBuilder,
       String hostname,
@@ -43,15 +43,15 @@ public final class Ydoc implements AutoCloseable {
     private static final String DEFAULT_HOSTNAME = "localhost";
     private static final int DEFAULT_PORT = 1234;
 
-    private ExecutorService executor;
+    private ScheduledExecutorService executor;
     private ParserPolyfill parser;
     private Context.Builder contextBuilder;
     private String hostname;
     private int port = -1;
 
-    public Builder() {}
+    private Builder() {}
 
-    public Builder executor(ExecutorService executor) {
+    public Builder executor(ScheduledExecutorService executor) {
       this.executor = executor;
       return this;
     }
@@ -79,7 +79,7 @@ public final class Ydoc implements AutoCloseable {
     public Ydoc build() {
       if (executor == null) {
         executor =
-            Executors.newSingleThreadExecutor(
+            Executors.newSingleThreadScheduledExecutor(
                 r -> {
                   var t = new Thread(r);
                   t.setName(YDOC_EXECUTOR_THREAD_NAME);
@@ -105,6 +105,10 @@ public final class Ydoc implements AutoCloseable {
 
       return new Ydoc(executor, parser, contextBuilder, hostname, port);
     }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   public Context.Builder getContextBuilder() {

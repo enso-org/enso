@@ -25,6 +25,9 @@ sealed trait Function extends Expression {
     */
   val canBeTCO: Boolean
 
+  /** Whether the method is project-private.
+    */
+  val isPrivate: Boolean
 }
 
 object Function {
@@ -63,6 +66,8 @@ object Function {
       this(arguments, Seq(body), location, canBeTCO, passData, diagnostics)
     }
     override lazy val body = bodySeq.head
+
+    override val isPrivate: Boolean = false
 
     /** Creates a copy of `this`.
       *
@@ -189,6 +194,7 @@ object Function {
     * @param name        the name of the function
     * @param arguments   the arguments to the function
     * @param body        the body of the function
+    * @param isPrivate    Whether the function is project-private
     * @param location    the source location that the node corresponds to
     * @param canBeTCO    whether or not the function can be tail-call optimised
     * @param passData    the pass metadata associated with this node
@@ -198,6 +204,7 @@ object Function {
     name: Name,
     override val arguments: List[DefinitionArgument],
     override val body: Expression,
+    override val isPrivate: Boolean,
     location: Option[IdentifiedLocation],
     override val canBeTCO: Boolean = true,
     passData: MetadataStorage      = new MetadataStorage(),
@@ -211,6 +218,7 @@ object Function {
       * @param name        the name of the function
       * @param arguments   the arguments to the function
       * @param body        the body of the function
+      * @param isPrivate    Whether the function is project-private
       * @param location    the source location that the node corresponds to
       * @param canBeTCO    whether or not the function can be tail-call optimised
       * @param passData    the pass metadata associated with this node
@@ -222,6 +230,7 @@ object Function {
       name: Name                           = name,
       arguments: List[DefinitionArgument]  = arguments,
       body: Expression                     = body,
+      isPrivate: Boolean                   = isPrivate,
       location: Option[IdentifiedLocation] = location,
       canBeTCO: Boolean                    = canBeTCO,
       passData: MetadataStorage            = passData,
@@ -233,6 +242,7 @@ object Function {
           name,
           arguments,
           body,
+          isPrivate,
           location,
           canBeTCO,
           passData,

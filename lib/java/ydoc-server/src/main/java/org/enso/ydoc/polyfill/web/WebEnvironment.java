@@ -1,6 +1,6 @@
 package org.enso.ydoc.polyfill.web;
 
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 
@@ -12,7 +12,7 @@ public final class WebEnvironment {
 
   private WebEnvironment() {}
 
-  public static void initialize(Context ctx, ExecutorService executor) {
+  public static void initialize(Context ctx, ScheduledExecutorService executor) {
     var performance = new Performance();
     performance.initialize(ctx);
 
