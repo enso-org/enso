@@ -14,7 +14,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.arrow.LogicalLayout;
 
 @ExportLibrary(InteropLibrary.class)
-public class ArrowFixedSizeArrayFactory implements TruffleObject {
+public final class ArrowFixedSizeArrayFactory implements TruffleObject {
 
   private final LogicalLayout logicalLayout;
 
