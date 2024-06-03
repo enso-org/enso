@@ -7,9 +7,7 @@ type Columns_To_Add
     All_Columns
 
     ## Read the first specified number of columns.
-    First columns:Integer=3
-
-    First_With_Warning columns:Integer=3
+    First columns:Integer=2
 
     ## PRIVATE
     default_widget -> Widget = 

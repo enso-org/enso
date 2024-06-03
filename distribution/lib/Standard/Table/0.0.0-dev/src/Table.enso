@@ -1286,8 +1286,8 @@ type Table
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
     split_to_columns : Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> Table
-    split_to_columns self column delimiter="," (column_count : Columns_To_Add = ..All_Columns) on_problems=Report_Error =
-        Split_Tokenize.split_to_columns self column delimiter column_count=column_count.columns_to_split on_problems
+    split_to_columns self column delimiter="," (column_count : Columns_To_Add = ..All_Columns) on_problems=Report_Warning =
+        Split_Tokenize.split_to_columns self column delimiter column_count=column_count on_problems
 
     ## GROUP Standard.Base.Conversions
        ICON split
