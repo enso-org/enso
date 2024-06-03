@@ -184,7 +184,7 @@ final class ByteBufferDirect implements AutoCloseable {
   public boolean isNull(int index) {
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & ~(1 << 3);
+    var byteIndex = index & byteMask;
     var mask = 1 << byteIndex;
     return (slot & mask) == 0;
   }
@@ -192,7 +192,7 @@ final class ByteBufferDirect implements AutoCloseable {
   public void setNull(int index) {
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & ~(1 << 3);
+    var byteIndex = index & byteMask;
     var mask = ~(1 << byteIndex);
     bitmapBuffer.put(bufferIndex, (byte) (slot & mask));
   }
@@ -201,11 +201,14 @@ final class ByteBufferDirect implements AutoCloseable {
     var index = index0 / unitSize;
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & ~(1 << 3);
+    var byteIndex = index & byteMask;
+
     var mask = 1 << byteIndex;
     var updated = (slot | mask);
     bitmapBuffer.put(bufferIndex, (byte) (updated));
   }
+
+  private static final int byteMask = ~(~(1 << 3) + 1); // 7
 
   @Override
   public void close() throws Exception {
