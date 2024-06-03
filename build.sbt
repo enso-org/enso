@@ -594,10 +594,16 @@ lazy val componentModulesPaths =
   )
   val thirdPartyModFiles = thirdPartyMods.map(_.data)
   val arrow              = (`runtime-language-arrow` / Compile / packageBin).value
+  val syntax = (`syntax-rust-definition` / Compile / packageBin).value
+  val ydoc = (`ydoc-server` / Compile / packageBin).value
+  val profilingUtils = (`profiling-utils` / Compile / packageBin).value
   val runtime            = (`runtime-fat-jar` / assembly / assemblyOutputPath).value
   val ourMods = Seq(
     runtime,
-    arrow
+    arrow,
+    syntax,
+    ydoc,
+    profilingUtils
   )
   ourMods ++ thirdPartyModFiles
 }
