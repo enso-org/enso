@@ -286,18 +286,12 @@ class Compiler(
           )
         )
         context.updateModule(module, _.invalidateCache())
-        parseModule(
-          module,
-          irCachingEnabled && !context.isInteractive(module)
-        )
+        parseModule(module, irCachingEnabled && !context.isInteractive(module))
         importedModules
           .filter(isLoadedFromSource)
           .map(m => {
             if (m.getBindingsMap() == null) {
-              parseModule(
-                m,
-                irCachingEnabled && !context.isInteractive(module)
-              )
+              parseModule(m, irCachingEnabled && !context.isInteractive(module))
             }
           })
         runImportsAndExportsResolution(module, generateCode)
@@ -382,9 +376,9 @@ class Compiler(
             u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
           }
         )
-        (module, Some(moduleScopeBuilder))
+        (module, moduleScopeBuilder)
       } else {
-        (module, None)
+        (module, module.getScopeBuilder)
       }
     }
 
@@ -404,11 +398,7 @@ class Compiler(
             context.getModuleName(module)
           )
 
-          context.truffleRunCodegen(
-            module,
-            moduleScopeBuilder.getOrElse(module.getScopeBuilder),
-            config
-          )
+          context.truffleRunCodegen(module, moduleScopeBuilder, config)
         }
         context.updateModule(
           module,

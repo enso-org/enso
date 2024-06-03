@@ -126,8 +126,7 @@ public final class Type implements EnsoObject {
   }
 
   public ModuleScope getDefinitionScope() {
-    if (definitionScope.isBuilt()) return definitionScope.built();
-    else return definitionScope.proxy();
+    return definitionScope.asModuleScope();
   }
 
   public boolean isBuiltin() {

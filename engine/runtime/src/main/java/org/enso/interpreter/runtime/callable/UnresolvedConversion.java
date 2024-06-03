@@ -23,7 +23,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 public final class UnresolvedConversion implements EnsoObject {
-
   private final ModuleScope scope;
 
   /**
@@ -55,7 +54,6 @@ public final class UnresolvedConversion implements EnsoObject {
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(EnsoContext ctx, Type into, Type from) {
-    var scope = getScope();
     if (from != null) {
       for (var current : from.allTypes(ctx)) {
         Function candidate = scope.lookupConversionDefinition(current, into);

@@ -69,7 +69,7 @@ public final class UnresolvedSymbol implements EnsoObject {
   public Pair<Function, Type> resolveFor(Node node, Type type) {
     if (type != null) {
       for (var current : type.allTypes(EnsoContext.get(node))) {
-        Function candidate = getScope().lookupMethodDefinition(current, name);
+        Function candidate = scope.lookupMethodDefinition(current, name);
         if (candidate != null) {
           return Pair.create(candidate, current);
         }

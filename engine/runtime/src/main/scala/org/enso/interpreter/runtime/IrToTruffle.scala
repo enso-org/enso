@@ -316,7 +316,7 @@ class IrToTruffle(
             val closureRootNode = ClosureRootNode.build(
               language,
               expressionProcessor.scope,
-              moduleScope.proxy(),
+              moduleScope.asModuleScope(),
               expressionNode,
               makeSection(moduleScope.getModule, annotation.location),
               closureName,
@@ -537,7 +537,7 @@ class IrToTruffle(
                     MethodRootNode.buildOperator(
                       language,
                       expressionProcessor.scope,
-                      moduleScope.proxy(),
+                      moduleScope.asModuleScope(),
                       () => bodyBuilder.argsExpr._1(0),
                       () => bodyBuilder.argsExpr._1(1),
                       () => bodyBuilder.argsExpr._2,
@@ -549,7 +549,7 @@ class IrToTruffle(
                     MethodRootNode.build(
                       language,
                       expressionProcessor.scope,
-                      moduleScope.proxy(),
+                      moduleScope.asModuleScope(),
                       () => bodyBuilder.bodyNode(),
                       makeSection(moduleScope.getModule, methodDef.location),
                       cons,
@@ -599,7 +599,7 @@ class IrToTruffle(
                           val closureRootNode = ClosureRootNode.build(
                             language,
                             expressionProcessor.scope,
-                            moduleScope.proxy(),
+                            moduleScope.asModuleScope(),
                             expressionNode,
                             makeSection(
                               moduleScope.getModule,
@@ -697,7 +697,7 @@ class IrToTruffle(
             val rootNode = MethodRootNode.build(
               language,
               expressionProcessor.scope,
-              moduleScope.proxy(),
+              moduleScope.asModuleScope(),
               () => bodyBuilder.bodyNode(),
               makeSection(moduleScope.getModule, methodDef.location),
               toType,
@@ -1114,7 +1114,7 @@ class IrToTruffle(
         val defaultRootNode = ClosureRootNode.build(
           language,
           childScope,
-          moduleScope.proxy(),
+          moduleScope.asModuleScope(),
           blockNode,
           makeSection(moduleScope.getModule, block.location),
           currentVarName,
@@ -1644,11 +1644,11 @@ class IrToTruffle(
             nodeForResolution(resolution)
           } else if (nameStr == ConstantsNames.FROM_MEMBER) {
             ConstantObjectNode.build(
-              UnresolvedConversion.build(moduleScope.proxy())
+              UnresolvedConversion.build(moduleScope.asModuleScope())
             )
           } else {
             DynamicSymbolNode.build(
-              UnresolvedSymbol.build(nameStr, moduleScope.proxy())
+              UnresolvedSymbol.build(nameStr, moduleScope.asModuleScope())
             )
           }
         case Name.MethodReference(
@@ -1972,7 +1972,7 @@ class IrToTruffle(
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
-        moduleScope.proxy(),
+        moduleScope.asModuleScope(),
         bodyBuilder.bodyNode(),
         makeSection(moduleScope.getModule, location),
         scopeName,
@@ -2165,7 +2165,7 @@ class IrToTruffle(
             val closureRootNode = ClosureRootNode.build(
               language,
               childScope,
-              moduleScope.proxy(),
+              moduleScope.asModuleScope(),
               argumentExpression,
               section,
               displayName,
@@ -2246,7 +2246,7 @@ class IrToTruffle(
             val defaultRootNode = ClosureRootNode.build(
               language,
               scope,
-              moduleScope.proxy(),
+              moduleScope.asModuleScope(),
               defaultExpression,
               makeSection(
                 moduleScope.getModule,

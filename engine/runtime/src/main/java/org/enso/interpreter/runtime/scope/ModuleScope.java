@@ -273,6 +273,8 @@ public final class ModuleScope implements EnsoObject {
     private Set<ImportExportScope> imports;
     private Set<ImportExportScope> exports;
 
+    private @CompilerDirectives.CompilationFinal ModuleScope proxy;
+
     public Builder(Module module) {
       this.module = module;
       this.polyglotSymbols = new LinkedHashMap<>();
@@ -443,6 +445,12 @@ public final class ModuleScope implements EnsoObject {
       return types.get(typeName);
     }
 
+    /**
+     * Create a new ModuleScope.Builder which inherits from `this` `module` and `types` that need to
+     * survive the compilation.
+     *
+     * @return new ModuleScope.Builder
+     */
     public Builder newBuilderInheritingTypes() {
       return new Builder(this.module, new LinkedHashMap<>(this.types));
     }
@@ -454,27 +462,12 @@ public final class ModuleScope implements EnsoObject {
       return associatedType;
     }
 
-    public Object getPolyglotSymbol(String symbolName) {
-      return polyglotSymbols.get(symbolName);
-    }
-
     /**
-     * Returns an already built scope.
+     * Materializes the builder and ensures that no further modifications to ModuleScope are
+     * possible. Action is idempotent.
      *
-     * <p>The method assumes that the builder has already been built and can be treated as immutable
-     * `ModuleScope`.
-     *
-     * @return `ModuleScope` of this builder
+     * @return an immutable ModuleScope
      */
-    public ModuleScope built() {
-      assert moduleScope != null : "Module's scope is not yet built" + module.getName();
-      return moduleScope;
-    }
-
-    public boolean isBuilt() {
-      return moduleScope != null;
-    }
-
     public ModuleScope build() {
       if (moduleScope == null) {
         synchronized (this) {
@@ -500,9 +493,29 @@ public final class ModuleScope implements EnsoObject {
       return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
     }
 
-    public ModuleScope proxy() {
-      return new ModuleScope(
-          module, associatedType, polyglotSymbols, types, methods, conversions, imports, exports);
+    /**
+     * Return a view on `this` as a ModuleScope, rather than its builder.
+     *
+     * @return ModuleScope, if the builder has already been `built`, a proxy instance with the
+     *     currently registered entities
+     */
+    public ModuleScope asModuleScope() {
+      if (moduleScope != null) return moduleScope;
+      else {
+        if (proxy == null) {
+          proxy =
+              new ModuleScope(
+                  module,
+                  associatedType,
+                  polyglotSymbols,
+                  types,
+                  methods,
+                  conversions,
+                  imports,
+                  exports);
+        }
+        return proxy;
+      }
     }
 
     @Override

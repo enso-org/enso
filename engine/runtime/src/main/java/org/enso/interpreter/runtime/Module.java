@@ -456,8 +456,7 @@ public final class Module implements EnsoObject {
    * @return the runtime scope of this module.
    */
   public ModuleScope getScope() {
-    if (scopeBuilder.isBuilt()) return scopeBuilder.built();
-    else return scopeBuilder.proxy();
+    return scopeBuilder.asModuleScope();
   }
 
   public ModuleScope.Builder getScopeBuilder() {
