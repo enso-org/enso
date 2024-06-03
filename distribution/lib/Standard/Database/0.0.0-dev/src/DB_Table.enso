@@ -2330,7 +2330,7 @@ type DB_Table
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> DB_Table
-    tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive (column_count : Columns_To_Add = ..All_Columns) on_problems=Report_Warning =
+    tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive (column_count : Columns_To_Add = ..All_Columns) (on_problems : Problem_Behavior = Report_Warning) =
         _ = [column, pattern, case_sensitivity, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
