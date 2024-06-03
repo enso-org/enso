@@ -149,7 +149,7 @@ type Detected_File_Metadata
        - has_any_content: specifies if the file contains any content.
        - detected_encoding: the encoding that would be used if reading the file.
          If a specific encoding was set in the configuration, it will be passed
-         unchanged. However, if `Encoding.Default` was used, this will contain
+         unchanged. However, if `Encoding.default` was used, this will contain
          the detected encoding that was chosen.
     Value (headers : Detected_Headers | Nothing) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean) (detected_encoding : Encoding)
 
@@ -196,7 +196,7 @@ detect_metadata file format =
                 Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content detected_encoding
     result.catch File_Error error-> case error of
         File_Error.Not_Found _ ->
-            default_encoding = if format.encoding == Encoding.Default then Encoding.utf_8 else format.encoding
+            default_encoding = if format.encoding == Encoding.default then Encoding.utf_8 else format.encoding
             Detected_File_Metadata.Value Nothing Nothing False False default_encoding
         _ -> Error.throw error
 

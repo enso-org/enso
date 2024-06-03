@@ -59,7 +59,7 @@ type Delimited_Format
     @delimiter make_file_read_delimiter_selector
     @encoding Encoding.default_widget
     @row_limit Rows_To_Read.default_widget
-    Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.Default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
+    Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## PRIVATE
        ADVANCED
@@ -68,7 +68,7 @@ type Delimited_Format
     for_read file:File_Format_Metadata =
         content_type = file.interpret_content_type
         from_content_type = content_type.if_not_nothing <|
-            encoding = content_type.encoding.if_nothing Encoding.Default
+            encoding = content_type.encoding.if_nothing Encoding.default
             case content_type.base_type of
                 "text/csv" -> Delimited_Format.Delimited ',' encoding
                 "text/tab-separated-values" -> Delimited_Format.Delimited '\t' encoding
@@ -178,7 +178,7 @@ Delimited_Format.from (that : JS_Object) =
     encoding_name = that.get "encoding"
     encoding = encoding_name
         . if_not_nothing (Encoding.from_name encoding_name)
-        . if_nothing Encoding.Default
+        . if_nothing Encoding.default
     headers = that.get "headers" |> parse_boolean_with_infer "headers"
     skip_rows = that.get "skip_rows" . if_nothing 0
     row_limit = that.get "row_limit"

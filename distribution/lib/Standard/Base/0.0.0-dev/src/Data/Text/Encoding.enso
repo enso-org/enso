@@ -64,14 +64,22 @@ type Encoding
        When used for encoding, it will always encode using UTF-8.
        This encoding cannot be passed to some functions that require a Java
        Charset.
-    Default
+    default -> Encoding =
+        # This factory method is used to publicly expose the `Default` constructor.
+        # The constructor itself has to be private, because we want to make `Value` constructor private, but all constructors must have the same privacy.
+        Encoding.Default
+
+    ## PRIVATE
+       A default encoding that will try to guess the encoding based on some heuristics.
+       See `Encoding.default`.
+    private Default
 
     ## PRIVATE
        An encoding identified by its Java name.
 
        Arguments:
        - character_set: java.nio.charset name.
-    Value (internal_character_set:Text)
+    private Value (internal_character_set:Text)
 
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset, if applicable.

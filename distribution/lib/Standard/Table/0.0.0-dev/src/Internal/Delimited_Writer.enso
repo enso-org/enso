@@ -43,8 +43,8 @@ write_file table format (file : Writable_File) on_existing_file match_columns on
             # The default encoding may be used for detecting the effective encoding in append mode.
             append_to_file table format file match_columns on_problems
         _ ->
-            # Override Encoding.Default to be just UTF-8 for writing a new file.
-            amended_format = if format.encoding != Encoding.Default then format else
+            # Override Encoding.default to be just UTF-8 for writing a new file.
+            amended_format = if format.encoding != Encoding.default then format else
                 format.clone encoding=Encoding.utf_8
             file.write_handling_dry_run on_existing_file effective_file-> stream->
                 r = write_to_stream table amended_format stream on_problems related_file=effective_file
