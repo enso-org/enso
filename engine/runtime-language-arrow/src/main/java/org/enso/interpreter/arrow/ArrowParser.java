@@ -11,7 +11,7 @@ public final class ArrowParser {
   public record Result(PhysicalLayout physicalLayout, LogicalLayout logicalLayout, Mode mode) {}
 
   public static Result parse(Source source) {
-    String src = source.getCharacters().toString();
+    String src = source.getCharacters().toString().replace('\n', ' ').trim();
     Matcher m = PATTERN.matcher(src);
     if (m.find()) {
       try {
