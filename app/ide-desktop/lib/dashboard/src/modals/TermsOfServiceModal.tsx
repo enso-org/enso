@@ -62,10 +62,19 @@ export function TermsOfServiceModal() {
   const checkboxId = React.useId()
   const { session } = authProvider.useAuth()
 
-  const eula = reactQuery.useSuspenseQuery(latestTermsOfService)
-
-  const latestVersionHash = eula.data.hash
   const localVersionHash = localStorage.get('termsOfService')?.versionHash
+  const { data: latestVersionHash } = reactQuery.useSuspenseQuery({
+    ...latestTermsOfService,
+    // If the user has already accepted EULA, we don't need to
+    // block user interaction with the app while we fetch the latest version.
+    // We can use the local version hash as the initial data.
+    // and refetch in the background to check for updates.
+    ...(localVersionHash != null && {
+      initialData: { hash: localVersionHash },
+      initialDataUpdatedAt: 0,
+    }),
+    select: data => data.hash,
+  })
 
   const isLatest = latestVersionHash === localVersionHash
   const isAccepted = localVersionHash != null
