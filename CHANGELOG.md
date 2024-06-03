@@ -3,9 +3,12 @@
 #### Enso Standard Library
 
 - [Added Statistic.Product][10122]
+- [Added `Decimal` column to the in-memory database, with some arithmetic
+  operations.][9950]
 
 [debug-shortcuts]:
 
+[9950]: https://github.com/enso-org/enso/pull/9950
 [10122]: https://github.com/enso-org/enso/pull/10122
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
