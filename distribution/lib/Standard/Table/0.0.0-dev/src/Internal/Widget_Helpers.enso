@@ -14,6 +14,7 @@ import project.Sort_Column.Sort_Column
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
+import project.Value_Type.By_Type
 from project.Extensions.Table_Conversions import all
 
 ## PRIVATE
@@ -89,7 +90,7 @@ make_column_name_multi_selector : Table -> Display -> Boolean -> Boolean -> Widg
 make_column_name_multi_selector table display:Display=Display.Always add_regex:Boolean=False add_by_type:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
     regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
-    by_type = if add_by_type then [Option "<By Type>" "(By_Type [])"] else []
+    by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
     Multiple_Choice values=regex+by_type+names display=display
 
 ## PRIVATE

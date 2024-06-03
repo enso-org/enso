@@ -484,3 +484,6 @@ type Value_Type
    - otherwise, `Text` is chosen as a fallback and the column is kept as-is
      without parsing.
 type Auto
+
+type By_Type
+  By_Type type:Value_Type strict:Boolean=False
