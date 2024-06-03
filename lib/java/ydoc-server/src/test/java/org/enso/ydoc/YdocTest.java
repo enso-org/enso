@@ -15,19 +15,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.enso.ydoc.jsonrpc.Request;
-import org.enso.ydoc.jsonrpc.Response;
+import org.enso.ydoc.jsonrpc.JsonRpcRequest;
+import org.enso.ydoc.jsonrpc.JsonRpcResponse;
 import org.enso.ydoc.jsonrpc.model.ContentRoot;
 import org.enso.ydoc.jsonrpc.model.FilePath;
 import org.enso.ydoc.jsonrpc.model.FileSystemObject;
 import org.enso.ydoc.jsonrpc.model.WriteCapability;
-import org.enso.ydoc.jsonrpc.result.FileListResult;
-import org.enso.ydoc.jsonrpc.result.InitProtocolConnectionResult;
-import org.enso.ydoc.jsonrpc.result.TextOpenFileResult;
+import org.enso.ydoc.jsonrpc.model.result.FileListResult;
+import org.enso.ydoc.jsonrpc.model.result.InitProtocolConnectionResult;
+import org.enso.ydoc.jsonrpc.model.result.TextOpenFileResult;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class YdocTest {
 
@@ -35,14 +37,14 @@ public class YdocTest {
   private static final String YDOC_URL = "ws://localhost:1234/project/";
   private static final String WEB_SERVER_URL = "ws://127.0.0.1:" + WEB_SERVER_PORT;
 
-  private static final UUID PROJECT_ID = new UUID(0, 1);
+  private static final Logger log = LoggerFactory.getLogger(YdocTest.class);
 
   private Ydoc ydoc;
   private ExecutorService webServerExecutor;
   private WebServer ls;
 
   private static WebServer startWebSocketServer(ExecutorService executor) {
-    var routing = WsRouting.builder().endpoint("/", new WebServerWsListener());
+    var routing = WsRouting.builder().endpoint("/", new LanguageServerConnection());
     var ws =
         WebServer.builder().host("localhost").port(WEB_SERVER_PORT).addRouting(routing).build();
 
@@ -51,7 +53,7 @@ public class YdocTest {
     return ws;
   }
 
-  private static String ydocUrl(Object doc) {
+  private static String ydocUrl(String doc) {
     return YDOC_URL + doc + "?ls=" + WEB_SERVER_URL;
   }
 
@@ -65,118 +67,148 @@ public class YdocTest {
   @After
   public void tearDown() throws Exception {
     ls.stop();
-    webServerExecutor.shutdownNow();
-    webServerExecutor.awaitTermination(3, TimeUnit.SECONDS);
+    webServerExecutor.shutdown();
+    var stopped = webServerExecutor.awaitTermination(3, TimeUnit.SECONDS);
+    if (!stopped) {
+      var pending = webServerExecutor.shutdownNow();
+      log.error("Executor pending [{}] tasks: [{}].", pending.size(), pending);
+    }
     ydoc.close();
   }
 
   @Test
-  public void connect() throws Exception {
+  public void initialize() throws Exception {
     var queue = new LinkedBlockingQueue<BufferData>();
 
     ydoc.start();
 
     var ws = WsClient.builder().build();
-    ws.connect(ydocUrl("index"), new TestWsListener(queue));
+    ws.connect(ydocUrl("index"), new DashboardConnection(queue));
 
     var ok1 = queue.take();
-    Assert.assertArrayEquals(new byte[] {0, 0, 1, 0}, ok1.readBytes());
+    Assert.assertTrue(ok1.debugDataHex(), BufferDataUtil.isOk(ok1));
 
     var buffer = queue.take();
-    buffer.skip(32);
-    var uuidString = buffer.readString(36);
-    System.out.println("UUID_STRING='" + uuidString + "'");
-    var uuid = UUID.fromString(uuidString);
-    System.out.println("UUID='" + uuid + "'");
-
-    WsClient.builder().build().connect(ydocUrl(uuid), new TestWsListener(queue));
+    var uuid = BufferDataUtil.readUUID(buffer);
+    WsClient.builder().build().connect(ydocUrl(uuid.toString()), new DashboardConnection(queue));
 
     var ok2 = queue.take();
-    Assert.assertArrayEquals(new byte[] {0, 0, 1, 0}, ok2.readBytes());
-
-    Thread.sleep(10000);
+    Assert.assertTrue(ok2.debugDataHex(), BufferDataUtil.isOk(ok2));
   }
 
-  private static final class TestWsListener implements WsListener {
+  private static final class BufferDataUtil {
+
+    private static final int UUID_BYTES = 36;
+    private static final int SUFFIX_BYTES = 3;
+
+    private static boolean isOk(BufferData data) {
+      return data.readInt16() == 0;
+    }
+
+    private static UUID readUUID(BufferData data) {
+      try {
+        data.skip(data.available() - UUID_BYTES - SUFFIX_BYTES);
+        var uuidString = data.readString(36);
+        return UUID.fromString(uuidString);
+      } catch (Exception e) {
+        log.error("Failed to read UUID of\n{}", data.debugDataHex());
+        throw e;
+      }
+    }
+  }
+
+  private static final class DashboardConnection implements WsListener {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardConnection.class);
 
     private final BlockingQueue<BufferData> messages;
 
-    TestWsListener(BlockingQueue<BufferData> messages) {
+    private DashboardConnection(BlockingQueue<BufferData> messages) {
       this.messages = messages;
     }
 
     @Override
     public void onMessage(WsSession session, BufferData buffer, boolean last) {
-      System.out.println("!!!!!!!!!!C onMessage\n" + buffer.debugDataHex(true));
+      log.debug("Got message\n{}", buffer.debugDataHex());
 
       messages.add(buffer);
     }
 
     @Override
     public void onMessage(WsSession session, String text, boolean last) {
-      System.out.println("!!!!!!!!!!C onMessage" + text);
+      log.error("Got unexpected message [{}].", text);
     }
   }
 
-  private static final class WebServerWsListener implements WsListener {
+  private static final class LanguageServerConnection implements WsListener {
 
     private static final String METHOD_INIT_PROTOCOL_CONNECTION = "session/initProtocolConnection";
     private static final String METHOD_CAPABILITY_ACQUIRE = "capability/acquire";
     private static final String METHOD_FILE_LIST = "file/list";
     private static final String METHOD_TEXT_OPEN_FILE = "text/openFile";
 
+    private static final UUID PROJECT_ROOT_ID = new UUID(0, 1);
+
+    private static final Logger log = LoggerFactory.getLogger(LanguageServerConnection.class);
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    WebServerWsListener() {}
+    private LanguageServerConnection() {}
 
     @Override
     public void onMessage(WsSession session, String text, boolean last) {
-      System.out.println("!!!!!!!S onMessage " + text);
-      try {
-        var request = objectMapper.readValue(text, Request.class);
+      log.debug("Got message [{}].", text);
 
-        Response jsonRpcResponse = null;
+      try {
+        var request = objectMapper.readValue(text, JsonRpcRequest.class);
+
+        JsonRpcResponse jsonRpcResponse = null;
 
         switch (request.method()) {
           case METHOD_INIT_PROTOCOL_CONNECTION -> {
             var contentRoots =
                 List.of(
-                    new ContentRoot("Project", PROJECT_ID),
+                    new ContentRoot("Project", PROJECT_ROOT_ID),
                     new ContentRoot("Home", new UUID(0, 2)),
                     new ContentRoot("FileSystemRoot", new UUID(0, 3), "/"));
             var initProtocolConnectionResult =
                 new InitProtocolConnectionResult("0.0.0-dev", "0.0.0-dev", contentRoots);
-            jsonRpcResponse = new Response(request.id(), initProtocolConnectionResult);
+            jsonRpcResponse = new JsonRpcResponse(request.id(), initProtocolConnectionResult);
           }
-          case METHOD_CAPABILITY_ACQUIRE -> jsonRpcResponse = Response.ok(request.id());
+          case METHOD_CAPABILITY_ACQUIRE -> jsonRpcResponse = JsonRpcResponse.ok(request.id());
           case METHOD_FILE_LIST -> {
             var paths =
                 List.of(
-                    FileSystemObject.file("Main.enso", new FilePath(PROJECT_ID, List.of("src"))));
+                    FileSystemObject.file(
+                        "Main.enso", new FilePath(PROJECT_ROOT_ID, List.of("src"))));
             var fileListResult = new FileListResult(paths);
-            jsonRpcResponse = new Response(request.id(), fileListResult);
+            jsonRpcResponse = new JsonRpcResponse(request.id(), fileListResult);
           }
           case METHOD_TEXT_OPEN_FILE -> {
             var options =
-                new WriteCapability.Options(new FilePath(PROJECT_ID, List.of("src", "Main.enso")));
+                new WriteCapability.Options(
+                    new FilePath(PROJECT_ROOT_ID, List.of("src", "Main.enso")));
             var writeCapability = new WriteCapability("text/canEdit", options);
             var textOpenFileResult =
                 new TextOpenFileResult(
-                    writeCapability, TextOpenFileResult.CONTENT, TextOpenFileResult.VERSION);
-            jsonRpcResponse = new Response(request.id(), textOpenFileResult);
+                    writeCapability,
+                    "main =",
+                    "e5aeae8609bd90f94941d4227e6ec1e0f069d3318fb7bd93ffe4d391");
+            jsonRpcResponse = new JsonRpcResponse(request.id(), textOpenFileResult);
           }
         }
 
         if (jsonRpcResponse != null) {
           var response = objectMapper.writeValueAsString(jsonRpcResponse);
-          System.out.println("SENDING " + response);
+
+          log.debug("Sending [{}].", response);
           session.send(response, true);
         } else {
-          System.out.println("UNKNOWN REQUEST");
+          log.error("Unknown request.");
         }
       } catch (JsonProcessingException e) {
-        e.printStackTrace();
-        throw new RuntimeException(e);
+        log.error("Failed to parse JSON.", e);
+        Assert.fail(e.getMessage());
       }
     }
   }

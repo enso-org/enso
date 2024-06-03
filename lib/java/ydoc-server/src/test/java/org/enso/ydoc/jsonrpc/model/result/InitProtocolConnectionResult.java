@@ -1,4 +1,4 @@
-package org.enso.ydoc.jsonrpc.result;
+package org.enso.ydoc.jsonrpc.model.result;
 
 import java.util.List;
 import org.enso.ydoc.jsonrpc.model.ContentRoot;
