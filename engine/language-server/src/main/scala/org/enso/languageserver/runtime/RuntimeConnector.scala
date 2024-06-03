@@ -2,6 +2,7 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.languageserver.profiling.EventsMonitorProtocol
 import org.enso.languageserver.runtime.RuntimeConnector.{
   Destroy,
   MessageFromRuntime
@@ -12,7 +13,6 @@ import org.enso.logger.akka.ActorMessageLogging
 import org.enso.logger.masking.ToLogString
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
-import org.enso.profiling.events.EventsMonitor
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
@@ -22,7 +22,7 @@ import scala.util.{Failure, Success}
 /** An actor managing a connection to Enso's runtime server. */
 final class RuntimeConnector(
   handlers: Map[Class[_], ActorRef],
-  initialEventsMonitor: EventsMonitor
+  eventsMonitor: ActorRef
 ) extends Actor
     with LazyLogging
     with ActorMessageLogging
@@ -40,15 +40,12 @@ final class RuntimeConnector(
         engine
       )
       unstashAll()
-      context.become(waitingOnEndpoint(engine, initialEventsMonitor))
+      context.become(waitingOnEndpoint(engine))
     case _ => stash()
   }
 
-  private def waitingOnEndpoint(
-    engine: MessageEndpoint,
-    eventsMonitor: EventsMonitor
-  ): Receive =
-    registerEvent(eventsMonitor).andThen(LoggingReceive {
+  private def waitingOnEndpoint(engine: MessageEndpoint): Receive =
+    registerMessage.andThen(LoggingReceive {
       case MessageFromRuntime(
             Runtime.Api.Response(None, Api.InitializedNotification())
           ) =>
@@ -57,11 +54,7 @@ final class RuntimeConnector(
           engine
         )
         unstashAll()
-        context.become(initialized(engine, eventsMonitor, Map()))
-
-      case RuntimeConnector.RegisterEventsMonitor(newEventsMonitor) =>
-        eventsMonitor.close()
-        context.become(waitingOnEndpoint(engine, newEventsMonitor))
+        context.become(initialized(engine, Map()))
 
       case _ => stash()
     })
@@ -87,30 +80,21 @@ final class RuntimeConnector(
     * the runtime are forwarded to one of the registered handlers.
     *
     * @param engine  endpoint of a runtime
-    * @param eventsMonitor the current events monitor
     * @param senders request ids with corresponding senders
     */
   def initialized(
     engine: MessageEndpoint,
-    eventsMonitor: EventsMonitor,
     senders: Map[Runtime.Api.RequestId, ActorRef]
-  ): Receive = registerEvent(eventsMonitor).andThen(LoggingReceive {
+  ): Receive = registerMessage.andThen(LoggingReceive {
     case Destroy =>
-      eventsMonitor.close()
       context.stop(self)
-
-    case RuntimeConnector.RegisterEventsMonitor(newEventsMonitor) =>
-      eventsMonitor.close()
-      context.become(initialized(engine, newEventsMonitor, senders))
 
     case msg: Runtime.ApiEnvelope =>
       engine.sendBinary(Runtime.Api.serialize(msg))
 
       msg match {
         case Api.Request(Some(id), _) =>
-          context.become(
-            initialized(engine, eventsMonitor, senders + (id -> sender()))
-          )
+          context.become(initialized(engine, senders + (id -> sender())))
         case _ =>
       }
 
@@ -146,20 +130,13 @@ final class RuntimeConnector(
             case _ =>
           }
       }
-      context.become(
-        initialized(engine, eventsMonitor, senders - correlationId)
-      )
+      context.become(initialized(engine, senders - correlationId))
   })
 
-  /** Register event in the events monitor
-    *
-    * @param eventsMonitor the current events monitor
-    */
-  private def registerEvent(
-    eventsMonitor: EventsMonitor
-  ): PartialFunction[Any, Any] = { event =>
-    eventsMonitor.registerEvent(event)
-    event
+  /** Register event in the events monitor. */
+  private def registerMessage: PartialFunction[Any, Any] = { message =>
+    eventsMonitor ! EventsMonitorProtocol.RegisterRuntimeMessage(message)
+    message
   }
 }
 
@@ -171,12 +148,6 @@ object RuntimeConnector {
     */
   case class Initialize(engineConnection: MessageEndpoint)
 
-  /** Protocol message to register new events monitor in the runtime connector.
-    *
-    * @param eventsMonitor the events monitor to register
-    */
-  case class RegisterEventsMonitor(eventsMonitor: EventsMonitor)
-
   /** Protocol message to inform the actor about the connection being closed.
     */
   case object Destroy
@@ -184,15 +155,15 @@ object RuntimeConnector {
   /** Helper for creating instances of the [[RuntimeConnector]] actor.
     *
     * @param lockManagerService a reference to the lock manager service actor
-    * @param monitor events monitor that handles messages between the language
+    * @param eventsMonitor events monitor that handles messages between the language
     * server and the runtime
     * @return a [[Props]] instance for the newly created actor.
     */
-  def props(lockManagerService: ActorRef, monitor: EventsMonitor): Props = {
+  def props(lockManagerService: ActorRef, eventsMonitor: ActorRef): Props = {
     val lockRequests =
       LockManagerService.handledRequestTypes.map(_ -> lockManagerService)
     val handlers: Map[Class[_], ActorRef] = Map.from(lockRequests)
-    Props(new RuntimeConnector(handlers, monitor))
+    Props(new RuntimeConnector(handlers, eventsMonitor))
   }
 
   /** Endpoint implementation used to handle connections with the runtime.
