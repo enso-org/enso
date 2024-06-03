@@ -767,7 +767,7 @@ const groupColors = computed(() => {
 .rightDock .closeButton {
   position: absolute;
   top: 4px;
-  right: 6px;
+  right: 28px;
   color: red;
   opacity: 0.3;
 
