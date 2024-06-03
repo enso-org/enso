@@ -584,7 +584,8 @@ lazy val componentModulesPaths =
     Seq(
       "org.slf4j"      % "slf4j-api"       % slf4jVersion,
       "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
-      "ch.qos.logback" % "logback-core"    % logbackClassicVersion
+      "ch.qos.logback" % "logback-core"    % logbackClassicVersion,
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
     )
   val thirdPartyMods = JPMSUtils.filterModulesFromClasspath(
     fullCp,
@@ -2215,7 +2216,9 @@ lazy val `runtime-fat-jar` =
     .settings(
       // extra module path for compileModuleInfo task
       Compile / JPMSUtils.extraMp := {
-        (`syntax-rust-definition` / Compile / exportedProductJars).value
+        val syntaxMod = (`syntax-rust-definition` / Compile / exportedProductJars).value
+        val profilingMod = (`profiling-utils` / Compile / exportedProductJars).value
+        syntaxMod ++ profilingMod
       },
       Compile / compileModuleInfo := {
         JPMSUtils.compileModuleInfo(
@@ -2274,7 +2277,9 @@ lazy val `runtime-fat-jar` =
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
       assembly / assemblyExcludedJars := {
-        val pkgsToExclude = JPMSUtils.componentModules ++ helidon
+        val pkgsToExclude = JPMSUtils.componentModules ++ helidon ++ Seq(
+          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
+        )
         val ourFullCp     = (Runtime / fullClasspath).value
         val excludedExternalPkgs = JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
@@ -3664,16 +3669,7 @@ updateLibraryManifests := {
   val runnerCp  = (LocalProject("engine-runner") / Runtime / fullClasspath).value
   val runtimeCp = (LocalProject("runtime") / Runtime / fullClasspath).value
   val fullCp    = (runnerCp ++ runtimeCp).distinct
-  val modulesOnModulePath =
-    JPMSUtils
-      .filterModulesFromClasspath(
-        fullCp,
-        JPMSUtils.componentModules ++ helidon,
-        log,
-        shouldContainAll = true
-      )
-      .map(_.data)
-  val modulePath = modulesOnModulePath ++ Seq(file("runtime.jar"))
+  val modulePath = componentModulesPaths.value
   val runnerJar  = (LocalProject("engine-runner") / assembly).value
   val javaOpts = Seq(
     "-Denso.runner=" + runnerJar.getAbsolutePath,
