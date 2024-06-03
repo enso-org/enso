@@ -522,6 +522,18 @@ add_specs suite_builder =
             r.first_column.to_vector . should_equal ['\uFFFD']
             Problems.expect_only_warning Encoding_Error r
 
+        group_builder.specify "should fall back to Windows-1252 encoding if invalid UTF-8 characters are encountered in Default encoding" <|
+            f = File.create_temporary_file "delimited-invalid-utf-8" ".csv"
+            # On the simple characters all three encodings (ASCII, UTF-8 and Win-1252) agree, so we can use ASCII bytes.
+            bytes = ('A,B\n1,y'.bytes Encoding.ascii) + [-1] + ('z\n2,-'.bytes Encoding.ascii)
+            bytes.write_bytes f . should_succeed
+            r = f.read
+            r.should_be_a Table
+            r.column_names.should_equal ["A", "B"]
+            r.at "A" . to_vector . should_equal [1, 2]
+            # We fallback to Win-1252 where byte -1 means ÿ
+            r.at "B" . to_vector . should_equal ["yÿz", "-"]
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
