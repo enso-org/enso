@@ -50,10 +50,12 @@ import org.enso.logger.masking.Masking
 import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
 import org.enso.common.HostAccessFactory
+import org.enso.languageserver.boot.config.ApplicationConfig
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.enso.ydoc.Ydoc
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -81,6 +83,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     serverConfig,
     logLevel
   )
+
+  private val applicationConfig = ApplicationConfig.load()
 
   private val utcClock = Clock.systemUTC()
 
@@ -493,6 +497,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
+  private val ydoc = new Ydoc.Builder()
+    .hostname(applicationConfig.ydoc.hostname)
+    .port(applicationConfig.ydoc.port)
+    .build()
+  ydoc.start()
+  log.trace("Started Ydoc server.")
+
   log.info(
     "Main module of the Language Server initialized with config [{}].",
     languageServerConfig
@@ -502,6 +513,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     context.close()
+    ydoc.close()
     log.info("Closed Language Server main module.")
   }
 
