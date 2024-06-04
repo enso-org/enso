@@ -1,6 +1,7 @@
 package org.enso.compiler;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -76,6 +77,30 @@ public class ExportedSymbolsTest {
     var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
     assertThat(mainExportedSymbols.size(), is(2));
     assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+  }
+
+  @Test
+  public void testExportedSymbolWithHiding() throws IOException {
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("A_Module"),
+            """
+        type A_Type
+        type B_Type
+        """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        from project.A_Module import all
+        from project.A_Module export all hiding B_Type
+        """);
+    ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
+    var ctx = createCtx(projDir);
+    compile(ctx);
+    var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+    assertThat(mainExportedSymbols.size(), is(1));
+    assertThat(mainExportedSymbols.keySet(), contains("A_Type"));
   }
 
   private static Context createCtx(Path projDir) {
