@@ -1052,7 +1052,7 @@ type Table
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
-    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format:(Text | Data_Formatter)='' error_on_missing_columns=True on_problems=Report_Warning =
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)='' error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of
             _ : Text -> if format.is_empty then Data_Formatter.Value else Data_Formatter.Value.with_format type format
             _ : Data_Formatter -> format
