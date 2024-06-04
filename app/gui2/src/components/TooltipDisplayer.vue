@@ -7,7 +7,7 @@ import { computed, ref } from 'vue'
 const props = defineProps<{ registry: TooltipRegistry }>()
 
 // Time for which hover must remain on a single element for tooltip to show up.
-const TOOLTIP_SHOW_DELAY_MS = 2000
+const TOOLTIP_SHOW_DELAY_MS = 1500
 // Time after which tooltip will disappear once an element is no longer hovered.
 const TOOLTIP_HIDE_DELAY_MS = 300
 

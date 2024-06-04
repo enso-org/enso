@@ -49,6 +49,7 @@ const rootStyle = computed(() => {
   inset: calc(0px - var(--selected-node-border-width));
   width: calc(var(--selected-node-border-width) * 2 + var(--node-size-x));
   height: calc(var(--selected-node-border-width) * 2 + var(--node-size-y));
+  border-radius: calc(var(--node-border-radius) + var(--selected-node-border-width));
 
   &:before {
     position: absolute;
