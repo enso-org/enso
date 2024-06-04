@@ -190,7 +190,7 @@ export function useBufferedWritable<T>(raw: {
   const pendingWrite = shallowRef<{ pending: T }>()
   watch(pendingWrite, () => {
     if (pendingWrite.value) {
-      if (pendingWrite.value.pending !== toValue(raw)) {
+      if (pendingWrite.value.pending !== toValue(raw.get)) {
         raw.set(pendingWrite.value.pending)
       }
       pendingWrite.value = undefined
