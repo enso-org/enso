@@ -502,7 +502,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .port(applicationConfig.ydoc.port)
     .build()
   ydoc.start()
-  log.trace("Started Ydoc server.")
+  log.debug("Started Ydoc server.")
 
   log.info(
     "Main module of the Language Server initialized with config [{}].",
