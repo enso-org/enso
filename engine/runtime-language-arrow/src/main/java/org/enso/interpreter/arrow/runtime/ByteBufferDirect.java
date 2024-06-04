@@ -22,10 +22,9 @@ final class ByteBufferDirect implements AutoCloseable {
 
     this.allocated = buffer;
     this.dataBuffer = buffer.slice(0, padded.getDataBufferSizeInBytes());
-    this.bitmapBuffer = buffer.slice(dataBuffer.capacity(), padded.getValidityBitmapSizeInBytes());
-    for (int i = 0; i < bitmapBuffer.capacity(); i++) {
-      bitmapBuffer.put(i, (byte) 0);
-    }
+    // this.bitmapBuffer = buffer.slice(dataBuffer.capacity(),
+    // padded.getValidityBitmapSizeInBytes());
+    this.bitmapBuffer = null;
   }
 
   /**
@@ -182,6 +181,9 @@ final class ByteBufferDirect implements AutoCloseable {
   }
 
   public boolean isNull(int index) {
+    if (bitmapBuffer == null) {
+      return false;
+    }
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);
     var byteIndex = index & byteMask;
@@ -198,6 +200,10 @@ final class ByteBufferDirect implements AutoCloseable {
   }
 
   private void setValidityBitmap(int index0, int unitSize) {
+    if (bitmapBuffer == null) {
+      // all non-null
+      return;
+    }
     var index = index0 / unitSize;
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);

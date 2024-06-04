@@ -67,11 +67,12 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     @Specialization(guards = "receiver.getUnit() == Int64")
     public static Object doLong(ArrowFixedArrayInt receiver, long index)
         throws UnsupportedMessageException, InvalidArrayIndexException {
-      var at = adjustedIndex(receiver.buffer, receiver.unit, receiver.size, index);
-      if (receiver.buffer.isNull((int) index)) {
+      var buf = receiver.buffer;
+      var at = adjustedIndex(buf, LogicalLayout.Int64, receiver.size, index);
+      if (buf.isNull((int) index)) {
         return NullValue.get();
       }
-      return receiver.buffer.getLong(at);
+      return buf.getLong(at);
     }
   }
 

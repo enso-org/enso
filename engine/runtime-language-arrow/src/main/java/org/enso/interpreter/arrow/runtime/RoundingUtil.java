@@ -97,7 +97,7 @@ final class RoundingUtil {
     private PaddedSize(int valueCount, SizeInBytes unit) {
       this.valueCount = valueCount;
       this.unit = unit;
-      var pair =computeBufferSize(valueCount, unit);
+      var pair = computeBufferSize(valueCount, unit);
       this.validityBitmapSize = pair[0];
       this.dataBufferSize = pair[1];
     }
@@ -151,7 +151,7 @@ final class RoundingUtil {
           --actualCount;
         } while (true);
       }
-      return new long[] { validityBufferSize, dataBufferSize };
+      return new long[] {validityBufferSize, dataBufferSize};
     }
   }
 }
