@@ -13,6 +13,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Logging import all
+from project.Metadata import Display, Widget
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.nio.charset.Charset
@@ -88,7 +89,7 @@ type File_By_Line
        Returns the lines in the file as a vector.
     to_vector : Vector Text
     to_vector self = File_Error.handle_java_exceptions self.file <|
-        end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
+        end_at = if self.limit_lines.is_nothing then -1 else self.limit_lines-1
         FileLineReader.readLines self.java_file self.file_end self.row_map 0 end_at self.charset self.filter_func
 
     ## ICON parse3
@@ -172,6 +173,7 @@ type File_By_Line
 
        Arguments:
        - predicate: The predicate to filter by.
+    @predicate (Widget.Text_Input display=Display.Always)
     filter : Text | (Text -> Boolean) -> File_By_Line
     filter self predicate =
         ## Create the predicate
