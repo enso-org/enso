@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -458,20 +459,16 @@ public final class ModuleScope implements EnsoObject {
      */
     public ModuleScope build() {
       if (moduleScope == null) {
-        synchronized (this) {
-          if (moduleScope == null) {
-            moduleScope =
-                new ModuleScope(
-                    module,
-                    associatedType,
-                    polyglotSymbols,
-                    types,
-                    methods,
-                    conversions,
-                    imports,
-                    exports);
-          }
-        }
+        moduleScope =
+            new ModuleScope(
+                module,
+                associatedType,
+                Collections.unmodifiableMap(polyglotSymbols),
+                Collections.unmodifiableMap(types),
+                Collections.unmodifiableMap(methods),
+                Collections.unmodifiableMap(conversions),
+                Collections.unmodifiableSet(imports),
+                Collections.unmodifiableSet(exports));
       }
       return moduleScope;
     }
@@ -495,12 +492,12 @@ public final class ModuleScope implements EnsoObject {
               new ModuleScope(
                   module,
                   associatedType,
-                  polyglotSymbols,
-                  types,
-                  methods,
-                  conversions,
-                  imports,
-                  exports);
+                  Collections.unmodifiableMap(polyglotSymbols),
+                  Collections.unmodifiableMap(types),
+                  Collections.unmodifiableMap(methods),
+                  Collections.unmodifiableMap(conversions),
+                  Collections.unmodifiableSet(imports),
+                  Collections.unmodifiableSet(exports));
         }
         return proxy;
       }
