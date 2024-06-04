@@ -1,12 +1,12 @@
 import { type GraphStore } from '@/stores/graph'
 import { type ToValue } from '@/util/reactivity'
 import type { Ast } from 'shared/ast'
-import { toValue } from 'vue'
+import { computed, toValue } from 'vue'
 
 export function useAstDocumentation(graphStore: GraphStore, ast: ToValue<Ast | undefined>) {
   return {
     documentation: {
-      state: () => toValue(ast)?.documentingAncestor()?.documentation() ?? '',
+      state: computed(() => toValue(ast)?.documentingAncestor()?.documentation() ?? ''),
       set: (value: string) => {
         const astValue = toValue(ast)
         if (!astValue) return

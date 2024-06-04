@@ -33,10 +33,20 @@ const close = () => (menuOpen.value = false)
 </script>
 
 <template>
-  <ToggleIcon v-bind="bold.state" icon="bold" title="Bold" @update:modelValue="bold.set" />
-  <ToggleIcon v-bind="italic.state" icon="italic" title="Italic" @update:modelValue="italic.set" />
   <ToggleIcon
-    v-bind="code.state"
+    :modelValue="bold.state.value"
+    icon="bold"
+    title="Bold"
+    @update:modelValue="bold.set"
+  />
+  <ToggleIcon
+    :modelValue="italic.state.value"
+    icon="italic"
+    title="Italic"
+    @update:modelValue="italic.set"
+  />
+  <ToggleIcon
+    :modelValue="code.state.value"
     :icon="TODO"
     title="Insert Code Block"
     @update:modelValue="code.set"
@@ -46,21 +56,21 @@ const close = () => (menuOpen.value = false)
     <template #button>Aa</template>
     <template #entries>
       <ToggleIcon
-        v-bind="strikethrough.state"
+        :modelValue="strikethrough.state.value"
         icon="strike-through"
         label="Strikethrough"
         @update:modelValue="strikethrough.set"
         @click="close"
       />
       <ToggleIcon
-        v-bind="subscript.state"
+        :modelValue="subscript.state.value"
         :icon="TODO"
         label="Subscript"
         @update:modelValue="subscript.set"
         @click="close"
       />
       <ToggleIcon
-        v-bind="superscript.state"
+        :modelValue="superscript.state.value"
         :icon="TODO"
         label="Superscript"
         @update:modelValue="superscript.set"
