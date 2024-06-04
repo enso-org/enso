@@ -10,7 +10,6 @@ import java.util.Objects;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
@@ -120,7 +119,10 @@ public abstract class EnsoRootNode extends RootNode {
         if (rootNode.sourceStartIndex == NO_SOURCE) {
           return null;
         } else {
-          return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
+          return rootNode
+              .getModuleScope()
+              .getModule()
+              .createSection(sourceStartIndex, sourceLength);
         }
       } else {
         return rootNode.inlineSource.createSection(sourceStartIndex, sourceLength);

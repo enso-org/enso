@@ -386,7 +386,7 @@ public final class Module implements EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scopeBuilder = newScopeBuilder();
+    scopeBuilder = newScopeBuilder(false);
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(asCompilerModule());
   }
@@ -463,14 +463,13 @@ public final class Module implements EnsoObject {
     return scopeBuilder;
   }
 
-  public ModuleScope.Builder newScopeBuilder() {
-    var builder = new ModuleScope.Builder(this);
-    this.scopeBuilder = builder;
-    return builder;
-  }
-
-  public void resetScope() {
-    scopeBuilder = scopeBuilder.newBuilderInheritingTypes();
+  public ModuleScope.Builder newScopeBuilder(boolean inheritTypes) {
+    if (inheritTypes) {
+      this.scopeBuilder = this.scopeBuilder.newBuilderInheritingTypes();
+    } else {
+      this.scopeBuilder = new ModuleScope.Builder(this);
+    }
+    return this.scopeBuilder;
   }
 
   /**

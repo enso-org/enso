@@ -342,7 +342,7 @@ get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
    - name: The name of the unresolved symbol.
    - symbol: The unresolved symbol from which to get the scope.
 create_unresolved_symbol : Text -> Any -> Unresolved_Symbol
-create_unresolved_symbol name scope = @Builtin_Method "Meta.create_unresolved_symbol"
+create_unresolved_symbol name symbol = @Builtin_Method "Meta.create_unresolved_symbol"
 
 ## PRIVATE
 

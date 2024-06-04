@@ -734,7 +734,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.resetScope();
+        module.module.newScopeBuilder(true);
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);
@@ -836,7 +836,7 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public ModuleScopeBuilder newScopeBuilder() {
       return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
-          module.newScopeBuilder());
+          module.newScopeBuilder(false));
     }
 
     @Override
