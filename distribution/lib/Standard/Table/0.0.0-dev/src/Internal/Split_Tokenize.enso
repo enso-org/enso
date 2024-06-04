@@ -9,7 +9,7 @@ import project.Columns_To_Add.Columns_To_Add
    Splits a column of text into a set of new columns.
    See `Table.split_to_columns`.
 split_to_columns : Table -> Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> Table
-split_to_columns table input_column_id delimiter="," column_count on_problems=Report_Error =
+split_to_columns table input_column_id delimiter="," column_count:Columns_To_Add=..All_Columns on_problems=Report_Error =
     column = table.at input_column_id
     Value_Type.expect_text column <|
         fan_out_to_columns table column.name (handle_nothing (_.split delimiter)) column_count on_problems=on_problems
