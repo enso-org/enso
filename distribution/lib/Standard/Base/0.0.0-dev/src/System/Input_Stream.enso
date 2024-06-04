@@ -19,6 +19,7 @@ polyglot java import java.io.BufferedInputStream
 polyglot java import java.io.ByteArrayInputStream
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import org.enso.base.encoding.Encoding_Utils
+polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 
 ## PRIVATE
    An input stream, allowing for interactive reading of contents.

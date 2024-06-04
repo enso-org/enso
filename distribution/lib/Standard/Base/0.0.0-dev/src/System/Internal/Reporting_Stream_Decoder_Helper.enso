@@ -1,7 +1,9 @@
 private
 
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
 import project.System.Input_Stream.Input_Stream
+from project.Runtime import assert
 
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 
@@ -9,9 +11,40 @@ polyglot java import org.enso.base.encoding.ReportingStreamDecoder
    Builds the `ReportingStreamDecoder`, consuming the `Input_Stream`.
    It will do any necessary encoding detection, as determined by the `Encoding`
 build (input_stream : Input_Stream) (encoding : Encoding) -> ReportingStreamDecoder =
-    "TODO"
+    # We always ensure the stream is peekable, as that also implies buffering which is supposedly more efficient e.g. when working with files.
+    buffered_input_stream = input_stream.as_peekable_stream
+    case encoding
 
 ## PRIVATE
    ???
 read_into_text (decoder : ReportingStreamDecoder) -> Text =
     "TODO"
+
+## PRIVATE
+type Unicode_BOM
+    ## PRIVATE
+    UTF_8
+
+    ## PRIVATE
+    UTF_16_LE
+
+    ## PRIVATE
+    UTF_16_BE
+
+    ## PRIVATE
+    as_bytes self -> Vector = case self of
+        Unicode_BOM.UTF_8 -> [-17, -69, -65]
+        Unicode_BOM.UTF_16_LE -> [-1, -2]
+        Unicode_BOM.UTF_16_BE -> [-2, -1]
+
+    ## PRIVATE
+    all = [Unicode_BOM.UTF_8, Unicode_BOM.UTF_16_LE, Unicode_BOM.UTF_16_BE]
+
+## PRIVATE
+detect_bom (input_stream : Input_Stream) -> Unicode_BOM | Nothing =
+    assert input_stream.is_peekable
+    beginning = input_stream.peek_bytes 3
+    matching_bom = Unicode_BOM.all.find if_missing=Nothing bom->
+        expected_bytes = bom.as_bytes
+        expected_bytes == (beginning.take expected_bytes.length)
+    matching_bom
