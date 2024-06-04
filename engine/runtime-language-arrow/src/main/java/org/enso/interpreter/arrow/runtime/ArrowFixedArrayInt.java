@@ -1,13 +1,16 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
 import org.enso.interpreter.arrow.LogicalLayout;
 
 @ExportLibrary(InteropLibrary.class)
@@ -65,14 +68,17 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     }
 
     @Specialization(guards = "receiver.getUnit() == Int64")
-    public static Object doLong(ArrowFixedArrayInt receiver, long index)
+    public static Object doLong(
+        ArrowFixedArrayInt receiver,
+        long index,
+        @CachedLibrary("receiver") InteropLibrary iop,
+        @Cached InlinedExactClassProfile bufferClazz)
         throws UnsupportedMessageException, InvalidArrayIndexException {
-      var buf = receiver.buffer;
-      var at = adjustedIndex(buf, LogicalLayout.Int64, receiver.size, index);
-      if (buf.isNull((int) index)) {
+      var at = adjustedIndex(receiver.buffer, LogicalLayout.Int64, receiver.size, index);
+      if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();
       }
-      return buf.getLong(at);
+      return receiver.buffer.getLong(at, iop, bufferClazz);
     }
   }
 

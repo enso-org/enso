@@ -1,6 +1,9 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.enso.interpreter.arrow.util.MemoryUtil;
@@ -141,9 +144,21 @@ final class ByteBufferDirect implements AutoCloseable {
     return dataBuffer.getLong(index);
   }
 
+  public long getLong(int index, Node node, InlinedExactClassProfile profile)
+      throws UnsupportedMessageException {
+    var buf = profile.profile(node, dataBuffer);
+    return buf.getLong(index);
+  }
+
   public void putLong(int index, long value) {
     setValidityBitmap(index, 8);
     dataBuffer.putLong(index, value);
+  }
+
+  public void putLong(int index, long value, Node node, InlinedExactClassProfile profile) {
+    var buf = profile.profile(node, dataBuffer);
+    setValidityBitmap(index, 8);
+    buf.putLong(index, value);
   }
 
   public void putFloat(float value) throws UnsupportedMessageException {
@@ -182,6 +197,11 @@ final class ByteBufferDirect implements AutoCloseable {
     if (bitmapBuffer == null) {
       return false;
     }
+    return checkForNull(index);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private boolean checkForNull(int index) {
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);
     var byteIndex = index & byteMask;

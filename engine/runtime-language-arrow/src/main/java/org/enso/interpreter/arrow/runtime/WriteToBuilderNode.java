@@ -13,6 +13,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -190,7 +191,8 @@ abstract class WriteToBuilderNode extends Node {
       ArrowFixedSizeArrayBuilder receiver,
       long index,
       Object value,
-      @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
+      @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop,
+      @Cached InlinedExactClassProfile bufferClazz)
       throws UnsupportedTypeException {
     validAccess(receiver, index);
     if (iop.isNull(value)) {
@@ -202,7 +204,9 @@ abstract class WriteToBuilderNode extends Node {
           new Object[] {value}, "value does not fit a 8 byte int");
     }
     try {
-      receiver.getBuffer().putLong(typeAdjustedIndex(index, receiver.getUnit()), iop.asLong(value));
+      var i = typeAdjustedIndex(index, receiver.getUnit());
+      var l = iop.asLong(value);
+      receiver.getBuffer().putLong(i, l, iop, bufferClazz);
     } catch (UnsupportedMessageException e) {
       throw UnsupportedTypeException.create(new Object[] {value}, "value is not a long");
     }
