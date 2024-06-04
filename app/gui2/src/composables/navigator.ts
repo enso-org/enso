@@ -1,7 +1,14 @@
 /** @file A Vue composable for panning and zooming a DOM element. */
 
 import { useApproach, useApproachVec } from '@/composables/animation'
-import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
+import {
+  PointerButtonMask,
+  useArrows,
+  useEvent,
+  usePointer,
+  useResizeObserver,
+  type EventPosition,
+} from '@/composables/events'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -26,7 +33,11 @@ function elemRect(target: Element | undefined): Rect {
 }
 
 export type NavigatorComposable = ReturnType<typeof useNavigator>
-export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: KeyboardComposable) {
+export function useNavigator(
+  viewportNode: Ref<Element | undefined>,
+  keyboard: KeyboardComposable,
+  predicate: (e: PointerEvent | KeyboardEvent) => boolean = (_) => true,
+) {
   const size = useResizeObserver(viewportNode)
   const targetCenter = shallowRef<Vec2>(Vec2.Zero)
   const center = useApproachVec(targetCenter, 100, 0.02)
@@ -34,13 +45,16 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
   const targetScale = shallowRef(1)
   const scale = useApproach(targetScale)
   const panPointer = usePointer(
-    (pos) => {
-      scrollTo(center.value.addScaled(pos.delta, -1 / scale.value))
-    },
+    (pos) => scrollTo(center.value.addScaled(pos.delta, -1 / scale.value)),
     {
       requiredButtonMask: PointerButtonMask.Auxiliary,
-      predicate: (e) => e.target === e.currentTarget,
+      predicate: (e) => e.target === e.currentTarget && predicate(e),
     },
+  )
+
+  const panArrows = useArrows(
+    (pos) => scrollTo(center.value.addScaled(pos.delta, 1 / scale.value)),
+    { predicate, velocity: 1000 },
   )
 
   function eventScreenPos(e: { clientX: number; clientY: number }): Vec2 {
@@ -141,7 +155,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
     },
     {
       requiredButtonMask: PointerButtonMask.Secondary,
-      predicate: (e) => e.target === e.currentTarget,
+      predicate: (e) => e.target === e.currentTarget && predicate(e),
     },
   )
 
@@ -258,6 +272,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: K
 
   return proxyRefs({
     events: {
+      ...panArrows.events,
       dragover(e: DragEvent) {
         eventMousePos.value = eventScreenPos(e)
       },

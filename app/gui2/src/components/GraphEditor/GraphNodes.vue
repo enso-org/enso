@@ -37,12 +37,15 @@ function nodeIsDragged(movedId: NodeId, offset: Vec2) {
   dragging.startOrUpdate(movedId, scaledOffset)
 }
 
-const displacingWithArrows = useArrows((pos, type) => {
-  const oneOfMoved = set.first(selection.selected)
-  if (!oneOfMoved) return false
-  dragging.startOrUpdate(oneOfMoved, pos.relative)
-  if (type === 'stop') dragging.finishDrag()
-}, 0.2)
+const displacingWithArrows = useArrows(
+  (pos, type) => {
+    const oneOfMoved = set.first(selection.selected)
+    if (!oneOfMoved) return false
+    dragging.startOrUpdate(oneOfMoved, pos.relative)
+    if (type === 'stop') dragging.finishDrag()
+  },
+  { predicate: (_) => selection.selected.size > 0 },
+)
 
 useEvent(window, 'keydown', displacingWithArrows.events.keydown)
 useEvent(window, 'keyup', displacingWithArrows.events.keyup)

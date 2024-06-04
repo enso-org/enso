@@ -86,7 +86,9 @@ onUnmounted(() => {
 
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
-const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
+const graphNavigator = provideGraphNavigator(viewportNode, keyboard, (e) =>
+  e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true,
+)
 
 // === Client saved state ===
 
@@ -252,8 +254,11 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusyExceptIn(documentationEditorArea.value) && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
-    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event))
+    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
+    (!keyboardBusy() && graphNavigator.events.keydown(event))
 })
+useEvent(window, 'keyup', (event) => graphNavigator.events.keyup(event))
+
 useEvent(
   window,
   'pointerdown',

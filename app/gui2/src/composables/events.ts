@@ -407,14 +407,26 @@ function isArrowKey(key: string): key is ArrowKey {
   return key === 'ArrowLeft' || key === 'ArrowUp' || key === 'ArrowRight' || key === 'ArrowDown'
 }
 
+/**
+ * Options for `useArrows` composable.
+ */
+export interface UseArrowsOptions {
+  /** The velocity expressed in pixels per second. Defaults to 200. */
+  velocity?: number
+  /** Additional condition for move. */
+  predicate?: (e: KeyboardEvent) => boolean
+}
+
 export function useArrows(
   handler: (
     pos: EventPosition,
     eventType: PointerEventType,
     event?: KeyboardEvent,
   ) => void | boolean,
-  velocity: number,
+  options: UseArrowsOptions = {},
 ) {
+  const velocity = options.velocity ?? 200.0
+  const predicate = options.predicate ?? ((_) => true)
   const clearedKeys: PressedKeys = {
     ArrowLeft: false,
     ArrowUp: false,
@@ -422,7 +434,6 @@ export function useArrows(
     ArrowDown: false,
   }
   const pressedKeys: Ref<PressedKeys> = ref({ ...clearedKeys })
-  watch(pressedKeys, (v) => console.log(v))
   const moving = computed(
     () =>
       pressedKeys.value.ArrowLeft ||
@@ -438,12 +449,14 @@ export function useArrows(
         (pressedKeys.value.ArrowUp ? -velocity : 0) + (pressedKeys.value.ArrowDown ? velocity : 0),
       ),
   )
-  const referencePosition = ref(Vec2.Zero)
+  const referencePoint = ref({
+    t: 0,
+    position: Vec2.Zero,
+  })
   const lastPosition = ref(Vec2.Zero)
-  const referenceFrame = ref(0)
 
   const positionAt = (t: number) =>
-    referencePosition.value.add(v.value.scale(t - referenceFrame.value))
+    referencePoint.value.position.add(v.value.scale((t - referencePoint.value.t) / 1000.0))
 
   const callHandler = (t: number, eventType: PointerEventType, event?: KeyboardEvent) => {
     const offset = positionAt(t)
@@ -465,31 +478,32 @@ export function useArrows(
 
   const events = {
     keydown(e: KeyboardEvent) {
-      console.log(e.key in pressedKeys.value)
-      if (e.repeat) return
-      if (!isArrowKey(e.key)) return
       const starting = !moving.value
-      if (starting) {
-        referencePosition.value = Vec2.Zero
-      } else {
-        referencePosition.value = positionAt(e.timeStamp)
+      if (e.repeat || !isArrowKey(e.key) || (starting && !predicate(e))) return
+      referencePoint.value = {
+        position: starting ? Vec2.Zero : positionAt(e.timeStamp),
+        t: e.timeStamp,
       }
-      referenceFrame.value = e.timeStamp
       pressedKeys.value[e.key] = true
-      if (starting) callHandler(e.timeStamp, 'start', e)
+      if (starting) {
+        lastPosition.value = Vec2.Zero
+        callHandler(e.timeStamp, 'start', e)
+      }
     },
     keyup(e: KeyboardEvent) {
       if (e.repeat) return
       if (!moving.value) return
       if (!isArrowKey(e.key)) return
-      referencePosition.value = positionAt(e.timeStamp)
-      referenceFrame.value = e.timeStamp
+      referencePoint.value = {
+        position: positionAt(e.timeStamp),
+        t: e.timeStamp,
+      }
       pressedKeys.value[e.key] = false
       if (!moving.value) callHandler(e.timeStamp, 'stop', e)
     },
     focusout() {
       // Each focus change may make us miss some events, so it's safer to just cancel the movement.
-      pressedKeys.value = clearedKeys
+      pressedKeys.value = { ...clearedKeys }
     },
   }
 
