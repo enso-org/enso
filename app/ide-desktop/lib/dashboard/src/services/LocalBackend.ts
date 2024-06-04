@@ -11,7 +11,6 @@ import ProjectManager from '#/services/ProjectManager'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
-import * as errorModule from '#/utilities/error'
 import * as fileInfo from '#/utilities/fileInfo'
 
 // =============================
@@ -224,35 +223,26 @@ export default class LocalBackend extends Backend {
 
   /** Close the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails. */
-  override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
+  override async closeProject(projectId: backend.ProjectId): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    try {
-      const state = this.projectManager.projects.get(id)
-      if (state?.state === backend.ProjectState.openInProgress) {
-        // Projects that are not opened cannot be closed.
-        // This is the only way to wait until the project is open.
-        await this.projectManager.openProject({
-          projectId: id,
-          missingComponentAction: projectManager.MissingComponentAction.install,
-        })
-      }
-      await this.projectManager.closeProject({ projectId: id })
-      return
-    } catch (error) {
-      throw new Error(
-        `Could not close project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
-        }.`
-      )
+    const state = this.projectManager.projects.get(id)
+    if (state?.state === backend.ProjectState.openInProgress) {
+      // Projects that are not opened cannot be closed.
+      // This is the only way to wait until the project is open.
+      await this.projectManager.openProject({
+        projectId: id,
+        missingComponentAction: projectManager.MissingComponentAction.install,
+      })
     }
+    await this.projectManager.closeProject({ projectId: id })
+    return
   }
 
   /** Close the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails. */
   override async getProjectDetails(
     projectId: backend.ProjectId,
-    directory: backend.DirectoryId | null,
-    title: string
+    directory: backend.DirectoryId | null
   ): Promise<backend.Project> {
     const { id } = extractTypeAndId(projectId)
     const state = this.projectManager.projects.get(id)
@@ -265,7 +255,7 @@ export default class LocalBackend extends Backend {
         )
         .find(metadata => metadata.id === id)
       if (project == null) {
-        throw new Error(`Could not get details of project '${title}'.`)
+        throw new Error(`Invalid project ID '${projectId}'.`)
       } else {
         const version =
           project.engineVersion == null
@@ -318,8 +308,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async openProject(
     projectId: backend.ProjectId,
-    body: backend.OpenProjectRequestBody | null,
-    title: string | null
+    body: backend.OpenProjectRequestBody | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
     if (!this.projectManager.projects.has(id)) {
@@ -333,11 +322,7 @@ export default class LocalBackend extends Backend {
         })
         return
       } catch (error) {
-        throw new Error(
-          `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
-          }.`
-        )
+        throw new Error()
       }
     }
   }
@@ -393,8 +378,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async deleteAsset(
     assetId: backend.AssetId,
-    body: backend.DeleteAssetRequestBody,
-    title: string | null
+    body: backend.DeleteAssetRequestBody
   ): Promise<void> {
     const typeAndId = extractTypeAndId(assetId)
     switch (typeAndId.type) {
@@ -404,19 +388,11 @@ export default class LocalBackend extends Backend {
         return
       }
       case backend.AssetType.project: {
-        try {
-          await this.projectManager.deleteProject({
-            projectId: typeAndId.id,
-            projectsDirectory: extractTypeAndId(body.parentId).id,
-          })
-          return
-        } catch (error) {
-          throw new Error(
-            `Could not delete project ${
-              title != null ? `'${title}'` : `with ID '${typeAndId.id}'`
-            }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
-          )
-        }
+        await this.projectManager.deleteProject({
+          projectId: typeAndId.id,
+          projectsDirectory: extractTypeAndId(body.parentId).id,
+        })
+        return
       }
     }
   }
@@ -599,10 +575,9 @@ export default class LocalBackend extends Backend {
   /** Return a {@link Promise} that resolves only when a project is ready to open. */
   override async waitUntilProjectIsReady(
     projectId: backend.ProjectId,
-    directory: backend.DirectoryId | null,
-    title: string
+    directory: backend.DirectoryId | null
   ) {
-    return await this.getProjectDetails(projectId, directory, title)
+    return await this.getProjectDetails(projectId, directory)
   }
 
   /** Construct a new path using the given parent directory and a file name. */

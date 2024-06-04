@@ -1140,14 +1140,6 @@ export interface ListVersionsRequestParams {
   readonly default: boolean
 }
 
-/**
- * POST request body for the "create checkout session" endpoint.
- */
-export interface CreateCheckoutSessionRequestParams {
-  readonly plan: Plan
-  readonly paymentMethodId: string
-}
-
 // ==============================
 // === detectVersionLifecycle ===
 // ==============================
@@ -1261,11 +1253,7 @@ export default abstract class Backend {
   /** Upload a new profile picture for the current user. */
   abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
   /** Set the list of groups a user is in. */
-  abstract changeUserGroup(
-    userId: UserId,
-    userGroups: ChangeUserGroupRequestBody,
-    name: string | null
-  ): Promise<User>
+  abstract changeUserGroup(userId: UserId, userGroups: ChangeUserGroupRequestBody): Promise<User>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Return a list of invitations to the organization. */
@@ -1288,94 +1276,73 @@ export default abstract class Backend {
   /** Return user details for the current user. */
   abstract usersMe(): Promise<User | null>
   /** Return a list of assets in a directory. */
-  abstract listDirectory(query: ListDirectoryRequestParams, title: string): Promise<AnyAsset[]>
+  abstract listDirectory(query: ListDirectoryRequestParams): Promise<AnyAsset[]>
   /** Create a directory. */
   abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
   /** Change the name of a directory. */
   abstract updateDirectory(
     directoryId: DirectoryId,
-    body: UpdateDirectoryRequestBody,
-    title: string
+    body: UpdateDirectoryRequestBody
   ): Promise<UpdatedDirectory>
   /** List previous versions of an asset. */
-  abstract listAssetVersions(assetId: AssetId, title: string | null): Promise<AssetVersions>
+  abstract listAssetVersions(assetId: AssetId): Promise<AssetVersions>
   /** Change the parent directory of an asset. */
-  abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
+  abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody): Promise<void>
   /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody, title: string): Promise<void>
+  abstract deleteAsset(assetId: AssetId, body: DeleteAssetRequestBody): Promise<void>
   /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
+  abstract undoDeleteAsset(assetId: AssetId): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(
-    assetId: AssetId,
-    parentDirectoryId: DirectoryId,
-    title: string,
-    parentDirectoryTitle: string
-  ): Promise<CopyAssetResponse>
+  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
   /** Return a list of projects belonging to the current user. */
   abstract listProjects(): Promise<ListedProject[]>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
-  abstract closeProject(projectId: ProjectId, title: string): Promise<void>
+  abstract closeProject(projectId: ProjectId): Promise<void>
   /** Restore a project from a different version. */
-  abstract restoreProject(
-    projectId: ProjectId,
-    versionId: S3ObjectVersionId,
-    title: string
-  ): Promise<void>
+  abstract restoreProject(projectId: ProjectId, versionId: S3ObjectVersionId): Promise<void>
   /** Duplicate a specific version of a project. */
   abstract duplicateProject(
     projectId: ProjectId,
-    versionId: S3ObjectVersionId,
-    title: string
+    versionId: S3ObjectVersionId
   ): Promise<CreatedProject>
   /** Return project details. */
   abstract getProjectDetails(
     projectId: ProjectId,
-    directoryId: DirectoryId | null,
-    title: string
+    directoryId: DirectoryId | null
   ): Promise<Project>
   /** Set a project to an open state. */
-  abstract openProject(
-    projectId: ProjectId,
-    body: OpenProjectRequestBody | null,
-    title: string
-  ): Promise<void>
+  abstract openProject(projectId: ProjectId, body: OpenProjectRequestBody | null): Promise<void>
   /** Change the AMI or IDE version of a project. */
   abstract updateProject(
     projectId: ProjectId,
-    body: UpdateProjectRequestBody,
-    title: string
+    body: UpdateProjectRequestBody
   ): Promise<UpdatedProject>
   /** Fetch the content of the `Main.enso` file of a project. */
-  abstract getFileContent(projectId: ProjectId, version: string, title: string): Promise<string>
+  abstract getFileContent(projectId: ProjectId, version: string): Promise<string>
   /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
+  abstract checkResources(projectId: ProjectId): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
   abstract listFiles(): Promise<FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Change the name of a file. */
-  abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
+  abstract updateFile(fileId: FileId, body: UpdateFileRequestBody): Promise<void>
   /** Return file details. */
-  abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
+  abstract getFileDetails(fileId: FileId): Promise<FileDetails>
   /** Create a Datalink. */
   abstract createDatalink(body: CreateDatalinkRequestBody): Promise<DatalinkInfo>
   /** Return a Datalink. */
-  abstract getDatalink(datalinkId: DatalinkId, title: string | null): Promise<Datalink>
+  abstract getDatalink(datalinkId: DatalinkId): Promise<Datalink>
   /** Delete a Datalink. */
-  abstract deleteDatalink(datalinkId: DatalinkId, title: string | null): Promise<void>
+  abstract deleteDatalink(datalinkId: DatalinkId): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
-  abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
+  abstract getSecret(secretId: SecretId): Promise<Secret>
   /** Change the value of a secret. */
-  abstract updateSecret(
-    secretId: SecretId,
-    body: UpdateSecretRequestBody,
-    title: string
-  ): Promise<void>
+  abstract updateSecret(secretId: SecretId, body: UpdateSecretRequestBody): Promise<void>
   /** Return the secret environment variables accessible by the user. */
   abstract listSecrets(): Promise<SecretInfo[]>
   /** Create a label used for categorizing assets. */
@@ -1383,21 +1350,19 @@ export default abstract class Backend {
   /** Return all labels accessible by the user. */
   abstract listTags(): Promise<Label[]>
   /** Set the full list of labels for a specific asset. */
-  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string): Promise<void>
+  abstract associateTag(assetId: AssetId, tagIds: LabelName[]): Promise<void>
   /** Delete a label. */
-  abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
+  abstract deleteTag(tagId: TagId): Promise<void>
   /** Create a user group. */
   abstract createUserGroup(body: CreateUserGroupRequestBody): Promise<UserGroupInfo>
   /** Delete a user group. */
-  abstract deleteUserGroup(userGroupId: UserGroupId, name: string): Promise<void>
+  abstract deleteUserGroup(userGroupId: UserGroupId): Promise<void>
   /** Return all user groups in the organization. */
   abstract listUserGroups(): Promise<UserGroupInfo[]>
   /** Return a list of backend or IDE versions. */
   abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
   /** Create a payment checkout session. */
-  abstract createCheckoutSession(
-    params: CreateCheckoutSessionRequestParams
-  ): Promise<CheckoutSession>
+  abstract createCheckoutSession(body: CreateCheckoutSessionRequestBody): Promise<CheckoutSession>
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
@@ -1412,7 +1377,6 @@ export default abstract class Backend {
   abstract waitUntilProjectIsReady(
     projectId: ProjectId,
     directory: DirectoryId | null,
-    title: string,
     abortController?: AbortController
   ): Promise<Project>
 }

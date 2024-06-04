@@ -23,7 +23,16 @@ import * as uniqueString from '#/utilities/uniqueString'
 // eslint-disable-next-line no-restricted-syntax
 type DefineBackendMethods<T extends keyof Backend> = T
 
-type MutationMethods = DefineBackendMethods<
+// =======================
+// === MutationMethods ===
+// =======================
+
+/** Names of methods corresponding to mutations.
+ *
+ * Some methods have been omitted:
+ * - `createProject` - use `useBackendCreateProject` instead
+ */
+type MutationMethod = DefineBackendMethods<
   | 'associateTag'
   | 'changeUserGroup'
   | 'closeProject'
@@ -54,9 +63,21 @@ type MutationMethods = DefineBackendMethods<
   | 'updateDirectory'
   | 'updateFile'
   | 'updateOrganization'
+  | 'updateProject'
+  | 'updateSecret'
+  | 'updateUser'
+  | 'uploadFile'
+  | 'uploadOrganizationPicture'
+  | 'uploadUserPicture'
+  | 'waitUntilProjectIsReady'
 >
 
-type QueryMethods = DefineBackendMethods<
+// ====================
+// === QueryMethods ===
+// ====================
+
+/** Names of methods corresponding to queries. */
+type QueryMethod = DefineBackendMethods<
   | 'checkResources'
   | 'getCheckoutSession'
   | 'getDatalink'
@@ -66,7 +87,6 @@ type QueryMethods = DefineBackendMethods<
   | 'getOrganization'
   | 'getProjectDetails'
   | 'getSecret'
-  | 'usersMe'
   | 'listAssetVersions'
   | 'listDirectory'
   | 'listFiles'
@@ -77,6 +97,7 @@ type QueryMethods = DefineBackendMethods<
   | 'listUserGroups'
   | 'listUsers'
   | 'listVersions'
+  | 'usersMe'
 >
 
 // ============================
@@ -383,18 +404,86 @@ export function useObserveBackend(backend: Backend | null) {
   })
   useObserveMutations('updateAsset', state => {
     if (state.data != null && state.variables != null) {
-      const [body] = state.variables
-      setQueryDataWithKey('listDirectory', [parentId], items => items)
+      const [id, body] = state.variables
+      // FIXME: the parameters are wrong, they are missing function args.
+      // The definition of `setQueryDataWithKey` needs to be fixed.
+      setQueryDataWithKey(
+        'listDirectory',
+        [body.parentDirectoryId, backendModule.FilterBy.active],
+        items =>
+          items.map(item =>
+            item.id !== id ? item : { ...item, description: body.description ?? item.description }
+          )
+      )
     }
   })
 
   // === Delete assets ===
 
   useObserveMutations('deleteAsset', state => {
-    // TODO: update both "active" and "deleted" queries
+    if (state.variables != null) {
+      const [id, body] = state.variables
+      // This IIFE is required so that TypeScript does not eagerly narrow the type of this
+      // variable.
+      let found = ((): backendModule.AnyAsset | null => null)()
+      setQueryDataWithKey('listDirectory', [body.parentId, backendModule.FilterBy.active], items =>
+        items.filter(item => {
+          if (item.id !== id) {
+            return false
+          } else {
+            found = item
+            return true
+          }
+        })
+      )
+      if (!body.force) {
+        if (found != null) {
+          const deletedItem = found
+          setQueryDataWithKey(
+            'listDirectory',
+            [body.parentId, backendModule.FilterBy.trashed],
+            items => [...items, deletedItem]
+          )
+        } else {
+          // `ensureQueryData` is NOT an option here, because if the mutation is finished
+          // then the asset is no longer in its original directory.
+          void invalidateBackendQuery(queryClient, backend, 'listDirectory', [
+            {
+              filterBy: backendModule.FilterBy.trashed,
+              parentId: body.parentId,
+              labels: null,
+              recentProjects: false,
+            },
+          ])
+        }
+      }
+    }
   })
   useObserveMutations('undoDeleteAsset', state => {
-    // TODO: update both "active" and "deleted" queries
+    if (state.variables != null) {
+      const [id] = state.variables
+      // This IIFE is required so that TypeScript does not eagerly narrow the type of this
+      // variable.
+      let found = ((): backendModule.AnyAsset | null => null)()
+      setQueryDataWithKey('listDirectory', [body.parentId, backendModule.FilterBy.trashed], items =>
+        items.filter(item => {
+          if (item.id !== id) {
+            return false
+          } else {
+            found = item
+            return true
+          }
+        })
+      )
+      if (found != null) {
+        const deletedItem = found
+        setQueryDataWithKey(
+          'listDirectory',
+          [body.parentId, backendModule.FilterBy.active],
+          items => [...items, deletedItem]
+        )
+      }
+    }
   })
 }
 
@@ -402,16 +491,13 @@ export function useObserveBackend(backend: Backend | null) {
 // === useBackendQuery ===
 // =======================
 
-export function useBackendQuery<Method extends keyof Backend>(
+export function useBackendQuery<Method extends QueryMethod>(
   backend: Backend,
   method: Method,
   args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
   options?: Omit<
     reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-      Error,
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-      readonly unknown[]
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
     >,
     'queryFn'
   >
@@ -424,10 +510,7 @@ export function useBackendQuery<Method extends keyof Backend>(
   args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
   options?: Omit<
     reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-      Error,
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-      readonly unknown[]
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
     >,
     'queryFn'
   >
@@ -442,19 +525,13 @@ export function useBackendQuery<Method extends keyof Backend>(
   args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
   options?: Omit<
     reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-      Error,
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-      readonly unknown[]
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
     >,
     'queryFn'
   >
 ) {
   return reactQuery.useQuery<
-    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-    Error,
-    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
-    readonly unknown[]
+    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
   >({
     ...options,
     queryKey: [backend, method, ...args, ...(options?.queryKey ?? [])],
@@ -463,17 +540,100 @@ export function useBackendQuery<Method extends keyof Backend>(
   })
 }
 
-// =========================
-// === dependentQueryKey ===
-// =========================
+// ==============================
+// === invalidateBackendQuery ===
+// ==============================
 
-/** A query key for a dependent query. */
-function dependentQueryKey<Method extends keyof Backend>(
+/** Wrap a backend method call in a React Query. */
+export function invalidateBackendQuery<Method extends keyof Backend>(
+  queryClient: reactQuery.QueryClient,
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Pick<
+    reactQuery.EnsureQueryDataOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+    >,
+    'queryKey'
+  >
+) {
+  return queryClient.invalidateQueries({
+    queryKey: [backend, method, ...args, ...(options?.queryKey ?? [])],
+  })
+}
+
+// ===========================
+// === getBackendQueryData ===
+// ===========================
+
+/** Get cached data for a backend query, or `undefined` if no data was cached. */
+export function getBackendQueryData<Method extends keyof Backend>(
+  queryClient: reactQuery.QueryClient,
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Pick<
+    reactQuery.EnsureQueryDataOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+    >,
+    'queryKey'
+  >
+) {
+  return queryClient.getQueryData<
+    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+  >([backend, method, ...args, ...(options?.queryKey ?? [])])
+}
+
+// ==============================
+// === ensureBackendQueryData ===
+// ==============================
+
+export function ensureBackendQueryData<Method extends QueryMethod>(
+  queryClient: reactQuery.QueryClient,
   backend: Backend,
   method: Method,
-  queryKey: readonly reactQuery.QueryKey[] = []
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Omit<
+    reactQuery.EnsureQueryDataOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+    >,
+    'queryFn'
+  >
+): Promise<Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>>
+export function ensureBackendQueryData<Method extends keyof Backend>(
+  queryClient: reactQuery.QueryClient,
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Omit<
+    reactQuery.EnsureQueryDataOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+    >,
+    'queryFn'
+  >
+  // eslint-disable-next-line no-restricted-syntax
+): Promise<Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>> | undefined>
+/** Get cached data for a backend query, or fetch the data if it is not yet cached. */
+export function ensureBackendQueryData<Method extends keyof Backend>(
+  queryClient: reactQuery.QueryClient,
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Omit<
+    reactQuery.EnsureQueryDataOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+    >,
+    'queryFn'
+  >
 ) {
-  return [backend, method, 'dependent', ...queryKey] as const
+  return queryClient.ensureQueryData<
+    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+  >({
+    ...options,
+    queryKey: [backend, method, ...args, ...(options?.queryKey ?? [])],
+    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+    queryFn: () => (backend?.[method] as any)?.(...args),
+  })
 }
 
 // ==========================
@@ -481,7 +641,7 @@ function dependentQueryKey<Method extends keyof Backend>(
 // ==========================
 
 /** Wrap a backend method call in a React Query Mutation. */
-export function useBackendMutation<Method extends keyof Backend>(
+export function useBackendMutation<Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -534,7 +694,7 @@ export function useBackendMutationVariables<Method extends keyof Backend>(
 // =======================================
 
 /** Wrap a backend method call in a React Query Mutation, and access its variables. */
-export function useBackendMutationWithVariables<Method extends keyof Backend>(
+export function useBackendMutationWithVariables<Method extends MutationMethod>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -792,7 +952,6 @@ export function useBackendGetOrganization(backend: Backend | null) {
 export function useBackendListDirectory(
   backend: Backend,
   directoryId: backendModule.DirectoryId,
-  title: string,
   filterBy = backendModule.FilterBy.active
 ) {
   const { user } = authProvider.useNonPartialUserSession()
@@ -806,7 +965,6 @@ export function useBackendListDirectory(
         parentId: directoryId,
         recentProjects: false,
       },
-      title,
     ],
     {
       queryKey: [directoryId, filterBy],
@@ -928,6 +1086,7 @@ export function useBackendCreateProject() {
   const queryClient = reactQuery.useQueryClient()
   return reactQuery.useMutation({
     mutationFn: () => {
+      // TODO: need to use useBackendListDirectory
       const siblings = queryClient.getQueryData
       //
     },
