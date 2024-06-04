@@ -78,10 +78,14 @@ function useFormatProperty(
 
   onReadSelection((selection) => (state.value = selection.hasFormat(property)))
 
-  return useBufferedWritable({
-    get: () => state.value,
-    set: (_value) => editor.dispatchCommand(FORMAT_TEXT_COMMAND, property),
+  // The editor only exposes a toggle interface, so we need to model its state to ensure the setter is only called when
+  // the desired value is different from its current value.
+  const writable = useBufferedWritable({
+    get: state,
+    set: (_value: boolean) => editor.dispatchCommand(FORMAT_TEXT_COMMAND, property),
   })
+
+  return { state, set: (value: boolean) => (writable.value = value) }
 }
 
 function $clearFormatting() {
@@ -226,8 +230,8 @@ function useBlockType(
     h3: () => $setBlocksType($getSelection(), () => $createHeadingNode('h3')),
   }
 
-  return useBufferedWritable({
-    get: () => state.value,
-    set: (value) => editor.update($setBlockType[value]),
-  })
+  return {
+    state,
+    set: (value: BlockType) => editor.update($setBlockType[value]),
+  }
 }

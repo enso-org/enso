@@ -1,13 +1,13 @@
 import { type GraphStore } from '@/stores/graph'
-import { useBufferedWritable, type ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import type { Ast } from 'shared/ast'
 import { toValue } from 'vue'
 
 export function useAstDocumentation(graphStore: GraphStore, ast: ToValue<Ast | undefined>) {
   return {
-    documentation: useBufferedWritable({
-      get: () => toValue(ast)?.documentingAncestor()?.documentation() ?? '',
-      set: (value) => {
+    documentation: {
+      state: () => toValue(ast)?.documentingAncestor()?.documentation() ?? '',
+      set: (value: string) => {
         const astValue = toValue(ast)
         if (!astValue) return
         if (value.trimStart() !== '') {
@@ -26,6 +26,6 @@ export function useAstDocumentation(graphStore: GraphStore, ast: ToValue<Ast | u
             )
         }
       },
-    }),
+    },
   }
 }

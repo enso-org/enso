@@ -4,7 +4,7 @@ import { type UseFormatting } from '@/components/lexical/formatting'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { Icon } from '@/util/iconName'
-import { computed, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 const props = defineProps<{ formatting: UseFormatting }>()
 
@@ -14,18 +14,18 @@ const { bold, italic, strikethrough, subscript, superscript, blockType, clearFor
   props.formatting
 
 function useValueEqualsConstant<T>(value: Ref<T>, constant: T, valueWhenSetToFalse: T) {
-  return computed({
-    get: () => value.value === constant,
-    set: (newValue) => {
+  return {
+    state: () => value.value === constant,
+    set: (newValue: boolean) => {
       if (newValue && value.value !== constant) {
         value.value = constant
       } else if (!newValue && value.value === constant) {
         value.value = valueWhenSetToFalse
       }
     },
-  })
+  }
 }
-const code = useValueEqualsConstant(blockType, 'code', 'paragraph')
+const code = useValueEqualsConstant(blockType.state, 'code', 'paragraph')
 
 const TODO: Icon = 'text'
 
@@ -33,21 +33,39 @@ const close = () => (menuOpen.value = false)
 </script>
 
 <template>
-  <ToggleIcon v-model="bold" icon="bold" title="Bold" />
-  <ToggleIcon v-model="italic" icon="italic" title="Italic" />
-  <ToggleIcon v-model="code" :icon="TODO" title="Insert Code Block" />
+  <ToggleIcon v-bind="bold.state" @update:modelValue="bold.set" icon="bold" title="Bold" />
+  <ToggleIcon v-bind="italic.state" @update:modelValue="italic.set" icon="italic" title="Italic" />
+  <ToggleIcon
+    v-bind="code.state"
+    @update:modelValue="code.set"
+    :icon="TODO"
+    title="Insert Code Block"
+  />
   <!-- TODO: Insert link -->
   <DropdownMenu v-model:open="menuOpen">
     <template #button>Aa</template>
     <template #entries>
       <ToggleIcon
-        v-model="strikethrough"
+        v-bind="strikethrough.state"
+        @update:modelValue="strikethrough.set"
         icon="strike-through"
         label="Strikethrough"
         @click="close"
       />
-      <ToggleIcon v-model="subscript" :icon="TODO" label="Subscript" @click="close" />
-      <ToggleIcon v-model="superscript" :icon="TODO" label="Superscript" @click="close" />
+      <ToggleIcon
+        v-bind="subscript.state"
+        @update:modelValue="subscript.set"
+        :icon="TODO"
+        label="Subscript"
+        @click="close"
+      />
+      <ToggleIcon
+        v-bind="superscript.state"
+        @update:modelValue="superscript.set"
+        :icon="TODO"
+        label="Superscript"
+        @click="close"
+      />
       <SvgButton
         :name="TODO"
         label="Clear Formatting"

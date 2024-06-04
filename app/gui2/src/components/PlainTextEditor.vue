@@ -17,8 +17,8 @@ const plainText: LexicalPlugin = {
 const textSync: LexicalPlugin = {
   register: (editor) => {
     const { content } = useLexicalStringSync(editor)
-    content.value = text.value
-    syncRef(text, content, { immediate: false })
+    content.set(text.value)
+    syncRef(text, content.state, { immediate: false })
   },
 }
 

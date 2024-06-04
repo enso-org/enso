@@ -52,8 +52,8 @@ const markdownSyncPlugin: LexicalPlugin = {
       () => $convertToMarkdownString(TRANSFORMERS),
       (value) => $convertFromMarkdownString(value, TRANSFORMERS),
     )
-    content.value = markdown.value
-    syncRef(markdown, content, { immediate: false })
+    content.set(markdown.value)
+    syncRef(markdown, content.state, { immediate: false })
   },
 }
 

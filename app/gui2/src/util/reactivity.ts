@@ -3,6 +3,7 @@
 import { defaultEquality } from '@/util/equals'
 import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
+import type { ComputedRef, MaybeRefOrGetter, Ref, WatchSource, WritableComputedRef } from 'vue'
 import {
   callWithErrorHandling,
   computed,
@@ -11,12 +12,8 @@ import {
   isRef,
   queuePostFlushCb,
   shallowRef,
+  toValue,
   watch,
-  type ComputedRef,
-  type MaybeRefOrGetter,
-  type Ref,
-  type WatchSource,
-  type WritableComputedRef,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -187,20 +184,20 @@ export function computedFallback<T>(
  * The getter of the returned ref immediately reflects the value of any pending write.
  */
 export function useBufferedWritable<T>(raw: {
-  get: () => T
+  get: ToValue<T>
   set: (value: T) => void
 }): WritableComputedRef<T> {
   const pendingWrite = shallowRef<{ pending: T }>()
   watch(pendingWrite, () => {
     if (pendingWrite.value) {
-      if (pendingWrite.value.pending !== raw.get()) {
+      if (pendingWrite.value.pending !== toValue(raw)) {
         raw.set(pendingWrite.value.pending)
       }
       pendingWrite.value = undefined
     }
   })
   return computed({
-    get: () => (pendingWrite.value ? pendingWrite.value.pending : raw.get()),
+    get: () => (pendingWrite.value ? pendingWrite.value.pending : toValue(raw.get)),
     set: (value: T) => (pendingWrite.value = { pending: value }),
   })
 }

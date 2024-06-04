@@ -62,7 +62,17 @@ import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
 import { isDevMode } from 'shared/util/detect'
-import { computed, onMounted, onUnmounted, ref, shallowRef, toRaw, toRef, watch } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  shallowRef,
+  toRaw,
+  toRef,
+  toValue,
+  watch,
+} from 'vue'
 
 const keyboard = provideKeyboard()
 const projectStore = provideProjectStore()
@@ -373,8 +383,8 @@ const codeEditorHandler = codeEditorBindings.handler({
 const documentationEditorArea = ref<HTMLElement>()
 const showDocumentationEditor = computedFallback(
   storedShowDocumentationEditor,
-  // Show documenation editor when documentation exists on first graph visit.
-  () => !!documentation.value,
+  // Show documentation editor when documentation exists on first graph visit.
+  () => !!toValue(documentation.state),
 )
 
 const documentationEditorHandler = documentationEditorBindings.handler({
@@ -678,7 +688,10 @@ const groupColors = computed(() => {
         data-testid="rightDock"
       >
         <div class="scrollArea">
-          <MarkdownEditor v-model="documentation" />
+          <MarkdownEditor
+            v-bind:modelValue="documentation.state"
+            @update:modelValue="documentation.set"
+          />
         </div>
         <SvgButton
           name="close"
