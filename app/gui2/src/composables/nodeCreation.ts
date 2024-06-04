@@ -116,7 +116,15 @@ export function useNodeCreation(
     graphStore.edit((edit) => {
       const statements = new Array<Ast.Owned>()
       for (const options of placedNodes) {
-        const { rootExpression, id } = newAssignmentNode(edit, options)
+        const fixups = (edit: Ast.MutableModule, ast: Ast.Ast) => {
+          const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
+          for (const _conflict of conflicts) {
+            // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+            // https://github.com/enso-org/enso/issues/9356
+            // substituteQualifiedName(edit, ast, conflict.pattern, conflict.fullyQualified)
+          }
+        }
+        const { rootExpression, id } = newAssignmentNode(edit, options, fixups)
         statements.push(rootExpression)
         created.add(id)
         assert(options.metadata?.position != null, 'Node should already be placed')
@@ -131,17 +139,16 @@ export function useNodeCreation(
     createNodes([options])
   }
 
-  function newAssignmentNode(edit: Ast.MutableModule, options: NodeCreationOptions) {
-    const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
+  function newAssignmentNode(
+      edit: Ast.MutableModule, 
+      options: NodeCreationOptions, 
+      fixups: (edit: Ast.MutableModule, ast: Ast.Ast) => void
+  ) {
     const rhs = Ast.parse(options.expression, edit)
     const ident = getIdentifier(rhs, options)
     rhs.setNodeMetadata(options.metadata ?? {})
     const assignment = Ast.Assignment.new(edit, ident, rhs)
-    for (const _conflict of conflicts) {
-      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
-      // https://github.com/enso-org/enso/issues/9356
-      // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
-    }
+    fixups(edit, assignment)
     const id = asNodeId(rhs.id)
     const rootExpression =
       options.documentation != null ?
