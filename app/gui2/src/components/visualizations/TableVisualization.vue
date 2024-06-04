@@ -271,7 +271,12 @@ function isMatrix(data: object): data is LegacyMatrix {
 }
 
 function toField(name: string, valType?: string): ColDef {
-  return { field: `${name} + ${valType}` }
+  return {
+    field: name,
+    headerComponentParams: {
+      template: `<div> ${name}  ${valType} <div>`,
+    },
+  }
 }
 
 function indexField(): ColDef {
