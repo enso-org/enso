@@ -29,7 +29,7 @@ import project.System.File_Format.Infer
 import project.System.File_Format.Plain_Text_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
-import project.System.Restartable_Input_Stream.Restartable_Input_Stream
+import project.System.Advanced.Restartable_Input_Stream.Restartable_Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option

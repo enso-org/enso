@@ -12,7 +12,7 @@ import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
-import project.System.Restartable_Input_Stream.Restartable_Input_Stream
+import project.System.Advanced.Restartable_Input_Stream.Restartable_Input_Stream
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.io.BufferedInputStream
