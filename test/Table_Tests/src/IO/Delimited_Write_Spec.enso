@@ -554,8 +554,9 @@ add_specs suite_builder =
             bytes = flipped_bom + ('A,B\n1,2'.bytes Encoding.utf_16_le)
             bytes.write_bytes f . should_succeed
             r = f.read format
-            r.column_names . should_equal ["A", "B"]
-            w = Problems.expect_only_warning Encoding_Error
+            # The flipped BOM is not a valid BOM so it is retained in the data and will be contained in column name:
+            r.column_names . should_equal [(Text.from_codepoints [65534]) + "A", "B"]
+            w = Problems.expect_only_warning Encoding_Error r
             w.to_display_text . should_contain "BOM"
 
         ## If the Delimited config has Encoding.default, the encoding for read will be determined by BOM and Win-1252 fallback heuristics.
@@ -567,14 +568,14 @@ add_specs suite_builder =
                 initial_bytes = bom + ('A,B\n1,ąęćś\n2,💯'.bytes Encoding.utf_16_le)
                 initial_bytes.write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
 
-                (Table.new [["A", [3, 4]], ["B", ["żółw", "🐢"]]]).write f . should_succeed
+                (Table.new [["A", [3, 4]], ["B", ["żółw", "🐢"]]]).write f on_existing_file=Existing_File_Behavior.Append . should_succeed
 
                 # Now we read in auto mode, the part appended to the table should have been correctly written in UTF-16
                 t = f.read
                 t.should_be_a Table
                 t.column_names . should_equal ["A", "B"]
-                t.at "A" . should_equal [1, 2, 3, 4]
-                t.at "B" . should_equal ["ąęćś", "💯", "żółw", "🐢"]
+                t.at "A" . to_vector . should_equal [1, 2, 3, 4]
+                t.at "B" . to_vector . should_equal ["ąęćś", "💯", "żółw", "🐢"]
 
         group_builder.specify "should fail if the target file is read-only" <|
             f = enso_project.data / "transient" / "permission.csv"
