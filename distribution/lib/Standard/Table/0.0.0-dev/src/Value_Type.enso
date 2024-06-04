@@ -489,7 +489,7 @@ type Auto
    Arguments: 
    - type: The type of columns to select. 
 type By_Type
-  ## The type representing the column type being explicitly selected by the user.
-     Arguments: 
-     - type: The type of columns to select.
-  By_Type type:Value_Type
+    ## The type representing the column type being explicitly selected by the user.
+       Arguments: 
+       - type: The type of columns to select.
+    By_Type type:Value_Type
