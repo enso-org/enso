@@ -10,6 +10,7 @@ import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import { substituteIdentifier, type Identifier, isIdentifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
@@ -114,19 +115,26 @@ export function useNodeCreation(
       return new Set()
     }
     const created = new Set<NodeId>()
+    const createdNodes: Ast.Assignment[] = []
+    const identOldNew = new Map<Identifier, string>()
     graphStore.edit((edit) => {
       const statements = new Array<Ast.Owned>()
       for (const options of placedNodes) {
         const rhs = Ast.parse(options.expression, edit)
         const ident = getIdentifier(rhs, options)
+        if (options.binding) {
+          assert(isIdentifier(options.binding))
+          identOldNew.set(options.binding, ident)
+        }
         rhs.setNodeMetadata(options.metadata ?? {})
         const assignment = Ast.Assignment.new(edit, ident, rhs)
         const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
         for (const _conflict of conflicts) {
           // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
           // https://github.com/enso-org/enso/issues/9356
-          // substituteQualifiedName(edit, ast, conflict.pattern, conflict.fullyQualified)
+          // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
         }
+        createdNodes.push(assignment)
         const id = asNodeId(rhs.id)
         const rootExpression =
           options.documentation != null ?
@@ -136,6 +144,14 @@ export function useNodeCreation(
         created.add(id)
         assert(options.metadata?.position != null, 'Node should already be placed')
         graphStore.nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
+      }
+      console.log(identOldNew)
+      for (let [old, replacement] of identOldNew.entries()) {
+        assert(isIdentifier(replacement))
+        for (const node of createdNodes) { 
+          console.log(node.code(), old, replacement)
+          substituteIdentifier(edit, node, old, replacement)
+        }
       }
       insertNodeStatements(edit.getVersion(methodAst.value).bodyAsBlock(), statements)
     })
