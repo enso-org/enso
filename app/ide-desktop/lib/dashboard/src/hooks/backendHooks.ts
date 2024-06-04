@@ -15,6 +15,70 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 // FIXME: Listeners and optimistic state for duplicateProjectMutation
 
+// ===============================
+// === DefineBackendMethodKeys ===
+// ===============================
+
+/** Ensure that the given type contains only names of backend methods. */
+// eslint-disable-next-line no-restricted-syntax
+type DefineBackendMethods<T extends keyof Backend> = T
+
+type MutationMethods = DefineBackendMethods<
+  | 'associateTag'
+  | 'changeUserGroup'
+  | 'closeProject'
+  | 'copyAsset'
+  | 'createCheckoutSession'
+  | 'createDatalink'
+  | 'createDirectory'
+  | 'createPermission'
+  | 'createProject'
+  | 'createSecret'
+  | 'createTag'
+  | 'createUser'
+  | 'createUserGroup'
+  | 'deleteAsset'
+  | 'deleteDatalink'
+  | 'deleteInvitation'
+  | 'deleteTag'
+  | 'deleteUser'
+  | 'deleteUserGroup'
+  | 'duplicateProject'
+  | 'inviteUser'
+  | 'logEvent'
+  | 'openProject'
+  | 'removeUser'
+  | 'resendInvitation'
+  | 'undoDeleteAsset'
+  | 'updateAsset'
+  | 'updateDirectory'
+  | 'updateFile'
+  | 'updateOrganization'
+>
+
+type QueryMethods = DefineBackendMethods<
+  | 'checkResources'
+  | 'getCheckoutSession'
+  | 'getDatalink'
+  | 'getFileContent'
+  | 'getFileDetails'
+  | 'getLogEvents'
+  | 'getOrganization'
+  | 'getProjectDetails'
+  | 'getSecret'
+  | 'usersMe'
+  | 'listAssetVersions'
+  | 'listDirectory'
+  | 'listFiles'
+  | 'listInvitations'
+  | 'listProjects'
+  | 'listSecrets'
+  | 'listTags'
+  | 'listUserGroups'
+  | 'listUsers'
+  | 'listVersions'
+>
+
 // ============================
 // === revokeUserPictureUrl ===
 // ============================
@@ -397,6 +461,19 @@ export function useBackendQuery<Method extends keyof Backend>(
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     queryFn: () => (backend?.[method] as any)?.(...args),
   })
+}
+
+// =========================
+// === dependentQueryKey ===
+// =========================
+
+/** A query key for a dependent query. */
+function dependentQueryKey<Method extends keyof Backend>(
+  backend: Backend,
+  method: Method,
+  queryKey: readonly reactQuery.QueryKey[] = []
+) {
+  return [backend, method, 'dependent', ...queryKey] as const
 }
 
 // ==========================
@@ -841,4 +918,18 @@ export function useBackendListDirectory(
     createSecretVariables,
     uploadFileVariables,
   ])
+}
+
+// ===============================
+// === useBackendCreateProject ===
+// ===============================
+
+export function useBackendCreateProject() {
+  const queryClient = reactQuery.useQueryClient()
+  return reactQuery.useMutation({
+    mutationFn: () => {
+      const siblings = queryClient.getQueryData
+      //
+    },
+  })
 }

@@ -8,7 +8,6 @@ import BlankIcon from 'enso-assets/blank.svg'
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -85,7 +84,6 @@ export default function AssetRow(props: AssetRowProps) {
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible } = state
 
-  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -98,7 +96,6 @@ export default function AssetRow(props: AssetRowProps) {
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
   )
-  const isCloud = backend.type === backendModule.BackendType.remote
   const outerVisibility = visibilities.get(item.id)
   const visibility =
     outerVisibility == null || outerVisibility === Visibility.visible
@@ -108,12 +105,10 @@ export default function AssetRow(props: AssetRowProps) {
 
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
   const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
-  const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
   const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
   const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
   const updateAssetMutate = updateAssetMutation.mutateAsync
   const deleteAssetMutate = deleteAssetMutation.mutateAsync
-  const undoDeleteAssetMutate = undoDeleteAssetMutation.mutateAsync
   const openProjectMutate = openProjectMutation.mutateAsync
   const closeProjectMutate = closeProjectMutation.mutateAsync
 
@@ -146,17 +141,7 @@ export default function AssetRow(props: AssetRowProps) {
   const doDelete = React.useCallback(
     async (forever = false) => {
       setInsertionVisibility(Visibility.hidden)
-      if (item.type === backendModule.AssetType.directory) {
-        dispatchAssetListEvent({
-          type: AssetListEventType.closeFolder,
-          id: item.id,
-          // This is SAFE, as this asset is already known to be a directory.
-          // eslint-disable-next-line no-restricted-syntax
-          key: item.id as backendModule.DirectoryId,
-        })
-      }
       try {
-        dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.id })
         if (
           item.type === backendModule.AssetType.project &&
           backend.type === backendModule.BackendType.local
@@ -174,7 +159,6 @@ export default function AssetRow(props: AssetRowProps) {
           }
         }
         await deleteAssetMutate([item.id, { force: forever, parentId: item.parentId }, item.title])
-        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.id })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
         toastAndLog('deleteAssetError', error, item.title)
@@ -182,45 +166,26 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [
       backend.type,
-      dispatchAssetListEvent,
       item,
       /* should never change */ openProjectMutate,
       /* should never change */ closeProjectMutate,
       /* should never change */ deleteAssetMutate,
-      /* should never change */ item.id,
       /* should never change */ toastAndLog,
     ]
   )
-
-  const doRestore = React.useCallback(async () => {
-    // Visually, the asset is deleted from the Trash view.
-    setInsertionVisibility(Visibility.hidden)
-    try {
-      await undoDeleteAssetMutate([item.id, item.title])
-      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.id })
-    } catch (error) {
-      setInsertionVisibility(Visibility.visible)
-      toastAndLog('restoreAssetError', error, item.title)
-    }
-  }, [
-    item,
-    toastAndLog,
-    /* should never change */ undoDeleteAssetMutate,
-    /* should never change */ item.id,
-  ])
 
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(
       <EditAssetDescriptionModal
         doChangeDescription={async description => {
           if (description !== item.description) {
-            void updateAssetMutate([item.id, { parentDirectoryId: null, description }, item.title])
+            await updateAssetMutate([item.id, { parentDirectoryId: null, description }, item.title])
           }
         }}
         initialDescription={item.description}
       />
     )
-  }, [setModal, item.description, backend, item.id, item.title])
+  }, [setModal, item.description, item.id, item.title, updateAssetMutate])
 
   const clearDragState = React.useCallback(() => {
     setIsDraggedOver(false)

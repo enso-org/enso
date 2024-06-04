@@ -1,13 +1,10 @@
 /** @file A modal opened when uploaded assets. */
 import * as React from 'react'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
@@ -15,7 +12,7 @@ import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 
-import * as backendModule from '#/services/Backend'
+import Backend, * as backendModule from '#/services/Backend'
 
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
@@ -42,12 +39,9 @@ export interface ConflictingAsset<
 
 /** Props for a {@link DuplicateAssetsModal}. */
 export interface DuplicateAssetsModalProps {
-  readonly parentKey: backendModule.DirectoryId
-  readonly parentId: backendModule.DirectoryId
+  readonly backend: Backend
   readonly conflictingFiles: readonly ConflictingAsset<backendModule.FileAsset>[]
   readonly conflictingProjects: readonly ConflictingAsset<backendModule.ProjectAsset>[]
-  readonly dispatchAssetEvent: (assetEvent: assetEvent.AssetEvent) => void
-  readonly dispatchAssetListEvent: (assetListEvent: assetListEvent.AssetListEvent) => void
   readonly siblingFileNames: Iterable<string>
   readonly siblingProjectNames: Iterable<string>
   readonly nonConflictingFileCount: number
@@ -57,9 +51,9 @@ export interface DuplicateAssetsModalProps {
 
 /** A modal for creating a new label. */
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
-  const { parentKey, parentId, conflictingFiles: conflictingFilesRaw } = props
+  const { backend } = props
+  const { conflictingFiles: conflictingFilesRaw } = props
   const { conflictingProjects: conflictingProjectsRaw } = props
-  const { dispatchAssetEvent, dispatchAssetListEvent } = props
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
   const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
@@ -74,6 +68,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const firstConflict = conflictingFiles[0] ?? conflictingProjects[0]
   const otherFilesCount = Math.max(0, conflictingFiles.length - 1)
   const otherProjectsCount = conflictingProjects.length - (conflictingFiles.length > 0 ? 0 : 1)
+
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
 
   React.useEffect(() => {
     for (const name of siblingFileNamesRaw) {
@@ -128,10 +124,13 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   }
 
   const doUpdate = (toUpdate: ConflictingAsset[]) => {
-    dispatchAssetEvent({
-      type: AssetEventType.updateFiles,
-      files: new Map(toUpdate.map(asset => [asset.current.id, asset.file])),
-    })
+    for (const conflict of toUpdate) {
+      const { id, title, parentId } = conflict.current
+      uploadFileMutation.mutate([
+        { fileId: id, fileName: title, parentDirectoryId: parentId },
+        conflict.file,
+      ])
+    }
   }
 
   const doRename = (toRename: ConflictingAsset[]) => {
@@ -140,16 +139,13 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       // This is SAFE, as it is a shallow mutation of a freshly cloned object.
       object.unsafeMutable(conflict.new).title = findNewName(conflict)
     }
-    dispatchAssetListEvent({
-      type: AssetListEventType.insertAssets,
-      parentKey,
-      parentId,
-      assets: clonedConflicts.map(conflict => conflict.new),
-    })
-    dispatchAssetEvent({
-      type: AssetEventType.uploadFiles,
-      files: new Map(clonedConflicts.map(conflict => [conflict.new.id, conflict.file])),
-    })
+    for (const conflict of toRename) {
+      const { title, parentId } = conflict.current
+      uploadFileMutation.mutate([
+        { fileId: null, fileName: title, parentDirectoryId: parentId },
+        conflict.file,
+      ])
+    }
   }
 
   return (

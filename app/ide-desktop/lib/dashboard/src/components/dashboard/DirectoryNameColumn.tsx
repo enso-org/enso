@@ -6,6 +6,8 @@ import * as tailwindMerge from 'tailwind-merge'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -24,7 +26,6 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
-import Visibility from '#/utilities/Visibility'
 
 // =====================
 // === DirectoryName ===
@@ -47,8 +48,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     throw new Error('`DirectoryNameColumn` can only display folders.')
   }
   const setAsset = setAssetHooks.useSetAsset(item, setItem)
+  const isOpen = store.useStore(
+    storeState => storeState.backends[backend.type].assets[item.id]?.isOpen ?? false
+  )
 
-  const createDirectoryMutation = backendHooks.useBackendMutation(backend, 'createDirectory')
   const updateDirectoryMutation = backendHooks.useBackendMutation(backend, 'updateDirectory')
 
   const setIsEditing = (isEditingName: boolean) => {
@@ -107,10 +110,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     >
       <Button
         image={FolderArrowIcon}
-        alt={item.children == null ? getText('expand') : getText('collapse')}
+        alt={isOpen ? getText('collapse') : getText('expand')}
         className={tailwindMerge.twMerge(
           'm-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block',
-          item.children != null && 'rotate-90'
+          isOpen && 'rotate-90'
         )}
         onPress={() => {
           doToggleDirectoryExpansion(item.id, item.title)

@@ -18,6 +18,96 @@ export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: 
   return object => Object.assign({ ...object }, update)
 }
 
+// =======================
+// === singleKeyObject ===
+// =======================
+
+/** Evaluates to `T` if it is not a union, else `never`. */
+type MustNotBeUnion<T> = true extends (T extends T ? true : never) ? never : T
+
+// This symbol is used in `MustBeLiteral` - however it is never needed at runtime.
+// eslint-disable-next-line no-restricted-syntax
+declare const EXAMPLE_SYMBOL: unique symbol
+
+/** Evaluates to `T` if it is a literal type, else `never`.
+ * Compares with two values of each type. Individual values cannot possibly match both values,
+ * so they will pass this test. Tests like `string extends T` normally work, but they fail for
+ * branded types like `string & { _foo: "bar"; }`, so they cannot be used here where branded types
+ * are used liberally. */
+type MustBeLiteral<T> = T extends string
+  ? T & '' extends never
+    ? T
+    : T & '_' extends never
+      ? T
+      : never
+  : T extends number
+    ? T & 0 extends never
+      ? T
+      : T & 1 extends never
+        ? T
+        : never
+    : T extends boolean
+      ? T & true extends never
+        ? T
+        : T & false extends never
+          ? T
+          : never
+      : T extends symbol
+        ? T & typeof EXAMPLE_SYMBOL extends never
+          ? T
+          : never
+        : never
+
+/** Evaluates to `T` if it is a literal type, else `never`.
+ * Compares with two values of each type. Individual values cannot possibly match both values,
+ * so they will pass this test. Tests like `string extends T` normally work, but they fail for
+ * branded types like `string & { _foo: "bar"; }`, so they cannot be used here where branded types
+ * are used liberally. */
+type MustNotBeLiteral<T> = T extends string
+  ? T & '' extends never
+    ? never
+    : T & '_' extends never
+      ? never
+      : T
+  : T extends number
+    ? T & 0 extends never
+      ? never
+      : T & 1 extends never
+        ? never
+        : T
+    : T extends boolean
+      ? T & true extends never
+        ? never
+        : T & false extends never
+          ? never
+          : T
+      : T extends symbol
+        ? T & typeof EXAMPLE_SYMBOL extends never
+          ? never
+          : T
+        : T
+
+export function singleKeyObject<K extends PropertyKey, V>(
+  key: MustBeLiteral<K> & MustNotBeUnion<K>,
+  value: V
+): Record<K, V>
+export function singleKeyObject<K extends PropertyKey, V>(
+  // The signatures SHOULD NOT be merged - while it is probably not possible for a value to be
+  // both `MustNotBeLiteral` and `MustBeLiteral & MustNotBeUnion`, it is safer to assume that
+  // it may happen.
+  // eslint-disable-next-line @typescript-eslint/unified-signatures
+  key: MustNotBeLiteral<K>,
+  value: V
+): Record<K, V>
+export function singleKeyObject<K extends PropertyKey, V>(key: K, value: V): Partial<Record<K, V>>
+/** Return an object with a single key. */
+export function singleKeyObject<K extends PropertyKey, V>(key: K, value: V) {
+  // This is SAFE - but TypeScript widens the type of `key` to `string` when it is used as a
+  // computed key.
+  // eslint-disable-next-line no-restricted-syntax
+  return { [key]: value } as Partial<Record<K, V>>
+}
+
 // ================
 // === readonly ===
 // ================

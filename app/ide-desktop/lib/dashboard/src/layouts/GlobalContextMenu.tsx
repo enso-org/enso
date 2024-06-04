@@ -1,11 +1,10 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import type * as assetListEventModule from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
@@ -23,9 +22,7 @@ export interface GlobalContextMenuProps {
   readonly backend: Backend
   readonly hasPasteData: boolean
   readonly rootDirectoryId: backendModule.DirectoryId
-  readonly directoryKey: backendModule.DirectoryId | null
   readonly directoryId: backendModule.DirectoryId | null
-  readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
   readonly doPaste: (
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId
@@ -34,13 +31,15 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, backend, hasPasteData, directoryKey, directoryId } = props
-  const { rootDirectoryId, dispatchAssetListEvent } = props
+  const { hidden = false, backend, hasPasteData, directoryId } = props
+  const { rootDirectoryId } = props
   const { doPaste } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
+
+  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
 
   return (
     <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden}>
@@ -55,7 +54,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             if (event.currentTarget.files != null) {
               dispatchAssetListEvent({
                 type: AssetListEventType.uploadFiles,
-                parentKey: directoryKey ?? rootDirectoryId,
                 parentId: directoryId ?? rootDirectoryId,
                 files: Array.from(event.currentTarget.files),
               })
@@ -79,7 +77,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
               if (input.files != null) {
                 dispatchAssetListEvent({
                   type: AssetListEventType.uploadFiles,
-                  parentKey: directoryKey ?? rootDirectoryId,
                   parentId: directoryId ?? rootDirectoryId,
                   files: Array.from(input.files),
                 })
@@ -98,7 +95,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           unsetModal()
           dispatchAssetListEvent({
             type: AssetListEventType.newProject,
-            parentKey: directoryKey ?? rootDirectoryId,
             parentId: directoryId ?? rootDirectoryId,
             templateId: null,
             datalinkId: null,
@@ -113,7 +109,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           unsetModal()
           dispatchAssetListEvent({
             type: AssetListEventType.newFolder,
-            parentKey: directoryKey ?? rootDirectoryId,
             parentId: directoryId ?? rootDirectoryId,
           })
         }}
@@ -130,7 +125,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
                     type: AssetListEventType.newSecret,
-                    parentKey: directoryKey ?? rootDirectoryId,
                     parentId: directoryId ?? rootDirectoryId,
                     name,
                     value,
@@ -149,20 +143,21 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             setModal(
               <UpsertDatalinkModal
                 doCreate={(name, value) => {
-                  dispatchAssetListEvent({
-                    type: AssetListEventType.newDatalink,
-                    parentKey: directoryKey ?? rootDirectoryId,
-                    parentId: directoryId ?? rootDirectoryId,
-                    name,
-                    value,
-                  })
+                  createDatalinkMutation.mutate([
+                    {
+                      type: AssetListEventType.newDatalink,
+                      parentId: directoryId ?? rootDirectoryId,
+                      name,
+                      value,
+                    },
+                  ])
                 }}
               />
             )
           }}
         />
       )}
-      {isCloud && directoryKey == null && hasPasteData && (
+      {isCloud && hasPasteData && (
         <ContextMenuEntry
           hidden={hidden}
           action="paste"

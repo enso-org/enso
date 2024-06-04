@@ -138,8 +138,7 @@ export default function Drive(props: DriveProps) {
         // FIXME: Just mutating is not an option, as conflict resolution needs to display a modal.
         dispatchAssetListEvent({
           type: AssetListEventType.uploadFiles,
-          parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-          parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
+          parentId: targetDirectoryNodeRef.current?.id ?? rootDirectoryId,
           files,
         })
       }
@@ -149,41 +148,38 @@ export default function Drive(props: DriveProps) {
 
   const doEmptyTrash = React.useCallback(() => {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
-  }, [/* should never change */ dispatchAssetListEvent])
+  }, [])
 
   const doCreateProject = React.useCallback(
     (templateId: string | null = null, templateName: string | null = null) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newProject,
-        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
+        parentId: targetDirectoryNodeRef.current?.id ?? rootDirectoryId,
         templateId,
         datalinkId: null,
         preferredName: templateName,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId]
   )
 
   const doCreateDirectory = React.useCallback(() => {
     dispatchAssetListEvent({
-      type: AssetListEventType.newFolder,
-      parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-      parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
+      type: AssetListEventType.newFolder
+      parentId: targetDirectoryNodeRef.current?.id ?? rootDirectoryId,
     })
-  }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
+  }, [rootDirectoryId])
 
   const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
       dispatchAssetListEvent({
         type: AssetListEventType.newSecret,
-        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
+        parentId: targetDirectoryNodeRef.current?.id ?? rootDirectoryId,
         name,
         value,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId]
   )
 
   const doCreateDatalink = React.useCallback(
@@ -196,7 +192,7 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId]
   )
 
   switch (status) {

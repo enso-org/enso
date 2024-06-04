@@ -9,6 +9,10 @@ import ModifiedColumnHeading from '#/components/dashboard/columnHeading/Modified
 import NameColumnHeading from '#/components/dashboard/columnHeading/NameColumnHeading'
 import SharedWithColumnHeading from '#/components/dashboard/columnHeading/SharedWithColumnHeading'
 
+// =================
+// === Constants ===
+// =================
+
 export const COLUMN_HEADING: Readonly<
   Record<columnUtils.Column, (props: column.AssetColumnHeadingProps) => React.JSX.Element>
 > = {

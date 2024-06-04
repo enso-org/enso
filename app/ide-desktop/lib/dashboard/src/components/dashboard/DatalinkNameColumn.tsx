@@ -5,7 +5,6 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import DatalinkIcon from 'enso-assets/datalink.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -31,15 +30,13 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, setItem, depth, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, setIsAssetPanelTemporarilyVisible } = state
+  const { setIsAssetPanelTemporarilyVisible } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DatalinkNameColumn` can only display Datalinks.')
   }
   const setAsset = setAssetHooks.useSetAsset(item, setItem)
-
-  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

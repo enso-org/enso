@@ -33,12 +33,12 @@ export type SortableColumn = Column.modified | Column.name
 // === Constants ===
 // =================
 
-export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
+export const DEFAULT_ENABLED_COLUMNS = [
   Column.name,
   Column.modified,
   Column.sharedWith,
   Column.labels,
-])
+] as const
 
 /** The list of all possible columns for the local backend, in order. */
 export const LOCAL_COLUMNS = Object.freeze([Column.name, Column.modified] as const)

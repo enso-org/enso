@@ -47,7 +47,7 @@ interface LocalStorageKeyMetadataWithSchema<K extends LocalStorageKey> {
 export interface LocalStorageData {}
 
 /** All possible keys of a {@link LocalStorage}. */
-type LocalStorageKey = keyof LocalStorageData
+export type LocalStorageKey = keyof LocalStorageData
 
 /** A LocalStorage data manager. */
 export default class LocalStorage {

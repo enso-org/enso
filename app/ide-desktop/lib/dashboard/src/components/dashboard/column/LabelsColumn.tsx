@@ -4,7 +4,6 @@ import * as React from 'react'
 import Plus2Icon from 'enso-assets/plus2.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -24,7 +23,6 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
 
-import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -40,7 +38,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const labels = backendHooks.useBackendListTags(backend)
   const labelsByName = React.useMemo(() => {
     return new Map(labels?.map(label => [label.value, label]))
