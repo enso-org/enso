@@ -1928,7 +1928,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-fat-jar` / javaModuleName).value,
         (`syntax-rust-definition` / javaModuleName).value,
         (`profiling-utils` / javaModuleName).value,
-        (`ydoc-server` / javaModuleName).value,
+        (`ydoc-server` / javaModuleName).value
       ),
       Test / modulePath := {
         val updateReport = (Test / update).value
