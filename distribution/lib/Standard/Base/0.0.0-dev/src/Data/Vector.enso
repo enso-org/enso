@@ -30,6 +30,7 @@ from project.Data.Filter_Condition import unify_condition_or_predicate, unify_co
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 from project.Runtime import assert
 
 polyglot java import java.lang.IndexOutOfBoundsException
@@ -294,8 +295,9 @@ type Vector a
          Get the last element of a vector.
 
              [1, 2, 3].at -1 == 3
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = Array_Like_Helpers.at self index
+    at self index:Integer=0 = Array_Like_Helpers.at self index
 
     ## ICON parse3
        Gets an element from the vector at a specified index (0-based).
@@ -306,11 +308,12 @@ type Vector a
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         Array_Like_Helpers.get self index if_missing
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
 
@@ -331,7 +334,7 @@ type Vector a
     fold self init function =
         Array_Like_Helpers.fold self init function
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
 
@@ -348,7 +351,7 @@ type Vector a
     fold_with_index self init function =
         Array_Like_Helpers.fold_with_index self init function
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the vector, by iteratively applying the
        passed function with the next element of the vector. After each step the
        value is stored resulting in a new vector of the same size as self.
@@ -365,7 +368,7 @@ type Vector a
     running_fold self init function =
         Array_Like_Helpers.running_fold self init function
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of a non-empty vector using a binary operation.
        If the vector is empty, it returns `if_empty`.
 
@@ -570,7 +573,7 @@ type Vector a
         Array_Like_Helpers.filter_with_index self predicate
 
     ## GROUP Selections
-       ICON split_text
+       ICON split
        Partitions the vector into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -623,7 +626,7 @@ type Vector a
         Array_Like_Helpers.partition_with_index self predicate
 
     ## GROUP Selections
-       ICON dataframe_map_row
+       ICON map_row
        Swaps the rows and columns of a matrix represented by a vector of vectors.
 
        ! Error Conditions
@@ -658,7 +661,7 @@ type Vector a
     transpose self =
         Array_Like_Helpers.transpose self
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element of the vector, returning the `Vector` of
        results.
 
@@ -668,7 +671,7 @@ type Vector a
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -676,7 +679,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -697,7 +700,7 @@ type Vector a
     map self function on_problems=Problem_Behavior.Report_Error =
         Array_Like_Helpers.map self function on_problems
 
-    ## ICON dataframes_union
+    ## ICON union
        Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
 
@@ -707,7 +710,7 @@ type Vector a
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -715,7 +718,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -737,7 +740,7 @@ type Vector a
         Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Calculations
-       ICON dataframes_union
+       ICON union
        Transforms a vector of vectors into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested vectors.
 
@@ -748,7 +751,7 @@ type Vector a
     flatten : Vector Any
     flatten self = Array_Like_Helpers.flatten self
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element of the vector, returning the `Vector`
        of results.
 
@@ -761,7 +764,7 @@ type Vector a
        The function is called with both the element index as well as the
        element itself.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -769,7 +772,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -875,7 +878,7 @@ type Vector a
 
     ## ALIAS append, concatenate, union
        GROUP Operators
-       ICON dataframes_union
+       ICON union
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
@@ -989,7 +992,7 @@ type Vector a
 
     ## ALIAS combine, join by row position, merge
        GROUP Calculations
-       ICON dataframes_join
+       ICON join2-1
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -1003,7 +1006,7 @@ type Vector a
        The result of this function is a `Vector` of length being the shorter of
        `self` and `that`, containing results of calling `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -1011,7 +1014,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -1040,7 +1043,7 @@ type Vector a
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
     ## GROUP Calculations
-       ICON dataframes_union
+       ICON union
        Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
 
@@ -1440,7 +1443,7 @@ type Builder
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.elements_java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
@@ -1504,17 +1507,16 @@ type Builder
     ## GROUP Conversions
        ICON convert
        Clones the builder into a Vector.
-    to_vector : Vector Any
-    to_vector self =
+    to_vector self -> Vector =
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
 
            This also reattaches any warnings that were attached to the added
            values. It attaches them to the whole array, not the individual
            values.
-        warnings_vector = Vector.from_polyglot_array self.warnings_java_builder.toArray
+        warnings_vector = self.warnings_java_builder.toArray
         Warning.attach_multiple warnings_vector <|
-            Vector.from_polyglot_array self.elements_java_builder.toArray
+            self.elements_java_builder.toArray
 
 ## PRIVATE
    Describes an error attached to a value within a `Vector`. The `index` field

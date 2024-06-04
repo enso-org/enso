@@ -88,7 +88,7 @@ type Decimal
     ## PRIVATE
     Value (big_decimal : BigDecimal)
 
-    ## ICON number_input
+    ## ICON input_number
        Construct a `Decimal` from a string or integer.
 
        Arguments:
@@ -708,7 +708,7 @@ type Decimal
     signum self -> Integer = self.big_decimal.signum
 
     ## GROUP Math
-       ICON sigma
+       ICON transform4
        Returns the smaller value of `self` and `that`.
 
        Arguments:
@@ -723,7 +723,7 @@ type Decimal
     min self (that : Decimal) -> Decimal = if self < that then self else that
 
     ## GROUP Math
-       ICON sigma
+       ICON transform4
        Returns the larger value of `self` and `that`.
 
        Arguments:

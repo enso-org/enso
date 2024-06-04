@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.job
 
 import cats.implicits._
-import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
@@ -61,78 +60,70 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
-    implicit val logger: TruffleLogger = ctx.executionService.getLogger
-    val lockTimestamp =
-      ctx.locking.acquireContextLock(config.executionContextId)
-    try {
-      val maybeCallable =
-        UpsertVisualizationJob.evaluateVisualizationExpression(
-          config.visualizationModule,
-          config.expression
-        )
-
-      maybeCallable match {
-        case Left(ModuleNotFound(moduleName)) =>
-          ctx.endpoint.sendToClient(
-            Api.Response(Api.ModuleNotFound(moduleName))
+    ctx.locking.withContextLock(
+      config.executionContextId,
+      this.getClass,
+      () => {
+        val maybeCallable =
+          UpsertVisualizationJob.evaluateVisualizationExpression(
+            config.visualizationModule,
+            config.expression
           )
-          None
 
-        case Left(EvaluationFailed(message, result)) =>
-          replyWithExpressionFailedError(
-            config.executionContextId,
-            visualizationId,
-            expressionId,
-            message,
-            result
-          )
-          None
+        maybeCallable match {
+          case Left(ModuleNotFound(moduleName)) =>
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ModuleNotFound(moduleName))
+            )
+            None
 
-        case Right(EvaluationResult(module, callable, arguments)) =>
-          val visualization =
-            UpsertVisualizationJob.updateAttachedVisualization(
+          case Left(EvaluationFailed(message, result)) =>
+            replyWithExpressionFailedError(
+              config.executionContextId,
               visualizationId,
               expressionId,
-              module,
-              config,
-              callable,
-              arguments
+              message,
+              result
             )
-          val stack = ctx.contextManager.getStack(config.executionContextId)
-          val runtimeCache = stack.headOption
-            .flatMap(frame => Option(frame.cache))
-          val cachedValue = runtimeCache
-            .flatMap(c => Option(c.get(expressionId)))
-          UpsertVisualizationJob.requireVisualizationSynchronization(
-            stack,
-            expressionId
-          )
-          cachedValue match {
-            case Some(value) =>
-              ProgramExecutionSupport.executeAndSendVisualizationUpdate(
-                config.executionContextId,
-                runtimeCache.getOrElse(new RuntimeCache),
-                stack.headOption.get.syncState,
-                visualization,
+            None
+
+          case Right(EvaluationResult(module, callable, arguments)) =>
+            val visualization =
+              UpsertVisualizationJob.updateAttachedVisualization(
+                visualizationId,
                 expressionId,
-                value
+                module,
+                config,
+                callable,
+                arguments
               )
-              None
-            case None =>
-              Some(Executable(config.executionContextId, stack))
-          }
+            val stack =
+              ctx.contextManager.getStack(config.executionContextId)
+            val runtimeCache = stack.headOption
+              .flatMap(frame => Option(frame.cache))
+            val cachedValue = runtimeCache
+              .flatMap(c => Option(c.get(expressionId)))
+            UpsertVisualizationJob.requireVisualizationSynchronization(
+              stack,
+              expressionId
+            )
+            cachedValue match {
+              case Some(value) =>
+                ProgramExecutionSupport.executeAndSendVisualizationUpdate(
+                  config.executionContextId,
+                  runtimeCache.getOrElse(new RuntimeCache),
+                  stack.headOption.get.syncState,
+                  visualization,
+                  expressionId,
+                  value
+                )
+                None
+              case None =>
+                Some(Executable(config.executionContextId, stack))
+            }
+        }
       }
-    } finally {
-      ctx.locking.releaseContextLock(config.executionContextId)
-      logger.log(
-        Level.FINEST,
-        "Kept context lock [{0}] for {1} milliseconds.",
-        Array(
-          getClass.getSimpleName,
-          System.currentTimeMillis() - lockTimestamp
-        )
-      )
-    }
+    )
   }
 
   private def replyWithExpressionFailedError(
@@ -507,16 +498,10 @@ object UpsertVisualizationJob {
         callback,
         arguments
       )
-    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
-    try {
-      invalidateCaches(visualization)
-    } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      ctx.executionService.getLogger.log(
-        Level.FINEST,
-        s"Kept write compilation lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
-      )
-    }
+    ctx.locking.withWriteCompilationLock(
+      this.getClass,
+      () => invalidateCaches(visualization)
+    )
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization

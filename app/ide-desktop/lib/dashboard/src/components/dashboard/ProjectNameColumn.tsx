@@ -47,7 +47,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -141,12 +141,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           if (asset.id === event.placeholderId) {
             rowState.setVisibility(Visibility.faded)
             try {
-              const createdProject = await backend.createProject({
-                parentDirectoryId: asset.parentId,
-                projectName: asset.title,
-                ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
-                ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
-              })
+              const createdProject =
+                event.originalId == null || event.versionId == null
+                  ? await backend.createProject({
+                      parentDirectoryId: asset.parentId,
+                      projectName: asset.title,
+                      ...(event.templateId == null
+                        ? {}
+                        : { projectTemplateName: event.templateId }),
+                      ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
+                    })
+                  : await backend.duplicateProject(event.originalId, event.versionId, asset.title)
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {

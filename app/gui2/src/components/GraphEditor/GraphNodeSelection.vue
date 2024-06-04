@@ -8,6 +8,7 @@ const props = defineProps<{
   nodeSize: Vec2
   nodeId: AstId
   selected: boolean
+  externalHovered: boolean
   color: string
 }>()
 
@@ -16,7 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const hovered = ref(false)
-const visible = computed(() => props.selected || hovered.value)
+const visible = computed(() => props.selected || props.externalHovered || hovered.value)
 
 watchEffect(() => emit('visible', visible.value))
 

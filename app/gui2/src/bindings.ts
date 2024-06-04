@@ -29,7 +29,7 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
 export const graphBindings = defineKeybinds('graph-editor', {
   openComponentBrowser: ['Enter'],
   toggleVisualization: ['Space'],
-  deleteSelected: ['OsDelete'],
+  deleteSelected: ['Delete', 'Backspace'],
   zoomToSelected: ['Mod+Shift+A'],
   selectAll: ['Mod+A'],
   deselectAll: ['Escape'],

@@ -6,6 +6,7 @@ import * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
 
+import * as isHiddenFile from 'is-hidden-file'
 import * as tar from 'tar'
 import * as yaml from 'yaml'
 
@@ -221,6 +222,7 @@ export default function projectManagerShimMiddleware(
                                         const entries: FileSystemEntry[] = []
                                         for (const entryName of entryNames) {
                                             const entryPath = path.join(directoryPath, entryName)
+                                            if (isHiddenFile.isHiddenFile(entryPath)) continue
                                             const stat = await fs.stat(entryPath)
                                             const attributes: Attributes = {
                                                 byteSize: stat.size,

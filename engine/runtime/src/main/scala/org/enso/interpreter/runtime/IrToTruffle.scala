@@ -501,10 +501,13 @@ class IrToTruffle(
                         builtinRootNode
                           .setModuleName(scopeBuilder.getModule.getName)
                         builtinRootNode.setTypeName(cons.getQualifiedName)
-                        val funcSchema = FunctionSchema
+                        val funcSchemaBldr = FunctionSchema
                           .newBuilder()
                           .argumentDefinitions(bodyBuilder.args(): _*)
-                          .build()
+                        if (methodDef.isPrivate) {
+                          funcSchemaBldr.projectPrivate();
+                        }
+                        val funcSchema = funcSchemaBldr.build()
                         new RuntimeFunction(
                           m.getFunction.getCallTarget,
                           null,
@@ -615,12 +618,14 @@ class IrToTruffle(
                           )
                         }
                   }
-
-                val funcSchema = FunctionSchema
+                val funcSchemaBldr = FunctionSchema
                   .newBuilder()
                   .annotations(annotations: _*)
                   .argumentDefinitions(arguments: _*)
-                  .build()
+                if (methodDef.isPrivate) {
+                  funcSchemaBldr.projectPrivate();
+                }
+                val funcSchema = funcSchemaBldr.build();
                 Right(
                   Some(
                     new RuntimeFunction(
@@ -1047,9 +1052,7 @@ class IrToTruffle(
           processCase(caseExpr, subjectToInstrumentation)
         case typ: Tpe => processType(typ)
         case _: Empty =>
-          throw new CompilerError(
-            "Empty IR nodes should not exist during code generation."
-          )
+          processEmpty()
         case _: Comment =>
           throw new CompilerError(
             "Comments should not be present during codegen."
@@ -1754,7 +1757,7 @@ class IrToTruffle(
       * @return the truffle nodes corresponding to `literal`
       */
     @throws[CompilerError]
-    def processLiteral(literal: Literal): RuntimeExpression =
+    private def processLiteral(literal: Literal): RuntimeExpression =
       literal match {
         case lit @ Literal.Number(_, _, location, _, _) =>
           val node = lit.numericValue match {
@@ -1781,7 +1784,7 @@ class IrToTruffle(
       * @param error the IR representing a compile error.
       * @return a runtime node representing the error.
       */
-    def processError(error: Error): RuntimeExpression = {
+    private def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
         case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
@@ -1839,6 +1842,14 @@ class IrToTruffle(
           )
       }
       setLocation(ErrorNode.build(payload), error.location)
+    }
+
+    /** Processes an empty expression.
+      *
+      * @return the Nothing builtin
+      */
+    private def processEmpty(): RuntimeExpression = {
+      ConstantObjectNode.build(context.getBuiltins.nothing())
     }
 
     /** Processes function arguments, generates arguments reads and creates

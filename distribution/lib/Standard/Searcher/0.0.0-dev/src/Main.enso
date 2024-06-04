@@ -25,7 +25,7 @@ text_input = Unimplemented.throw "This function should not be called."
 
 ## ALIAS number input
    GROUP Standard.Base.Constants
-   ICON number_input
+   ICON input_number
 
    Creating a number in Enso is as simple as adding a node that contains the
    number that you would like to create.
@@ -41,7 +41,7 @@ text_input = Unimplemented.throw "This function should not be called."
      Creating a node containing the decimal 0.0.
 
          0.0
-number_input = Unimplemented.throw "This function should not be called."
+input_number = Unimplemented.throw "This function should not be called."
 
 ## ALIAS table input
    GROUP Standard.Base.Constants

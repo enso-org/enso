@@ -494,7 +494,11 @@ public final class Builtins {
     if (atomNodes == null) {
       return Optional.empty();
     }
-    LoadedBuiltinMethod builtin = atomNodes.get(methodName).get();
+    var supply = atomNodes.get(methodName);
+    if (supply == null) {
+      return Optional.empty();
+    }
+    LoadedBuiltinMethod builtin = supply.get();
     if (builtin == null) {
       return Optional.empty();
     }

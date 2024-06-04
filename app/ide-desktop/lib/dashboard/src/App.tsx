@@ -53,6 +53,7 @@ import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import RemoteBackendProvider from '#/providers/RemoteBackendProvider'
 import SessionProvider from '#/providers/SessionProvider'
 import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
@@ -86,6 +87,7 @@ import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
 
+import type * as types from '../../types/types'
 import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
@@ -146,7 +148,8 @@ export interface AppProps {
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly appRunner: AppRunner
+  readonly appRunner: types.EditorRunner | null
+  readonly portalRoot: Element
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -220,6 +223,7 @@ export interface AppRouterProps extends AppProps {
 function AppRouter(props: AppRouterProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
+  const { portalRoot } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
   // eslint-disable-next-line no-restricted-properties
@@ -232,9 +236,6 @@ function AppRouter(props: AppRouterProps) {
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
-  const [root] = React.useState<React.RefObject<HTMLElement>>(() => ({
-    current: document.getElementById('enso-dashboard'),
-  }))
 
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
@@ -454,6 +455,7 @@ function AppRouter(props: AppRouterProps) {
     </SupportsLocalBackendProvider>
   )
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
+  result = <RemoteBackendProvider>{result}</RemoteBackendProvider>
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}
@@ -485,7 +487,7 @@ function AppRouter(props: AppRouterProps) {
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
   result = (
-    <rootComponent.Root rootRef={root} navigate={navigate}>
+    <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
       {result}
     </rootComponent.Root>
   )

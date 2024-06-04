@@ -1766,6 +1766,10 @@ export class Group extends Ast {
     return this.module.get(this.fields.get('expression')?.node)
   }
 
+  wrappedExpression(): Ast | undefined {
+    return this.expression
+  }
+
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, expression, close } = getAll(this.fields)
     if (open) yield open
@@ -1824,7 +1828,7 @@ applyMixins(MutableNumericLiteral, [MutableAst])
  *  GUI. We just need to represent them faithfully and create the simple cases. */
 type ArgumentDefinition<T extends TreeRefs = RawRefs> = (T['ast'] | T['token'])[]
 
-interface FunctionFields {
+export interface FunctionFields {
   name: NodeChild<AstId>
   argumentDefinitions: ArgumentDefinition[]
   equals: NodeChild<SyncTokenId>

@@ -244,8 +244,8 @@ type Table
 
              example_at = Examples.inventory_table.at -1
     @selector Widget_Helpers.make_column_name_selector
-    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
-    at self selector=0 = case selector of
+    at : Integer | Text -> Column ! No_Such_Column | Index_Out_Of_Bounds
+    at self (selector:(Integer | Text)=0) = case selector of
         _ : Integer ->
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Value (java_columns.at selector)
@@ -272,12 +272,11 @@ type Table
 
              example_at = Examples.inventory_table.get -1
     @selector Widget_Helpers.make_column_name_selector
-    get : Text | Integer -> Any -> Column | Any
-    get self selector=0 ~if_missing=Nothing =
+    get : Integer | Text -> Any -> Column | Any
+    get self (selector:(Integer | Text)=0) ~if_missing=Nothing =
         java_column = case selector of
             _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
             _ : Text -> self.java_table.getColumnByName selector
-            _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if java_column.is_nothing then if_missing else Column.Value java_column
 
     ## ALIAS cell value, get cell
@@ -722,7 +721,7 @@ type Table
 
     ## ALIAS group by, summarize
        GROUP Standard.Base.Calculations
-       ICON sigma
+       ICON transform4
 
        Aggregates the rows in a table using `group_by` columns.
        The columns argument specifies which additional aggregations to perform
@@ -1266,7 +1265,7 @@ type Table
             table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Splits a column of text into a set of new columns.
        The original column will be removed from the table.
        The new columns will be named with the name of the input column with a
@@ -1289,7 +1288,7 @@ type Table
         Split_Tokenize.split_to_columns self column delimiter column_count on_problems
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Splits a column of text into a set of new rows.
        The values of other columns are repeated for the new rows.
 
@@ -1303,7 +1302,7 @@ type Table
         Split_Tokenize.split_to_rows self column delimiter
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Tokenizes a column of text into a set of new columns using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -1330,7 +1329,7 @@ type Table
         Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Tokenizes a column of text into a set of new rows using a regular
        expression.
        If the pattern contains marked groups, the values are concatenated
@@ -1351,7 +1350,7 @@ type Table
         Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
 
     ## GROUP Standard.Base.Conversions
-       ICON split_text
+       ICON split
        Converts a Text column into new columns using a regular expression
        pattern.
 
@@ -1383,7 +1382,7 @@ type Table
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
     ## GROUP Standard.Base.Calculations
-       ICON split_text
+       ICON split
        Expand a column of objects to a new set of columns.
 
        Arguments:
@@ -1397,7 +1396,7 @@ type Table
         Expand_Objects_Helpers.expand_column self column fields prefix
 
     ## GROUP Standard.Base.Calculations
-       ICON split_text
+       ICON split
        Expand aggregate values in a column to separate rows.
 
        For each value in the specified column, if it is an aggregate (`Vector`,
@@ -1571,7 +1570,7 @@ type Table
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
-        Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.take_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
 
     ## ALIAS skip, remove
        GROUP Standard.Base.Selections
@@ -1603,7 +1602,7 @@ type Table
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
-        Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
+        Index_Sub_Range_Module.drop_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
        Filter out all rows.
@@ -1612,7 +1611,7 @@ type Table
 
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON column_add
        Adds a new column to the table enumerating the rows.
 
        Arguments:
@@ -1648,9 +1647,9 @@ type Table
     add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
         Add_Row_Number.add_row_number self name from step group_by order_by on_problems
 
-    ## ALIAS add column, formula, new column, update column
+    ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON column_add
        Sets the column value at the given name.
 
        Arguments:
@@ -2092,7 +2091,7 @@ type Table
 
     ## ALIAS find replace
        GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Replaces values in the columns using `lookup_table` to specify a mapping
        from old to new values.
 
@@ -2174,7 +2173,7 @@ type Table
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
-       ICON dataframes_join
+       ICON join2-1
        Joins two tables by zipping rows from both tables table together - the
        first row of the left table is correlated with the first one of the right
        one etc.
@@ -2241,7 +2240,7 @@ type Table
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
-       ICON dataframes_union
+       ICON union
        Appends records from other table(s) to this table.
 
        Arguments:
@@ -2287,7 +2286,7 @@ type Table
          Finally, if no common type is found using the rules above, everything
          is converted to text.
 
-       ? Problem Conditions
+       ! Error Conditions
 
          - If no common type is found and the text conversion fallback is used,
            the `No_Common_Type` problem is reported.
@@ -2394,7 +2393,7 @@ type Table
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
-       ICON dataframe_map_row
+       ICON map_row
        Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
        value field.
@@ -2424,7 +2423,8 @@ type Table
            `Duplicate_Output_Column_Names` is reported according to the
            `on_problems` setting.
 
-       ? Example Transpose Operation
+       > Example
+         Transpose Operation
 
          Input Table `table`:
 
@@ -2467,7 +2467,7 @@ type Table
 
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
-       ICON dataframe_map_column
+       ICON column_add
        Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
@@ -2503,7 +2503,8 @@ type Table
            - If there are more than 10 issues with a single column,
              an `Additional_Warnings`.
 
-       ? Example Cross Tab Operation
+       > Example
+         Cross Tab Operation
 
          Input Table `table`:
 
@@ -2670,7 +2671,7 @@ type Table
              from Standard.Table import all
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") (Excel_Format.Sheet "MySheetName")
-    @path (Widget.File_Browse display=Display.Always)
+    @path (Widget.File_Browse existing_only=False display=Display.Always)
     @format Widget_Helpers.write_table_selector
     write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
@@ -2713,7 +2714,8 @@ type Table
            `attribute_columns` or `value_column`, a `Unexpected_Extra_Columns`
            is reported according to the `on_problems` setting.
 
-       ? Example to_xml Operation
+       > Example
+         to_xml Operation
 
          Input Table `table`:
 
@@ -2762,7 +2764,7 @@ type Table
 
     ## ALIAS fill missing, if_nothing
        GROUP Standard.Base.Values
-       ICON dataframe_clean
+       ICON table_clean
 
        Returns a new table where missing values in the specified columns have
        been replaced with the provided default(s).
@@ -2791,7 +2793,7 @@ type Table
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
-       ICON dataframe_clean
+       ICON table_clean
 
        Returns a new column where empty Text values have been replaced with the
        provided default(s).
@@ -2818,7 +2820,7 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Replaces the first, or all occurrences of `term` with `new_text` in each
        row of the specified column. If `term` is empty, the function returns the
        table unchanged.
@@ -2850,7 +2852,7 @@ type Table
 
              table.text_replace ["Input"] '"(.*?)"'.to_regex '($1)'
     @columns (Widget_Helpers.make_column_name_multi_selector use_regex=True)
-    @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True)
+    @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
     text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Expression | Regex -> Text | Column | Column_Ref | Expression -> Case_Sensitivity -> Boolean -> Column
     text_replace self columns (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
@@ -2861,7 +2863,7 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON column_add
        Applies the specified cleansings to the text in each row of the specified columns.
 
        Arguments:
@@ -2895,7 +2897,7 @@ type Table
 
     ## ALIAS cumulative
        GROUP Standard.Base.Values
-       ICON dataframe_map_column
+       ICON column_add
        Adds a new column to the table with a running calculation.
 
        Arguments:
@@ -2982,7 +2984,7 @@ type Table
          Finally, if no common type is found using the rules above, everything
          is converted to text.
 
-       ? Problem Conditions
+       ! Error Conditions
 
          - If no common type is found and the text conversion fallback is used,
            the `No_Common_Type` problem is reported.

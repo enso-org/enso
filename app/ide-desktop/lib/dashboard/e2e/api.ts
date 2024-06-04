@@ -59,8 +59,10 @@ export async function mockApi({ page }: MockParams) {
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
   }
+
   let currentUser: backend.User | null = defaultUser
   let currentOrganization: backend.OrganizationInfo | null = null
+
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
@@ -440,6 +442,9 @@ export async function mockApi({ page }: MockParams) {
       }
     )
     await page.route(BASE_URL + remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
+      await route.fulfill()
+    })
+    await page.route(BASE_URL + remoteBackendPaths.POST_LOG_EVENT_PATH, async route => {
       await route.fulfill()
     })
 

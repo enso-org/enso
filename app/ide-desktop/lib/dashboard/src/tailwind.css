@@ -1,7 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
-/* Scoped to `.enso-dashboard, .enso-chat` in tailwind config. */
+/* Scoped to `.enso-dashboard, .enso-chat, .enso-portal-root` in tailwind config. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -483,8 +483,7 @@ body::before {
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-.enso-dashboard,
-.enso-chat {
+:where(:is(.enso-dashboard, .enso-chat, .enso-portal-root)) {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -494,14 +493,18 @@ body::before {
   font-feature-settings: normal;
 }
 
-.enso-dashboard kbd,
-.enso-chat kbd {
+:where(:is(.enso-dashboard kbd, .enso-chat kbd, .enso-portal-root kbd)) {
   font-family: "M PLUS 1";
 }
 
-.enso-dashboard :focus,
-.enso-chat :focus {
+:where(
+    :is(.enso-dashboard :focus, .enso-chat :focus, .enso-portal-root :focus)
+  ) {
   outline: none;
+}
+
+:where(.enso-portal-root) {
+  display: contents;
 }
 
 /* Must be kept in sync with app/gui/view/graph-editor/src/builtin/visualization/java_script/helpers/scrollable.js. */
@@ -561,4 +564,12 @@ body[data-debug] [data-navigator2d-neighbor] {
 }
 :root::highlight(field-existing-email) {
   @apply text-amber-500;
+}
+
+:where([popover]) {
+  inset: unset;
+  margin: unset;
+  width: unset;
+  height: unset;
+  overflow: unset;
 }
