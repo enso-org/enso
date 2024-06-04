@@ -1,0 +1,17 @@
+private
+
+import project.Data.Text.Encoding.Encoding
+import project.System.Input_Stream.Input_Stream
+
+polyglot java import org.enso.base.encoding.ReportingStreamDecoder
+
+## PRIVATE
+   Builds the `ReportingStreamDecoder`, consuming the `Input_Stream`.
+   It will do any necessary encoding detection, as determined by the `Encoding`
+build (input_stream : Input_Stream) (encoding : Encoding) -> ReportingStreamDecoder =
+    "TODO"
+
+## PRIVATE
+   ???
+read_into_text (decoder : ReportingStreamDecoder) -> Text =
+    "TODO"
