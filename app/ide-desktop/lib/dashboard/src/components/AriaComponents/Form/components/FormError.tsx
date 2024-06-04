@@ -6,33 +6,27 @@
 
 import * as React from 'react'
 
-import * as reactHookForm from 'react-hook-form'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as reactAriaComponents from '#/components/AriaComponents'
 
-import type * as types from '../types'
+import type * as types from './types'
+import * as formContext from './useFormContext'
 
 /**
  * Props for the FormError component.
  */
-export interface FormErrorProps<
-  TFieldValues extends types.FieldValues<never>,
-  TTransformedFieldValues extends types.FieldValues<never>,
-> extends Omit<reactAriaComponents.AlertProps, 'children'> {
-  readonly form?: reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedFieldValues>
+export interface FormErrorProps extends Omit<reactAriaComponents.AlertProps, 'children'> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly form?: types.FormInstance<any, any>
 }
 
 /**
  * Form error component.
  */
-export function FormError<
-  TFieldValues extends types.FieldValues<never>,
-  TTransformedFieldValues extends types.FieldValues<never>,
->(props: FormErrorProps<TFieldValues, TTransformedFieldValues>) {
+export function FormError(props: FormErrorProps) {
   const {
-    form = reactHookForm.useFormContext(),
+    form = formContext.useFormContext(),
     size = 'medium',
     variant = 'error',
     ...alertProps
