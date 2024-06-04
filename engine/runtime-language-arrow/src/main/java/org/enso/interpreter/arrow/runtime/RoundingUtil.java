@@ -19,16 +19,16 @@
 
 package org.enso.interpreter.arrow.runtime;
 
-class RoundingUtil {
+final class RoundingUtil {
 
   /** The mask for rounding an integer to a multiple of 8. (i.e. clear the lowest 3 bits) */
-  static int ROUND_8_MASK_INT = 0xFFFFFFF8;
+  static final int ROUND_8_MASK_INT = 0xFFFFFFF8;
 
   /** The mask for rounding a long integer to a multiple of 8. (i.e. clear the lowest 3 bits) */
-  static long ROUND_8_MASK_LONG = 0xFFFFFFFFFFFFFFF8L;
+  static final long ROUND_8_MASK_LONG = 0xFFFFFFFFFFFFFFF8L;
 
   /** The number of bits to shift for dividing by 8. */
-  static int DIVIDE_BY_8_SHIFT_BITS = 3;
+  static final int DIVIDE_BY_8_SHIFT_BITS = 3;
 
   private RoundingUtil() {}
 
