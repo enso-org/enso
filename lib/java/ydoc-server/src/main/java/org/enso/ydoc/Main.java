@@ -4,8 +4,8 @@ import java.util.concurrent.Semaphore;
 
 public class Main {
 
-  private static final String YDOC_HOST = "YDOC_HOST";
-  private static final String YDOC_PORT = "YDOC_PORT";
+  private static final String YDOC_HOST = "ENSO_YDOC_HOST";
+  private static final String YDOC_PORT = "ENSO_YDOC_PORT";
 
   private static final Semaphore lock = new Semaphore(0);
 

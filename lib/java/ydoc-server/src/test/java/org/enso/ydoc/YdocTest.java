@@ -108,7 +108,7 @@ public class YdocTest {
     private static UUID readUUID(BufferData data) {
       try {
         data.skip(data.available() - UUID_BYTES - SUFFIX_BYTES);
-        var uuidString = data.readString(36);
+        var uuidString = data.readString(UUID_BYTES);
         return UUID.fromString(uuidString);
       } catch (Exception e) {
         log.error("Failed to read UUID of\n{}", data.debugDataHex());
