@@ -25,7 +25,7 @@ syncRef(editing, useFocusDelayed(textEditor).focused)
   <div v-if="editing || props.node.documentation?.trimStart()" class="GraphNodeComment">
     <PlainTextEditor
       ref="textEditor"
-      v-bind:modelValue="documentation"
+      :modelValue="documentation"
       @update:modelValue="astDocumentation.set"
       @keydown.enter.capture.stop="editing = false"
     />

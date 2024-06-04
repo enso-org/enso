@@ -31,7 +31,7 @@ const blockTypesOrdered: BlockType[] = [
 
 <template>
   <SelectionDropdown v-model="blockType" :values="blockTypesOrdered">
-    <template v-slot="{ value }">
+    <template #default="{ value }">
       <SvgIcon :name="blockTypeIcon[value]" />
       <div class="iconLabel" v-text="blockTypeToBlockName[value]" />
     </template>

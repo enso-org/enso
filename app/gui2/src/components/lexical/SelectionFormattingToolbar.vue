@@ -9,18 +9,18 @@ const { bold, italic, strikethrough } = props.formatting
 
 <template>
   <div class="SelectionFormattingToolbar">
-    <ToggleIcon v-bind="bold.state" @update:modelValue="bold.set" icon="bold" title="Bold" />
+    <ToggleIcon v-bind="bold.state" icon="bold" title="Bold" @update:modelValue="bold.set" />
     <ToggleIcon
       v-bind="italic.state"
-      @update:modelValue="italic.set"
       icon="italic"
       title="Italic"
+      @update:modelValue="italic.set"
     />
     <ToggleIcon
       v-bind="strikethrough.state"
-      @update:modelValue="strikethrough.set"
       icon="strike-through"
       title="Strikethrough"
+      @update:modelValue="strikethrough.set"
     />
   </div>
 </template>

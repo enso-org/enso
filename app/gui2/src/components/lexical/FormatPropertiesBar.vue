@@ -33,13 +33,13 @@ const close = () => (menuOpen.value = false)
 </script>
 
 <template>
-  <ToggleIcon v-bind="bold.state" @update:modelValue="bold.set" icon="bold" title="Bold" />
-  <ToggleIcon v-bind="italic.state" @update:modelValue="italic.set" icon="italic" title="Italic" />
+  <ToggleIcon v-bind="bold.state" icon="bold" title="Bold" @update:modelValue="bold.set" />
+  <ToggleIcon v-bind="italic.state" icon="italic" title="Italic" @update:modelValue="italic.set" />
   <ToggleIcon
     v-bind="code.state"
-    @update:modelValue="code.set"
     :icon="TODO"
     title="Insert Code Block"
+    @update:modelValue="code.set"
   />
   <!-- TODO: Insert link -->
   <DropdownMenu v-model:open="menuOpen">
@@ -47,23 +47,23 @@ const close = () => (menuOpen.value = false)
     <template #entries>
       <ToggleIcon
         v-bind="strikethrough.state"
-        @update:modelValue="strikethrough.set"
         icon="strike-through"
         label="Strikethrough"
+        @update:modelValue="strikethrough.set"
         @click="close"
       />
       <ToggleIcon
         v-bind="subscript.state"
-        @update:modelValue="subscript.set"
         :icon="TODO"
         label="Subscript"
+        @update:modelValue="subscript.set"
         @click="close"
       />
       <ToggleIcon
         v-bind="superscript.state"
-        @update:modelValue="superscript.set"
         :icon="TODO"
         label="Superscript"
+        @update:modelValue="superscript.set"
         @click="close"
       />
       <SvgButton

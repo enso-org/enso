@@ -689,7 +689,7 @@ const groupColors = computed(() => {
       >
         <div class="scrollArea">
           <MarkdownEditor
-            v-bind:modelValue="documentation.state"
+            :modelValue="documentation.state"
             @update:modelValue="documentation.set"
           />
         </div>

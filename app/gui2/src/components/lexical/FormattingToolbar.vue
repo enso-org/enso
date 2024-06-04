@@ -11,7 +11,7 @@ const { blockType } = props.formatting
 <template>
   <div class="FormattingToolbar">
     <div class="section">
-      <BlockTypeMenu v-bind:modelValue="blockType.state.value" @update:modelValue="blockType.set" />
+      <BlockTypeMenu :modelValue="blockType.state.value" @update:modelValue="blockType.set" />
     </div>
     <div class="section">
       <FormatPropertiesBar :formatting="formatting" />
