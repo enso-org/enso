@@ -4,7 +4,7 @@ import { type UseFormatting } from '@/components/lexical/formatting'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { Icon } from '@/util/iconName'
-import { ref, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 
 const props = defineProps<{ formatting: UseFormatting }>()
 
@@ -15,7 +15,7 @@ const { bold, italic, strikethrough, subscript, superscript, blockType, clearFor
 
 function useValueEqualsConstant<T>(value: Ref<T>, constant: T, valueWhenSetToFalse: T) {
   return {
-    state: () => value.value === constant,
+    state: computed(() => value.value === constant),
     set: (newValue: boolean) => {
       if (newValue && value.value !== constant) {
         value.value = constant
