@@ -341,10 +341,8 @@ type Table
        Arguments:
        - columns: Specifies columns by a single instance or Vector of names;
          indexes or regular expressions to match names; or a `By_Type` selector
-         to choose columns by type. By_Type arguments: type: The type of columns
-         to select. strict: If `True`, only columns with exactly the specified
-         types will be selected. If `False`, columns with related types will
-         also be selected (i.e. ignore size, precision).
+         to choose columns by type. Note: specifying columns by type ignores
+         size and precision.
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - reorder: By default, or if set to `False`, columns in the output will
@@ -428,10 +426,8 @@ type Table
        Arguments:
        - columns: Specifies columns by a single instance or Vector of names;
          indexes or regular expressions to match names; or a `By_Type` selector
-         to choose columns by type. By_Type arguments: type: The type of columns
-         to select. strict: If `True`, only columns with exactly the specified
-         types will be selected. If `False`, columns with related types will
-         also be selected (i.e. ignore size, precision).
+         to choose columns by type. Note: specifying columns by type ignores
+         size and precision.
        - case_sensitivity: Controls whether to be case sensitive when matching
          column names.
        - error_on_missing_columns: Specifies if a missing input column should

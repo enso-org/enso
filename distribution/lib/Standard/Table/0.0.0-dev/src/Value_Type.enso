@@ -488,7 +488,5 @@ type Auto
 ## The type representing the column type being explicitly selected by the user.
    Arguments: 
    - type: The type of columns to select. 
-   - strict: If `True`, only columns with exactly the specified types will be selected. 
-     If `False`, columns with related types will also be selected (i.e. ignore size, precision).
 type By_Type
-  By_Type type:Value_Type strict:Boolean=False
+  By_Type type:Value_Type

@@ -193,8 +193,7 @@ type Table_Column_Helper
                 ix : Integer -> if is_index_valid self.internal_columns.length ix then [self.internal_columns.at ix] else
                     problem_builder.report_oob_indices [ix]
                     []
-                _ : By_Type -> if selector.strict then self.internal_columns.filter column-> selector.type == column.value_type else
-                    self.internal_columns.filter column-> column.value_type.is_same_type selector.type
+                _ : By_Type -> self.internal_columns.filter column-> column.value_type.is_same_type selector.type
                 _ ->
                     matches = match_columns selector case_sensitivity self.internal_columns
                     if matches.is_empty then problem_builder.report_missing_input_columns [selector]
