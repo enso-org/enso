@@ -7,6 +7,7 @@ import * as React from 'react'
 
 import * as reactRouterDom from 'react-router-dom'
 
+import * as appLayout from '#/AppLayout'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -18,35 +19,36 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import SetUsername from '#/pages/authentication/SetUsername'
-import dashboard from '#/pages/dashboard/Dashboard'
-import * as subscribe from '#/pages/subscribe/Subscribe'
-import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
+import dashboard from '#/pages/dashboard'
+import subscribe from '#/pages/subscribe/Subscribe'
+import subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as loader from '#/components/Loader'
+import * as suspense from '#/components/Suspense'
 
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
-import type * as app from './App'
-
 /**
  * Props for the main router for the application.
  */
-export interface RoutesProps extends app.AppRouterProps {
-  readonly shouldShowDashboard: boolean
+export interface RoutesProps extends appLayout.AppLayoutProps {
   readonly fallback?: React.ReactNode
   readonly basename: string
+  readonly mainPageUrl: URL
 }
 
 /**
  * The main router for the application.
  */
 export function Routes(props: RoutesProps) {
-  const { shouldShowDashboard, fallback, basename } = props
+  const { fallback = <suspense.Suspense />, basename } = props
 
   const routes = (
-    <>
+    <reactRouterDom.Route
+      element={<appLayout.AppLayout {...props} />}
+      errorElement={<errorBoundary.ErrorBoundary />}
+    >
       {/* Login & registration pages are visible to unauthenticated users. */}
       <reactRouterDom.Route element={<authProvider.GuestLayout />}>
         <reactRouterDom.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
@@ -58,30 +60,13 @@ export function Routes(props: RoutesProps) {
         <reactRouterDom.Route element={<authProvider.ProtectedLayout />}>
           <reactRouterDom.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
             <reactRouterDom.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
-              {shouldShowDashboard && <reactRouterDom.Route {...dashboard} />}
+              <reactRouterDom.Route {...dashboard} />
 
-              <reactRouterDom.Route
-                path={appUtils.SUBSCRIBE_PATH}
-                errorElement={<errorBoundary.ErrorBoundary />}
-                element={
-                  <React.Suspense fallback={<loader.Loader />}>
-                    <subscribe.Subscribe />
-                  </React.Suspense>
-                }
-              />
+              <reactRouterDom.Route {...subscribe} />
             </reactRouterDom.Route>
           </reactRouterDom.Route>
 
-          <reactRouterDom.Route
-            path={appUtils.SUBSCRIBE_SUCCESS_PATH}
-            element={
-              <errorBoundary.ErrorBoundary>
-                <React.Suspense fallback={<loader.Loader />}>
-                  <subscribeSuccess.SubscribeSuccess />
-                </React.Suspense>
-              </errorBoundary.ErrorBoundary>
-            }
-          />
+          <reactRouterDom.Route {...subscribeSuccess} />
         </reactRouterDom.Route>
       </reactRouterDom.Route>
 
@@ -111,7 +96,7 @@ export function Routes(props: RoutesProps) {
 
       {/* 404 page */}
       <reactRouterDom.Route path="*" element={<reactRouterDom.Navigate to="/" replace />} />
-    </>
+    </reactRouterDom.Route>
   )
 
   const router = reactRouterDom.createBrowserRouter(

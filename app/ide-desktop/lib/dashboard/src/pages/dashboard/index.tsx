@@ -1,12 +1,14 @@
 /**
  * @file Barrel import for Dashboard route.
  */
-import Dashboard from './Dashboard'
+import defineRoute from '#/utilities/defineRoute'
+
+import * as dashboard from './Dashboard'
 
 /**
  * Dashboard route.
  */
-export default {
-  path: '/dashboard',
-  element: Dashboard,
-}
+export default defineRoute({
+  path: '/',
+  element: dashboard.Dashboard,
+})
