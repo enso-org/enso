@@ -5,7 +5,6 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -13,6 +12,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
+import java.nio.ByteBuffer;
+import org.enso.interpreter.arrow.LogicalLayout;
 
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowOperationPlus implements TruffleObject {
@@ -59,27 +60,19 @@ public final class ArrowOperationPlus implements TruffleObject {
     if (len != iopArray1.getArraySize(arr1)) {
       throw UnsupportedTypeException.create(args, "Arrays must have the same length");
     }
-    var builder = iop.instantiate(factory, len);
-    try {
-      var buf0 = typeOfBuf0.profile(node, ((ArrowFixedArrayInt) arr0).buffer.dataBuffer);
-      var buf1 = typeOfBuf1.profile(node, ((ArrowFixedArrayInt) arr1).buffer.dataBuffer);
-      buf0.rewind();
-      buf1.rewind();
+    var out = ByteBuffer.allocate((int) (8 * len));
+    var buf0 = typeOfBuf0.profile(node, ((ArrowFixedArrayInt) arr0).buffer.dataBuffer);
+    var buf1 = typeOfBuf1.profile(node, ((ArrowFixedArrayInt) arr1).buffer.dataBuffer);
+    buf0.rewind();
+    buf1.rewind();
 
-      for (long i = 0; i < len; i++) {
-        var l0 = buf0.getLong();
-        var l1 = buf1.getLong();
-        var res = l0 + l1;
-        iopBuilder.invokeMember(builder, "append", res);
-      }
-      return iopBuilder.invokeMember(builder, "build");
-    } catch (UnknownIdentifierException ex) {
-      throw raise(RuntimeException.class, ex);
+    for (long i = 0; i < len; i++) {
+      var l0 = buf0.getLong();
+      var l1 = buf1.getLong();
+      var res = l0 + l1;
+      out.putLong(res);
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Throwable> E raise(Class<E> type, Throwable t) throws E {
-    throw (E) t;
+    var outBuf = ByteBufferDirect.forBuffer(out);
+    return new ArrowFixedArrayInt(outBuf, (int) len, LogicalLayout.Int64);
   }
 }

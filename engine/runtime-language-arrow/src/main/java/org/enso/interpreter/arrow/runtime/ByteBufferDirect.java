@@ -57,6 +57,10 @@ final class ByteBufferDirect implements AutoCloseable {
     }
   }
 
+  static ByteBufferDirect forBuffer(ByteBuffer buf) {
+    return new ByteBufferDirect(buf, buf, null);
+  }
+
   /**
    * Creates a new buffer being able to store `valueCount` number of elements.
    *
