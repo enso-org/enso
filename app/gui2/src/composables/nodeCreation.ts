@@ -117,15 +117,21 @@ export function useNodeCreation(
     graphStore.edit((edit) => {
       const statements = new Array<Ast.Owned>()
       for (const options of placedNodes) {
-        const fixups = (edit: Ast.MutableModule, ast: Ast.Ast) => {
-          const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
-          for (const _conflict of conflicts) {
-            // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
-            // https://github.com/enso-org/enso/issues/9356
-            // substituteQualifiedName(edit, ast, conflict.pattern, conflict.fullyQualified)
-          }
+        const rhs = Ast.parse(options.expression, edit)
+        const ident = getIdentifier(rhs, options)
+        rhs.setNodeMetadata(options.metadata ?? {})
+        const assignment = Ast.Assignment.new(edit, ident, rhs)
+        const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
+        for (const _conflict of conflicts) {
+          // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+          // https://github.com/enso-org/enso/issues/9356
+          // substituteQualifiedName(edit, ast, conflict.pattern, conflict.fullyQualified)
         }
-        const { rootExpression, id } = newAssignmentNode(edit, options, fixups)
+        const id = asNodeId(rhs.id)
+        const rootExpression =
+          options.documentation != null ?
+            Ast.Documented.new(options.documentation, assignment)
+            : assignment
         statements.push(rootExpression)
         created.add(id)
         assert(options.metadata?.position != null, 'Node should already be placed')
