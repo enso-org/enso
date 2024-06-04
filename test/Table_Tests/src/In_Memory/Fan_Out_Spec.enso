@@ -4,7 +4,7 @@ from project.Util import all
 
 import Standard.Table.Internal.Fan_Out
 from Standard.Table import Table
-from Standard.Table.Columns_To_Add import Columns_To_Add
+import Standard.Table.Columns_To_Add.Columns_To_Add
 
 from Standard.Test import all
 
