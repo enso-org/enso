@@ -165,7 +165,27 @@ export function parseQualifiedName(ast: Ast): QualifiedName | null {
   return idents && normalizeQualifiedName(qnFromSegments(idents))
 }
 
-/* Substitute `pattern` inside `expression` with `to`.
+/** Substitute `pattern` inside `expression` with `to`. */
+export function substituteIdentifier(
+  module: MutableModule,
+  expression: Ast,
+  pattern: IdentifierOrOperatorIdentifier,
+  to: IdentifierOrOperatorIdentifier,
+) {
+  const expr = module.getVersion(expression) ?? expression
+  if (expr instanceof Ident && expr.code() === pattern) {
+    expr.updateValue(() => Ast.parse(to, module))
+  } else {
+    for (const child of expr.children()) {
+      if (child instanceof Token) {
+        continue
+      }
+      substituteIdentifier(module, child, pattern, to)
+    }
+  }
+}
+
+/** Substitute `pattern` inside `expression` with `to`.
  * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain). */
 export function substituteQualifiedName(
   module: MutableModule,
