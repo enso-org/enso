@@ -34,7 +34,7 @@ function onClick() {
         <slot />
       </button>
     </template>
-    <template #tooltip>
+    <template v-if="$slots.tooltip || props.title" #tooltip>
       <slot name="tooltip">{{ props.title }}</slot>
     </template>
   </TooltipTrigger>
