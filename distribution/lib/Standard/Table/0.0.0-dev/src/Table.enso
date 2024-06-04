@@ -23,6 +23,7 @@ import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
 import project.Column.Column
 import project.Column_Ref.Column_Ref
+import project.Columns_To_Add.Columns_To_Add
 import project.Columns_To_Keep.Columns_To_Keep
 import project.Constants.Previous_Value
 import project.Constants.Report_Unmatched
@@ -62,7 +63,6 @@ import project.Position.Position
 import project.Prefix_Name.Prefix_Name
 import project.Row.Row
 import project.Rows_To_Read.Rows_To_Read
-import project.Columns_To_Add.Columns_To_Add
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
