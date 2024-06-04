@@ -200,6 +200,8 @@ function typeToPrefix(type: Typename): string {
   }
 }
 
+/** Strip number suffix from binding name, effectively returning a valid prefix.
+ * The reverse of graphStore.generateLocallyUniqueIdent */
 function existingNameToPrefix(name: string): string {
   return name.replace(/\d+$/, '')
 }
