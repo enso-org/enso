@@ -3,10 +3,13 @@
 #### Enso Standard Library
 
 - [Added Statistic.Product][10122]
+- [Added Encoding.Default that tries to detect UTF-8 or UTF-16 encoding based on
+  BOM][10130]
 
 [debug-shortcuts]:
 
 [10122]: https://github.com/enso-org/enso/pull/10122
+[10130]: https://github.com/enso-org/enso/pull/10130
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
 
