@@ -10,7 +10,7 @@ import org.enso.interpreter.arrow.util.MemoryUtil;
 
 final class ByteBufferDirect implements AutoCloseable {
   private final ByteBuffer allocated;
-  private final ByteBuffer dataBuffer;
+  final ByteBuffer dataBuffer;
   private ByteBuffer bitmapBuffer;
 
   /**

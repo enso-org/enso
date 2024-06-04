@@ -1,5 +1,6 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -10,13 +11,14 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
 import org.enso.interpreter.arrow.LogicalLayout;
 
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowFixedArrayInt implements TruffleObject {
   private final int size;
-  private final ByteBufferDirect buffer;
+  final ByteBufferDirect buffer;
   private final LogicalLayout unit;
 
   public ArrowFixedArrayInt(ByteBufferDirect buffer, int size, LogicalLayout unit) {
@@ -71,6 +73,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     public static Object doLong(
         ArrowFixedArrayInt receiver,
         long index,
+        @Bind("$node") Node node,
         @CachedLibrary("receiver") InteropLibrary iop,
         @Cached InlinedExactClassProfile bufferClazz)
         throws UnsupportedMessageException, InvalidArrayIndexException {
