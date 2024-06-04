@@ -8,15 +8,22 @@ polyglot java import java.lang.Long as Java_Long
 
 options = Bench.options . set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 3 5)
 
-
-create_table : Table
-create_table num_rows =
+create_vectors num_rows =
     x = Vector.new num_rows i->
         i+1
     y = Vector.new num_rows i->
         if i % 10 < 2 then Java_Long.MAX_VALUE else i+1
     u = Vector.new num_rows i->
         10 + (i % 100)
+
+    [x, y, u]
+
+create_table : Table
+create_table num_rows =
+    v = create_vectors num_rows
+    x = v.at 0
+    y = v.at 1
+    u = v.at 2
 
     t = Table.new [["X", x], ["Y", y], ["U", u]]
 
@@ -34,29 +41,26 @@ foreign arrow int64_new = """
 foreign arrow int64_plus = """
     +[Int64]
 
-to_arrow t:Table =
-    column_to_arrow name:Text -> Array =
-        v = t.at name . to_vector
-        builder = int64_new.new v.length
-        v.map e-> builder.append e
-        builder.build
-
-    x = column_to_arrow "X"
-    y = column_to_arrow "Y"
-    [x, y]
-
 type Data
-    private Value ~lazy
+    private Value ~table ~arrow
 
-    table self = self.lazy.at 0
-    arrow_plus self = self.lazy.at 1
-    arrow_x self = self.lazy.at 2
-    arrow_y self = self.lazy.at 3
+    arrow_plus self = self.arrow.at 0
+    arrow_x self = self.arrow.at 1
+    arrow_y self = self.arrow.at 2
+    arrow_u self = self.arrow.at 3
 
-    create num_rows = Data.Value <|
-        table = create_table num_rows
-        all = [table, int64_plus] + to_arrow table
-        all
+    create num_rows = Data.Value (create_table num_rows) <|
+        column_to_arrow v:Vector -> Array =
+            builder = int64_new.new v.length
+            v.map e-> builder.append e
+            builder.build
+
+        v = create_vectors num_rows
+
+        x = column_to_arrow (v.at 0)
+        y = column_to_arrow (v.at 1)
+        u = column_to_arrow (v.at 2)
+        [int64_plus, x, y, u]
 
 
 collect_benches = Bench.build builder->
@@ -74,7 +78,10 @@ collect_benches = Bench.build builder->
             (data.table.at "Y") * (data.table.at "U")
 
     builder.group ("Arrow_Arithmetic_" + num_rows.to_text) options group_builder->
+        bench_arrow_plus v1 v2 =
+            data.arrow_plus v1 v2
+
         group_builder.specify "Plus_Fitting" <|
-            data.arrow_plus data.arrow_x data.arrow_y
+            bench_arrow_plus data.arrow_x data.arrow_u
 
 main = collect_benches . run_main
