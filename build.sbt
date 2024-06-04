@@ -332,6 +332,7 @@ lazy val enso = (project in file("."))
     `connected-lock-manager-server`,
     syntax,
     testkit,
+    `test-utils`,
     `common-polyglot-core-utils`,
     `std-base`,
     `std-database`,
