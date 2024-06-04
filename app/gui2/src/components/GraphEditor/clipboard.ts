@@ -1,4 +1,4 @@
-import type { NodeCreation } from '@/composables/nodeCreation'
+import type { NodeCreation, type NodeCreationOptions } from '@/composables/nodeCreation'
 import type { GraphStore, Node, NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
@@ -19,6 +19,7 @@ interface ClipboardData {
 /** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
 interface CopiedNode {
   expression: string
+  binding?: string
   documentation?: string | undefined
   metadata?: NodeMetadataFields
 }
@@ -28,6 +29,7 @@ function nodeStructuredData(node: Node): CopiedNode {
     expression: node.innerExpr.code(),
     documentation: node.documentation,
     metadata: node.rootExpr.serializeMetadata(),
+    ...node.pattern ? { binding: node.pattern.code() } : {}
   }
 }
 
@@ -120,7 +122,7 @@ function getClipboard() {
 export function useGraphEditorClipboard(
   graphStore: GraphStore,
   selected: ToValue<Set<NodeId>>,
-  createNodes: NodeCreation['createNodes'],
+  createNodes: (copiedNodes: string[], nodesOptions: Iterable<NodeCreationOptions>) => void,
 ) {
   /** Copy the content of the selected node to the clipboard. */
   function copySelectionToClipboard() {
@@ -144,13 +146,17 @@ export function useGraphEditorClipboard(
       console.warn('No valid node in clipboard.')
       return
     }
+    const copiedNodes = clipboardData.flatMap(({ binding }) => binding ? [binding] : [])
     createNodes(
-      clipboardData.map(({ expression, documentation, metadata }) => ({
-        placement: { type: 'mouse' },
-        expression,
-        metadata,
-        documentation,
-      })),
+      copiedNodes,
+      clipboardData.map(({ expression, documentation, metadata }) => { 
+        return ({
+          placement: { type: 'mouse' },
+          expression,
+          metadata,
+          documentation,
+        })
+      }),
     )
   }
 

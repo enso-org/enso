@@ -237,7 +237,10 @@ const { createNode, createNodes, placeNode } = provideNodeCreation(
 const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
   graphStore,
   toRef(nodeSelection, 'selected'),
-  createNodes,
+  (created, options) => { 
+    console.log(created)
+    createNodes(options) 
+  },
 )
 
 // === Interactions ===
