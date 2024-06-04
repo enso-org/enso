@@ -120,7 +120,7 @@ public abstract class EnsoRootNode extends RootNode {
         if (rootNode.sourceStartIndex == NO_SOURCE) {
           return null;
         } else {
-          return rootNode.getModule().createSection(sourceStartIndex, sourceLength);
+          return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
         }
       } else {
         return rootNode.inlineSource.createSection(sourceStartIndex, sourceLength);
@@ -145,10 +145,6 @@ public abstract class EnsoRootNode extends RootNode {
    */
   public ModuleScope getModuleScope() {
     return moduleScope;
-  }
-
-  public Module getModule() {
-    return moduleScope.getModule();
   }
 
   /**

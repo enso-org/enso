@@ -154,7 +154,7 @@ public class MethodRootNode extends ClosureRootNode {
    */
   @Override
   public String getQualifiedName() {
-    return getModule().getName().toString()
+    return getModuleScope().getModule().getName().toString()
         + "::"
         + type.getQualifiedName().toString()
         + "::"

@@ -275,7 +275,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
   private Package<TruffleFile> getThisProject() {
     if (getRootNode() instanceof EnsoRootNode thisRootNode) {
-      return thisRootNode.getModule().getPackage();
+      return thisRootNode.getModuleScope().getModule().getPackage();
     }
     return null;
   }
@@ -290,7 +290,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
       return cons.getDefinitionScope().getModule().getPackage();
     }
     if (function.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRootNode) {
-      return ensoRootNode.getModule().getPackage();
+      return ensoRootNode.getModuleScope().getModule().getPackage();
     }
     return null;
   }

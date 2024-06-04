@@ -228,7 +228,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
             null);
       }
 
-      var module = ensoRootNode.getModule();
+      var module = ensoRootNode.getModuleScope().getModule();
       var localScope = ensoRootNode.getLocalScope();
       var outputRedirect = new ByteArrayOutputStream();
       var redirectConfigWithStrictErrors =

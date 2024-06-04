@@ -777,7 +777,7 @@ public final class ExecutionService {
 
       switch (rootNode) {
         case MethodRootNode methodNode -> {
-          moduleName = methodNode.getModule().getName();
+          moduleName = methodNode.getModuleScope().getModule().getName();
           typeName = methodNode.getType().getQualifiedName();
           functionName = methodNode.getMethodName();
         }
