@@ -149,10 +149,11 @@ export function useGraphEditorClipboard(
     const copiedNodes = clipboardData.flatMap(({ binding }) => binding ? [binding] : [])
     createNodes(
       copiedNodes,
-      clipboardData.map(({ expression, documentation, metadata }) => { 
+      clipboardData.map(({ expression, binding, documentation, metadata }) => { 
         return ({
           placement: { type: 'mouse' },
           expression,
+          binding,
           metadata,
           documentation,
         })

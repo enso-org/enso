@@ -44,6 +44,7 @@ function isIndependent(
 export interface NodeCreationOptions<Placement extends PlacementStrategy = PlacementStrategy> {
   placement: Placement
   expression: string
+  binding?: string | undefined
   type?: Typename | undefined
   documentation?: string | undefined
   metadata?: Ast.NodeMetadataFields | undefined
@@ -158,8 +159,8 @@ export function useNodeCreation(
   }
 
   function getIdentifier(expr: Ast.Ast, options: NodeCreationOptions): Ast.Identifier {
-    const inferredPrefix = inferPrefixFromAst(expr)
-    const namePrefix = options.type ? typeToPrefix(options.type) : inferredPrefix
+    const namePrefix = options.binding ? existingNameToPrefix(options.binding) :
+      options.type ? typeToPrefix(options.type) : inferPrefixFromAst(expr)
     const ident = graphStore.generateLocallyUniqueIdent(namePrefix)
     return ident
   }
@@ -197,6 +198,10 @@ function typeToPrefix(type: Typename): string {
   } else {
     return type.toLowerCase()
   }
+}
+
+function existingNameToPrefix(name: string): string {
+  return name.replace(/\d+$/, '')
 }
 
 /** Insert the given statements into the given block, at a location appropriate for new nodes.
