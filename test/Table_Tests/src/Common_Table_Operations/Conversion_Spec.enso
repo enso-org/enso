@@ -236,6 +236,15 @@ add_specs suite_builder setup =
             [[1, 4], [1, 5]] . should_contain v2
 
         if setup.is_database.not then
+            group_builder.specify "Can cast numeric columns to Decimal" <|
+                t = table_builder [["ints", [1, 2, 4]], ["floats", [1.0001, 2.25, 4.0]]]
+                td = t.cast ["ints", "floats"] Value_Type.Decimal
+                td.at "ints" . value_type . should_equal Value_Type.Decimal
+                td.at "floats" . value_type . should_equal Value_Type.Decimal
+                td.at "ints" . to_vector . should_equal (t.at "ints" . to_vector)
+                td.at "floats" . to_vector . should_equal (t.at "floats" . to_vector)
+
+        if setup.is_database.not then
             group_builder.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|
                 max_long = Java_Long.MAX_VALUE
                 too_big_double = (max_long + 1.0) * 1000.0
