@@ -134,9 +134,7 @@ export function useNodeCreation(
   function newAssignmentNode(edit: Ast.MutableModule, options: NodeCreationOptions) {
     const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
     const rhs = Ast.parse(options.expression, edit)
-    const inferredPrefix = inferPrefixFromAst(rhs)
-    const namePrefix = options.type ? typeToPrefix(options.type) : inferredPrefix
-    const ident = graphStore.generateLocallyUniqueIdent(namePrefix)
+    const ident = getIdentifier(rhs, options)
     rhs.setNodeMetadata(options.metadata ?? {})
     const assignment = Ast.Assignment.new(edit, ident, rhs)
     for (const _conflict of conflicts) {
@@ -149,7 +147,14 @@ export function useNodeCreation(
       options.documentation != null ?
         Ast.Documented.new(options.documentation, assignment)
       : assignment
-    return { rootExpression, id, inferredType: inferredPrefix }
+    return { rootExpression, id }
+  }
+
+  function getIdentifier(expr: Ast.Ast, options: NodeCreationOptions): Ast.Identifier {
+    const inferredPrefix = inferPrefixFromAst(expr)
+    const namePrefix = options.type ? typeToPrefix(options.type) : inferredPrefix
+    const ident = graphStore.generateLocallyUniqueIdent(namePrefix)
+    return ident
   }
 
   return { createNode, createNodes, placeNode }
