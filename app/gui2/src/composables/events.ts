@@ -458,8 +458,12 @@ export function useArrows(
   const positionAt = (t: number) =>
     referencePoint.value.position.add(v.value.scale((t - referencePoint.value.t) / 1000.0))
 
-  const callHandler = (t: number, eventType: PointerEventType, event?: KeyboardEvent) => {
-    const offset = positionAt(t)
+  const callHandler = (
+    t: number,
+    eventType: PointerEventType,
+    event?: KeyboardEvent,
+    offset: Vec2 = positionAt(t),
+  ) => {
     const delta = offset.sub(lastPosition.value)
     lastPosition.value = offset
     const positions = {
@@ -487,7 +491,7 @@ export function useArrows(
       pressedKeys.value[e.key] = true
       if (starting) {
         lastPosition.value = Vec2.Zero
-        callHandler(e.timeStamp, 'start', e)
+        callHandler(e.timeStamp, 'start', e, referencePoint.value.position)
       }
     },
     keyup(e: KeyboardEvent) {
@@ -499,7 +503,7 @@ export function useArrows(
         t: e.timeStamp,
       }
       pressedKeys.value[e.key] = false
-      if (!moving.value) callHandler(e.timeStamp, 'stop', e)
+      if (!moving.value) callHandler(e.timeStamp, 'stop', e, referencePoint.value.position)
     },
     focusout() {
       // Each focus change may make us miss some events, so it's safer to just cancel the movement.

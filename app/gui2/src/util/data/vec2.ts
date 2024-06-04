@@ -15,6 +15,10 @@ export class Vec2 {
     return new Vec2(point.x, point.y)
   }
 
+  static FromTuple(point: [x: number, y: number]): Vec2 {
+    return new Vec2(point[0], point[1])
+  }
+
   static FromSize(point: Readonly<{ width: number; height: number }>): Vec2 {
     return new Vec2(point.width, point.height)
   }
