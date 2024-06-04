@@ -703,8 +703,8 @@ export default function Chat(props: ChatProps) {
     return reactDom.createPortal(
       <div
         className={tailwindMerge.twMerge(
-          'fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform',
-          !isOpen && 'translate-x-full'
+          'fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary backdrop-blur-default transition-transform',
+          isOpen ? 'shadow-soft' : 'translate-x-full'
         )}
         {...focusWithinProps}
       >
@@ -852,9 +852,10 @@ export default function Chat(props: ChatProps) {
         {!isPaidUser && (
           <ariaComponents.Button
             size="custom"
-            variant="custom" // This UI element does not appear anywhere else.
+            variant="custom"
+            // This UI element does not appear anywhere else.
             // eslint-disable-next-line no-restricted-syntax
-            className="bg-call-to-action/90 mx-2 my-1 rounded-default p-2 text-center leading-cozy text-white"
+            className="mx-2 my-1 text-wrap rounded-2xl bg-call-to-action/90 p-2 text-center leading-cozy text-white hover:bg-call-to-action"
             onPress={upgradeToPro}
           >
             {getText('upgradeToProNag')}

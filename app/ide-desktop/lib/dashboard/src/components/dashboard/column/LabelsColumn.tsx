@@ -144,7 +144,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           size="custom"
           variant="custom"
           ref={plusButtonRef}
-          className="shrink-0 rounded-full transparent group-hover:opacity-100 focus-visible:opacity-100"
+          className="shrink-0 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           onPress={() => {
             setModal(
               <ManageLabelsModal

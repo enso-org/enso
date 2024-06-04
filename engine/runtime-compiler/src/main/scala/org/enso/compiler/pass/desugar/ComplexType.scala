@@ -199,7 +199,7 @@ case object ComplexType extends IRPass {
         res
       case binding @ Expression.Binding(name, _, _, _, _) =>
         matchSignaturesAndGenerate(name, binding)
-      case funSugar @ Function.Binding(name, _, _, _, _, _, _) =>
+      case funSugar @ Function.Binding(name, _, _, _, _, _, _, _) =>
         matchSignaturesAndGenerate(name, funSugar)
       case err: Error                  => Seq(err)
       case ann: Name.GenericAnnotation => Seq(ann)
@@ -260,6 +260,7 @@ case object ComplexType extends IRPass {
           name,
           List(),
           realExpr,
+          false,
           location,
           passData,
           diagnostics,
@@ -269,6 +270,7 @@ case object ComplexType extends IRPass {
             name,
             args,
             body,
+            isPrivate,
             location,
             _,
             passData,
@@ -279,6 +281,7 @@ case object ComplexType extends IRPass {
           name,
           args,
           body,
+          isPrivate,
           location,
           passData,
           diagnostics,
@@ -306,6 +309,7 @@ case object ComplexType extends IRPass {
     name: Name,
     args: List[DefinitionArgument],
     body: Expression,
+    isPrivate: Boolean,
     location: Option[IdentifiedLocation],
     passData: MetadataStorage,
     diagnostics: DiagnosticStorage,
@@ -323,6 +327,7 @@ case object ComplexType extends IRPass {
     val binding = definition.Method.Binding(
       methodRef.duplicate(),
       args.map(_.duplicate()),
+      isPrivate,
       body.duplicate(),
       location,
       passData.duplicate,

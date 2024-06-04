@@ -9,6 +9,8 @@ polyglot java import org.enso.base_test_helpers.CallbackHelper
 type My_Priv_Type
     private Cons data
 
+private My_Priv_Type.ext_method self = self.data
+
 
 add_specs spec_builder =
     spec_builder.group "Private constructors" group_builder->
@@ -71,15 +73,43 @@ add_specs spec_builder =
             res . should_equal 42
 
 
+    spec_builder.group "Private methods" group_builder->
+        group_builder.specify "can call private method in the same project" <|
+            priv_method 1 . should_equal 1
+
+        group_builder.specify "cannot call private method from different project" <|
+            obj = Priv_Type.create 42
+            Test.expect_panic Private_Access <|
+                obj.priv_method
+
+        group_builder.specify "cannot call private static method from different project" <|
+            obj = Priv_Type.create 42
+            Test.expect_panic Private_Access <|
+                Priv_Type.priv_method obj
+
+        group_builder.specify "cannot call private method from a lambda method" <|
+            obj = Priv_Type.create 42
+            Test.expect_panic Private_Access <|
+                Priv_Type.in_ctx <|
+                    Priv_Type.priv_method obj
+
+        group_builder.specify "extension methods can be specified as private" <|
+            obj = My_Priv_Type.Cons 42
+            obj.ext_method . should_equal 42
+
+
+
 foreign js js_access_field obj = """
     return obj.data;
 
 foreign js js_access_field_via_getter obj = """
     return obj.get_data();
 
+
 foreign js js_create_obj cons_fn = """
     return cons_fn(42);
 
+private priv_method x = x
 
 main filter=Nothing =
     suite = Test.build suite_builder->

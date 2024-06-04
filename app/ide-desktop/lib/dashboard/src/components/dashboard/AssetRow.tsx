@@ -124,9 +124,9 @@ export default function AssetRow(props: AssetRowProps) {
       : outerVisibility
   const hidden = hiddenRaw || visibility === Visibility.hidden
 
+  const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
   const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
-  const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
   const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
   const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
   const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
@@ -135,6 +135,12 @@ export default function AssetRow(props: AssetRowProps) {
   const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
   const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
   const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
+  const copyAssetMutate = copyAssetMutation.mutateAsync
+  const updateAssetMutate = updateAssetMutation.mutateAsync
+  const deleteAssetMutate = deleteAssetMutation.mutateAsync
+  const undoDeleteAssetMutate = undoDeleteAssetMutation.mutateAsync
+  const openProjectMutate = openProjectMutation.mutateAsync
+  const closeProjectMutate = closeProjectMutation.mutateAsync
 
   React.useEffect(() => {
     setItem(rawItem)
@@ -172,7 +178,7 @@ export default function AssetRow(props: AssetRowProps) {
           })
         )
         newParentId ??= rootDirectoryId
-        const copiedAsset = await copyAssetMutation.mutateAsync([
+        const copiedAsset = await copyAssetMutate([
           asset.id,
           newParentId,
           asset.title,
@@ -196,7 +202,7 @@ export default function AssetRow(props: AssetRowProps) {
       asset,
       item.key,
       toastAndLog,
-      /* should never change */ copyAssetMutation,
+      /* should never change */ copyAssetMutate,
       /* should never change */ nodeMap,
       /* should never change */ setAsset,
       /* should never change */ dispatchAssetListEvent,
@@ -270,7 +276,7 @@ export default function AssetRow(props: AssetRowProps) {
           item: newAsset,
         })
         setAsset(newAsset)
-        await updateAssetMutation.mutateAsync([
+        await updateAssetMutate([
           asset.id,
           {
             parentDirectoryId: newParentId ?? rootDirectoryId,
@@ -311,7 +317,7 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryKey,
       item.key,
       toastAndLog,
-      /* should never change */ updateAssetMutation,
+      /* should never change */ updateAssetMutate,
       /* should never change */ setAsset,
       /* should never change */ dispatchAssetListEvent,
     ]
@@ -352,15 +358,15 @@ export default function AssetRow(props: AssetRowProps) {
             asset.projectState.type !== backendModule.ProjectState.placeholder &&
             asset.projectState.type !== backendModule.ProjectState.closed
           ) {
-            await openProjectMutation.mutateAsync([asset.id, null, asset.title])
+            await openProjectMutate([asset.id, null, asset.title])
           }
           try {
-            await closeProjectMutation.mutateAsync([asset.id, asset.title])
+            await closeProjectMutate([asset.id, asset.title])
           } catch {
             // Ignored. The project was already closed.
           }
         }
-        await deleteAssetMutation.mutateAsync([
+        await deleteAssetMutate([
           asset.id,
           { force: forever, parentId: asset.parentId },
           asset.title,
@@ -375,9 +381,9 @@ export default function AssetRow(props: AssetRowProps) {
       backend.type,
       dispatchAssetListEvent,
       asset,
-      /* should never change */ openProjectMutation,
-      /* should never change */ closeProjectMutation,
-      /* should never change */ deleteAssetMutation,
+      /* should never change */ openProjectMutate,
+      /* should never change */ closeProjectMutate,
+      /* should never change */ deleteAssetMutate,
       /* should never change */ item.key,
       /* should never change */ toastAndLog,
     ]
@@ -387,7 +393,7 @@ export default function AssetRow(props: AssetRowProps) {
     // Visually, the asset is deleted from the Trash view.
     setInsertionVisibility(Visibility.hidden)
     try {
-      await undoDeleteAssetMutation.mutateAsync([asset.id, asset.title])
+      await undoDeleteAssetMutate([asset.id, asset.title])
       dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
@@ -397,7 +403,7 @@ export default function AssetRow(props: AssetRowProps) {
     dispatchAssetListEvent,
     asset,
     toastAndLog,
-    /* should never change */ undoDeleteAssetMutation,
+    /* should never change */ undoDeleteAssetMutate,
     /* should never change */ item.key,
   ])
 
@@ -938,7 +944,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialLoading: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
+          <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
                 'flex h-row w-container justify-center rounded-full rounded-rows-child',
@@ -954,7 +960,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialEmpty: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
+          <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
                 'flex h-row items-center rounded-full rounded-rows-child',

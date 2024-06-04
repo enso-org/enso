@@ -71,7 +71,7 @@ export function Tooltip(props: TooltipProps) {
     <aria.Tooltip
       offset={DEFAULT_OFFSET}
       containerPadding={containerPadding}
-      UNSTABLE_portalContainer={root.current}
+      UNSTABLE_portalContainer={root}
       className={aria.composeRenderProps(className, (classNames, values) =>
         TOOLTIP_STYLES({ className: classNames, ...values })
       )}

@@ -80,7 +80,7 @@ export function Subscribe() {
       return backend.getCheckoutSession(id)
     },
     onSuccess: (data, mutationData) => {
-      if (data.status === 'complete') {
+      if (['trialing', 'active'].includes(data.status)) {
         navigate({ pathname: appUtils.SUBSCRIBE_SUCCESS_PATH, search: `plan=${mutationData.plan}` })
         return
       } else {

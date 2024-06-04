@@ -22,7 +22,7 @@ export const BUTTON_STYLES = twv.tv({
     isFocused: {
       true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary',
     },
-    loading: { true: { base: 'cursor-wait', content: 'opacity-0' } },
+    loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     size: {
       custom: '',
@@ -72,9 +72,8 @@ export const BUTTON_STYLES = twv.tv({
   slots: {
     extraClickZone: 'flex relative after:inset-[-12px] after:absolute',
     wrapper: 'relative block',
-    loader:
-      'animate-appear-delayed absolute inset-0 flex items-center justify-center duration-1000',
-    content: 'flex items-center gap-[0.5em] delay-1000 duration-0',
+    loader: 'absolute inset-0 flex items-center justify-center',
+    content: 'flex items-center gap-[0.5em]',
     icon: 'h-[1.5em] flex-none',
   },
   defaultVariants: {
@@ -154,7 +153,7 @@ export const Button = React.forwardRef(function Button(
     variant,
     icon,
     loading = false,
-    isDisabled: isDisabledRaw = false,
+    isDisabled,
     showIconOnHover,
     iconPosition,
     size,
@@ -168,6 +167,8 @@ export const Button = React.forwardRef(function Button(
   const focusChildProps = focusHooks.useFocusChild()
 
   const [implicitlyLoading, setImplicitlyLoading] = React.useState(false)
+  const contentRef = React.useRef<HTMLSpanElement>(null)
+  const loaderRef = React.useRef<HTMLSpanElement>(null)
 
   const isLink = ariaProps.href != null
 
@@ -181,16 +182,41 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
-  const isDisabled = isDisabledRaw || isLoading
+
+  React.useLayoutEffect(() => {
+    const delay = 350
+
+    if (isLoading) {
+      const loaderAnimation = loaderRef.current?.animate(
+        [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
+        { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' }
+      )
+      const contentAnimation = contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 0,
+        easing: 'linear',
+        delay,
+        fill: 'forwards',
+      })
+
+      return () => {
+        loaderAnimation?.cancel()
+        contentAnimation?.cancel()
+      }
+    } else {
+      return () => {}
+    }
+  }, [isLoading])
 
   const handlePress = (event: aria.PressEvent): void => {
-    const result = onPress(event)
+    if (!isLoading) {
+      const result = onPress(event)
 
-    if (result instanceof Promise) {
-      setImplicitlyLoading(true)
-      void result.finally(() => {
-        setImplicitlyLoading(false)
-      })
+      if (result instanceof Promise) {
+        setImplicitlyLoading(true)
+        void result.finally(() => {
+          setImplicitlyLoading(false)
+        })
+      }
     }
   }
 
@@ -248,12 +274,12 @@ export const Button = React.forwardRef(function Button(
       )}
     >
       <span className={wrapper()}>
-        <span className={tailwindMerge.twMerge(content(), contentClassName)}>
+        <span ref={contentRef} className={tailwindMerge.twMerge(content(), contentClassName)}>
           {childrenFactory()}
         </span>
 
         {isLoading && (
-          <span className={loader()}>
+          <span ref={loaderRef} className={loader()}>
             <Spinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
           </span>
         )}

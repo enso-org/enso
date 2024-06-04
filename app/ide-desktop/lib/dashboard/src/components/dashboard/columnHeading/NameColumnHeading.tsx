@@ -53,7 +53,7 @@ export default function NameColumnHeading(
         src={SortAscendingIcon}
         className={tailwindMerge.twMerge(
           'transition-all duration-arrow',
-          isSortActive ? 'selectable active' : 'transparent group-hover:selectable',
+          isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
           isDescending && 'rotate-180'
         )}
       />

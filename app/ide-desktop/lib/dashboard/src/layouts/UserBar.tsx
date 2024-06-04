@@ -92,11 +92,7 @@ export default function UserBar(props: UserBarProps) {
             </ariaComponents.DialogTrigger>
           )}
 
-          <ariaComponents.Button
-            variant="primary"
-            size="medium"
-            href={appUtils.SUBSCRIBE_PATH}
-          >
+          <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </ariaComponents.Button>
           {shouldShowShareButton && (

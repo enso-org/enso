@@ -234,7 +234,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                       'transition-all duration-arrow',
                       sortInfo?.field === ActivityLogSortableColumn.type
                         ? 'selectable active'
-                        : 'transparent group-hover:selectable',
+                        : 'opacity-0 group-hover:selectable',
                       sortInfo?.field === ActivityLogSortableColumn.type &&
                         isDescending &&
                         'rotate-180'
@@ -281,7 +281,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                       'transition-all duration-arrow',
                       sortInfo?.field === ActivityLogSortableColumn.email
                         ? 'selectable active'
-                        : 'transparent group-hover:selectable',
+                        : 'opacity-0 group-hover:selectable',
                       sortInfo?.field === ActivityLogSortableColumn.email &&
                         isDescending &&
                         'rotate-180'
@@ -328,7 +328,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                       'transition-all duration-arrow',
                       sortInfo?.field === ActivityLogSortableColumn.timestamp
                         ? 'selectable active'
-                        : 'transparent group-hover:selectable',
+                        : 'opacity-0 group-hover:selectable',
                       sortInfo?.field === ActivityLogSortableColumn.timestamp &&
                         isDescending &&
                         'rotate-180'

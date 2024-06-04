@@ -129,7 +129,7 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
             <ariaComponents.Button
               size="custom"
               variant="custom"
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              className="px-new-project-button-x flex h-row items-center rounded-full bg-frame"
               onPress={event => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }

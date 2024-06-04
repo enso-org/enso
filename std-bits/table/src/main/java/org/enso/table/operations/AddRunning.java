@@ -42,6 +42,9 @@ public class AddRunning {
       case Mean -> {
         return new RunningMeanStatistic(sourceColumn, problemAggregator);
       }
+      case Product -> {
+        return new RunningProductStatistic(sourceColumn, problemAggregator);
+      }
       case Minimum -> {
         if (sourceColumn.getStorage().getType() instanceof IntegerType type) {
           return new RunningMinLongStatistic(sourceColumn, problemAggregator, type);
@@ -235,6 +238,18 @@ public class AddRunning {
     }
   }
 
+  private static class RunningProductStatistic extends RunningStatisticBase<Double> {
+
+    RunningProductStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
+      super(sourceColumn, problemAggregator, new DoubleHandler());
+    }
+
+    @Override
+    public RunningIterator<Double> getNewIterator() {
+      return new RunningProductIterator();
+    }
+  }
+
   private static class RunningVarianceStatistic extends RunningStatisticBase<Double> {
 
     private final boolean isPopulationVariance;
@@ -313,6 +328,14 @@ public class AddRunning {
     @Override
     public double getCurrent() {
       return sum;
+    }
+  }
+
+  private static class RunningProductIterator extends RunningIteratorBase {
+
+    @Override
+    public void increment(double value) {
+      current *= value;
     }
   }
 

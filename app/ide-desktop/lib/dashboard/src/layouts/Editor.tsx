@@ -30,6 +30,7 @@ export default function Editor(props: EditorProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
   const remoteBackend = backendProvider.useRemoteBackend()
 
   const logEvent = React.useCallback(
@@ -40,8 +41,6 @@ export default function Editor(props: EditorProps) {
     },
     [remoteBackend]
   )
-
-  gtagEventRef.current = gtagEvent
 
   React.useEffect(() => {
     if (hidden) {

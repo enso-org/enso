@@ -65,51 +65,57 @@ export function SetOrganizationNameModal() {
         hideCloseButton
         modalProps={{ isOpen: shouldShowModal }}
       >
-        <aria.Form
-          onSubmit={event => {
-            event.preventDefault()
-            const name = new FormData(event.currentTarget).get('name')
-            if (typeof name === 'string') {
-              updateOrganizationMutation.mutate([{ name }])
-            }
-          }}
-        >
-          <aria.TextField
-            name="name"
-            isRequired
-            autoFocus
-            inputMode="text"
-            autoComplete="off"
-            className="flex w-full flex-col"
-          >
-            <aria.Label className="mb-1 ml-0.5 block text-sm">{getText('organization')}</aria.Label>
-            <aria.Input
-              className={values =>
-                tailwindMerge.twMerge(
-                  'rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]',
-                  (values.isFocused || values.isFocusVisible) &&
-                    'outline outline-2 outline-primary',
-                  values.isInvalid && 'border-red-500 outline-red-500'
-                )
-              }
-            />
-            <aria.FieldError className="text-sm text-red-500" />
-          </aria.TextField>
-          {updateOrganizationMutation.error && (
-            <ariaComponents.Alert variant="error" size="medium">
-              {updateOrganizationMutation.error.message}
-            </ariaComponents.Alert>
+        <ariaComponents.Form
+          gap="medium"
+          defaultValues={{ name: '' }}
+          schema={ariaComponents.Form.useFormSchema(z =>
+            z.object({
+              name: z
+                .string()
+                .min(1, getText('arbitraryFieldRequired'))
+                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                .max(255, getText('arbitraryFieldTooLong')),
+            })
           )}
-          <ariaComponents.Button
-            className="mt-4"
-            type="submit"
-            variant="submit"
-            size="medium"
-            loading={updateOrganizationMutation.isPending}
-          >
-            {getText('submit')}
-          </ariaComponents.Button>
-        </aria.Form>
+          onSubmit={({ name }) => updateOrganizationMutation.mutateAsync([{ name }])}
+        >
+          {({ register, formState }) => {
+            return (
+              <>
+                <aria.TextField
+                  autoFocus
+                  inputMode="text"
+                  autoComplete="off"
+                  className="flex w-full flex-col"
+                  {...register('name')}
+                >
+                  <aria.Label className="mb-1 ml-0.5 block text-sm">
+                    {getText('organization')}
+                  </aria.Label>
+
+                  <aria.Input
+                    className={values =>
+                      tailwindMerge.twMerge(
+                        'rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]',
+                        (values.isFocused || values.isFocusVisible) &&
+                          'outline outline-2 outline-primary',
+                        values.isInvalid && 'border-red-500 outline-red-500'
+                      )
+                    }
+                  />
+
+                  <aria.FieldError className="text-sm text-red-500">
+                    {formState.errors.name?.message}
+                  </aria.FieldError>
+                </aria.TextField>
+
+                <ariaComponents.Form.FormError />
+
+                <ariaComponents.Form.Submit />
+              </>
+            )
+          }}
+        </ariaComponents.Form>
       </ariaComponents.Dialog>
       <router.Outlet context={session} />
     </>
