@@ -48,6 +48,8 @@ const DIALOG_STYLES = twv.tv({
   },
 })
 
+const IGNORE_INTERACT_OUTSIDE_ELEMENTS = ['Toastify__toast-container', 'tsqd-parent-container']
+
 // ==============
 // === Dialog ===
 // ==============
@@ -69,6 +71,7 @@ export function Dialog(props: types.DialogProps) {
     testId = 'dialog',
     ...ariaDialogProps
   } = props
+  const shouldCloseOnInteractOutsideRef = React.useRef(false)
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
   const root = portal.useStrictPortalContext()
@@ -77,17 +80,32 @@ export function Dialog(props: types.DialogProps) {
 
   aria.useInteractOutside({
     ref: dialogRef,
-    onInteractOutside: () => {
-      if (isDismissable) {
-        overlayState.current?.close()
-      } else {
-        const duration = 200 // 200ms
+    // we need to prevent the dialog from closing when interacting with the toastify container
+    // and when interaction starts, we check if the target is inside the toastify container
+    // and in the next callback we prevent the dialog from closing
+    // For some reason aria doesn't fire onInteractOutsideStart if onInteractOutside is not defined
+    onInteractOutsideStart: e => {
+      // eslint-disable-next-line no-restricted-syntax
+      const target = e.target as HTMLElement
 
-        dialogRef.current?.animate(
-          [{ transform: 'scale(1)' }, { transform: 'scale(1.015)' }, { transform: 'scale(1)' }],
-          { duration, iterations: 1, direction: 'alternate' }
-        )
+      shouldCloseOnInteractOutsideRef.current = !IGNORE_INTERACT_OUTSIDE_ELEMENTS.some(selector =>
+        target.closest(`.${selector}`)
+      )
+    },
+    onInteractOutside: () => {
+      if (shouldCloseOnInteractOutsideRef.current) {
+        if (isDismissable) {
+          overlayState.current?.close()
+        } else {
+          const duration = 200 // 200ms
+          dialogRef.current?.animate(
+            [{ transform: 'scale(1)' }, { transform: 'scale(1.015)' }, { transform: 'scale(1)' }],
+            { duration, iterations: 1, direction: 'alternate' }
+          )
+        }
       }
+
+      shouldCloseOnInteractOutsideRef.current = false
     },
   })
 
@@ -96,8 +114,9 @@ export function Dialog(props: types.DialogProps) {
       className={OVERLAY_STYLES}
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-      UNSTABLE_portalContainer={root.current}
+      UNSTABLE_portalContainer={root}
       onOpenChange={onOpenChange}
+      shouldCloseOnInteractOutside={() => false}
       {...modalProps}
     >
       {values => {
@@ -108,8 +127,9 @@ export function Dialog(props: types.DialogProps) {
             className={MODAL_STYLES}
             isDismissable={isDismissable}
             isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-            UNSTABLE_portalContainer={root.current}
+            UNSTABLE_portalContainer={root}
             onOpenChange={onOpenChange}
+            shouldCloseOnInteractOutside={() => false}
             {...modalProps}
           >
             <aria.Dialog

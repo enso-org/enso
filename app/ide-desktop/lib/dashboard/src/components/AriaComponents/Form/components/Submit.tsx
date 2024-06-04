@@ -4,6 +4,8 @@ import * as React from 'react'
 
 import * as reactHookForm from 'react-hook-form'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import * as ariaComponents from '#/components/AriaComponents'
 
 // ==============
@@ -29,7 +31,10 @@ export function Submit(props: SubmitProps): React.JSX.Element {
     variant = 'submit',
     size = 'medium',
     testId = 'form-submit-button',
+    children,
   } = props
+
+  const { getText } = textProvider.useText()
   const { formState } = form
 
   return (
@@ -40,6 +45,8 @@ export function Submit(props: SubmitProps): React.JSX.Element {
       size={size}
       loading={formState.isSubmitting}
       testId={testId}
-    />
+    >
+      {children ?? getText('submit')}
+    </ariaComponents.Button>
   )
 }

@@ -14,16 +14,16 @@ import type * as types from '#/components/AriaComponents/Form/types'
 
 /** Props for a {@link FormError}. */
 export interface FormErrorProps<
-  TFieldValues extends types.FieldValues,
-  TTransformedFieldValues extends types.FieldValues,
+  TFieldValues extends types.FieldValues<never>,
+  TTransformedFieldValues extends types.FieldValues<never>,
 > extends Omit<reactAriaComponents.AlertProps, 'children'> {
   readonly form?: reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedFieldValues>
 }
 
 /** Form error component. */
 export function FormError<
-  TFieldValues extends types.FieldValues,
-  TTransformedFieldValues extends types.FieldValues,
+  TFieldValues extends types.FieldValues<never>,
+  TTransformedFieldValues extends types.FieldValues<never>,
 >(props: FormErrorProps<TFieldValues, TTransformedFieldValues>) {
   const {
     form = reactHookForm.useFormContext(),
