@@ -24,18 +24,26 @@ public final class ArrowOperationPlus implements TruffleObject {
     return true;
   }
 
-  @ExportMessage
-  Object execute(
-      Object[] args,
-      @CachedLibrary(limit = "10") InteropLibrary iop,
-      @CachedLibrary(limit = "3") InteropLibrary iopArray0,
-      @CachedLibrary(limit = "3") InteropLibrary iopArray1,
-      @CachedLibrary(limit = "3") InteropLibrary iopElem,
-      @CachedLibrary(limit = "3") InteropLibrary iopBuilder)
-      throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+  static ArrowFixedSizeArrayFactory factory(ArrowOperationPlus thiz) {
+    return thiz.factory;
+  }
+
+  static Object args(Object[] args, int index) throws ArityException {
     if (args.length != 2) {
       throw ArityException.create(2, 2, args.length);
     }
+    return args[index];
+  }
+
+  @ExportMessage(limit = "3")
+  Object execute(
+      Object[] args,
+      @CachedLibrary("factory(this)") InteropLibrary iop,
+      @CachedLibrary("args(args, 0)") InteropLibrary iopArray0,
+      @CachedLibrary("args(args, 1)") InteropLibrary iopArray1,
+      @CachedLibrary(limit = "3") InteropLibrary iopElem,
+      @CachedLibrary(limit = "3") InteropLibrary iopBuilder)
+      throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
     var arr0 = args[0];
     var arr1 = args[1];
     if (!iopArray0.hasArrayElements(arr0) || !iopArray1.hasArrayElements(arr1)) {
