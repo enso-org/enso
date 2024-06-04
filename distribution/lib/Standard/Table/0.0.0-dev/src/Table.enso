@@ -300,7 +300,7 @@ type Table
     @selector Widget_Helpers.make_column_name_selector
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
     get_value : Text | Integer -> Integer -> Any -> Any
-    get_value self selector=0 index=0 ~if_missing=Nothing =
+    get_value self selector:Integer=0 index:Integer=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
@@ -518,7 +518,7 @@ type Table
 
              table.select_blank_columns
     select_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
-    select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
+    select_blank_columns self (when : Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         Table.new new_columns
 
@@ -544,7 +544,7 @@ type Table
 
              table.remove_blank_columns
     remove_blank_columns : Blank_Selector -> Boolean -> Table ! No_Output_Columns
-    remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
+    remove_blank_columns self (when : Blank_Selector = Blank_Selector.All_Cells) (treat_nans_as_blank : Boolean = False) =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
         Table.new new_columns
 
@@ -1305,7 +1305,7 @@ type Table
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
     split_to_columns : Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> Table
-    split_to_columns self column delimiter="," (column_count : Columns_To_Add = ..All_Columns) on_problems=Report_Warning =
+    split_to_columns self column delimiter="," (column_count : Columns_To_Add = ..All_Columns) on_problems:Problem_Behavior=Report_Warning =
         Split_Tokenize.split_to_columns self column delimiter column_count=column_count on_problems
 
     ## GROUP Standard.Base.Conversions
@@ -1346,7 +1346,7 @@ type Table
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> Table
-    tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive (column_count : Columns_To_Add = ..All_Columns) on_problems=Report_Warning =
+    tokenize_to_columns self column pattern="." case_sensitivity:Case_Sensitivity=Case_Sensitivity.Sensitive (column_count : Columns_To_Add = ..All_Columns) on_problems:Problem_Behavior=Report_Warning =
         Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
 
     ## GROUP Standard.Base.Conversions
@@ -1367,7 +1367,7 @@ type Table
          Equivalent to converting a tokenization output of [] to [Nothing].
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
-    tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
+    tokenize_to_rows self column pattern="." case_sensitivity:Case_Sensitivity=Case_Sensitivity.Sensitive at_least_one_row:Boolean=False =
         Split_Tokenize.tokenize_to_rows self column pattern case_sensitivity at_least_one_row
 
     ## GROUP Standard.Base.Conversions
@@ -1399,7 +1399,7 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     @pattern Widget.Text_Input
     parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
-    parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
+    parse_to_columns self column pattern="." case_sensitivity:Case_Sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems:Problem_Behavior=Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
     ## GROUP Standard.Base.Calculations
@@ -1452,7 +1452,7 @@ type Table
          # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
     @column Widget_Helpers.make_column_name_selector
     expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
-    expand_to_rows self column at_least_one_row=False =
+    expand_to_rows self column at_least_one_row:Boolean=False =
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row
 
     ## ALIAS filter rows, where
@@ -1507,7 +1507,7 @@ type Table
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
     filter : (Column | Expression | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
+    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.filter filter_column.java_column)
             case filter of
