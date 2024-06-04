@@ -66,54 +66,58 @@ export function SetOrganizationNameModal() {
         hideCloseButton
         modalProps={{ isOpen: shouldShowModal }}
       >
-        <aria.Form
-          onSubmit={event => {
-            event.preventDefault()
-            const name = new FormData(event.currentTarget).get('organization')
-
-            if (typeof name === 'string') {
-              submit.mutate(name)
-            }
-          }}
-        >
-          <aria.TextField
-            name="organization"
-            isRequired
-            autoFocus
-            inputMode="text"
-            autoComplete="off"
-            className="flex w-full flex-col"
-          >
-            <aria.Label className="mb-1 ml-0.5 block text-sm">{getText('organization')}</aria.Label>
-            <aria.Input
-              className={values =>
-                clsx('rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]', {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  'outline outline-2 outline-primary': values.isFocused || values.isFocusVisible,
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  'border-red-500 outline-red-500': values.isInvalid,
-                })
-              }
-            />
-            <aria.FieldError className="text-sm text-red-500" />
-          </aria.TextField>
-
-          {submit.error && (
-            <ariaComponents.Alert variant="error" size="medium">
-              {submit.error.message}
-            </ariaComponents.Alert>
+        <ariaComponents.Form
+          gap="medium"
+          defaultValues={{ organization: '' }}
+          schema={ariaComponents.Form.useFormSchema(z =>
+            z.object({
+              organization: z
+                .string()
+                .min(1, getText('arbitraryFieldRequired'))
+                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                .max(255, getText('arbitraryFieldTooLong')),
+            })
           )}
+          onSubmit={({ organization }) => submit.mutateAsync(organization)}
+        >
+          {({ register, formState }) => {
+            return (
+              <>
+                <aria.TextField
+                  autoFocus
+                  inputMode="text"
+                  autoComplete="off"
+                  className="flex w-full flex-col"
+                  {...register('organization')}
+                >
+                  <aria.Label className="mb-1 ml-0.5 block text-sm">
+                    {getText('organization')}
+                  </aria.Label>
 
-          <ariaComponents.Button
-            className="mt-4"
-            type="submit"
-            variant="submit"
-            size="medium"
-            loading={submit.isPending}
-          >
-            {getText('submit')}
-          </ariaComponents.Button>
-        </aria.Form>
+                  <aria.Input
+                    className={values =>
+                      clsx('rounded-md border border-gray-300 p-1.5 text-sm transition-[outline]', {
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        'outline outline-2 outline-primary':
+                          values.isFocused || values.isFocusVisible,
+                        // eslint-disable-next-line @typescript-eslint/naming-convention
+                        'border-red-500 outline-red-500': values.isInvalid,
+                      })
+                    }
+                  />
+
+                  <aria.FieldError className="text-sm text-red-500">
+                    {formState.errors.organization?.message}
+                  </aria.FieldError>
+                </aria.TextField>
+
+                <ariaComponents.Form.FormError />
+
+                <ariaComponents.Form.Submit />
+              </>
+            )
+          }}
+        </ariaComponents.Form>
       </ariaComponents.Dialog>
 
       <router.Outlet context={session} />

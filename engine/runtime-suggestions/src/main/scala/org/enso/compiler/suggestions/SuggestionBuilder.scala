@@ -128,7 +128,7 @@ final class SuggestionBuilder[A: IndexedSource](
                   _,
                   _,
                   _
-                ) if !m.isStaticWrapperForInstanceMethod =>
+                ) if !m.isStaticWrapperForInstanceMethod && !m.isPrivate =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val annotations   = ir.getMetadata(GenericAnnotations)
             val (selfTypeOpt, isStatic) = typePtr match {
@@ -160,7 +160,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
 
-          case definition.Method
+          case conversionMeth @ definition.Method
                 .Conversion(
                   Name.MethodReference(typePtr, _, _, _, _),
                   _,
@@ -168,7 +168,7 @@ final class SuggestionBuilder[A: IndexedSource](
                   _,
                   _,
                   _
-                ) =>
+                ) if !conversionMeth.isPrivate =>
             val selfType = typePtr.flatMap { typePointer =>
               typePointer
                 .getMetadata(MethodDefinitions)

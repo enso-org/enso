@@ -28,6 +28,7 @@ declare module '#/utilities/LocalStorage' {
     readonly termsOfService: z.infer<typeof TERMS_OF_SERVICE_SCHEMA> | null
   }
 }
+
 const TERMS_OF_SERVICE_SCHEMA = z.object({ versionHash: z.string() })
 LocalStorage.registerKey('termsOfService', { schema: TERMS_OF_SERVICE_SCHEMA })
 
@@ -61,14 +62,33 @@ export function TermsOfServiceModal() {
   const checkboxId = React.useId()
   const { session } = authProvider.useAuth()
 
-  const eula = reactQuery.useSuspenseQuery(latestTermsOfService)
-
-  const latestVersionHash = eula.data.hash
   const localVersionHash = localStorage.get('termsOfService')?.versionHash
+  const { data: latestVersionHash } = reactQuery.useSuspenseQuery({
+    ...latestTermsOfService,
+    // If the user has already accepted EULA, we don't need to
+    // block user interaction with the app while we fetch the latest version.
+    // We can use the local version hash as the initial data.
+    // and refetch in the background to check for updates.
+    ...(localVersionHash != null && {
+      initialData: { hash: localVersionHash },
+      initialDataUpdatedAt: 0,
+    }),
+    select: data => data.hash,
+  })
 
   const isLatest = latestVersionHash === localVersionHash
   const isAccepted = localVersionHash != null
   const shouldDisplay = !(isAccepted && isLatest)
+
+  const formSchema = ariaComponents.Form.useFormSchema(schema =>
+    schema.object({
+      agree: schema
+        .boolean()
+        // we accept only true
+        .refine(value => value, getText('licenseAgreementCheckboxError')),
+      hash: schema.string(),
+    })
+  )
 
   if (shouldDisplay) {
     return (
@@ -83,43 +103,32 @@ export function TermsOfServiceModal() {
           id="terms-of-service-modal"
         >
           <ariaComponents.Form
+            schema={formSchema}
+            defaultValues={{ agree: false, hash: latestVersionHash }}
             testId="terms-of-service-form"
-            schema={ariaComponents.Form.schema.object({
-              agree: ariaComponents.Form.schema
-                .boolean()
-                // we accept only true
-                .refine(value => value, getText('licenseAgreementCheckboxError')),
-            })}
-            onSubmit={() => {
-              localStorage.set('termsOfService', { versionHash: latestVersionHash })
+            onSubmit={({ hash }) => {
+              localStorage.set('termsOfService', { versionHash: hash })
             }}
           >
             {({ register, formState }) => {
               const agreeError = formState.errors.agree
-              const hasError = formState.errors.agree != null
-
-              const checkboxRegister = register('agree')
+              const hasError = agreeError != null
 
               return (
                 <>
-                  <div className="pb-6 pt-2">
+                  <div>
                     <div className="mb-1">
                       <div className="flex items-center gap-1.5 text-sm">
-                        <div className="mt-0">
-                          <aria.Input
-                            type="checkbox"
-                            className={twMerge.twMerge(
-                              `flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2 ${hasError ? 'border-red-700 text-red-500 outline-red-500' : ''}`
-                            )}
-                            id={checkboxId}
-                            aria-invalid={hasError}
-                            {...checkboxRegister}
-                            onInput={event => {
-                              void checkboxRegister.onChange(event)
-                            }}
-                            data-testid="terms-of-service-checkbox"
-                          />
-                        </div>
+                        <aria.Input
+                          type="checkbox"
+                          className={twMerge.twMerge(
+                            `flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2 ${hasError ? 'border-red-700 text-red-500 outline-red-500' : ''}`
+                          )}
+                          id={checkboxId}
+                          aria-invalid={hasError}
+                          data-testid="terms-of-service-checkbox"
+                          {...register('agree')}
+                        />
 
                         <aria.Label htmlFor={checkboxId} className="text-sm">
                           {getText('licenseAgreementCheckbox')}

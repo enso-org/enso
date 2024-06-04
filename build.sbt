@@ -2125,10 +2125,6 @@ lazy val `runtime-parser` =
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
       fork := true,
-      Test / javaOptions ++= Seq(
-        "-Dgraalvm.locatorDisabled=true",
-        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
-      ),
       libraryDependencies ++= Seq(
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,

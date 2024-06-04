@@ -36,15 +36,17 @@ export function SubscribeSuccess() {
         subtitle={getText('subscribeSuccessSubtitle', getText(constants.PLAN_TO_TEXT_ID[plan]))}
         status="success"
       >
-        <ariaComponents.Button
-          variant="submit"
-          size="large"
-          onPress={() => {
-            navigate(appUtils.DASHBOARD_PATH)
-          }}
-        >
-          {getText('subscribeSuccessSubmit')}
-        </ariaComponents.Button>
+        <ariaComponents.ButtonGroup align="center">
+          <ariaComponents.Button
+            variant="submit"
+            size="large"
+            onPress={() => {
+              navigate(appUtils.DASHBOARD_PATH)
+            }}
+          >
+            {getText('subscribeSuccessSubmit')}
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
       </result.Result>
     )
   } else {

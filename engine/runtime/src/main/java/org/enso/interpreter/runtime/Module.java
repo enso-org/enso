@@ -683,7 +683,11 @@ public final class Module implements EnsoObject {
         case MethodNames.Module.GET_METHOD:
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
-          return result == null ? context.getBuiltins().nothing() : result;
+          if (result == null || result.getSchema().isProjectPrivate()) {
+            return context.getBuiltins().nothing();
+          } else {
+            return result;
+          }
         case MethodNames.Module.GET_TYPE:
           scope = module.compileScope(context);
           return getType(scope, arguments);

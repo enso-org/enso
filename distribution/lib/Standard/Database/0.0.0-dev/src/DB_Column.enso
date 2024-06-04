@@ -278,7 +278,7 @@ type DB_Column
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Warnings
+       ! Error Conditions
 
          - If this operation results in comparing floating-point values for
            equality which is not recommended, a `Floating_Point_Equality`
@@ -335,7 +335,7 @@ type DB_Column
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Warnings
+       ! Error Conditions
 
          - If this operation results in comparing floating-point values for
            equality which is not recommended, a `Floating_Point_Equality`
@@ -536,7 +536,7 @@ type DB_Column
        Returns a column containing the result of dividing each element of `self`
        by `other`.
 
-       ! Warnings
+       ! Error Conditions
 
          - If division by zero occurs, an `Arithmetic_Error` warning is attached
            to the result.
@@ -581,7 +581,7 @@ type DB_Column
        Returns a column with results of modulus this column's elements against
        `other`.
 
-       ! Warnings
+       ! Error Conditions
 
          - If division by zero occurs, an `Arithmetic_Error` warning is attached
            to the result.
