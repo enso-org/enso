@@ -166,6 +166,7 @@ export function parseQualifiedName(ast: Ast): QualifiedName | null {
 }
 
 /** Substitute `pattern` inside `expression` with `to`. */
+// TODO: Make sure we do not replace parts of qualified names
 export function substituteIdentifier(
   module: MutableModule,
   expression: Ast,
