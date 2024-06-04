@@ -2481,7 +2481,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </table>
       <div
         className={tailwindMerge.twMerge(
-          'group sticky left grid max-w-container grow place-items-center',
+          'group sticky left-0 grid max-w-container grow place-items-center',
           category !== Category.cloud && category !== Category.local && 'hidden'
         )}
         onDragEnter={onDropzoneDragOver}
@@ -2560,10 +2560,10 @@ export default function AssetsTable(props: AssetsTableProps) {
             )}
             <div className="flex h-max min-h-full w-max min-w-full flex-col">
               {isCloud && (
-                <div className="flex-0 sticky top flex h flex-col">
+                <div className="flex-0 sticky top-0 flex h-0 flex-col">
                   <div
                     data-testid="extra-columns"
-                    className="px-extra-columns-panel-x py-extra-columns-panel-y sticky right flex self-end"
+                    className="sticky right-0 flex self-end px-2 py-3"
                   >
                     <FocusArea direction="horizontal">
                       {columnsBarProps => (

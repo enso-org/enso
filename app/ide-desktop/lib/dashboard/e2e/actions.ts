@@ -82,9 +82,7 @@ export function locateSecretValueInput(page: test.Page) {
 
 /** Find a search bar input (if any) on the current page. */
 export function locateSearchBarInput(page: test.Page) {
-  return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, Datalinks, users, and more.'
-  )
+  return locateSearchBar(page).getByPlaceholder(/(?:)/)
 }
 
 /** Find the name column of the given assets table row. */
