@@ -1,27 +1,35 @@
 package org.enso.interpreter.caches;
 
 import buildinfo.Info;
-import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.editions.LibraryName;
+import org.enso.interpreter.caches.SuggestionsCache.CachedSuggestions;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.pkg.SourceFile;
+import org.enso.persist.Persistable;
+import org.enso.persist.Persistance;
 import org.enso.polyglot.Suggestion;
 
+@Persistable(clazz = CachedSuggestions.class, id = 30301)
+@Persistable(clazz = Suggestion.Constructor.class, id = 30303)
+@Persistable(clazz = Suggestion.Conversion.class, id = 30304)
+@Persistable(clazz = Suggestion.DefinedMethod.class, id = 30305)
+@Persistable(clazz = Suggestion.Function.class, id = 30306)
+@Persistable(clazz = Suggestion.Getter.class, id = 30307)
+@Persistable(clazz = Suggestion.Local.class, id = 30308)
+@Persistable(clazz = Suggestion.Module.class, id = 30309)
+@Persistable(clazz = Suggestion.Type.class, id = 30310)
+@Persistable(clazz = Suggestion.Argument.class, id = 30311)
+@Persistable(clazz = LibraryName.class, id = 30312)
 public final class SuggestionsCache
     implements Cache.Spi<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> {
   private static final String SUGGESTIONS_CACHE_DATA_EXTENSION = ".suggestions";
@@ -61,24 +69,17 @@ public final class SuggestionsCache
   }
 
   @Override
+  public byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
+    return Persistance.write(entry, CacheUtils.writeReplace(context.getCompiler().context(), true));
+  }
+
+  @Override
   public CachedSuggestions deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
-      throws ClassNotFoundException, IOException {
-    class BufferInputStream extends InputStream {
-      @Override
-      public int read() throws IOException {
-        return data.get() & 0xff;
-      }
-    }
-
-    try (var stream = new ObjectInputStream(new BufferInputStream())) {
-      if (stream.readObject() instanceof Suggestions suggestions) {
-        return new CachedSuggestions(libraryName, suggestions, Optional.empty());
-      } else {
-        throw new ClassNotFoundException(
-            "Expected SuggestionsCache.Suggestions, got " + data.getClass());
-      }
-    }
+      throws IOException {
+    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var cachedSuggestions = ref.get(CachedSuggestions.class);
+    return cachedSuggestions;
   }
 
   @Override
@@ -89,7 +90,11 @@ public final class SuggestionsCache
 
   @Override
   public Optional<String> computeDigest(CachedSuggestions entry, TruffleLogger logger) {
-    return entry.getSources().map(sources -> CacheUtils.computeDigestOfLibrarySources(sources));
+    if (entry.suggestions.isEmpty()) {
+      return Optional.empty();
+    } else {
+      return Optional.of(CacheUtils.computeDigestFromSuggestions(entry.suggestions));
+    }
   }
 
   @Override
@@ -128,15 +133,6 @@ public final class SuggestionsCache
   }
 
   @Override
-  public byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
-    var byteStream = new ByteArrayOutputStream();
-    try (ObjectOutputStream stream = new ObjectOutputStream(byteStream)) {
-      stream.writeObject(entry.getSuggestionsObjectToSerialize());
-    }
-    return byteStream.toByteArray();
-  }
-
-  @Override
   public String sourceHash(Metadata meta) {
     return meta.sourceHash();
   }
@@ -146,56 +142,13 @@ public final class SuggestionsCache
     return meta.blobHash();
   }
 
-  // Suggestions class is not a record because of a Frgaal bug leading to invalid compilation error.
-  public static final class Suggestions implements Serializable {
+  /**
+   * @param libraryName
+   * @param suggestions Must not be null.
+   */
+  public record CachedSuggestions(LibraryName libraryName, ArrayList<Suggestion> suggestions) {}
 
-    private final List<Suggestion> suggestions;
-
-    public Suggestions(List<Suggestion> suggestions) {
-      this.suggestions = suggestions;
-    }
-
-    public List<Suggestion> getSuggestions() {
-      return suggestions;
-    }
-  }
-
-  // CachedSuggestions class is not a record because of a Frgaal bug leading to invalid compilation
-  // error.
-  public static final class CachedSuggestions {
-
-    private final LibraryName libraryName;
-    private final Suggestions suggestions;
-
-    private final Optional<List<SourceFile<TruffleFile>>> sources;
-
-    public CachedSuggestions(
-        LibraryName libraryName,
-        Suggestions suggestions,
-        Optional<List<SourceFile<TruffleFile>>> sources) {
-      this.libraryName = libraryName;
-      this.suggestions = suggestions;
-      this.sources = sources;
-    }
-
-    public LibraryName getLibraryName() {
-      return libraryName;
-    }
-
-    public Optional<List<SourceFile<TruffleFile>>> getSources() {
-      return sources;
-    }
-
-    public Suggestions getSuggestionsObjectToSerialize() {
-      return suggestions;
-    }
-
-    public List<Suggestion> getSuggestions() {
-      return suggestions.getSuggestions();
-    }
-  }
-
-  record Metadata(String sourceHash, String blobHash) {
+  public record Metadata(String sourceHash, String blobHash) {
     byte[] toBytes() throws IOException {
       try (var os = new ByteArrayOutputStream();
           var dos = new DataOutputStream(os)) {

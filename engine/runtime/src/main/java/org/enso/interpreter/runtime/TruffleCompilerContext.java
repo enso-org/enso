@@ -579,14 +579,7 @@ final class TruffleCompilerContext implements CompilerContext {
               })
           .foreach(suggestions::add);
 
-      var cachedSuggestions =
-          new SuggestionsCache.CachedSuggestions(
-              libraryName,
-              new SuggestionsCache.Suggestions(suggestions),
-              context
-                  .getPackageRepository()
-                  .getPackageForLibraryJava(libraryName)
-                  .map(Package::listSourcesJava));
+      var cachedSuggestions = new SuggestionsCache.CachedSuggestions(libraryName, suggestions);
       var cache = SuggestionsCache.create(libraryName);
       var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
       return file != null;
@@ -603,7 +596,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public scala.Option<Object> deserializeSuggestions(LibraryName libraryName)
       throws InterruptedException {
     var option = deserializeSuggestionsImpl(libraryName);
-    return option.map(s -> s.getSuggestions());
+    return option.map(s -> s.suggestions());
   }
 
   private scala.Option<SuggestionsCache.CachedSuggestions> deserializeSuggestionsImpl(
