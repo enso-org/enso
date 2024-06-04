@@ -21,9 +21,7 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
-/**
- * A collection of classes and methods useful for testing {@link Context} related stuff.
- */
+/** A collection of classes and methods useful for testing {@link Context} related stuff. */
 public final class ContextUtils {
   private ContextUtils() {}
 
@@ -89,7 +87,6 @@ public final class ContextUtils {
     }
     return res;
   }
-
 
   @SuppressWarnings("unchecked")
   private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
