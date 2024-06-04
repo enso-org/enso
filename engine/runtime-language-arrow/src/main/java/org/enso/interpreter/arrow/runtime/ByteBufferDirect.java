@@ -8,7 +8,7 @@ import org.enso.interpreter.arrow.util.MemoryUtil;
 final class ByteBufferDirect implements AutoCloseable {
   private final ByteBuffer allocated;
   private final ByteBuffer dataBuffer;
-  private final ByteBuffer bitmapBuffer;
+  private ByteBuffer bitmapBuffer;
 
   /**
    * Creates a fresh buffer with an empty non-null bitmap..
@@ -22,8 +22,6 @@ final class ByteBufferDirect implements AutoCloseable {
 
     this.allocated = buffer;
     this.dataBuffer = buffer.slice(0, padded.getDataBufferSizeInBytes());
-    // this.bitmapBuffer = buffer.slice(dataBuffer.capacity(),
-    // padded.getValidityBitmapSizeInBytes());
     this.bitmapBuffer = null;
   }
 
@@ -192,6 +190,13 @@ final class ByteBufferDirect implements AutoCloseable {
   }
 
   public void setNull(int index) {
+    if (bitmapBuffer == null) {
+      this.bitmapBuffer =
+          allocated.slice(dataBuffer.capacity(), allocated.capacity() - dataBuffer.capacity());
+      for (var i = 0; i < bitmapBuffer.capacity(); i++) {
+        bitmapBuffer.put(i, (byte) 0xff);
+      }
+    }
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);
     var byteIndex = index & byteMask;
