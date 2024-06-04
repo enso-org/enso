@@ -45,6 +45,7 @@ polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.encoding.Encoding_Utils
+polyglot java import org.enso.base.text.ResultWithWarnings
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.WithProblems
@@ -740,7 +741,7 @@ Text.is_whitespace self =
 @encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
 Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-    result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
+    result = Encoding_Utils.get_bytes self encoding.to_java_charset : ResultWithWarnings
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
         on_problems.attach_problems_after vector [Encoding_Error.Error result.warnings]
