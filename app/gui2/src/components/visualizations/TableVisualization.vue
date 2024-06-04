@@ -39,6 +39,7 @@ interface Matrix {
   column_count: number
   all_rows_count: number
   json: unknown[][]
+  value_type: any
 }
 
 interface ObjectMatrix {
@@ -46,6 +47,7 @@ interface ObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
+  value_type: any
 }
 
 interface LegacyMatrix {
@@ -53,6 +55,7 @@ interface LegacyMatrix {
   column_count: number
   all_rows_count: number
   json: unknown[][]
+  value_type: any
 }
 
 interface LegacyObjectMatrix {
@@ -60,6 +63,7 @@ interface LegacyObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
+  value_type: any
 }
 
 interface UnknownTable {
@@ -73,6 +77,7 @@ interface UnknownTable {
   indices_header?: string[]
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
+  value_type: any
 }
 
 declare module 'ag-grid-enterprise' {
@@ -265,12 +270,12 @@ function isMatrix(data: object): data is LegacyMatrix {
   return json.every((d) => d.length === firstLen)
 }
 
-function toField(name: string): ColDef {
-  return { field: name }
+function toField(name: string, valType?: string): ColDef {
+  return { field: `${name} + ${valType}` }
 }
 
 function indexField(): ColDef {
-  return toField(INDEX_FIELD_NAME)
+  return toField(INDEX_FIELD_NAME, 'Char')
 }
 
 /** Return a human-readable representation of an object. */
@@ -290,7 +295,9 @@ watchEffect(() => {
         all_rows_count: 1,
         data: undefined,
         indices: undefined,
+        valueType: undefined,
       }
+  console.log({ data_ })
   const options = agGridOptions.value
   if (options.api == null) {
     return
@@ -310,7 +317,8 @@ watchEffect(() => {
   } else if (data_.type === 'Matrix') {
     columnDefs.push(indexField())
     for (let i = 0; i < data_.column_count; i++) {
-      columnDefs.push(toField(i.toString()))
+      const valueType = data_.value_type[i].constructor
+      columnDefs.push(toField(i.toString(), valueType))
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
@@ -319,10 +327,11 @@ watchEffect(() => {
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
-        Object.keys(val).forEach((k) => {
+        Object.keys(val).forEach((k, i) => {
           if (!keys.has(k)) {
+            const valueType = data_.value_type[i].constructor
             keys.add(k)
-            columnDefs.push(toField(k))
+            columnDefs.push(toField(k, valueType))
           }
         })
       }
@@ -336,7 +345,7 @@ watchEffect(() => {
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (isObjectMatrix(data_)) {
     // Kept to allow visualization from older versions of the backend.
-    columnDefs = [INDEX_FIELD_NAME, ...Object.keys(data_.json[0]!)].map(toField)
+    columnDefs = [INDEX_FIELD_NAME, ...Object.keys(data_.json[0]!)].map((v) => toField(v))
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (Array.isArray(data_.json)) {
@@ -347,8 +356,14 @@ watchEffect(() => {
     columnDefs = [toField('Value')]
     rowData = [{ Value: toRender(data_.json) }]
   } else {
-    const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map(toField)
-    const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
+    const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map((v) =>
+      toField(v),
+    )
+    const dataHeader =
+      ('header' in data_ ? data_.header : [])?.map((v, i) => {
+        const valueType = data_.value_type[i].constructor
+        return toField(v, valueType)
+      }) ?? []
     columnDefs = [...indicesHeader, ...dataHeader]
     const rows =
       data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0
