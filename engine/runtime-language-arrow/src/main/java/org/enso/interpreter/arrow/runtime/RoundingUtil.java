@@ -91,13 +91,15 @@ final class RoundingUtil {
       return (int) (dataBufferSize + validityBitmapSize);
     }
 
-    private long validityBitmapSize;
-    private long dataBufferSize;
+    private final long validityBitmapSize;
+    private final long dataBufferSize;
 
     private PaddedSize(int valueCount, SizeInBytes unit) {
       this.valueCount = valueCount;
       this.unit = unit;
-      computeBufferSize(valueCount, unit);
+      var pair =computeBufferSize(valueCount, unit);
+      this.validityBitmapSize = pair[0];
+      this.dataBufferSize = pair[1];
     }
 
     private long defaultRoundedSize(long val) {
@@ -127,7 +129,7 @@ final class RoundingUtil {
       return defaultRoundedSize(bufferSize);
     }
 
-    private void computeBufferSize(int valueCount, SizeInBytes unit) {
+    private long[] computeBufferSize(int valueCount, SizeInBytes unit) {
       var typeWidth = unit.sizeInBytes();
       long bufferSize = computeCombinedBufferSize(valueCount, typeWidth);
       assert bufferSize <= Long.MAX_VALUE;
@@ -149,8 +151,7 @@ final class RoundingUtil {
           --actualCount;
         } while (true);
       }
-      this.validityBitmapSize = validityBufferSize;
-      this.dataBufferSize = dataBufferSize;
+      return new long[] { validityBufferSize, dataBufferSize };
     }
   }
 }
