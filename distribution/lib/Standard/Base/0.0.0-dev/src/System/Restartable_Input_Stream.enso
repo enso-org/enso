@@ -1,14 +1,35 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+import project.Runtime.Context
+import project.System.File.Advanced.Temporary_File.Temporary_File
+import project.System.File.File
+import project.System.File.File_Access.File_Access
+import project.System.Input_Stream.Input_Stream
+from project.Data.Boolean import Boolean, False, True
+
 ## PRIVATE
    An input stream that can be read multiple times.
 
    It may be useful when multiple passes over the data are required.
+   If you need to check only the beginning of the stream, consider using a much 
+   lighter `Input_Stream.as_peekable_stream`.
 
    A generic stream can be converted to `Restartable_Input_Stream` by reading
    all its contents and storing them either in memory or in a temporary file.
    A stream backed by an existing file can be converted to
    `Restartable_Input_Stream` at no cost.
+
+   ! Assumptions
+
+     Note that if we use an existing file as a shortcut to avoid copying the
+     data, we need to assume that the file will not be modified in the meantime.
+     Thus the `Restartable_Input_Stream` does not fully guarantee immutability
+     of the data.
 type Restartable_Input_Stream
     ## PRIVATE
+       `bytes` may be a Vector or a raw `byte[]` array (convertible to vector, but no annotation to avoid conversions).
     private From_Bytes bytes
 
     ## PRIVATE
@@ -16,3 +37,62 @@ type Restartable_Input_Stream
 
     ## PRIVATE
     private From_Temporary_File temporary_file:Temporary_File
+
+    ## PRIVATE
+    to_text self -> Text =
+        suffix = case self of
+            Restartable_Input_Stream.From_Bytes _ -> "From_Bytes"
+            Restartable_Input_Stream.From_Existing_File file -> "From_Existing_File "+file.to_text
+            Restartable_Input_Stream.From_Temporary_File _ -> "From_Temporary_File"
+        "Restartable_Input_Stream."+suffix
+
+    ## PRIVATE
+    make (input_stream : Input_Stream) -> Restartable_Input_Stream =
+        case input_stream.associated_source of
+            temp_file : Temporary_File -> Restartable_Input_Stream.From_Temporary_File temp_file
+            file : File -> Restartable_Input_Stream.From_Existing_File file
+            bytes : Vector -> Restartable_Input_Stream.From_Bytes bytes
+            _ -> cache_generic_input_stream input_stream
+
+    ## PRIVATE
+       Runs the provided action with a fresh input stream pointing to the
+       beginning of the data represented by this stream.
+
+       This method may be called multiple times, allowing multiple 'rounds' of
+       processing.
+    with_fresh_stream self (action : Input_Stream -> Any) -> Any =
+        case self of
+            Restartable_Input_Stream.From_Bytes bytes ->
+                action (Input_Stream.from_bytes bytes)
+            Restartable_Input_Stream.From_Existing_File file ->
+                file.with_input_stream [File_Access.Read] action
+            Restartable_Input_Stream.From_Temporary_File temp_file ->
+                temp_file.with_file file->
+                    file.with_input_stream [File_Access.Read] action
+
+## PRIVATE
+   Maximum size for a stream to be held in memory.
+   If the amount of data exceeds this limit, it will be stored in a temporary file.
+max_in_memory_size =
+    # 64 KiB
+    64 * 1024
+
+## PRIVATE
+private cache_generic_input_stream (input_stream : Input_Stream) -> Restartable_Input_Stream =
+    input_stream.with_java_stream java_input_stream->
+        first_block = java_input_stream.readNBytes max_in_memory_size
+        case first_block.length < max_in_memory_size of
+            True ->
+                Restartable_Input_Stream.From_Bytes first_block
+            False ->
+                Context.Output.with_enabled <|
+                    temp_file = Temporary_File.new "restartable-input-stream"
+                    r = temp_file.with_file file->
+                        file.with_output_stream [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] output_stream->
+                            output_stream.with_java_stream java_output_stream->
+                                java_output_stream.write first_block
+                                java_input_stream.transferTo java_output_stream
+                                java_output_stream.flush
+                                Nothing
+                    r.if_not_error <|
+                        Restartable_Input_Stream.From_Temporary_File temp_file
