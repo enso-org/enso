@@ -1029,6 +1029,7 @@ class IrToTruffle(
     *
     * @param scope     the scope in which the code generation is occurring
     * @param scopeName the name of `scope`
+    * @param initialName suggested name for a first closure
     */
   sealed private class ExpressionProcessor(
     val scope: LocalScope,
@@ -1044,6 +1045,7 @@ class IrToTruffle(
       * scope.
       *
       * @param scopeName the name to attribute to the default local scope.
+      * @param initialName suggested name for a first closure
       */
     def this(
       scopeName: String,
@@ -1063,6 +1065,7 @@ class IrToTruffle(
       * scope of `this`.
       *
       * @param name the name of the child scope
+      * @param initialName suggested name for a first closure
       * @return an expression processor operating on a child scope
       */
     def createChild(
@@ -1943,6 +1946,7 @@ class IrToTruffle(
       *
       * @param arguments the argument definitions
       * @param body      the body definition
+      * @param initialName suggested name for a first closure
       * @return a node for the final shape of function body and pre-processed
       *         argument definitions.
       */
@@ -2199,6 +2203,7 @@ class IrToTruffle(
     *
     * @param scope     the scope in which the function call exists
     * @param scopeName the name of `scope`
+    * @param initialName suggested name for a first closure
     */
   sealed private class CallArgumentProcessor(
     val scope: LocalScope,
@@ -2305,6 +2310,7 @@ class IrToTruffle(
     *
     * @param scope     the scope in which the function is defined
     * @param scopeName the name of `scope`
+    * @param initialName suggested name for a first closure
     */
   sealed private class DefinitionArgumentProcessor(
     val scopeName: String = "<root>",
