@@ -8,6 +8,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Missing_Argument
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Meta
@@ -22,25 +23,25 @@ polyglot java import org.enso.base.Regex_Utils
 
 type Filter_Condition
     ## Is less than a value (or another column, in case of Table operations)?
-    Less than:Any=(throw_missing "than") action:Filter_Action=Filter_Action.Keep
+    Less than:Any=(Missing_Argument.throw "than") action:Filter_Action=Filter_Action.Keep
 
     ## Is less than or equal to a value (or another column, in case of Table operations)?
-    Equal_Or_Less than:Any=(throw_missing "than") action:Filter_Action=Filter_Action.Keep
+    Equal_Or_Less than:Any=(Missing_Argument.throw "than") action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to a value (or another column, in case of Table operations)?
-    Equal to:Any=(throw_missing "to") action:Filter_Action=Filter_Action.Keep
+    Equal to:Any=(Missing_Argument.throw "to") action:Filter_Action=Filter_Action.Keep
 
     ## Is greater than or equal to a value (or another column, in case of Table operations)?
-    Equal_Or_Greater than:Any=(throw_missing "than") action:Filter_Action=Filter_Action.Keep
+    Equal_Or_Greater than:Any=(Missing_Argument.throw "than") action:Filter_Action=Filter_Action.Keep
 
     ## Is greater than a value (or another column, in case of Table operations)?
-    Greater than:Any=(throw_missing "than") action:Filter_Action=Filter_Action.Keep
+    Greater than:Any=(Missing_Argument.throw "than") action:Filter_Action=Filter_Action.Keep
 
     ## Is not equal to a value (or another column, in case of Table operations)?
-    Not_Equal to:Any=(throw_missing "to") action:Filter_Action=Filter_Action.Keep
+    Not_Equal to:Any=(Missing_Argument.throw "to") action:Filter_Action=Filter_Action.Keep
 
     ## Is between (inclusive) two values (or columns, in case of Table operations)?
-    Between lower:Any=(throw_missing "lower") upper:Any=(throw_missing "upper") action:Filter_Action=Filter_Action.Keep
+    Between lower:Any=(Missing_Argument.throw "lower") upper:Any=(Missing_Argument.throw "upper") action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to another value, ignoring case (Text only)?
 
@@ -55,7 +56,7 @@ type Filter_Condition
          This ensures that different ways of expressing the same character in
          the underlying binary representation are considered equal.
     @locale Locale.default_widget
-    Equal_Ignore_Case (to : Text | Any = (throw_missing "to")) (locale:Locale=Locale.default) action:Filter_Action=Filter_Action.Keep
+    Equal_Ignore_Case (to : Text | Any = (Missing_Argument.throw "to")) (locale:Locale=Locale.default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value start with a prefix (Text only)?
 
@@ -63,7 +64,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Starts_With (prefix : Text | Any = (throw_missing "prefix")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
+    Starts_With (prefix : Text | Any = (Missing_Argument.throw "prefix")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value end with a suffix (Text only)?
 
@@ -71,7 +72,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Ends_With (suffix : Text | Any = (throw_missing "suffix")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
+    Ends_With (suffix : Text | Any = (Missing_Argument.throw "suffix")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Does the value contain the substring (Text only)?
 
@@ -79,7 +80,7 @@ type Filter_Condition
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
-    Contains (substring : Text | Any = (throw_missing "substring")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
+    Contains (substring : Text | Any = (Missing_Argument.throw "substring")) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) action:Filter_Action=Filter_Action.Keep
 
     ## Is equal to Nothing?
     Is_Nothing action:Filter_Action=Filter_Action.Keep
@@ -127,7 +128,7 @@ type Filter_Condition
          Due to this limitation, Unicode normalization has been disabled for
          this function, so beware that some equivalent graphemes like 'ś' and
          's\u0301' will not be matched.
-    Like (pattern : Text | Any = (throw_missing "pattern")) action:Filter_Action=Filter_Action.Keep
+    Like (pattern : Text | Any = (Missing_Argument.throw "pattern")) action:Filter_Action=Filter_Action.Keep
 
     ## Is the value contained in `values`?
 
@@ -311,6 +312,3 @@ handle_nothing : (Any -> Boolean) -> (Any -> Boolean)
 handle_nothing f = elem-> case elem of
     Nothing -> False
     _ -> f elem
-
-## PRIVATE
-throw_missing name = Error.throw (Illegal_Argument.Error ("Provide a value for `" + name + "`.`"))
