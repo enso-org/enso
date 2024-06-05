@@ -590,6 +590,24 @@ add_specs suite_builder setup =
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
 
+        group_builder.specify "fill_nothing should allow selection by regex" <|
+            t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col_between", [3, 4, 5, 6, 7, 8]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
+            default = 1000
+            actual = t.fill_nothing [regex ("col.*")] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+            actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
+
+        group_builder.specify "fill_nothing should allow selection by type" <|
+            t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col_between", [3, 4, 5, 6, 7, 8]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
+            default = 1000
+            actual = t.fill_nothing [..By_Type ..Integer] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal [Nothing, "200", Nothing, "400", "500", Nothing]
+            actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
+
         group_builder.specify "fill_nothing should work with integer column selectors" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col_between", [3, 4, 5, 6, 7, 8]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
             default = 1000
