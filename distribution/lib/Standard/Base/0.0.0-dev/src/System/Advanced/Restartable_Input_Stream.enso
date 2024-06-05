@@ -3,6 +3,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.Runtime.Context
+import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.Advanced.Temporary_File.Temporary_File
 import project.System.File.File
 import project.System.File.File_Access.File_Access
@@ -63,7 +64,7 @@ type Restartable_Input_Stream
     with_fresh_stream self (action : Input_Stream -> Any) -> Any =
         case self of
             Restartable_Input_Stream.From_Bytes bytes ->
-                action (Input_Stream.from_bytes bytes)
+                Managed_Resource.bracket (Input_Stream.from_bytes bytes) (.close) action
             Restartable_Input_Stream.From_Existing_File file ->
                 file.with_input_stream [File_Access.Read] action
             Restartable_Input_Stream.From_Temporary_File temp_file ->

@@ -7,6 +7,7 @@ import project.Data.Vector.Vector
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
+import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Runtime import assert
@@ -34,9 +35,9 @@ run (input_stream : Input_Stream) (encoding : Encoding) (on_problems : Problem_B
 
 ## PRIVATE
 decode_bytes_to_text bytes (encoding : Encoding) (on_problems : Problem_Behavior) -> Text =
-    input_stream = Input_Stream.from_bytes bytes
-    run input_stream encoding on_problems allow_usage_in_background_threads=False decoder->
-        decoder.readAllIntoMemory
+    Managed_Resource.bracket (Input_Stream.from_bytes bytes) (.close) input_stream->
+        run input_stream encoding on_problems allow_usage_in_background_threads=False decoder->
+            decoder.readAllIntoMemory
 
 ## PRIVATE
 resolve_encoding (encoding : Encoding) (buffered_input_stream : Input_Stream) (problem_aggregator : DecodingProblemAggregator) (continuation : Encoding -> Input_Stream -> Any) -> Any =
