@@ -105,7 +105,7 @@ test.each`
         delta[delta.length - 1],
         keyupEvents[keyupEvents.length - 1],
       ])
-      expect(arrows.moving.value).toBeFalsy
+      expect(arrows.moving.value).toBeFalsy()
       checkCbSequence(cb, expectedSequence)
     })
   },
