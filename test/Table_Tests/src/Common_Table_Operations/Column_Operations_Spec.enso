@@ -643,6 +643,20 @@ add_specs suite_builder setup =
                 actual = t.text_replace ["col0", "col1"] "ab" "xy"
                 actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
                 actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
+        
+        group_builder.specify "should allow to replace values in a table selecting columns with regex" <|
+            with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["zzz", ["nabc", "ndef", "asdf"]]] t->
+                actual = t.text_replace [(regex "col.*")] "ab" "xy"
+                actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
+                actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
+                actual.at "zzz" . to_vector . should_equal ["nabc", "ndef", "asdf"]
+
+        group_builder.specify "should allow to replace values in a table selecting columns by type" <|
+            t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["zzz", [1, 2, 3]]]
+            actual = t.text_replace [..By_Type ..Char] "ab" "xy"
+            actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
+            actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
+            actual.at "zzz" . to_vector . should_equal [1, 2, 3]
 
         group_builder.specify "should allow to replace values in a table with a regex" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
