@@ -61,7 +61,7 @@ detect_default_encoding (buffered_input_stream : Input_Stream) (problem_aggregat
             context_message = "An " + encoding_name + " BOM was detected, so " + encoding_name + " encoding has been assumed, but some characters seem invalid: "
             problem_aggregator.setInvalidCharacterErrorPrefix context_message
             # Skip the BOM to avoid including it in the decoded data.
-            buffered_input_stream.skip_bytes detected_bom.as_bytes.length . if_not_error <|
+            buffered_input_stream.skip_n_bytes detected_bom.as_bytes.length . if_not_error <|
                 continuation detected_bom.corresponding_encoding buffered_input_stream
 
         # If no BOM was detected, we do a pass to try UTF-8 encoding and if it fails, we restart and fallback to Windows-1252.
@@ -83,7 +83,7 @@ verify_unicode_encoding (encoding : Encoding) (expected_bom : Unicode_BOM) (buff
             case detected_bom == expected_bom of
                 True ->
                     # We found the expected BOM. We skip it to avoid including it in decoded data.
-                    buffered_input_stream.skip_bytes expected_bom.as_bytes.length . if_not_error <|
+                    buffered_input_stream.skip_n_bytes expected_bom.as_bytes.length . if_not_error <|
                         continuation encoding buffered_input_stream
                 False ->
                     # Report BOM mismatch
