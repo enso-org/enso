@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -38,6 +39,7 @@ public abstract class Builder {
           case IntegerType integerType -> NumericBuilder.createLongBuilder(
               size, integerType, problemAggregator);
           case TextType textType -> new StringBuilder(size, textType);
+          case BigDecimalType x -> new BigDecimalBuilder(size);
           case BigIntegerType x -> new BigIntegerBuilder(size, problemAggregator);
           case null -> new InferredBuilder(size, problemAggregator);
         };

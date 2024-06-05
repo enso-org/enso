@@ -369,7 +369,7 @@ add_specs suite_builder =
         group_builder.specify "should raise warnings when reading invalid characters" <|
             action = windows_file.read_text Encoding.ascii on_problems=_
             tester result = result.should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
-            problems = [Encoding_Error.Error "Encoding issues at 14, 15, 16."]
+            problems = [Encoding_Error.Error "Failed to decode 3 code units (at positions: 14, 15, 16)."]
             Problems.test_problem_handling action problems tester
 
             # Check that it defaults to warning.

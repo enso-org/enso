@@ -761,6 +761,6 @@ child_selector node:(XML_Element | XML_Document) =
 ## PRIVATE
    write an XML document or element to a file.
 write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-    declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
+    declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set_name + '\"?>\n' else ""
     XML_Error.handle_java_exceptions <|
         (declaration + XML_Utils.outerXML node True).write path encoding on_existing_file on_problems
