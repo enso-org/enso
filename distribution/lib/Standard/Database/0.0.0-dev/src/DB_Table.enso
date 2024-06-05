@@ -674,14 +674,16 @@ type DB_Table
                    new_filters = self.context.where_filters + [filter_column.expression]
                    new_ctx = self.context.set_where_filters new_filters
                    self.updated_context new_ctx
+
+            filter_condition = case filter of
+                _ : Function ->  Panic.catch Any (filter:Filter_Condition) _->filter
+                _ -> filter
+
            case filter of
                _ : Filter_Condition ->
-                   resolved = (self:Table_Ref).resolve_condition filter
+                   resolved = (self:Table_Ref).resolve_condition filter_condition
                    mask (make_filter_column column resolved on_problems)
-               ## We check the `filter` predicate before reporting unsupported
-                  operation, because it may just be a Filter_Condition with
-                  missing arguments and then another error is more appropriate.
-               _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
+               _ : Function ->
                    Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
        _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
        _ ->
