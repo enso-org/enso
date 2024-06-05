@@ -258,6 +258,14 @@ add_specs suite_builder setup =
                 td.at "floats" . to_vector . should_equal [1.0001, 2.25, 4.0]
                 td.at "decimals" . to_vector . should_equal [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
 
+            group_builder.specify "Attaches warning on conversion failure" <|
+                t16 = table_builder [["x", [Decimal.new "65539"]]] . cast ["x"] (Value_Type.Integer Bits.Bits_16)
+                Problems.expect_only_warning Conversion_Failure t16
+                t32 = table_builder [["x", [Decimal.new "4294967298"]]] . cast ["x"] (Value_Type.Integer Bits.Bits_32)
+                Problems.expect_only_warning Conversion_Failure t32
+                t64 = table_builder [["x", [Decimal.new "9223372036854775809"]]] . cast ["x"] (Value_Type.Integer Bits.Bits_64)
+                Problems.expect_only_warning Conversion_Failure t64
+
         if setup.is_database.not then
             group_builder.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|
                 max_long = Java_Long.MAX_VALUE
