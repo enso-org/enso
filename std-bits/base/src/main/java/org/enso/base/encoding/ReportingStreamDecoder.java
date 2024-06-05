@@ -1,6 +1,6 @@
 package org.enso.base.encoding;
 
-import org.graalvm.polyglot.Context;
+import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,8 +11,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
-
-import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
+import org.graalvm.polyglot.Context;
 
 /**
  * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
