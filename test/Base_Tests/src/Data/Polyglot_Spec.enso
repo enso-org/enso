@@ -34,6 +34,9 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
     group_builder.specify "access Integer field from Polyglot object" <|
         js_meaning.meaning . should_equal 42
 
+    group_builder.specify "Execute JavaScript function" <|
+        js_plus 3 5 . should_equal 8
+
     group_builder.specify "use Integer obtained from a call" <|
         Java_Integer.parseInt "42" . should_equal 42
 
@@ -49,6 +52,9 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
 
 foreign js js_meaning = """
     return { meaning : 6 * 7 };
+
+foreign js js_plus = """
+    return (a, b) => a + b;
 
 main filter=Nothing =
     suite = Test.build suite_builder->
