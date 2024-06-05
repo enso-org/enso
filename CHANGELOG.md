@@ -1,5 +1,10 @@
 # Next Release
 
+#### Enso IDE
+
+- [Arrows navigation][10179]: selected nodes may be moved around, or entire
+  scene if no node is selected.
+
 #### Enso Standard Library
 
 - [Added Statistic.Product][10122]
