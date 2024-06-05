@@ -75,7 +75,7 @@ export function Tooltip(props: TooltipProps) {
       className={aria.composeRenderProps(className, (classNames, values) =>
         TOOLTIP_STYLES({ className: classNames, ...values })
       )}
-      data-enso-ignore-click-outside
+      data-ignore-click-outside
       {...ariaTooltipProps}
     />
   )

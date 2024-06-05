@@ -20,7 +20,7 @@ import * as utlities from './utilities'
 import * as variants from './variants'
 
 /**
- *
+ * Props for the {@link Dialog} component.
  */
 export interface DialogProps extends types.DialogProps, twv.VariantProps<typeof DIALOG_STYLES> {}
 

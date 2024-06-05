@@ -17,14 +17,16 @@ const IGNORE_INTERACT_OUTSIDE_ELEMENTS = [
   '.Toastify__toast-container',
   // ReactQuery devtools
   '.tsqd-parent-container',
-  '[data-enso-ignore-click-outside]',
+  ':is(.enso-dashboard, .enso-chat, .enso-portal-root) [data-ignore-click-outside]',
 ]
+
+const IGNORE_INTERACT_OUTSIDE_ELEMENTS_SELECTOR = `:is(${IGNORE_INTERACT_OUTSIDE_ELEMENTS.join(', ')})`
 
 /**
  * Check if the element is a part of a component that should ignore the interact outside event
  */
 export function shouldIgnoreInteractOutside(element: HTMLElement) {
-  return IGNORE_INTERACT_OUTSIDE_ELEMENTS.some(selector => element.closest(selector))
+  return element.closest(IGNORE_INTERACT_OUTSIDE_ELEMENTS_SELECTOR)
 }
 
 /**
