@@ -1,0 +1,29 @@
+from Standard.Base import all
+from Standard.Base.Metadata import make_single_choice, Widget
+
+## PRIVATE
+type Columns_To_Add
+    ## Add all available columns.
+    All_Columns
+
+    ## Add the first specified number of columns.
+    First columns:Integer=1
+
+    ## PRIVATE
+    default_widget -> Widget = 
+        make_single_choice [["All_Columns", "..All_Columns"], ["First", "..First"]]
+
+    ## PRIVATE
+       Gets the number of columns to add (or Nothing if all columns).
+    columns_to_split self -> Integer | Nothing = case self of
+        Columns_To_Add.All_Columns -> Nothing
+        Columns_To_Add.First columns -> columns
+
+## PRIVATE
+Columns_To_Add.from (that:Nothing) =
+    _ = that
+    Columns_To_Add.All_Columns
+
+## PRIVATE
+Columns_To_Add.from (that:Integer) =
+    Columns_To_Add.First that

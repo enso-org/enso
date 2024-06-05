@@ -50,15 +50,15 @@ public class VectorBenchmarks {
             (sum 0 0) / arr.length
 
         fibarr size modulo =
-            b = Builder.new size
-            b.append 1
-            b.append 1
+            Vector.build initial_capacity=size propagate_warnings=False b->
+                b.append 1
+                b.append 1
 
-            add_more n = if n == size then b else
-                b.append <| (b.at n-1 + b.at n-2) % modulo
-                @Tail_Call add_more n+1
+                add_more n = if n == size then b else
+                    b.append <| (b.at n-1 + b.at n-2) % modulo
+                    @Tail_Call add_more n+1
 
-            add_more 2 . to_vector
+                add_more 2
 
         to_vector arr = Vector.from_polyglot_array arr
         to_array vec = vec.to_array

@@ -20,7 +20,7 @@ export interface TextProps
   readonly lineClamp?: number
 }
 
-const TEXT_STYLE = twv.tv({
+export const TEXT_STYLE = twv.tv({
   base: 'inline-block',
   variants: {
     color: {
@@ -126,19 +126,8 @@ export const Text = React.forwardRef(function Text(
     balance,
   })
 
-  const tooltipTextClasses = TEXT_STYLE({
-    variant,
-    weight,
-    transform,
-    monospace,
-    italic,
-    balance,
-    className: 'pointer-events-none',
-  })
-
   const { tooltip, targetProps } = visualTooltip.useVisualTooltip({
     isDisabled: !truncate,
-    className: tooltipTextClasses,
     targetRef: textElementRef,
     display: 'whenOverflowing',
     children,
