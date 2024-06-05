@@ -171,7 +171,7 @@ class IrToTruffle(
     new ExpressionProcessor(
       localScope,
       scopeName,
-      moduleScope.getModule().getName().toString()
+      scopeBuilder.getModule().getName().toString()
     ).runInline(ir)
   }
 
