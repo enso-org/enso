@@ -675,11 +675,11 @@ type DB_Table
                    new_ctx = self.context.set_where_filters new_filters
                    self.updated_context new_ctx
 
-            filter_condition = case filter of
-                _ : Function ->  Panic.catch Any (filter:Filter_Condition) _->filter
-                _ -> filter
+           filter_condition = case filter of
+               _ : Function ->  Panic.catch Any (filter:Filter_Condition) _->filter
+               _ -> filter
 
-           case filter of
+           case filter_condition of
                _ : Filter_Condition ->
                    resolved = (self:Table_Ref).resolve_condition filter_condition
                    mask (make_filter_column column resolved on_problems)

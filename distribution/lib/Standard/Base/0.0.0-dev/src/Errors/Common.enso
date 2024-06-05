@@ -464,7 +464,7 @@ type Missing_Argument
     ## PRIVATE
        Indicates that an expression cannot be evaluated because somewhere within
        it, a function does not have all required arguments provided.
-    Error (argument_name : Text) (function_name : Text = "") (call_location : Source_Location | Nothing)
+    Error (argument_name : Text) (function_name : Text = "") (call_location : Source_Location | Nothing = Nothing)
 
     ## PRIVATE
     to_display_text : Text
@@ -475,7 +475,8 @@ type Missing_Argument
     ## PRIVATE
        Throws an error saying that a required argument has not been provided.
     throw : Text -> Nothing ! Missing_Argument
-    throw argument_name:Text = Error.throw (Missing_Argument.Error argument_name)
+    throw argument_name:Text =
+        Error.throw (Missing_Argument.Error argument_name)
 
     ## PRIVATE
        Throws an error saying that a required argument has not been provided.
