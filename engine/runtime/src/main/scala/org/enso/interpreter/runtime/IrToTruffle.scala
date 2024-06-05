@@ -330,6 +330,7 @@ class IrToTruffle(
               language,
               makeSection(scopeBuilder.getModule, atomDefn.location),
               localScope,
+              scopeBuilder,
               assignments.toArray,
               reads.toArray,
               annotations.toArray,

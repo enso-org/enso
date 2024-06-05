@@ -19,9 +19,10 @@ public abstract class Builtin {
     }
 
     private AtomConstructor build(EnsoLanguage language, ModuleScope.Builder scope, Type type) {
-      var res = new AtomConstructor(name, scope, type, true);
+      var res = new AtomConstructor(name, scope.getModule(), type, true);
       res.initializeFields(
           language,
+          scope,
           IntStream.range(0, params.size())
               .mapToObj(
                   i ->

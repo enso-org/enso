@@ -72,7 +72,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           val constructor =
             new AtomConstructor(
               cons.name,
-              scope,
+              scope.getModule(),
               rtp,
               false
             )
