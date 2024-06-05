@@ -4,7 +4,7 @@ import * as React from 'react'
 import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
 import EyeIcon from 'enso-assets/eye.svg'
 
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -18,6 +18,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
 import type * as backend from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // =========================
 // === UpsertSecretModal ===
@@ -25,31 +26,37 @@ import type * as backend from '#/services/Backend'
 
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
-  readonly id: backend.SecretId | null
-  readonly name: string | null
-  readonly doCreate: (name: string, value: string) => void
+  readonly backend: Backend
+  readonly asset: backend.SecretAsset | null
+  readonly parentDirectoryId: backend.DirectoryId | null
 }
 
 /** A modal for creating and editing a secret. */
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
-  const { id, name: nameRaw, doCreate } = props
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { backend, asset, parentDirectoryId } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
-  const [name, setName] = React.useState(nameRaw ?? '')
+  const [name, setName] = React.useState(asset?.title ?? '')
   const [value, setValue] = React.useState('')
   const [isShowingValue, setIsShowingValue] = React.useState(false)
-  const isCreatingSecret = id == null
-  const isNameEditable = nameRaw == null
+  const isCreatingSecret = asset == null
+  const isNameEditable = asset == null
   const canSubmit = Boolean(name && value)
+
+  const createSecretMutation = backendHooks.useBackendMutation(backend, 'createSecret')
+  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   const doSubmit = () => {
     unsetModal()
-    try {
-      doCreate(name, value)
-    } catch (error) {
-      toastAndLog(null, error)
+    if (asset != null) {
+      updateSecretMutation.mutate([asset.id, { value }])
+      return
+    } else if (parentDirectoryId != null) {
+      createSecretMutation.mutate([{ name, value, parentDirectoryId }])
+      return
+    } else {
+      throw new Error('Secret editor was opened with neither an existing secret nor a folder ID.')
     }
   }
 

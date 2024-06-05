@@ -48,10 +48,9 @@ export default function AssetVersions(props: AssetVersionsProps) {
     readonly backendService.S3ObjectVersion[]
   >([])
   const isCloud = backend.type === backendService.BackendType.remote
-  const queryKey = ['assetVersions', item.id, item.title]
   const versionsQuery = useAssetVersions.useAssetVersions({
     backend,
-    queryKey,
+    queryKey: ['assetVersions', item.id],
     assetId: item.id,
     title: item.title,
     onError: backendError => toastAndLog('listVersionsError', backendError),
@@ -62,7 +61,7 @@ export default function AssetVersions(props: AssetVersionsProps) {
   const restoreMutation = reactQuery.useMutation({
     mutationFn: async (variables: AddNewVersionVariables) => {
       if (item.type === backendService.AssetType.project) {
-        await backend.restoreProject(item.id, variables.versionId, item.title)
+        await backend.restoreProject(item.id, variables.versionId)
       }
     },
     onMutate: variables => {

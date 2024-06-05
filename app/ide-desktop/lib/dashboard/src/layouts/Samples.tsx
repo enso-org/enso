@@ -10,12 +10,17 @@ import OpenCountIcon from 'enso-assets/open_count.svg'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+
+import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // =================
 // === Constants ===
@@ -86,18 +91,22 @@ export const SAMPLES: Sample[] = [
 
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
+  readonly backend: Backend
+  readonly rootDirectoryId: backendModule.DirectoryId
   readonly sample: Sample
-  readonly createProject: (templateId: string, templateName: string) => void
+  readonly onCreateProject: () => void
 }
 
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
-  const { sample, createProject } = props
+  const { backend, sample, onCreateProject } = props
   const { getText } = textProvider.useText()
   const { id, title, description, background } = sample
   const author = DUMMY_AUTHOR
   const opens = DUMMY_OPEN_COUNT
   const likes = DUMMY_LIKE_COUNT
+
+  const createProjectMutation = backendHooks.useBackendCreateProjectMutation(backend)
 
   return (
     <div className="flex flex-col gap-sample">
@@ -108,7 +117,8 @@ function ProjectTile(props: InternalProjectTileProps) {
               key={title}
               className="focus-child relative flex h-sample grow cursor-pointer flex-col text-left after:pointer-events-none after:absolute after:inset after:rounded-default"
               onPress={() => {
-                createProject(id, title)
+                onCreateProject()
+                createProjectMutation.mutate([{ projectTemplateName: id, projectName: title }])
               }}
               {...innerProps}
             >
@@ -157,12 +167,14 @@ function ProjectTile(props: InternalProjectTileProps) {
 
 /** Props for a {@link Samples}. */
 export interface SamplesProps {
-  readonly createProject: (templateId?: string | null, templateName?: string | null) => void
+  readonly backend: Backend
+  readonly rootDirectoryId: backendModule.DirectoryId
+  readonly onCreateProject: () => void
 }
 
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
-  const { createProject } = props
+  const { backend, rootDirectoryId, onCreateProject } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -172,7 +184,13 @@ export default function Samples(props: SamplesProps) {
       </aria.Heading>
       <div className="grid grid-cols-fill-samples gap-samples">
         {SAMPLES.map(sample => (
-          <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
+          <ProjectTile
+            key={sample.id}
+            backend={backend}
+            rootDirectoryId={rootDirectoryId}
+            sample={sample}
+            onCreateProject={onCreateProject}
+          />
         ))}
       </div>
     </div>

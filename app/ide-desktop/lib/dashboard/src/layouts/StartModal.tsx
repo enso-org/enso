@@ -9,18 +9,22 @@ import WhatsNew from '#/layouts/WhatsNew'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
+import type Backend from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
+
 // ==================
 // === StartModal ===
 // ==================
 
 /** Props for a {@link StartModal}. */
 export interface StartModalProps {
-  readonly createProject: (templateId?: string | null, templateName?: string | null) => void
+  readonly backend: Backend
+  readonly rootDirectoryId: backendModule.DirectoryId
 }
 
 /** A modal containing project templates and news. */
 export default function StartModal(props: StartModalProps) {
-  const { createProject: createProjectRaw } = props
+  const { backend, rootDirectoryId } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -37,10 +41,9 @@ export default function StartModal(props: StartModalProps) {
           </aria.Heading>
           <WhatsNew />
           <Samples
-            createProject={(templateId, templateName) => {
-              createProjectRaw(templateId, templateName)
-              opts.close()
-            }}
+            backend={backend}
+            rootDirectoryId={rootDirectoryId}
+            onCreateProject={opts.close}
           />
         </div>
       )}

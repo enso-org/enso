@@ -4,10 +4,16 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
+import * as store from '#/store'
+
 import * as authProvider from '#/providers/AuthProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+
+import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as permissions from '#/utilities/permissions'
@@ -27,12 +33,8 @@ type DefineBackendMethods<T extends keyof Backend> = T
 // === MutationMethods ===
 // =======================
 
-/** Names of methods corresponding to mutations.
- *
- * Some methods have been omitted:
- * - `createProject` - use `useBackendCreateProject` instead
- */
-type MutationMethod = DefineBackendMethods<
+/** Names of methods corresponding to mutations. */
+type MutationMethodInternal = DefineBackendMethods<
   | 'associateTag'
   | 'changeUserGroup'
   | 'closeProject'
@@ -70,6 +72,16 @@ type MutationMethod = DefineBackendMethods<
   | 'uploadOrganizationPicture'
   | 'uploadUserPicture'
   | 'waitUntilProjectIsReady'
+>
+
+/** Names of methods corresponding to mutations.
+ *
+ * Some methods have been omitted:
+ * - `uploadFile` - use `useBackendUploadFiles` instead
+ * - `createProject` - use `useBackendCreateProject` instead */
+type MutationMethod = Exclude<
+  MutationMethodInternal,
+  DefineBackendMethods<'createProject' | 'uploadFile'>
 >
 
 // ====================
@@ -491,43 +503,46 @@ export function useObserveBackend(backend: Backend | null) {
 // === useBackendQuery ===
 // =======================
 
+/** Options for {@link useBackendQuery}. */
+interface UseBackendQueryOptions<
+  TQueryFnData = unknown,
+  TError = reactQuery.DefaultError,
+  TData = TQueryFnData,
+  TQueryKey extends reactQuery.QueryKey = reactQuery.QueryKey,
+> extends Omit<
+      reactQuery.UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
+      'queryFn' | 'queryKey'
+    >,
+    Partial<Pick<reactQuery.UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, 'queryKey'>> {}
+
 export function useBackendQuery<Method extends QueryMethod>(
   backend: Backend,
   method: Method,
   args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
-    >,
-    'queryFn'
+  options?: UseBackendQueryOptions<
+    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
   >
 ): reactQuery.UseQueryResult<
   Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
 >
-export function useBackendQuery<Method extends keyof Backend>(
+export function useBackendQuery<Method extends QueryMethod>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
-    >,
-    'queryFn'
+  options?: UseBackendQueryOptions<
+    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
   >
 ): reactQuery.UseQueryResult<
   // eslint-disable-next-line no-restricted-syntax
   Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>> | undefined
 >
 /** Wrap a backend method call in a React Query. */
-export function useBackendQuery<Method extends keyof Backend>(
+export function useBackendQuery<Method extends QueryMethod>(
   backend: Backend | null,
   method: Method,
   args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
-  options?: Omit<
-    reactQuery.UseQueryOptions<
-      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
-    >,
-    'queryFn'
+  options?: UseBackendQueryOptions<
+    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
   >
 ) {
   return reactQuery.useQuery<
@@ -545,7 +560,7 @@ export function useBackendQuery<Method extends keyof Backend>(
 // ==============================
 
 /** Wrap a backend method call in a React Query. */
-export function invalidateBackendQuery<Method extends keyof Backend>(
+export function invalidateBackendQuery<Method extends QueryMethod>(
   queryClient: reactQuery.QueryClient,
   backend: Backend | null,
   method: Method,
@@ -567,7 +582,7 @@ export function invalidateBackendQuery<Method extends keyof Backend>(
 // ===========================
 
 /** Get cached data for a backend query, or `undefined` if no data was cached. */
-export function getBackendQueryData<Method extends keyof Backend>(
+export function getBackendQueryData<Method extends QueryMethod>(
   queryClient: reactQuery.QueryClient,
   backend: Backend | null,
   method: Method,
@@ -600,7 +615,7 @@ export function ensureBackendQueryData<Method extends QueryMethod>(
     'queryFn'
   >
 ): Promise<Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>>
-export function ensureBackendQueryData<Method extends keyof Backend>(
+export function ensureBackendQueryData<Method extends QueryMethod>(
   queryClient: reactQuery.QueryClient,
   backend: Backend | null,
   method: Method,
@@ -614,7 +629,7 @@ export function ensureBackendQueryData<Method extends keyof Backend>(
   // eslint-disable-next-line no-restricted-syntax
 ): Promise<Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>> | undefined>
 /** Get cached data for a backend query, or fetch the data if it is not yet cached. */
-export function ensureBackendQueryData<Method extends keyof Backend>(
+export function ensureBackendQueryData<Method extends QueryMethod>(
   queryClient: reactQuery.QueryClient,
   backend: Backend | null,
   method: Method,
@@ -640,8 +655,9 @@ export function ensureBackendQueryData<Method extends keyof Backend>(
 // === useBackendMutation ===
 // ==========================
 
-/** Wrap a backend method call in a React Query Mutation. */
-export function useBackendMutation<Method extends MutationMethod>(
+/** Wrap a backend method call in a React Query Mutation.
+ * @deprecated This is an internal function. */
+export function useBackendMutationInternal<Method extends MutationMethodInternal>(
   backend: Backend,
   method: Method,
   options?: Omit<
@@ -667,12 +683,28 @@ export function useBackendMutation<Method extends MutationMethod>(
   })
 }
 
+/** Wrap a backend method call in a React Query Mutation. */
+// eslint-disable-next-line no-restricted-syntax
+export const useBackendMutation: <Method extends MutationMethod>(
+  backend: Backend,
+  method: Method,
+  options?: Omit<
+    reactQuery.UseMutationOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Error,
+      Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+      unknown
+    >,
+    'mutationFn'
+  >
+) => ReturnType<typeof useBackendMutationInternal<Method>> = useBackendMutationInternal
+
 // ===================================
 // === useBackendMutationVariables ===
 // ===================================
 
 /** Access mutation variables from a React Query Mutation. */
-export function useBackendMutationVariables<Method extends keyof Backend>(
+export function useBackendMutationVariables<Method extends MutationMethodInternal>(
   backend: Backend | null,
   method: Method,
   mutationKey?: readonly unknown[]
@@ -687,6 +719,30 @@ export function useBackendMutationVariables<Method extends keyof Backend>(
     // eslint-disable-next-line no-restricted-syntax
     select: mutation => mutation.state.variables as never,
   })
+}
+
+// ===================================
+// === getBackendMutationVariables ===
+// ===================================
+
+/** Access mutation variables from a React Query Mutation. */
+export function getBackendMutationVariables<Method extends MutationMethodInternal>(
+  queryClient: reactQuery.QueryClient,
+  backend: Backend | null,
+  method: Method,
+  mutationKey?: readonly unknown[]
+) {
+  // This is SAFE - this is a type error because `findAll` is not generic.
+  // eslint-disable-next-line no-restricted-syntax
+  const mutations = queryClient.getMutationCache().findAll({
+    mutationKey: [backend, method, ...(mutationKey ?? [])],
+    status: 'pending',
+  }) as readonly reactQuery.Mutation<
+    Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+    Error,
+    Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+  >[]
+  return mutations.flatMap(mutation => (mutation.state.variables ? [mutation.state.variables] : []))
 }
 
 // =======================================
@@ -948,7 +1004,11 @@ export function useBackendGetOrganization(backend: Backend | null) {
   ])
 }
 
-/** The directory with the given ID, taking into account optimistic state. */
+// ===============================
+// === useBackendListDirectory ===
+// ===============================
+
+/** A list of assets in the directory with the given ID, taking into account optimistic state. */
 export function useBackendListDirectory(
   backend: Backend,
   directoryId: backendModule.DirectoryId,
@@ -1078,17 +1138,314 @@ export function useBackendListDirectory(
   ])
 }
 
-// ===============================
-// === useBackendCreateProject ===
-// ===============================
+// ==================================
+// === ensureBackendListDirectory ===
+// ==================================
 
-export function useBackendCreateProject() {
+/** A list of assets in the directory with the given ID, taking into account optimistic state. */
+export async function ensureBackendListDirectory(
+  queryClient: reactQuery.QueryClient,
+  user: backendModule.User | null,
+  backend: Backend,
+  directoryId: backendModule.DirectoryId,
+  filterBy = backendModule.FilterBy.active
+) {
+  const listDirectoryData = await ensureBackendQueryData(
+    queryClient,
+    backend,
+    'listDirectory',
+    [
+      {
+        filterBy,
+        labels: null,
+        parentId: directoryId,
+        recentProjects: false,
+      },
+    ],
+    {
+      queryKey: [directoryId, filterBy],
+    }
+  )
+  queryClient.getMutationCache().findAll({})
+  const createDirectoryVariables = getBackendMutationVariables(
+    queryClient,
+    backend,
+    'createDirectory'
+  )
+  const createProjectVariables = getBackendMutationVariables(queryClient, backend, 'createProject')
+  const createDatalinkVariables = getBackendMutationVariables(
+    queryClient,
+    backend,
+    'createDatalink'
+  )
+  const createSecretVariables = getBackendMutationVariables(queryClient, backend, 'createSecret')
+  const uploadFileVariables = getBackendMutationVariables(queryClient, backend, 'uploadFile')
+  const result = listDirectoryData.map(toNonPlaceholder)
+  const placeholderProjectState = { type: backendModule.ProjectState.new, volumeId: '' }
+  const createAssetObject = <T extends Partial<backendModule.AnyAsset>>(rest: T) => ({
+    description: null,
+    labels: [],
+    permissions: permissions.tryGetSingletonOwnerPermission(user),
+    projectState: null,
+    modifiedAt: dateTime.toRfc3339(new Date()),
+    parentId: directoryId,
+    isPlaceholder: true,
+    ...rest,
+  })
+  for (const [body] of createDirectoryVariables) {
+    result.push(
+      createAssetObject({
+        type: backendModule.AssetType.directory,
+        id: backendModule.DirectoryId(
+          `${backendModule.AssetType.directory}-${uniqueString.uniqueString()}`
+        ),
+        title: body.title,
+      })
+    )
+  }
+  for (const [body] of createProjectVariables) {
+    result.push(
+      createAssetObject({
+        type: backendModule.AssetType.project,
+        id: backendModule.ProjectId(
+          `${backendModule.AssetType.project}-${uniqueString.uniqueString()}`
+        ),
+        title: body.projectName,
+        projectState: placeholderProjectState,
+      })
+    )
+  }
+  for (const [body] of createDatalinkVariables) {
+    if (body.datalinkId == null) {
+      result.push(
+        createAssetObject({
+          type: backendModule.AssetType.datalink,
+          id: backendModule.DatalinkId(
+            `${backendModule.AssetType.datalink}-${uniqueString.uniqueString()}`
+          ),
+          title: body.name,
+        })
+      )
+    }
+  }
+  for (const [body] of createSecretVariables) {
+    result.push(
+      createAssetObject({
+        type: backendModule.AssetType.secret,
+        id: backendModule.SecretId(
+          `${backendModule.AssetType.secret}-${uniqueString.uniqueString()}`
+        ),
+        title: body.name,
+      })
+    )
+  }
+  for (const [body] of uploadFileVariables) {
+    const projectNameAndExtension = backendModule.extractProjectExtension(body.fileName)
+    const projectName =
+      projectNameAndExtension.extension === '' ? null : projectNameAndExtension.basename
+    result.push(
+      projectName == null
+        ? createAssetObject({
+            type: backendModule.AssetType.file,
+            id: backendModule.FileId(
+              `${backendModule.AssetType.file}-${uniqueString.uniqueString()}`
+            ),
+            title: body.fileName,
+          })
+        : createAssetObject({
+            type: backendModule.AssetType.project,
+            id: backendModule.ProjectId(
+              `${backendModule.AssetType.project}-${uniqueString.uniqueString()}`
+            ),
+            title: projectName,
+            projectState: placeholderProjectState,
+          })
+    )
+  }
+  return result
+}
+
+// =========================================
+// === useBackendCreateDirectoryMutation ===
+// =========================================
+
+/** Wrapper over {@link Backend.createDirectory} that renames the folder based on the names of its
+ * siblings. */
+export function useBackendCreateDirectoryMutation(backend: Backend) {
   const queryClient = reactQuery.useQueryClient()
+  const { user } = authProvider.useNonPartialUserSession()
+  const createDirectoryMutation = useBackendMutationInternal(backend, 'createDirectory')
   return reactQuery.useMutation({
-    mutationFn: () => {
-      // TODO: need to use useBackendListDirectory
-      const siblings = queryClient.getQueryData
-      //
+    mutationFn: async ([body]: Parameters<Backend['createDirectory']>) => {
+      const parentId = body.parentId ?? backend.rootDirectoryId(user)
+      if (parentId == null) {
+        return null
+      } else {
+        const siblings = await ensureBackendListDirectory(queryClient, user, backend, parentId)
+        const prefix = `${body.title} `
+        const samePrefixRegex = new RegExp(`^${prefix}(?<index>\\d+)$`)
+        const indices = siblings
+          .filter(backendModule.assetIsProject)
+          .map(item => samePrefixRegex.exec(item.title)?.groups?.index)
+          .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+        const title = prefix + (Math.max(0, ...indices) + 1)
+        return await createDirectoryMutation.mutateAsync([{ title, parentId }])
+      }
+    },
+  })
+}
+
+// =======================================
+// === useBackendCreateProjectMutation ===
+// =======================================
+
+/** Wrapper over {@link Backend.createProject} that renames the project based on the names of its
+ * siblings. */
+export function useBackendCreateProjectMutation(backend: Backend) {
+  const queryClient = reactQuery.useQueryClient()
+  const { user } = authProvider.useNonPartialUserSession()
+  const createProjectMutation = useBackendMutationInternal(backend, 'createProject')
+  return reactQuery.useMutation({
+    mutationFn: async ([body]: Parameters<Backend['createProject']>) => {
+      const parentDirectoryId = body.parentDirectoryId ?? backend.rootDirectoryId(user)
+      if (parentDirectoryId == null) {
+        return null
+      } else {
+        const siblings = await ensureBackendListDirectory(
+          queryClient,
+          user,
+          backend,
+          parentDirectoryId
+        )
+        const prefix = `${body.projectName} `
+        const samePrefixRegex = new RegExp(`^${prefix}(?<index>\\d+)$`)
+        const indices = siblings
+          .filter(backendModule.assetIsProject)
+          .map(item => samePrefixRegex.exec(item.title)?.groups?.index)
+          .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+        const projectName = prefix + (Math.max(0, ...indices) + 1)
+        return await createProjectMutation.mutateAsync([{ projectName, parentDirectoryId }])
+      }
+    },
+  })
+}
+
+// =====================================
+// === useBackendUploadFilesMutation ===
+// =====================================
+
+/** Wrapper over {@link Backend.uploadFile} that shows a modal when assets have conflicting names. */
+export function useBackendUploadFilesMutation(backend: Backend) {
+  const setIsAssetOpen = store.useStore(storeState => storeState.setIsAssetOpen)
+  const queryClient = reactQuery.useQueryClient()
+  const { user } = authProvider.useNonPartialUserSession()
+  const { setModal } = modalProvider.useSetModal()
+
+  const uploadFileMutation = useBackendMutationInternal(backend, 'uploadFile')
+
+  return reactQuery.useMutation({
+    mutationFn: async ([jsFiles, parentId]: [
+      files: Iterable<File>,
+      parentId: backendModule.DirectoryId,
+    ]) => {
+      const localBackend = backend instanceof LocalBackend ? backend : null
+      const reversedFiles = [...jsFiles].reverse()
+      const siblings = await ensureBackendListDirectory(queryClient, user, backend, parentId)
+      const siblingFiles = siblings.filter(backendModule.assetIsFile)
+      const siblingProjects = siblings.filter(backendModule.assetIsProject)
+      const siblingFileTitles = new Set(siblingFiles.map(asset => asset.title))
+      const siblingProjectTitles = new Set(siblingProjects.map(asset => asset.title))
+      const files = reversedFiles.filter(backendModule.fileIsNotProject)
+      const projects = reversedFiles.filter(backendModule.fileIsProject)
+      const duplicateFiles = files.filter(file => siblingFileTitles.has(file.name))
+      const duplicateProjects = projects.filter(project =>
+        siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
+      )
+      const ownerPermission = permissions.tryGetSingletonOwnerPermission(user)
+      if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
+        setIsAssetOpen(backend.type, parentId, true)
+        for (const file of files) {
+          uploadFileMutation.mutate([
+            { fileId: null, fileName: file.name, parentDirectoryId: parentId },
+            file,
+          ])
+        }
+        for (const project of projects) {
+          const basename = backendModule.stripProjectExtension(project.name)
+          // FIXME: Project path is `localBackend?.joinPath(parentId, basename) ?? null`.
+          // This is required for the Local Backend.
+          uploadFileMutation.mutate([
+            { fileId: null, fileName: basename, parentDirectoryId: parentId },
+            project,
+          ])
+        }
+      } else {
+        const siblingFilesByName = new Map(siblingFiles.map(file => [file.title, file]))
+        const siblingProjectsByName = new Map(
+          siblingProjects.map(project => [project.title, project])
+        )
+        const conflictingFiles = duplicateFiles.map(file => ({
+          // This is SAFE, as `duplicateFiles` only contains files that have siblings
+          // with the same name.
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          current: siblingFilesByName.get(file.name)!,
+          new: backendModule.createPlaceholderFileAsset(file.name, parentId, ownerPermission),
+          file,
+        }))
+        const conflictingProjects = duplicateProjects.map(project => {
+          const basename = backendModule.stripProjectExtension(project.name)
+          return {
+            // This is SAFE, as `duplicateProjects` only contains projects that have
+            // siblings with the same name.
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            current: siblingProjectsByName.get(basename)!,
+            new: backendModule.createPlaceholderProjectAsset(
+              basename,
+              parentId,
+              ownerPermission,
+              user,
+              localBackend?.joinPath(parentId, basename) ?? null
+            ),
+            file: project,
+          }
+        })
+        setModal(
+          <DuplicateAssetsModal
+            backend={backend}
+            conflictingFiles={conflictingFiles}
+            conflictingProjects={conflictingProjects}
+            siblingFileNames={siblingFilesByName.keys()}
+            siblingProjectNames={siblingProjectsByName.keys()}
+            nonConflictingFileCount={files.length - conflictingFiles.length}
+            nonConflictingProjectCount={projects.length - conflictingProjects.length}
+            doUploadNonConflicting={() => {
+              setIsAssetOpen(backend.type, parentId, true)
+              const nonConflictingFiles = files.filter(
+                otherFile => !siblingFileTitles.has(otherFile.name)
+              )
+              for (const file of nonConflictingFiles) {
+                uploadFileMutation.mutate([
+                  { fileId: null, fileName: file.name, parentDirectoryId: parentId },
+                  file,
+                ])
+              }
+              const nonConflictingProjects = projects.filter(
+                project =>
+                  !siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
+              )
+              for (const project of nonConflictingProjects) {
+                const basename = backendModule.stripProjectExtension(project.name)
+                // FIXME: Project path is `localBackend?.joinPath(parentId, basename) ?? null`.
+                // This is required for the Local Backend.
+                uploadFileMutation.mutate([
+                  { fileId: null, fileName: basename, parentDirectoryId: parentId },
+                  project,
+                ])
+              }
+            }}
+          />
+        )
+      }
     },
   })
 }

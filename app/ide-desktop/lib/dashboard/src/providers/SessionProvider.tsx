@@ -4,10 +4,8 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
-import * as refreshHooks from '#/hooks/refreshHooks'
-
 import * as errorModule from '#/utilities/error'
+import * as uniqueString from '#/utilities/uniqueString'
 
 import type * as cognito from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
@@ -57,7 +55,7 @@ const SIX_HOURS_MS = 21_600_000
 export default function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, userSession, registerAuthEventListener, refreshUserSession } =
     props
-  const [refresh, doRefresh] = refreshHooks.useRefresh()
+  const [refresh, doRefresh] = React.useReducer(() => uniqueString.uniqueString(), '')
   const [initialized, setInitialized] = React.useState(false)
   const errorCallbacks = React.useRef(new Set<(error: Error) => void>())
 
@@ -69,12 +67,9 @@ export default function SessionProvider(props: SessionProviderProps) {
     }
   }, [])
 
-  // Register an async effect that will fetch the user's session whenever the `refresh` state is
-  // set. This is useful when a user has just logged in (as their cached credentials are
-  // out of date, so this will update them).
-  const session = asyncEffectHooks.useAsyncEffect(
-    null,
-    async () => {
+  const sessionQuery = reactQuery.useQuery({
+    queryKey: ['session', refresh],
+    queryFn: async () => {
       if (userSession == null) {
         setInitialized(true)
         return null
@@ -93,8 +88,8 @@ export default function SessionProvider(props: SessionProviderProps) {
         }
       }
     },
-    [refresh]
-  )
+  })
+  const session = sessionQuery.data ?? null
 
   const timeUntilRefresh = session
     ? // If the session has not expired, we should refresh it when it is 5 minutes from expiring.

@@ -388,8 +388,19 @@ export default class LocalBackend extends Backend {
         return
       }
       case backend.AssetType.project: {
+        const id = typeAndId.id
+        const state = this.projectManager.projects.get(id)
+        if (state?.state === backend.ProjectState.openInProgress) {
+          // Projects that are not opened cannot be closed.
+          // This is the only way to wait until the project is open.
+          await this.projectManager.openProject({
+            projectId: id,
+            missingComponentAction: projectManager.MissingComponentAction.install,
+          })
+          await this.projectManager.closeProject({ projectId: id })
+        }
         await this.projectManager.deleteProject({
-          projectId: typeAndId.id,
+          projectId: id,
           projectsDirectory: extractTypeAndId(body.parentId).id,
         })
         return

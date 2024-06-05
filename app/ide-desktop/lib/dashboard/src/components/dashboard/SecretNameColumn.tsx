@@ -5,9 +5,6 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import KeyIcon from 'enso-assets/key.svg'
 
-import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -36,15 +33,12 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
 export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, depth, selected, state, rowState, setRowState, isEditable } = props
   const { backend } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
-
-  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -76,19 +70,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event) && isEditable) {
           event.stopPropagation()
-          setModal(
-            <UpsertSecretModal
-              id={item.id}
-              name={item.title}
-              doCreate={async (_name, value) => {
-                try {
-                  await updateSecretMutation.mutateAsync([item.id, { value }, item.title])
-                } catch (error) {
-                  toastAndLog(null, error)
-                }
-              }}
-            />
-          )
+          setModal(<UpsertSecretModal backend={backend} asset={item} parentDirectoryId={null} />)
         }
       }}
     >

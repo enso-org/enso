@@ -4,8 +4,6 @@ import * as React from 'react'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
@@ -32,15 +30,13 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, setItem, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { item, depth, selected, state, rowState, setRowState, isEditable } = props
   const { backend, nodeMap } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`FileNameColumn` can only display files.')
   }
-  const setAsset = setAssetHooks.useSetAsset(item, setItem)
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const updateFileMutation = backendHooks.useBackendMutation(backend, 'updateFile')
@@ -51,23 +47,13 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     }
   }
 
-  // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
-  // context menu entry should be re-added.
-  // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
   const doRename = async (newTitle: string) => {
     if (isEditable) {
       setIsEditing(false)
       if (string.isWhitespaceOnly(newTitle)) {
         // Do nothing.
       } else if (!isCloud && newTitle !== item.title) {
-        const oldTitle = item.title
-        setAsset(object.merger({ title: newTitle }))
-        try {
-          await updateFileMutation.mutateAsync([item.id, { title: newTitle }, item.title])
-        } catch (error) {
-          toastAndLog('renameFolderError', error)
-          setAsset(object.merger({ title: oldTitle }))
-        }
+        await updateFileMutation.mutateAsync([item.id, { title: newTitle }])
       }
     }
   }

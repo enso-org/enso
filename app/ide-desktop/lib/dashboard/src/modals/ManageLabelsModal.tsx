@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -22,7 +21,6 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
-import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
 // =================
@@ -42,7 +40,6 @@ export interface ManageLabelsModalProps<
 > {
   readonly backend: Backend
   readonly item: Asset
-  readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
   /** If this is `null`, this modal will be centered. */
   readonly eventTarget: HTMLElement | null
 }
@@ -53,12 +50,11 @@ export interface ManageLabelsModalProps<
 export default function ManageLabelsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
-  const { backend, item, setItem, eventTarget } = props
+  const { backend, item, eventTarget } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const labels = backendHooks.useBackendAssetTags(item.id)
   const allLabels = backendHooks.useBackendListTags(backend)
-  const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const leastUsedColor = React.useMemo(
@@ -66,7 +62,6 @@ export default function ManageLabelsModal<
     [allLabels]
   )
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
-  const labelNames = React.useMemo(() => new Set(labels), [labels])
   const regex = React.useMemo(() => new RegExp(string.regexEscape(query), 'i'), [query])
   const canSelectColor = React.useMemo(
     () => query !== '' && (allLabels ?? []).filter(label => regex.test(label.value)).length === 0,
@@ -77,50 +72,17 @@ export default function ManageLabelsModal<
   const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
   const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
 
-  const setLabels = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {
-      setLabelsRaw(valueOrUpdater)
-      setItem(oldItem =>
-        // This is SAFE, as the type of asset is not being changed.
-        // eslint-disable-next-line no-restricted-syntax
-        object.merge(oldItem, {
-          labels:
-            typeof valueOrUpdater !== 'function'
-              ? valueOrUpdater
-              : valueOrUpdater(oldItem.labels ?? []),
-        } as Partial<Asset>)
-      )
-    },
-    [/* should never change */ setItem]
-  )
-
-  const doToggleLabel = async (name: backendModule.LabelName) => {
-    const newLabels = labelNames.has(name)
+  const doToggleLabel = (name: backendModule.LabelName) => {
+    const newLabels = labels.includes(name)
       ? labels.filter(label => label !== name)
       : [...labels, name]
-    setLabels(newLabels)
-    try {
-      await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
-    } catch (error) {
-      toastAndLog(null, error)
-      setLabels(labels)
-    }
+    associateTagMutation.mutate([item.id, newLabels])
   }
 
   const doSubmit = async () => {
     unsetModal()
     const labelName = backendModule.LabelName(query)
-    setLabels(oldLabels => [...oldLabels, labelName])
-    try {
-      await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
-      setLabels(newLabels => {
-        associateTagMutation.mutate([item.id, newLabels, item.title])
-        return newLabels
-      })
-    } catch (error) {
-      toastAndLog(null, error)
-      setLabels(oldLabels => oldLabels.filter(oldLabel => oldLabel !== query))
-    }
+    await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
   }
 
   return (

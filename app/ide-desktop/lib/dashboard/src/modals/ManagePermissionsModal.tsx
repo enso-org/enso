@@ -22,7 +22,6 @@ import FocusArea from '#/components/styled/FocusArea'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
 
 // =================
@@ -220,7 +219,7 @@ export default function ManagePermissionsModal<
 
     const doDelete = async (permissionId: backendModule.UserPermissionIdentifier) => {
       if (permissionId === self.user.userId) {
-        deleteAssetMutation.mutate([item.id, { force: false, parentId: item.parentId }, item.title])
+        deleteAssetMutation.mutate([item.id, { force: false, parentId: item.parentId }])
       } else {
         const oldPermission = permissions.find(
           permission => backendModule.getAssetPermissionId(permission) === permissionId

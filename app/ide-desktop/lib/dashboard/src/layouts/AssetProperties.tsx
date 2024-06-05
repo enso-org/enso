@@ -25,7 +25,6 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
-import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
 // =======================
@@ -52,11 +51,17 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
-  const [datalinkValue, setDatalinkValue] = React.useState<NonNullable<unknown> | null>(null)
+  const isDatalink = item.type === backendModule.AssetType.datalink
+  const datalinkValueQuery = backendHooks.useBackendQuery(
+    backend,
+    'getDatalink',
+    [item.type === backendModule.AssetType.datalink ? item.id : backendModule.DatalinkId('')],
+    { enabled: isDatalink }
+  )
+  const datalinkValue = datalinkValueQuery.data ?? null
   const [editedDatalinkValue, setEditedDatalinkValue] = React.useState<NonNullable<unknown> | null>(
     datalinkValue
   )
-  const [isDatalinkFetched, setIsDatalinkFetched] = React.useState(false)
   const isDatalinkSubmittable = React.useMemo(
     () => datalinkValidator.validateDatalink(datalinkValue),
     [datalinkValue]
@@ -70,27 +75,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     ownsThisAsset ||
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
-  const isDatalink = item.type === backendModule.AssetType.datalink
   const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
 
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
-  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
 
   React.useEffect(() => {
     setDescription(item.description ?? '')
   }, [item.description])
-
-  React.useEffect(() => {
-    void (async () => {
-      if (item.type === backendModule.AssetType.datalink) {
-        const value = await getDatalinkMutation.mutateAsync([item.id, item.title])
-        setDatalinkValue(value)
-        setEditedDatalinkValue(value)
-        setIsDatalinkFetched(true)
-      }
-    })()
-  }, [backend, item, getDatalinkMutation])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
@@ -104,7 +96,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             description,
             ...(projectPath == null ? {} : { projectPath }),
           },
-          item.title,
         ])
       } catch (error) {
         toastAndLog('editDescriptionError')
@@ -228,7 +219,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           >
             {getText('datalink')}
           </aria.Heading>
-          {!isDatalinkFetched ? (
+          {datalinkValueQuery.isLoading ? (
             <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
@@ -251,26 +242,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                       : {})}
                     className="button bg-invite text-white enabled:active"
                     onPress={() => {
-                      void (async () => {
-                        if (item.type === backendModule.AssetType.datalink) {
-                          const oldDatalinkValue = datalinkValue
-                          try {
-                            setDatalinkValue(editedDatalinkValue)
-                            await createDatalinkMutation.mutateAsync([
-                              {
-                                datalinkId: item.id,
-                                name: item.title,
-                                parentDirectoryId: null,
-                                value: editedDatalinkValue,
-                              },
-                            ])
-                          } catch (error) {
-                            toastAndLog(null, error)
-                            setDatalinkValue(oldDatalinkValue)
-                            setEditedDatalinkValue(oldDatalinkValue)
-                          }
-                        }
-                      })()
+                      createDatalinkMutation.mutate([
+                        {
+                          datalinkId: item.id,
+                          name: item.title,
+                          parentDirectoryId: null,
+                          value: editedDatalinkValue,
+                        },
+                      ])
                     }}
                   >
                     {getText('update')}

@@ -60,7 +60,6 @@ export interface DriveProps {
   readonly category: Category
   readonly setCategory: (category: Category) => void
   readonly hidden: boolean
-  readonly initialProjectName: string | null
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
@@ -79,7 +78,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { hidden, initialProjectName, query, setQuery } = props
+  const { hidden, query, setQuery } = props
   const { setSuggestions, projectStartupInfo, setProjectStartupInfo } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
@@ -97,7 +96,7 @@ export default function Drive(props: DriveProps) {
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
     [backend, user]
   )
-  const targetDirectoryNodeRef = React.useRef<backendModule.DirectoryAsset | null>(null)
+  const targetDirectoryIdRef = React.useRef(rootDirectoryId)
   const isCloud = categoryModule.isCloud(category)
   const status =
     !isCloud && didLoadingProjectManagerFail
@@ -128,72 +127,6 @@ export default function Drive(props: DriveProps) {
       )
     }
   }, [])
-
-  const doUploadFiles = React.useCallback(
-    (files: File[]) => {
-      if (isCloud && sessionType === authProvider.UserSessionType.offline) {
-        // This should never happen, however display a nice error message in case it does.
-        toastAndLog('offlineUploadFilesError')
-      } else {
-        // FIXME: Just mutating is not an option, as conflict resolution needs to display a modal.
-        dispatchAssetListEvent({
-          type: AssetListEventType.uploadFiles,
-          parentId: targetDirectoryNodeRef.current?.id ?? rootDirectoryId,
-          files,
-        })
-      }
-    },
-    [isCloud, rootDirectoryId, sessionType, toastAndLog]
-  )
-
-  const doEmptyTrash = React.useCallback(() => {
-    dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
-  }, [])
-
-  const doCreateProject = React.useCallback(
-    (templateId: string | null = null, templateName: string | null = null) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newProject,
-        parentId: targetDirectoryNodeRef.current?.id ?? rootDirectoryId,
-        templateId,
-        datalinkId: null,
-        preferredName: templateName,
-      })
-    },
-    [rootDirectoryId]
-  )
-
-  const doCreateDirectory = React.useCallback(() => {
-    dispatchAssetListEvent({
-      type: AssetListEventType.newFolder
-      parentId: targetDirectoryNodeRef.current?.id ?? rootDirectoryId,
-    })
-  }, [rootDirectoryId])
-
-  const doCreateSecret = React.useCallback(
-    (name: string, value: string) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newSecret,
-        parentId: targetDirectoryNodeRef.current?.id ?? rootDirectoryId,
-        name,
-        value,
-      })
-    },
-    [rootDirectoryId]
-  )
-
-  const doCreateDatalink = React.useCallback(
-    (name: string, value: unknown) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newDatalink,
-        parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
-        parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
-        name,
-        value,
-      })
-    },
-    [rootDirectoryId]
-  )
 
   switch (status) {
     case DriveStatus.offline: {
@@ -263,14 +196,11 @@ export default function Drive(props: DriveProps) {
           )}
         >
           <DriveBar
+            backend={backend}
+            rootDirectoryId={rootDirectoryId}
+            targetDirectoryIdRef={targetDirectoryIdRef}
             category={category}
             canDownload={canDownload}
-            doEmptyTrash={doEmptyTrash}
-            doCreateProject={doCreateProject}
-            doUploadFiles={doUploadFiles}
-            doCreateDirectory={doCreateDirectory}
-            doCreateSecret={doCreateSecret}
-            doCreateDatalink={doCreateDatalink}
           />
           <div className="flex flex-1 gap-drive overflow-hidden">
             <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
@@ -292,11 +222,10 @@ export default function Drive(props: DriveProps) {
               setProjectStartupInfo={setProjectStartupInfo}
               category={category}
               setSuggestions={setSuggestions}
-              initialProjectName={initialProjectName}
               projectStartupInfo={projectStartupInfo}
               setAssetPanelProps={setAssetPanelProps}
               setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-              targetDirectoryNodeRef={targetDirectoryNodeRef}
+              targetDirectoryIdRef={targetDirectoryIdRef}
               doOpenEditor={doOpenEditor}
               doCloseEditor={doCloseEditor}
             />

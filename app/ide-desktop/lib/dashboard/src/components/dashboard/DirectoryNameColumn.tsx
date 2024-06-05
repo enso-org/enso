@@ -9,8 +9,6 @@ import FolderIcon from 'enso-assets/folder.svg'
 import * as store from '#/store'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -38,16 +36,14 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, setItem, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { item, depth, selected, state, rowState, setRowState, isEditable } = props
   const { backend, selectedKeys, nodeMap, doToggleDirectoryExpansion } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display folders.')
   }
-  const setAsset = setAssetHooks.useSetAsset(item, setItem)
   const isOpen = store.useStore(
     storeState => storeState.backends[backend.type].assets[item.id]?.isOpen ?? false
   )
@@ -66,14 +62,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       if (string.isWhitespaceOnly(newTitle)) {
         // Do nothing.
       } else if (newTitle !== item.title) {
-        const oldTitle = item.title
-        setAsset(object.merger({ title: newTitle }))
-        try {
-          await updateDirectoryMutation.mutateAsync([item.id, { title: newTitle }, item.title])
-        } catch (error) {
-          toastAndLog('renameFolderError', error)
-          setAsset(object.merger({ title: oldTitle }))
-        }
+        await updateDirectoryMutation.mutateAsync([item.id, { title: newTitle }])
       }
     }
   }

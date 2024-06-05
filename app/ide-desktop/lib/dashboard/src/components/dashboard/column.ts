@@ -19,9 +19,7 @@ import type * as backendModule from '#/services/Backend'
 
 /** Props for an arbitrary variant of {@link backendModule.Asset}. */
 export interface AssetColumnProps {
-  readonly keyProp: backendModule.AssetId
   readonly item: backendModule.AnyAsset
-  readonly setItem: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>>
   readonly depth: number
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void

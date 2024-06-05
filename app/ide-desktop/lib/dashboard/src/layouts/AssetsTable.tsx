@@ -8,9 +8,10 @@ import DropFilesImage from 'enso-assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -217,7 +218,6 @@ export interface AssetsTableState {
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
   readonly scrollContainerRef: React.RefObject<HTMLElement>
-  readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   readonly category: Category
   readonly hasPasteData: boolean
   readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
@@ -228,15 +228,7 @@ export interface AssetsTableState {
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
-  readonly nodeMap: Readonly<
-    React.MutableRefObject<ReadonlyMap<backendModule.AssetId, backendModule.AnyAsset>>
-  >
   readonly hideColumn: (column: columnUtils.Column) => void
-  readonly doToggleDirectoryExpansion: (
-    directoryId: backendModule.DirectoryId,
-    title?: string | null,
-    override?: boolean
-  ) => void
   readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
@@ -245,15 +237,11 @@ export interface AssetsTableState {
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId
-  ) => void
+  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
-  readonly setVisibility: (visibility: Visibility) => void
   readonly isEditingName: boolean
   readonly temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
   readonly temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
@@ -271,7 +259,7 @@ export interface AssetsTableProps {
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
-  readonly targetDirectoryNodeRef: React.MutableRefObject<backendModule.DirectoryAsset | null>
+  readonly targetDirectoryIdRef: React.MutableRefObject<backendModule.DirectoryId>
   readonly doOpenEditor: (
     backend: Backend,
     project: backendModule.ProjectAsset,
@@ -286,25 +274,24 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category } = props
   const { setSuggestions, projectStartupInfo } = props
   const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
-  const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
+  const { setAssetPanelProps, targetDirectoryIdRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
   const labels = backendHooks.useBackendListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const toggleIsAssetOpen = store.useStore(storeState => storeState.toggleIsAssetOpen)
+  const setIsAssetOpen = store.useStore(storeState => storeState.setIsAssetOpen)
+  const setSelectedIds = store.useStore(storeState => storeState.setSelectedIds)
   const inputBindings = inputBindingsProvider.useInputBindings()
   const navigator2D = navigator2DProvider.useNavigator2D()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [enabledColumns, setEnabledColumns] = localStorageProvider.useLocalStorageValue(
     'enabledColumns',
     () => columnUtils.DEFAULT_ENABLED_COLUMNS
   )
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
-  const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
-    () => new Set()
-  )
   const selectedKeysRef = React.useRef(selectedKeys)
   const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
     ReadonlySet<backendModule.AssetId>
@@ -317,7 +304,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const rootDirectoryEntries = backendHooks.useBackendListDirectory(
     backend,
     rootDirectoryId,
-    '(root)',
     ...(filterBy == null ? [] : [filterBy])
   )
   const isLoading = rootDirectoryEntries == null
@@ -329,52 +315,38 @@ export default function AssetsTable(props: AssetsTableProps) {
   const pasteDataRef = React.useRef<pasteDataModule.PasteData<
     ReadonlySet<backendModule.AssetId>
   > | null>(null)
-  const filter = React.useMemo(() => query.filter.bind(query), [query])
 
+  const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
   const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
-  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   React.useEffect(() => {
-    if (selectedKeys.size === 0) {
-      targetDirectoryNodeRef.current = null
-    } else if (selectedKeys.size === 1) {
-      const [soleKey] = selectedKeys
-      const node = soleKey == null ? null : nodeMapRef.current.get(soleKey)
-      if (node != null && node.type === backendModule.AssetType.directory) {
-        targetDirectoryNodeRef.current = node
-      }
-    } else {
-      let commonDirectoryId: backendModule.AssetId | null = null
-      let otherCandidateDirectoryId: backendModule.AssetId | null = null
-      for (const key of selectedKeys) {
-        const node = nodeMapRef.current.get(key)
-        if (node != null) {
-          if (commonDirectoryId == null) {
-            commonDirectoryId = node.parentId
-            otherCandidateDirectoryId =
-              node.type === backendModule.AssetType.directory ? node.id : null
-          } else if (node.id === commonDirectoryId || node.parentId === commonDirectoryId) {
-            otherCandidateDirectoryId = null
-          } else if (
-            otherCandidateDirectoryId != null &&
-            (node.id === otherCandidateDirectoryId || node.parentId === otherCandidateDirectoryId)
-          ) {
-            commonDirectoryId = otherCandidateDirectoryId
-            otherCandidateDirectoryId = null
-          } else {
-            // No match; there is no common parent directory for the entire selection.
-            commonDirectoryId = null
-            break
-          }
+    let commonDirectoryId: backendModule.DirectoryId | null = null
+    let otherCandidateDirectoryId: backendModule.DirectoryId | null = null
+    for (const key of selectedKeys) {
+      const asset = nodeMapRef.current.get(key) as backendModule.AnyAsset
+      if (asset != null) {
+        if (commonDirectoryId == null) {
+          commonDirectoryId = asset.parentId
+          otherCandidateDirectoryId =
+            asset.type === backendModule.AssetType.directory ? asset.id : null
+        } else if (asset.id === commonDirectoryId || asset.parentId === commonDirectoryId) {
+          otherCandidateDirectoryId = null
+        } else if (
+          otherCandidateDirectoryId != null &&
+          (asset.id === otherCandidateDirectoryId || asset.parentId === otherCandidateDirectoryId)
+        ) {
+          commonDirectoryId = otherCandidateDirectoryId
+          otherCandidateDirectoryId = null
+        } else {
+          // No match; there is no common parent directory for the entire selection.
+          commonDirectoryId = null
+          break
         }
       }
-      const node = commonDirectoryId == null ? null : nodeMapRef.current.get(commonDirectoryId)
-      if (node != null && node.type === backendModule.AssetType.directory) {
-        targetDirectoryNodeRef.current = node
-      }
     }
-  }, [targetDirectoryNodeRef, selectedKeys])
+    targetDirectoryIdRef.current = commonDirectoryId ?? rootDirectoryId
+  }, [targetDirectoryIdRef, selectedKeys])
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -580,49 +552,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [hidden, /* should never change */ inputBindings])
 
-  const setSelectedKeys = React.useCallback(
-    (newSelectedKeys: ReadonlySet<backendModule.AssetId>) => {
-      selectedKeysRef.current = newSelectedKeys
-      setSelectedKeysRaw(newSelectedKeys)
-      if (!isCloud) {
-        setCanDownload(
-          newSelectedKeys.size !== 0 &&
-            Array.from(newSelectedKeys).every(key => {
-              const node = nodeMapRef.current.get(key)
-              return node?.type === backendModule.AssetType.project
-            })
-        )
-      } else {
-        setCanDownload(
-          newSelectedKeys.size !== 0 &&
-            Array.from(newSelectedKeys).every(key => {
-              const node = nodeMapRef.current.get(key)
-              return (
-                node?.type === backendModule.AssetType.project ||
-                node?.type === backendModule.AssetType.file ||
-                node?.type === backendModule.AssetType.datalink
-              )
-            })
-        )
-      }
-    },
-    [isCloud, /* should never change */ setCanDownload]
-  )
-
-  const clearSelectedKeys = React.useCallback(() => {
-    setSelectedKeys(new Set())
-  }, [setSelectedKeys])
-
-  React.useEffect(() => {
-    if (selectedKeysRef.current.size !== 1) {
-      setAssetPanelProps(null)
-      setIsAssetPanelTemporarilyVisible(false)
-    }
-  }, [
-    selectedKeysRef.current.size,
-    /* should never change */ setAssetPanelProps,
-    /* should never change */ setIsAssetPanelTemporarilyVisible,
-  ])
+  // FIXME: re-add `setIsAssetPanelTemporarilyVisible(false)`
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] = React.useState<number | null>(null)
@@ -662,13 +592,13 @@ export default function AssetsTable(props: AssetsTableProps) {
         case ' ': {
           if (event.key === ' ' && event.ctrlKey) {
             const keys = selectedKeysRef.current
-            setSelectedKeys(set.withPresence(keys, item.id, !keys.has(item.id)))
+            setSelectedIds(set.withPresence(keys, item.id, !keys.has(item.id)))
           } else {
             switch (item.type) {
               case backendModule.AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                doToggleDirectoryExpansion(item.id, item.id)
+                toggleIsAssetOpen(backend.type, item.id)
                 break
               }
               case backendModule.AssetType.project: {
@@ -692,19 +622,8 @@ export default function AssetsTable(props: AssetsTableProps) {
               case backendModule.AssetType.secret: {
                 event.preventDefault()
                 event.stopPropagation()
-                const id = item.id
                 setModal(
-                  <UpsertSecretModal
-                    id={item.id}
-                    name={item.title}
-                    doCreate={async (_name, value) => {
-                      try {
-                        await updateSecretMutation.mutateAsync([id, { value }, item.title])
-                      } catch (error) {
-                        toastAndLog(null, error)
-                      }
-                    }}
-                  />
+                  <UpsertSecretModal backend={backend} asset={item} parentDirectoryId={null} />
                 )
                 break
               }
@@ -720,16 +639,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             // The folder is expanded; collapse it.
             event.preventDefault()
             event.stopPropagation()
-            doToggleDirectoryExpansion(item.id, null, false)
+            setIsAssetOpen(backend.type, item.id, false)
           } else {
             // Focus parent if there is one.
             const index2 = allRows.findIndex(row => row.id === item.parentId)
             if (index2 !== -1) {
               event.preventDefault()
               event.stopPropagation()
-              setSelectedKeys(new Set([item.parentId]))
+              setSelectedIds(backend.type, [item.parentId])
               setMostRecentlySelectedIndex(index2, true)
-              //
             }
           }
           break
@@ -739,7 +657,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             // The folder is collapsed; expand it.
             event.preventDefault()
             event.stopPropagation()
-            doToggleDirectoryExpansion(item.id, null, true)
+            setIsAssetOpen(backend.type, item.id, true)
           }
           break
         }
@@ -749,12 +667,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       case ' ': {
         if (event.ctrlKey && item != null) {
           const keys = selectedKeysRef.current
-          setSelectedKeys(set.withPresence(keys, item.id, !keys.has(item.id)))
+          setSelectedIds(set.withPresence(keys, item.id, !keys.has(item.id)))
         }
         break
       }
       case 'Escape': {
-        setSelectedKeys(new Set())
+        setSelectedIds(backend.type, [])
         setMostRecentlySelectedIndex(null)
         selectionStartIndexRef.current = null
         break
@@ -798,7 +716,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           const startIndex = Math.min(index, selectionStartIndexRef.current)
           const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
           const selection = visibleItems.slice(startIndex, endIndex)
-          setSelectedKeys(new Set(selection.map(newItem => newitem.id)))
+          setSelectedIds(
+            backend.type,
+            selection.map(newItem => newItem.id)
+          )
         } else if (event.ctrlKey) {
           event.preventDefault()
           event.stopPropagation()
@@ -808,13 +729,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           event.stopPropagation()
           const newItem = visibleItems[index]
           if (newItem != null) {
-            setSelectedKeys(new Set([newitem.id]))
+            setSelectedIds(backend.type, [newItem.id])
           }
           selectionStartIndexRef.current = null
         } else {
           // The arrow key will escape this container. In that case, do not stop propagation
           // and let `navigator2D` navigate to a different container.
-          setSelectedKeys(new Set())
+          setSelectedIds(backend.type, [])
           selectionStartIndexRef.current = null
         }
         break
@@ -865,17 +786,17 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
     setPasteData({ type: PasteType.move, data: selectedKeysRef.current })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeysRef.current })
-    setSelectedKeys(new Set())
-  }, [pasteData, setSelectedKeys, /* should never change */ unsetModal])
+    setSelectedIds(backed.type, [])
+  }, [pasteData, setSelectedIds, /* should never change */ unsetModal])
 
   const doPaste = React.useCallback(
-    (newParentKey: backendModule.DirectoryId, newParentId: backendModule.DirectoryId) => {
+    (newParentId: backendModule.DirectoryId) => {
       unsetModal()
       if (pasteData != null) {
         if (pasteData.data.has(newParentKey)) {
           toast.toast.error('Cannot paste a folder into itself.')
         } else {
-          doToggleDirectoryExpansion(newParentId, null, true)
+          setIsAssetOpen(backend.type, newParentId, true)
           const assets = Array.from(pasteData.data, id => nodeMapRef.current.get(id)).flatMap(
             asset => (asset ? [asset.item] : [])
           )
@@ -896,7 +817,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [pasteData, doToggleDirectoryExpansion, /* should never change */ unsetModal]
+    [pasteData, /* should never change */ unsetModal]
   )
 
   const hideColumn = React.useCallback(
@@ -913,9 +834,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         backend={backend}
         category={category}
         pasteData={pasteData}
-        selectedKeys={selectedKeys}
-        clearSelectedKeys={clearSelectedKeys}
-        nodeMapRef={nodeMapRef}
         rootDirectoryId={rootDirectoryId}
         event={{ pageX: 0, pageY: 0 }}
         doCopy={doCopy}
@@ -953,7 +871,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => ({
       backend,
       rootDirectoryId,
-      visibilities,
       selectedKeys: selectedKeysRef,
       scrollContainerRef: rootRef,
       category,
@@ -966,9 +883,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setProjectStartupInfo,
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
-      nodeMap: nodeMapRef,
       hideColumn,
-      doToggleDirectoryExpansion,
       doOpenEditor,
       doCloseEditor,
       doCopy,
@@ -978,12 +893,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     [
       backend,
       rootDirectoryId,
-      visibilities,
       category,
       pasteData,
       sortInfo,
       query,
-      doToggleDirectoryExpansion,
       doOpenEditor,
       doCloseEditor,
       doCopy,
@@ -1026,7 +939,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           selectAdditionalRange: () => {},
           [inputBindingsModule.DEFAULT_HANDLER]: () => {
             if (selectedKeysRef.current.size !== 0) {
-              setSelectedKeys(new Set())
+              setSelectedIds(new Set())
               setMostRecentlySelectedIndex(null)
             }
           },
@@ -1034,7 +947,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         false
       ),
     [
-      setSelectedKeys,
+      setSelectedIds,
       /* should never change */ inputBindings,
       /* should never change */ setMostRecentlySelectedIndex,
     ]
@@ -1173,12 +1086,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       const range = dragSelectionRangeRef.current
       if (range != null) {
         const keys = displayItems.slice(range.start, range.end).map(node => node.key)
-        setSelectedKeys(calculateNewKeys(event, keys, () => []))
+        setSelectedIds(calculateNewKeys(event, keys, () => []))
       }
       setVisuallySelectedKeysOverride(null)
       dragSelectionRangeRef.current = null
     },
-    [displayItems, calculateNewKeys, /* should never change */ setSelectedKeys]
+    [displayItems, calculateNewKeys, /* should never change */ setSelectedIds]
   )
 
   const onSelectionDragCancel = React.useCallback(() => {
@@ -1202,7 +1115,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           return visibleItems.slice(startIndex, endIndex).map(AssetTreeNode.getKey)
         }
       }
-      setSelectedKeys(calculateNewKeys(event, [key], getRange))
+      setSelectedIds(calculateNewKeys(event, [key], getRange))
       setMostRecentlySelectedIndex(newIndex)
       if (!event.shiftKey) {
         selectionStartIndexRef.current = null
@@ -1211,7 +1124,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     [
       visibleItems,
       calculateNewKeys,
-      /* should never change */ setSelectedKeys,
+      /* should never change */ setSelectedIds,
       /* should never change */ setMostRecentlySelectedIndex,
     ]
   )
@@ -1250,14 +1163,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       hidden={hidden || visibilities.get(item.id) === Visibility.hidden}
       selected={isSelected}
       setSelected={selected => {
-        setSelectedKeys(set.withPresence(selectedKeysRef.current, item.id, selected))
+        setSelectedIds(set.withPresence(selectedKeysRef.current, item.id, selected))
       }}
       isSoleSelected={isSoleSelected}
       isKeyboardSelected={
         keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
       }
       grabKeyboardFocus={() => {
-        setSelectedKeys(new Set([item.id]))
+        setSelectedIds(new Set([item.id]))
         setMostRecentlySelectedIndex(i, true)
       }}
       allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelected}
@@ -1268,7 +1181,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           event.stopPropagation()
           setMostRecentlySelectedIndex(visibleItems.indexOf(item))
           selectionStartIndexRef.current = null
-          setSelectedKeys(new Set([item.id]))
+          setSelectedIds(new Set([item.id]))
         }
       }}
       onDragStart={event => {
@@ -1277,7 +1190,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           setMostRecentlySelectedIndex(visibleItems.indexOf(item))
           selectionStartIndexRef.current = null
           newSelectedKeys = new Set([item.id])
-          setSelectedKeys(newSelectedKeys)
+          setSelectedIds(newSelectedKeys)
         }
         const nodes = rootDirectoryEntries
           .preorderTraversal()
@@ -1428,9 +1341,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             backend={backend}
             category={category}
             pasteData={pasteData}
-            selectedKeys={selectedKeys}
-            clearSelectedKeys={clearSelectedKeys}
-            nodeMapRef={nodeMapRef}
             event={event}
             rootDirectoryId={rootDirectoryId}
             doCopy={doCopy}
@@ -1502,23 +1412,19 @@ export default function AssetsTable(props: AssetsTableProps) {
               updateAssetMutation.mutate([
                 item.id,
                 { parentDirectoryId: rootDirectoryId, description: null },
-                item.title,
               ])
             }
           }
         }}
         onClick={() => {
-          setSelectedKeys(new Set())
+          setSelectedIds(backend.type, [])
         }}
       >
         <aria.FileTrigger
-          onSelect={event => {
-            dispatchAssetListEvent({
-              type: AssetListEventType.uploadFiles,
-              parentKey: rootDirectoryId,
-              parentId: rootDirectoryId,
-              files: Array.from(event ?? []),
-            })
+          onSelect={files => {
+            if (files != null) {
+              uploadFilesMutation.mutate([files, rootDirectoryId])
+            }
           }}
         >
           <FocusRing>
@@ -1623,12 +1529,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             if (event.dataTransfer.types.includes('Files')) {
               event.preventDefault()
               event.stopPropagation()
-              dispatchAssetListEvent({
-                type: AssetListEventType.uploadFiles,
-                parentKey: rootDirectoryId,
-                parentId: rootDirectoryId,
-                files: Array.from(event.dataTransfer.files),
-              })
+              uploadFilesMutation.mutate([event.dataTransfer.files, rootDirectoryId])
             }
           }}
           className={tailwindMerge.twMerge(

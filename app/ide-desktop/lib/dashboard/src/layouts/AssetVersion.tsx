@@ -46,7 +46,7 @@ export default function AssetVersion(props: AssetVersionProps) {
 
   const doDuplicate = () => {
     if (isProject) {
-      duplicateProjectMutation.mutate([item.id, version.versionId, item.title])
+      duplicateProjectMutation.mutate([item.id, version.versionId])
     }
   }
 

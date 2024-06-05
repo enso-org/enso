@@ -19,6 +19,7 @@ import Visibility from '#/utilities/Visibility'
 /** Props for a {@link DirectoryChildrenAssetRows}. */
 export interface DirectoryChildrenAssetRowsProps {
   readonly backend: Backend
+  readonly depth: number
   readonly directory: backendModule.DirectoryAsset
   readonly filterBy: backendModule.FilterBy
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
@@ -27,13 +28,8 @@ export interface DirectoryChildrenAssetRowsProps {
 
 /** Rows for each of a directory's children. */
 export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAssetRowsProps) {
-  const { backend, directory, filterBy, sortInfo, filter } = props
-  const children = backendHooks.useBackendListDirectory(
-    backend,
-    directory.id,
-    directory.title,
-    filterBy
-  )
+  const { backend, depth, directory, filterBy, sortInfo, filter } = props
+  const children = backendHooks.useBackendListDirectory(backend, directory.id, filterBy)
   const displayItems = React.useMemo(() => {
     if (children == null) {
       return null
@@ -99,5 +95,5 @@ export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAsset
   )
   // FIXME: Filtering
 
-  return visibleItems == null ? null : visibleItems.map(child => <AssetRow />)
+  return visibleItems.map(item => <AssetRow item={item} depth={depth} />)
 }

@@ -32,13 +32,7 @@ export default function LocalStorageProvider(props: LocalStorageProviderProps) {
   const { children } = props
   const [, doRefresh] = refreshHooks.useRefresh()
 
-  const localStorage = React.useMemo(
-    () =>
-      new LocalStorage(() => {
-        doRefresh()
-      }),
-    [doRefresh]
-  )
+  const localStorage = React.useMemo(() => new LocalStorage(doRefresh), [doRefresh])
 
   return (
     <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>

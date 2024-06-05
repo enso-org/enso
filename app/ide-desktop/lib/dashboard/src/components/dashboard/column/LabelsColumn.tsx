@@ -32,7 +32,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
-  const { item, setItem, state, rowState } = props
+  const { item, state, rowState } = props
   const { backend, category, setQuery } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const { user } = authProvider.useNonPartialUserSession()
@@ -77,7 +77,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               const doDelete = () => {
                 unsetModal()
                 const newLabels = item.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                associateTagMutation.mutate([item.id, newLabels, item.title])
+                associateTagMutation.mutate([item.id, newLabels])
               }
               setModal(
                 <ContextMenus key={`label-${label}`} event={event}>
@@ -125,7 +125,6 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 key={uniqueString.uniqueString()}
                 backend={backend}
                 item={item}
-                setItem={setItem}
                 eventTarget={plusButtonRef.current}
               />
             )

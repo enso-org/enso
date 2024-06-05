@@ -94,7 +94,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         await updateProjectMutation.mutateAsync([
           item.id,
           { ami: null, ideVersion: null, projectName: newTitle, parentId: item.parentId },
-          item.title,
         ])
       } catch (error) {
         toastAndLog('renameProjectError', error)
@@ -112,7 +111,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           parentId: item.parentId,
           cognitoCredentials: session,
         },
-        item.title,
       ])
     },
     run: () => {
@@ -123,7 +121,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           parentId: item.parentId,
           cognitoCredentials: session,
         },
-        item.title,
       ])
     },
     editName: () => {

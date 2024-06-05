@@ -27,7 +27,7 @@ export interface AssetRowsProps extends assetRow.AssetRowProps {
 /** An {@link AssetRow} for an asset, and its children (if present). */
 export default function AssetRows(props: AssetRowsProps) {
   const { hideRoot = false, backend, filterBy, sortInfo, filter, ...assetRowProps } = props
-  const { item } = assetRowProps
+  const { item, depth } = assetRowProps
 
   return (
     <>
@@ -35,6 +35,7 @@ export default function AssetRows(props: AssetRowsProps) {
       {item.type === backendModule.AssetType.directory && (
         <DirectoryChildrenAssetRows
           backend={backend}
+          depth={depth + 1}
           directory={item}
           filterBy={filterBy}
           sortInfo={sortInfo}

@@ -10,7 +10,6 @@ import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
@@ -78,7 +77,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { doCloseEditor, doOpenEditor } = props
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const itemRef = React.useRef(item)
   itemRef.current = item
@@ -121,48 +119,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
   const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
-  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
   const waitUntilProjectIsReadyMutation = backendHooks.useBackendMutation(
     backend,
     'waitUntilProjectIsReady'
-  )
-  const openProjectMutate = openProjectMutation.mutateAsync
-  const getProjectDetailsMutate = getProjectDetailsMutation.mutateAsync
-
-  const openProject = React.useCallback(
-    async (shouldRunInBackground: boolean) => {
-      if (state !== backendModule.ProjectState.opened) {
-        setState(backendModule.ProjectState.openInProgress)
-        try {
-          await openProjectMutate([
-            item.id,
-            {
-              executeAsync: shouldRunInBackground,
-              parentId: item.parentId,
-              cognitoCredentials: session,
-            },
-            item.title,
-          ])
-        } catch (error) {
-          const project = await getProjectDetailsMutate([item.id, item.parentId, item.title])
-          // `setState` is not used here as `project` contains the full state information,
-          // not just the state type.
-          setItem(object.merger({ projectState: project.state }))
-          toastAndLog('openProjectError', error, item.title)
-          setState(backendModule.ProjectState.closed)
-        }
-      }
-    },
-    [
-      state,
-      item,
-      session,
-      toastAndLog,
-      /* should never change */ openProjectMutate,
-      /* should never change */ getProjectDetailsMutate,
-      /* should never change */ setState,
-      /* should never change */ setItem,
-    ]
   )
 
   const openEditorMutation = reactQuery.useMutation({
@@ -174,7 +133,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
       const project = await waitUntilProjectIsReadyMutation.mutateAsync([
         itemRef.current.id,
         itemRef.current.parentId,
-        itemRef.current.title,
         abortController,
       ])
       setProjectStartupInfo({
@@ -215,29 +173,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
     })
   }, [state, backend.type])
 
-  const onOpenProjectEvent = event => {
-    if (event.id !== item.id) {
-      if (!event.runInBackground && !isRunningInBackground) {
-        setShouldOpenWhenReady(false)
-        if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
-          void closeProject()
-        }
-      }
-    } else {
-      setShouldOpenWhenReady(!event.runInBackground)
-      setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
-      setIsRunningInBackground(event.runInBackground)
-      void openProject(event.runInBackground)
-    }
-  }
-
-  const onCloseProjectEvent = event => {
-    if (event.id === item.id) {
-      setShouldOpenWhenReady(false)
-      void closeProject()
-    }
-  }
-
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
@@ -256,7 +191,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     toast.toast.dismiss(toastId)
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)
-    await closeProjectMutation.mutateAsync([item.id, item.title])
+    await closeProjectMutation.mutateAsync([item.id])
   }
 
   switch (state) {
@@ -270,18 +205,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
           size="custom"
           variant="custom"
           className="size-project-icon rounded-full"
-          onPress={() => {
+          onPress={() =>
             // FIXME: This component should listen on the state updates caused by this mutation.
-            void openProjectMutation.mutateAsync([
+            openProjectMutation.mutateAsync([
               item.id,
               {
                 executeAsync: false,
                 parentId: item.parentId,
                 cognitoCredentials: session,
               },
-              item.title,
             ])
-          }}
+          }
         >
           <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
         </ariaComponents.Button>

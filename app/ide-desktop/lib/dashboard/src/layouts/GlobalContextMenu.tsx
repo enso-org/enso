@@ -10,7 +10,7 @@ import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
-import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
+import CreateDatalinkModal from '#/modals/CreateDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
@@ -23,10 +23,7 @@ export interface GlobalContextMenuProps {
   readonly hasPasteData: boolean
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly directoryId: backendModule.DirectoryId | null
-  readonly doPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId
-  ) => void
+  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
 
 /** A context menu available everywhere in the directory. */
@@ -34,12 +31,14 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { hidden = false, backend, hasPasteData, directoryId } = props
   const { rootDirectoryId } = props
   const { doPaste } = props
-  const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
 
-  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
+  const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
+  const createDirectoryMutation = backendHooks.useBackendCreateDirectoryMutation(backend)
+  const createProjectMutation = backendHooks.useBackendCreateProjectMutation(backend)
 
   return (
     <ContextMenu aria-label={getText('globalContextMenuLabel')} hidden={hidden}>
@@ -52,12 +51,10 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           className="hidden"
           onInput={event => {
             if (event.currentTarget.files != null) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.uploadFiles,
-                parentId: directoryId ?? rootDirectoryId,
-                files: Array.from(event.currentTarget.files),
-              })
-              unsetModal()
+              uploadFilesMutation.mutate([
+                event.currentTarget.files,
+                directoryId ?? rootDirectoryId,
+              ])
             }
           }}
         />
@@ -75,12 +72,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             document.body.appendChild(input)
             input.addEventListener('input', () => {
               if (input.files != null) {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.uploadFiles,
-                  parentId: directoryId ?? rootDirectoryId,
-                  files: Array.from(input.files),
-                })
-                unsetModal()
+                uploadFilesMutation.mutate([input.files, directoryId ?? rootDirectoryId])
               }
             })
             input.click()
@@ -92,25 +84,18 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         hidden={hidden}
         action="newProject"
         doAction={() => {
-          unsetModal()
-          dispatchAssetListEvent({
-            type: AssetListEventType.newProject,
-            parentId: directoryId ?? rootDirectoryId,
-            templateId: null,
-            datalinkId: null,
-            preferredName: null,
-          })
+          createProjectMutation.mutate([
+            { projectName: 'New Project', parentDirectoryId: directoryId ?? rootDirectoryId },
+          ])
         }}
       />
       <ContextMenuEntry
         hidden={hidden}
         action="newFolder"
         doAction={() => {
-          unsetModal()
-          dispatchAssetListEvent({
-            type: AssetListEventType.newFolder,
-            parentId: directoryId ?? rootDirectoryId,
-          })
+          createDirectoryMutation.mutate([
+            { title: 'New Folder', parentId: directoryId ?? rootDirectoryId },
+          ])
         }}
       />
       {isCloud && (
@@ -120,16 +105,9 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           doAction={() => {
             setModal(
               <UpsertSecretModal
-                id={null}
-                name={null}
-                doCreate={(name, value) => {
-                  dispatchAssetListEvent({
-                    type: AssetListEventType.newSecret,
-                    parentId: directoryId ?? rootDirectoryId,
-                    name,
-                    value,
-                  })
-                }}
+                backend={backend}
+                asset={null}
+                parentDirectoryId={rootDirectoryId}
               />
             )
           }}
@@ -141,17 +119,9 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           action="newDatalink"
           doAction={() => {
             setModal(
-              <UpsertDatalinkModal
-                doCreate={(name, value) => {
-                  createDatalinkMutation.mutate([
-                    {
-                      type: AssetListEventType.newDatalink,
-                      parentId: directoryId ?? rootDirectoryId,
-                      name,
-                      value,
-                    },
-                  ])
-                }}
+              <CreateDatalinkModal
+                backend={backend}
+                parentDirectoryId={directoryId ?? rootDirectoryId}
               />
             )
           }}
@@ -162,8 +132,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           hidden={hidden}
           action="paste"
           doAction={() => {
-            unsetModal()
-            doPaste(rootDirectoryId, rootDirectoryId)
+            doPaste(rootDirectoryId)
           }}
         />
       )}

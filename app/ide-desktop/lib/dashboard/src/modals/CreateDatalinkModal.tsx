@@ -6,6 +6,8 @@ import * as tailwindMerge from 'tailwind-merge'
 import SCHEMA from '#/data/datalinkSchema.json' assert { type: 'json' }
 import * as datalinkValidator from '#/data/datalinkValidator'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -16,6 +18,9 @@ import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+
+import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 
@@ -28,17 +33,18 @@ const INITIAL_DATALINK_VALUE =
   jsonSchema.constantValue(DEFS, SCHEMA.$defs.DataLink, true)[0] ?? null
 
 // ===========================
-// === UpsertDataLinkModal ===
+// === CreateDataLinkModal ===
 // ===========================
 
-/** Props for a {@link UpsertDatalinkModal}. */
-export interface UpsertDatalinkModalProps {
-  readonly doCreate: (name: string, datalink: unknown) => void
+/** Props for a {@link CreateDatalinkModal}. */
+export interface CreateDatalinkModalProps {
+  readonly backend: Backend
+  readonly parentDirectoryId: backendModule.DirectoryId
 }
 
 /** A modal for creating a Datalink. */
-export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
-  const { doCreate } = props
+export default function CreateDatalinkModal(props: CreateDatalinkModalProps) {
+  const { backend, parentDirectoryId } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [name, setName] = React.useState('')
@@ -46,9 +52,18 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
   const isValueSubmittable = React.useMemo(() => datalinkValidator.validateDatalink(value), [value])
   const isSubmittable = name !== '' && isValueSubmittable
 
+  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
+
   const doSubmit = () => {
     unsetModal()
-    doCreate(name, value)
+    createDatalinkMutation.mutate([
+      {
+        datalinkId: null,
+        parentDirectoryId,
+        name,
+        value,
+      },
+    ])
   }
 
   return (

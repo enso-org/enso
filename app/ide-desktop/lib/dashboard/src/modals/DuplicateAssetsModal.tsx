@@ -12,7 +12,8 @@ import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
 
-import Backend, * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
@@ -69,7 +70,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const otherFilesCount = Math.max(0, conflictingFiles.length - 1)
   const otherProjectsCount = conflictingProjects.length - (conflictingFiles.length > 0 ? 0 : 1)
 
-  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
+  const uploadFileMutation = backendHooks.useBackendMutationInternal(backend, 'uploadFile')
 
   React.useEffect(() => {
     for (const name of siblingFileNamesRaw) {
