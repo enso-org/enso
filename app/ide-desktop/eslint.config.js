@@ -219,14 +219,6 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `Button` or `UnstyledButton` instead of `button`',
     },
     {
-        selector: 'JSXOpeningElement[name.name=label] > JSXIdentifier',
-        message: 'Use `aria.Label` instead of `label`',
-    },
-    {
-        selector: 'JSXOpeningElement[name.name=input] > JSXIdentifier',
-        message: 'Use `aria.Input` instead of `input`',
-    },
-    {
         selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
         message: 'Use `aria.Heading` instead of `h1`-`h6`',
     },

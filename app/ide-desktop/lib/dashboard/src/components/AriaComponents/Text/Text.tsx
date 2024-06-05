@@ -20,7 +20,7 @@ export interface TextProps
   readonly lineClamp?: number
 }
 
-const TEXT_STYLE = twv.tv({
+export const TEXT_STYLE = twv.tv({
   base: 'inline-block',
   variants: {
     color: {
