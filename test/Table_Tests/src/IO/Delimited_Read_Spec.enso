@@ -173,7 +173,8 @@ add_specs suite_builder =
             utf8_bytes = [97, 44, 98, 44, 99, 10, -60, -123, 44, -17, -65, -65, 44, -61, 40, -61, 40, 10]
             utf8_bytes.write_bytes utf8_file
             action_1 on_problems =
-                utf8_file.read (Delimited_Format.Delimited "," headers=True) on_problems
+                # We need to set the enco explicitly, as otherwise we'd just fallback to Windows-1252 and have no errors
+                utf8_file.read (Delimited_Format.Delimited "," headers=True encoding=Encoding.utf_8) on_problems
             tester_1 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 table.at 'a' . to_vector . should_equal ['ą']
