@@ -271,10 +271,11 @@ function isMatrix(data: object): data is LegacyMatrix {
 }
 
 function toField(name: string, valType?: string): ColDef {
+  const template = `<div> ${name} <svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="src/assets/icons.svg#text"/> </svg> </div>`
   return {
     field: name,
     headerComponentParams: {
-      template: `<div> ${name}  ${valType} <div>`,
+      template,
     },
   }
 }
