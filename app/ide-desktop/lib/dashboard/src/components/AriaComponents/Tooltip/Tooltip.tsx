@@ -23,6 +23,9 @@ export const TOOLTIP_STYLES = twv.tv({
     rounded: {
       custom: '',
       full: 'rounded-full',
+      xxxlarge: 'rounded-3xl',
+      xxlarge: 'rounded-2xl',
+      xlarge: 'rounded-xl',
       large: 'rounded-lg',
       medium: 'rounded-md',
       small: 'rounded-sm',
@@ -47,7 +50,7 @@ export const TOOLTIP_STYLES = twv.tv({
     variant: 'primary',
     size: 'medium',
     maxWidth: 'xsmall',
-    rounded: 'full',
+    rounded: 'xxxlarge',
   },
 })
 
@@ -60,7 +63,8 @@ const DEFAULT_OFFSET = 9
 
 /** Props for a {@link Tooltip}. */
 export interface TooltipProps
-  extends Omit<Readonly<aria.TooltipProps>, 'offset' | 'UNSTABLE_portalContainer'> {}
+  extends Omit<Readonly<aria.TooltipProps>, 'offset' | 'UNSTABLE_portalContainer'>,
+    Omit<twv.VariantProps<typeof TOOLTIP_STYLES>, 'isEntering' | 'isExiting'> {}
 
 /** Displays the description of an element on hover or focus. */
 export function Tooltip(props: TooltipProps) {
