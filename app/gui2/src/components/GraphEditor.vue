@@ -62,17 +62,7 @@ import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
 import { isDevMode } from 'shared/util/detect'
-import {
-  computed,
-  onMounted,
-  onRenderTracked,
-  onUnmounted,
-  ref,
-  shallowRef,
-  toRaw,
-  toRef,
-  watch,
-} from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, toRaw, toRef, watch } from 'vue'
 
 const keyboard = provideKeyboard()
 const projectStore = provideProjectStore()
@@ -83,16 +73,12 @@ const _visualizationStore = provideVisualizationStore(projectStore)
 
 widgetRegistry.loadBuiltins()
 
-console.log('==Graph setup==')
-
 onMounted(() => {
-  console.log('==Graph mounted==')
   if (isDevMode) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
 })
 onUnmounted(() => {
-  console.log('==Graph unmounted==')
   projectStore.disposeYDocsProvider()
 })
 

@@ -20,9 +20,9 @@ export function hookBeforeFunctionCall(object: any, key: PropertyKey, hook: () =
  *
  * By default, Vue is restricting scope propagation to only happen within components with only
  * singular root node. Unfortunately, that also happens to block propagation when components adds an
- * additional root-node, such as "Teleport". This is a workaround that tricks Vue into actually
- * propagating the scopes past this component's top-level "Fragment" element, allowing parent scoped
- * styles to affect its actual root node or rendered slots.
+ * additional root-node, such as `Teleport`, or when rendering a slot as root. This is a workaround
+ * that tricks Vue into actually propagating the scopes past this component's top-level `Fragment`
+ * element, allowing parent scoped styles to affect its actual root node or rendered slots.
  */
 export function usePropagateScopesToAllRoots() {
   const instance = getCurrentInstance()
@@ -35,13 +35,13 @@ export function usePropagateScopesToAllRoots() {
       set: (value) => {
         _subTree = value
         // Gather all scopes that would naturally propagate to this node, and assign them to
-        // `slotScopeIds`, which vue propagates through fragments on its own. This is an internal
+        // `slotScopeIds`, which Vue propagates through fragments on its own. This is an internal
         // mechanism used in implementation of `:scoped` custom CSS selector.
         collectParentScopes(((_subTree as any).slotScopeIds ??= []), _subTree, null, null, instance)
       },
     })
 
-    // Mimics vue's internal `setScopeIds`, but instead collects the scopes into an array.
+    // Mimics Vue's internal `setScopeIds`, but instead collects the scopes into an array.
     const collectParentScopes = (
       outScopes: string[],
       vnode: typeof instance.vnode,

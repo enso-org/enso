@@ -75,9 +75,6 @@ export function useSyncLocalStorage<StoredState extends Object>(
 
   let nextRestoreId = 0
   const restoreIdInProgress = ref<number>()
-  ;(restoreIdInProgress as any).__DEBUG = true
-  console.log('restoreIdInProgress', restoreIdInProgress)
-
   const serializedState = computed(() => options.captureState())
 
   // Save/Load viewports whenever entering a new graph context (i.e. the storage key has changed).
@@ -122,7 +119,6 @@ export function useSyncLocalStorage<StoredState extends Object>(
 
   async function restoreState(storageKey: string) {
     abortLastRestore()
-    // assert(restoreIdInProgress.value == null)
 
     const thisRestoreId = nextRestoreId++
     restoreIdInProgress.value = thisRestoreId

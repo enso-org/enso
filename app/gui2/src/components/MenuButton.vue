@@ -11,7 +11,6 @@ import TooltipTrigger from '@/components/TooltipTrigger.vue'
  * `disabled` class.
  */
 
-// defineOptions({ inheritAttrs: false })
 const toggledOn = defineModel<boolean>({ default: undefined })
 const props = defineProps<{ disabled?: boolean | undefined; title?: string | undefined }>()
 
