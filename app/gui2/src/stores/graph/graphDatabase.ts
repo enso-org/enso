@@ -138,6 +138,12 @@ export class GraphDb {
     private valuesRegistry: ComputedValueRegistry,
   ) {}
 
+  private nodeIdToOuterExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
+    const exprs: AstId[] = []
+    entry.outerExpr.visitRecursiveAst((ast) => void exprs.push(ast.id))
+    return Array.from(exprs, (expr) => [id, expr])
+  })
+
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
     if (entry.pattern) entry.pattern.visitRecursiveAst((ast) => void exprs.push(ast.id))
@@ -228,6 +234,10 @@ export class GraphDb {
     for (const outputPort of outputPorts) {
       yield* this.connections.lookup(outputPort)
     }
+  }
+
+  getOuterExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
+    return exprId && set.first(this.nodeIdToOuterExprIds.reverseLookup(exprId))
   }
 
   getExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
