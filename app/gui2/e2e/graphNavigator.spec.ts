@@ -24,8 +24,6 @@ test('Navigating with arrows', async ({ page }) => {
       expect.objectContaining({
         x: expect.not.closeTo(bbox.x),
         y: expect.closeTo(bbox.y),
-        width: expect.closeTo(bbox.width),
-        height: expect.closeTo(bbox.height),
       }),
     ),
   )

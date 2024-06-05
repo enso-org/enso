@@ -417,6 +417,19 @@ export interface UseArrowsOptions {
   predicate?: (e: KeyboardEvent) => boolean
 }
 
+/**
+ * Register for arrows navigating events.
+ *
+ * For simplicity, the handler API is very similar to `usePointer`, but the initial position will
+ * always be Vec2.Zero (and thus, the absolute and relative positions will be equal).
+ *
+ * The "drag" starts on first arrow keypress and ends with last arrow key release.
+ *
+ * @param handler callback on any event. The 'move' event is fired on every frame, and thus does
+ * not have any event associated (`event` parameter will be undefined).
+ * @param options
+ * @returns
+ */
 export function useArrows(
   handler: (
     pos: EventPosition,
