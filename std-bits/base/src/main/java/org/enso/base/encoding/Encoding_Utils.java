@@ -1,6 +1,7 @@
 package org.enso.base.encoding;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -90,6 +91,28 @@ public class Encoding_Utils {
 
     warnings.append(".");
     return new ResultWithWarnings<>(array, warnings.toString());
+  }
+
+  /**
+   * Checks if the following stream can be decoded without errors using the given charset.
+   *
+   * <p>The stream is (partially or wholly) consumed as part of this process.
+   */
+  public static boolean canDecodeWithoutErrors(InputStream stream, Charset charset)
+      throws IOException {
+    DecodingProblemAggregator problemAggregator = new DecodingProblemAggregator();
+    try (var decoder = new ReportingStreamDecoder(stream, charset, problemAggregator, true)) {
+      char[] tmpBuffer = new char[1024];
+      while (decoder.read(tmpBuffer) >= 0) {
+        if (problemAggregator.hasEncounteredInvalidCharacters()) {
+          // early exit - no need to process the stream any further
+          return false;
+        }
+      }
+    }
+
+    // Check one more time after EOF
+    return !problemAggregator.hasEncounteredInvalidCharacters();
   }
 
   /** Creates a new instance of {@code ReportingStreamEncoder} encoding a given charset. */

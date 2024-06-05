@@ -12,6 +12,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Runtime import assert
 
 polyglot java import org.enso.base.encoding.DecodingProblemAggregator
+polyglot java import org.enso.base.encoding.Encoding_Utils
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 
 ## PRIVATE
@@ -67,9 +68,10 @@ detect_default_encoding (buffered_input_stream : Input_Stream) (problem_aggregat
         # If no BOM was detected, we do a pass to try UTF-8 encoding and if it fails, we restart and fallback to Windows-1252.
         Nothing ->
             restartable_stream = buffered_input_stream.as_restartable_stream
-            # TODO check if all UTF-8 is valid
-            is_valid_utf = True
-            effective_encoding = if is_valid_utf then Encoding.utf_8 else Encoding.windows_1252
+            is_valid_utf_8 = restartable_stream.with_fresh_stream checking_stream->
+                checking_stream.with_java_stream java_checking_stream->
+                    Encoding_Utils.canDecodeWithoutErrors java_checking_stream Encoding.utf_8.to_java_charset
+            effective_encoding = if is_valid_utf_8 then Encoding.utf_8 else Encoding.windows_1252
             restartable_stream.with_fresh_stream input_stream->
                 continuation effective_encoding input_stream
 
