@@ -98,7 +98,7 @@ add_specs suite_builder =
                 "test payload 3" . write f
 
             java_file = Java_File.new tmp.unsafe_get.absolute.path
-            stream = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_file=tmp
+            stream = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=tmp
 
             tmp2 = Temporary_File.from_stream_light stream
             # The returned tmp file should be the same one as original.
@@ -106,19 +106,19 @@ add_specs suite_builder =
             tmp2.unsafe_get.absolute.path . should_equal tmp.unsafe_get.absolute.path
 
             # If the raw file is associated, the stream will return that File descriptor (not as temporary file, but regular one):
-            stream3 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_file=tmp.unsafe_get
+            stream3 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=tmp.unsafe_get
             f3 = Temporary_File.from_stream_light stream3
             f3.should_be_a File
             f3.absolute.path . should_equal tmp.unsafe_get.absolute.path
 
             # But if there's no association, a new temporary file gets created:
-            stream4 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_file=Nothing
+            stream4 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=Nothing
             tmp4 = Temporary_File.from_stream_light stream4
             tmp4.should_be_a Temporary_File
             tmp4.unsafe_get.absolute.path . should_not_equal tmp.unsafe_get.absolute.path
 
             # The base variant of from_stream also always copies:
-            stream5 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_file=tmp
+            stream5 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=tmp
             tmp5 = Temporary_File.from_stream stream5
             tmp5.should_be_a Temporary_File
             tmp5.unsafe_get.absolute.path . should_not_equal tmp.unsafe_get.absolute.path
