@@ -17,7 +17,8 @@ import * as mergeRefs from '#/utilities/mergeRefs'
 /**
  * Props for {@link useVisualTooltip}.
  */
-export interface VisualTooltipProps {
+export interface VisualTooltipProps
+  extends Pick<ariaComponents.TooltipProps, 'maxWidth' | 'rounded' | 'size' | 'variant'> {
   readonly children: React.ReactNode
   readonly className?: string
   readonly targetRef: React.RefObject<HTMLElement>
@@ -60,6 +61,10 @@ export function useVisualTooltip(props: VisualTooltipProps) {
     overlayPositionProps = {},
     display = 'always',
     testId = 'visual-tooltip',
+    rounded,
+    variant,
+    size,
+    maxWidth,
   } = props
 
   const {
@@ -115,34 +120,42 @@ export function useVisualTooltip(props: VisualTooltipProps) {
     containerPadding,
   })
 
+  const tooltipElement = (
+    <Portal onMount={updatePosition}>
+      <span
+        ref={mergeRefs.mergeRefs(popoverRef, ref => ref?.showPopover())}
+        {...aria.mergeProps<React.HTMLAttributes<HTMLDivElement>>()(
+          overlayProps,
+          tooltipProps,
+          tooltipHoverProps,
+          {
+            id,
+            className: ariaComponents.TOOLTIP_STYLES({
+              className,
+              variant,
+              rounded,
+              size,
+              maxWidth,
+            }),
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'aria-hidden': true,
+            popover: '',
+            role: 'presentation',
+            'data-testid': testId,
+            // Remove z-index from the overlay style
+            // because it's not needed(we show latest element on top) and can cause issues with stacking context
+            style: { zIndex: '' },
+          }
+        )}
+      >
+        {children}
+      </span>
+    </Portal>
+  )
+
   return {
     targetProps: aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(targetHoverProps, { id }),
-    tooltip: state.isOpen ? (
-      <Portal onMount={updatePosition}>
-        <span
-          ref={mergeRefs.mergeRefs(popoverRef, ref => ref?.showPopover())}
-          {...aria.mergeProps<React.HTMLAttributes<HTMLDivElement>>()(
-            overlayProps,
-            tooltipProps,
-            tooltipHoverProps,
-            {
-              id,
-              className: ariaComponents.TOOLTIP_STYLES({ className }),
-              popover: '',
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              'aria-hidden': true,
-              role: 'presentation',
-              'data-testid': testId,
-              // Remove z-index from the overlay style
-              // because it's not needed(we show latest element on top) and can cause issues with stacking context
-              style: { zIndex: '' },
-            }
-          )}
-        >
-          {children}
-        </span>
-      </Portal>
-    ) : null,
+    tooltip: state.isOpen ? tooltipElement : null,
   } as const
 }
 
