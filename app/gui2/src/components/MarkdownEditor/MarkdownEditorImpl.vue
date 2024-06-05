@@ -18,8 +18,7 @@ import {
 } from '@lexical/markdown'
 import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
-import { syncRef } from '@vueuse/core'
-import { shallowRef, useCssModule, type ComponentInstance } from 'vue'
+import { shallowRef, useCssModule, watch, type ComponentInstance } from 'vue'
 
 const markdown = defineModel<string>({ required: true })
 
@@ -52,8 +51,8 @@ const markdownSyncPlugin: LexicalPlugin = {
       () => $convertToMarkdownString(TRANSFORMERS),
       (value) => $convertFromMarkdownString(value, TRANSFORMERS),
     )
-    content.set(markdown.value)
-    syncRef(markdown, content.state, { immediate: false })
+    watch(markdown, (newContent) => content.set(newContent), { immediate: true })
+    watch(content.state, (newContent) => (markdown.value = newContent))
   },
 }
 
