@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import FloatingSelectionMenu from '@/components/MarkdownEditor/FloatingSelectionMenu.vue'
+import FormattingToolbar from '@/components/MarkdownEditor/FormattingToolbar.vue'
+import SelectionFormattingToolbar from '@/components/MarkdownEditor/SelectionFormattingToolbar.vue'
+import { useFormatting } from '@/components/MarkdownEditor/formatting'
+import { listPlugin } from '@/components/MarkdownEditor/listPlugin'
 import { lexicalTheme, useLexical, type LexicalPlugin } from '@/components/lexical'
-import FloatingSelectionMenu from '@/components/lexical/FloatingSelectionMenu.vue'
-import FormattingToolbar from '@/components/lexical/FormattingToolbar.vue'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
-import SelectionFormattingToolbar from '@/components/lexical/SelectionFormattingToolbar.vue'
-import { useFormatting } from '@/components/lexical/formatting'
-import { listPlugin } from '@/components/lexical/listPlugin'
 import { useLexicalStringSync } from '@/components/lexical/sync'
 import { CodeHighlightNode, CodeNode } from '@lexical/code'
 import { AutoLinkNode, LinkNode } from '@lexical/link'
@@ -98,4 +98,4 @@ const formatting = useFormatting(editor)
 }
 </style>
 
-<style module="lexicalTheme" src="@/components/lexical/theme.css" />
+<style module="lexicalTheme" src="@/components/MarkdownEditor/theme.css" />

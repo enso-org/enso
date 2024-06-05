@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { blockTypeToBlockName, type BlockType } from '@/components/MarkdownEditor/formatting'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { blockTypeToBlockName, type BlockType } from '@/components/lexical/formatting'
 import type { Icon } from '@/util/iconName'
 
 const blockType = defineModel<BlockType>({ required: true })

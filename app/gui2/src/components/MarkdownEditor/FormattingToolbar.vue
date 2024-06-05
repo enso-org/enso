@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import BlockTypeMenu from '@/components/lexical/BlockTypeMenu.vue'
-import FormatPropertiesBar from '@/components/lexical/FormatPropertiesBar.vue'
-import type { UseFormatting } from '@/components/lexical/formatting'
+import BlockTypeMenu from '@/components/MarkdownEditor/BlockTypeMenu.vue'
+import FormatPropertiesBar from '@/components/MarkdownEditor/FormatPropertiesBar.vue'
+import type { UseFormatting } from '@/components/MarkdownEditor/formatting'
 
 const props = defineProps<{ formatting: UseFormatting }>()
 

@@ -1,3 +1,4 @@
+import { lexicalTheme } from '@/components/lexical'
 import { useBufferedWritable } from '@/util/reactivity'
 import { $createCodeNode } from '@lexical/code'
 import {
@@ -20,7 +21,7 @@ import {
   $getNearestBlockElementAncestorOrThrow,
   $getNearestNodeOfType,
 } from '@lexical/utils'
-import type { LexicalEditor, RangeSelection, TextFormatType } from 'lexical'
+import type { EditorThemeClasses, LexicalEditor, RangeSelection, TextFormatType } from 'lexical'
 import {
   $createParagraphNode,
   $getSelection,
@@ -234,4 +235,16 @@ function useBlockType(
     state,
     set: (value: BlockType) => editor.update($setBlockType[value]),
   }
+}
+
+export function lexicalRichTextTheme(themeCss: Record<string, string>): EditorThemeClasses {
+  const theme = lexicalTheme(themeCss)
+  if (theme.heading) {
+    for (const level of Object.keys(theme.heading)) {
+      const levelTag = level as keyof typeof theme.heading
+      const normalized = normalizeHeadingLevel(levelTag)
+      theme.heading[levelTag] = theme.heading[normalized] ?? 'lexical-unsupported-heading-level'
+    }
+  }
+  return theme
 }

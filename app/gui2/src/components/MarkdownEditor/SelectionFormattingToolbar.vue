@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { type UseFormatting } from '@/components/MarkdownEditor/formatting'
 import ToggleIcon from '@/components/ToggleIcon.vue'
-import { type UseFormatting } from '@/components/lexical/formatting'
 
 const props = defineProps<{ formatting: UseFormatting }>()
 

@@ -4,7 +4,7 @@ import { defineAsyncComponent } from 'vue'
 const text = defineModel<string>({ required: true })
 
 const LazyMarkdownEditor = defineAsyncComponent(
-  () => import('@/components/lexical/MarkdownEditorImpl.vue'),
+  () => import('@/components/MarkdownEditor/MarkdownEditorImpl.vue'),
 )
 </script>
 

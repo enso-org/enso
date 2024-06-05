@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import DropdownMenu from '@/components/DropdownMenu.vue'
-import { type UseFormatting } from '@/components/lexical/formatting'
+import { type UseFormatting } from '@/components/MarkdownEditor/formatting'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import type { Icon } from '@/util/iconName'
