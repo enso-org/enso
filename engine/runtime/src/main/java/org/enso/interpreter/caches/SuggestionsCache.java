@@ -44,7 +44,8 @@ public final class SuggestionsCache
   public static Cache<SuggestionsCache.CachedSuggestions, SuggestionsCache.Metadata> create(
       LibraryName libraryName) {
     var impl = new SuggestionsCache(libraryName);
-    return Cache.create(impl, Level.FINEST, libraryName.toString(), true, false);
+    var logName = "Suggestions(" + libraryName + ")";
+    return Cache.create(impl, Level.INFO, logName, true, false);
   }
 
   @Override
@@ -90,19 +91,12 @@ public final class SuggestionsCache
 
   @Override
   public Optional<String> computeDigest(CachedSuggestions entry, TruffleLogger logger) {
-    if (entry.suggestions.isEmpty()) {
-      return Optional.empty();
-    } else {
-      return Optional.of(CacheUtils.computeDigestFromSuggestions(entry.suggestions));
-    }
+    return Optional.of(CacheUtils.computeDigestFromLibName(entry.libraryName));
   }
 
   @Override
   public Optional<String> computeDigestFromSource(EnsoContext context, TruffleLogger logger) {
-    return context
-        .getPackageRepository()
-        .getPackageForLibraryJava(libraryName)
-        .map(pkg -> CacheUtils.computeDigestOfLibrarySources(pkg.listSourcesJava()));
+    return Optional.of(CacheUtils.computeDigestFromLibName(libraryName));
   }
 
   @Override

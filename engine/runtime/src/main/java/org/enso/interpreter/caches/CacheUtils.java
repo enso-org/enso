@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.editions.LibraryName;
 import org.enso.pkg.SourceFile;
 import org.enso.polyglot.Suggestion;
 import org.enso.text.Hex;
@@ -96,6 +97,12 @@ final class CacheUtils {
       digest.update(suggestion.name().getBytes());
       digest.update(suggestion.returnType().getBytes());
     }
+    return Hex.toHexString(digest.digest());
+  }
+
+  public static String computeDigestFromLibName(LibraryName libName) {
+    var digest = messageDigest();
+    digest.update(libName.qualifiedName().getBytes());
     return Hex.toHexString(digest.digest());
   }
 
