@@ -1,4 +1,5 @@
 import type { NodeCreation, type NodeCreationOptions } from '@/composables/nodeCreation'
+import { Vec2 } from '@/util/data/vec2'
 import type { GraphStore, Node, NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
@@ -149,11 +150,14 @@ export function useGraphEditorClipboard(
       return
     }
     const copiedNodes = clipboardData.flatMap(({ binding }) => binding ? [binding] : [])
+    const firstNodePos = clipboardData[0]?.metadata?.position ?? { x: 0, y: 0 }
     createNodes(
       copiedNodes,
       clipboardData.map(({ expression, binding, documentation, metadata }) => { 
+        const pos = metadata?.position
+        const relativePos = pos ? new Vec2(pos.x, pos.y).sub(new Vec2(firstNodePos.x, firstNodePos.y)) : new Vec2(0, 0)
         return ({
-          placement: { type: 'mouse' },
+          placement: { type: 'mouseRelative', posOffset: relativePos },
           expression,
           binding,
           metadata,

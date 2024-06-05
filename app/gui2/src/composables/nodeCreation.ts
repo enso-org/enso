@@ -26,6 +26,7 @@ export type NodeCreation = ReturnType<typeof useNodeCreation>
 type GraphIndependentPlacement =
   | { type: 'fixed'; position: Vec2 }
   | { type: 'mouse' }
+  | { type: 'mouseRelative'; posOffset: Vec2 }
   | { type: 'mouseEvent'; position: Vec2 }
 type GraphAwarePlacement = { type: 'viewport' } | { type: 'source'; node: NodeId }
 export type PlacementStrategy = GraphIndependentPlacement | GraphAwarePlacement
@@ -63,10 +64,16 @@ export function useNodeCreation(
     return pos ? mouseDictatedPlacement(pos) : undefined
   }
 
+  function tryMouseRelative(offset: Vec2) {
+    const pos = toValue(sceneMousePos)
+    return pos ? mouseDictatedPlacement(pos.add(offset)) : undefined
+  }
+
   function placeNode(placement: PlacementStrategy, place: (nodes?: Iterable<Rect>) => Vec2): Vec2 {
     return (
       placement.type === 'viewport' ? place()
       : placement.type === 'mouse' ? tryMouse() ?? place()
+      : placement.type === 'mouseRelative' ? tryMouseRelative(placement.posOffset) ?? place()
       : placement.type === 'mouseEvent' ? mouseDictatedPlacement(placement.position)
       : placement.type === 'source' ? place(filterDefined([graphStore.visibleArea(placement.node)]))
       : placement.type === 'fixed' ? placement.position
