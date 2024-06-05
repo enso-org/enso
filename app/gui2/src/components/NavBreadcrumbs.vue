@@ -5,6 +5,7 @@ import SvgButton from '@/components/SvgButton.vue'
 export interface BreadcrumbItem {
   label: string
   active: boolean
+  editable: boolean
 }
 
 const props = defineProps<{ breadcrumbs: BreadcrumbItem[] }>()
