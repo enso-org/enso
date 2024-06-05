@@ -2277,7 +2277,7 @@ type DB_Table
          Format all columns in the table using the default formatter.
 
              table.format
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @locale Locale.default_widget
     @format (make_format_chooser include_number=True)
     format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | DB_Column -> Locale -> Boolean -> Problem_Behavior -> DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument
