@@ -27,7 +27,7 @@ export interface FormErrorProps extends Omit<reactAriaComponents.AlertProps, 'ch
 export function FormError(props: FormErrorProps) {
   const {
     form = formContext.useFormContext(),
-    size = 'medium',
+    size = 'large',
     variant = 'error',
     ...alertProps
   } = props
@@ -61,8 +61,10 @@ export function FormError(props: FormErrorProps) {
   const errorMessage = getSubmitError()
 
   return errorMessage != null ? (
-    <reactAriaComponents.Alert size={size} variant={variant} {...alertProps}>
-      {errorMessage}
+    <reactAriaComponents.Alert size={size} variant={variant} rounded="xxxlarge" {...alertProps}>
+      <reactAriaComponents.Text variant="body" truncate="3" color="danger">
+        {errorMessage}
+      </reactAriaComponents.Text>
     </reactAriaComponents.Alert>
   ) : null
 }

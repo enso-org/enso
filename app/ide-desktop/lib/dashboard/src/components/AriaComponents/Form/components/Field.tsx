@@ -19,13 +19,20 @@ import * as formContext from './useFormContext'
  */
 export interface FieldComponentProps
   extends twv.VariantProps<typeof FIELD_STYLES>,
-    types.FieldProps,
-    React.PropsWithChildren {
+    types.FieldProps {
   readonly name: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: types.FormInstance<any, any, any>
   readonly isInvalid?: boolean
   readonly className?: string
+  readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
+}
+
+/**
+ * Props for Field children
+ */
+export interface FieldChildrenRenderProps {
+  readonly isInvalid: boolean
 }
 
 export const FIELD_STYLES = twv.tv({
@@ -97,7 +104,9 @@ export const Field = React.forwardRef(function Field(
         </aria.Label>
       )}
 
-      <div className={classes.content()}>{children}</div>
+      <div className={classes.content()}>
+        {typeof children === 'function' ? children({ isInvalid: invalid }) : children}
+      </div>
 
       {description != null && (
         <span id={descriptionId} className={classes.description()}>

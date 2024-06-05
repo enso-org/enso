@@ -465,7 +465,7 @@
 
   "licenseAgreementTitle": "Enso Terms of Service",
   "licenseAgreementCheckbox": "I agree to the Enso Terms of Service",
-  "licenseAgreementCheckboxError": "You must agree to the Enso Terms of Service",
+  "licenseAgreementCheckboxError": "Please agree to the Enso Terms of Service",
   "viewLicenseAgreement": "View Terms of Service",
 
   "metaModifier": "Meta",
