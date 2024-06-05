@@ -274,8 +274,6 @@ public final class ModuleScope implements EnsoObject {
     private Set<ImportExportScope> imports;
     private Set<ImportExportScope> exports;
 
-    private @CompilerDirectives.CompilationFinal ModuleScope proxy;
-
     public Builder(Module module) {
       this.module = module;
       this.polyglotSymbols = new LinkedHashMap<>();
@@ -486,21 +484,16 @@ public final class ModuleScope implements EnsoObject {
      */
     public ModuleScope asModuleScope() {
       if (moduleScope != null) return moduleScope;
-      else {
-        if (proxy == null) {
-          proxy =
-              new ModuleScope(
-                  module,
-                  associatedType,
-                  Collections.unmodifiableMap(polyglotSymbols),
-                  Collections.unmodifiableMap(types),
-                  Collections.unmodifiableMap(methods),
-                  Collections.unmodifiableMap(conversions),
-                  Collections.unmodifiableSet(imports),
-                  Collections.unmodifiableSet(exports));
-        }
-        return proxy;
-      }
+      else
+        return new ModuleScope(
+            module,
+            associatedType,
+            Collections.unmodifiableMap(polyglotSymbols),
+            Collections.unmodifiableMap(types),
+            Collections.unmodifiableMap(methods),
+            Collections.unmodifiableMap(conversions),
+            Collections.unmodifiableSet(imports),
+            Collections.unmodifiableSet(exports));
     }
 
     @Override
