@@ -578,7 +578,7 @@ add_specs suite_builder =
                 t.at "B" . to_vector . should_equal ["ąęćś", "💯", "żółw", "🐢"]
 
             Test.with_clue "Windows-1252 fallback: " <|
-                initial_bytes = 'A,B\n1,a\n2,b\n3,¥\n4,d'
+                initial_bytes = 'A,B\n1,a\n2,b\n3,¥\n4,d'.bytes Encoding.windows_1252
                 initial_bytes.write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
 
                 r = (Table.new [["A", [5, 6]], ["B", ["æ", "💯"]]]).write f
@@ -651,4 +651,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-
