@@ -74,7 +74,7 @@ interface BaseFormProps<
 
   readonly testId?: string
   /**
-   * When set to `dialog`, form submission will close the parent dialog on successfull submission.
+   * When set to `dialog`, form submission will close the parent dialog on successful submission.
    */
   // eslint-disable-next-line @typescript-eslint/ban-types,no-restricted-syntax
   readonly method?: 'dialog' | (string & {})
@@ -109,7 +109,7 @@ interface FormPropsWithOptions<
 }
 
 /**
- *
+ * Register function for a form field.
  */
 export type UseFormRegister<
   Schema extends components.TSchema,
@@ -146,41 +146,32 @@ export interface UseFormRegisterReturn<
 /**
  * Form Render Props.
  */
-export interface FormStateRenderProps<
+export type FormStateRenderProps<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
-> {
-  /**
-   * The form state. Contains the current values of the form fields.
-   */
-  readonly formState: components.FormState<Schema, TFieldValues>
+> = Pick<
+  components.FormInstance<Schema, TFieldValues, TTransformedValues>,
+  | 'clearErrors'
+  | 'control'
+  | 'formState'
+  | 'getValues'
+  | 'reset'
+  | 'setError'
+  | 'setFocus'
+  | 'setValue'
+  | 'unregister'
+  // eslint-disable-next-line no-restricted-syntax
+> & {
   /**
    * The form register function.
    * Adds a field to the form state.
    */
   readonly register: UseFormRegister<Schema, TFieldValues>
   /**
-   * The form unregister function.
-   * Removes a field from the form state.
+   * Form Instance
    */
-  readonly unregister: components.FormInstance<
-    Schema,
-    TFieldValues,
-    TTransformedValues
-  >['unregister']
-  readonly setValue: components.FormInstance<Schema, TFieldValues, TTransformedValues>['setValue']
-  readonly getValues: components.FormInstance<Schema, TFieldValues, TTransformedValues>['getValues']
-  readonly setError: components.FormInstance<Schema, TFieldValues, TTransformedValues>['setError']
-  readonly clearErrors: components.FormInstance<
-    Schema,
-    TFieldValues,
-    TTransformedValues
-  >['clearErrors']
-  readonly setFocus: components.FormInstance<Schema, TFieldValues, TTransformedValues>['setFocus']
-  readonly reset: components.FormInstance<Schema, TFieldValues, TTransformedValues>['reset']
-  readonly control: components.FormInstance<Schema, TFieldValues, TTransformedValues>['control']
   readonly form: components.FormInstance<Schema, TFieldValues, TTransformedValues>
 }
 

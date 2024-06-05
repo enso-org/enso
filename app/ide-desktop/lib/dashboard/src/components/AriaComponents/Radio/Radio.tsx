@@ -17,7 +17,7 @@ import * as radioGroup from './RadioGroup'
 import * as radioGroupContext from './RadioGroupContext'
 
 const RADIO_STYLES = twv.tv({
-  base: 'flex items-center gap-2 cursor-pointer group w-full ',
+  base: 'flex items-center gap-2 cursor-pointer group w-full',
   variants: {
     isFocused: { true: 'outline-none' },
     isFocusVisible: { true: { radio: 'outline outline-2 outline-primary outline-offset-1' } },
@@ -37,12 +37,12 @@ const RADIO_STYLES = twv.tv({
     radio:
       'w-4 h-4 rounded-full bg-frame aspect-square flex-none transition-[border-color,border-width,outline-offset] duration-50 ease-in-out',
     input: 'sr-only',
-    label: 'flex-[1_0_0]',
+    label: 'flex-1 shrink-0',
   },
   compoundVariants: [
     { isPressed: true, isSelected: true, class: { radio: 'border-[5px]' } },
     { isPressed: true, isInvalid: true, class: { radio: 'border-red-800' } },
-    { isSiblingPressed: true, isSelected: true, class: { radio: 'border-[4px]' } },
+    { isSiblingPressed: true, isSelected: true, class: { radio: 'border-4' } },
   ],
 })
 

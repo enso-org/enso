@@ -9,7 +9,7 @@ import type * as types from './types'
 import * as formContext from './useFormContext'
 
 /**
- *
+ * Options for {@link useField} hook.
  */
 export interface UseFieldOptions<
   BaseValueType,
@@ -32,7 +32,7 @@ export interface UseFieldOptions<
 }
 
 /**
- * A hook for creating a field and field state for a form.
+ * A hook that connects a field to a form state.
  */
 export function useField<
   BaseValueType,

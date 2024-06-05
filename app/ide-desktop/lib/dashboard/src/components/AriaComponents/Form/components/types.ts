@@ -10,14 +10,16 @@ import type * as z from 'zod'
 import type * as aria from '#/components/aria'
 
 /**
- * Field Values type.
+ * Field values type.
  */
-export type FieldValues<Schema extends TSchema> = [Schema] extends [never]
-  ? reactHookForm.FieldValues
-  : z.infer<Schema>
+// eslint-disable-next-line no-restricted-syntax
+export type FieldValues<Schema extends TSchema | undefined> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Schema extends z.ZodObject<any> ? z.infer<Schema> : reactHookForm.FieldValues
 
 /**
- * Field Path type.
+ * Field path type.
+ * @alias reactHookForm.FieldPath
  */
 export type FieldPath<
   Schema extends TSchema,
@@ -43,6 +45,7 @@ export interface UseFormProps<Schema extends TSchema, TFieldValues extends Field
 
 /**
  * Return type of the useForm hook.
+ * @alias reactHookForm.UseFormReturn
  */
 export type UseFormReturn<
   Schema extends TSchema,
@@ -52,7 +55,8 @@ export type UseFormReturn<
 > = reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedValues>
 
 /**
- * Form State type.
+ * Form state type.
+ * @alias reactHookForm.FormState
  */
 export type FormState<
   Schema extends TSchema,
@@ -60,7 +64,8 @@ export type FormState<
 > = reactHookForm.FormState<TFieldValues>
 
 /**
- * Form Instance type. Alias for the {@link UseFormReturn} type.
+ * Form instance type
+ * @alias UseFormReturn
  */
 export type FormInstance<
   Schema extends TSchema,
@@ -70,7 +75,7 @@ export type FormInstance<
 > = UseFormReturn<Schema, TFieldValues, TTransformedValues>
 
 /**
- *
+ * Form type interface that check if FieldValues type is compatible with the value type from component
  */
 export interface FormWithValueValidation<
   BaseValueType,

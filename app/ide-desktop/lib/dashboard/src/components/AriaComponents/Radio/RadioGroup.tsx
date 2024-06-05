@@ -12,7 +12,6 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 
 import * as formComponent from '../Form'
-import * as text from '../Text'
 import * as radioGroupContext from './RadioGroupContext'
 
 /**
@@ -32,7 +31,7 @@ export interface RadioGroupProps<
       TTransformedValues
     >,
     twv.VariantProps<typeof RADIO_GROUP_STYLES>,
-    formComponent.FieldComponentProps {
+    formComponent.FieldProps {
   readonly children?: React.ReactNode
   readonly className?: string
 }
@@ -40,11 +39,6 @@ export interface RadioGroupProps<
 export const RADIO_GROUP_STYLES = twv.tv({
   base: 'flex flex-col gap-0.5 items-start',
   variants: { fullWidth: { true: 'w-full' } },
-  slots: {
-    label: text.TEXT_STYLE({ variant: 'subtitle' }),
-    description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
-    error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
-  },
 })
 
 /**
@@ -86,13 +80,13 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
 
   const invalid = isInvalid || fieldState.invalid
 
-  const classes = RADIO_GROUP_STYLES({ fullWidth })
+  const base = RADIO_GROUP_STYLES({ fullWidth, className })
 
   return (
     <aria.RadioGroup
       ref={mergeRefs.mergeRefs(ref, field.ref)}
       {...radioGroupProps}
-      className={classes.base({ className })}
+      className={base}
       name={field.name}
       value={field.value}
       isDisabled={field.disabled ?? isDisabled}

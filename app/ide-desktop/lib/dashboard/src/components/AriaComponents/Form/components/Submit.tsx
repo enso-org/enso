@@ -17,7 +17,6 @@ import * as formContext from './useFormContext'
  * Additional props for the Submit component.
  */
 interface SubmitButtonBaseProps {
-  readonly variant?: ariaComponents.ButtonProps['variant']
   /**
    * Connects the submit button to a form.
    * If not provided, the button will use the nearest form context.
@@ -39,8 +38,7 @@ interface SubmitButtonBaseProps {
 /**
  * Props for the Submit component.
  */
-export type SubmitProps = Omit<ariaComponents.ButtonProps, 'loading' | 'variant'> &
-  SubmitButtonBaseProps
+export type SubmitProps = ariaComponents.ButtonProps & SubmitButtonBaseProps
 
 /**
  * Submit button for forms.
@@ -54,7 +52,10 @@ export function Submit(props: SubmitProps): React.JSX.Element {
     size = 'medium',
     testId = 'form-submit-button',
     children,
-    formnovalidate,
+    formnovalidate = false,
+    loading = false,
+    onPress,
+    ...buttonProps
   } = props
 
   const { getText } = textProvider.useText()
@@ -63,16 +64,18 @@ export function Submit(props: SubmitProps): React.JSX.Element {
 
   return (
     <ariaComponents.Button
-      {...props}
-      type={formnovalidate === true ? 'button' : 'submit'}
+      {...buttonProps}
+      type={formnovalidate ? 'button' : 'submit'}
       variant={variant}
       size={size}
-      loading={formState.isSubmitting}
+      loading={loading || formState.isSubmitting}
       testId={testId}
-      onPress={() => {
-        if (formnovalidate === true) {
+      onPress={event => {
+        if (formnovalidate) {
           dialogContext?.close()
         }
+
+        return onPress?.(event)
       }}
     >
       {children ?? getText('submit')}
