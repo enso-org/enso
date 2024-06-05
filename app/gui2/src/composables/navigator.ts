@@ -7,7 +7,6 @@ import {
   useEvent,
   usePointer,
   useResizeObserver,
-  type EventPosition,
 } from '@/composables/events'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'

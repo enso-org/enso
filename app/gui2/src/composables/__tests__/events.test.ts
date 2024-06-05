@@ -1,5 +1,4 @@
 import { Vec2 } from '@/util/data/vec2'
-import { relative } from 'path'
 import { afterEach, beforeEach, expect, test, vi, type Mock, type MockInstance } from 'vitest'
 import { effectScope, nextTick } from 'vue'
 import { useArrows } from '../events'

@@ -1,10 +1,8 @@
 /** @file Vue composables for listening to DOM events. */
 
-import { assert } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { type VueInstance } from '@vueuse/core'
-import { event } from 'enso-common/src/gtag'
 import {
   computed,
   onScopeDispose,

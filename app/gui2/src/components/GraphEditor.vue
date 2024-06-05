@@ -36,7 +36,7 @@ import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
-import { provideGraphNavigator } from '@/providers/graphNavigator'
+import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
@@ -86,7 +86,7 @@ onUnmounted(() => {
 
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
-const graphNavigator = provideGraphNavigator(viewportNode, keyboard, (e) =>
+const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, (e) =>
   e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true,
 )
 
