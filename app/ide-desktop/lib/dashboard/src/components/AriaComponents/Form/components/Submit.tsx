@@ -8,8 +8,8 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as ariaComponents from '#/components/AriaComponents'
-
+import * as button from '../../Button'
+import * as dialog from '../../Dialog'
 import type * as types from './types'
 import * as formContext from './useFormContext'
 
@@ -33,12 +33,13 @@ interface SubmitButtonBaseProps {
    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog#closing_a_dialog_with_a_required_form_input
    */
   readonly formnovalidate?: boolean
+  readonly children?: React.ReactNode
 }
 
 /**
  * Props for the Submit component.
  */
-export type SubmitProps = ariaComponents.ButtonProps & SubmitButtonBaseProps
+export type SubmitProps = Omit<button.ButtonProps, 'children'> & SubmitButtonBaseProps
 
 /**
  * Submit button for forms.
@@ -46,24 +47,26 @@ export type SubmitProps = ariaComponents.ButtonProps & SubmitButtonBaseProps
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
 export function Submit(props: SubmitProps): React.JSX.Element {
+  const { getText } = textProvider.useText()
+
   const {
     form = formContext.useFormContext(),
     variant = 'submit',
     size = 'medium',
     testId = 'form-submit-button',
-    children,
     formnovalidate = false,
     loading = false,
     onPress,
+
+    children = getText('submit'),
     ...buttonProps
   } = props
 
-  const { getText } = textProvider.useText()
-  const dialogContext = ariaComponents.useDialogContext()
+  const dialogContext = dialog.useDialogContext()
   const { formState } = form
 
   return (
-    <ariaComponents.Button
+    <button.Button
       {...buttonProps}
       type={formnovalidate ? 'button' : 'submit'}
       variant={variant}
@@ -78,7 +81,7 @@ export function Submit(props: SubmitProps): React.JSX.Element {
         return onPress?.(event)
       }}
     >
-      {children ?? getText('submit')}
-    </ariaComponents.Button>
+      {children}
+    </button.Button>
   )
 }

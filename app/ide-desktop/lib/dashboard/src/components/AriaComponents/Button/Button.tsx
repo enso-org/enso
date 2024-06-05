@@ -24,12 +24,14 @@ export type ButtonProps =
  */
 interface PropsWithHref {
   readonly href: string
+  readonly type?: never
 }
 
 /**
  * Props for a button without an href.
  */
 interface PropsWithoutHref {
+  // readonly type?: 'button' | 'reset' | 'submit'
   readonly href?: never
 }
 
@@ -42,7 +44,7 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
   /**
    * The icon to display in the button
    */
-  readonly icon?: string | null
+  readonly icon?: React.ReactElement | string | null
   /**
    * When `true`, icon will be shown only when hovered.
    */
@@ -54,6 +56,8 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
 
   readonly testId?: string
+
+  readonly formnovalidate?: boolean
 }
 
 export const BUTTON_STYLES = twv.tv({
@@ -67,12 +71,12 @@ export const BUTTON_STYLES = twv.tv({
     fullWidth: { true: 'w-full' },
     size: {
       custom: '',
-      hero: 'px-8 py-4 text-lg',
-      large: 'px-6 py-3 text-base',
-      medium: 'px-4 py-2 text-sm',
-      small: 'px-3 py-1 text-xs',
-      xsmall: 'px-2 py-1 text-xs',
-      xxsmall: 'px-1.5 py-0.5 text-xs',
+      hero: 'px-8 py-4 text-lg font-bold',
+      large: 'px-6 py-3 text-base font-bold',
+      medium: 'px-4 py-2 text-sm font-bold',
+      small: 'px-3 pt-1 pb-[5px] text-xs font-medium',
+      xsmall: 'px-2 pt-1 pb-[5px] text-xs font-medium',
+      xxsmall: 'px-1.5 pt-1 pb-[5px] text-xs font-medium',
     },
     iconOnly: { true: '' },
     rounded: {
@@ -82,6 +86,8 @@ export const BUTTON_STYLES = twv.tv({
       none: 'rounded-none',
       small: 'rounded-sm',
       xlarge: 'rounded-xl',
+      xxlarge: 'rounded-2xl',
+      xxxlarge: 'rounded-3xl',
     },
     variant: {
       custom: 'focus-visible:outline-offset-2',
@@ -97,8 +103,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'w-fit h-fit',
       },
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      outline:
-        'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',
+      outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
     },
     iconPosition: {
       start: { content: '' },
@@ -131,6 +136,12 @@ export const BUTTON_STYLES = twv.tv({
     { variant: 'icon', size: 'medium', class: 'p-2 rounded-full', iconOnly: true },
     { variant: 'icon', size: 'large', class: 'p-3 rounded-full', iconOnly: true },
     { variant: 'icon', size: 'hero', class: 'p-4 rounded-full', iconOnly: true },
+    { variant: 'link', size: 'xxsmall', class: 'font-medium' },
+    { variant: 'link', size: 'xsmall', class: 'font-medium' },
+    { variant: 'link', size: 'small', class: 'font-medium' },
+    { variant: 'link', size: 'medium', class: 'font-medium' },
+    { variant: 'link', size: 'large', class: 'font-medium' },
+    { variant: 'link', size: 'hero', class: 'font-medium' },
   ],
 })
 
@@ -232,18 +243,23 @@ export const Button = React.forwardRef(function Button(
   })
 
   const childrenFactory = (): React.ReactNode => {
+    const iconComponent = (() => {
+      if (icon == null) {
+        return null
+      } else if (typeof icon === 'string') {
+        return <SvgMask src={icon} className={iconClasses()} />
+      } else {
+        return <span className={iconClasses()}>{icon}</span>
+      }
+    })()
     // Icon only button
     if (isIconOnly) {
-      return (
-        <span className={extraClickZone()}>
-          <SvgMask src={icon} className={iconClasses()} />
-        </span>
-      )
+      return <span className={extraClickZone()}>{iconComponent}</span>
     } else {
       // Default button
       return (
         <>
-          {icon != null && <SvgMask src={icon} className={iconClasses()} />}
+          {iconComponent}
           <>{children}</>
         </>
       )
@@ -282,7 +298,7 @@ export const Button = React.forwardRef(function Button(
   return tooltipElement == null ? (
     button
   ) : (
-    <ariaComponents.TooltipTrigger>
+    <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
       {button}
       <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>

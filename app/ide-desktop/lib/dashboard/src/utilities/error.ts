@@ -21,14 +21,18 @@ export type MustNotBeKnown<T> =
 
 /** Extracts the `message` property of a value if it is a string. Intended to be used on
  * {@link Error}s. */
-export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null {
+export function tryGetMessage<T, DefaultMessage extends string | null>(
+  error: MustNotBeKnown<T>,
+  // eslint-disable-next-line no-restricted-syntax
+  defaultMessage: DefaultMessage = null as DefaultMessage
+): DefaultMessage | string {
   const unknownError: unknown = error
   return unknownError != null &&
     typeof unknownError === 'object' &&
     'message' in unknownError &&
     typeof unknownError.message === 'string'
     ? unknownError.message
-    : null
+    : defaultMessage
 }
 
 /** Extracts the `error` property of a value if it is a string. */
@@ -99,5 +103,26 @@ export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | unde
     )
   } else {
     return result
+  }
+}
+
+/**
+ * Checks if the given error is a JavaScript execution error.
+ */
+export function isJSError(error: unknown): boolean {
+  if (error instanceof TypeError) {
+    return true
+  } else if (error instanceof ReferenceError) {
+    return true
+  } else if (error instanceof SyntaxError) {
+    return true
+  } else if (error instanceof RangeError) {
+    return true
+  } else if (error instanceof URIError) {
+    return true
+  } else if (error instanceof EvalError) {
+    return true
+  } else {
+    return false
   }
 }
