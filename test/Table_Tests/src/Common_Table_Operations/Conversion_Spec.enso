@@ -60,6 +60,14 @@ add_specs suite_builder setup =
             t2.at "Z" . to_vector . should_equal ["1.5", "0.125", "-2.5"]
             t2.at "W" . to_vector . should_equal ["a", "DEF", "a slightly longer text"]
 
+        group_builder.specify "should allow to cast columns selecting columns by type" <|
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
+            t2 = t.cast [..By_Type ..Integer] Value_Type.Char
+            t2.at "X" . value_type . is_text . should_be_true
+            t2.at "Y" . value_type . is_text . should_be_false
+            t2.at "Z" . value_type . is_text . should_be_false
+            t2.at "W" . value_type . is_text . should_be_true
+
         if supports_dates then
             group_builder.specify "should allow to cast date/time columns to text" <|
                 t = table_builder [["X", [Date.new 2015 1 1, Date.new 2023 12 31]], ["Y", [Time_Of_Day.new 1 2 3, Time_Of_Day.new 23 57 59]], ["Z", [Date_Time.new 2015 1 1 1 2 3, Date_Time.new 2023 11 30 22 45 44]]]
