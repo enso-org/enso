@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
@@ -39,6 +40,14 @@ public final class ArrowOperationPlus implements TruffleObject {
     return args[index];
   }
 
+  static Object it(Object[] args, InteropLibrary iop, int index)
+      throws ArityException, UnsupportedMessageException {
+    if (args.length != 2) {
+      throw ArityException.create(2, 2, args.length);
+    }
+    return iop.getIterator(args[index]);
+  }
+
   @ExportMessage(limit = "3")
   Object execute(
       Object[] args,
@@ -46,6 +55,8 @@ public final class ArrowOperationPlus implements TruffleObject {
       @CachedLibrary("factory(this)") InteropLibrary iop,
       @CachedLibrary("args(args, 0)") InteropLibrary iopArray0,
       @CachedLibrary("args(args, 1)") InteropLibrary iopArray1,
+      @CachedLibrary("it(args, iopArray0, 0)") InteropLibrary iopIt0,
+      @CachedLibrary("it(args, iopArray1, 1)") InteropLibrary iopIt1,
       @CachedLibrary(limit = "3") InteropLibrary iopElem,
       @CachedLibrary(limit = "3") InteropLibrary iopBuilder,
       @Cached InlinedExactClassProfile typeOfBuf0,
@@ -60,17 +71,26 @@ public final class ArrowOperationPlus implements TruffleObject {
     if (len != iopArray1.getArraySize(arr1)) {
       throw UnsupportedTypeException.create(args, "Arrays must have the same length");
     }
+    var it0 = iopArray0.getIterator(arr0);
+    var it1 = iopArray1.getIterator(arr1);
     var out = ByteBuffer.allocate((int) (8 * len));
-    var buf0 = typeOfBuf0.profile(node, ((ArrowFixedArrayInt) arr0).buffer.dataBuffer);
-    var buf1 = typeOfBuf1.profile(node, ((ArrowFixedArrayInt) arr1).buffer.dataBuffer);
-    buf0.rewind();
-    buf1.rewind();
 
     for (long i = 0; i < len; i++) {
-      var l0 = buf0.getLong();
-      var l1 = buf1.getLong();
-      var res = l0 + l1;
-      out.putLong(res);
+      try {
+        var elem0 = iopIt0.getIteratorNextElement(it0);
+        var elem1 = iopIt1.getIteratorNextElement(it1);
+        long res;
+        if (iopElem.fitsInLong(elem0) && iopElem.fitsInLong(elem1)) {
+          var l0 = iopElem.asLong(elem0);
+          var l1 = iopElem.asLong(elem1);
+          res = l0 + l1;
+        } else {
+          throw UnsupportedTypeException.create(new Object[] {elem0, elem1});
+        }
+        out.putLong(res);
+      } catch (StopIterationException ex) {
+        throw UnsupportedTypeException.create(new Object[] {it0, it1});
+      }
     }
     var outBuf = ByteBufferDirect.forBuffer(out);
     return new ArrowFixedArrayInt(outBuf, (int) len, LogicalLayout.Int64);

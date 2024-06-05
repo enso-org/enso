@@ -1,11 +1,14 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -13,12 +16,14 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
+import java.nio.BufferOverflowException;
+import java.nio.ByteBuffer;
 import org.enso.interpreter.arrow.LogicalLayout;
 
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowFixedArrayInt implements TruffleObject {
   private final int size;
-  final ByteBufferDirect buffer;
+  private final ByteBufferDirect buffer;
   private final LogicalLayout unit;
 
   public ArrowFixedArrayInt(ByteBufferDirect buffer, int size, LogicalLayout unit) {
@@ -32,7 +37,17 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   }
 
   @ExportMessage
-  public boolean hasArrayElements() {
+  boolean hasArrayElements() {
+    return true;
+  }
+
+  @ExportMessage
+  Object getIterator() throws UnsupportedMessageException {
+    return new LongIterator(buffer.dataBuffer, unit.sizeInBytes());
+  }
+
+  @ExportMessage
+  boolean hasIterator() {
     return true;
   }
 
@@ -105,5 +120,45 @@ public final class ArrowFixedArrayInt implements TruffleObject {
 
   private static int typeAdjustedIndex(long index, SizeInBytes unit) {
     return Math.toIntExact(index * unit.sizeInBytes());
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class LongIterator implements TruffleObject {
+    private int at;
+    private final ByteBuffer buffer;
+    @NeverDefault final int step;
+
+    LongIterator(ByteBuffer buffer, int step) {
+      assert step != 0;
+      this.buffer = buffer;
+      this.step = step;
+    }
+
+    @ExportMessage
+    Object getIteratorNextElement(
+        @Bind("$node") Node node,
+        @Cached("this.step") int step,
+        @Cached InlinedExactClassProfile bufferTypeProfile)
+        throws StopIterationException {
+      var buf = bufferTypeProfile.profile(node, buffer);
+      try {
+        var res = buf.getLong(at);
+        at += step;
+        return res;
+      } catch (BufferOverflowException ex) {
+        CompilerDirectives.transferToInterpreter();
+        throw StopIterationException.create();
+      }
+    }
+
+    @ExportMessage
+    boolean isIterator() {
+      return true;
+    }
+
+    @ExportMessage
+    boolean hasIteratorNextElement() throws UnsupportedMessageException {
+      return at < buffer.limit();
+    }
   }
 }
