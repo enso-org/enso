@@ -120,7 +120,7 @@ export function useVisualTooltip(props: VisualTooltipProps) {
     containerPadding,
   })
 
-  const tooltipElement = (
+  const createTooltipElement = () => (
     <Portal onMount={updatePosition}>
       <span
         ref={mergeRefs.mergeRefs(popoverRef, ref => ref?.showPopover())}
@@ -155,7 +155,7 @@ export function useVisualTooltip(props: VisualTooltipProps) {
 
   return {
     targetProps: aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(targetHoverProps, { id }),
-    tooltip: state.isOpen ? tooltipElement : null,
+    tooltip: state.isOpen ? createTooltipElement() : null,
   } as const
 }
 
