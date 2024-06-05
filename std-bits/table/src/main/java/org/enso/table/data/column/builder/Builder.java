@@ -39,7 +39,7 @@ public abstract class Builder {
           case IntegerType integerType -> NumericBuilder.createLongBuilder(
               size, integerType, problemAggregator);
           case TextType textType -> new StringBuilder(size, textType);
-          case BigDecimalType x -> new BigDecimalBuilder(size);
+          case BigDecimalType x -> new BigDecimalBuilder(size, problemAggregator);
           case BigIntegerType x -> new BigIntegerBuilder(size, problemAggregator);
           case null -> new InferredBuilder(size, problemAggregator);
         };

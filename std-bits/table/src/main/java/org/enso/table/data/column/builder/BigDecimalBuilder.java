@@ -6,16 +6,21 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
+import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for BigDecimal columns. */
 public class BigDecimalBuilder extends TypedBuilderImpl<BigDecimal> {
+  // The problem aggregator is only used so that when we are retyping, we can pass it on.
+  private final ProblemAggregator problemAggregator;
+
   @Override
   protected BigDecimal[] newArray(int size) {
     return new BigDecimal[size];
   }
 
-  public BigDecimalBuilder(int size) {
+  public BigDecimalBuilder(int size, ProblemAggregator problemAggregator) {
     super(size);
+    this.problemAggregator = problemAggregator;
   }
 
   @Override
@@ -31,6 +36,11 @@ public class BigDecimalBuilder extends TypedBuilderImpl<BigDecimal> {
       throw new ValueTypeMismatchException(getType(), o);
     }
   }
+
+  public void appendRawNoGrow(BigDecimal value) {
+    data[currentSize++] = value;
+  }
+
 
   @Override
   public void append(Object o) {
