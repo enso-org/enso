@@ -95,13 +95,13 @@ collect_benches = Bench.build builder->
         group_builder.specify "Sorted_Runs_Descending" <|
             data.partially_sorted_vec.sort Sort_Direction.Descending
 
-        group_builder.specify "Random_Elements_Ascending" <|
+        group_builder.specify "Random_Elements_Ascending_v2" <|
             data.random_vec.sort
 
-        group_builder.specify "Random_Elements_Descending" <|
+        group_builder.specify "Random_Elements_Descending_v2" <|
             data.random_vec.sort Sort_Direction.Descending
 
-        group_builder.specify "Sorting_with_a_Custom_Projection" <|
+        group_builder.specify "Sorting_with_a_Custom_Projection_v2" <|
             data.random_vec.sort on=projection
 
         group_builder.specify "Sorting_with_an_identity_function" <|
@@ -110,7 +110,7 @@ collect_benches = Bench.build builder->
         group_builder.specify "Sorting_with_an_unresolved_identity_function" <|
             data.random_vec_wrapped.sort on=(.identity)
 
-        group_builder.specify "Sorting_with_the_Default_Ordered_Comparator" <|
+        group_builder.specify "Sorting_with_the_Default_Ordered_Comparator_v2" <|
             data.random_vec.sort by=comparator
 
         group_builder.specify "Sorting_Prime_Numbers_First" <|
