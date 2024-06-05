@@ -8,8 +8,8 @@ import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as button from '../../Button'
-import * as dialog from '../../Dialog'
+import * as ariaComponents from '#/components/AriaComponents'
+
 import type * as types from './types'
 import * as formContext from './useFormContext'
 
@@ -17,6 +17,7 @@ import * as formContext from './useFormContext'
  * Additional props for the Submit component.
  */
 interface SubmitButtonBaseProps {
+  readonly variant?: ariaComponents.ButtonProps['variant']
   /**
    * Connects the submit button to a form.
    * If not provided, the button will use the nearest form context.
@@ -33,13 +34,13 @@ interface SubmitButtonBaseProps {
    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog#closing_a_dialog_with_a_required_form_input
    */
   readonly formnovalidate?: boolean
-  readonly children?: React.ReactNode
 }
 
 /**
  * Props for the Submit component.
  */
-export type SubmitProps = Omit<button.ButtonProps, 'children'> & SubmitButtonBaseProps
+export type SubmitProps = Omit<ariaComponents.ButtonProps, 'href' | 'variant'> &
+  SubmitButtonBaseProps
 
 /**
  * Submit button for forms.
@@ -47,41 +48,38 @@ export type SubmitProps = Omit<button.ButtonProps, 'children'> & SubmitButtonBas
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
 export function Submit(props: SubmitProps): React.JSX.Element {
-  const { getText } = textProvider.useText()
-
   const {
     form = formContext.useFormContext(),
     variant = 'submit',
     size = 'medium',
     testId = 'form-submit-button',
-    formnovalidate = false,
+    formnovalidate,
     loading = false,
-    onPress,
-
-    children = getText('submit'),
+    children,
     ...buttonProps
   } = props
 
-  const dialogContext = dialog.useDialogContext()
+  const { getText } = textProvider.useText()
+  const dialogContext = ariaComponents.useDialogContext()
   const { formState } = form
 
   return (
-    <button.Button
-      {...buttonProps}
-      type={formnovalidate ? 'button' : 'submit'}
+    <ariaComponents.Button
+      /* This is safe because we are passing all props to the button */
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
+      {...(buttonProps as any)}
+      type={formnovalidate === true ? 'button' : 'submit'}
       variant={variant}
       size={size}
       loading={loading || formState.isSubmitting}
       testId={testId}
-      onPress={event => {
-        if (formnovalidate) {
+      onPress={() => {
+        if (formnovalidate === true) {
           dialogContext?.close()
         }
-
-        return onPress?.(event)
       }}
     >
-      {children}
-    </button.Button>
+      {children ?? getText('submit')}
+    </ariaComponents.Button>
   )
 }

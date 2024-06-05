@@ -16,14 +16,14 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link Button}. */
 export type ButtonProps =
-  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
-  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
+  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress' | 'type'> & PropsWithoutHref)
+  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress' | 'type'> & PropsWithHref)
 
 /**
  * Props for a button with an href.
  */
 interface PropsWithHref {
-  readonly href: string
+  readonly href?: string
   readonly type?: never
 }
 
@@ -31,7 +31,7 @@ interface PropsWithHref {
  * Props for a button without an href.
  */
 interface PropsWithoutHref {
-  // readonly type?: 'button' | 'reset' | 'submit'
+  readonly type?: 'button' | 'reset' | 'submit'
   readonly href?: never
 }
 

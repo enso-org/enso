@@ -21,7 +21,7 @@ export type MustNotBeKnown<T> =
 
 /** Extracts the `message` property of a value if it is a string. Intended to be used on
  * {@link Error}s. */
-export function tryGetMessage<T, DefaultMessage extends string | null>(
+export function tryGetMessage<T, DefaultMessage extends string | null = null>(
   error: MustNotBeKnown<T>,
   // eslint-disable-next-line no-restricted-syntax
   defaultMessage: DefaultMessage = null as DefaultMessage

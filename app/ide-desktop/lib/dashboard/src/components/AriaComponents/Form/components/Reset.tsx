@@ -34,12 +34,15 @@ export function Reset(props: ResetProps): React.JSX.Element {
     variant = 'cancel',
     size = 'medium',
     testId = 'form-reset-button',
+    ...buttonProps
   } = props
   const { formState } = form
 
   return (
     <ariaComponents.Button
-      {...props}
+      /* This is safe because we are passing all props to the button */
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
+      {...(buttonProps as any)}
       type="reset"
       variant={variant}
       size={size}
