@@ -2529,7 +2529,7 @@ type DB_Table
        their contents.
 
        This operation is currently not available in the Database backend.
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
     auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         _ = [columns, shrink_types, error_on_missing_columns, on_problems]

@@ -698,6 +698,15 @@ add_specs suite_builder setup =
             t4.at "ints" . value_type . should_equal Value_Type.Integer
             t4.at "floats" . value_type . should_equal Value_Type.Float
 
+        group_builder.specify "will only modify selected columns by type" <|
+            mixer = My_Type.Value 1
+            t0 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [mixer, 2.5, 3.0]]]
+            t1 = t0.drop 1
+
+            t2 = t1.auto_value_types [..By_Type ..Float]
+            t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Y" . value_type . should_equal Value_Type.Mixed
+
         group_builder.specify "will convert a Float column to Integer if all values can be represented as long" <|
             t1 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [1.0, 2.5, 3.0]], ["Z", [1.0, 2.0, (2.0^100)]]]
             t1.at "X" . value_type . should_equal Value_Type.Float
