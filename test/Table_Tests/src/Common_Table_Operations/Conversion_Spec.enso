@@ -237,18 +237,26 @@ add_specs suite_builder setup =
 
         if setup.is_database.not then
             group_builder.specify "Can cast to Decimal" <|
-                bi = 9223372036854775807000
-                t = table_builder [["ints", [1, 2, 4]], ["floats", [1.0001, 2.25, 4.0]], ["bools", [True, False, True]], ["bigintegers", [bi+1, bi+2, bi+3]]]
-                td = t.cast ["ints", "floats", "bools", "bigintegers"] Value_Type.Decimal
-                tti td
+                t = table_builder [["ints", [1, 2, 4]], ["floats", [1.0001, 2.25, 4.0]], ["bools", [True, False, True]], ["decimals", [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]]]
+                td = t.cast ["ints", "floats", "bools", "decimals"] Value_Type.Decimal
                 td.at "ints" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
                 td.at "floats" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
                 td.at "bools" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
-                td.at "bigintegers" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "decimals" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
                 td.at "ints" . to_vector . should_equal [Decimal.new 1, Decimal.new 2, Decimal.new 4]
                 td.at "floats" . to_vector . should_equal [Decimal.new "1.0001", Decimal.new "2.25", Decimal.new "4.0"]
                 td.at "bools" . to_vector . should_equal [Decimal.new "1", Decimal.new "0", Decimal.new "1"]
-                td.at "bigintegers" . to_vector . should_equal [Decimal.new bi+1, Decimal.new bi+2, Decimal.new bi+3]
+                td.at "decimals" . to_vector . should_equal [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
+
+            group_builder.specify "Can cast from Decimal" <|
+                t = table_builder [["ints", [Decimal.new 1, Decimal.new 2, Decimal.new 4]], ["floats", [Decimal.new "1.0001", Decimal.new "2.25", Decimal.new "4.0"]], ["decimals", [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]]]
+                td = t.cast ["ints"] Value_Type.Integer . cast ["floats"] Value_Type.Float . cast ["decimals"] Value_Type.Decimal
+                td.at "ints" . value_type . should_equal Value_Type.Integer
+                td.at "floats" . value_type . should_equal Value_Type.Float
+                td.at "decimals" . value_type . should_equal Value_Type.Decimal
+                td.at "ints" . to_vector . should_equal [1, 2, 4]
+                td.at "floats" . to_vector . should_equal [1.0001, 2.25, 4.0]
+                td.at "decimals" . to_vector . should_equal [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
 
         if setup.is_database.not then
             group_builder.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|

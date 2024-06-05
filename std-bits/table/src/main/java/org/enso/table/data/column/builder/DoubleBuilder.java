@@ -181,6 +181,15 @@ public class DoubleBuilder extends NumericBuilder {
     appendRawNoGrow(Double.doubleToRawLongBits(converted));
   }
 
+  public void appendBigDecimal(BigDecimal integer) {
+    if (currentSize >= this.data.length) {
+      grow();
+    }
+
+    double converted = convertBigDecimalToDouble(integer);
+    appendRawNoGrow(Double.doubleToRawLongBits(converted));
+  }
+
   @Override
   public Storage<Double> seal() {
     return new DoubleStorage(data, currentSize, isNothing);
@@ -207,6 +216,16 @@ public class DoubleBuilder extends NumericBuilder {
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
     if (isLosingPrecision) {
       precisionLossAggregator.reportPrecisionLoss(bigInteger, floatingPointValue);
+    }
+    return floatingPointValue;
+  }
+
+  protected double convertBigDecimalToDouble(BigDecimal bigDecimal) {
+    double floatingPointValue = bigDecimal.doubleValue();
+    BigDecimal reconstructed = BigDecimal.valueOf(floatingPointValue);
+    boolean isLosingPrecision = !bigDecimal.equals(reconstructed);
+    if (isLosingPrecision) {
+      precisionLossAggregator.reportPrecisionLoss(bigDecimal, floatingPointValue);
     }
     return floatingPointValue;
   }

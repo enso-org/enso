@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public record IntegerType(Bits bits) implements StorageType {
@@ -63,6 +64,15 @@ public record IntegerType(Bits bits) implements StorageType {
 
   public boolean fits(BigInteger value) {
     if (value.bitLength() > 63) {
+      return false;
+    } else {
+      return fits(value.longValue());
+    }
+  }
+
+  public boolean fits(BigDecimal value) {
+    BigInteger bigInteger = value.toBigInteger();
+    if (bigInteger.bitLength() > 63) {
       return false;
     } else {
       return fits(value.longValue());
