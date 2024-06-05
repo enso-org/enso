@@ -86,9 +86,9 @@ onUnmounted(() => {
 
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
-const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, (e) =>
-  e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true,
-)
+const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
+  predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
+})
 
 // === Client saved state ===
 
@@ -255,9 +255,8 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
     (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
-    (!keyboardBusy() && graphNavigator.events.keydown(event))
+    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event))
 })
-useEvent(window, 'keyup', (event) => graphNavigator.events.keyup(event))
 
 useEvent(
   window,
@@ -654,7 +653,7 @@ const groupColors = computed(() => {
     class="GraphEditor viewport"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
-    v-on.="graphNavigator.events"
+    v-on.="graphNavigator.pointerEvents"
     v-on..="nodeSelection.events"
     @click="handleClick"
     @dragover.prevent

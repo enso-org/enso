@@ -490,7 +490,6 @@ export function useArrows(
   }
 
   useRaf(moving, (t, _) => callHandler(t, 'move'))
-
   const events = {
     keydown(e: KeyboardEvent) {
       const starting = !moving.value
@@ -505,7 +504,15 @@ export function useArrows(
         callHandler(e.timeStamp, 'start', e, referencePoint.value.position)
       }
     },
-    keyup(e: KeyboardEvent) {
+    focusout() {
+      // Each focus change may make us miss some events, so it's safer to just cancel the movement.
+      pressedKeys.value = { ...clearedKeys }
+    },
+  }
+  useEvent(
+    window,
+    'keyup',
+    (e) => {
       if (e.repeat) return
       if (!moving.value) return
       if (!isArrowKey(e.key)) return
@@ -516,11 +523,8 @@ export function useArrows(
       pressedKeys.value[e.key] = false
       if (!moving.value) callHandler(e.timeStamp, 'stop', e, referencePoint.value.position)
     },
-    focusout() {
-      // Each focus change may make us miss some events, so it's safer to just cancel the movement.
-      pressedKeys.value = { ...clearedKeys }
-    },
-  }
+    { capture: true },
+  )
 
   return { events, moving }
 }

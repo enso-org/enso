@@ -31,12 +31,18 @@ function elemRect(target: Element | undefined): Rect {
   return Rect.Zero
 }
 
+export interface NavigatorOptions {
+  /* A predicate deciding if given event should initialize navigation */
+  predicate?: (e: PointerEvent | KeyboardEvent) => boolean
+}
+
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(
   viewportNode: Ref<Element | undefined>,
   keyboard: KeyboardComposable,
-  predicate: (e: PointerEvent | KeyboardEvent) => boolean = (_) => true,
+  options: NavigatorOptions = {},
 ) {
+  const predicate = options.predicate ?? ((_) => true)
   const size = useResizeObserver(viewportNode)
   const targetCenter = shallowRef<Vec2>(Vec2.Zero)
   const center = useApproachVec(targetCenter, 100, 0.02)
@@ -270,8 +276,7 @@ export function useNavigator(
   }
 
   return proxyRefs({
-    events: {
-      ...panArrows.events,
+    pointerEvents: {
       dragover(e: DragEvent) {
         eventMousePos.value = eventScreenPos(e)
       },
@@ -318,6 +323,7 @@ export function useNavigator(
         e.preventDefault()
       },
     },
+    keyboardEvents: panArrows.events,
     translate,
     targetCenter: readonly(targetCenter),
     targetScale: readonly(targetScale),
