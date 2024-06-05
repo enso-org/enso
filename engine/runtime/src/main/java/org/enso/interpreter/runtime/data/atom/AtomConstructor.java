@@ -61,7 +61,7 @@ public final class AtomConstructor implements EnsoObject {
    * AtomConstructor#initializeFields} is called.
    *
    * @param name the name of the Atom constructor
-   * @param definitionScope the scope in which this constructor was defined
+   * @param definitionModule the module in which this constructor was defined
    * @param type associated type
    */
   public AtomConstructor(String name, Module definitionModule, Type type) {
@@ -73,7 +73,7 @@ public final class AtomConstructor implements EnsoObject {
    * AtomConstructor#initializeFields} is called.
    *
    * @param name the name of the Atom constructor
-   * @param definitionScope the scope in which this constructor was defined
+   * @param definitionModule the module in which this constructor was defined
    * @param type associated type
    * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
@@ -125,6 +125,7 @@ public final class AtomConstructor implements EnsoObject {
    *
    * @param localScope a description of the local scope
    * @param assignments the expressions that evaluate and assign constructor arguments to local vars
+   * @param scopeBuilder the module scope's builder where the accessor should be registered at
    * @param varReads the expressions that read field values from local vars
    * @return {@code this}, for convenience
    */

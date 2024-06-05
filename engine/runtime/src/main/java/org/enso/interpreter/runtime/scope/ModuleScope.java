@@ -3,14 +3,7 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.enso.compiler.context.CompilerContext;
@@ -152,7 +145,7 @@ public final class ModuleScope implements EnsoObject {
   }
 
   public List<Type> getAllTypes(String name) {
-    var tpes = new LinkedList<Type>();
+    var tpes = new ArrayList<Type>(types.size() + 1);
     var tpe0 = getType(name, false);
     if (tpe0 != null) tpes.add(tpe0);
     tpes.addAll(types.values());
@@ -267,12 +260,12 @@ public final class ModuleScope implements EnsoObject {
     @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
     private final Module module;
     private final Type associatedType;
-    private Map<String, Object> polyglotSymbols;
-    private Map<String, Type> types;
-    private Map<Type, Map<String, Supplier<Function>>> methods;
-    private Map<Type, Map<Type, Function>> conversions;
-    private Set<ImportExportScope> imports;
-    private Set<ImportExportScope> exports;
+    private final Map<String, Object> polyglotSymbols;
+    private final Map<String, Type> types;
+    private final Map<Type, Map<String, Supplier<Function>>> methods;
+    private final Map<Type, Map<Type, Function>> conversions;
+    private final Set<ImportExportScope> imports;
+    private final Set<ImportExportScope> exports;
 
     public Builder(Module module) {
       this.module = module;
