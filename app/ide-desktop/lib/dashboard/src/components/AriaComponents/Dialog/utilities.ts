@@ -17,6 +17,7 @@ const IGNORE_INTERACT_OUTSIDE_ELEMENTS = [
   '.Toastify__toast-container',
   // ReactQuery devtools
   '.tsqd-parent-container',
+  // Our components that should ignore the interact outside event
   ':is(.enso-dashboard, .enso-chat, .enso-portal-root) [data-ignore-click-outside]',
 ]
 
