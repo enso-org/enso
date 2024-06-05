@@ -10,7 +10,10 @@ import * as reactHookForm from 'react-hook-form'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+
 import * as components from './components'
+import * as styles from './styles'
 import type * as types from './types'
 
 /**
@@ -24,11 +27,14 @@ import type * as types from './types'
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
 export const Form = React.forwardRef(function Form<
-  TFieldValues extends reactHookForm.FieldValues,
-  // This type is defined on library level and we can't change it
+  Schema extends components.TSchema,
+  TFieldValues extends components.FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends reactHookForm.FieldValues | undefined = undefined,
->(props: types.FormProps<TFieldValues, TTransformedValues>, ref: React.Ref<HTMLFormElement>) {
+  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
+>(
+  props: types.FormProps<Schema, TFieldValues, TTransformedValues>,
+  ref: React.Ref<HTMLFormElement>
+) {
   const formId = React.useId()
 
   const {
@@ -45,15 +51,22 @@ export const Form = React.forwardRef(function Form<
     id = formId,
     testId,
     schema,
+    defaultValues,
+    gap,
     ...formProps
   } = props
 
   const { getText } = textProvider.useText()
 
-  const innerForm = components.useForm<TFieldValues, TTransformedValues>(
+  if (defaultValues) {
+    formOptions.defaultValues = defaultValues
+  }
+
+  const innerForm = components.useForm(
     form ?? {
+      shouldFocusError: true,
       ...formOptions,
-      ...(schema ? { schema } : {}),
+      schema,
     }
   )
 
@@ -83,41 +96,89 @@ export const Form = React.forwardRef(function Form<
   // There is no way to avoid type casting here
   // eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax,@typescript-eslint/no-unsafe-argument
   const formOnSubmit = innerForm.handleSubmit(formMutation.mutateAsync as any)
-  const { formState, clearErrors, getValues, setValue, setError, register, unregister } = innerForm
-
-  const formStateRenderProps: types.FormStateRenderProps<TFieldValues> = {
+  const {
     formState,
+    clearErrors,
+    getValues,
+    setValue,
+    setError,
     register,
+    unregister,
+    setFocus,
+    reset,
+  } = innerForm
+
+  const formStateRenderProps: types.FormStateRenderProps<Schema, TFieldValues> = {
+    formState,
+    register: (name, options) => {
+      const registered = register(name, options)
+
+      const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = value => {
+        if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
+          return registered.onChange(value)
+        } else {
+          return registered.onChange({ target: { event: value } })
+        }
+      }
+
+      const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
+        ...registered,
+        ...(registered.disabled != null ? { isDisabled: registered.disabled } : {}),
+        ...(registered.required != null ? { isRequired: registered.required } : {}),
+        isInvalid: !!formState.errors[name],
+        onChange,
+      }
+
+      return result
+    },
     unregister,
     setError,
     clearErrors,
     getValues,
     setValue,
+    setFocus,
+    reset,
   }
+
+  const base = styles.FORM_STYLES({
+    className: typeof className === 'function' ? className(formStateRenderProps) : className,
+    gap,
+  })
+
+  // eslint-disable-next-line no-restricted-syntax
+  const errors = Object.fromEntries(
+    Object.entries(formState.errors).map(([key, error]) => {
+      const message = error?.message ?? getText('arbitraryFormErrorMessage')
+      return [key, message]
+    })
+  ) as Record<keyof TFieldValues, string>
 
   return (
     <form
       id={id}
       ref={ref}
       onSubmit={formOnSubmit}
-      className={typeof className === 'function' ? className(formStateRenderProps) : className}
+      className={base}
       style={typeof style === 'function' ? style(formStateRenderProps) : style}
       noValidate
       data-testid={testId}
       {...formProps}
     >
-      <reactHookForm.FormProvider {...innerForm}>
-        {typeof children === 'function' ? children(formStateRenderProps) : children}
-      </reactHookForm.FormProvider>
+      <aria.FormValidationContext.Provider value={errors}>
+        <reactHookForm.FormProvider {...innerForm}>
+          {typeof children === 'function' ? children(formStateRenderProps) : children}
+        </reactHookForm.FormProvider>
+      </aria.FormValidationContext.Provider>
     </form>
   )
 }) as unknown as (<
-  TFieldValues extends reactHookForm.FieldValues,
-  // The type is defined on library level and we can't change it
+  Schema extends components.TSchema,
+  TFieldValues extends components.FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends reactHookForm.FieldValues | undefined = undefined,
+  TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 >(
-  props: React.RefAttributes<HTMLFormElement> & types.FormProps<TFieldValues, TTransformedValues>
+  props: React.RefAttributes<HTMLFormElement> &
+    types.FormProps<Schema, TFieldValues, TTransformedValues>
   // eslint-disable-next-line no-restricted-syntax
 ) => React.JSX.Element) & {
   /* eslint-disable @typescript-eslint/naming-convention */

@@ -26,12 +26,15 @@ import type * as types from './types'
  * Otherwise you'll be fired
  */
 export function useForm<
-  T extends types.FieldValues,
+  Schema extends types.TSchema,
+  TFieldValues extends types.FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends types.FieldValues | undefined = undefined,
+  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
 >(
-  optionsOrFormInstance: types.UseFormProps<T> | types.UseFormReturn<T, TTransformedValues>
-): types.UseFormReturn<T, TTransformedValues> {
+  optionsOrFormInstance:
+    | types.UseFormProps<Schema, TFieldValues>
+    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+): types.UseFormReturn<Schema, TFieldValues, TTransformedValues> {
   const initialTypePassed = React.useRef(getArgsType(optionsOrFormInstance))
 
   const argsType = getArgsType(optionsOrFormInstance)
@@ -49,9 +52,9 @@ export function useForm<
   } else {
     const { schema, ...options } = optionsOrFormInstance
 
-    return reactHookForm.useForm({
+    return reactHookForm.useForm<TFieldValues, unknown, TTransformedValues>({
       ...options,
-      ...(schema ? { resolver: zodResolver.zodResolver(schema, { async: true }) } : {}),
+      resolver: zodResolver.zodResolver(schema, { async: true }),
     })
   }
 }
@@ -60,9 +63,14 @@ export function useForm<
  * Get the type of arguments passed to the useForm hook
  */
 function getArgsType<
-  T extends Record<string, unknown>,
+  Schema extends types.TSchema,
+  TFieldValues extends types.FieldValues<Schema>,
   // eslint-disable-next-line no-restricted-syntax
-  TTransformedValues extends Record<string, unknown> | undefined = undefined,
->(args: types.UseFormProps<T> | types.UseFormReturn<T, TTransformedValues>) {
+  TTransformedValues extends types.FieldValues<Schema> | undefined = undefined,
+>(
+  args:
+    | types.UseFormProps<Schema, TFieldValues>
+    | types.UseFormReturn<Schema, TFieldValues, TTransformedValues>
+) {
   return 'formState' in args ? 'formInstance' : 'formOptions'
 }

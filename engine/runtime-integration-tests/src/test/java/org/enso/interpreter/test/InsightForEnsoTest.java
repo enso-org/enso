@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
 import java.util.function.Function;
+import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -79,7 +80,7 @@ public class InsightForEnsoTest {
             .build();
 
     var m = ctx.eval(code);
-    var fac = m.invokeMember("eval_expression", "fac");
+    var fac = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fac");
     var res = fac.execute(5);
     assertEquals(120, res.asInt());
 
@@ -135,10 +136,10 @@ public class InsightForEnsoTest {
             .build();
 
     var m = ctx.eval(code);
-    var alloc1 = m.invokeMember("eval_expression", "alloc1");
-    var alloc2 = m.invokeMember("eval_expression", "alloc2");
-    var alloc3 = m.invokeMember("eval_expression", "alloc3");
-    var alloc4 = m.invokeMember("eval_expression", "alloc4");
+    var alloc1 = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "alloc1");
+    var alloc2 = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "alloc2");
+    var alloc3 = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "alloc3");
+    var alloc4 = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "alloc4");
 
     var useAlloc = useAutoscoping ? (lazy ? alloc4 : alloc2) : (lazy ? alloc3 : alloc1);
     var res = useAlloc.execute(3, 4);

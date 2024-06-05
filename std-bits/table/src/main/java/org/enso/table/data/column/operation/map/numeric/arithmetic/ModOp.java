@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
@@ -39,5 +40,16 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
     }
 
     return a.mod(b);
+  }
+
+  @Override
+  public BigDecimal doBigDecimal(
+      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
+    if (b.equals(BigDecimal.ZERO)) {
+      problemAggregator.reportDivisionByZero(ix);
+      return null;
+    }
+
+    return a.remainder(b);
   }
 }
