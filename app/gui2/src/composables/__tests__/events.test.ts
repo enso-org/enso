@@ -95,7 +95,7 @@ test.each`
         keyEvent('keyup', { key, timeStamp: t[t.length - 1] }),
       )
       for (const event of keyupEvents) {
-        arrows.events.keyup(event)
+        window.dispatchEvent(event)
       }
       await nextTick()
       expectedSequence.push([
@@ -122,7 +122,7 @@ test('useArrow with non-overlaping keystrokes', async () => {
     await nextTick()
     runFrame(500)
     await nextTick()
-    arrows.events.keyup(rightUp)
+    window.dispatchEvent(rightUp)
     await nextTick()
     runFrame(1500)
     await nextTick()
@@ -130,7 +130,7 @@ test('useArrow with non-overlaping keystrokes', async () => {
     await nextTick()
     runFrame(2500)
     await nextTick()
-    arrows.events.keyup(downUp)
+    window.dispatchEvent(downUp)
     await nextTick()
     runFrame(3500)
     await nextTick()
@@ -162,11 +162,11 @@ test('useArrow with overlaping keystrokes', async () => {
     await nextTick()
     runFrame(1500)
     await nextTick()
-    arrows.events.keyup(rightUp)
+    window.dispatchEvent(rightUp)
     await nextTick()
     runFrame(2500)
     await nextTick()
-    arrows.events.keyup(downUp)
+    window.dispatchEvent(downUp)
     await nextTick()
     runFrame(3500)
     await nextTick()

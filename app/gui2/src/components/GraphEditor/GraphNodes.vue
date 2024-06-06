@@ -48,7 +48,6 @@ const displacingWithArrows = useArrows(
 )
 
 useEvent(window, 'keydown', displacingWithArrows.events.keydown)
-useEvent(window, 'keyup', displacingWithArrows.events.keyup)
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentStackItem = projectStore.executionContext.getStackTop()
