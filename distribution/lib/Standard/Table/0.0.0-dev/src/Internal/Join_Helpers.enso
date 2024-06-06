@@ -43,10 +43,10 @@ type Join_Condition_Resolver
         is_nothing column = case column of
             Nothing -> True
             _ -> False
-        conditions_vector = case conditions of
-            _ : Vector -> conditions
-            single_condition : Join_Condition -> [single_condition]
-            single_condition : Text -> [single_condition]
+        conditions_vector = Vector.unify_vector_or_element conditions . map on_problems=No_Wrap condition->
+            case condition of
+                _ : Function -> (condition:Join_Condition)
+                _ -> condition
         handle_equals left_selector right_selector =
             left = resolve_left left_selector
             right = resolve_right right_selector

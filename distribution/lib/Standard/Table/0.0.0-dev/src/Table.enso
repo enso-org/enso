@@ -1776,7 +1776,7 @@ type Table
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
     evaluate_expression : Text | Expression -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
+    evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=..Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
@@ -1963,7 +1963,7 @@ type Table
     @join_kind Widget_Helpers.make_join_kind_selector
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
-    join self right:Table (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
+    join self right:Table (join_kind : Join_Kind = ..Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
         columns_to_keep = case join_kind of
             Join_Kind.Left_Exclusive  -> [True, False]
             Join_Kind.Right_Exclusive -> [False, True]
@@ -2014,11 +2014,9 @@ type Table
          example, by sorting the table; in-memory tables will keep the memory
          layout order while for database tables the order may be unspecified).
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
-    cross_join self right:Table right_row_limit=100 right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
-        limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
-            True ->
-                [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
-            False -> []
+    cross_join self right:Table right_row_limit=100 right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
+        limit_problems = if right_row_limit.is_nothing || (right.row_count < right_row_limit) then [] else
+            [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
         on_problems.attach_problems_before limit_problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
@@ -2081,7 +2079,7 @@ type Table
              that are not present in this table, an `Unexpected_Extra_Columns`.
     @key_columns Widget_Helpers.make_column_name_multi_selector
     merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
         java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap
@@ -2193,7 +2191,7 @@ type Table
     @from_column Widget.Text_Input
     @to_column Widget.Text_Input
     replace : (Table | Map) -> (Text | Integer | Regex | By_Type | Vector (Text | Integer | Regex | By_Type)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:(Table | Map) columns:(Text | Integer | Regex | By_Type | Vector (Text | Integer | Regex | By_Type)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    replace self lookup_table:(Table | Map) columns:(Text | Integer | Regex | By_Type | Vector (Text | Integer | Regex | By_Type)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
@@ -2248,7 +2246,7 @@ type Table
          The ordering of rows in the resulting table is not specified.
     @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
-    zip self right:Table keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
+    zip self right:Table keep_unmatched=Report_Unmatched right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
         keep_unmatched_bool = case keep_unmatched of
             Report_Unmatched -> True
             b : Boolean -> b
@@ -2342,7 +2340,7 @@ type Table
     @tables (Widget.Vector_Editor item_editor=Widget.Code_Input item_default='_' display=Display.Always)
     @columns_to_keep Columns_To_Keep.default_widget
     union : (Table | Vector Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> Table
-    union self tables:(Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
+    union self tables:(Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = ..By_Name) (on_problems : Problem_Behavior = ..Report_Warning) =
         Table.from_union ([self] + Vector.unify_vector_or_element tables) columns_to_keep match_columns on_problems
 
     ## ALIAS drop_missing_rows, dropna
@@ -2359,7 +2357,7 @@ type Table
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     filter_blank_rows : Blank_Selector -> Boolean -> Table
-    filter_blank_rows self when=Blank_Selector.Any_Cell treat_nans_as_blank=False =
+    filter_blank_rows self when:Blank_Selector=..Any_Cell treat_nans_as_blank:Boolean=False =
         Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
     ## ALIAS count
@@ -2468,7 +2466,7 @@ type Table
             B  | Country   | Germany
     @key_columns Widget_Helpers.make_column_name_multi_selector
     transpose : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
-    transpose self (key_columns = []) (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
+    transpose self (key_columns = []) (attribute_column_name:Text="Name") (value_column_name:Text="Value") (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
         columns_helper = self.columns_helper
         unique = self.column_naming_helper.create_unique_name_strategy
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
@@ -2547,7 +2545,7 @@ type Table
     @names Widget_Helpers.make_column_name_selector
     @values Widget_Helpers.make_aggregate_column_selector
     cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
-    cross_tab self group_by=[] names=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) = Out_Of_Memory.handle_java_exception "cross_tab" <|
+    cross_tab self group_by=[] names=self.column_names.first values=Aggregate_Column.Count (on_problems:Problem_Behavior=..Report_Warning) = Out_Of_Memory.handle_java_exception "cross_tab" <|
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
 
@@ -2699,7 +2697,7 @@ type Table
     @path (Widget.File_Browse existing_only=False display=Display.Always)
     @format Widget_Helpers.write_table_selector
     write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
-    write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write self path:Writable_File format=Auto_Detect on_existing_file:Existing_File_Behavior=..Backup match_columns:Match_Columns=..By_Name on_problems:Problem_Behavior=..Report_Warning =
         File_Format.handle_format_missing_arguments format <| case format of
             _ : Auto_Detect ->
                 base_format = format.get_writing_format path
@@ -2764,7 +2762,7 @@ type Table
     @element_columns Widget_Helpers.make_column_name_vector_selector
     @attribute_columns Widget_Helpers.make_column_name_vector_selector
     @value_column Widget_Helpers.make_column_name_selector
-    to_xml self (element_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = self.column_names) (attribute_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = []) (value_column : Text | Integer | Nothing = Nothing) (root_name : Text = "Table") (row_name : Text = "Row") (on_problems : Problem_Behavior = Report_Warning) -> XML_Document =
+    to_xml self (element_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = self.column_names) (attribute_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = []) (value_column : Text | Integer | Nothing = Nothing) (root_name : Text = "Table") (row_name : Text = "Row") (on_problems : Problem_Behavior = ..Report_Warning) -> XML_Document =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
@@ -2880,7 +2878,7 @@ type Table
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
     text_replace : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Text | Column | Column_Ref | Expression | Regex -> Text | Column | Column_Ref | Expression -> Case_Sensitivity -> Boolean -> Column
-    text_replace self columns (term : Text | Column | Column_Ref | Expression | Regex | By_Type = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace self columns (term : Text | Column | Column_Ref | Expression | Regex | By_Type = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text

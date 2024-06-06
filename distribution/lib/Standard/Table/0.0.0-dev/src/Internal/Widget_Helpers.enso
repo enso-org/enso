@@ -155,8 +155,7 @@ make_filter_condition_selector table display=Display.Always =
    Make a join kind selector - Needed to override display.
 make_join_kind_selector : Display -> Widget
 make_join_kind_selector display=Display.Always =
-    fqn = Meta.get_qualified_type_name Join_Kind
-    options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n fqn+"."+n
+    options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n ".."+n
     Single_Choice display=display values=options
 
 ## PRIVATE
@@ -168,14 +167,13 @@ make_join_condition_selector table display=Display.Always cache=Nothing =
     right_selector = if right.is_nothing then Text_Input else
         make_column_name_selector right display=Display.Always
 
-    fqn = Meta.get_qualified_type_name Join_Condition
-    equals = Option "Equals" fqn+".Equals" [["left", self_selector], ["right", right_selector]]
-    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
-    between = Option "Between" fqn+".Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
+    equals = Option "Equals" "..Equals" [["left", self_selector], ["right", right_selector]]
+    equals_ci = Option "Equals (Ignore Case)" "..Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
+    between = Option "Between" "..Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
-    Vector_Editor item_editor=item_editor item_default="(Join_Condition.Equals "+table.column_names.first.pretty+")" display=display
+    Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
    Make a column name selector.
