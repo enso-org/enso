@@ -280,13 +280,20 @@ function toField(name: string, valType?: string): ColDef {
       icon = 'check'
       break
     case 'Integer':
+    case 'Float':
       icon = 'math'
       break
     case 'Date':
       icon = 'calendar'
+      break
+    case 'Mixed':
+      icon = 'mixed'
   }
   const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="src/assets/icons.svg#${icon}"/> </svg>`
-  const template = icon ? `<div> ${name} ${svgTemplate}</div>` : `<div>${name} ${valType}</div>`
+  const template =
+    icon ?
+      `<div style="display:flex; flex-direction:row;"> ${name} ${svgTemplate}</div>`
+    : `<div>${name}</div>`
   return {
     field: name,
     headerComponentParams: {
@@ -296,7 +303,9 @@ function toField(name: string, valType?: string): ColDef {
 }
 
 function indexField(): ColDef {
-  return toField(INDEX_FIELD_NAME, 'Char')
+  return {
+    field: INDEX_FIELD_NAME,
+  }
 }
 
 /** Return a human-readable representation of an object. */
@@ -318,7 +327,6 @@ watchEffect(() => {
         indices: undefined,
         valueType: undefined,
       }
-  console.log({ data_ })
   const options = agGridOptions.value
   if (options.api == null) {
     return
@@ -338,7 +346,7 @@ watchEffect(() => {
   } else if (data_.type === 'Matrix') {
     columnDefs.push(indexField())
     for (let i = 0; i < data_.column_count; i++) {
-      const valueType = data_.value_type[i].constructor
+      const valueType = data_.value_type ? data_.value_type[i].constructor : null
       columnDefs.push(toField(i.toString(), valueType))
     }
     rowData = addRowIndex(data_.json)
@@ -350,7 +358,7 @@ watchEffect(() => {
       if (val != null) {
         Object.keys(val).forEach((k, i) => {
           if (!keys.has(k)) {
-            const valueType = data_.value_type[i].constructor
+            const valueType = data_.value_type ? data_.value_type[i].constructor : null
             keys.add(k)
             columnDefs.push(toField(k, valueType))
           }
