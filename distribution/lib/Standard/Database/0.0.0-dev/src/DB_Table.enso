@@ -469,8 +469,9 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     reorder_columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns
     reorder_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (position:Position=Position.Before_Other_Columns) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
-        new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
-        self.updated_columns new_columns
+        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
+        new_columns = helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
+        self.updated_columns (new_columns.map _.as_internal)
 
     ## GROUP Standard.Base.Selections
        ICON select_column
