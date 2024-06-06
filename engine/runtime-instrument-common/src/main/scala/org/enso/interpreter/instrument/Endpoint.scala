@@ -5,7 +5,7 @@ import org.enso.lockmanager.client.{
   RuntimeServerRequestHandler
 }
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest, ApiResponse}
-import org.enso.polyglot.runtime.serde.ApiSerializer
+import org.enso.polyglot.runtime.serde.ApiSerde
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
@@ -21,7 +21,7 @@ class Endpoint(handler: Handler)
     */
   private val reverseRequestEndpoint = new RuntimeServerRequestHandler {
     override def sendToClient(request: Api.Request): Unit =
-      client.sendBinary(ApiSerializer.serialize(request))
+      client.sendBinary(ApiSerde.serialize(request))
   }
 
   var client: MessageEndpoint = _
@@ -37,7 +37,7 @@ class Endpoint(handler: Handler)
     * @param msg the message to send.
     */
   def sendToClient(msg: Api.Response): Unit =
-    client.sendBinary(ApiSerializer.serialize(msg))
+    client.sendBinary(ApiSerde.serialize(msg))
 
   /** Sends a notification to the runtime.
     *
@@ -55,7 +55,7 @@ class Endpoint(handler: Handler)
   override def sendText(text: String): Unit = {}
 
   override def sendBinary(data: ByteBuffer): Unit =
-    ApiSerializer.deserializeApiEnvelope(data).foreach {
+    ApiSerde.deserializeApiEnvelope(data).foreach {
       case request: Api.Request =>
         handler.onMessage(request)
       case response: Api.Response =>

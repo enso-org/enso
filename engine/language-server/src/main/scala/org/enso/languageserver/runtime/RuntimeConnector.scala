@@ -13,7 +13,7 @@ import org.enso.logger.akka.ActorMessageLogging
 import org.enso.logger.masking.ToLogString
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
-import org.enso.polyglot.runtime.serde.ApiSerializer
+import org.enso.polyglot.runtime.serde.ApiSerde
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
@@ -90,7 +90,7 @@ final class RuntimeConnector(
       context.stop(self)
 
     case msg: Runtime.ApiEnvelope =>
-      engine.sendBinary(ApiSerializer.serialize(msg))
+      engine.sendBinary(ApiSerde.serialize(msg))
 
       msg match {
         case Api.Request(Some(id), _) =>
@@ -178,7 +178,7 @@ object RuntimeConnector {
     override def sendText(text: String): Unit = {}
 
     override def sendBinary(data: ByteBuffer): Unit =
-      ApiSerializer.deserializeApiEnvelope(data) match {
+      ApiSerde.deserializeApiEnvelope(data) match {
         case Success(msg) =>
           actor ! MessageFromRuntime(msg)
         case Failure(ex) =>

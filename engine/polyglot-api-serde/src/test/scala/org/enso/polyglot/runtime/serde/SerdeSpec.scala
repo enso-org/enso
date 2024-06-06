@@ -108,8 +108,8 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
       )
     )
 
-    val d1 = ApiSerializer.serialize(message)
-    val d2 = ApiSerializer.deserializeApiEnvelope(d1).get
+    val d1 = ApiSerde.serialize(message)
+    val d2 = ApiSerde.deserializeApiEnvelope(d1).get
 
     message should equal(d2)
 
@@ -125,8 +125,8 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
           )
         )
       )
-    val e1 = ApiSerializer.serialize(libLoaded)
-    val e2 = ApiSerializer.deserializeApiEnvelope(e1).get
+    val e1 = ApiSerde.serialize(libLoaded)
+    val e2 = ApiSerde.deserializeApiEnvelope(e1).get
 
     libLoaded should equal(e2)
   }
