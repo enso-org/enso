@@ -1250,14 +1250,15 @@ lazy val `ydoc-server` = project
       (`profiling-utils` / Compile / productDirectories).value.head
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle"  % "truffle-api"                 % graalMavenPackagesVersion % "provided",
-      "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "runtime",
-      "org.graalvm.polyglot" % "js"                          % graalMavenPackagesVersion % "runtime",
-      "org.slf4j"            % "slf4j-api"                   % slf4jVersion,
-      "io.helidon.webclient" % "helidon-webclient-websocket" % helidonVersion,
-      "io.helidon.webserver" % "helidon-webserver-websocket" % helidonVersion,
-      "junit"                % "junit"                       % junitVersion              % Test,
-      "com.github.sbt"       % "junit-interface"             % junitIfVersion            % Test
+      "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"       % "inspect"                     % graalMavenPackagesVersion % "runtime",
+      "org.graalvm.polyglot"       % "js"                          % graalMavenPackagesVersion % "runtime",
+      "org.slf4j"                  % "slf4j-api"                   % slf4jVersion,
+      "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion,
+      "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion,
+      "junit"                      % "junit"                       % junitVersion              % Test,
+      "com.github.sbt"             % "junit-interface"             % junitIfVersion            % Test,
+      "com.fasterxml.jackson.core" % "jackson-databind"            % jacksonVersion            % Test
     )
   )
   // `Compile/run` settings are necessary for the `run` task to work.

@@ -1307,7 +1307,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of partially applied autoscope constructors" in {
+  it should "send error updates for partially applied autoscope constructors" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1361,7 +1361,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1382,26 +1382,31 @@ class RuntimeServerTest
           )
         )
       ),
-      TestMessages.update(
-        contextId,
-        id_x_1,
-        ConstantsGen.FUNCTION_BUILTIN,
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
-            Vector(1)
-          )
-        ),
-        payload = Api.ExpressionUpdate.Payload.Value(
-          functionSchema = Some(
-            Api.FunctionSchema(
-              Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
-              Vector(1)
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Diagnostic.error(
+            "Type_Error.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.test",
+                Some(mainFile),
+                Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(model.Range(model.Position(4, 10), model.Position(4, 18))),
+                None
+              )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 

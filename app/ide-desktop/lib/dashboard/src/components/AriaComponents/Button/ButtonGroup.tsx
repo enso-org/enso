@@ -11,7 +11,7 @@ interface ButtonGroupProps extends React.PropsWithChildren, twv.VariantProps<typ
 }
 
 const STYLES = twv.tv({
-  base: 'flex w-full flex-auto',
+  base: 'flex w-full flex-1 shrink-0',
   variants: {
     wrap: { true: 'flex-wrap' },
     direction: { column: 'flex-col justify-center', row: 'flex-row items-center' },
@@ -22,7 +22,14 @@ const STYLES = twv.tv({
       small: 'gap-1.5',
       none: 'gap-0',
     },
-    align: { start: 'justify-start', center: 'justify-center', end: 'justify-end' },
+    align: {
+      start: 'justify-start',
+      center: 'justify-center',
+      end: 'justify-end',
+      between: 'justify-between',
+      around: 'justify-around',
+      evenly: 'justify-evenly',
+    },
   },
 })
 

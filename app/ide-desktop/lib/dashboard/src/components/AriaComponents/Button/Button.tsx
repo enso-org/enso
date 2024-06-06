@@ -16,20 +16,22 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link Button}. */
 export type ButtonProps =
-  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress'> & PropsWithoutHref)
-  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress'> & PropsWithHref)
+  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress' | 'type'> & PropsWithoutHref)
+  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress' | 'type'> & PropsWithHref)
 
 /**
  * Props for a button with an href.
  */
 interface PropsWithHref {
-  readonly href: string
+  readonly href?: string
+  readonly type?: never
 }
 
 /**
  * Props for a button without an href.
  */
 interface PropsWithoutHref {
+  readonly type?: 'button' | 'reset' | 'submit'
   readonly href?: never
 }
 
@@ -42,7 +44,7 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
   /**
    * The icon to display in the button
    */
-  readonly icon?: string | null
+  readonly icon?: React.ReactElement | string | null
   /**
    * When `true`, icon will be shown only when hovered.
    */
@@ -54,6 +56,8 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
 
   readonly testId?: string
+
+  readonly formnovalidate?: boolean
 }
 
 export const BUTTON_STYLES = twv.tv({
@@ -63,16 +67,16 @@ export const BUTTON_STYLES = twv.tv({
     isFocused: {
       true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary',
     },
-    loading: { true: { base: 'cursor-wait', content: 'opacity-0' } },
+    loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     size: {
       custom: '',
-      hero: 'px-8 py-4 text-lg',
-      large: 'px-6 py-3 text-base',
-      medium: 'px-4 py-2 text-sm',
-      small: 'px-3 py-1 text-xs',
-      xsmall: 'px-2 py-1 text-xs',
-      xxsmall: 'px-1.5 py-0.5 text-xs',
+      hero: 'px-8 py-4 text-lg font-bold',
+      large: 'px-6 py-3 text-base font-bold',
+      medium: 'px-4 py-2 text-sm font-bold',
+      small: 'px-3 pt-1 pb-[5px] text-xs font-medium',
+      xsmall: 'px-2 pt-1 pb-[5px] text-xs font-medium',
+      xxsmall: 'px-1.5 pt-1 pb-[5px] text-xs font-medium',
     },
     iconOnly: { true: '' },
     rounded: {
@@ -82,6 +86,8 @@ export const BUTTON_STYLES = twv.tv({
       none: 'rounded-none',
       small: 'rounded-sm',
       xlarge: 'rounded-xl',
+      xxlarge: 'rounded-2xl',
+      xxxlarge: 'rounded-3xl',
     },
     variant: {
       custom: 'focus-visible:outline-offset-2',
@@ -97,8 +103,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'w-fit h-fit',
       },
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      outline:
-        'border-primary/40 text-primary font-bold hover:border-primary/90 focus-visible:outline-offset-2',
+      outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
     },
     iconPosition: {
       start: { content: '' },
@@ -111,9 +116,8 @@ export const BUTTON_STYLES = twv.tv({
   slots: {
     extraClickZone: 'flex relative after:inset-[-12px] after:absolute',
     wrapper: 'relative block',
-    loader:
-      'animate-appear-delayed absolute inset-0 flex items-center justify-center duration-1000',
-    content: 'flex items-center gap-[0.5em] delay-1000 duration-0',
+    loader: 'absolute inset-0 flex items-center justify-center',
+    content: 'flex items-center gap-[0.5em]',
     icon: 'h-[1.5em] flex-none',
   },
   defaultVariants: {
@@ -132,6 +136,12 @@ export const BUTTON_STYLES = twv.tv({
     { variant: 'icon', size: 'medium', class: 'p-2 rounded-full', iconOnly: true },
     { variant: 'icon', size: 'large', class: 'p-3 rounded-full', iconOnly: true },
     { variant: 'icon', size: 'hero', class: 'p-4 rounded-full', iconOnly: true },
+    { variant: 'link', size: 'xxsmall', class: 'font-medium' },
+    { variant: 'link', size: 'xsmall', class: 'font-medium' },
+    { variant: 'link', size: 'small', class: 'font-medium' },
+    { variant: 'link', size: 'medium', class: 'font-medium' },
+    { variant: 'link', size: 'large', class: 'font-medium' },
+    { variant: 'link', size: 'hero', class: 'font-medium' },
   ],
 })
 
@@ -146,7 +156,7 @@ export const Button = React.forwardRef(function Button(
     variant,
     icon,
     loading = false,
-    isDisabled: disabled,
+    isDisabled,
     showIconOnHover,
     iconPosition,
     size,
@@ -160,6 +170,8 @@ export const Button = React.forwardRef(function Button(
   const focusChildProps = focusHooks.useFocusChild()
 
   const [implicitlyLoading, setImplicitlyLoading] = React.useState(false)
+  const contentRef = React.useRef<HTMLSpanElement>(null)
+  const loaderRef = React.useRef<HTMLSpanElement>(null)
 
   const isLink = ariaProps.href != null
 
@@ -173,16 +185,41 @@ export const Button = React.forwardRef(function Button(
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
-  const isDisabled = disabled || isLoading
+
+  React.useLayoutEffect(() => {
+    const delay = 350
+
+    if (isLoading) {
+      const loaderAnimation = loaderRef.current?.animate(
+        [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
+        { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' }
+      )
+      const contentAnimation = contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 0,
+        easing: 'linear',
+        delay,
+        fill: 'forwards',
+      })
+
+      return () => {
+        loaderAnimation?.cancel()
+        contentAnimation?.cancel()
+      }
+    } else {
+      return () => {}
+    }
+  }, [isLoading])
 
   const handlePress = (event: aria.PressEvent): void => {
-    const result = onPress(event)
+    if (!isLoading) {
+      const result = onPress(event)
 
-    if (result instanceof Promise) {
-      setImplicitlyLoading(true)
-      void result.finally(() => {
-        setImplicitlyLoading(false)
-      })
+      if (result instanceof Promise) {
+        setImplicitlyLoading(true)
+        void result.finally(() => {
+          setImplicitlyLoading(false)
+        })
+      }
     }
   }
 
@@ -206,18 +243,23 @@ export const Button = React.forwardRef(function Button(
   })
 
   const childrenFactory = (): React.ReactNode => {
+    const iconComponent = (() => {
+      if (icon == null) {
+        return null
+      } else if (typeof icon === 'string') {
+        return <SvgMask src={icon} className={iconClasses()} />
+      } else {
+        return <span className={iconClasses()}>{icon}</span>
+      }
+    })()
     // Icon only button
     if (isIconOnly) {
-      return (
-        <span className={extraClickZone()}>
-          <SvgMask src={icon} className={iconClasses()} />
-        </span>
-      )
+      return <span className={extraClickZone()}>{iconComponent}</span>
     } else {
       // Default button
       return (
         <>
-          {icon != null && <SvgMask src={icon} className={iconClasses()} />}
+          {iconComponent}
           <>{children}</>
         </>
       )
@@ -240,10 +282,12 @@ export const Button = React.forwardRef(function Button(
       )}
     >
       <span className={wrapper()}>
-        <span className={content()}>{childrenFactory()}</span>
+        <span ref={contentRef} className={content()}>
+          {childrenFactory()}
+        </span>
 
         {isLoading && (
-          <span className={loader()}>
+          <span ref={loaderRef} className={loader()}>
             <Spinner state={spinnerModule.SpinnerState.loadingMedium} size={16} />
           </span>
         )}
@@ -254,7 +298,7 @@ export const Button = React.forwardRef(function Button(
   return tooltipElement == null ? (
     button
   ) : (
-    <ariaComponents.TooltipTrigger>
+    <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
       {button}
       <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>

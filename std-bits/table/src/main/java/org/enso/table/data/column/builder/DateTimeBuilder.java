@@ -12,7 +12,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
 
-/** A builder for string columns. */
+/** A builder for ZonedDateTime columns. */
 public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   @Override
   protected ZonedDateTime[] newArray(int size) {

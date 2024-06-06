@@ -9,6 +9,7 @@ import * as aria from '#/components/aria'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
+import * as textProvider from './TextProvider'
 import * as visualTooltip from './useVisualTooltip'
 
 /**
@@ -18,12 +19,15 @@ export interface TextProps
   extends Omit<aria.TextProps, 'color'>,
     twv.VariantProps<typeof TEXT_STYLE> {
   readonly lineClamp?: number
+  readonly tooltip?: React.ReactElement | string | false | null
+  readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
 }
 
-const TEXT_STYLE = twv.tv({
+export const TEXT_STYLE = twv.tv({
   base: 'inline-block',
   variants: {
     color: {
+      custom: '',
       primary: 'text-primary/60',
       danger: 'text-danger',
       success: 'text-share',
@@ -35,15 +39,16 @@ const TEXT_STYLE = twv.tv({
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'pt-[1px] pb-[3px] text-xs leading-[20px]',
-      h1: 'pt-0.5 pb-[7px] text-xl leading-[29px]',
-      subtitle: 'pt-0.5 pb-[3px] text-[13px] leading-[19px]',
+      body: 'text-xs leading-[20px] pt-[1px] pb-[3px]',
+      h1: 'text-xl leading-[29px] pt-[2px] pb-[5px]',
+      subtitle: 'text-[13.5px] leading-[20px] pt-[1px] pb-[3px]',
     },
     weight: {
       custom: '',
       bold: 'font-bold',
       semibold: 'font-semibold',
       extraBold: 'font-extrabold',
+      medium: 'font-medium',
       normal: 'font-normal',
       thin: 'font-thin',
     },
@@ -73,17 +78,43 @@ const TEXT_STYLE = twv.tv({
     monospace: { true: 'font-mono' },
     italic: { true: 'italic' },
     nowrap: { true: 'whitespace-nowrap' },
+    textSelection: {
+      auto: '',
+      none: 'select-none',
+      word: 'select-text',
+      all: 'select-all',
+    },
+    disableLineHeightCompensation: { true: '' },
   },
   defaultVariants: {
     variant: 'body',
-    weight: 'normal',
+    weight: 'medium',
     transform: 'none',
     color: 'primary',
     italic: false,
     nowrap: false,
     monospace: false,
+    disableLineHeightCompensation: false,
+    textSelection: 'auto',
   },
-  compoundVariants: [{ variant: 'h1', class: 'font-bold text-balance' }],
+  compoundVariants: [
+    { variant: 'h1', class: 'font-bold' },
+    {
+      variant: 'h1',
+      disableLineHeightCompensation: true,
+      class: 'pt-[unset] pb-[unset]',
+    },
+    {
+      variant: 'body',
+      disableLineHeightCompensation: true,
+      class: 'pt-[unset] pb-[unset]',
+    },
+    {
+      variant: 'subtitle',
+      disableLineHeightCompensation: true,
+      class: 'pt-[unset] pb-[unset]',
+    },
+  ],
 })
 
 /**
@@ -98,7 +129,7 @@ export const Text = React.forwardRef(function Text(
     className,
     variant = 'body',
     italic = false,
-    weight = 'normal',
+    weight = 'medium',
     nowrap = false,
     monospace = false,
     transform = 'none',
@@ -108,10 +139,15 @@ export const Text = React.forwardRef(function Text(
     color = 'primary',
     balance,
     elementType: ElementType = 'span',
+    tooltip: tooltipElement = children,
+    tooltipDisplay = 'whenOverflowing',
+    textSelection,
+    disableLineHeightCompensation = false,
     ...ariaProps
   } = props
 
   const textElementRef = React.useRef<HTMLElement>(null)
+  const textContext = textProvider.useTextContext()
 
   const textClasses = TEXT_STYLE({
     variant,
@@ -122,30 +158,32 @@ export const Text = React.forwardRef(function Text(
     nowrap,
     truncate,
     color,
-    className,
     balance,
+    textSelection,
+    disableLineHeightCompensation:
+      disableLineHeightCompensation || textContext.isInsideTextComponent,
+    className,
   })
 
-  const tooltipTextClasses = TEXT_STYLE({
-    variant,
-    weight,
-    transform,
-    monospace,
-    italic,
-    balance,
-    className: 'pointer-events-none',
-  })
+  const isToolipDisabled = () => {
+    if (tooltipDisplay === 'whenOverflowing') {
+      return !truncate
+    } else if (tooltipDisplay === 'always') {
+      return tooltipElement === false || tooltipElement == null
+    } else {
+      return false
+    }
+  }
 
   const { tooltip, targetProps } = visualTooltip.useVisualTooltip({
-    isDisabled: !truncate,
-    className: tooltipTextClasses,
+    isDisabled: isToolipDisabled(),
     targetRef: textElementRef,
-    display: 'whenOverflowing',
-    children,
+    display: tooltipDisplay,
+    children: tooltipElement,
   })
 
   return (
-    <>
+    <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
       {/* @ts-expect-error We suppose that elementType is a valid HTML element */}
       <ElementType
         ref={mergeRefs.mergeRefs(ref, textElementRef)}
@@ -161,8 +199,9 @@ export const Text = React.forwardRef(function Text(
       >
         {children}
       </ElementType>
+
       {tooltip}
-    </>
+    </textProvider.TextProvider>
   )
   // eslint-disable-next-line no-restricted-syntax
 }) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {

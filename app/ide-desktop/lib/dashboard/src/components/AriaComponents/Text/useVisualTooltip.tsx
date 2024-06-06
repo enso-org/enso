@@ -6,16 +6,19 @@
 
 import * as React from 'react'
 
-import clsx from 'clsx'
+import * as eventCallback from '#/hooks/eventCallbackHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Portal from '#/components/Portal'
 
+import * as mergeRefs from '#/utilities/mergeRefs'
+
 /**
  * Props for {@link useVisualTooltip}.
  */
-export interface VisualTooltipProps {
+export interface VisualTooltipProps
+  extends Pick<ariaComponents.TooltipProps, 'maxWidth' | 'rounded' | 'size' | 'variant'> {
   readonly children: React.ReactNode
   readonly className?: string
   readonly targetRef: React.RefObject<HTMLElement>
@@ -40,6 +43,7 @@ export interface VisualTooltipProps {
 type DisplayStrategy = 'always' | 'whenOverflowing'
 
 const DEFAULT_OFFSET = 6
+const DEFAULT_DELAY = 250
 
 /**
  * Creates a tooltip that appears when the target element is hovered over.
@@ -57,6 +61,10 @@ export function useVisualTooltip(props: VisualTooltipProps) {
     overlayPositionProps = {},
     display = 'always',
     testId = 'visual-tooltip',
+    rounded,
+    variant,
+    size,
+    maxWidth,
   } = props
 
   const {
@@ -68,27 +76,43 @@ export function useVisualTooltip(props: VisualTooltipProps) {
   const popoverRef = React.useRef<HTMLDivElement>(null)
   const id = React.useId()
 
-  const { hoverProps, isHovered } = aria.useHover({
-    onHoverStart: () => {
-      if (targetRef.current) {
-        const shouldDisplay =
-          typeof display === 'function'
-            ? display(targetRef.current)
-            : DISPLAY_STRATEGIES[display](targetRef.current)
-
-        if (shouldDisplay) {
-          popoverRef.current?.showPopover()
-        }
-      }
-    },
-    onHoverEnd: () => {
-      popoverRef.current?.hidePopover()
-    },
-    isDisabled,
+  const state = aria.useTooltipTriggerState({
+    closeDelay: DEFAULT_DELAY,
+    delay: DEFAULT_DELAY,
   })
 
-  const { overlayProps } = aria.useOverlayPosition({
-    isOpen: isHovered,
+  const handleHoverChange = eventCallback.useEventCallback((isHovered: boolean) => {
+    const shouldDisplay = () => {
+      if (isHovered && targetRef.current != null) {
+        return typeof display === 'function'
+          ? display(targetRef.current)
+          : DISPLAY_STRATEGIES[display](targetRef.current)
+      } else {
+        return false
+      }
+    }
+
+    if (shouldDisplay()) {
+      state.open()
+    } else {
+      state.close()
+    }
+  })
+
+  const { hoverProps: targetHoverProps } = aria.useHover({
+    isDisabled,
+    onHoverChange: handleHoverChange,
+  })
+  const { hoverProps: tooltipHoverProps } = aria.useHover({
+    isDisabled,
+    onHoverChange: handleHoverChange,
+  })
+
+  const { tooltipProps } = aria.useTooltipTrigger({}, state, targetRef)
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const { overlayProps, updatePosition } = aria.useOverlayPosition({
+    isOpen: state.isOpen,
     overlayRef: popoverRef,
     targetRef,
     offset,
@@ -96,27 +120,42 @@ export function useVisualTooltip(props: VisualTooltipProps) {
     containerPadding,
   })
 
+  const createTooltipElement = () => (
+    <Portal onMount={updatePosition}>
+      <span
+        ref={mergeRefs.mergeRefs(popoverRef, ref => ref?.showPopover())}
+        {...aria.mergeProps<React.HTMLAttributes<HTMLDivElement>>()(
+          overlayProps,
+          tooltipProps,
+          tooltipHoverProps,
+          {
+            id,
+            className: ariaComponents.TOOLTIP_STYLES({
+              className,
+              variant,
+              rounded,
+              size,
+              maxWidth,
+            }),
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'aria-hidden': true,
+            popover: '',
+            role: 'presentation',
+            'data-testid': testId,
+            // Remove z-index from the overlay style
+            // because it's not needed(we show latest element on top) and can cause issues with stacking context
+            style: { zIndex: '' },
+          }
+        )}
+      >
+        {children}
+      </span>
+    </Portal>
+  )
+
   return {
-    targetProps: aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(hoverProps, { id }),
-    tooltip: isDisabled ? null : (
-      <Portal>
-        <span
-          id={id}
-          ref={popoverRef}
-          className={ariaComponents.TOOLTIP_STYLES({
-            className: clsx(className, 'hidden animate-in fade-in [&:popover-open]:flex'),
-          })}
-          // @ts-expect-error popover attribute does not exist on React.HTMLAttributes yet
-          popover=""
-          aria-hidden="true"
-          role="presentation"
-          data-testid={testId}
-          {...overlayProps}
-        >
-          {children}
-        </span>
-      </Portal>
-    ),
+    targetProps: aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(targetHoverProps, { id }),
+    tooltip: state.isOpen ? createTooltipElement() : null,
   } as const
 }
 
