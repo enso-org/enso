@@ -855,7 +855,7 @@ test.each([
     expected: 'Data.Table.new',
   },
 ])(
-  'Substitute qualified name $pattern insde $original',
+  'Substitute qualified name $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {
     const expression = Ast.parse(original)
     expression.module.replaceRoot(expression)
@@ -902,7 +902,7 @@ test.each([
     expected: 'node1.node2.node3',
   },
 ])(
-  'Substitute identifier $pattern insde $original',
+  'Substitute identifier $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {
     const expression = Ast.parse(original)
     expression.module.replaceRoot(expression)
