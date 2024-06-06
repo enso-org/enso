@@ -37,6 +37,10 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
     group_builder.specify "Execute JavaScript function" <|
         js_plus 3 5 . should_equal 8
 
+    group_builder.specify "Execute JavaScript with insufficient number of arguments" <|
+        r = js_plus 3
+        r.is_nan . should_be_true
+
     group_builder.specify "Cannot Execute JavaScript number" <|
         fourty_two = js_meaning.meaning
         Test.expect_panic Not_Invokable <|
