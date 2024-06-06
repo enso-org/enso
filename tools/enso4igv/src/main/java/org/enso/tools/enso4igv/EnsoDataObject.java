@@ -114,8 +114,6 @@ import org.openide.windows.TopComponent;
 
 })
 public class EnsoDataObject extends MultiDataObject {
-    private static final Logger LOG = Logger.getLogger(EnsoDataObject.class.getName());
-
     public EnsoDataObject(FileObject pf, MultiFileLoader loader) throws DataObjectExistsException, IOException {
         super(pf, loader);
         registerEditor("application/x-enso", true);
@@ -153,7 +151,7 @@ public class EnsoDataObject extends MultiDataObject {
             var toSet = (Set<String>)get.invoke(mimeTypes);
             toSet.add(mime);
         } catch (ReflectiveOperationException ex) {
-            LOG.log(Level.WARNING, "Cannot register breakpoints for Enso", ex);
+            Installer.LOG.log(Level.WARNING, "Cannot register breakpoints for Enso", ex);
         }
     }
 }
