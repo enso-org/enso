@@ -760,6 +760,7 @@ watchEffect(() => {
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
+  z-index: 24;
 }
 
 .binding {
@@ -779,12 +780,6 @@ watchEffect(() => {
 
 .selectionVisible .binding {
   opacity: 1;
-}
-
-.container {
-  position: relative;
-  display: flex;
-  gap: 4px;
 }
 
 .CircularMenu {
