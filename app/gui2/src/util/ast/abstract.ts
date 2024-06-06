@@ -165,8 +165,8 @@ export function parseQualifiedName(ast: Ast): QualifiedName | null {
   return idents && normalizeQualifiedName(qnFromSegments(idents))
 }
 
-/** Substitute `pattern` inside `expression` with `to`. 
-  * Will only replace the first item in the property acccess chain. */
+/** Substitute `pattern` inside `expression` with `to`.
+ * Will only replace the first item in the property acccess chain. */
 export function substituteIdentifier(
   module: MutableModule,
   expression: Ast,

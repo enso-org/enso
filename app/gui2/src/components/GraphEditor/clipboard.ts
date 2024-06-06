@@ -1,8 +1,8 @@
-import type { NodeCreation, type NodeCreationOptions } from '@/composables/nodeCreation'
-import { Vec2 } from '@/util/data/vec2'
+import type { NodeCreationOptions } from '@/composables/nodeCreation'
 import type { GraphStore, Node, NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
 import type { NodeMetadataFields } from 'shared/ast'
 import { computed, toValue } from 'vue'
@@ -30,7 +30,7 @@ function nodeStructuredData(node: Node): CopiedNode {
     expression: node.innerExpr.code(),
     documentation: node.documentation,
     metadata: node.rootExpr.serializeMetadata(),
-    ...node.pattern ? { binding: node.pattern.code() } : {}
+    ...(node.pattern ? { binding: node.pattern.code() } : {}),
   }
 }
 
@@ -152,16 +152,16 @@ export function useGraphEditorClipboard(
     const firstNodePos = clipboardData[0]!.metadata?.position ?? { x: 0, y: 0 }
     const originPos = new Vec2(firstNodePos.x, firstNodePos.y)
     createNodes(
-      clipboardData.map(({ expression, binding, documentation, metadata }) => { 
+      clipboardData.map(({ expression, binding, documentation, metadata }) => {
         const pos = metadata?.position
         const relativePos = pos ? new Vec2(pos.x, pos.y).sub(originPos) : new Vec2(0, 0)
-        return ({
+        return {
           placement: { type: 'mouseRelative', posOffset: relativePos },
           expression,
           binding,
           metadata,
           documentation,
-        })
+        }
       }),
     )
   }

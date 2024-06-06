@@ -10,7 +10,7 @@ import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { substituteIdentifier, type Identifier, isIdentifier } from '@/util/ast/abstract'
+import { isIdentifier, substituteIdentifier, type Identifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
@@ -141,12 +141,12 @@ export function useNodeCreation(
   }
 
   /** A callback that will be called with the created assignment expression.
-    * We resolve import conflicts and substitute identifiers if needed. */
+   * We resolve import conflicts and substitute identifiers if needed. */
   function afterCreation(
     edit: Ast.MutableModule,
     ident: Ast.Identifier,
     options: NodeCreationOptions,
-    identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>
+    identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>,
   ) {
     return (assignment: Ast.Assignment) => {
       // When nodes are copied, we need to substitute original names with newly assigned.
@@ -173,11 +173,11 @@ export function useNodeCreation(
   }
 
   function newAssignmentNode(
-      edit: Ast.MutableModule, 
-      ident: Ast.Identifier,
-      rhs: Ast.Owned,
-      fixup: (assignment: Ast.Assignment) => void,
-      options: NodeCreationOptions, 
+    edit: Ast.MutableModule,
+    ident: Ast.Identifier,
+    rhs: Ast.Owned,
+    fixup: (assignment: Ast.Assignment) => void,
+    options: NodeCreationOptions,
   ) {
     rhs.setNodeMetadata(options.metadata ?? {})
     const assignment = Ast.Assignment.new(edit, ident, rhs)
@@ -186,13 +186,15 @@ export function useNodeCreation(
     const rootExpression =
       options.documentation != null ?
         Ast.Documented.new(options.documentation, assignment)
-        : assignment
+      : assignment
     return { rootExpression, id }
   }
 
   function getIdentifier(expr: Ast.Ast, options: NodeCreationOptions): Ast.Identifier {
-    const namePrefix = options.binding ? existingNameToPrefix(options.binding) :
-      options.type ? typeToPrefix(options.type) : inferPrefixFromAst(expr)
+    const namePrefix =
+      options.binding ? existingNameToPrefix(options.binding)
+      : options.type ? typeToPrefix(options.type)
+      : inferPrefixFromAst(expr)
     const ident = graphStore.generateLocallyUniqueIdent(namePrefix)
     return ident
   }

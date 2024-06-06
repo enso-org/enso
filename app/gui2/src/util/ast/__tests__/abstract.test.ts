@@ -4,8 +4,8 @@ import {
   MutableModule,
   TextLiteral,
   escapeTextLiteral,
-  substituteQualifiedName,
   substituteIdentifier,
+  substituteQualifiedName,
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
@@ -854,18 +854,21 @@ test.each([
     substitution: 'ShouldNotWork',
     expected: 'Data.Table.new',
   },
-])('Substitute qualified name $pattern insde $original', ({ original, pattern, substitution, expected }) => {
-  const expression = Ast.parse(original)
-  expression.module.replaceRoot(expression)
-  const edit = expression.module.edit()
-  substituteQualifiedName(
-    edit,
-    expression,
-    pattern as Ast.QualifiedName,
-    unwrap(tryQualifiedName(substitution)),
-  )
-  expect(edit.root()?.code()).toEqual(expected)
-})
+])(
+  'Substitute qualified name $pattern insde $original',
+  ({ original, pattern, substitution, expected }) => {
+    const expression = Ast.parse(original)
+    expression.module.replaceRoot(expression)
+    const edit = expression.module.edit()
+    substituteQualifiedName(
+      edit,
+      expression,
+      pattern as Ast.QualifiedName,
+      unwrap(tryQualifiedName(substitution)),
+    )
+    expect(edit.root()?.code()).toEqual(expected)
+  },
+)
 
 test.each([
   {
@@ -898,18 +901,21 @@ test.each([
     substitution: 'ShouldNotWork',
     expected: 'node1.node2.node3',
   },
-])('Substitute identifier $pattern insde $original', ({ original, pattern, substitution, expected }) => {
-  const expression = Ast.parse(original)
-  expression.module.replaceRoot(expression)
-  const edit = expression.module.edit()
-  substituteIdentifier(
-    edit,
-    expression,
-    pattern as Ast.Identifier,
-    substitution as Ast.Identifier,
-  )
-  expect(edit.root()?.code()).toEqual(expected)
-})
+])(
+  'Substitute identifier $pattern insde $original',
+  ({ original, pattern, substitution, expected }) => {
+    const expression = Ast.parse(original)
+    expression.module.replaceRoot(expression)
+    const edit = expression.module.edit()
+    substituteIdentifier(
+      edit,
+      expression,
+      pattern as Ast.Identifier,
+      substitution as Ast.Identifier,
+    )
+    expect(edit.root()?.code()).toEqual(expected)
+  },
+)
 
 test.each([
   ['', ''],

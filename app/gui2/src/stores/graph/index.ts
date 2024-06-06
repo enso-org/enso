@@ -17,7 +17,6 @@ import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { asNodeId } from '@/stores/graph/graphDatabase'
 import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
@@ -665,10 +664,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     /** Iterate over code lines, return node IDs from `ids` set in the order of code positions. */
-    function pickInCodeOrder(
-      edit: MutableModule,
-      ids: Set<NodeId>,
-    ): NodeId[] {
+    function pickInCodeOrder(edit: MutableModule, ids: Set<NodeId>): NodeId[] {
       const result: NodeId[] = []
       const body = edit.getVersion(unwrap(getExecutedMethodAst(edit))).bodyAsBlock()
       const lines = body.lines

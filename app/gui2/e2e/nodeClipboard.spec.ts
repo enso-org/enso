@@ -1,12 +1,12 @@
 import test from 'playwright/test'
-import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
+import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
 /** Every edge consists of multiple parts.
-  * See e2e/edgeRendering.spec.ts for explanation. */
+ * See e2e/edgeRendering.spec.ts for explanation. */
 const EDGE_PARTS = 2
 
 test.beforeEach(async ({ page }) => {
