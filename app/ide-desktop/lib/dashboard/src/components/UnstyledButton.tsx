@@ -51,7 +51,7 @@ function UnstyledButton(props: UnstyledButtonProps, ref: React.ForwardedRef<HTML
   return tooltipElement == null ? (
     button
   ) : (
-    <ariaComponents.TooltipTrigger>
+    <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
       {button}
       <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
