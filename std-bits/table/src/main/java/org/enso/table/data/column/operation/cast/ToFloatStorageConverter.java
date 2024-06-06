@@ -63,6 +63,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         builder.appendDouble(x);
       } else if (o instanceof BigInteger bigInteger) {
         builder.appendBigInteger(bigInteger);
+      } else if (o instanceof BigDecimal bigDecimal) {
+        builder.appendBigDecimal(bigDecimal);
       } else {
         problemAggregator.reportConversionFailure(o);
         builder.appendNulls(1);

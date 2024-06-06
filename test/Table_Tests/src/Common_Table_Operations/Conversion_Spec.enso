@@ -272,6 +272,11 @@ add_specs suite_builder setup =
                 tbi = table_builder [["x", [9223372036854775807000]]] . cast ["x"] Value_Type.Float
                 Problems.expect_only_warning Loss_Of_Integer_Precision tbi
 
+            group_builder.specify "Attaches warning on loss of precision for a mixed column" <|
+                t = table_builder [["x", [Decimal.new "1E310", 9223372036854775807000]]] . cast ["x"] Value_Type.Float
+                Problems.expect_warning Loss_Of_Decimal_Precision t
+                Problems.expect_warning Loss_Of_Integer_Precision t
+
         if setup.is_database.not then
             group_builder.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|
                 max_long = Java_Long.MAX_VALUE
