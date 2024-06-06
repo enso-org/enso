@@ -996,20 +996,21 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
     libraryDependencies ++= circe ++ helidon,
     libraryDependencies ++= Seq(
-      "com.typesafe"                % "config"              % typesafeConfigVersion,
-      "com.github.pureconfig"      %% "pureconfig"          % pureconfigVersion,
-      "com.typesafe.scala-logging" %% "scala-logging"       % scalaLoggingVersion,
-      "dev.zio"                    %% "zio"                 % zioVersion,
-      "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
-      "commons-cli"                 % "commons-cli"         % commonsCliVersion,
-      "commons-io"                  % "commons-io"          % commonsIoVersion,
-      "org.apache.commons"          % "commons-lang3"       % commonsLangVersion,
-      "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
-      "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
-      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test,
-      "junit"                       % "junit"               % junitVersion             % Test,
-      "com.github.sbt"              % "junit-interface"     % junitIfVersion           % Test,
-      "org.hamcrest"                % "hamcrest-all"        % hamcrestVersion          % Test
+      "com.typesafe"                % "config"                       % typesafeConfigVersion,
+      "com.github.pureconfig"      %% "pureconfig"                   % pureconfigVersion,
+      "com.typesafe.scala-logging" %% "scala-logging"                % scalaLoggingVersion,
+      "dev.zio"                    %% "zio"                          % zioVersion,
+      "dev.zio"                    %% "zio-interop-cats"             % zioInteropCatsVersion,
+      "commons-cli"                 % "commons-cli"                  % commonsCliVersion,
+      "commons-io"                  % "commons-io"                   % commonsIoVersion,
+      "org.apache.commons"          % "commons-lang3"                % commonsLangVersion,
+      "com.beachape"               %% "enumeratum-circe"             % enumeratumCirceVersion,
+      "com.miguno.akka"            %% "akka-mock-scheduler"          % akkaMockSchedulerVersion % Test,
+      "org.mockito"                %% "mockito-scala"                % mockitoScalaVersion      % Test,
+      "junit"                       % "junit"                        % junitVersion             % Test,
+      "com.github.sbt"              % "junit-interface"              % junitIfVersion           % Test,
+      "org.hamcrest"                % "hamcrest-all"                 % hamcrestVersion          % Test,
+      "org.netbeans.api"            % "org-netbeans-modules-sampler" % netbeansApiVersion       % Test
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
@@ -1058,13 +1059,17 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       necessaryModules
     },
     Test / addModules := Seq(
-      (`runtime-fat-jar` / javaModuleName).value
+      (`runtime-fat-jar` / javaModuleName).value,
+      (`syntax-rust-definition` / javaModuleName).value,
+      (`profiling-utils` / javaModuleName).value,
+      (`ydoc-server` / javaModuleName).value
     ),
     Test / modulePath := {
       val updateReport = (Test / update).value
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ helidon ++ Seq(
-          "org.slf4j" % "slf4j-api" % slf4jVersion
+          "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+          "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1074,8 +1079,19 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       )
       val runtimeMod =
         (`runtime-fat-jar` / Compile / productDirectories).value.head
+      val ydocMod =
+        (`ydoc-server` / Compile / exportedProducts).value.head.data
+      val syntaxMod =
+        (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
+      val profilingMod =
+        (`profiling-utils` / Compile / exportedProducts).value.head.data
 
-      requiredMods ++ Seq(runtimeMod)
+      requiredMods ++ Seq(
+        runtimeMod,
+        ydocMod,
+        syntaxMod,
+        profilingMod
+      )
     },
     Test / javaOptions ++= testLogProviderOptions
   )
