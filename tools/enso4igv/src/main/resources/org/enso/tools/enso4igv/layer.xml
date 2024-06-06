@@ -18,4 +18,13 @@
             </file>
         </folder>
     </folder>
+    <folder name="Editors">
+        <folder name="application">
+            <folder name="x-enso">
+                <folder name="ToolTips">
+                    <file name="org-netbeans-modules-debugger-jpda-truffle-vars-tooltip-ToolTipAnnotation.instance"/>
+                </folder>
+            </folder>
+        </folder>
+    </folder>
 </filesystem>

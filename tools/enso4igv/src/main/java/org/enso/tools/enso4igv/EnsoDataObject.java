@@ -1,6 +1,13 @@
 package org.enso.tools.enso4igv;
 
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
+import java.util.Set;
+import javax.swing.Icon;
+import javax.swing.event.ChangeListener;
+import org.netbeans.api.project.Project;
+import org.netbeans.api.project.SourceGroup;
+import org.netbeans.api.project.Sources;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.text.MultiViewEditorElement;
 import org.netbeans.modules.textmate.lexer.api.GrammarRegistration;
@@ -15,6 +22,7 @@ import org.openide.loaders.MultiDataObject;
 import org.openide.loaders.MultiFileLoader;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle.Messages;
+import org.openide.util.lookup.Lookups;
 import org.openide.windows.TopComponent;
 
 @Messages({
@@ -39,6 +47,17 @@ import org.openide.windows.TopComponent;
             id = @ActionID(category = "System", id = "org.openide.actions.OpenAction"),
             position = 100,
             separatorAfter = 200
+    ),
+    @ActionReference(
+            path = "Loaders/application/x-enso/Actions",
+            id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.RunSingle"),
+            position = 230
+    ),
+    @ActionReference(
+            path = "Loaders/application/x-enso/Actions",
+            id = @ActionID(category = "Debug", id = "org.netbeans.modules.debugger.ui.actions.DebugFileAction"),
+            position = 270,
+            separatorAfter = 290
     ),
     @ActionReference(
             path = "Loaders/application/x-enso/Actions",
@@ -83,13 +102,28 @@ import org.openide.windows.TopComponent;
             path = "Loaders/application/x-enso/Actions",
             id = @ActionID(category = "System", id = "org.openide.actions.PropertiesAction"),
             position = 1400
-    )
+    ),
+
+    // editor popups
+    @ActionReference(
+            path = "Editors/application/x-enso/Popup",
+            id = @ActionID(category = "Project", id = "org.netbeans.modules.project.ui.RunSingle"),
+            position = 30
+    ),
+    @ActionReference(
+            path = "Editors/application/x-enso/Popup",
+            id = @ActionID(category = "Debug", id = "org.netbeans.modules.debugger.ui.actions.DebugFileAction"),
+            position = 70,
+            separatorAfter = 90
+    ),
+
 })
 public class EnsoDataObject extends MultiDataObject {
 
     public EnsoDataObject(FileObject pf, MultiFileLoader loader) throws DataObjectExistsException, IOException {
         super(pf, loader);
         registerEditor("application/x-enso", true);
+        registerTruffleMimeType("application/x-enso");
     }
 
     @Override
@@ -110,4 +144,6 @@ public class EnsoDataObject extends MultiDataObject {
         return new MultiViewEditorElement(lkp);
     }
 
+    private void registerTruffleMimeType(String mime) throws IOException {
+    }
 }
