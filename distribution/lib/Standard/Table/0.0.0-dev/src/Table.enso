@@ -2954,7 +2954,7 @@ type Table
     @order_by Widget_Helpers.make_order_by_selector
     @of Widget_Helpers.make_column_name_selector
     running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    running self (statistic:Statistic=Statistic.Count) (of:(Text | Integer)=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
+    running self (statistic:Statistic=..Count) (of:(Text | Integer)=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         Add_Running.add_running self statistic of as group_by order_by on_problems
 
     ## PRIVATE
@@ -3038,7 +3038,7 @@ type Table
     @tables (Widget.Vector_Editor item_editor=Widget.Code_Input item_default='_' display=Display.Always)
     @columns_to_keep Columns_To_Keep.default_widget
     from_union : (Vector Table) -> Columns_To_Keep -> Match_Columns -> Problem_Behavior -> Table ! No_Output_Columns | Illegal_Argument
-    from_union (tables : Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = Match_Columns.By_Name) (on_problems : Problem_Behavior = Report_Warning) =
+    from_union (tables : Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = ..By_Name) (on_problems : Problem_Behavior = ..Report_Warning) =
         all_tables = (tables.map t-> Table.from t)
         if all_tables.is_empty then Error.throw (Illegal_Argument.Error "`Table.from_union` needs at least 1 input table.") else
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,

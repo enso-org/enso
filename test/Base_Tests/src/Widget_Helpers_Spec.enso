@@ -16,8 +16,8 @@ add_specs suite_builder =
         group_builder.specify "make_regex_text_widget" <|
             w = make_regex_text_widget
             j = (Widgets.get_widget_json w) . to_text
-            j.should_contain "Option 'Leading_Whitespace' 'Named_Pattern.Leading_Whitespace' [] ''"
+            j.should_contain "Option 'Leading_Whitespace' '..Leading_Whitespace' [] ''"
         group_builder.specify "make_data_cleanse_vector_selector" <|
             w = make_data_cleanse_vector_selector
             j = (Widgets.get_widget_json w) . to_text
-            j.should_contain "Option 'Leading_Whitespace' 'Named_Pattern.Leading_Whitespace' [] ''"
+            j.should_contain "Option 'Leading_Whitespace' '..Leading_Whitespace' [] ''"
