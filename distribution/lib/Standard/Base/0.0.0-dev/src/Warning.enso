@@ -74,7 +74,7 @@ type Warning
        - wrap_errors: If true, warnings attached to elements in array-likes are
          wrapped in Map_Error.
     get_all : Any -> Boolean -> Vector Warning
-    get_all value wrap_errors:Boolean=False = Vector.from_polyglot_array (get_all_array value wrap_errors)
+    get_all value wrap_errors:Boolean=False = get_all_vector value wrap_errors
 
     ## PRIVATE
        ADVANCED
@@ -306,8 +306,8 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
 ## PRIVATE
 
    Builtin function that gets all the warnings attached to the given value.
-get_all_array : Any -> Boolean -> Array Warning
-get_all_array value should_wrap = @Builtin_Method "Warning.get_all_array"
+get_all_vector : Any -> Boolean -> Vector Warning
+get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
 
 ## PRIVATE
 

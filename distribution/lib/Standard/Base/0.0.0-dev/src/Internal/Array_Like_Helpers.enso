@@ -71,7 +71,7 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
      After that, the warnings are dropped, but a count of the additional
      warnings is attached in an `Additional_Warnings` warning.
 
-   ? Problem Handling
+   ! Error Conditions
 
      The result of Errors thrown when executing the function depend on `on_problems`:
      - Report_Error: The first error is thrown, and is wrapped in

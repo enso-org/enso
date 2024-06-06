@@ -19,6 +19,7 @@ function addNode() {
 .SmallPlusButton {
   width: var(--node-height);
   height: var(--node-height);
+  margin: 0px;
 
   backdrop-filter: var(--blur-app-bg);
   background: var(--color-app-bg);

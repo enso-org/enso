@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-polyglot java import org.enso.base.Encoding_Utils
+polyglot java import org.enso.base.encoding.Encoding_Utils
 polyglot java import java.nio.CharBuffer
 
 from Standard.Test import all
@@ -133,4 +133,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-
