@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEFAULT_ALT_TEXT } from '@/components/MarkdownEditor/ImagePlugin'
 import {
   injectLexicalImageUrlTransformer,
   type TransformUrlResult,
@@ -6,7 +7,6 @@ import {
 import { computedAsync } from '@vueuse/core'
 import { Ok } from 'shared/util/data/result'
 import { computed, onUnmounted, type Ref } from 'vue'
-import { DEFAULT_ALT_TEXT } from '@/components/MarkdownEditor/ImagePlugin'
 
 const props = defineProps<{
   src: string
