@@ -41,7 +41,6 @@ public class BigDecimalBuilder extends TypedBuilderImpl<BigDecimal> {
     data[currentSize++] = value;
   }
 
-
   @Override
   public void append(Object o) {
     appendNoGrow(o);

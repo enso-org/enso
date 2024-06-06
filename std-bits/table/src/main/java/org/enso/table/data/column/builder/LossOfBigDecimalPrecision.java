@@ -1,7 +1,6 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
-
 import org.enso.table.problems.Problem;
 
 /** Indicates that a BigDecimal being converted to double cannot be represented precisely. */

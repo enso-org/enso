@@ -71,12 +71,7 @@ public record IntegerType(Bits bits) implements StorageType {
   }
 
   public boolean fits(BigDecimal value) {
-    BigInteger bigInteger = value.toBigInteger();
-    if (bigInteger.bitLength() > 63) {
-      return false;
-    } else {
-      return fits(value.longValue());
-    }
+    return fits(value.toBigInteger());
   }
 
   /**
