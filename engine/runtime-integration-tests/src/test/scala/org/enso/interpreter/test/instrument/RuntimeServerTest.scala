@@ -6230,21 +6230,21 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
 
-    // rename Test -> Foo
-    context.pkg.rename("Foo")
+    // rename Test -> My Foo
+    context.pkg.rename("My Foo")
     context.send(
-      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "My Foo"))
     )
     val renameProjectResponses = context.receiveN(6)
     renameProjectResponses should contain allOf (
-      Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
+      Api.Response(requestId, Api.ProjectRenamed("Test", "MyFoo", "My Foo")),
       context.Main.Update.mainX(contextId, typeChanged = false),
       TestMessages.update(
         contextId,
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+          Api.MethodPointer("Enso_Test.MyFoo.Main", ConstantsGen.NUMBER, "foo")
         ),
         fromCache   = false,
         typeChanged = true
@@ -6299,7 +6299,7 @@ class RuntimeServerTest
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+          Api.MethodPointer("Enso_Test.MyFoo.Main", ConstantsGen.NUMBER, "foo")
         ),
         fromCache   = false,
         typeChanged = false
@@ -6347,21 +6347,21 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
 
-    // rename Test -> Foo
-    context.pkg.rename("Foo")
+    // rename Test -> My Foo
+    context.pkg.rename("My Foo")
     context.send(
-      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "My Foo"))
     )
     val renameProjectResponses = context.receiveN(6)
     renameProjectResponses should contain allOf (
-      Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
+      Api.Response(requestId, Api.ProjectRenamed("Test", "MyFoo", "My Foo")),
       context.Main.Update.mainX(contextId, typeChanged = false),
       TestMessages.update(
         contextId,
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+          Api.MethodPointer("Enso_Test.MyFoo.Main", ConstantsGen.NUMBER, "foo")
         ),
         fromCache   = false,
         typeChanged = true
@@ -6401,7 +6401,7 @@ class RuntimeServerTest
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+          Api.MethodPointer("Enso_Test.MyFoo.Main", ConstantsGen.NUMBER, "foo")
         ),
         fromCache   = true,
         typeChanged = true
