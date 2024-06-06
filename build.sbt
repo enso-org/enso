@@ -1351,6 +1351,7 @@ lazy val `interpreter-dsl-test` =
       version := "0.1",
       frgaalJavaCompilerSetting,
       annotationProcSetting,
+      inConfig(Test)(truffleRunOptionsSettings),
       Test / fork := true,
       Test / javaOptions ++= Seq(
         "-Dpolyglotimpl.DisableClassPathIsolation=true"
