@@ -1361,7 +1361,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3, 10) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
