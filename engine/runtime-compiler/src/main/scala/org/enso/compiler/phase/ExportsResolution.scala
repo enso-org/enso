@@ -170,7 +170,7 @@ class ExportsResolution(private val context: CompilerContext) {
         case _: BindingsMap.ResolvedType =>
         case ResolvedModule(module) =>
           getBindings(module.unsafeAsModule()).resolvedExports =
-            exports.map(ex => ex.copy(symbols = ex.symbols.optimize))
+            exports.map(ex => ex.copy(symbols = ex.symbols))
       }
     }
   }
