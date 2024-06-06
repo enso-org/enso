@@ -15,7 +15,6 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTable from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -62,7 +61,6 @@ export interface DriveProps {
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
@@ -70,7 +68,6 @@ export interface DriveProps {
   readonly doOpenEditor: (
     backend: Backend,
     project: backendModule.ProjectAsset,
-    setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
@@ -78,8 +75,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { hidden, query, setQuery } = props
-  const { setSuggestions, projectStartupInfo, setProjectStartupInfo } = props
+  const { hidden, query, setQuery, projectStartupInfo, setProjectStartupInfo } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
 
@@ -96,7 +92,6 @@ export default function Drive(props: DriveProps) {
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
     [backend, user]
   )
-  const targetDirectoryIdRef = React.useRef(rootDirectoryId)
   const isCloud = categoryModule.isCloud(category)
   const status =
     !isCloud && didLoadingProjectManagerFail
@@ -198,7 +193,6 @@ export default function Drive(props: DriveProps) {
           <DriveBar
             backend={backend}
             rootDirectoryId={rootDirectoryId}
-            targetDirectoryIdRef={targetDirectoryIdRef}
             category={category}
             canDownload={canDownload}
           />
@@ -221,11 +215,9 @@ export default function Drive(props: DriveProps) {
               setCanDownload={setCanDownload}
               setProjectStartupInfo={setProjectStartupInfo}
               category={category}
-              setSuggestions={setSuggestions}
               projectStartupInfo={projectStartupInfo}
               setAssetPanelProps={setAssetPanelProps}
               setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-              targetDirectoryIdRef={targetDirectoryIdRef}
               doOpenEditor={doOpenEditor}
               doCloseEditor={doCloseEditor}
             />

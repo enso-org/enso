@@ -41,7 +41,6 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 export interface DriveBarProps {
   readonly backend: Backend
   readonly rootDirectoryId: backendModule.DirectoryId
-  readonly targetDirectoryIdRef: Readonly<React.MutableRefObject<backendModule.DirectoryId>>
   readonly category: Category
   readonly canDownload: boolean
 }
@@ -49,7 +48,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, rootDirectoryId, targetDirectoryIdRef, category, canDownload } = props
+  const { backend, rootDirectoryId, category, canDownload } = props
   const queryClient = reactQuery.useQueryClient()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -129,10 +128,7 @@ export default function DriveBar(props: DriveBarProps) {
                         ]
                       )
                       for (const asset of assetsInTrash) {
-                        deleteAssetMutation.mutate([
-                          asset.id,
-                          { force: true, parentId: asset.parentId },
-                        ])
+                        deleteAssetMutation.mutate([asset.id, { force: true }])
                       }
                     }}
                   />

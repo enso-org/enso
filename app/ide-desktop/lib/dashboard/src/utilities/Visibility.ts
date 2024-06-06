@@ -4,6 +4,7 @@
 // === Visibility ===
 // ==================
 
+// FIXME: Convert these back from CSS classes - use twv for classes instead
 /** The state of an item that that needs to be synced with a remote server. */
 enum Visibility {
   /** The item is present. */

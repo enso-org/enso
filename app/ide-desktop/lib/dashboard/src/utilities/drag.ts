@@ -1,18 +1,9 @@
-;
 /** @file Various types of drag event payloads. */
-import type * as React from 'react';
+import type * as React from 'react'
 
+import type * as backend from '#/services/Backend'
 
-
-import type * as backend from '#/services/Backend';
-
-
-
-import * as uniqueString from '#/utilities/uniqueString';
-
-
-
-
+import * as uniqueString from '#/utilities/uniqueString'
 
 // ===========================
 // === setDragImageToBlank ===
@@ -87,4 +78,4 @@ export type AssetRowsDragPayload = readonly backend.AnyAsset[]
 export const LABELS = new DragPayloadManager<LabelsDragPayload>('application/x-enso-label')
 
 /** Data for a {@link DragEvent} started from an {@link backend.LabelName}. */
-export type LabelsDragPayload = ReadonlySet<backend.LabelName>
+export type LabelsDragPayload = readonly backend.LabelName[]

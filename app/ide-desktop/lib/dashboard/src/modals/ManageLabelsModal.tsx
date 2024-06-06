@@ -53,7 +53,7 @@ export default function ManageLabelsModal<
   const { backend, item, eventTarget } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const labels = backendHooks.useBackendAssetTags(item.id)
+  const labels = item.labels ?? []
   const allLabels = backendHooks.useBackendListTags(backend)
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
@@ -186,7 +186,7 @@ export default function ManageLabelsModal<
                         active={labels.includes(label.value)}
                         color={label.color}
                         onPress={() => {
-                          void doToggleLabel(label.value)
+                          doToggleLabel(label.value)
                         }}
                       >
                         {label.value}

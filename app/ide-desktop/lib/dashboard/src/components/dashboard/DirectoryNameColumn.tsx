@@ -36,16 +36,17 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, depth, selected, state, rowState, setRowState, isEditable } = props
-  const { backend, selectedKeys, nodeMap, doToggleDirectoryExpansion } = state
+  const { item, depth, state, rowState, setRowState, isEditable } = props
+  const { backend, nodeMap } = state
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display folders.')
   }
+  const toggleIsAssetOpen = store.useStore(storeState => storeState.toggleIsAssetOpen)
   const isOpen = store.useStore(
-    storeState => storeState.backends[backend.type].assets[item.id]?.isOpen ?? false
+    storeState => storeState.getAssetState(backend.type, item.id).isOpen
   )
 
   const updateDirectoryMutation = backendHooks.useBackendMutation(backend, 'updateDirectory')
@@ -89,8 +90,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           // Already handled.
         } else if (
           eventModule.isSingleClick(event) &&
-          selected &&
-          selectedKeys.current.size === 1
+          store.useStore.getState().getIsAssetSoleSelected(backend.type, item.id)
         ) {
           event.stopPropagation()
           setIsEditing(true)
@@ -105,7 +105,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           isOpen && 'rotate-90'
         )}
         onPress={() => {
-          doToggleDirectoryExpansion(item.id, item.title)
+          toggleIsAssetOpen(backend.type, item.id)
         }}
       />
       <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />

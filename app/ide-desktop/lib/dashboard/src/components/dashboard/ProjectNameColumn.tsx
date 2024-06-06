@@ -5,9 +5,9 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import NetworkIcon from 'enso-assets/network.svg'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
-import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -39,11 +39,9 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const { item, setItem: setItemRaw, depth, selected, rowState, setRowState, state } = props
+  const { item, depth, rowState, setRowState, state } = props
   const { isEditable } = props
-  const { backend, selectedKeys, nodeMap, setProjectStartupInfo, doOpenEditor, doCloseEditor } =
-    state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { backend, nodeMap, setProjectStartupInfo, doOpenEditor, doCloseEditor } = state
   const { user } = authProvider.useNonPartialUserSession()
   const { session } = sessionProvider.useSession()
   const { getText } = textProvider.useText()
@@ -52,7 +50,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display projects.')
   }
-  const setItem = setAssetHooks.useSetAsset(item, setItemRaw)
   const ownPermission =
     item.permissions?.find(
       backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
@@ -88,40 +85,19 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     if (string.isWhitespaceOnly(newTitle)) {
       // Do nothing.
     } else if (newTitle !== item.title) {
-      const oldTitle = item.title
-      setItem(object.merger({ title: newTitle }))
-      try {
-        await updateProjectMutation.mutateAsync([
-          item.id,
-          { ami: null, ideVersion: null, projectName: newTitle, parentId: item.parentId },
-        ])
-      } catch (error) {
-        toastAndLog('renameProjectError', error)
-        setItem(object.merger({ title: oldTitle }))
-      }
+      await updateProjectMutation.mutateAsync([
+        item.id,
+        { ami: null, ideVersion: null, projectName: newTitle },
+      ])
     }
   }
 
   const handleClick = inputBindings.handler({
     open: () => {
-      openProjectMutation.mutate([
-        item.id,
-        {
-          executeAsync: false,
-          parentId: item.parentId,
-          cognitoCredentials: session,
-        },
-      ])
+      openProjectMutation.mutate([item.id, { executeAsync: false, cognitoCredentials: session }])
     },
     run: () => {
-      openProjectMutation.mutate([
-        item.id,
-        {
-          executeAsync: true,
-          parentId: item.parentId,
-          cognitoCredentials: session,
-        },
-      ])
+      openProjectMutation.mutate([item.id, { executeAsync: true, cognitoCredentials: session }])
     },
     editName: () => {
       setIsEditing(true)
@@ -147,8 +123,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         } else if (
           !isRunning &&
           eventModule.isSingleClick(event) &&
-          selected &&
-          selectedKeys.current.size === 1
+          store.useStore.getState().getIsAssetSoleSelected(backend.type, item.id)
         ) {
           setIsEditing(true)
         }
@@ -162,10 +137,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(item, { projectState })}
-          setItem={setItem}
           setProjectStartupInfo={setProjectStartupInfo}
           doOpenEditor={switchPage => {
-            doOpenEditor(item, setItem, switchPage)
+            doOpenEditor(item, switchPage)
           }}
           doCloseEditor={() => {
             doCloseEditor(item)

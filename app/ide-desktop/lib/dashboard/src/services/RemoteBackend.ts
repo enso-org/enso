@@ -377,8 +377,7 @@ export default class RemoteBackend extends Backend {
 
   /** Delete an arbitrary asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteAsset(assetId: backend.AssetId, bodyRaw: backend.DeleteAssetRequestBody) {
-    const body = object.omit(bodyRaw, 'parentId')
+  override async deleteAsset(assetId: backend.AssetId, body: backend.DeleteAssetRequestBody) {
     const paramsString = new URLSearchParams([['force', String(body.force)]]).toString()
     const path = remoteBackendPaths.deleteAssetPath(assetId) + '?' + paramsString
     await this.delete(path)
@@ -473,9 +472,8 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async openProject(
     projectId: backend.ProjectId,
-    bodyRaw: backend.OpenProjectRequestBody
+    body: backend.OpenProjectRequestBody
   ): Promise<void> {
-    const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.openProjectPath(projectId)
     if (body.cognitoCredentials == null) {
       throw new Error('Could not open project because Cognito credentials are missing.')
@@ -501,9 +499,8 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateProject(
     projectId: backend.ProjectId,
-    bodyRaw: backend.UpdateProjectRequestBody
+    body: backend.UpdateProjectRequestBody
   ): Promise<backend.UpdatedProject> {
-    const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.projectUpdatePath(projectId)
     const response = await this.put<backend.UpdatedProject>(path, body)
     return await response.json()

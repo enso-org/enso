@@ -135,7 +135,6 @@ export default function Dashboard(props: DashboardProps) {
       array.includes(Object.values(pageSwitcher.Page), value)
   )
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
   const [assetPanelProps, setAssetPanelProps] =
@@ -180,15 +179,13 @@ export default function Dashboard(props: DashboardProps) {
             try {
               const oldProject = await remoteBackend.getProjectDetails(
                 savedProjectStartupInfo.projectAsset.id,
-                savedProjectStartupInfo.projectAsset.parentId,
-                savedProjectStartupInfo.projectAsset.title
+                savedProjectStartupInfo.projectAsset.parentId
               )
               if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
                 // FIXME: Re-add AbortController
                 const project = await remoteBackend.waitUntilProjectIsReady(
                   savedProjectStartupInfo.projectAsset.id,
-                  savedProjectStartupInfo.projectAsset.parentId,
-                  savedProjectStartupInfo.projectAsset.title
+                  savedProjectStartupInfo.projectAsset.parentId
                 )
                 setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
                 if (page === pageSwitcher.Page.editor) {
@@ -203,19 +200,13 @@ export default function Dashboard(props: DashboardProps) {
       } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
         if (localBackend != null) {
           void (async () => {
-            await localBackend.openProject(
-              savedProjectStartupInfo.projectAsset.id,
-              {
-                executeAsync: false,
-                cognitoCredentials: null,
-                parentId: savedProjectStartupInfo.projectAsset.parentId,
-              },
-              savedProjectStartupInfo.projectAsset.title
-            )
+            await localBackend.openProject(savedProjectStartupInfo.projectAsset.id, {
+              executeAsync: false,
+              cognitoCredentials: null,
+            })
             const project = await localBackend.getProjectDetails(
               savedProjectStartupInfo.projectAsset.id,
-              savedProjectStartupInfo.projectAsset.parentId,
-              savedProjectStartupInfo.projectAsset.title
+              savedProjectStartupInfo.projectAsset.parentId
             )
             setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
             if (page === pageSwitcher.Page.editor) {
@@ -296,24 +287,14 @@ export default function Dashboard(props: DashboardProps) {
   }, [inputBindings])
 
   const doOpenEditor = React.useCallback(
-    async (
-      backend: Backend,
-      newProject: backendModule.ProjectAsset,
-      setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
-      switchPage: boolean
-    ) => {
+    async (backend: Backend, newProject: backendModule.ProjectAsset, switchPage: boolean) => {
       if (switchPage) {
         setPage(pageSwitcher.Page.editor)
       }
       if (projectStartupInfo?.project.projectId !== newProject.id) {
         setProjectStartupInfo({
-          project: await backend.getProjectDetails(
-            newProject.id,
-            newProject.parentId,
-            newProject.title
-          ),
+          project: await backend.getProjectDetails(newProject.id, newProject.parentId),
           projectAsset: newProject,
-          setProjectAsset: setProjectAsset,
           backendType: backend.type,
           accessToken: session.accessToken,
         })
@@ -361,7 +342,6 @@ export default function Dashboard(props: DashboardProps) {
             setIsHelpChatOpen={setIsHelpChatOpen}
             query={query}
             setQuery={setQuery}
-            suggestions={suggestions}
             isAssetPanelVisible={isAssetPanelVisible}
             isAssetPanelEnabled={isAssetPanelEnabled}
             setIsAssetPanelEnabled={setIsAssetPanelEnabled}
@@ -371,10 +351,8 @@ export default function Dashboard(props: DashboardProps) {
             category={category}
             setCategory={setCategory}
             hidden={page !== pageSwitcher.Page.drive}
-            initialProjectName={initialProjectName}
             query={query}
             setQuery={setQuery}
-            setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
             setAssetPanelProps={setAssetPanelProps}

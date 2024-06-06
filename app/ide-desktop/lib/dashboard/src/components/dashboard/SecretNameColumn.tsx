@@ -5,6 +5,8 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import KeyIcon from 'enso-assets/key.svg'
 
+import * as store from '#/store'
+
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -31,7 +33,7 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
  * This should never happen. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { item, depth, state, rowState, setRowState, isEditable } = props
   const { backend } = state
   const { setModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -66,7 +68,10 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       onClick={event => {
         if (handleClick(event)) {
           // Already handled.
-        } else if (eventModule.isSingleClick(event) && selected) {
+        } else if (
+          eventModule.isSingleClick(event) &&
+          store.useStore.getState().getAssetState(backend.type, item.id).isSelected
+        ) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event) && isEditable) {
           event.stopPropagation()

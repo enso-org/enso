@@ -149,7 +149,6 @@ export default class LocalBackend extends Backend {
                   this.projectManager.projects.get(entry.metadata.id)?.state ??
                   backend.ProjectState.closed,
                 volumeId: '',
-                path: entry.path,
               },
               labels: [],
               description: null,
@@ -204,10 +203,6 @@ export default class LocalBackend extends Backend {
       missingComponentAction: projectManager.MissingComponentAction.install,
       ...(projectsDirectory == null ? {} : { projectsDirectory }),
     })
-    const path = projectManager.joinPath(
-      projectsDirectory ?? this.projectManager.rootDirectory,
-      project.projectNormalizedName
-    )
     return {
       name: project.projectName,
       organizationId: '',
@@ -216,7 +211,6 @@ export default class LocalBackend extends Backend {
       state: {
         type: backend.ProjectState.closed,
         volumeId: '',
-        path,
       },
     }
   }
@@ -306,19 +300,13 @@ export default class LocalBackend extends Backend {
 
   /** Prepare a project for execution.
    * @throws An error if the JSON-RPC call fails. */
-  override async openProject(
-    projectId: backend.ProjectId,
-    body: backend.OpenProjectRequestBody | null
-  ): Promise<void> {
+  override async openProject(projectId: backend.ProjectId): Promise<void> {
     const { id } = extractTypeAndId(projectId)
     if (!this.projectManager.projects.has(id)) {
       try {
         await this.projectManager.openProject({
           projectId: id,
           missingComponentAction: projectManager.MissingComponentAction.install,
-          ...(body?.parentId != null
-            ? { projectsDirectory: extractTypeAndId(body.parentId).id }
-            : {}),
         })
         return
       } catch (error) {
@@ -341,10 +329,9 @@ export default class LocalBackend extends Backend {
         await this.projectManager.renameProject({
           projectId: id,
           name: projectManager.ProjectName(body.projectName),
-          projectsDirectory: extractTypeAndId(body.parentId).id,
         })
       }
-      const parentId = extractTypeAndId(body.parentId).id
+      const parentId = this.projectManager.getProjectDirectoryPath(id)
       const result = await this.projectManager.listDirectory(parentId)
       const project = result.flatMap(listedProject =>
         listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
@@ -376,10 +363,7 @@ export default class LocalBackend extends Backend {
 
   /** Delete an arbitrary asset.
    * @throws An error if the JSON-RPC call fails. */
-  override async deleteAsset(
-    assetId: backend.AssetId,
-    body: backend.DeleteAssetRequestBody
-  ): Promise<void> {
+  override async deleteAsset(assetId: backend.AssetId): Promise<void> {
     const typeAndId = extractTypeAndId(assetId)
     switch (typeAndId.type) {
       case backend.AssetType.directory:
@@ -399,10 +383,7 @@ export default class LocalBackend extends Backend {
           })
           await this.projectManager.closeProject({ projectId: id })
         }
-        await this.projectManager.deleteProject({
-          projectId: id,
-          projectsDirectory: extractTypeAndId(body.parentId).id,
-        })
+        await this.projectManager.deleteProject({ projectId: id })
         return
       }
     }

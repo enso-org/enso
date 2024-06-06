@@ -16,10 +16,14 @@ import * as backendModule from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
 import * as dateTime from '#/utilities/dateTime'
+import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // FIXME: Listeners and optimistic state for duplicateProjectMutation
+
+// FIXME: Keep track of the current project to open somewhere, and open project when ready when
+// the corresponding query returns state: Opened
 
 // ===============================
 // === DefineBackendMethodKeys ===
@@ -217,7 +221,7 @@ export function useObserveBackend(backend: Backend | null) {
   }
   const setQueryDataWithKey = <Method extends keyof Backend>(
     method: Method,
-    key: reactQuery.QueryKey,
+    key: [...Parameters<Extract<Backend[Method], (...args: never) => unknown>>, ...unknown[]],
     updater: (
       variable: Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
     ) => Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
@@ -317,7 +321,14 @@ export function useObserveBackend(backend: Backend | null) {
       const data = state.data
       setQueryDataWithKey(
         'listDirectory',
-        [data.parentId, backendModule.FilterBy.active],
+        [
+          {
+            parentId: data.parentId,
+            filterBy: backendModule.FilterBy.active,
+            labels: [],
+            recentProjects: false,
+          },
+        ],
         items => [
           ...items,
           createAssetObject({
@@ -336,16 +347,27 @@ export function useObserveBackend(backend: Backend | null) {
       const data = state.data
       const parentId = body.parentDirectoryId ?? backend?.rootDirectoryId(user)
       if (parentId != null) {
-        setQueryDataWithKey('listDirectory', [parentId, backendModule.FilterBy.active], items => [
-          ...items,
-          createAssetObject({
-            type: backendModule.AssetType.project,
-            id: data.projectId,
-            title: data.name,
-            parentId,
-            projectState: data.state,
-          }),
-        ])
+        setQueryDataWithKey(
+          'listDirectory',
+          [
+            {
+              parentId,
+              filterBy: backendModule.FilterBy.active,
+              labels: [],
+              recentProjects: false,
+            },
+          ],
+          items => [
+            ...items,
+            createAssetObject({
+              type: backendModule.AssetType.project,
+              id: data.projectId,
+              title: data.name,
+              parentId,
+              projectState: data.state,
+            }),
+          ]
+        )
       }
     }
   })
@@ -355,15 +377,26 @@ export function useObserveBackend(backend: Backend | null) {
       const data = state.data
       const parentId = body.parentDirectoryId ?? backend?.rootDirectoryId(user)
       if (parentId != null) {
-        setQueryDataWithKey('listDirectory', [parentId, backendModule.FilterBy.active], items => [
-          ...items,
-          createAssetObject({
-            type: backendModule.AssetType.datalink,
-            id: data.id,
-            title: body.name,
-            parentId,
-          }),
-        ])
+        setQueryDataWithKey(
+          'listDirectory',
+          [
+            {
+              parentId,
+              filterBy: backendModule.FilterBy.active,
+              labels: [],
+              recentProjects: false,
+            },
+          ],
+          items => [
+            ...items,
+            createAssetObject({
+              type: backendModule.AssetType.datalink,
+              id: data.id,
+              title: body.name,
+              parentId,
+            }),
+          ]
+        )
       }
     }
   })
@@ -373,15 +406,26 @@ export function useObserveBackend(backend: Backend | null) {
       const id = state.data
       const parentId = body.parentDirectoryId ?? backend?.rootDirectoryId(user)
       if (parentId != null) {
-        setQueryDataWithKey('listDirectory', [parentId, backendModule.FilterBy.active], items => [
-          ...items,
-          createAssetObject({
-            type: backendModule.AssetType.secret,
-            id,
-            title: body.name,
-            parentId,
-          }),
-        ])
+        setQueryDataWithKey(
+          'listDirectory',
+          [
+            {
+              parentId,
+              filterBy: backendModule.FilterBy.active,
+              labels: [],
+              recentProjects: false,
+            },
+          ],
+          items => [
+            ...items,
+            createAssetObject({
+              type: backendModule.AssetType.secret,
+              id,
+              title: body.name,
+              parentId,
+            }),
+          ]
+        )
       }
     }
   })
@@ -394,34 +438,50 @@ export function useObserveBackend(backend: Backend | null) {
       const data = state.data
       const parentId = body.parentDirectoryId ?? backend?.rootDirectoryId(user)
       if (parentId != null) {
-        setQueryDataWithKey('listDirectory', [parentId, backendModule.FilterBy.active], items => [
-          ...items,
-          data.project == null
-            ? createAssetObject({
-                type: backendModule.AssetType.file,
-                id: data.id,
-                title: body.fileName,
-                parentId,
-              })
-            : createAssetObject({
-                type: backendModule.AssetType.project,
-                id: data.project.projectId,
-                title: data.project.name,
-                projectState: data.project.state,
-                parentId,
-              }),
-        ])
+        setQueryDataWithKey(
+          'listDirectory',
+          [
+            {
+              parentId,
+              filterBy: backendModule.FilterBy.active,
+              labels: [],
+              recentProjects: false,
+            },
+          ],
+          items => [
+            ...items,
+            data.project == null
+              ? createAssetObject({
+                  type: backendModule.AssetType.file,
+                  id: data.id,
+                  title: body.fileName,
+                  parentId,
+                })
+              : createAssetObject({
+                  type: backendModule.AssetType.project,
+                  id: data.project.projectId,
+                  title: data.project.name,
+                  projectState: data.project.state,
+                  parentId,
+                }),
+          ]
+        )
       }
     }
   })
   useObserveMutations('updateAsset', state => {
     if (state.data != null && state.variables != null) {
       const [id, body] = state.variables
-      // FIXME: the parameters are wrong, they are missing function args.
-      // The definition of `setQueryDataWithKey` needs to be fixed.
       setQueryDataWithKey(
         'listDirectory',
-        [body.parentDirectoryId, backendModule.FilterBy.active],
+        [
+          {
+            parentId: body.parentDirectoryId,
+            filterBy: backendModule.FilterBy.active,
+            labels: [],
+            recentProjects: false,
+          },
+        ],
         items =>
           items.map(item =>
             item.id !== id ? item : { ...item, description: body.description ?? item.description }
@@ -438,22 +498,39 @@ export function useObserveBackend(backend: Backend | null) {
       // This IIFE is required so that TypeScript does not eagerly narrow the type of this
       // variable.
       let found = ((): backendModule.AnyAsset | null => null)()
-      setQueryDataWithKey('listDirectory', [body.parentId, backendModule.FilterBy.active], items =>
-        items.filter(item => {
-          if (item.id !== id) {
-            return false
-          } else {
-            found = item
-            return true
-          }
-        })
+      setQueryDataWithKey(
+        'listDirectory',
+        [
+          {
+            parentId: body.parentId,
+            filterBy: backendModule.FilterBy.active,
+            labels: [],
+            recentProjects: false,
+          },
+        ],
+        items =>
+          items.filter(item => {
+            if (item.id !== id) {
+              return false
+            } else {
+              found = item
+              return true
+            }
+          })
       )
       if (!body.force) {
         if (found != null) {
           const deletedItem = found
           setQueryDataWithKey(
             'listDirectory',
-            [body.parentId, backendModule.FilterBy.trashed],
+            [
+              {
+                parentId: body.parentId,
+                filterBy: backendModule.FilterBy.trashed,
+                labels: [],
+                recentProjects: false,
+              },
+            ],
             items => [...items, deletedItem]
           )
         } else {
@@ -461,8 +538,8 @@ export function useObserveBackend(backend: Backend | null) {
           // then the asset is no longer in its original directory.
           void invalidateBackendQuery(queryClient, backend, 'listDirectory', [
             {
-              filterBy: backendModule.FilterBy.trashed,
               parentId: body.parentId,
+              filterBy: backendModule.FilterBy.trashed,
               labels: null,
               recentProjects: false,
             },
@@ -477,21 +554,38 @@ export function useObserveBackend(backend: Backend | null) {
       // This IIFE is required so that TypeScript does not eagerly narrow the type of this
       // variable.
       let found = ((): backendModule.AnyAsset | null => null)()
-      setQueryDataWithKey('listDirectory', [body.parentId, backendModule.FilterBy.trashed], items =>
-        items.filter(item => {
-          if (item.id !== id) {
-            return false
-          } else {
-            found = item
-            return true
-          }
-        })
+      setQueryDataWithKey(
+        'listDirectory',
+        [
+          {
+            parentId: body.parentId,
+            filterBy: backendModule.FilterBy.trashed,
+            labels: [],
+            recentProjects: false,
+          },
+        ],
+        items =>
+          items.filter(item => {
+            if (item.id !== id) {
+              return false
+            } else {
+              found = item
+              return true
+            }
+          })
       )
       if (found != null) {
         const deletedItem = found
         setQueryDataWithKey(
           'listDirectory',
-          [body.parentId, backendModule.FilterBy.active],
+          [
+            {
+              parentId: body.parentId,
+              filterBy: backendModule.FilterBy.active,
+              labels: [],
+              recentProjects: false,
+            },
+          ],
           items => [...items, deletedItem]
         )
       }
@@ -793,8 +887,8 @@ export type WithPlaceholder<T extends object> = Placeholder & T
 // ========================
 
 /** Return an object with an additional field `isPlaceholder: false`. */
-function toNonPlaceholder<T extends object>(object: T) {
-  return { ...object, isPlaceholder: false }
+function toNonPlaceholder<T extends object>(value: T) {
+  return { ...value, isPlaceholder: false }
 }
 
 // ===========================
@@ -1138,6 +1232,141 @@ export function useBackendListDirectory(
   ])
 }
 
+// ===============================
+// === getBackendListDirectory ===
+// ===============================
+
+/** A list of assets in the directory with the given ID, taking into account optimistic state. */
+export function getBackendListDirectory(
+  queryClient: reactQuery.QueryClient,
+  user: backendModule.User | null,
+  backend: Backend,
+  directoryId: backendModule.DirectoryId,
+  filterBy = backendModule.FilterBy.active
+) {
+  const listDirectoryData = getBackendQueryData(
+    queryClient,
+    backend,
+    'listDirectory',
+    [
+      {
+        filterBy,
+        labels: null,
+        parentId: directoryId,
+        recentProjects: false,
+      },
+    ],
+    {
+      queryKey: [directoryId, filterBy],
+    }
+  )
+  if (listDirectoryData == null) {
+    return
+  } else {
+    queryClient.getMutationCache().findAll({})
+    const createDirectoryVariables = getBackendMutationVariables(
+      queryClient,
+      backend,
+      'createDirectory'
+    )
+    const createProjectVariables = getBackendMutationVariables(
+      queryClient,
+      backend,
+      'createProject'
+    )
+    const createDatalinkVariables = getBackendMutationVariables(
+      queryClient,
+      backend,
+      'createDatalink'
+    )
+    const createSecretVariables = getBackendMutationVariables(queryClient, backend, 'createSecret')
+    const uploadFileVariables = getBackendMutationVariables(queryClient, backend, 'uploadFile')
+    const result = listDirectoryData.map(toNonPlaceholder)
+    const placeholderProjectState = { type: backendModule.ProjectState.new, volumeId: '' }
+    const createAssetObject = <T extends Partial<backendModule.AnyAsset>>(rest: T) => ({
+      description: null,
+      labels: [],
+      permissions: permissions.tryGetSingletonOwnerPermission(user),
+      projectState: null,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: directoryId,
+      isPlaceholder: true,
+      ...rest,
+    })
+    for (const [body] of createDirectoryVariables) {
+      result.push(
+        createAssetObject({
+          type: backendModule.AssetType.directory,
+          id: backendModule.DirectoryId(
+            `${backendModule.AssetType.directory}-${uniqueString.uniqueString()}`
+          ),
+          title: body.title,
+        })
+      )
+    }
+    for (const [body] of createProjectVariables) {
+      result.push(
+        createAssetObject({
+          type: backendModule.AssetType.project,
+          id: backendModule.ProjectId(
+            `${backendModule.AssetType.project}-${uniqueString.uniqueString()}`
+          ),
+          title: body.projectName,
+          projectState: placeholderProjectState,
+        })
+      )
+    }
+    for (const [body] of createDatalinkVariables) {
+      if (body.datalinkId == null) {
+        result.push(
+          createAssetObject({
+            type: backendModule.AssetType.datalink,
+            id: backendModule.DatalinkId(
+              `${backendModule.AssetType.datalink}-${uniqueString.uniqueString()}`
+            ),
+            title: body.name,
+          })
+        )
+      }
+    }
+    for (const [body] of createSecretVariables) {
+      result.push(
+        createAssetObject({
+          type: backendModule.AssetType.secret,
+          id: backendModule.SecretId(
+            `${backendModule.AssetType.secret}-${uniqueString.uniqueString()}`
+          ),
+          title: body.name,
+        })
+      )
+    }
+    for (const [body] of uploadFileVariables) {
+      const projectNameAndExtension = backendModule.extractProjectExtension(body.fileName)
+      const projectName =
+        projectNameAndExtension.extension === '' ? null : projectNameAndExtension.basename
+      result.push(
+        projectName == null
+          ? createAssetObject({
+              type: backendModule.AssetType.file,
+              id: backendModule.FileId(
+                `${backendModule.AssetType.file}-${uniqueString.uniqueString()}`
+              ),
+              title: body.fileName,
+            })
+          : createAssetObject({
+              type: backendModule.AssetType.project,
+              id: backendModule.ProjectId(
+                `${backendModule.AssetType.project}-${uniqueString.uniqueString()}`
+              ),
+              title: projectName,
+              projectState: placeholderProjectState,
+            })
+      )
+    }
+    return result
+  }
+}
+
 // ==================================
 // === ensureBackendListDirectory ===
 // ==================================
@@ -1263,6 +1492,54 @@ export async function ensureBackendListDirectory(
     )
   }
   return result
+}
+
+// =====================================
+// === getBackendAllKnownDirectories ===
+// =====================================
+
+/** Return a map containing all directories known by the  */
+export function getBackendAllKnownDirectories(
+  queryClient: reactQuery.QueryClient,
+  user: backendModule.User | null,
+  backend: Backend
+) {
+  const queries = queryClient.getQueriesData({
+    queryKey: [backend, 'listDirectory'],
+    predicate: query => {
+      /* backend, method = 'listDirectory', body */
+      const [, , body] = query.queryKey
+      return (
+        typeof body === 'object' &&
+        body != null &&
+        'filterBy' in body &&
+        body.filterBy === backendModule.FilterBy.active
+      )
+    },
+  })
+  // FIXME: This is very inefficient as it gets the mutations once per directory and filters them
+  // to only the ones applicable for each directory. It would be much more efficient to list
+  // mutations once and apply them to the corresponding directory as appropriate.
+  return object.fromEntries(
+    queries.flatMap(kv => {
+      const [queryKey] = kv
+      /* backend, method = 'listDirectory', body */
+      const [, , body] = queryKey
+      const directoryId =
+        typeof body === 'object' &&
+        body != null &&
+        'parentId' in body &&
+        typeof body.parentId === 'string'
+          ? backendModule.DirectoryId(body.parentId)
+          : null
+      if (directoryId == null) {
+        return []
+      } else {
+        const contents = getBackendListDirectory(queryClient, user, backend, directoryId)
+        return contents == null ? [] : [[directoryId, contents]]
+      }
+    })
+  )
 }
 
 // =========================================

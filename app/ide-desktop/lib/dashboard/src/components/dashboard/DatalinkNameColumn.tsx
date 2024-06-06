@@ -5,7 +5,7 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import DatalinkIcon from 'enso-assets/datalink.svg'
 
-import * as setAssetHooks from '#/hooks/setAssetHooks'
+import * as store from '#/store'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
@@ -29,14 +29,13 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DatalinkAsset}.
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, setItem, depth, selected, state, rowState, setRowState, isEditable } = props
-  const { setIsAssetPanelTemporarilyVisible } = state
+  const { item, depth, state, rowState, setRowState, isEditable } = props
+  const { backend, setIsAssetPanelTemporarilyVisible } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DatalinkNameColumn` can only display Datalinks.')
   }
-  const setAsset = setAssetHooks.useSetAsset(item, setItem)
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -47,8 +46,12 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
   // context menu entry should be re-added.
   // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-  const doRename = async () => {
-    await Promise.resolve(null)
+  const doRename = (newTitle: string) => {
+    setIsEditing(false)
+
+    if (newTitle !== item.title) {
+      // Do nothing - thecorresponding backend endpoint does not yet exist.
+    }
   }
 
   const handleClick = inputBindings.handler({
@@ -71,7 +74,10 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
       onClick={event => {
         if (handleClick(event)) {
           // Already handled.
-        } else if (eventModule.isSingleClick(event) && selected) {
+        } else if (
+          eventModule.isSingleClick(event) &&
+          store.useStore.getState().getAssetState(backend.type, item.id).isSelected
+        ) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()
@@ -82,19 +88,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
       <img src={DatalinkIcon} className="m-name-column-icon size-icon" />
       <EditableSpan
         editable={false}
-        onSubmit={async newTitle => {
-          setIsEditing(false)
-
-          if (newTitle !== item.title) {
-            const oldTitle = item.title
-            setAsset(object.merger({ title: newTitle }))
-            try {
-              await doRename()
-            } catch {
-              setAsset(object.merger({ title: oldTitle }))
-            }
-          }
-        }}
+        onSubmit={doRename}
         onCancel={() => {
           setIsEditing(false)
         }}

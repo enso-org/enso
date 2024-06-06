@@ -501,7 +501,7 @@ export default class AssetQuery {
   }
 
   /** Whether the given node matches this {@link AssetQuery}. */
-  filter(node: backend.AnyAsset) {
+  isMatch(node: backend.AnyAsset) {
     const globCache: Record<string, RegExp> = {}
     if (
       node.type === backend.AssetType.specialEmpty ||

@@ -139,6 +139,19 @@ export function unsafeEntries<T extends object>(
   return Object.entries(object)
 }
 
+// ===================
+// === fromEntries ===
+// ===================
+
+/** Construct a {@link Record} from an array of key-value pairs. */
+export function fromEntries<K extends PropertyKey, V>(
+  iterable: Iterable<readonly [MustNotBeLiteral<K>, V]>
+) {
+  // This is SAFE as `K` is known to not be a literal type.
+  // eslint-disable-next-line no-restricted-syntax
+  return Object.fromEntries(iterable) as Record<K, V>
+}
+
 // ==================
 // === mapEntries ===
 // ==================

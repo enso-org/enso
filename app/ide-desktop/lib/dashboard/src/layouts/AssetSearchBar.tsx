@@ -1,6 +1,7 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as tailwindMerge from 'tailwind-merge'
 
 import FindIcon from 'enso-assets/find.svg'
@@ -8,6 +9,7 @@ import * as detect from 'enso-common/src/detect'
 
 import * as backendHooks from '#/hooks/backendHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -20,6 +22,7 @@ import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
+import * as suggestionsModule from '#/utilities/AssetQuery/suggestions'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 
@@ -38,13 +41,6 @@ enum QuerySource {
   typing = 'typing',
   /** A query change initiated from code in another component. */
   external = 'external',
-}
-
-/** A suggested query. */
-export interface Suggestion {
-  readonly render: () => React.ReactNode
-  readonly addToQuery: (query: AssetQuery) => AssetQuery
-  readonly deleteFromQuery: (query: AssetQuery) => AssetQuery
 }
 
 // ============
@@ -116,18 +112,18 @@ export interface AssetSearchBarProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly suggestions: Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { backend, isCloud, query, setQuery, suggestions: rawSuggestions } = props
+  const { backend, isCloud, query, setQuery } = props
+  const queryClient = reactQuery.useQueryClient()
+  const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
-  const [suggestions, setSuggestions] = React.useState(rawSuggestions)
-  const suggestionsRef = React.useRef(rawSuggestions)
+  const [suggestions, setSuggestions] = React.useState<readonly suggestionsModule.Suggestion[]>([])
   const [selectedIndices, setSelectedIndices] = React.useState<ReadonlySet<number>>(
     new Set<number>()
   )
@@ -137,8 +133,16 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const querySource = React.useRef(QuerySource.external)
   const rootRef = React.useRef<HTMLLabelElement | null>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
-  const labels = backendHooks.useBackendListTags(backend) ?? []
+  const labels = backendHooks.useBackendListTags(backend)
   areSuggestionsVisibleRef.current = areSuggestionsVisible
+
+  React.useEffect(() => {
+    if (areSuggestionsVisible && backend != null) {
+      setSuggestions(
+        suggestionsModule.getSuggestions(queryClient, user, backend, query, labels ?? [])
+      )
+    }
+  }, [areSuggestionsVisible, backend, labels, query, queryClient, user])
 
   React.useEffect(() => {
     if (querySource.current !== QuerySource.tabbing) {
@@ -161,13 +165,6 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       }
     }
   }, [query])
-
-  React.useEffect(() => {
-    if (querySource.current !== QuerySource.tabbing) {
-      setSuggestions(rawSuggestions)
-      suggestionsRef.current = rawSuggestions
-    }
-  }, [rawSuggestions])
 
   React.useEffect(() => {
     if (
@@ -200,7 +197,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           querySource.current = QuerySource.tabbing
           const reverse = event.key === 'ArrowUp'
           setSelectedIndex(oldIndex => {
-            const length = Math.max(1, suggestionsRef.current.length)
+            const length = Math.max(1, suggestions.length)
             if (reverse) {
               return oldIndex == null ? length - 1 : (oldIndex + length - 1) % length
             } else {
@@ -260,7 +257,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       root?.removeEventListener('keydown', onSearchKeyDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [setQuery, /* should never change */ modalRef])
+  }, [suggestions.length, setQuery, /* should never change */ modalRef])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
@@ -308,12 +305,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   setQuery={setQuery}
                 />
                 {/* Asset labels */}
-                {isCloud && labels.length !== 0 && (
+                {isCloud && (labels ?? []).length !== 0 && (
                   <div
                     data-testid="asset-search-labels"
                     className="pointer-events-auto flex gap-buttons p-search-suggestions"
                   >
-                    {[...labels]
+                    {[...(labels ?? [])]
                       .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
                       .map(label => {
                         const negated = query.negativeLabels.some(term =>

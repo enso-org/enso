@@ -17,31 +17,44 @@ import type * as sorting from '#/utilities/sorting'
 
 /** Props for a {@link AssetRows}. */
 export interface AssetRowsProps extends assetRow.AssetRowProps {
+  readonly parentRef: React.RefObject<HTMLTableRowElement>
   readonly hideRoot?: boolean
   readonly backend: Backend
-  readonly filterBy: backendModule.FilterBy
+  readonly filterBy: backendModule.FilterBy | null
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
   readonly filter: (asset: backendModule.AnyAsset) => boolean
 }
 
 /** An {@link AssetRow} for an asset, and its children (if present). */
 export default function AssetRows(props: AssetRowsProps) {
-  const { hideRoot = false, backend, filterBy, sortInfo, filter, ...assetRowProps } = props
+  const {
+    parentRef,
+    hideRoot = false,
+    backend,
+    filterBy,
+    sortInfo,
+    filter,
+    ...assetRowProps
+  } = props
   const { item, depth } = assetRowProps
+  const rootRef = React.useRef<HTMLTableRowElement>(null)
 
-  return (
+  const row = !hideRoot && <AssetRow parentRef={parentRef} ref={rootRef} {...assetRowProps} />
+
+  return item.type !== backendModule.AssetType.directory ? (
+    row
+  ) : (
     <>
-      {!hideRoot && <AssetRow {...assetRowProps} />}
-      {item.type === backendModule.AssetType.directory && (
-        <DirectoryChildrenAssetRows
-          backend={backend}
-          depth={depth + 1}
-          directory={item}
-          filterBy={filterBy}
-          sortInfo={sortInfo}
-          filter={filter}
-        />
-      )}
+      {row}
+      <DirectoryChildrenAssetRows
+        parentRef={rootRef}
+        backend={backend}
+        depth={depth + 1}
+        directory={item}
+        filterBy={filterBy}
+        sortInfo={sortInfo}
+        filter={filter}
+      />
     </>
   )
 }

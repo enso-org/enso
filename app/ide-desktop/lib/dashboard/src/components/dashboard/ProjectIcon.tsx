@@ -22,8 +22,6 @@ import SvgMask from '#/components/SvgMask'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import * as object from '#/utilities/object'
-
 // =================
 // === Constants ===
 // =================
@@ -65,7 +63,6 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
 export interface ProjectIconProps {
   readonly backend: Backend
   readonly item: backendModule.ProjectAsset
-  readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly doCloseEditor: () => void
   readonly doOpenEditor: (switchPage: boolean) => void
@@ -73,7 +70,7 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, setItem, setProjectStartupInfo } = props
+  const { backend, item, setProjectStartupInfo } = props
   const { doCloseEditor, doOpenEditor } = props
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
@@ -81,36 +78,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const itemRef = React.useRef(item)
   itemRef.current = item
   const state = item.projectState.type
-  const setState = React.useCallback(
-    (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
-      setItem(oldItem => {
-        let newState: backendModule.ProjectState
-        if (typeof stateOrUpdater === 'function') {
-          newState = stateOrUpdater(oldItem.projectState.type)
-        } else {
-          newState = stateOrUpdater
-        }
-        let newProjectState: backendModule.ProjectStateType = object.merge(oldItem.projectState, {
-          type: newState,
-        })
-        if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
-          newProjectState = object.omit(newProjectState, 'openedBy')
-        } else if (user != null) {
-          newProjectState = object.merge(newProjectState, {
-            openedBy: user.email,
-          })
-        }
-        return object.merge(oldItem, { projectState: newProjectState })
-      })
-    },
-    [/* should never change */ user, /* should never change */ setItem]
-  )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
-  const [isRunningInBackground, setIsRunningInBackground] = React.useState(
-    item.projectState.executeAsync ?? false
-  )
-  const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
+  const isRunningInBackground = item.projectState.executeAsync ?? false
   const toastId: toast.Id = React.useId()
   const isOpening = backendModule.IS_OPENING[item.projectState.type]
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -138,13 +107,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
       setProjectStartupInfo({
         project,
         projectAsset: item,
-        setProjectAsset: setItem,
         backendType: backend.type,
         accessToken: session?.accessToken ?? null,
       })
       if (!abortController.signal.aborted) {
         toast.toast.dismiss(toastId)
-        setState(backendModule.ProjectState.opened)
       }
     },
   })
@@ -173,24 +140,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
     })
   }, [state, backend.type])
 
-  React.useEffect(() => {
-    if (state === backendModule.ProjectState.opened) {
-      if (shouldOpenWhenReady) {
-        doOpenEditor(shouldSwitchPage)
-        setShouldOpenWhenReady(false)
-      }
-    }
-    // `doOpenEditor` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldOpenWhenReady, shouldSwitchPage, state])
-
   const closeProject = async () => {
     if (!isRunningInBackground) {
       doCloseEditor()
     }
     toast.toast.dismiss(toastId)
-    setShouldOpenWhenReady(false)
-    setState(backendModule.ProjectState.closing)
     await closeProjectMutation.mutateAsync([item.id])
   }
 
@@ -209,11 +163,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             // FIXME: This component should listen on the state updates caused by this mutation.
             openProjectMutation.mutateAsync([
               item.id,
-              {
-                executeAsync: false,
-                parentId: item.parentId,
-                cognitoCredentials: session,
-              },
+              { executeAsync: false, cognitoCredentials: session },
             ])
           }
         >

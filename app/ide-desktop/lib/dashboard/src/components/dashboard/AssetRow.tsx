@@ -56,70 +56,47 @@ export interface AssetRowInnerProps {
 }
 
 /** Props for an {@link AssetRow}. */
-export interface AssetRowProps
-  extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
+export interface AssetRowProps {
+  readonly parentRef: React.RefObject<HTMLTableRowElement>
   readonly item: backendHooks.WithPlaceholder<backendModule.AnyAsset>
   readonly depth: number
   readonly state: assetsTable.AssetsTableState
-  readonly columns: columnUtils.Column[]
-  readonly selected: boolean
-  readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelected: boolean
-  readonly isKeyboardSelected: boolean
-  readonly grabKeyboardFocus: () => void
-  readonly allowContextMenu: boolean
-  readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  readonly onContextMenu?: (
-    props: AssetRowInnerProps,
-    event: React.MouseEvent<HTMLTableRowElement>
-  ) => void
+  readonly columns: readonly columnUtils.Column[]
 }
 
+// FIXME: use `parentRef` - it should be focused on when left is pressed
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item, depth, selected, isSoleSelected, isKeyboardSelected } = props
-  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { grabKeyboardFocus } = props
+  const { item, depth, state, columns } = props
   const { backend, scrollContainerRef, rootDirectoryId } = state
-  const { setAssetPanelProps, doCopy, doCut, doPaste } = state
-  const { setIsAssetPanelTemporarilyVisible } = state
+  const { doCopy, doCut, doPaste } = state
 
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const setIsAssetOpen = store.useStore(storeState => storeState.setIsAssetOpen)
   const toggleIsAssetOpen = store.useStore(storeState => storeState.toggleIsAssetOpen)
+  const setIsAssetSelected = store.useStore(storeState => storeState.setIsAssetSelected)
+  const setAssetsTemporaryLabels = store.useStore(storeState => storeState.setAssetsTemporaryLabels)
+  const isSelected = store.useStore(
+    storeState => storeState.getAssetState(backend.type, item.id).isSelected
+  )
+  const isSoleSelected = store.useStore(
+    storeState => isSelected && storeState.backends[backend.type].selectedCount === 1
+  )
+  const areNoKeysSelected = store.useStore(
+    storeState => storeState.backends[backend.type].selectedCount === 0
+  )
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const grabKeyboardFocusRef = React.useRef(grabKeyboardFocus)
-  grabKeyboardFocusRef.current = grabKeyboardFocus
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE
   )
+  const allowContextMenu = areNoKeysSelected || !isSelected || isSoleSelected
 
   const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
   const updateAssetMutate = updateAssetMutation.mutateAsync
-
-  React.useEffect(() => {
-    if (isKeyboardSelected) {
-      rootRef.current?.focus()
-      grabKeyboardFocusRef.current()
-    }
-  }, [isKeyboardSelected])
-
-  React.useEffect(() => {
-    if (isSoleSelected) {
-      setAssetPanelProps({ backend, item })
-      setIsAssetPanelTemporarilyVisible(false)
-    }
-  }, [
-    item,
-    isSoleSelected,
-    /* should never change */ backend,
-    /* should never change */ setAssetPanelProps,
-    /* should never change */ setIsAssetPanelTemporarilyVisible,
-  ])
 
   const doTriggerDescriptionEdit = React.useCallback(() => {
     setModal(
@@ -134,16 +111,19 @@ export default function AssetRow(props: AssetRowProps) {
     )
   }, [setModal, item.description, item.id, updateAssetMutate])
 
-  const clearDragState = React.useCallback(() => {
+  const clearDragState = () => {
     setIsDraggedOver(false)
     setRowState(oldRowState =>
       oldRowState.temporarilyAddedLabels === set.EMPTY
         ? oldRowState
         : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
     )
-  }, [])
+  }
 
   const onDragOver = (event: React.DragEvent<Element>) => {
+    if (state.category === Category.trash) {
+      event.dataTransfer.dropEffect = 'none'
+    }
     const directoryKey = item.type === backendModule.AssetType.directory ? item.id : item.parentId
     const payload = drag.ASSET_ROWS.lookup(event)
     if (
@@ -154,6 +134,71 @@ export default function AssetRow(props: AssetRowProps) {
       if (item.type === backendModule.AssetType.directory && state.category !== Category.trash) {
         setIsDraggedOver(true)
       }
+    }
+    const labelsPayload = drag.LABELS.lookup(event)
+    if (labelsPayload != null) {
+      event.preventDefault()
+      event.stopPropagation()
+      const storeState = store.useStore.getState()
+      const assetState = storeState.getAssetState(backend.type, item.id)
+      const ids = !assetState.isSelected ? [item.id] : storeState.getSelectedAssetIds(backend.type)
+      setAssetsTemporaryLabels(backend.type, ids, {
+        type: event.shiftKey ? 'remove' : 'add',
+        labels: labelsPayload,
+      })
+    }
+  }
+
+  const onDragEnd = () => {
+    clearDragState()
+    setAssetsTemporaryLabels(backend.type, [], null)
+  }
+
+  const onDrop = (event: React.DragEvent<Element>) => {
+    if (state.category === Category.trash) {
+      return
+    } else {
+      clearDragState()
+      const directoryId = item.type === backendModule.AssetType.directory ? item.id : item.parentId
+      const payload = drag.ASSET_ROWS.lookup(event)
+      if (payload != null && payload.every(innerItem => innerItem.id !== directoryId)) {
+        event.preventDefault()
+        event.stopPropagation()
+        unsetModal()
+        setIsAssetOpen(backend.type, directoryId, true)
+        const ids = payload
+          .filter(payloadItem => payloadItem.parentId !== directoryId)
+          .map(dragItem => dragItem.id)
+        for (const id of ids) {
+          updateAssetMutation.mutate([id, { description: null, parentDirectoryId: directoryId }])
+        }
+      } else if (event.dataTransfer.types.includes('Files')) {
+        event.preventDefault()
+        event.stopPropagation()
+        setIsAssetOpen(backend.type, directoryId, true)
+        uploadFilesMutation.mutate([event.dataTransfer.files, directoryId])
+      }
+      const labelsPayload = drag.LABELS.lookup(event)
+      if (labelsPayload != null) {
+        event.preventDefault()
+        event.stopPropagation()
+        const storeState = store.useStore.getState()
+        const assetState = storeState.getAssetState(backend.type, item.id)
+        const ids = !assetState.isSelected
+          ? [item.id]
+          : storeState.getSelectedAssetIds(backend.type)
+        if (event.shiftKey) {
+          for (const id of ids) {
+            // FIXME: remove label(s) mutation
+          }
+        } else {
+          for (const id of ids) {
+            // FIXME: add label(s) mutation
+          }
+        }
+      }
+      setAssetsTemporaryLabels(backend.type, [], null)
+      return
     }
   }
 
@@ -191,7 +236,7 @@ export default function AssetRow(props: AssetRowProps) {
               className={tailwindMerge.twMerge(
                 'h-row rounded-full transition-all ease-in-out rounded-rows-child',
                 item.isPlaceholder && 'placeholder',
-                (isDraggedOver || selected) && 'selected'
+                (isDraggedOver || isSelected) && 'selected'
               )}
               onClick={event => {
                 unsetModal()
@@ -204,7 +249,7 @@ export default function AssetRow(props: AssetRowProps) {
                   // This must be processed on the next tick, otherwise it will be overridden
                   // by the default click handler.
                   window.setTimeout(() => {
-                    setSelected(false)
+                    setIsAssetSelected(backend.type, item.id, false)
                   })
                   toggleIsAssetOpen(backend.type, item.id)
                 }
@@ -213,7 +258,6 @@ export default function AssetRow(props: AssetRowProps) {
                 if (allowContextMenu) {
                   event.preventDefault()
                   event.stopPropagation()
-                  onContextMenu?.(innerProps, event)
                   setModal(
                     <AssetContextMenu
                       innerProps={innerProps}
@@ -228,8 +272,6 @@ export default function AssetRow(props: AssetRowProps) {
                       doTriggerDescriptionEdit={doTriggerDescriptionEdit}
                     />
                   )
-                } else {
-                  onContextMenu?.(innerProps, event)
                 }
               }}
               onDragStart={event => {
@@ -249,21 +291,10 @@ export default function AssetRow(props: AssetRowProps) {
                   }, DRAG_EXPAND_DELAY_MS)
                 }
                 // Required because `dragover` does not fire on `mouseenter`.
-                props.onDragOver?.(event)
                 onDragOver(event)
               }}
-              onDragOver={event => {
-                if (state.category === Category.trash) {
-                  event.dataTransfer.dropEffect = 'none'
-                }
-
-                props.onDragOver?.(event)
-                onDragOver(event)
-              }}
-              onDragEnd={event => {
-                clearDragState()
-                props.onDragEnd?.(event)
-              }}
+              onDragOver={onDragOver}
+              onDragEnd={onDragEnd}
               onDragLeave={event => {
                 if (
                   dragOverTimeoutHandle.current != null &&
@@ -280,35 +311,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
                 props.onDragLeave?.(event)
               }}
-              onDrop={event => {
-                if (state.category !== Category.trash) {
-                  props.onDrop?.(event)
-                  clearDragState()
-                  const directoryId =
-                    item.type === backendModule.AssetType.directory ? item.id : item.parentId
-                  const payload = drag.ASSET_ROWS.lookup(event)
-                  if (payload != null && payload.every(innerItem => innerItem.id !== directoryId)) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    unsetModal()
-                    setIsAssetOpen(backend.type, directoryId, true)
-                    const ids = payload
-                      .filter(payloadItem => payloadItem.parentId !== directoryId)
-                      .map(dragItem => dragItem.id)
-                    for (const id of ids) {
-                      updateAssetMutation.mutate([
-                        id,
-                        { description: null, parentDirectoryId: directoryId },
-                      ])
-                    }
-                  } else if (event.dataTransfer.types.includes('Files')) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    setIsAssetOpen(backend.type, directoryId, true)
-                    uploadFilesMutation.mutate([event.dataTransfer.files, directoryId])
-                  }
-                }
-              }}
+              onDrop={onDrop}
             >
               {columns.map(column => {
                 // This is a React component even though it does not contain JSX.
@@ -319,9 +322,6 @@ export default function AssetRow(props: AssetRowProps) {
                     <Render
                       item={item}
                       depth={depth}
-                      selected={selected}
-                      setSelected={setSelected}
-                      isSoleSelected={isSoleSelected}
                       state={state}
                       rowState={rowState}
                       setRowState={setRowState}
@@ -332,7 +332,7 @@ export default function AssetRow(props: AssetRowProps) {
               })}
             </tr>
           </FocusRing>
-          {selected && allowContextMenu && (
+          {isSelected && allowContextMenu && (
             // This is a copy of the context menu, since the context menu registers keyboard
             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
             // the entire context menu (once for the keyboard actions, once for the JSX).

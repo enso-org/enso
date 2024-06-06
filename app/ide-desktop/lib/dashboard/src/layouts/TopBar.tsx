@@ -33,7 +33,6 @@ export interface TopBarProps {
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly suggestions: assetSearchBar.Suggestion[]
   readonly isAssetPanelVisible: boolean
   readonly isAssetPanelEnabled: boolean
   readonly setIsAssetPanelEnabled: React.Dispatch<React.SetStateAction<boolean>>
@@ -44,8 +43,7 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
   const { backend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
-  const { isEditorDisabled, setIsHelpChatOpen } = props
-  const { query, setQuery, suggestions, isAssetPanelEnabled } = props
+  const { isEditorDisabled, setIsHelpChatOpen, query, setQuery, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, onSignOut } = props
   const remoteBackend = backendProvider.useRemoteBackend()
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
@@ -57,13 +55,7 @@ export default function TopBar(props: TopBarProps) {
         <div className="flex-1" />
       ) : (
         <div className="flex flex-1 flex-wrap justify-around">
-          <AssetSearchBar
-            backend={backend}
-            isCloud={isCloud}
-            query={query}
-            setQuery={setQuery}
-            suggestions={suggestions}
-          />
+          <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
         </div>
       )}
       <div

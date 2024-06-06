@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as tailwindMerge from 'tailwind-merge'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -30,7 +32,7 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { item, depth, state, rowState, setRowState, isEditable } = props
   const { backend, nodeMap } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.file) {
@@ -78,7 +80,10 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       onClick={event => {
         if (handleClick(event)) {
           // Already handled.
-        } else if (eventModule.isSingleClick(event) && selected) {
+        } else if (
+          eventModule.isSingleClick(event) &&
+          store.useStore.getState().getAssetState(backend.type, item.id).isSelected
+        ) {
           if (!isCloud) {
             setIsEditing(true)
           }

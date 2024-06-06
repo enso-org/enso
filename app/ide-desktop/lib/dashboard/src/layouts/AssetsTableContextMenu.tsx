@@ -54,8 +54,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const selectedIds = store.useStore(storeState => storeState.getSelectedIds(backend.type))
-  const setSelectedIds = store.useStore(storeState => storeState.setSelectedIds)
+  const selectedIds = store.useStore(storeState => storeState.getSelectedAssetIds(backend.type))
+  const setSelectedIds = store.useStore(storeState => storeState.setSelectedAssetIds)
   const isCloud = categoryModule.isCloud(category)
 
   const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
@@ -79,7 +79,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const doDeleteAll = () => {
     const deleteAll = () => {
       for (const key of selectedIds) {
-        deleteAssetMutation.mutate([key, { force: false, parentId: null }, '(unknown)'])
+        deleteAssetMutation.mutate([key, { force: false }])
       }
     }
     if (isCloud) {
@@ -141,7 +141,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                     doDelete={() => {
                       setSelectedIds(backend.type, [])
                       for (const id of selectedIds) {
-                        deleteAssetMutation.mutate([id, { force: true, parentId: null }])
+                        deleteAssetMutation.mutate([id, { force: true }])
                       }
                     }}
                   />

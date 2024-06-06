@@ -89,7 +89,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
 
   const doDelete = () => {
-    deleteAssetMutation.mutate([item.id, { force: false, parentId: item.parentId }])
+    deleteAssetMutation.mutate([item.id, { force: false }])
   }
 
   return category === Category.trash ? (
@@ -113,7 +113,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 <ConfirmDeleteModal
                   actionText={`delete the ${item.type} '${item.title}' forever`}
                   doDelete={() => {
-                    deleteAssetMutation.mutate([item.id, { force: true, parentId: item.parentId }])
+                    deleteAssetMutation.mutate([item.id, { force: true }])
                   }}
                 />
               )
@@ -146,7 +146,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               doAction={() => {
                 openProjectMutation.mutate([
                   item.id,
-                  { parentId: item.parentId, executeAsync: false, cognitoCredentials: session },
+                  { executeAsync: false, cognitoCredentials: session },
                 ])
               }}
             />
@@ -158,7 +158,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => {
               openProjectMutation.mutate([
                 item.id,
-                { parentId: item.parentId, executeAsync: true, cognitoCredentials: session },
+                { executeAsync: true, cognitoCredentials: session },
               ])
             }}
           />
