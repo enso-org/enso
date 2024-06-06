@@ -165,8 +165,8 @@ export function parseQualifiedName(ast: Ast): QualifiedName | null {
   return idents && normalizeQualifiedName(qnFromSegments(idents))
 }
 
-/** Substitute `pattern` inside `expression` with `to`. */
-// TODO: Make sure we do not replace parts of qualified names
+/** Substitute `pattern` inside `expression` with `to`. 
+  * Will only replace the first item in the property acccess chain. */
 export function substituteIdentifier(
   module: MutableModule,
   expression: Ast,
@@ -176,6 +176,9 @@ export function substituteIdentifier(
   const expr = module.getVersion(expression) ?? expression
   if (expr instanceof Ident && expr.code() === pattern) {
     expr.updateValue(() => Ast.parse(to, module))
+  } else if (expr instanceof PropertyAccess && expr.lhs instanceof Ident) {
+    // Substitute only the first item in the property access chain.
+    substituteIdentifier(module, expr.lhs, pattern, to)
   } else {
     for (const child of expr.children()) {
       if (child instanceof Token) {
