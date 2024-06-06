@@ -5,8 +5,6 @@
  */
 import * as React from 'react'
 
-import type * as stripeJs from '@stripe/stripe-js'
-
 import OpenInNewTabIcon from 'enso-assets/open.svg'
 
 import type * as text from '#/text'
@@ -15,20 +13,17 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
+import AddPaymentMethodModal from '#/modals/AddPaymentMethodModal'
+
 import * as backendModule from '#/services/Backend'
 
-import * as string from '#/utilities/string'
-
 import * as constants from '../constants'
-import * as components from './components'
 
 /**
  * The props for the submit button.
  */
 interface SubmitButtonProps {
   readonly onSubmit: (paymentMethodId: string) => Promise<void>
-  readonly elements: stripeJs.StripeElements
-  readonly stripe: stripeJs.Stripe
   readonly plan: backendModule.Plan
   readonly defaultOpen?: boolean
 }
@@ -84,7 +79,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     },
     pricing: 'soloPlanPricing',
     submitButton: props => {
-      const { onSubmit, elements, stripe, defaultOpen = false, plan } = props
+      const { onSubmit, defaultOpen = false, plan } = props
       const { getText } = textProvider.useText()
 
       return (
@@ -93,9 +88,11 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
             {getText('subscribe')}
           </ariaComponents.Button>
 
-          <ariaComponents.Dialog title={getText('upgradeTo', string.capitalizeFirst(plan))}>
-            <components.SubscribeForm onSubmit={onSubmit} elements={elements} stripe={stripe} />
-          </ariaComponents.Dialog>
+          <AddPaymentMethodModal
+            title={getText('upgradeTo', getText(plan))}
+            onSubmit={onSubmit}
+            submitText={getText('subscribeSubmit')}
+          />
         </ariaComponents.DialogTrigger>
       )
     },
@@ -124,7 +121,7 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
     title: constants.PLAN_TO_TEXT_ID['team'],
     subtitle: 'teamPlanSubtitle',
     submitButton: props => {
-      const { onSubmit, elements, stripe, defaultOpen = false, plan } = props
+      const { onSubmit, defaultOpen = false, plan } = props
       const { getText } = textProvider.useText()
 
       return (
@@ -133,9 +130,11 @@ const COMPONENT_PER_PLAN: Record<backendModule.Plan, ComponentForPlan> = {
             {getText('subscribe')}
           </ariaComponents.Button>
 
-          <ariaComponents.Dialog title={getText('upgradeTo', string.capitalizeFirst(plan))}>
-            <components.SubscribeForm onSubmit={onSubmit} elements={elements} stripe={stripe} />
-          </ariaComponents.Dialog>
+          <AddPaymentMethodModal
+            title={getText('upgradeTo', getText(plan))}
+            onSubmit={onSubmit}
+            submitText={getText('subscribeSubmit')}
+          />
         </ariaComponents.DialogTrigger>
       )
     },
