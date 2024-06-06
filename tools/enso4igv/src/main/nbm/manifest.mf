@@ -2,4 +2,4 @@ Manifest-Version: 1.0
 OpenIDE-Module-Layer: org/enso/tools/enso4igv/layer.xml
 OpenIDE-Module-Localizing-Bundle: org/enso/tools/enso4igv/Bundle.properties
 Multi-Release: true
-OpenIDE-Module-Recommends: cnb.org.netbeans.modules.java.kit, cnb.org.netbeans.modules.debugger.jpda.truffle, cnd.org.netbeans.modules.terminal
+OpenIDE-Module-Recommends: cnb.org.netbeans.modules.java.kit, cnb.org.netbeans.modules.debugger.jpda.truffle, cnd.org.netbeans.modules.terminal, cnd.org.netbeans.modules.git
