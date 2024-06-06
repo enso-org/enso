@@ -37,7 +37,7 @@ type Project_Description
 
              Project_Description.new Standard.Base.Data.Vector
     new : (Any | Nothing) -> Project_Description ! Module_Not_In_Package_Error
-    new module=Nothing = Project_Description.enso_project_builtin module
+    private new module=Nothing = Project_Description.enso_project_builtin module
 
     ## PRIVATE
        A representation of an Enso project.
@@ -45,7 +45,7 @@ type Project_Description
        Arguments:
        - prim_root_file: The primitive root file of the project.
        - prim_config: The primitive config of the project.
-    Value prim_root_file prim_config
+    private Value prim_root_file prim_config
 
     ## GROUP Metadata
        ICON folder
