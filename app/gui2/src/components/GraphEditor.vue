@@ -589,6 +589,11 @@ async function handleFileDrop(event: DragEvent) {
   const MULTIPLE_FILES_GAP = 50
 
   if (!event.dataTransfer?.items) return
+  const projectRootId = await projectStore.projectRootId
+  if (projectRootId == null) {
+    console.error('Could not find project root, uploading not possible.')
+    return
+  }
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
     if (item.kind === 'file') {
       const file = item.getAsFile()
@@ -596,10 +601,10 @@ async function handleFileDrop(event: DragEvent) {
       const clientPos = new Vec2(event.clientX, event.clientY)
       const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
       const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
-      const uploader = await Uploader.Create(
+      const uploader = Uploader.Create(
         projectStore.lsRpcConnection,
         projectStore.dataConnection,
-        projectStore.contentRoots,
+        projectRootId,
         projectStore.awareness,
         file,
         pos,

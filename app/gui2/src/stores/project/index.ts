@@ -347,6 +347,10 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       },
     })
 
+    const projectRootId = contentRoots.then(
+      (roots) => roots.find((root) => root.type === 'Project')?.id,
+    )
+
     return proxyRefs({
       setObservedFileName(name: string) {
         observedFileName.value = name
@@ -364,7 +368,7 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       modulePath,
       entryPoint,
       projectModel,
-      contentRoots,
+      projectRootId,
       awareness: markRaw(awareness),
       computedValueRegistry: markRaw(computedValueRegistry),
       lsRpcConnection: markRaw(lsRpcConnection),
