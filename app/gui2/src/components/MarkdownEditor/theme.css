@@ -51,3 +51,8 @@ using `_` to separate levels. See the `lexicalTheme` function in `lexical/format
   list-style-position: outside;
   padding-left: 1.6em;
 }
+
+.image > img {
+  display: inline;
+  margin: 0 0.1em;
+}

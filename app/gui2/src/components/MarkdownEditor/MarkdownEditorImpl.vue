@@ -1,67 +1,36 @@
 <script setup lang="ts">
 import FloatingSelectionMenu from '@/components/MarkdownEditor/FloatingSelectionMenu.vue'
 import FormattingToolbar from '@/components/MarkdownEditor/FormattingToolbar.vue'
+import { imagePlugin } from '@/components/MarkdownEditor/ImagePlugin'
 import SelectionFormattingToolbar from '@/components/MarkdownEditor/SelectionFormattingToolbar.vue'
-import { useFormatting } from '@/components/MarkdownEditor/formatting'
-import { listPlugin } from '@/components/MarkdownEditor/listPlugin'
-import { lexicalTheme, useLexical, type LexicalPlugin } from '@/components/lexical'
-import LexicalContent from '@/components/lexical/LexicalContent.vue'
-import { useLexicalStringSync } from '@/components/lexical/sync'
-import { CodeHighlightNode, CodeNode } from '@lexical/code'
-import { AutoLinkNode, LinkNode } from '@lexical/link'
-import { ListItemNode, ListNode } from '@lexical/list'
+import { lexicalRichTextTheme, useFormatting } from '@/components/MarkdownEditor/formatting'
 import {
-  $convertFromMarkdownString,
-  $convertToMarkdownString,
-  TRANSFORMERS,
-  registerMarkdownShortcuts,
-} from '@lexical/markdown'
-import { HeadingNode, QuoteNode, registerRichText } from '@lexical/rich-text'
-import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
-import { shallowRef, useCssModule, watch, type ComponentInstance } from 'vue'
+  provideLexicalImageUrlTransformer,
+  type UrlTransformer,
+} from '@/components/MarkdownEditor/imageUrlTransformer'
+import { listPlugin } from '@/components/MarkdownEditor/listPlugin'
+import { markdownPlugin } from '@/components/MarkdownEditor/markdown'
+import { useLexical } from '@/components/lexical'
+import LexicalContent from '@/components/lexical/LexicalContent.vue'
+import LexicalDecorators from '@/components/lexical/LexicalDecorators.vue'
+import { shallowRef, toRef, useCssModule, type ComponentInstance } from 'vue'
 
 const markdown = defineModel<string>({ required: true })
+const props = defineProps<{
+  transformImageUrl?: UrlTransformer | undefined
+}>()
 
 const contentElement = shallowRef<ComponentInstance<typeof LexicalContent>>()
 
-const markdownPlugin: LexicalPlugin = {
-  nodes: [
-    HeadingNode,
-    QuoteNode,
-    ListItemNode,
-    ListNode,
-    AutoLinkNode,
-    LinkNode,
-    CodeHighlightNode,
-    CodeNode,
-    TableCellNode,
-    TableNode,
-    TableRowNode,
-  ],
-  register: (editor) => {
-    registerRichText(editor)
-    registerMarkdownShortcuts(editor, TRANSFORMERS)
-  },
-}
+provideLexicalImageUrlTransformer(toRef(props, 'transformImageUrl'))
 
-const markdownSyncPlugin: LexicalPlugin = {
-  register: (editor) => {
-    const { content } = useLexicalStringSync(
-      editor,
-      () => $convertToMarkdownString(TRANSFORMERS),
-      (value) => $convertFromMarkdownString(value, TRANSFORMERS),
-    )
-    watch(markdown, (newContent) => content.set(newContent), { immediate: true })
-    watch(content.state, (newContent) => (markdown.value = newContent))
-  },
-}
-
-const theme = lexicalTheme(useCssModule('lexicalTheme'))
-const { editor } = useLexical(contentElement, 'MarkdownEditor', theme, [
-  listPlugin,
-  markdownPlugin,
-  markdownSyncPlugin,
-])
+const theme = lexicalRichTextTheme(useCssModule('lexicalTheme'))
+const { editor } = useLexical(
+  contentElement,
+  'MarkdownEditor',
+  theme,
+  markdownPlugin(markdown, [listPlugin, imagePlugin]),
+)
 const formatting = useFormatting(editor)
 </script>
 
@@ -72,6 +41,7 @@ const formatting = useFormatting(editor)
     <FloatingSelectionMenu :selectionElement="contentElement">
       <SelectionFormattingToolbar :formatting="formatting" />
     </FloatingSelectionMenu>
+    <LexicalDecorators :editor="editor" />
   </div>
 </template>
 

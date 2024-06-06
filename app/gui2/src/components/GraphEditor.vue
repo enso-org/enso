@@ -64,7 +64,6 @@ import {
   shallowRef,
   toRaw,
   toRef,
-  toValue,
   watch,
   type ComponentInstance,
 } from 'vue'
@@ -380,7 +379,7 @@ const documentationEditorArea = computed(() => unrefElement(rightDock))
 const showDocumentationEditor = computedFallback(
   storedShowDocumentationEditor,
   // Show documentation editor when documentation exists on first graph visit.
-  () => !!toValue(documentation.state),
+  () => !!documentation.state.value,
 )
 
 const documentationEditorHandler = documentationEditorBindings.handler({
