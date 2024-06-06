@@ -63,70 +63,66 @@ class UpsertVisualizationJob(
     ctx.locking.withContextLock(
       config.executionContextId,
       this.getClass,
-      () =>
-        ctx.locking.withWriteCompilationLock(
-          this.getClass,
-          () => {
-            val maybeCallable =
-              UpsertVisualizationJob.evaluateVisualizationExpression(
-                config.visualizationModule,
-                config.expression
+      () => {
+        val maybeCallable =
+          UpsertVisualizationJob.evaluateVisualizationExpression(
+            config.visualizationModule,
+            config.expression
+          )
+
+        maybeCallable match {
+          case Left(ModuleNotFound(moduleName)) =>
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ModuleNotFound(moduleName))
+            )
+            None
+
+          case Left(EvaluationFailed(message, result)) =>
+            replyWithExpressionFailedError(
+              config.executionContextId,
+              visualizationId,
+              expressionId,
+              message,
+              result
+            )
+            None
+
+          case Right(EvaluationResult(module, callable, arguments)) =>
+            val visualization =
+              UpsertVisualizationJob.updateAttachedVisualization(
+                visualizationId,
+                expressionId,
+                module,
+                config,
+                callable,
+                arguments
               )
-
-            maybeCallable match {
-              case Left(ModuleNotFound(moduleName)) =>
-                ctx.endpoint.sendToClient(
-                  Api.Response(Api.ModuleNotFound(moduleName))
-                )
-                None
-
-              case Left(EvaluationFailed(message, result)) =>
-                replyWithExpressionFailedError(
+            val stack =
+              ctx.contextManager.getStack(config.executionContextId)
+            val runtimeCache = stack.headOption
+              .flatMap(frame => Option(frame.cache))
+            val cachedValue = runtimeCache
+              .flatMap(c => Option(c.get(expressionId)))
+            UpsertVisualizationJob.requireVisualizationSynchronization(
+              stack,
+              expressionId
+            )
+            cachedValue match {
+              case Some(value) =>
+                ProgramExecutionSupport.executeAndSendVisualizationUpdate(
                   config.executionContextId,
-                  visualizationId,
+                  runtimeCache.getOrElse(new RuntimeCache),
+                  stack.headOption.get.syncState,
+                  visualization,
                   expressionId,
-                  message,
-                  result
+                  value
                 )
                 None
-
-              case Right(EvaluationResult(module, callable, arguments)) =>
-                val visualization =
-                  UpsertVisualizationJob.updateAttachedVisualization(
-                    visualizationId,
-                    expressionId,
-                    module,
-                    config,
-                    callable,
-                    arguments
-                  )
-                val stack =
-                  ctx.contextManager.getStack(config.executionContextId)
-                val runtimeCache = stack.headOption
-                  .flatMap(frame => Option(frame.cache))
-                val cachedValue = runtimeCache
-                  .flatMap(c => Option(c.get(expressionId)))
-                UpsertVisualizationJob.requireVisualizationSynchronization(
-                  stack,
-                  expressionId
-                )
-                cachedValue match {
-                  case Some(value) =>
-                    ProgramExecutionSupport.executeAndSendVisualizationUpdate(
-                      config.executionContextId,
-                      runtimeCache.getOrElse(new RuntimeCache),
-                      stack.headOption.get.syncState,
-                      visualization,
-                      expressionId,
-                      value
-                    )
-                    None
-                  case None =>
-                    Some(Executable(config.executionContextId, stack))
-                }
+              case None =>
+                Some(Executable(config.executionContextId, stack))
             }
-          }
-        )
+        }
+      }
     )
   }
 
@@ -284,7 +280,6 @@ object UpsertVisualizationJob {
   ): Either[EvaluationFailure, AnyRef] = {
     Either
       .catchNonFatal {
-        ctx.locking.assertWriteCompilationLock()
         ctx.executionService.evaluateExpression(module, argumentExpression)
       }
       .leftFlatMap {
@@ -355,7 +350,6 @@ object UpsertVisualizationJob {
       .catchNonFatal {
         expression match {
           case Api.VisualizationExpression.Text(_, expression, _) =>
-            ctx.locking.assertWriteCompilationLock()
             ctx.executionService.evaluateExpression(
               expressionModule,
               expression
@@ -504,7 +498,10 @@ object UpsertVisualizationJob {
         callback,
         arguments
       )
-    invalidateCaches(visualization)
+    ctx.locking.withWriteCompilationLock(
+      this.getClass,
+      () => invalidateCaches(visualization)
+    )
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization

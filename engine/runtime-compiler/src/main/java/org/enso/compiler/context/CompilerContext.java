@@ -70,11 +70,12 @@ public interface CompilerContext extends CompilerStub {
 
   // Truffle related
 
-  void truffleRunCodegen(Module module, CompilerConfig config) throws IOException;
+  void truffleRunCodegen(Module module, ModuleScopeBuilder scopeBuilder, CompilerConfig config)
+      throws IOException;
 
   // module related
 
-  void runStubsGenerator(Module module);
+  void runStubsGenerator(Module module, ModuleScopeBuilder scopeBuilder);
 
   boolean typeContainsValues(String name);
 
@@ -147,5 +148,11 @@ public interface CompilerContext extends CompilerStub {
     public abstract org.enso.compiler.core.ir.Module getIr();
 
     public abstract boolean isPrivate();
+
+    public abstract ModuleScopeBuilder getScopeBuilder();
+
+    public abstract ModuleScopeBuilder newScopeBuilder();
   }
+
+  public abstract static class ModuleScopeBuilder {}
 }
