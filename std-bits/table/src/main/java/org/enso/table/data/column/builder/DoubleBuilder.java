@@ -205,7 +205,7 @@ public class DoubleBuilder extends NumericBuilder {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
     if (isLosingPrecision) {
-      precisionLossAggregator.reportPrecisionLoss(integer, floatingPointValue);
+      precisionLossAggregator.reportIntegerPrecisionLoss(integer, floatingPointValue);
     }
     return floatingPointValue;
   }
@@ -215,17 +215,21 @@ public class DoubleBuilder extends NumericBuilder {
     BigInteger reconstructed = BigDecimal.valueOf(floatingPointValue).toBigInteger();
     boolean isLosingPrecision = !bigInteger.equals(reconstructed);
     if (isLosingPrecision) {
-      precisionLossAggregator.reportPrecisionLoss(bigInteger, floatingPointValue);
+      precisionLossAggregator.reportIntegerPrecisionLoss(bigInteger, floatingPointValue);
     }
     return floatingPointValue;
   }
 
   protected double convertBigDecimalToDouble(BigDecimal bigDecimal) {
     double floatingPointValue = bigDecimal.doubleValue();
-    BigDecimal reconstructed = BigDecimal.valueOf(floatingPointValue);
-    boolean isLosingPrecision = !bigDecimal.equals(reconstructed);
-    if (isLosingPrecision) {
-      precisionLossAggregator.reportPrecisionLoss(bigDecimal, floatingPointValue);
+    if (Double.isInfinite(floatingPointValue)) {
+      precisionLossAggregator.reportBigDecimalPrecisionLoss(bigDecimal, floatingPointValue);
+    } else {
+      BigDecimal reconstructed = BigDecimal.valueOf(floatingPointValue);
+      boolean isLosingPrecision = !bigDecimal.equals(reconstructed);
+      if (isLosingPrecision) {
+        precisionLossAggregator.reportBigDecimalPrecisionLoss(bigDecimal, floatingPointValue);
+      }
     }
     return floatingPointValue;
   }
@@ -235,22 +239,34 @@ public class DoubleBuilder extends NumericBuilder {
       super(parent);
     }
 
-    private LossOfIntegerPrecision instance = null;
+    private LossOfIntegerPrecision integerInstance = null;
+    private LossOfBigDecimalPrecision bigDecimalInstance = null;
 
     @Override
     public ProblemSummary summarize() {
       ProblemSummary summary = super.summarize();
-      if (instance != null) {
-        summary.add(instance);
+      if (integerInstance != null) {
+        summary.add(integerInstance);
+      }
+      if (bigDecimalInstance != null) {
+        summary.add(bigDecimalInstance);
       }
       return summary;
     }
 
-    final void reportPrecisionLoss(Number number, double approximation) {
-      if (instance == null) {
-        instance = new LossOfIntegerPrecision(number, approximation);
+    final void reportIntegerPrecisionLoss(Number number, double approximation) {
+      if (integerInstance == null) {
+        integerInstance = new LossOfIntegerPrecision(number, approximation);
       } else {
-        instance.incrementAffectedRows();
+        integerInstance.incrementAffectedRows();
+      }
+    }
+
+    final void reportBigDecimalPrecisionLoss(BigDecimal number, double approximation) {
+      if (bigDecimalInstance == null) {
+        bigDecimalInstance = new LossOfBigDecimalPrecision(number, approximation);
+      } else {
+        bigDecimalInstance.incrementAffectedRows();
       }
     }
   }

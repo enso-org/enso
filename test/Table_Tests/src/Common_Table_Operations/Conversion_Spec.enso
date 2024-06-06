@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Value_Type, Bits
-from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
+from Standard.Table.Errors import Loss_Of_Decimal_Precision, Loss_Of_Integer_Precision, Missing_Input_Columns, Conversion_Failure
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
@@ -265,6 +265,12 @@ add_specs suite_builder setup =
                 Problems.expect_only_warning Conversion_Failure t32
                 t64 = table_builder [["x", [Decimal.new "9223372036854775809"]]] . cast ["x"] (Value_Type.Integer Bits.Bits_64)
                 Problems.expect_only_warning Conversion_Failure t64
+
+            group_builder.specify "Attaches warning on loss of precision" <|
+                tf = table_builder [["x", [Decimal.new "1E310"]]] . cast ["x"] Value_Type.Float
+                Problems.expect_only_warning Loss_Of_Decimal_Precision tf
+                tbi = table_builder [["x", [9223372036854775807000]]] . cast ["x"] Value_Type.Float
+                Problems.expect_only_warning Loss_Of_Integer_Precision tbi
 
         if setup.is_database.not then
             group_builder.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|
