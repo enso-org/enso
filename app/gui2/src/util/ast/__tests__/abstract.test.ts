@@ -5,6 +5,7 @@ import {
   TextLiteral,
   escapeTextLiteral,
   substituteQualifiedName,
+  substituteIdentifier,
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
@@ -853,7 +854,7 @@ test.each([
     substitution: 'ShouldNotWork',
     expected: 'Data.Table.new',
   },
-])('Substitute $pattern insde $original', ({ original, pattern, substitution, expected }) => {
+])('Substitute qualified name $pattern insde $original', ({ original, pattern, substitution, expected }) => {
   const expression = Ast.parse(original)
   expression.module.replaceRoot(expression)
   const edit = expression.module.edit()
@@ -862,6 +863,50 @@ test.each([
     expression,
     pattern as Ast.QualifiedName,
     unwrap(tryQualifiedName(substitution)),
+  )
+  expect(edit.root()?.code()).toEqual(expected)
+})
+
+test.each([
+  {
+    original: 'some_name',
+    pattern: 'some_name',
+    substitution: 'other_name',
+    expected: 'other_name',
+  },
+  {
+    original: 'x = Table.from_vec (node1.new 1 2 3)',
+    pattern: 'node1',
+    substitution: 'node2',
+    expected: 'x = Table.from_vec (node2.new 1 2 3)',
+  },
+  {
+    original: 'x = some_func "node1"',
+    pattern: 'node1',
+    substitution: 'node2',
+    expected: 'x = some_func "node1"',
+  },
+  {
+    original: 'x + y',
+    pattern: 'x',
+    substitution: 'z',
+    expected: 'z + y',
+  },
+  {
+    original: 'node1.node2.node3',
+    pattern: 'node2',
+    substitution: 'ShouldNotWork',
+    expected: 'node1.node2.node3',
+  },
+])('Substitute identifier $pattern insde $original', ({ original, pattern, substitution, expected }) => {
+  const expression = Ast.parse(original)
+  expression.module.replaceRoot(expression)
+  const edit = expression.module.edit()
+  substituteIdentifier(
+    edit,
+    expression,
+    pattern as Ast.Identifier,
+    substitution as Ast.Identifier,
   )
   expect(edit.root()?.code()).toEqual(expected)
 })
