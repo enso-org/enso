@@ -292,7 +292,7 @@ type File
              example_xls_to_table = Examples.xls.read (Excel_Format.Sheet 'Dates')
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! File_Error
-    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
+    read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
             if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
                 File_Format.handle_format_missing_arguments format <|
@@ -333,7 +333,7 @@ type File
              example_read = Examples.csv.read
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
         bytes = self.read_bytes
         Text.from_bytes bytes encoding on_problems
 
@@ -660,7 +660,7 @@ type File
                  file.write_text "hello"
                  file.delete
     delete : Boolean -> Nothing ! File_Error
-    delete self (recursive : Boolean = False) -> Nothing =
+    delete self (recursive : Boolean = False) -> Nothing ! File_Error =
         Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
             File_Error.handle_java_exceptions self (self.delete_builtin recursive)
 

@@ -20,7 +20,7 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
-  setNodeColor: [color: string]
+  setNodeColor: [color: string | undefined]
 }>()
 
 const projectStore = useProjectStore()
@@ -48,7 +48,6 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :node="node"
     :edited="id === graphStore.editedNodeInfo?.id"
     :graphNodeSelections="props.graphNodeSelections"
-    :data-node="id"
     @delete="graphStore.deleteNodes([id])"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
@@ -59,6 +58,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @setNodeColor="emit('setNodeColor', $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
+    @update:hoverAnim="graphStore.updateNodeHoverAnim(id, $event)"
     @update:visualizationId="
       graphStore.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
     "

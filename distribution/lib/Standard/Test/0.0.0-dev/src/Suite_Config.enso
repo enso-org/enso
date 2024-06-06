@@ -50,7 +50,7 @@ type Suite_Config
     ## Creates an Suite_Config based off environment and caller location
     from_environment : Suite_Config
     from_environment =
-        print_only_failures = Environment.get "REPORT_ONLY_FAILED" != Nothing
+        print_only_failures = Environment.get "REPORT_ALL_TESTS" . is_nothing
         junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
         use_ansi_colors = Environment.get "ENSO_TEST_ANSI_COLORS" . is_nothing . not
         caller_script = find_caller_script Runtime.get_stack_trace

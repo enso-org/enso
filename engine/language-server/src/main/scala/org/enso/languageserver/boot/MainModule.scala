@@ -24,7 +24,7 @@ import org.enso.languageserver.monitoring.{
   IdlenessEndpoint,
   IdlenessMonitor
 }
-import org.enso.languageserver.profiling.ProfilingManager
+import org.enso.languageserver.profiling.{EventsMonitorActor, ProfilingManager}
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -64,6 +64,7 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
+
 import scala.concurrent.duration._
 
 /** A main module containing all components of the server.
@@ -171,22 +172,39 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     "lock-manager-service"
   )
 
-  val runtimeEventsMonitor =
+  private val (runtimeEventsMonitor, messagesCallbackOpt) =
     languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
         val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
-        new RuntimeEventsMonitor(out)
+        new RuntimeEventsMonitor(out) -> Some(())
       case None =>
-        new NoopEventsMonitor()
+        new NoopEventsMonitor() -> None
     }
   log.trace(
     "Started runtime events monitor [{}].",
     runtimeEventsMonitor.getClass.getName
   )
 
+  private val eventsMonitor =
+    system.actorOf(
+      EventsMonitorActor.props(runtimeEventsMonitor),
+      "events-monitor"
+    )
+
+  private val messagesCallback =
+    messagesCallbackOpt
+      .map(_ => EventsMonitorActor.messagesCallback(eventsMonitor))
+      .toList
+
+  private val profilingManager =
+    system.actorOf(
+      ProfilingManager.props(eventsMonitor, distributionManager),
+      "profiling-manager"
+    )
+
   lazy val runtimeConnector =
     system.actorOf(
-      RuntimeConnector.props(lockManagerService, runtimeEventsMonitor),
+      RuntimeConnector.props(lockManagerService, eventsMonitor),
       "runtime-connector"
     )
 
@@ -295,6 +313,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       RuntimeOptions.LOG_LEVEL,
       Converter.toJavaLevel(logLevel).getName
     )
+    .option(RuntimeOptions.STRICT_ERRORS, "false")
     .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
     .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
     .option(
@@ -367,12 +386,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     ProjectSettingsManager.props(contentRoot.file, editionResolver),
     "project-settings-manager"
   )
-
-  val profilingManager =
-    system.actorOf(
-      ProfilingManager.props(runtimeConnector, distributionManager),
-      "profiling-manager"
-    )
 
   val libraryLocations =
     LibraryLocations.resolve(
@@ -458,7 +471,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
 
   val secureConfig = SecureConnectionConfig
-    .fromApplicationConfig(applicationConfig())
+    .fromApplicationConfig(akkaHttpsConfig())
     .fold(
       v => v.flatMap(msg => { log.warn(s"invalid secure config: $msg"); None }),
       Some(_)
@@ -474,7 +487,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           lazyMessageTimeout = 10.seconds,
           secureConfig       = secureConfig
         ),
-      List(healthCheckEndpoint, idlenessEndpoint)
+      List(healthCheckEndpoint, idlenessEndpoint),
+      messagesCallback
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
 
@@ -487,7 +501,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         outgoingBufferSize = 100,
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
-      )
+      ),
+      messagesCallback
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
 
@@ -500,10 +515,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     context.close()
+    runtimeEventsMonitor.close()
     log.info("Closed Language Server main module.")
   }
 
-  private def applicationConfig(): com.typesafe.config.Config = {
+  private def akkaHttpsConfig(): com.typesafe.config.Config = {
     val empty = ConfigFactory.empty().atPath("akka.https")
     ConfigFactory
       .load()

@@ -30,22 +30,23 @@ from project.Data.Filter_Condition import unify_condition_or_predicate, unify_co
 from project.Data.Index_Sub_Range import Index_Sub_Range
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
+from project.Metadata import Display, Widget
 from project.Runtime import assert
 
 polyglot java import java.lang.IndexOutOfBoundsException
 
-##  The basic, immutable, vector type.
-    A vector allows to store an arbitrary number of elements, in linear memory.
-    It is the recommended data structure for most applications.
+## The basic, immutable, vector type.
+   A vector allows to store an arbitrary number of elements, in linear memory.
+   It is the recommended data structure for most applications.
 
-    > Example
-      A vector containing the elements `1`, `2`, and `3`, in this order is:
-          [1, 2, 3]
+   > Example
+     A vector containing the elements `1`, `2`, and `3`, in this order is:
+         [1, 2, 3]
 
-    > Example
-      A vector containing 50 elements, each being the number `42`, can be
-      created by:
-          Vector.fill length=50 item=42
+   > Example
+     A vector containing 50 elements, each being the number `42`, can be
+     created by:
+         Vector.fill length=50 item=42
 
 @Builtin_Type
 type Vector a
@@ -147,40 +148,7 @@ type Vector a
     fill length item =
         Vector.new length _->item
 
-    ## PRIVATE
-       ADVANCED
-       DEPRECATED `Vector.build` is the preferred way to build `Vector`s.
-       Creates a new vector builder instance.
-
-       A vector `Builder` is a mutable data structure, that allows for gathering
-       a number of elements and then converting them into a vector. This is
-       particularly useful when the number of elements is not known upfront.
-
-       A vector allows to store an arbitrary number of elements in linear
-       memory. It is the recommended data structure for most applications.
-
-       The `Vector.build` method is preferred over `.new_builder`, since it
-       automatically closes and returns the finished `Vector`.
-
-       Arguments:
-       - capacity: Initial capacity of the Vector.Builder
-
-       > Example
-         Construct a vector using a builder that contains the items 1 to 5.
-
-             example_new_builder =
-                  builder = Vector.new_builder 5
-                  do_build start stop =
-                      builder.append start
-                      if start >= stop then Nothing else
-                          @Tail_Call do_build start+1 stop
-                  do_build 1 5
-                  builder.to_vector
-    new_builder : Integer -> Builder
-    new_builder (capacity=10) = Builder.new capacity
-
-    ## PRIVATE
-       ADVANCED
+    ## ADVANCED
        Creates a new `Vector` by passing a `Builder` to the provided function.
 
        A vector `Builder` is a mutable data structure, that allows for gathering
@@ -204,6 +172,8 @@ type Vector a
        - function: a function taking a `Builder` and adding elements to it.
        - initial_capacity: Initial capacity of the `Builder`; this is for
          pre-allocation and does not affect the size of the resulting `Vector`.
+       - propagate_warnings: If False, do not gather warnings from values
+         added to the builder. Defaults to True.
 
        ! Error Conditions
 
@@ -218,10 +188,10 @@ type Vector a
                  builder.append 2
                  builder.append 3
              # => [1, 2, 3]
-    build : (Builder -> Any) -> Integer -> Vector
-    build (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector =
+    build : (Builder -> Any) -> Integer -> Boolean -> Vector
+    build (function : Builder -> Any) (initial_capacity : Integer = 10) (propagate_warnings : Boolean = True) -> Vector =
         # Delegate to .build_multiple
-        results_multiple = Vector.build_multiple 1 initial_capacity=initial_capacity (builders-> function (builders.at 0))
+        results_multiple = Vector.build_multiple 1 (builders-> function (builders.at 0)) initial_capacity propagate_warnings
         results_multiple.if_not_error (results_multiple.at 0)
 
     ## PRIVATE
@@ -271,10 +241,10 @@ type Vector a
                  builder1.append 4
                  builder1.append 5
              # => [[0, 1, 2], [3, 4, 5]]
-    build_multiple : Integer -> (Builder -> Any) -> Integer -> Vector Vector
-    build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) -> Vector Vector =
+    build_multiple : Integer -> (Builder -> Any) -> Integer -> Boolean -> Vector Vector
+    build_multiple (count : Integer) (function : Builder -> Any) (initial_capacity : Integer = 10) (propagate_warnings : Boolean = True) -> Vector Vector =
         if count < 0 then Error.throw (Illegal_Argument.Error "count must be non-negative: "+count.to_text) else
-            builders = Range.new 0 count . map (_-> Build_Style_Builder.new initial_capacity)
+            builders = Range.new 0 count . map (_-> Builder.new initial_capacity propagate_warnings)
             Panic.handle_wrapped_dataflow_error <|
                 function builders . if_not_error (builders.map .to_vector)
 
@@ -310,7 +280,7 @@ type Vector a
     length self = Array_Like_Helpers.length self
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets an element from the vector at a specified index (0-based).
 
        Arguments:
@@ -327,10 +297,11 @@ type Vector a
          Get the last element of a vector.
 
              [1, 2, 3].at -1 == 3
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index = Array_Like_Helpers.at self index
+    at self index:Integer=0 = Array_Like_Helpers.at self index
 
-    ## ICON select_row
+    ## ICON parse3
        Gets an element from the vector at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
@@ -339,11 +310,12 @@ type Vector a
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         Array_Like_Helpers.get self index if_missing
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
 
@@ -364,7 +336,7 @@ type Vector a
     fold self init function =
         Array_Like_Helpers.fold self init function
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
 
@@ -381,7 +353,7 @@ type Vector a
     fold_with_index self init function =
         Array_Like_Helpers.fold_with_index self init function
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the vector, by iteratively applying the
        passed function with the next element of the vector. After each step the
        value is stored resulting in a new vector of the same size as self.
@@ -398,7 +370,7 @@ type Vector a
     running_fold self init function =
         Array_Like_Helpers.running_fold self init function
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of a non-empty vector using a binary operation.
        If the vector is empty, it returns `if_empty`.
 
@@ -603,7 +575,7 @@ type Vector a
         Array_Like_Helpers.filter_with_index self predicate
 
     ## GROUP Selections
-       ICON split_text
+       ICON split
        Partitions the vector into `Vector`s of elements which satisfy a given
        condition and ones that do not.
 
@@ -656,7 +628,7 @@ type Vector a
         Array_Like_Helpers.partition_with_index self predicate
 
     ## GROUP Selections
-       ICON dataframe_map_row
+       ICON map_row
        Swaps the rows and columns of a matrix represented by a vector of vectors.
 
        ! Error Conditions
@@ -691,7 +663,7 @@ type Vector a
     transpose self =
         Array_Like_Helpers.transpose self
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element of the vector, returning the `Vector` of
        results.
 
@@ -701,7 +673,7 @@ type Vector a
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -709,7 +681,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -730,7 +702,7 @@ type Vector a
     map self function on_problems=Problem_Behavior.Report_Error =
         Array_Like_Helpers.map self function on_problems
 
-    ## ICON dataframes_union
+    ## ICON union
        Applies a function to each element of the vector, returning the `Vector`
        that contains all results concatenated.
 
@@ -740,7 +712,7 @@ type Vector a
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -748,7 +720,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -770,7 +742,7 @@ type Vector a
         Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Calculations
-       ICON dataframes_union
+       ICON union
        Transforms a vector of vectors into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested vectors.
 
@@ -781,7 +753,7 @@ type Vector a
     flatten : Vector Any
     flatten self = Array_Like_Helpers.flatten self
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element of the vector, returning the `Vector`
        of results.
 
@@ -794,7 +766,7 @@ type Vector a
        The function is called with both the element index as well as the
        element itself.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -802,7 +774,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -908,7 +880,7 @@ type Vector a
 
     ## ALIAS append, concatenate, union
        GROUP Operators
-       ICON dataframes_union
+       ICON union
        Concatenates two vectors, resulting in a new `Vector`, containing all the
        elements of `self`, followed by all the elements of `that`.
 
@@ -989,9 +961,9 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = Array_Like_Helpers.slice self start end
 
-    ## ALIAS first, head, last, limit, sample, slice, tail, top
+    ## ALIAS first, head, last, limit, sample, slice, tail, top, keep
        GROUP Selections
-       ICON select_row
+       ICON parse3
        Creates a new `Vector` with only the specified range of elements from the
        input, removing any elements outside the range.
 
@@ -1005,9 +977,9 @@ type Vector a
     take self range=(Index_Sub_Range.First 1) =
         Array_Like_Helpers.take self range
 
-    ## ALIAS skip
+    ## ALIAS skip, remove
        GROUP Selections
-       ICON select_row
+       ICON parse3
        Creates a new `Vector`, removing any elements from the specified range.
 
        Arguments:
@@ -1022,7 +994,7 @@ type Vector a
 
     ## ALIAS combine, join by row position, merge
        GROUP Calculations
-       ICON dataframes_join
+       ICON join2-1
        Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
 
@@ -1036,7 +1008,7 @@ type Vector a
        The result of this function is a `Vector` of length being the shorter of
        `self` and `that`, containing results of calling `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -1044,7 +1016,7 @@ type Vector a
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -1073,7 +1045,7 @@ type Vector a
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
     ## GROUP Calculations
-       ICON dataframes_union
+       ICON union
        Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
 
@@ -1098,7 +1070,7 @@ type Vector a
         Array_Like_Helpers.pad self n elem
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
@@ -1122,7 +1094,7 @@ type Vector a
     last self = self.at -1
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the second element from the vector, or a `Index_Out_Of_Bounds` if the
        vector doesn't have a second element.
 
@@ -1153,7 +1125,6 @@ type Vector a
          two incomparable values are encountered.
 
        By default, elements are sorted in ascending order.
-
 
        This is a stable sort, meaning that items that compare the same will not
        have their order changed by the sorting process.
@@ -1280,258 +1251,23 @@ type Builder
        A builder type for Enso vectors.
 
        Arguments:
-       - java_builder: The accumulator for the new vector.
+       - elements_java_builder: The accumulator for the new vector.
+       - warnings_java_builder: The accumulator for `Warning`s that were
+         attached to values added to the builder.
+       - propagate_warnings: If False, do not gather warnings from values
+         added to the builder. Defaults to True.
 
        A vector builder is a mutable data structure, that allows to gather a
        number of elements and then convert them to a vector. This is
        particularly useful when the number of elements is not known upfront.
 
-       There are two ways to create and use a `Builder`: `Vector.new_builder`
+       There are two ways to create and use a `Builder`: `Builder.new`
        and `Vector.build`. `.build` is the preferred approach.
-       - `Vector.new_builder`: creates a new `Builder`, which you have to
+       - `Builder.new`: creates a new `Builder`, which you have to
          "close" with `.to_vector` at the end to get your newly-created
          `Vector`.
        - `Vector.build`: takes a function which uses the `Builder`, and
          automatically "closes" and returns the newly-created `Vector`.
-
-       ! Error Conditions
-
-         - If  an uncaught dataflow error is appended with `append`, the
-           dataflow error is propagated, and it is not added to the builder.
-
-         - If one or more uncaught dataflow errors are appended with
-           `append_vector_range`, the errors are *not* propagated.  All of the
-           values, including dataflow errors, are added to the builder.  To be
-           fixed in https://github.com/enso-org/enso/issues/9760.
-
-       > Example
-             Construct a vector using a builder that contains the items 1 to 5,
-             using `.new_builder`.
-
-                 example_new_builder =
-                     do_build builder start stop =
-                         new_builder = builder.append start
-                         if start >= stop then new_builder else
-                             @Tail_Call do_build new_builder start+1 stop
-                     builder = do_build Vector.new_builder 1 10
-                     builder.to_vector
-
-       > Example
-             Construct a vector using a builder that contains the items 1 to 5,
-             using `.build`.
-
-             Vector.build initial_capacity=5 builder->
-                 do_build start stop =
-                     builder.append start
-                     if start >= stop then Nothing else
-                         @Tail_Call do_build start+1 stop
-                 do_build 1 5
-             # => [1, 2, 3, 4, 5]
-
-       ! TODO
-         We may want to revisit the fold pattern - it is required for correct
-         propagation of dataflow errors, but it is very easy to forget about it
-         and get wrong error propagation. Instead we may want to have a `Ref`
-         inside of the Builder. Any error detected during `append` could set
-         that `Ref` and then `to_vector` could propagate that error.
-    Value java_builder
-
-    ## PRIVATE
-       Creates a new builder.
-
-       Arguments:
-       - capacity: Initial capacity of the Vector.Builder
-
-       > Example
-         Make a new builder
-
-             Vector.new_builder
-    new : Integer -> Builder
-    new (capacity : Integer = 10) = Builder.Value (Array_Like_Helpers.new_vector_builder capacity)
-
-    ## GROUP Logical
-       ICON metadata
-       Checks if this builder is empty.
-    is_empty : Boolean
-    is_empty self = self.java_builder.isEmpty
-
-    ## GROUP Logical
-       ICON metadata
-       Checks if this builder is not empty.
-    not_empty : Boolean
-    not_empty self = self.is_empty.not
-
-    ## GROUP Metadata
-       ICON metadata
-       Gets the current length of the builder.
-    length : Integer
-    length self = self.java_builder.getSize
-
-    ## ICON join
-       Appends a new element into this builder and returns it, propagating any
-       errors that the provided element could have contained.
-
-       Returns the builder, unless `item` is a dataflow error, in which case the
-       error is propagated.
-
-       Arguments:
-       - item: The item to append to the vector builder.
-
-       ? Appending Dataflow Errors
-
-         If an uncaught dataflow error is appended with `append`, the dataflow
-         error is propagated, and it is not added to the builder.
-
-       > Example
-         Append two items.
-
-             builder = Vector.new_builder
-             builder . append 10 . append 20
-    append : Any ! Error -> Builder ! Error
-    append self item = case item of
-        _ ->
-            self.unsafe_append item
-            self
-
-    ## ICON join
-       Appends a part of a given vector to this builder.
-
-       Arguments:
-       - vector: The vector from which the elements are sourced.
-       - start: The start index of the range to append.
-       - end: The end index (the first index after the last element to be
-         appended) of the range to be appended.
-
-       ? Appending Dataflow Errors
-
-         If one or more uncaught dataflow errors are appended with
-         `append_vector_range`, the errors are *not* propagated.  All of the
-         values, including dataflow errors, are added to the builder.  To be
-         fixed in https://github.com/enso-org/enso/issues/9760.
-
-       > Example
-         Append a part of the vector.
-
-             builder = Vector.new_builder
-             builder . append_vector_range [20, 30, 40, 50] 1 3 . to_vector == [30, 40]
-    append_vector_range : Vector Any ! Error -> Integer -> Integer -> Builder ! Error
-    append_vector_range self vector (start : Integer = 0) end=vector.length =
-        subrange = vector.slice start end
-        ## This workaround is needed because
-           `self.java_builder.addAll subrange.to_array` fails with
-           `Unsupported argument types: [Array]`.
-        append_result = self.java_builder.appendTo subrange
-        append_result.if_not_error self
-
-    ## PRIVATE
-       Appends a new element into this builder.
-
-       ? Propagating Dataflow Errors
-         Since this is an imperative operation which returns Nothing, if the
-         item to be appended contained a dataflow error, the operation will fail
-         and unless its result is inspected, the error can very easily be
-         ignored. To avoid this, prefer to use the `append` operation and
-         consume the returned builder which will contain any dataflow errors if
-         they need to be propagated.
-
-       Arguments:
-       - item: The item to append to the vector builder.
-
-       > Example
-         Append an item to a vector builder.
-
-             Vector.new_builder.unsafe_append 10
-    unsafe_append : Any -> Nothing
-    unsafe_append self item = self.java_builder.add item
-
-    ## GROUP Selections
-       ICON select_row
-       Gets an element from the vector builder at a specified index (0-based).
-
-       Arguments:
-       - index: The location in the vector to get the element from. The index is
-         also allowed be negative, then the elements are indexed from the back
-         of the vector, i.e. -1 will correspond to the last element.
-    at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
-        actual_index = if index < 0 then self.length + index else index
-        Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
-            Error.throw (Index_Out_Of_Bounds.Error index self.length)
-
-    ## GROUP Selections
-       ICON select_row
-       Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
-       is empty.
-
-       > Example
-         The following code returns 1.
-
-             [1, 2, 3, 4].first
-    first : Vector ! Index_Out_Of_Bounds
-    first self = self.at 0
-
-    ## GROUP Selections
-       ICON select_row
-       Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
-       empty.
-
-       > Example
-         The following code returns 4.
-
-             [1, 2, 3, 4].last
-    last : Vector ! Index_Out_Of_Bounds
-    last self = self.at -1
-
-    ## GROUP Logical
-       ICON preparation
-       Checks whether a predicate holds for at least one element of this builder.
-
-       Arguments:
-       - condition: A `Filter_Condition` or a function that takes a vector
-         element and returns a boolean value that says whether that value
-         satisfies a condition.
-    @condition Filter_Condition.default_widget
-    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
-    any self (condition : Filter_Condition | (Any -> Boolean)) =
-        predicate = unify_condition_or_predicate condition
-        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
-
-    ## GROUP Conversions
-       ICON convert
-       Converts this builder to a vector containing all the appended elements.
-
-       > Example
-         Use a builder to add elements to and then create a vector.
-
-            example_to_vector =
-                bldr = Vector.new_builder
-                bldr.append 1
-                bldr.append 10
-                bldr.append 100
-                bldr.to_vector
-    to_vector : Vector Any
-    to_vector self =
-        ## This creates a fresh copy of the builders storage, so any future
-           changes to the builder will not affect the returned vector.
-        Vector.from_polyglot_array self.java_builder.toArray
-
-## PRIVATE
-type Build_Style_Builder
-    ## PRIVATE
-
-       A builder type for Enso vectors.
-
-       `Build_Style_Builder` is for use with `Vector.build`, rather than the
-       deprecated `Vector.new_builder`.
-
-       Arguments:
-       - elements_java_builder: The accumulator for the new vector.
-       - warnings_java_builder: The accumulator for `Warning`s that were
-         attached to values added to the builder.
-
-       A vector builder is a mutable data structure, that allows to gather a
-       number of elements and then convert them to a vector. This is
-       particularly useful when the number of elements is not known upfront.
 
        ! Error Conditions
 
@@ -1556,28 +1292,64 @@ type Build_Style_Builder
                  builder.append 2
                  builder.append 3
              # => [1, 2, 3]
-    private Value elements_java_builder warnings_java_builder
+    private Value elements_java_builder warnings_java_builder (propagate_warnings : Boolean)
 
     ## PRIVATE
-       Creates a new builder.
+       ADVANCED
+
+       Creates a new vector builder instance.
+
+       `Vector.build` is the preferred way to build `Vector`s.
+
+       A vector `Builder` is a mutable data structure, that allows for gathering
+       a number of elements and then converting them into a vector. This is
+       particularly useful when the number of elements is not known upfront.
+
+       A vector allows to store an arbitrary number of elements in linear
+       memory. It is the recommended data structure for most applications.
+
+       The `Vector.build` method is preferred over direct use of `Builder.new`,
+       since it automatically closes and returns the finished `Vector`. The
+       `Builder.new` approach requires the caller to explicitly call `to_vector`
+       at the end, which can be more flexible within imperative code.
 
        Arguments:
        - capacity: Initial capacity of the Vector.Builder
-    new : Integer -> Build_Style_Builder 
-    new (capacity : Integer = 10) -> Build_Style_Builder = Build_Style_Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0)
+       - propagate_warnings: If False, do not gather warnings from values
+         added to the builder. Defaults to True.
+
+       > Example
+         Construct a vector using a builder that contains the items 1 to 5.
+
+             builder = Builder.new 5
+             do_build start stop =
+                 builder.append start
+                 if start >= stop then Nothing else
+                     @Tail_Call do_build start+1 stop
+             do_build 1 5
+             builder.to_vector
+             # => [1, 2, 3, 4]
+    new : Integer -> Boolean -> Builder
+    new (capacity : Integer = 10) (propagate_warnings : Boolean = True) -> Builder = Builder.Value (Array_Like_Helpers.new_vector_builder capacity) (Array_Like_Helpers.new_vector_builder 0) propagate_warnings
 
     ## ICON join
-       Appends a new element into this builder, propagating any
-       errors that the provided element could have contained.
+       Appends a new element into this builder.
 
        Arguments:
        - item: The item to append to the vector builder.
 
        ? Appending Dataflow Errors
 
-         If the value to be appended is an uncaught dataflow error, it is thrown
-         by the containing invocation of `Vector.build`.  The error is not added
-         to the builder.
+         If a dataflow error is added to the builder, the result depends on
+         whether the `Builder` is being used from `.build` or created directly
+         with `new`.
+
+         - When using `.build`: The dataflow error is re-thrown by the containing
+           invocation of `Vector.build`.  The error is not added to the builder.
+
+         - When using `Builder.new` directly : The dataflow error is wrapped in
+           a `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not
+           added to the builder.
 
        > Example
          Append three items.
@@ -1592,7 +1364,8 @@ type Build_Style_Builder
         Panic.rethrow_wrapped_if_error <|
             item.if_not_error <|
                 self.unsafe_append item
-                self.add_warnings item
+                if self.propagate_warnings then
+                    self.add_warnings item
                 Nothing
 
     ## ICON join
@@ -1607,9 +1380,16 @@ type Build_Style_Builder
 
        ? Appending Dataflow Errors
 
-         If any of the values to be appended are uncaught dataflow errors, the
-         first one is thrown by the containing invocation of Vector.build`. No
-         values are added to the builder.
+         If a dataflow error is added to the builder, the result depends on
+         whether the `Builder` is being used from `.build` or created directly
+         with `new`.
+
+         - When using `.build`: The dataflow error is re-thrown by the containing
+           invocation of `Vector.build`.  The error is not added to the builder.
+
+         - When using `Builder.new` directly : The dataflow error is wrapped in
+           a `Wrapped_Dataflow_Error` and thrown as a `Panic`. The error is not
+           added to the builder.
 
        > Example
          Append a vector.
@@ -1632,7 +1412,8 @@ type Build_Style_Builder
             first_dataflow_error.if_not_error <|
                 append_result = self.elements_java_builder.appendTo subrange
                 assert (append_result.is_error.not)
-                self.add_warnings subrange
+                if self.propagate_warnings then
+                    self.add_warnings subrange
                 Nothing
 
     ## PRIVATE
@@ -1662,7 +1443,7 @@ type Build_Style_Builder
     unsafe_append self item = self.elements_java_builder.add item
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets an element from the vector builder at a specified index (0-based).
 
        Arguments:
@@ -1670,13 +1451,13 @@ type Build_Style_Builder
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.elements_java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
@@ -1705,17 +1486,46 @@ type Build_Style_Builder
     length : Integer
     length self = self.elements_java_builder.getSize
 
-    to_vector : Vector Any
-    to_vector self =
+    ## GROUP Logical
+       ICON metadata
+       Checks if this builder is empty.
+    is_empty : Boolean
+    is_empty self = self.elements_java_builder.isEmpty
+
+    ## GROUP Logical
+       ICON metadata
+       Checks if this builder is not empty.
+    not_empty : Boolean
+    not_empty self = self.is_empty.not
+
+    ## GROUP Logical
+       ICON preparation
+       Checks whether a predicate holds for at least one element of this builder.
+
+       Arguments:
+       - condition: A `Filter_Condition` or a function that takes a vector
+         element and returns a boolean value that says whether that value
+         satisfies a condition.
+    @condition Filter_Condition.default_widget
+    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    any self (condition : Filter_Condition | (Any -> Boolean)) =
+        predicate = unify_condition_or_predicate condition
+        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
+
+    ## GROUP Conversions
+       ICON convert
+       Clones the builder into a Vector.
+    to_vector self -> Vector =
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
 
            This also reattaches any warnings that were attached to the added
            values. It attaches them to the whole array, not the individual
            values.
-        warnings_vector = Vector.from_polyglot_array self.warnings_java_builder.toArray
-        Warning.attach_multiple warnings_vector <|
-            Vector.from_polyglot_array self.elements_java_builder.toArray
+        without_warnings = self.elements_java_builder.toArray
+        if self.propagate_warnings.not then without_warnings else
+            warnings_vector = self.warnings_java_builder.toArray
+            Warning.attach_multiple warnings_vector without_warnings
 
 ## PRIVATE
    Describes an error attached to a value within a `Vector`. The `index` field

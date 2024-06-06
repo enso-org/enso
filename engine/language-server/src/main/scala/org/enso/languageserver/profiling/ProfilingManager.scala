@@ -3,10 +3,9 @@ package org.enso.languageserver.profiling
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.DistributionManager
-import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.runtime.events.RuntimeEventsMonitor
 import org.enso.logger.masking.MaskedPath
-import org.enso.profiling.events.NoopEventsMonitor
+import org.enso.profiling.events.{EventsMonitor, NoopEventsMonitor}
 import org.enso.profiling.sampler.{MethodsSampler, OutputStreamSampler}
 import org.enso.profiling.snapshot.{HeapDumpSnapshot, ProfilingSnapshot}
 
@@ -21,13 +20,13 @@ import scala.util.{Failure, Success, Try}
 
 /** Handles the profiling commands.
   *
-  * @param runtimeConnector the connection to runtime
+  * @param eventsMonitorActor the events monitor actor
   * @param distributionManager the distribution manager
   * @param profilingSnapshot the profiling snapshot generator
   * @param clock the system clock
   */
 final class ProfilingManager(
-  runtimeConnector: ActorRef,
+  eventsMonitorActor: ActorRef,
   distributionManager: DistributionManager,
   profilingSnapshot: ProfilingSnapshot,
   clock: Clock
@@ -56,22 +55,39 @@ final class ProfilingManager(
           sampler.start()
 
           val eventsMonitor = createEventsMonitor(instant)
-          runtimeConnector ! RuntimeConnector.RegisterEventsMonitor(
+          eventsMonitorActor ! EventsMonitorProtocol.RegisterEventsMonitor(
             eventsMonitor
           )
 
           sender() ! ProfilingProtocol.ProfilingStartResponse
           context.become(
             initialized(
-              Some(RunningSampler(instant, sampler, result, memorySnapshot))
+              Some(
+                RunningSampler(
+                  instant,
+                  sampler,
+                  result,
+                  memorySnapshot,
+                  eventsMonitor
+                )
+              )
             )
           )
       }
 
     case ProfilingProtocol.ProfilingStopRequest =>
       sampler match {
-        case Some(RunningSampler(instant, sampler, result, memorySnapshot)) =>
+        case Some(
+              RunningSampler(
+                instant,
+                sampler,
+                result,
+                memorySnapshot,
+                eventsMonitor
+              )
+            ) =>
           sampler.stop()
+          eventsMonitor.close()
 
           Try(saveSamplerResult(result.toByteArray, instant)) match {
             case Failure(exception) =>
@@ -87,7 +103,7 @@ final class ProfilingManager(
             saveMemorySnapshot(instant)
           }
 
-          runtimeConnector ! RuntimeConnector.RegisterEventsMonitor(
+          eventsMonitorActor ! EventsMonitorProtocol.RegisterEventsMonitor(
             new NoopEventsMonitor
           )
 
@@ -172,7 +188,8 @@ object ProfilingManager {
     instant: Instant,
     sampler: MethodsSampler,
     result: ByteArrayOutputStream,
-    memorySnapshot: Boolean
+    memorySnapshot: Boolean,
+    eventsMonitor: EventsMonitor
   )
 
   private def createProfilingFileName(instant: Instant): String = {
@@ -197,20 +214,20 @@ object ProfilingManager {
 
   /** Creates the configuration object used to create a [[ProfilingManager]].
     *
-    * @param runtimeConnector the connection to runtime
+    * @param eventsMonitor the events monitor actor
     * @param distributionManager the distribution manager
     * @param profilingSnapshot the profiling snapshot generator
     * @param clock the system clock
     */
   def props(
-    runtimeConnector: ActorRef,
+    eventsMonitor: ActorRef,
     distributionManager: DistributionManager,
     profilingSnapshot: ProfilingSnapshot = new HeapDumpSnapshot(),
     clock: Clock                         = Clock.systemUTC()
   ): Props =
     Props(
       new ProfilingManager(
-        runtimeConnector,
+        eventsMonitor,
         distributionManager,
         profilingSnapshot,
         clock

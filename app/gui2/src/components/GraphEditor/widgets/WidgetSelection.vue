@@ -406,11 +406,11 @@ declare module '@/providers/widgetRegistry' {
   align-items: center;
   position: relative;
   min-height: var(--node-port-height);
+  cursor: pointer;
 }
 
 .arrow {
   position: absolute;
-  pointer-events: none;
   bottom: -8px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);

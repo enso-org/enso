@@ -29,7 +29,7 @@ function entryTitle(key: string) {
       v-for="[key, value] in Object.entries(props.data)"
       :key="key"
       :title="entryTitle(key)"
-      class="button field"
+      class="field"
       @click.stop="emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])"
     >
       <span class="key" v-text="JSON.stringify(key)" />:
@@ -63,6 +63,7 @@ function entryTitle(key: string) {
 .block > .field {
   display: block;
   margin-left: 1em;
+  cursor: pointer;
 }
 .field:not(:last-child)::after {
   display: inline;

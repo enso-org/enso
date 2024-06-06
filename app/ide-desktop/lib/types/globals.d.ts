@@ -103,13 +103,37 @@ interface VersionInfo {
 declare global {
     // Documentation is already inherited.
     /** */
+    // eslint-disable-next-line no-restricted-syntax
     interface Window {
-        readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
         readonly menuApi: MenuApi
         readonly versionInfo?: VersionInfo
+        toggleDevtools: () => void
+    }
+
+    /**
+     * Highlight a range of text.
+     */
+    class Highlight {
+        type: string
+        /**
+         * @param ranges - The range to highlight.
+         */
+        constructor(...ranges: Range[])
+    }
+
+    /**
+     *
+     */
+    namespace CSS {
+        // eslint-disable-next-line no-restricted-syntax
+        export const highlights: {
+            set: (key: string, value: Highlight) => void
+            delete: (key: string) => void
+            clear: () => void
+        }
     }
 
     namespace NodeJS {
@@ -145,7 +169,7 @@ declare global {
             // === Cloud environment variables ===
 
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_REDIRECT: string
+            readonly ENSO_CLOUD_REDIRECT?: string
             // When unset, the `.env` loader tries to load `.env` rather than `.<name>.env`.
             // Set to the empty string to load `.env`.
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
@@ -174,6 +198,8 @@ declare global {
             readonly ENSO_CLOUD_DASHBOARD_COMMIT_HASH?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_ENSO_HOST?: string
 
             // === Electron watch script variables ===
 

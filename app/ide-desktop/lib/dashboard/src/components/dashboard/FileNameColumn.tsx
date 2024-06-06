@@ -38,7 +38,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
   const { nodeMap, assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
@@ -81,7 +81,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       switch (event.type) {
         case AssetEventType.newProject:
         case AssetEventType.newFolder:
-        case AssetEventType.newDataLink:
+        case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
         case AssetEventType.openProject:
         case AssetEventType.closeProject:

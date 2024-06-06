@@ -62,7 +62,7 @@ add_specs suite_builder =
     accent_1 = '\u00E9'
     accent_2 = '\u0065\u{301}'
 
-    suite_builder.group "Text" group_builder->
+    suite_builder.group "Text - general" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
@@ -1354,7 +1354,7 @@ add_specs suite_builder =
             txt.find "a[bc]" . text 0 . should_equal "ab"
             txt.find_all "a[bc]" . map (match-> match.text 0) . should_equal ["ab", "ac"]
 
-    suite_builder.group "Regex: find and find_all" group_builder->
+    suite_builder.group "Text.Regex: find and find_all" group_builder->
         group_builder.specify "should be possible on text" <|
             "My Text: Goes Here".find "^My Text: (.+)$" . text 0 . should_equal "My Text: Goes Here"
 
@@ -1476,7 +1476,7 @@ add_specs suite_builder =
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.match 'a' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
-    suite_builder.group "Regex splitting" group_builder->
+    suite_builder.group "Text.Regex splitting" group_builder->
         group_builder.specify "should be possible on text" <|
             splits = "abcde".split "[bd]" use_regex=True
             splits.length . should_equal 3
@@ -1498,7 +1498,7 @@ add_specs suite_builder =
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
 
-    suite_builder.group "Regex tokenizing" group_builder->
+    suite_builder.group "Text.Regex tokenizing" group_builder->
         group_builder.specify "can tokenize with simple regexes without capturing groups"
             "1-800-regex-yes" . tokenize "[a-z]+" . should_equal ["regex", "yes"]
             "1-800-REGEX-YES" . tokenize "[a-z]+" case_sensitivity=Case_Sensitivity.Insensitive . should_equal ["REGEX", "YES"]
@@ -1652,6 +1652,56 @@ add_specs suite_builder =
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Sensitive . should_equal "Ab"
             "aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
+        input = "  It was the best  of  times  it was  the  worst  of  times  "
+        group_builder.specify "should replace leading whitespace" <|
+            expected = "XIt was the best  of  times  it was  the  worst  of  times  "
+            res = input.replace Named_Pattern.Leading_Whitespace "X"
+            res.should_equal expected
+        group_builder.specify "should replace trailing whitespace" <|
+            expected = "  It was the best  of  times  it was  the  worst  of  timesX"
+            res = input.replace Named_Pattern.Trailing_Whitespace "X"
+            res.should_equal expected
+        group_builder.specify "should replace duplicate whitespace" <|
+            expected = " XIt was the best Xof Xtimes Xit was Xthe Xworst Xof Xtimes X"
+            res = input.replace Named_Pattern.Duplicate_Whitespace "X"
+            res.should_equal expected
+        group_builder.specify "should replace all whitespace" <|
+            expected = "XItXwasXtheXbestXofXtimesXitXwasXtheXworstXofXtimesX"
+            res = input.replace Named_Pattern.All_Whitespace "X"
+            res.should_equal expected
+        input2 = "1922  It was the best  of  times  it was  the  worst  of  times  1804"
+        group_builder.specify "should replace leading numbers" <|
+            expected = "X  It was the best  of  times  it was  the  worst  of  times  1804"
+            res = input2.replace Named_Pattern.Leading_Numbers "X"
+            res.should_equal expected
+        group_builder.specify "should replace trailing numbers" <|
+            expected = "1922  It was the best  of  times  it was  the  worst  of  times  X"
+            res = input2.replace Named_Pattern.Trailing_Numbers "X"
+            res.should_equal expected
+        input_with_non_ascii_chars = "  It was the 🥇  of  🕒s  it was  the  worst  of  🕒s  "
+        group_builder.specify "should replace non-ascii characters" <|
+            expected = "  It was the X  of  Xs  it was  the  worst  of  Xs  "
+            res = input_with_non_ascii_chars.replace Named_Pattern.Non_ASCII "X"
+            res.should_equal expected
+        group_builder.specify "should replace tabs" <|
+            input3 = '  It was\t the best  of  times  it was  the  worst\t  of  times  '
+            expected3 = '  It wasX the best  of  times  it was  the  worstX  of  times  '
+            res3 = input3.replace Named_Pattern.Tabs "X"
+            res3.should_equal expected3
+        group_builder.specify "should replace numbers and letters" <|
+            input4 = "1A2B3C4"
+            res4 = input4.replace Named_Pattern.Numbers "X"
+            res4.should_equal "XAXBXCX"
+            res5 = input4.replace Named_Pattern.Letters "X"
+            res5.should_equal "1X2X3X4"
+        group_builder.specify "should replace punctuation" <|
+            input5 = 'Hello, World! How are you? ,.!?():;\'\"'
+            res5 = input5.replace Named_Pattern.Punctuation "X"
+            res5.should_equal "HelloX WorldX How are youX XXXXXXXXXX"
+        group_builder.specify "should replace symbols" <|
+            input6 = 'Hello, World123! How_are_you? ,.!?():;\'" 🥇🕒🕒'
+            res6 = input6.replace Named_Pattern.Symbols "X"
+            res6.should_equal "HelloX World123X HowXareXyouX XXXXXXXXXX XXX"
     suite_builder.group "Text.substring" group_builder->
         group_builder.specify "should work with all examples" <|
             "Hello World!".substring 3 2 . should_equal "lo"
@@ -1666,6 +1716,69 @@ add_specs suite_builder =
             "Hello World!".substring -20 5 . should_fail_with Index_Out_Of_Bounds
         group_builder.specify "should error if start index is larger than string"
             "Hello World!".substring 20 5 . should_fail_with Index_Out_Of_Bounds
+    suite_builder.group "Text.cleanse" group_builder->
+        input = "  It was the best  of  times  it was  the  worst  of  times  "
+        group_builder.specify "should remove leading whitespace" <|
+            expected = "It was the best  of  times  it was  the  worst  of  times  "
+            res = input.cleanse [Named_Pattern.Leading_Whitespace]
+            res.should_equal expected
+        group_builder.specify "should remove trailing whitespace" <|
+            expected = "  It was the best  of  times  it was  the  worst  of  times"
+            res = input.cleanse [Named_Pattern.Trailing_Whitespace]
+            res.should_equal expected
+        group_builder.specify "should remove duplicate whitespace" <|
+            expected = " It was the best of times it was the worst of times "
+            res = input.cleanse [Named_Pattern.Duplicate_Whitespace]
+            res.should_equal expected
+        group_builder.specify "should remove leading and trailing whitespace" <|
+            expected = "It was the best  of  times  it was  the  worst  of  times"
+            res = input.cleanse [Named_Pattern.Leading_Whitespace, Named_Pattern.Trailing_Whitespace]
+            res.should_equal expected
+        group_builder.specify "should remove all whitespace" <|
+            expected = "Itwasthebestoftimesitwastheworstoftimes"
+            res = input.cleanse [Named_Pattern.All_Whitespace]
+            res.should_equal expected
+        input2 = "1922  It was the best  of  times  it was  the  worst  of  times  1804"
+        group_builder.specify "should remove leading numbers" <|
+            expected = "  It was the best  of  times  it was  the  worst  of  times  1804"
+            res = input2.cleanse [Named_Pattern.Leading_Numbers]
+            res.should_equal expected
+        group_builder.specify "should remove trailing numbers" <|
+            expected = "1922  It was the best  of  times  it was  the  worst  of  times  "
+            res = input2.cleanse [Named_Pattern.Trailing_Numbers]
+            res.should_equal expected
+        input_with_non_ascii_chars = "  It was the 🥇  of  🕒s  it was  the  worst  of  🕒s  "
+        group_builder.specify "should remove non-ascii characters" <|
+            expected = "  It was the   of  s  it was  the  worst  of  s  "
+            res = input_with_non_ascii_chars.cleanse [Named_Pattern.Non_ASCII]
+            res.should_equal expected
+        group_builder.specify "should remove tabs" <|
+            input3 = '  It was\t the best  of  times  it was  the  worst\t  of  times  '
+            expected3 = "  It was the best  of  times  it was  the  worst  of  times  "
+            res3 = input3.cleanse [Named_Pattern.Tabs]
+            res3.should_equal expected3
+        group_builder.specify "should remove numbers and letters" <|
+            input4 = "1A2B3C4"
+            res4 = input4.cleanse [Named_Pattern.Numbers]
+            res4.should_equal "ABC"
+            res5 = input4.cleanse [Named_Pattern.Letters]
+            res5.should_equal "1234"
+            res6 = input4.cleanse [Named_Pattern.Letters, Named_Pattern.Numbers]
+            res6.should_equal ""
+        group_builder.specify "should remove punctuation" <|
+            input5 = 'Hello, World! How are you? ,.!?():;\'\"'
+            res5 = input5.cleanse [Named_Pattern.Punctuation]
+            res5.should_equal "Hello World How are you "
+        group_builder.specify "should remove symbols" <|
+            input6 = 'Hello, World123! How_are_you? ,.!?():;\'" 🥇🕒🕒'
+            res6 = input6.cleanse [Named_Pattern.Symbols]
+            res6.should_equal "Hello World123 Howareyou  "
+        group_builder.specify "should apply the operations in order" <|
+            input3 = "  11String with Leading Spaces then Leading Numbers"
+            res1 = input3.cleanse [Named_Pattern.Leading_Whitespace, Named_Pattern.Leading_Numbers]
+            res2 = input3.cleanse [Named_Pattern.Leading_Numbers, Named_Pattern.Leading_Whitespace]
+            res1.should_equal "String with Leading Spaces then Leading Numbers"
+            res2.should_equal "11String with Leading Spaces then Leading Numbers"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

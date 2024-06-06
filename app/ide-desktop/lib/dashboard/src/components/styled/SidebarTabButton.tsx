@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
 import UnstyledButton from '#/components/UnstyledButton'
 
@@ -19,11 +20,20 @@ export interface SidebarTabButtonProps {
   readonly icon: string
   readonly label: string
   readonly onPress: (event: aria.PressEvent) => void
+  readonly isPending?: boolean
 }
 
 /** A styled button representing a tab on a sidebar. */
 export default function SidebarTabButton(props: SidebarTabButtonProps) {
-  const { isDisabled = false, autoFocus = false, active = false, icon, label, onPress } = props
+  const {
+    isDisabled = false,
+    autoFocus = false,
+    active = false,
+    icon,
+    label,
+    onPress,
+    isPending = false,
+  } = props
 
   return (
     <UnstyledButton
@@ -35,7 +45,11 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
       <div
         className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
       >
-        <SvgMask src={icon} />
+        {active && isPending ? (
+          <StatelessSpinner state={statelessSpinner.SpinnerState.loadingMedium} size={16} />
+        ) : (
+          <SvgMask src={icon} />
+        )}
         <aria.Text className="text">{label}</aria.Text>
       </div>
     </UnstyledButton>

@@ -126,7 +126,7 @@ type Enso_File
         asset = Existing_Enso_Asset.get_asset_reference_for self
         if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`creation_time` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
-            Date_Time.parse (get_required_field "created_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
+            Date_Time.parse (get_required_field "createdAt" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
                 . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
@@ -137,7 +137,7 @@ type Enso_File
         asset = Existing_Enso_Asset.get_asset_reference_for self
         if asset.is_regular_file.not then Error.throw (Illegal_Argument.Error "`last_modified_time` can only be queried for files.") else
             metadata = asset.get_file_description |> get_required_field "metadata"
-            Date_Time.parse (get_required_field "modified_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
+            Date_Time.parse (get_required_field "modifiedAt" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
                 . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
@@ -250,7 +250,7 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument | File_Error
-    read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
+    read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
         asset = Existing_Enso_Asset.get_asset_reference_for self
         case asset.asset_type of
             Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
@@ -290,7 +290,7 @@ type Enso_File
          If set to `Ignore`, the operation proceeds without errors or warnings.
     @encoding Encoding.default_widget
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+    read_text self (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
         self.read (Plain_Text_Format.Plain_Text encoding) on_problems
 
     ## GROUP Metadata
@@ -330,6 +330,7 @@ type Enso_File
 
     ## UNSTABLE
        GROUP Output
+       ICON trash
        Deletes the file or directory.
 
        Arguments:

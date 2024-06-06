@@ -19,6 +19,8 @@ import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
+import * as errorBoundary from '#/components/ErrorBoundary'
+import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
 
@@ -35,14 +37,18 @@ export default function Settings() {
   const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTab.account,
-    (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
+    (value): value is SettingsTab => {
+      return array.includes(Object.values(SettingsTab), value)
+    }
   )
+
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const root = portal.useStrictPortalContext()
   const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
+
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
     id: user?.organizationId ?? backendModule.OrganizationId(''),
     name: null,
@@ -50,6 +56,7 @@ export default function Settings() {
     website: null,
     address: null,
     picture: null,
+    subscription: {},
   }))
 
   React.useEffect(() => {
@@ -67,7 +74,7 @@ export default function Settings() {
     })()
   }, [sessionType, backend])
 
-  let content: JSX.Element
+  let content: React.JSX.Element
   switch (settingsTab) {
     case SettingsTab.account: {
       content = <AccountSettingsTab />
@@ -107,7 +114,7 @@ export default function Settings() {
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
-          <aria.Popover UNSTABLE_portalContainer={root.current}>
+          <aria.Popover UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu
               isUserInOrganization={isUserInOrganization}
@@ -136,7 +143,11 @@ export default function Settings() {
           settingsTab={settingsTab}
           setSettingsTab={setSettingsTab}
         />
-        {content}
+        <errorBoundary.ErrorBoundary>
+          <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
+            {content}
+          </React.Suspense>
+        </errorBoundary.ErrorBoundary>
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -23,7 +24,7 @@ type Join_Condition_Resolver
        which can be used to deduplicate them.
     resolve : Join_Condition | Text | Vector (Join_Condition | Text) -> Problem_Behavior -> Join_Condition_Resolution
     resolve self conditions on_problems =
-        redundant_names = Vector.new_builder
+        redundant_names = Builder.new
         left_problem_builder = Problem_Builder.new missing_input_columns_location="the left table" types_to_always_throw=[Missing_Input_Columns]
         right_problem_builder = Problem_Builder.new missing_input_columns_location="the right table" types_to_always_throw=[Missing_Input_Columns]
 

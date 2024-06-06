@@ -25,9 +25,9 @@ const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextI
   [backendModule.AssetType.project]: 'projectAssetType',
   [backendModule.AssetType.file]: 'fileAssetType',
   [backendModule.AssetType.secret]: 'secretAssetType',
-  [backendModule.AssetType.dataLink]: 'connectorAssetType',
   [backendModule.AssetType.specialEmpty]: 'specialEmptyAssetType',
   [backendModule.AssetType.specialLoading]: 'specialLoadingAssetType',
+  [backendModule.AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in backendModule.AssetType]: `${Type}AssetType` }
 
 // ==================
@@ -48,7 +48,7 @@ export interface PermissionProps {
 export default function Permission(props: PermissionProps) {
   const { asset, self, isOnlyOwner, doDelete } = props
   const { permission: initialPermission, setPermission: outerSetPermission } = props
-  const { backend } = backendProvider.useBackend()
+  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [permission, setPermission] = React.useState(initialPermission)

@@ -596,6 +596,16 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override duplicateProject() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override restoreProject() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override listAssetVersions() {
     return this.invalidOperation()
   }
@@ -621,17 +631,17 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override createConnector() {
+  override createDatalink() {
     return this.invalidOperation()
   }
 
   /** Invalid operation. */
-  override getConnector() {
+  override getDatalink() {
     return this.invalidOperation()
   }
 
   /** Invalid operation. */
-  override deleteConnector() {
+  override deleteDatalink() {
     return this.invalidOperation()
   }
 
@@ -697,6 +707,25 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override getCheckoutSession() {
+    return this.invalidOperation()
+  }
+
+  /**
+   * Invalid operation.
+   */
+  override listInvitations() {
+    return this.invalidOperation()
+  }
+  /**
+   * Invalid operation.
+   */
+  override deleteInvitation(): Promise<void> {
+    return this.invalidOperation()
+  }
+  /**
+   * Invalid operation.
+   */
+  override resendInvitation(): Promise<void> {
     return this.invalidOperation()
   }
 

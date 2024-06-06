@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
@@ -101,7 +102,7 @@ type Problem_Builder
     new : Vector -> Boolean -> Text | Nothing -> Problem_Builder
     new types_to_always_throw=[] error_on_missing_columns=False missing_input_columns_location=Nothing =
         additional_types_to_throw = if error_on_missing_columns then [Missing_Input_Columns, Invalid_Aggregate_Column] else []
-        Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) missing_input_columns_location other=Vector.new_builder
+        Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) missing_input_columns_location other=Builder.new
 
 ## PRIVATE
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.

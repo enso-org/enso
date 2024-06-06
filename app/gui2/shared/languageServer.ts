@@ -124,7 +124,7 @@ export type TransportEvents = {
  * This client implements the [Language Server Protocol](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md)
  *
  * It also handles the initialization (and re-initialization on every reconnect); each method
- * repressenting a remote call (except the `initProtocolConnection` obviously) waits for
+ * representing a remote call (except the `initProtocolConnection` obviously) waits for
  * initialization before sending the request.
  */
 export class LanguageServer extends ObservableV2<Notifications & TransportEvents> {
@@ -468,6 +468,15 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#runtimegetcomponentgroups) */
   getComponentGroups(): Promise<LsRpcResult<response.GetComponentGroups>> {
     return this.request('runtime/getComponentGroups', {})
+  }
+
+  /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#refactoringrenamesymbol) */
+  renameSymbol(
+    module: string,
+    expressionId: ExpressionId,
+    newName: string,
+  ): Promise<LsRpcResult<response.RenameSymbol>> {
+    return this.request('refactoring/renameSymbol', { module, expressionId, newName })
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#profilingstart) */

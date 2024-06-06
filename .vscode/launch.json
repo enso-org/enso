@@ -27,6 +27,13 @@
       "command": "npm run dev",
       // "env": {"NODE_OPTIONS": "--inspect"},
       "cwd": "${workspaceFolder}/app/gui2"
+    },
+    {
+      "type": "nativeimage",
+      "request": "launch",
+      "name": "Launch Native Image",
+      "nativeImagePath": "${workspaceFolder}/runner",
+      "args": "--help"
     }
   ]
 }
