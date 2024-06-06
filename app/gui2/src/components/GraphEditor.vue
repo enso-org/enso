@@ -40,6 +40,7 @@ import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNav
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
+import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
@@ -189,7 +190,7 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = useStackNavigator(projectStore, graphStore)
+const stackNavigator = provideStackNavigator(projectStore, graphStore)
 
 // === Toasts ===
 
@@ -713,14 +714,8 @@ const groupColors = computed(() => {
       v-model:showColorPicker="showColorPicker"
       v-model:showCodeEditor="showCodeEditor"
       v-model:showDocumentationEditor="showDocumentationEditor"
-      :breadcrumbs="stackNavigator.breadcrumbLabels.value"
-      :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
-      :allowNavigationRight="stackNavigator.allowNavigationRight.value"
       :zoomLevel="100.0 * graphNavigator.targetScale"
       :componentsSelected="nodeSelection.selected.size"
-      @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
-      @back="stackNavigator.exitNode"
-      @forward="stackNavigator.enterNextNodeFromHistory"
       @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
       @zoomIn="graphNavigator.stepZoom(+1)"

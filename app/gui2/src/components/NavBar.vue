@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import NavBreadcrumbs, { type BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { injectStackNavigator } from '@/providers/graphStackNavigator'
 import SvgButton from './SvgButton.vue'
 
-const props = defineProps<{
-  breadcrumbs: BreadcrumbItem[]
-  allowNavigationLeft: boolean
-  allowNavigationRight: boolean
-}>()
-const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: number] }>()
+const stackNavigator = injectStackNavigator()
 </script>
 
 <template>
@@ -17,18 +13,18 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
     <div class="breadcrumbs-controls">
       <SvgButton
         name="arrow_left"
-        :disabled="!props.allowNavigationLeft"
+        :disabled="!stackNavigator.allowNavigationLeft"
         title="Back"
-        @click.stop="emit('back')"
+        @click.stop="stackNavigator.exitNode"
       />
       <SvgButton
         name="arrow_right"
-        :disabled="!props.allowNavigationRight"
+        :disabled="!stackNavigator.allowNavigationRight"
         title="Forward"
-        @click.stop="emit('forward')"
+        @click.stop="stackNavigator.enterNextNodeFromHistory"
       />
     </div>
-    <NavBreadcrumbs :breadcrumbs="props.breadcrumbs" @selected="emit('breadcrumbClick', $event)" />
+    <NavBreadcrumbs />
   </div>
 </template>
 
