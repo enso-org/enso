@@ -499,10 +499,8 @@ resolve_order_by internal_columns column_selectors problem_builder =
             matches = match_columns name case_sensitivity internal_columns
             if matches.is_empty then problem_builder.report_missing_input_columns [name]
             matches.map c-> Column_Transform_Element.Value c selector
-    selectors_vec = case column_selectors of
-        _ : Vector -> column_selectors
-        _ -> [column_selectors]
-    selectors_vec.flat_map resolve_selector
+        _ : Function -> resolve_selector (selector:Sort_Column)
+    Vector.unify_vector_or_element column_selectors . flat_map resolve_selector
 
 ## PRIVATE
    A helper method gathering the common logic for constructing expressions that
