@@ -123,7 +123,7 @@ function getClipboard() {
 export function useGraphEditorClipboard(
   graphStore: GraphStore,
   selected: ToValue<Set<NodeId>>,
-  createNodes: (copiedNodes: string[], nodesOptions: Iterable<NodeCreationOptions>) => void,
+  createNodes: (nodesOptions: Iterable<NodeCreationOptions>) => void,
 ) {
   /** Copy the content of the selected node to the clipboard. */
   function copySelectionToClipboard() {
@@ -149,13 +149,12 @@ export function useGraphEditorClipboard(
       console.warn('No valid node in clipboard.')
       return
     }
-    const copiedNodes = clipboardData.flatMap(({ binding }) => binding ? [binding] : [])
-    const firstNodePos = clipboardData[0]?.metadata?.position ?? { x: 0, y: 0 }
+    const firstNodePos = clipboardData[0]!.metadata?.position ?? { x: 0, y: 0 }
+    const originPos = new Vec2(firstNodePos.x, firstNodePos.y)
     createNodes(
-      copiedNodes,
       clipboardData.map(({ expression, binding, documentation, metadata }) => { 
         const pos = metadata?.position
-        const relativePos = pos ? new Vec2(pos.x, pos.y).sub(new Vec2(firstNodePos.x, firstNodePos.y)) : new Vec2(0, 0)
+        const relativePos = pos ? new Vec2(pos.x, pos.y).sub(originPos) : new Vec2(0, 0)
         return ({
           placement: { type: 'mouseRelative', posOffset: relativePos },
           expression,
