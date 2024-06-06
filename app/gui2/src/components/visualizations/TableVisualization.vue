@@ -292,7 +292,7 @@ function toField(name: string, valType?: string): ColDef {
   const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="src/assets/icons.svg#${icon}"/> </svg>`
   const template =
     icon ?
-      `<div style="display:flex; flex-direction:row;"> ${name} ${svgTemplate}</div>`
+      `<div style="display:flex; flex-direction:row; justify-content:space-between; width:inherit;"> ${name} ${svgTemplate}</div>`
     : `<div>${name}</div>`
   return {
     field: name,
