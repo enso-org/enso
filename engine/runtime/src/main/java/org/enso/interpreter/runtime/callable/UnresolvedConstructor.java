@@ -34,7 +34,6 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -173,7 +172,8 @@ public final class UnresolvedConstructor implements EnsoObject {
     static DirectCallNode buildApplication(UnresolvedConstructor prototype) {
       UUID id = null;
       SourceSection section = null;
-      ModuleScope scope = null;
+      var scope =
+          prototype.where.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;
       for (var where = prototype.where; where != null; where = where.getParent()) {
         if (where instanceof ExpressionNode withId && withId.getId() != null) {
           id = withId.getId();
