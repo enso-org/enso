@@ -1307,6 +1307,109 @@ class RuntimeServerTest
     )
   }
 
+  it should "send error updates for partially applied autoscope constructors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x_0   = metadata.addItem(40, 3, "aa")
+    val id_x_1   = metadata.addItem(60, 5, "ab")
+
+    val code =
+      """type T
+        |    A x y
+        |
+        |main =
+        |    x_0 = test ..A
+        |    x_1 = test (..A 1)
+        |    T.A x_0 x_1
+        |
+        |test t:T = t
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(id_x_0, code, "..A")
+    metadata.assertInCode(id_x_1, code, "..A 1")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(3, 10) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x_0,
+        ConstantsGen.FUNCTION_BUILTIN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
+            Vector(0, 1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
+              Vector(0, 1)
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Diagnostic.error(
+            "Type_Error.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.test",
+                Some(mainFile),
+                Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(model.Range(model.Position(4, 10), model.Position(4, 18))),
+                None
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
   it should "send method pointer updates of partially applied static method returning a method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
