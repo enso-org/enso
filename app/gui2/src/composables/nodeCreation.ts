@@ -128,12 +128,8 @@ export function useNodeCreation(
       for (const options of placedNodes) {
         const rhs = Ast.parse(options.expression, edit)
         const ident = getIdentifier(rhs, options)
-        // When nodes are copied, we need to substitute original names with newly assigned.
-        if (options.binding) {
-          if (isIdentifier(options.binding) && options.binding !== ident)
-            identifiersRenameMap.set(options.binding, ident)
-        }
-        const { id, rootExpression } = newAssignmentNode(edit, ident, rhs, options, identifiersRenameMap)
+        const fixup = afterCreation(edit, ident, options, identifiersRenameMap)
+        const { id, rootExpression } = newAssignmentNode(edit, ident, rhs, fixup, options)
         statements.push(rootExpression)
         created.add(id)
         assert(options.metadata?.position != null, 'Node should already be placed')
@@ -144,6 +140,34 @@ export function useNodeCreation(
     onCreated(created)
   }
 
+  /** A callback that will be called with the created assignment expression.
+    * We resolve import conflicts and substitute identifiers if needed. */
+  function afterCreation(
+    edit: Ast.MutableModule,
+    ident: Ast.Identifier,
+    options: NodeCreationOptions,
+    identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>
+  ) {
+    return (assignment: Ast.Assignment) => {
+      // When nodes are copied, we need to substitute original names with newly assigned.
+      if (options.binding) {
+        if (isIdentifier(options.binding) && options.binding !== ident)
+          identifiersRenameMap.set(options.binding, ident)
+      }
+      for (const [old, replacement] of identifiersRenameMap.entries()) {
+        substituteIdentifier(edit, assignment, old, replacement)
+      }
+
+      // Resolve import conflicts.
+      const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
+      for (const _conflict of conflicts) {
+        // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+        // https://github.com/enso-org/enso/issues/9356
+        // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+      }
+    }
+  }
+
   function createNode(options: NodeCreationOptions) {
     createNodes([options])
   }
@@ -152,20 +176,12 @@ export function useNodeCreation(
       edit: Ast.MutableModule, 
       ident: Ast.Identifier,
       rhs: Ast.Owned,
+      fixup: (assignment: Ast.Assignment) => void,
       options: NodeCreationOptions, 
-      identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>,
   ) {
     rhs.setNodeMetadata(options.metadata ?? {})
     const assignment = Ast.Assignment.new(edit, ident, rhs)
-    const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
-    for (const _conflict of conflicts) {
-      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
-      // https://github.com/enso-org/enso/issues/9356
-      // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
-    }
-    for (const [old, replacement] of identifiersRenameMap.entries()) {
-      substituteIdentifier(edit, assignment, old, replacement)
-    }
+    fixup(assignment)
     const id = asNodeId(rhs.id)
     const rootExpression =
       options.documentation != null ?
