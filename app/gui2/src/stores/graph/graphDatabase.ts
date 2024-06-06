@@ -139,9 +139,7 @@ export class GraphDb {
   ) {}
 
   private nodeIdToOuterExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
-    const exprs: AstId[] = []
-    entry.outerExpr.visitRecursiveAst((ast) => void exprs.push(ast.id))
-    return Array.from(exprs, (expr) => [id, expr])
+    return [[id, entry.outerExpr.id]]
   })
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
@@ -208,7 +206,7 @@ export class GraphDb {
     return Array.from(ports, (port) => [id, port])
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (_id, entry) => {
     const expressionInfo = this.getExpressionInfo(entry.innerExpr.id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
