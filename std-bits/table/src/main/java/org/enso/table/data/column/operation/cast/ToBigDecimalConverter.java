@@ -108,6 +108,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         case Long l -> builder.appendRawNoGrow(BigDecimal.valueOf(l));
         case Double d -> builder.appendRawNoGrow(BigDecimal.valueOf(d));
         case BigInteger bigInteger -> builder.appendRawNoGrow(new BigDecimal(bigInteger));
+        case BigDecimal bigDecimal -> builder.appendRawNoGrow(bigDecimal);
         default -> {
           problemAggregator.reportConversionFailure(o);
           builder.appendNulls(1);

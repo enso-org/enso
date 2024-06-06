@@ -109,6 +109,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         case Long l -> builder.appendRawNoGrow(BigInteger.valueOf(l));
         case Double d -> builder.appendRawNoGrow(BigDecimal.valueOf(d).toBigInteger());
         case BigInteger bigInteger -> builder.appendRawNoGrow(bigInteger);
+        case BigDecimal bigDecimal -> builder.appendRawNoGrow(bigDecimal.toBigInteger());
         default -> {
           problemAggregator.reportConversionFailure(o);
           builder.appendNulls(1);

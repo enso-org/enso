@@ -258,6 +258,28 @@ add_specs suite_builder setup =
                 td.at "floats" . to_vector . should_equal [1.0001, 2.25, 4.0]
                 td.at "decimals" . to_vector . should_equal [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
 
+            group_builder.specify "Can cast to Decimal from mixed column" <|
+                t = table_builder [["ints", [1, 2.0, 4]], ["floats", [1.0001, 2, 4.0]], ["bools", [True, 2, True]], ["decimals", [3, Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]]]
+                td = t.cast ["ints", "floats", "bools", "decimals"] Value_Type.Decimal
+                td.at "ints" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "floats" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "bools" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "decimals" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "ints" . to_vector . should_equal [Decimal.new 1, Decimal.new 2, Decimal.new 4]
+                td.at "floats" . to_vector . should_equal [Decimal.new "1.0001", Decimal.new "2", Decimal.new "4.0"]
+                td.at "bools" . to_vector . should_equal [Decimal.new "1", Decimal.new "2", Decimal.new "1"]
+                td.at "decimals" . to_vector . should_equal [Decimal.new "3", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
+
+            group_builder.specify "Can cast from Decimal in mixed column" <|
+                t = table_builder [["ints", [Decimal.new 1, Decimal.new 2, 4]], ["floats", [1.0001, Decimal.new "2.25", Decimal.new "4.0"]], ["decimals", [3, Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]]]
+                td = t.cast ["ints"] Value_Type.Integer . cast ["floats"] Value_Type.Float . cast ["decimals"] Value_Type.Decimal
+                td.at "ints" . value_type . should_equal Value_Type.Integer
+                td.at "floats" . value_type . should_equal Value_Type.Float
+                td.at "decimals" . value_type . should_equal Value_Type.Decimal
+                td.at "ints" . to_vector . should_equal [1, 2, 4]
+                td.at "floats" . to_vector . should_equal [1.0001, 2.25, 4.0]
+                td.at "decimals" . to_vector . should_equal [Decimal.new "3", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
+
             group_builder.specify "Attaches warning on conversion failure" <|
                 t16 = table_builder [["x", [Decimal.new "65539"]]] . cast ["x"] (Value_Type.Integer Bits.Bits_16)
                 Problems.expect_only_warning Conversion_Failure t16
