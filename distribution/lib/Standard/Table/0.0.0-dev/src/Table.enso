@@ -393,7 +393,7 @@ type Table
              table.select_columns [..By_Type ..Integer]
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     select_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
-    select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
+    select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) =
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         Table.new new_columns
 
@@ -473,7 +473,7 @@ type Table
              table.remove_columns [..By_Type ..Integer]
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     remove_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
-    remove_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
+    remove_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
@@ -700,7 +700,7 @@ type Table
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) = case column_map of
+    rename_columns self (column_map:(Table | Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=..Report_Warning) = case column_map of
         _ : Table ->
             resolved = Table_Helpers.read_name_map_from_table column_map
             self.rename_columns resolved case_sensitivity error_on_missing_columns on_problems
@@ -729,7 +729,7 @@ type Table
 
               table.use_first_row_as_names
     use_first_row_as_names : Problem_Behavior -> Table
-    use_first_row_as_names self (on_problems:Problem_Behavior=Report_Warning) =
+    use_first_row_as_names self (on_problems:Problem_Behavior=..Report_Warning) =
         new_names = self.first_row.to_vector.map c->
             if c.is_nothing then Nothing else c.to_text
         unique = self.column_naming_helper.create_unique_name_strategy
@@ -808,7 +808,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    aggregate self group_by=[] columns=[] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
+    aggregate self group_by=[] columns=[] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
         normalized_group_by = Vector.unify_vector_or_element group_by
         if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "At least one column must be specified.") else
             validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
@@ -888,7 +888,7 @@ type Table
               table.order_by [(Sort_Column.Select_By_Name "a.*".to_regex case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
     order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
-    order_by self (columns = [self.columns.first.name]) text_ordering:Text_Ordering=Text_Ordering.Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    order_by self (columns = [self.columns.first.name]) text_ordering:Text_Ordering=Text_Ordering.Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
@@ -948,7 +948,7 @@ type Table
            setting.
     @columns Widget_Helpers.make_column_name_multi_selector
     distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
-    distinct self (columns = self.column_names) case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=Report_Warning =
+    distinct self (columns = self.column_names) case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         java_columns = key_columns.map c->c.java_column
@@ -1052,7 +1052,7 @@ type Table
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
-    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)='' error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=Report_Warning =
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)='' error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         formatter = case format of
             _ : Text -> if format.is_empty then Data_Formatter.Value else Data_Formatter.Value.with_format type format
             _ : Data_Formatter -> format
@@ -1305,7 +1305,7 @@ type Table
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
     split_to_columns : Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> Table
-    split_to_columns self column delimiter="," (column_count : Columns_To_Add = ..All_Columns) on_problems:Problem_Behavior=Report_Warning =
+    split_to_columns self column delimiter="," (column_count : Columns_To_Add = ..All_Columns) on_problems:Problem_Behavior=..Report_Warning =
         Split_Tokenize.split_to_columns self column delimiter column_count=column_count on_problems
 
     ## GROUP Standard.Base.Conversions
@@ -1346,7 +1346,7 @@ type Table
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> Table
-    tokenize_to_columns self column pattern="." case_sensitivity:Case_Sensitivity=Case_Sensitivity.Sensitive (column_count : Columns_To_Add = ..All_Columns) on_problems:Problem_Behavior=Report_Warning =
+    tokenize_to_columns self column pattern="." case_sensitivity:Case_Sensitivity=Case_Sensitivity.Sensitive (column_count : Columns_To_Add = ..All_Columns) on_problems:Problem_Behavior=..Report_Warning =
         Split_Tokenize.tokenize_to_columns self column pattern case_sensitivity column_count on_problems
 
     ## GROUP Standard.Base.Conversions
@@ -1399,7 +1399,7 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     @pattern Widget.Text_Input
     parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
-    parse_to_columns self column pattern="." case_sensitivity:Case_Sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems:Problem_Behavior=Report_Error =
+    parse_to_columns self column pattern="." case_sensitivity:Case_Sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems:Problem_Behavior=..Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 
     ## GROUP Standard.Base.Calculations
@@ -1507,7 +1507,7 @@ type Table
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
     filter : (Column | Expression | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=Report_Warning = case column of
+    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.filter filter_column.java_column)
 
@@ -1560,7 +1560,7 @@ type Table
 
              people.filter_by_expression "[age] % 10 == 0"
     filter_by_expression : Text -> Problem_Behavior -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    filter_by_expression self expression on_problems=Report_Warning =
+    filter_by_expression self expression on_problems:Problem_Behavior=..Report_Warning =
         column = self.evaluate_expression (Expression.Value expression) on_problems
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
@@ -1594,7 +1594,7 @@ type Table
              table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     take : (Index_Sub_Range | Range | Integer) -> Table
-    take self range:(Index_Sub_Range | Range | Integer)=(First 1) =
+    take self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
         Index_Sub_Range_Module.take_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
 
     ## ALIAS skip, remove
@@ -1626,7 +1626,7 @@ type Table
              table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
     drop : (Index_Sub_Range | Range | Integer) -> Table
-    drop self range=(First 1) =
+    drop self range:(Index_Sub_Range | Range | Integer)=(..First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count (self.rows.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
@@ -1669,7 +1669,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
+    add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         Add_Row_Number.add_row_number self name from step group_by order_by on_problems
 
     ## ALIAS add column, expression, formula, new column, update column
@@ -1717,7 +1717,7 @@ type Table
                  table.set (expr "2 * [total_stock]") as="total_stock_expr"
     @value Simple_Expression.default_widget
     set : Text | Expression | Column | Constant_Column | Simple_Expression -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self value:(Text | Expression | Column | Constant_Column | Simple_Expression) (as : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
+    set self value:(Text | Expression | Column | Constant_Column | Simple_Expression) (as : Text = "") (set_mode : Set_Mode = ..Add_Or_Update) (on_problems : Problem_Behavior = ..Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names

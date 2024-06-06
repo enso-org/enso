@@ -49,10 +49,13 @@ type Table_Ref
        a constant column.
     resolve_as_column : Any -> Any ! No_Such_Column | Index_Out_Of_Bounds
     resolve_as_column self value = case value of
-        Column_Ref.Name name -> self.at name
-        Column_Ref.Index index -> self.at index
-        Expression.Value _ -> self.evaluate_expression value
-        _ -> self.underlying.make_constant_column value
+            Column_Ref.Name name -> self.at name
+            Column_Ref.Index index -> self.at index
+            Expression.Value _ -> self.evaluate_expression value
+            _ : Function ->
+                col_ref = Panic.catch Any (value:Column_Ref) _->Nothing
+                if col_ref.is_nothing then self.underlying.make_constant_column value else self.resolve_as_column col_ref
+            _ -> self.underlying.make_constant_column value
 
     ## PRIVATE
        Transforms a condition, changing any Column_Ref instances into Column instances resolved in this table.
