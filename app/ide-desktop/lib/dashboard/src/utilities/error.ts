@@ -46,6 +46,23 @@ export function tryGetError<T>(error: MustNotBeKnown<T>): string | null {
     : null
 }
 
+/**
+ * Extracts the `stack` property of a value if it is a string. Intended to be used on {@link Error}s.
+ */
+export function tryGetStack<T, DefaultMessage extends string | null = null>(
+  error: MustNotBeKnown<T>,
+  // eslint-disable-next-line no-restricted-syntax
+  defaultMessage: DefaultMessage = null as DefaultMessage
+): DefaultMessage | string {
+  const unknownError: unknown = error
+  return unknownError != null &&
+    typeof unknownError === 'object' &&
+    'stack' in unknownError &&
+    typeof unknownError.stack === 'string'
+    ? unknownError.stack
+    : defaultMessage
+}
+
 /** Like {@link tryGetMessage} but return the string representation of the value if it is not an
  * {@link Error}. */
 export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {

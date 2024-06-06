@@ -24,7 +24,7 @@ export interface TextProps
 }
 
 export const TEXT_STYLE = twv.tv({
-  base: 'inline-block',
+  base: 'inline-block flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
   variants: {
     color: {
       custom: '',
@@ -39,9 +39,9 @@ export const TEXT_STYLE = twv.tv({
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'text-xs leading-[20px] pt-[1px] pb-[3px]',
-      h1: 'text-xl leading-[29px] pt-[2px] pb-[5px]',
-      subtitle: 'text-[13.5px] leading-[20px] pt-[1px] pb-[3px]',
+      body: 'text-xs leading-[20px] before:h-[1px] after:h-[3px]',
+      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px]',
+      subtitle: 'text-[13.5px] leading-[20px] before:h-[1px] after:h-[3px]',
     },
     weight: {
       custom: '',
@@ -102,17 +102,17 @@ export const TEXT_STYLE = twv.tv({
     {
       variant: 'h1',
       disableLineHeightCompensation: true,
-      class: 'pt-[unset] pb-[unset]',
+      class: 'before:h-[unset] after:h-[unset]',
     },
     {
       variant: 'body',
       disableLineHeightCompensation: true,
-      class: 'pt-[unset] pb-[unset]',
+      class: 'before:h-[unset] after:h-[unset]',
     },
     {
       variant: 'subtitle',
       disableLineHeightCompensation: true,
-      class: 'pt-[unset] pb-[unset]',
+      class: 'before:h-[unset] after:h-[unset]',
     },
   ],
 })

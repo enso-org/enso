@@ -18,11 +18,12 @@ import Portal from '#/components/Portal'
 /** Props for a {@link Page}. */
 export interface PageProps extends Readonly<React.PropsWithChildren> {
   readonly hideInfoBar?: true
+  readonly hideChat?: true
 }
 
 /** A page. */
 export default function Page(props: PageProps) {
-  const { hideInfoBar = false, children } = props
+  const { hideInfoBar = false, children, hideChat = false } = props
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
   const { unsetModal } = modalProvider.useSetModal()
   const session = authProvider.useUserSession()
@@ -52,7 +53,10 @@ export default function Page(props: PageProps) {
         </div>
       )}
       {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-      {!hideInfoBar && session?.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
+      {!hideInfoBar &&
+      !hideChat &&
+      session?.accessToken != null &&
+      process.env.ENSO_CLOUD_CHAT_URL != null ? (
         <Chat
           isOpen={isHelpChatOpen}
           doClose={doCloseChat}
