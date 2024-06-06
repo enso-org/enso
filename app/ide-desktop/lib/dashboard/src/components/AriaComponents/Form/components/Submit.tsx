@@ -56,7 +56,7 @@ export function Submit(props: SubmitProps): React.JSX.Element {
     formnovalidate,
     loading = false,
     children,
-    rounded = 'xxxlarge',
+    rounded = 'large',
     ...buttonProps
   } = props
 
