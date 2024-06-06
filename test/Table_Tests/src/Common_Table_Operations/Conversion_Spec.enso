@@ -289,10 +289,12 @@ add_specs suite_builder setup =
                 Problems.expect_only_warning Conversion_Failure t64
 
             group_builder.specify "Attaches warning on loss of precision" <|
-                tf = table_builder [["x", [Decimal.new "1E310"]]] . cast ["x"] Value_Type.Float
-                Problems.expect_only_warning Loss_Of_Decimal_Precision tf
-                tbi = table_builder [["x", [9223372036854775807000]]] . cast ["x"] Value_Type.Float
-                Problems.expect_only_warning Loss_Of_Integer_Precision tbi
+                t0 = table_builder [["x", [Decimal.new "0.1"]]] . cast ["x"] Value_Type.Float
+                Problems.expect_only_warning Loss_Of_Decimal_Precision t0
+                t1 = table_builder [["x", [Decimal.new "1E310"]]] . cast ["x"] Value_Type.Float
+                Problems.expect_only_warning Loss_Of_Decimal_Precision t1
+                t2 = table_builder [["x", [Decimal.new "9223372036854775807000"]]] . cast ["x"] Value_Type.Float
+                Problems.expect_only_warning Loss_Of_Decimal_Precision t2
 
             group_builder.specify "Attaches warning on loss of precision for a mixed column" <|
                 t = table_builder [["x", [Decimal.new "1E310", 9223372036854775807000]]] . cast ["x"] Value_Type.Float

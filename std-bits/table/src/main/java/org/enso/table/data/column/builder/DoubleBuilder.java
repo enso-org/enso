@@ -225,7 +225,11 @@ public class DoubleBuilder extends NumericBuilder {
     if (Double.isInfinite(floatingPointValue)) {
       precisionLossAggregator.reportBigDecimalPrecisionLoss(bigDecimal, floatingPointValue);
     } else {
-      BigDecimal reconstructed = BigDecimal.valueOf(floatingPointValue);
+    // We use `new` instead of `valueOf` because `valueOf` gives a false
+    // negative: it converts the floating point value of literal 0.1 to
+    // BigDecimal 0.1, even though they are unequal. `valueOf` is correct for
+    // conversion, but not for detecting precision loss.
+      BigDecimal reconstructed = new BigDecimal(floatingPointValue);
       boolean isLosingPrecision = !bigDecimal.equals(reconstructed);
       if (isLosingPrecision) {
         precisionLossAggregator.reportBigDecimalPrecisionLoss(bigDecimal, floatingPointValue);
