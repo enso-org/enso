@@ -13,10 +13,10 @@ import org.enso.logger.akka.ActorMessageLogging
 import org.enso.logger.masking.ToLogString
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
+import org.enso.polyglot.serde.ApiSerializer
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
-
 import scala.util.{Failure, Success}
 
 /** An actor managing a connection to Enso's runtime server. */
@@ -90,7 +90,7 @@ final class RuntimeConnector(
       context.stop(self)
 
     case msg: Runtime.ApiEnvelope =>
-      engine.sendBinary(Runtime.Api.serialize(msg))
+      engine.sendBinary(ApiSerializer.serialize(msg))
 
       msg match {
         case Api.Request(Some(id), _) =>
@@ -178,7 +178,7 @@ object RuntimeConnector {
     override def sendText(text: String): Unit = {}
 
     override def sendBinary(data: ByteBuffer): Unit =
-      Runtime.Api.deserializeApiEnvelope(data) match {
+      ApiSerializer.deserializeApiEnvelope(data) match {
         case Success(msg) =>
           actor ! MessageFromRuntime(msg)
         case Failure(ex) =>

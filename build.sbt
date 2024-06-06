@@ -283,6 +283,7 @@ lazy val enso = (project in file("."))
     `json-rpc-server`,
     `language-server`,
     `polyglot-api`,
+    `polyglot-api-serde`,
     `project-manager`,
     `syntax-definition`,
     `syntax-rust-definition`,
@@ -1450,7 +1451,7 @@ lazy val `polyglot-api` = project
       "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
       "io.circe"                              %% "circe-core"            % circeVersion,
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % "2.28.5",
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.28.5"                  % "provided",
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.28.5",
       "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
       "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
     ),
@@ -1463,6 +1464,20 @@ lazy val `polyglot-api` = project
   .dependsOn(`text-buffer`)
   .dependsOn(`logging-utils`)
   .dependsOn(testkit % Test)
+
+lazy val `polyglot-api-serde` = project
+  .in(file("engine/polyglot-api-serde"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+    libraryDependencies ++= Seq(
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % "2.28.5",
+      "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
+      "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
+    ),
+  )
+  .dependsOn(`polyglot-api`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .enablePlugins(JPMSPlugin)
@@ -1608,6 +1623,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`polyglot-api-serde`)
   .dependsOn(`searcher`)
   .dependsOn(`text-buffer`)
   .dependsOn(`version-output`)
@@ -1870,6 +1886,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`library-manager`)
   .dependsOn(`logging-truffle-connector`)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`polyglot-api-serde`)
   .dependsOn(`text-buffer`)
   .dependsOn(`runtime-compiler`)
   .dependsOn(`runtime-suggestions`)
@@ -2519,6 +2536,7 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`polyglot-api-serde`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
