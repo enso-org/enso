@@ -46,9 +46,9 @@ export default function AddPaymentMethodModal(props: AddPaymentMethodModalProps)
 }
 
 /**
- *
+ * Props for {@link AddPaymentMethodForm}.
  */
-export interface AddPaymentMethodProps {
+export interface AddPaymentMethodFormProps {
   readonly stripeInstance: stripeJs.Stripe
   readonly elements: stripeJs.StripeElements
   readonly submitText: string
@@ -56,9 +56,9 @@ export interface AddPaymentMethodProps {
 }
 
 /**
- * A form for subscribing to a plan.
+ * A form for adding a payment method.
  */
-export function AddPaymentMethodForm(props: AddPaymentMethodProps) {
+export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
   const { stripeInstance, elements, onSubmit, submitText } = props
 
   const { getText } = text.useText()

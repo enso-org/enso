@@ -80,7 +80,7 @@ export const Form = React.forwardRef(function Form<
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
 
   const formMutation = reactQuery.useMutation({
-    mutationKey: ['Form submition', `testId: ${testId}`, `id: ${id}`],
+    mutationKey: ['Form submission', `testId: ${testId}`, `id: ${id}`],
     mutationFn: async (fieldValues: TFieldValues) => {
       try {
         await onSubmit(fieldValues, innerForm)
