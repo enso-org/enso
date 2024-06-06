@@ -80,6 +80,10 @@ export const Form = React.forwardRef(function Form<
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
 
   const formMutation = reactQuery.useMutation({
+    // We use template literals to make the mutation key more readable in the devtools
+    // This mutation exists only for debug purposes - React Query dev tools record the mutation,
+    // the result, and the variables(form fields).
+    // In general, prefer using object literals for the mutation key.
     mutationKey: ['Form submission', `testId: ${testId}`, `id: ${id}`],
     mutationFn: async (fieldValues: TFieldValues) => {
       try {
