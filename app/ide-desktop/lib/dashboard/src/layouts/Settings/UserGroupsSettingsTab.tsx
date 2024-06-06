@@ -24,8 +24,9 @@ import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+
+import * as withPaywall from './withPaywall'
 
 // =============================
 // === UserGroupsSettingsTab ===
@@ -37,7 +38,7 @@ export interface UserGroupsSettingsTabProps {
 }
 
 /** Settings tab for viewing and editing organization members. */
-export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps) {
+function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps) {
   const { backend } = props
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -213,3 +214,5 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
     </div>
   )
 }
+
+export default withPaywall.withPaywall(UserGroupsSettingsTab, { feature: 'userGroups' })

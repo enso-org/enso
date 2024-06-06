@@ -10,7 +10,7 @@ import * as tailwindVariants from '#/utilities/tailwindVariants'
 // =================
 
 const HORIZONTAL_MENU_BAR_VARIANTS = tailwindVariants.tv({
-  base: 'flex h-row gap-drive-bar',
+  base: 'flex items-center h-row gap-drive-bar',
   variants: {
     grow: { true: 'grow' },
   },

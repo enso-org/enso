@@ -1,10 +1,12 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import * as billingHooks from '#/hooks/billing'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -17,6 +19,7 @@ import Autocomplete from '#/components/Autocomplete'
 import Permission from '#/components/dashboard/Permission'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import Modal from '#/components/Modal'
+import * as paywall from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
@@ -100,9 +103,9 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          (backendModule.isUserPermission(permission) && permission.user.userId === user?.userId)
+          (backendModule.isUserPermission(permission) && permission.user.userId === user.userId)
       ),
-    [user?.userId, permissions, self.permission]
+    [user.userId, permissions, self.permission]
   )
 
   const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser')
