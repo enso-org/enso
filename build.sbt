@@ -2067,8 +2067,9 @@ lazy val `runtime-benchmarks` =
       modulePath := {
         val requiredModIds =
           GraalVM.modules ++ GraalVM.langsPkgs ++ helidon ++ Seq(
-            "org.slf4j" % "slf4j-api" % slf4jVersion,
-            "org.slf4j" % "slf4j-nop" % slf4jVersion
+            "org.slf4j"        % "slf4j-api"                    % slf4jVersion,
+            "org.slf4j"        % "slf4j-nop"                    % slf4jVersion,
+            "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
           )
         val requiredMods = JPMSUtils.filterModulesFromUpdate(
           (Compile / update).value,
@@ -2078,7 +2079,18 @@ lazy val `runtime-benchmarks` =
         )
         val runtimeMod =
           (`runtime-fat-jar` / assembly / assemblyOutputPath).value
-        requiredMods ++ Seq(runtimeMod)
+        val ydocMod =
+          (`ydoc-server` / Compile / exportedProducts).value.head.data
+        val syntaxMod =
+          (`syntax-rust-definition` / Compile / exportedProducts).value.head.data
+        val profilingMod =
+          (`profiling-utils` / Compile / exportedProducts).value.head.data
+        requiredMods ++ Seq(
+          runtimeMod,
+          ydocMod,
+          syntaxMod,
+          profilingMod
+        )
       },
       addModules := {
         val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
