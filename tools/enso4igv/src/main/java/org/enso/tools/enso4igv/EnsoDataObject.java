@@ -1,13 +1,9 @@
 package org.enso.tools.enso4igv;
 
-import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.Set;
-import javax.swing.Icon;
-import javax.swing.event.ChangeListener;
-import org.netbeans.api.project.Project;
-import org.netbeans.api.project.SourceGroup;
-import org.netbeans.api.project.Sources;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.netbeans.core.spi.multiview.MultiViewElement;
 import org.netbeans.core.spi.multiview.text.MultiViewEditorElement;
 import org.netbeans.modules.textmate.lexer.api.GrammarRegistration;
@@ -22,7 +18,6 @@ import org.openide.loaders.MultiDataObject;
 import org.openide.loaders.MultiFileLoader;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle.Messages;
-import org.openide.util.lookup.Lookups;
 import org.openide.windows.TopComponent;
 
 @Messages({
@@ -119,6 +114,7 @@ import org.openide.windows.TopComponent;
 
 })
 public class EnsoDataObject extends MultiDataObject {
+    private static final Logger LOG = Logger.getLogger(EnsoDataObject.class.getName());
 
     public EnsoDataObject(FileObject pf, MultiFileLoader loader) throws DataObjectExistsException, IOException {
         super(pf, loader);
@@ -145,5 +141,19 @@ public class EnsoDataObject extends MultiDataObject {
     }
 
     private void registerTruffleMimeType(String mime) throws IOException {
+        ClassLoader all = Lookup.getDefault().lookup(ClassLoader.class);
+        if (all == null) {
+            all = EnsoDataObject.class.getClassLoader();
+        }
+        try {
+            var clazz = all.loadClass("org.netbeans.modules.debugger.jpda.truffle.MIMETypes");
+            var getDefault = clazz.getMethod("getDefault");
+            var mimeTypes = getDefault.invoke(null);
+            var get = clazz.getMethod("get");
+            var toSet = (Set<String>)get.invoke(mimeTypes);
+            toSet.add(mime);
+        } catch (ReflectiveOperationException ex) {
+            LOG.log(Level.WARNING, "Cannot register breakpoints for Enso", ex);
+        }
     }
 }
