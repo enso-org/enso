@@ -2470,7 +2470,14 @@ lazy val `engine-runner` = project
         "runtime.jar",
         "runner.jar"
       )
-      core ++ `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+      val stdLibsJars =
+        `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+      val profJar = (`profiling-utils` / Compile / exportedProductJars).value
+        .map(_.data.getAbsolutePath)
+      val syntaxJar =
+        (`syntax-rust-definition` / Compile / exportedProductJars).value
+          .map(_.data.getAbsolutePath)
+      core ++ stdLibsJars ++ profJar ++ syntaxJar
     },
     buildSmallJdk := {
       val smallJdkDirectory = (target.value / "jdk").getAbsoluteFile()
