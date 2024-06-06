@@ -13,7 +13,7 @@ import org.enso.logger.akka.ActorMessageLogging
 import org.enso.logger.masking.ToLogString
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
-import org.enso.polyglot.serde.ApiSerializer
+import org.enso.polyglot.runtime.serde.ApiSerializer
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer

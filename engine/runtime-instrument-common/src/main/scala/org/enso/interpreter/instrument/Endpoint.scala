@@ -5,7 +5,7 @@ import org.enso.lockmanager.client.{
   RuntimeServerRequestHandler
 }
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest, ApiResponse}
-import org.enso.polyglot.serde.ApiSerializer
+import org.enso.polyglot.runtime.serde.ApiSerializer
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer

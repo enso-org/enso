@@ -1,4 +1,4 @@
-package org.enso.polyglot.serde
+package org.enso.polyglot.runtime.serde
 
 import java.util.UUID
 
