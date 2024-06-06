@@ -28,8 +28,9 @@ import org.enso.pkg.QualifiedName;
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 public final class Type implements EnsoObject {
+
   private final String name;
-  private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
+  private @CompilerDirectives.CompilationFinal ModuleScope.Builder definitionScope;
   private final boolean builtin;
   private final Type supertype;
   private final Type eigentype;
@@ -40,7 +41,7 @@ public final class Type implements EnsoObject {
 
   private Type(
       String name,
-      ModuleScope definitionScope,
+      ModuleScope.Builder definitionScope,
       Type supertype,
       Type eigentype,
       boolean builtin,
@@ -56,18 +57,16 @@ public final class Type implements EnsoObject {
 
   public static Type createSingleton(
       String name,
-      ModuleScope definitionScope,
+      ModuleScope.Builder definitionScope,
       Type supertype,
       boolean builtin,
       boolean isProjectPrivate) {
-    var result = new Type(name, definitionScope, supertype, null, builtin, isProjectPrivate);
-    result.generateQualifiedAccessor();
-    return result;
+    return new Type(name, definitionScope, supertype, null, builtin, isProjectPrivate);
   }
 
   public static Type create(
       String name,
-      ModuleScope definitionScope,
+      ModuleScope.Builder definitionScope,
       Type supertype,
       Type any,
       boolean builtin,
@@ -93,7 +92,8 @@ public final class Type implements EnsoObject {
       schemaBldr.projectPrivate();
     }
     var function = new Function(node.getCallTarget(), null, schemaBldr.build());
-    definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
+    definitionScope.registerMethod(
+        definitionScope.asModuleScope().getAssociatedType(), this.name, function);
   }
 
   public QualifiedName getQualifiedName() {
@@ -104,11 +104,9 @@ public final class Type implements EnsoObject {
     }
   }
 
-  public void setShadowDefinitions(ModuleScope scope, boolean generateAccessorsInTarget) {
+  public void setShadowDefinitions(ModuleScope.Builder scope, boolean generateAccessorsInTarget) {
     if (builtin) {
-      // Ensure that synthetic methods, such as getters for fields are in the scope
-      // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
-      // check.
+      // Ensure that synthetic methods, such as getters for fields are in the scope.
       CompilerAsserts.neverPartOfCompilation();
       this.definitionScope.registerAllMethodsOfTypeToScope(this, scope);
       this.definitionScope = scope;
@@ -129,7 +127,7 @@ public final class Type implements EnsoObject {
   }
 
   public ModuleScope getDefinitionScope() {
-    return definitionScope;
+    return definitionScope.asModuleScope();
   }
 
   public boolean isBuiltin() {
