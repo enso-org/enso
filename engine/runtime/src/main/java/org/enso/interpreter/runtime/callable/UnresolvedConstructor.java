@@ -30,7 +30,9 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
@@ -235,7 +237,7 @@ public final class UnresolvedConstructor implements EnsoObject {
       return invokeConstructor(c, unresolved.asPrototype(), unresolved, state, callNode);
     }
 
-    private static Object invokeConstructor(
+    private Object invokeConstructor(
         AtomConstructor c,
         UnresolvedConstructor prototype,
         UnresolvedConstructor unresolved,
@@ -254,7 +256,13 @@ public final class UnresolvedConstructor implements EnsoObject {
       args[0] = fn;
       var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
       var r = callNode.call(helper);
-      return r;
+      if (r instanceof Atom) {
+        return r;
+      } else {
+        var ctx = EnsoContext.get(this);
+        var err = ctx.getBuiltins().error().makeTypeError(c.getType(), r, prototype.toString());
+        throw new PanicException(err, this);
+      }
     }
 
     private static Object checkSingleton(Type c, UnresolvedConstructor unresolved) {
