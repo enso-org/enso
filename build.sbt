@@ -1472,10 +1472,10 @@ lazy val `polyglot-api-serde` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     libraryDependencies ++= Seq(
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % "2.28.5",
-      "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
-      "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
-    ),
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.28.5",
+      "org.scalatest"                         %% "scalatest"           % scalatestVersion  % Test,
+      "org.scalacheck"                        %% "scalacheck"          % scalacheckVersion % Test
+    )
   )
   .dependsOn(`polyglot-api`)
 
