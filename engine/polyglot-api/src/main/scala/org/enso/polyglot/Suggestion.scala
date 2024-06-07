@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.{JsonIgnore, JsonSubTypes, JsonTypeInfo}
 import org.enso.logger.masking.ToLogString
 
 import java.util.UUID
+import scala.collection.immutable.ListSet
 
 /** A search suggestion. */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -245,7 +246,7 @@ object Suggestion {
   case class Module(
     module: String,
     documentation: Option[String],
-    reexports: Set[String] = Set()
+    reexports: Set[String] = ListSet()
   ) extends Suggestion
       with ToLogString {
 
@@ -301,8 +302,8 @@ object Suggestion {
     params: Seq[Argument],
     returnType: String,
     parentType: Option[String],
-    documentation: Option[String] = None,
-    reexports: Set[String]        = Set()
+    documentation: Option[String],
+    reexports: Set[String] = ListSet()
   ) extends Suggestion
       with ToLogString {
 
@@ -362,7 +363,7 @@ object Suggestion {
     returnType: String,
     documentation: Option[String],
     annotations: Seq[String],
-    reexports: Set[String] = Set()
+    reexports: Set[String] = ListSet()
   ) extends Suggestion
       with ToLogString {
 
@@ -449,7 +450,7 @@ object Suggestion {
     returnType: String,
     documentation: Option[String],
     annotations: Seq[String],
-    reexports: Set[String] = Set()
+    reexports: Set[String] = ListSet()
   ) extends Method
       with ToLogString {
 
@@ -516,7 +517,7 @@ object Suggestion {
     isStatic: Boolean,
     documentation: Option[String],
     annotations: Seq[String],
-    reexports: Set[String] = Set()
+    reexports: Set[String] = ListSet()
   ) extends Method
       with ToLogString {
 
@@ -574,7 +575,7 @@ object Suggestion {
     selfType: String,
     returnType: String,
     documentation: Option[String],
-    reexports: Set[String] = Set()
+    reexports: Set[String] = ListSet()
   ) extends Method {
 
     /** @inheritdoc */

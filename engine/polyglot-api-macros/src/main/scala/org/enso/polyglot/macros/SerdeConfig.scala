@@ -23,38 +23,16 @@ object SerdeConfig {
       val t = in.nextToken()
 
       if (t == 'n') in.readNullOrError(null, "expected 'null' or JSON value")
-      else if (t == '"') {
+      else {
         in.rollbackToken()
         val path = in.readString(null)
-        if (path == null) null
-        else new File(path)
-      } else if (t == '{') {
-        if (!in.isNextToken('}')) {
-          in.rollbackToken()
-          val key = in.readKeyAsString()
-          if (key != "file") {
-            throw new RuntimeException("invalid field name, expected `file` got `" + key + "`")
-          }
-          val path = in.readString(null)
-          if (!in.isNextToken('}')) {
-            in.objectEndOrCommaError()
-          }
-          new File(path)
-        } else {
-          null
-        }
-
-      } else throw new RuntimeException("Invalid value, cannot deserialize at " + t)
+        new File(path)
+      }
     }
 
     override def encodeValue(x: File, out: JsonWriter): Unit = {
-      out.writeObjectStart()
       if (x == null) out.writeNull()
-      else {
-        out.writeKey("file")
-        out.writeVal(x.getPath)
-      }
-      out.writeObjectEnd()
+      else out.writeVal(x.getPath)
     }
 
     override def nullValue: File = null

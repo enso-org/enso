@@ -70,13 +70,15 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                         externalId = Some(UUID.randomUUID()),
                         module     = "Standard.Base.Data.Set",
                         name       = "Set",
-                        params =
-                          Seq.empty, // Set(Suggestion.Argument("foo", "bar", true, false, None, None)),
+                        params = Seq(
+                          Suggestion
+                            .Argument("foo", "bar", true, false, None, None)
+                        ),
                         returnType = "Standard.Base.Data.Set.Set",
                         parentType = Some("Standard.Base.Any.Any"),
                         documentation =
-                          Some(" An unordered collection of unique values")
-                        //reexports = Set("foo")
+                          Some(" An unordered collection of unique values"),
+                        reexports = Set("foo")
                       ),
                     action = SuggestionAction.Modify(documentation = Some(None))
                   ),
