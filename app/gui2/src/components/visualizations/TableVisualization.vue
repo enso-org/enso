@@ -39,7 +39,7 @@ interface Matrix {
   column_count: number
   all_rows_count: number
   json: unknown[][]
-  value_type: any
+  value_type: object[]
 }
 
 interface ObjectMatrix {
@@ -47,7 +47,7 @@ interface ObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
-  value_type: any
+  value_type: object[]
 }
 
 interface LegacyMatrix {
@@ -55,7 +55,7 @@ interface LegacyMatrix {
   column_count: number
   all_rows_count: number
   json: unknown[][]
-  value_type: any
+  value_type: object[]
 }
 
 interface LegacyObjectMatrix {
@@ -63,7 +63,7 @@ interface LegacyObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
-  value_type: any
+  value_type: object[]
 }
 
 interface UnknownTable {
@@ -325,7 +325,8 @@ watchEffect(() => {
         all_rows_count: 1,
         data: undefined,
         indices: undefined,
-        valueType: undefined,
+        // eslint-disable-next-line camelcase
+        value_type: undefined,
       }
   const options = agGridOptions.value
   if (options.api == null) {
@@ -346,8 +347,7 @@ watchEffect(() => {
   } else if (data_.type === 'Matrix') {
     columnDefs.push(indexField())
     for (let i = 0; i < data_.column_count; i++) {
-      const valueType = data_.value_type ? data_.value_type[i].constructor : null
-      columnDefs.push(toField(i.toString(), valueType))
+      columnDefs.push(toField(i.toString()))
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
@@ -356,11 +356,10 @@ watchEffect(() => {
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
-        Object.keys(val).forEach((k, i) => {
+        Object.keys(val).forEach((k) => {
           if (!keys.has(k)) {
-            const valueType = data_.value_type ? data_.value_type[i].constructor : null
             keys.add(k)
-            columnDefs.push(toField(k, valueType))
+            columnDefs.push(toField(k))
           }
         })
       }

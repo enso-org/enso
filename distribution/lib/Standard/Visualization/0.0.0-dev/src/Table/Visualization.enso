@@ -137,7 +137,7 @@ make_json_for_js_object js_object max_items =
     map_vector = Warning.clear (fields.take max_items)
     mapped = map_vector . map p-> [p, make_json_for_value (js_object.get p)]
     data = ["data", [mapped.map .first, mapped.map .second]]
-    JS_Object.from_pairs [header ,data, all_rows, ["type", "Map"]]
+    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
 
 ## PRIVATE
    Creates a JSON representation for the visualizations.
