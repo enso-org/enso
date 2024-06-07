@@ -195,9 +195,7 @@ default_fetcher_for_value_type value_type =
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
             case is_guaranteed_integer of
                 True  -> big_integer_fetcher
-                # If we cannot guarantee that the column is integer, we will fall back to Float values, since there is no BigDecimal implementation yet.
-                # In another place this will trigger a Inexact_Type_Coercion warning.
-                False -> double_fetcher
+                False -> big_decimal_fetcher
         _ -> fallback_fetcher
 
 ## PRIVATE
