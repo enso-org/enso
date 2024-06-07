@@ -5,11 +5,17 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
+import org.enso.common.LanguageInfo;
+import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.PolyglotContext;
+import org.enso.polyglot.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
+import org.graalvm.polyglot.Source;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -82,5 +88,38 @@ public class EnsoProjectTest {
         (res) -> {
           assertThat(res.asString(), is("Proj2"));
         });
+  }
+
+  @Test
+  public void ensoProjectCanBeCalledFromJava() throws IOException {
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        from Standard.Base import all
+        main =
+            42
+        """);
+    var projDir = temporaryFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
+    var mainModFile = projDir.resolve("src").resolve("Main.enso");
+    assertThat(mainModFile.toFile().exists(), is(true));
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
+      var mainSrc = Source.newBuilder(LanguageInfo.ID, mainModFile.toFile()).build();
+      // First eval the source so that everything is compiled.
+      ctx.eval(mainSrc);
+      var polyCtx = new PolyglotContext(ctx);
+      var mod = polyCtx.getTopScope().getModule("Standard.Base.Meta.Enso_Project");
+      var assocType = mod.getAssociatedType();
+      var ensoProjMethod = mod.getMethod(assocType, "enso_project").get();
+      var projDescr = ensoProjMethod.execute(ScalaConversions.seq(List.of(assocType)));
+      assertThat(projDescr.hasMembers(), is(true));
+      assertThat(projDescr.getMetaObject().getMetaSimpleName(), is("Project_Description"));
+      assertThat(projDescr.hasMember("name"), is(true));
+      assertThat(projDescr.invokeMember("name").asString(), is("Proj"));
+    }
   }
 }
