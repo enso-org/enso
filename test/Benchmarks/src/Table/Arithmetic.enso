@@ -84,4 +84,8 @@ collect_benches = Bench.build builder->
         group_builder.specify "Plus_Fitting" <|
             bench_arrow_plus data.arrow_x data.arrow_u
 
-main = collect_benches . run_main
+        group_builder.specify "Plus_Overflowing" <|
+            bench_arrow_plus data.arrow_y data.arrow_u
+            # IO.println <| r . take 30
+
+main filter=Nothing = collect_benches . run_main filter
