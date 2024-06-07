@@ -26,7 +26,6 @@ import type * as types from './types'
 export const Form = React.forwardRef(function Form<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 >(
   props: types.FormProps<Schema, TFieldValues, TTransformedValues>,
@@ -206,7 +205,6 @@ export const Form = React.forwardRef(function Form<
 }) as unknown as (<
   Schema extends components.TSchema,
   TFieldValues extends components.FieldValues<Schema>,
-  // eslint-disable-next-line no-restricted-syntax
   TTransformedValues extends components.FieldValues<Schema> | undefined = undefined,
 >(
   props: React.RefAttributes<HTMLFormElement> &
