@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.graalvm.polyglot.Context;
 
 public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   @Override
@@ -34,8 +35,9 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
 
   private Storage<BigDecimal> convertDoubleStorage(
       DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
     int n = doubleStorage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n, problemAggregator);
+    BigDecimalBuilder builder = new BigDecimalBuilder(n);
     for (int i = 0; i < n; i++) {
       if (doubleStorage.isNothing(i)) {
         builder.appendNulls(1);
@@ -44,14 +46,17 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         BigDecimal bigDecimal = BigDecimal.valueOf(x);
         builder.appendRawNoGrow(bigDecimal);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private Storage<BigDecimal> convertLongStorage(
       AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
     int n = longStorage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n, problemAggregator);
+    BigDecimalBuilder builder = new BigDecimalBuilder(n);
     for (int i = 0; i < n; i++) {
       if (longStorage.isNothing(i)) {
         builder.appendNulls(1);
@@ -60,14 +65,17 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         BigDecimal bigDecimal = BigDecimal.valueOf(x);
         builder.appendRawNoGrow(bigDecimal);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private Storage<BigDecimal> convertBoolStorage(
       BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
     int n = boolStorage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n, problemAggregator);
+    BigDecimalBuilder builder = new BigDecimalBuilder(n);
     for (int i = 0; i < n; i++) {
       if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
@@ -76,14 +84,17 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         BigDecimal bigDecimal = booleanAsBigDecimal(x);
         builder.appendRawNoGrow(bigDecimal);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private Storage<BigDecimal> convertBigIntegerStorage(
       BigIntegerStorage bigIntegerStorage, CastProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
     int n = bigIntegerStorage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n, problemAggregator);
+    BigDecimalBuilder builder = new BigDecimalBuilder(n);
     for (int i = 0; i < n; i++) {
       if (bigIntegerStorage.isNothing(i)) {
         builder.appendNulls(1);
@@ -92,14 +103,17 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         BigDecimal bigDecimal = new BigDecimal(x);
         builder.appendRawNoGrow(bigDecimal);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private Storage<BigDecimal> castFromMixed(
       Storage<?> storage, CastProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
     int n = storage.size();
-    BigDecimalBuilder builder = new BigDecimalBuilder(n, problemAggregator);
+    BigDecimalBuilder builder = new BigDecimalBuilder(n);
     for (int i = 0; i < n; i++) {
       Object o = storage.getItemBoxed(i);
       switch (o) {
@@ -114,6 +128,8 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
           builder.appendNulls(1);
         }
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }

@@ -117,7 +117,7 @@ public class InferredBuilder extends Builder {
     } else if (o instanceof BigInteger) {
       currentBuilder = new BigIntegerBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof BigDecimal) {
-      currentBuilder = new BigDecimalBuilder(initialCapacity, problemAggregator);
+      currentBuilder = new BigDecimalBuilder(initialCapacity);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {
