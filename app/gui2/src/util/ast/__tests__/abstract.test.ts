@@ -858,15 +858,16 @@ test.each([
   'Substitute qualified name $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {
     const expression = Ast.parse(original)
-    expression.module.replaceRoot(expression)
+    const module = expression.module
+    module.replaceRoot(expression)
     const edit = expression.module.edit()
     substituteQualifiedName(
-      edit,
       expression,
-      pattern as Ast.QualifiedName,
-      unwrap(tryQualifiedName(substitution)),
+      pattern as Ast.Identifier,
+      substitution as Ast.Identifier,
     )
-    expect(edit.root()?.code()).toEqual(expected)
+    module.applyEdit(edit)
+    expect(module.root()?.code()).toEqual(expected)
   },
 )
 
@@ -905,15 +906,16 @@ test.each([
   'Substitute identifier $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {
     const expression = Ast.parse(original)
-    expression.module.replaceRoot(expression)
+    const module = expression.module
+    module.replaceRoot(expression)
     const edit = expression.module.edit()
     substituteIdentifier(
-      edit,
       expression,
       pattern as Ast.Identifier,
       substitution as Ast.Identifier,
     )
-    expect(edit.root()?.code()).toEqual(expected)
+    module.applyEdit(edit)
+    expect(module.root()?.code()).toEqual(expected)
   },
 )
 

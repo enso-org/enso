@@ -385,7 +385,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           for (const _conflict of conflicts) {
             // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
             // https://github.com/enso-org/enso/issues/9356
-            // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+            // substituteQualifiedName(wholeAssignment, conflict.pattern, conflict.fullyQualified)
           }
         }
       })

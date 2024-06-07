@@ -148,14 +148,14 @@ export function useNodeCreation(
     options: NodeCreationOptions,
     identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>,
   ) {
-    return (assignment: Ast.Assignment) => {
+    return (assignment: Ast.MutableAssignment) => {
       // When nodes are copied, we need to substitute original names with newly assigned.
       if (options.binding) {
         if (isIdentifier(options.binding) && options.binding !== ident)
           identifiersRenameMap.set(options.binding, ident)
       }
       for (const [old, replacement] of identifiersRenameMap.entries()) {
-        substituteIdentifier(edit, assignment, old, replacement)
+        substituteIdentifier(assignment, old, replacement)
       }
 
       // Resolve import conflicts.
@@ -163,7 +163,7 @@ export function useNodeCreation(
       for (const _conflict of conflicts) {
         // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
         // https://github.com/enso-org/enso/issues/9356
-        // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+        // substituteQualifiedName(assignment, conflict.pattern, conflict.fullyQualified)
       }
     }
   }
@@ -176,7 +176,7 @@ export function useNodeCreation(
     edit: Ast.MutableModule,
     ident: Ast.Identifier,
     rhs: Ast.Owned,
-    fixup: (assignment: Ast.Assignment) => void,
+    fixup: (assignment: Ast.MutableAssignment) => void,
     options: NodeCreationOptions,
   ) {
     rhs.setNodeMetadata(options.metadata ?? {})

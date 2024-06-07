@@ -14,11 +14,13 @@ import {
   BodyBlock,
   Function,
   Ident,
+  MutableIdent,
   MutableBodyBlock,
   MutableModule,
   NumericLiteral,
   OprApp,
   PropertyAccess,
+  MutablePropertyAccess,
   Token,
   isTokenId,
   print,
@@ -168,23 +170,22 @@ export function parseQualifiedName(ast: Ast): QualifiedName | null {
 /** Substitute `pattern` inside `expression` with `to`.
  * Will only replace the first item in the property acccess chain. */
 export function substituteIdentifier(
-  module: MutableModule,
-  expression: Ast,
+  expr: MutableAst,
   pattern: IdentifierOrOperatorIdentifier,
   to: IdentifierOrOperatorIdentifier,
 ) {
-  const expr = module.getVersion(expression) ?? expression
-  if (expr instanceof Ident && expr.code() === pattern) {
-    expr.updateValue(() => Ast.parse(to, module))
-  } else if (expr instanceof PropertyAccess && expr.lhs instanceof Ident) {
+  if (expr instanceof MutableIdent && expr.code() === pattern) {
+    expr.setToken(to)
+  } else if (expr instanceof MutablePropertyAccess && expr.lhs != null) {
     // Substitute only the first item in the property access chain.
-    substituteIdentifier(module, expr.lhs, pattern, to)
+    substituteIdentifier(expr.lhs, pattern, to)
   } else {
     for (const child of expr.children()) {
       if (child instanceof Token) {
         continue
       }
-      substituteIdentifier(module, child, pattern, to)
+      const mutableChild = expr.module.getVersion(child)
+      substituteIdentifier(mutableChild, pattern, to)
     }
   }
 }
@@ -192,26 +193,25 @@ export function substituteIdentifier(
 /** Substitute `pattern` inside `expression` with `to`.
  * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain). */
 export function substituteQualifiedName(
-  module: MutableModule,
-  expression: Ast,
+  expr: MutableAst,
   pattern: QualifiedName | IdentifierOrOperatorIdentifier,
   to: QualifiedName,
 ) {
-  const expr = module.getVersion(expression) ?? expression
-  if (expr instanceof PropertyAccess || expr instanceof Ident) {
+  if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
     const qn = parseQualifiedName(expr)
     if (qn === pattern) {
-      expr.updateValue(() => Ast.parse(to, module))
+      expr.updateValue(() => Ast.parse(to, expr.module))
     } else if (qn && qn.startsWith(pattern)) {
       const withoutPattern = qn.replace(pattern, '')
-      expr.updateValue(() => Ast.parse(to + withoutPattern, module))
+      expr.updateValue(() => Ast.parse(to + withoutPattern, expr.module))
     }
   } else {
     for (const child of expr.children()) {
       if (child instanceof Token) {
         continue
       }
-      substituteQualifiedName(module, child, pattern, to)
+      const mutableChild = expr.module.getVersion(child)
+      substituteQualifiedName(mutableChild, pattern, to)
     }
   }
 }
