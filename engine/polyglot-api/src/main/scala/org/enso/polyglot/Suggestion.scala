@@ -300,7 +300,7 @@ object Suggestion {
     name: String,
     params: Seq[Argument],
     returnType: String,
-    parentType: Option[String]    = None,
+    parentType: Option[String],
     documentation: Option[String] = None,
     reexports: Set[String]        = Set()
   ) extends Suggestion

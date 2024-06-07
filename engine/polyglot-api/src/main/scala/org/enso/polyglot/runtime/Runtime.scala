@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.{
   JsonSubTypes,
   JsonTypeInfo
 }
-import org.enso.common.Serde
+
 import org.enso.editions.LibraryName
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.pkg.{ComponentGroups, QualifiedName}
@@ -16,9 +16,6 @@ import org.enso.text.editing.model.{Range, TextEdit}
 
 import java.io.File
 import java.util.UUID
-
-import com.github.plokhotnyuk.jsoniter_scala.macros._
-import com.github.plokhotnyuk.jsoniter_scala.core._
 
 object Runtime {
 
@@ -1947,10 +1944,6 @@ object Runtime {
     /** A response to the set execution environment request. */
     final case class SetExecutionEnvironmentResponse(contextId: ContextId)
         extends ApiResponse
-
-    import Serde._
-    implicit lazy val apiEnvelopeCodec: JsonValueCodec[ApiEnvelope] =
-      JsonCodecMaker.make[ApiEnvelope](Serde.config)
 
   }
 

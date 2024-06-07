@@ -75,7 +75,7 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                         returnType = "Standard.Base.Data.Set.Set",
                         parentType = Some("Standard.Base.Any.Any"),
                         documentation =
-                          None //Some(" An unordered collection of unique values")
+                          Some(" An unordered collection of unique values")
                         //reexports = Set("foo")
                       ),
                     action = SuggestionAction.Modify(documentation = Some(None))
@@ -89,15 +89,20 @@ class SerdeSpec extends AnyFlatSpec with Matchers {
                         externalId = Some(UUID.randomUUID()),
                         module     = "Standard.Base.Data.Vector",
                         name       = "Set",
-                        params =
-                          Seq.empty, // Set(Suggestion.Argument("foo", "bar", true, false, None, None)),
+                        params = Seq(
+                          Suggestion
+                            .Argument("foo", "bar", true, false, None, None)
+                        ),
                         returnType = "Standard.Base.Data.Set.Set",
                         parentType = Some("Standard.Base.Any.Any"),
                         documentation =
                           Some(" An unordered collection of unique values"),
                         reexports = Set("foo")
                       ),
-                    action = SuggestionAction.Modify(documentation = Some(None))
+                    action = SuggestionAction.Modify(
+                      documentation = Some(None),
+                      returnType    = Some("foo")
+                    )
                   ),
                   children = Vector.empty
                 )

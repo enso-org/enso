@@ -4,9 +4,17 @@ import org.enso.polyglot.runtime.Runtime.ApiEnvelope
 import java.nio.ByteBuffer
 import com.github.plokhotnyuk.jsoniter_scala.core._
 
+import org.enso.polyglot.macros.SerdeConfig
+import com.github.plokhotnyuk.jsoniter_scala.macros._
+
 import scala.util.Try
 
 object ApiSerde {
+
+  import SerdeConfig._
+
+  implicit val apiEnvelopeCodec: JsonValueCodec[ApiEnvelope] =
+    JsonCodecMaker.make[ApiEnvelope](config)
 
   /** Serializes an ApiEnvelope into a byte buffer.
     *

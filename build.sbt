@@ -564,6 +564,7 @@ val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
 val apacheArrowVersion      = "14.0.1"
 val snowflakeJDBCVersion    = "3.15.0"
+val jsoniterVersion         = "2.28.5"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -1420,11 +1421,8 @@ lazy val `engine-common` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
-    Test / javaOptions ++= Seq(
-    ),
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"                   % "polyglot"              % graalMavenPackagesVersion % "provided",
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.28.5"                  % "provided"
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     )
   )
   .dependsOn(testkit % Test)
@@ -1446,14 +1444,12 @@ lazy val `polyglot-api` = project
         "runtime-fat-jar"
       ) / Compile / fullClasspath).value,
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"                        % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion % "provided",
-      "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
-      "io.circe"                              %% "circe-core"            % circeVersion,
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % "2.28.5",
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.28.5",
-      "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
-      "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
+      "org.graalvm.sdk"        % "polyglot-tck"     % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion % "provided",
+      "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
+      "io.circe"              %% "circe-core"       % circeVersion,
+      "org.scalatest"         %% "scalatest"        % scalatestVersion          % Test,
+      "org.scalacheck"        %% "scalacheck"       % scalacheckVersion         % Test
     ),
     libraryDependencies ++= jackson,
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
@@ -1465,6 +1461,16 @@ lazy val `polyglot-api` = project
   .dependsOn(`logging-utils`)
   .dependsOn(testkit % Test)
 
+lazy val `polyglot-api-macros` = project
+  .in(file("engine/polyglot-api-macros"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion
+    )
+  )
+
 lazy val `polyglot-api-serde` = project
   .in(file("engine/polyglot-api-serde"))
   .settings(
@@ -1472,12 +1478,13 @@ lazy val `polyglot-api-serde` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     libraryDependencies ++= Seq(
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.28.5",
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion,
       "org.scalatest"                         %% "scalatest"           % scalatestVersion  % Test,
       "org.scalacheck"                        %% "scalacheck"          % scalacheckVersion % Test
     )
   )
   .dependsOn(`polyglot-api`)
+  .dependsOn(`polyglot-api-macros`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .enablePlugins(JPMSPlugin)
