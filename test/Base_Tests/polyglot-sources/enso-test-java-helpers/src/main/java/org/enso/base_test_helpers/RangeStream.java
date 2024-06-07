@@ -9,7 +9,7 @@ public class RangeStream extends InputStream {
   private int current;
 
   public RangeStream(int start, int end) {
-    assert 0 <= start && start <= end && end <= 255;
+    assert 0 <= start && start <= end;
     this.end = end;
     this.current = start;
   }
@@ -19,7 +19,7 @@ public class RangeStream extends InputStream {
     if (current >= end) {
       return -1;
     } else {
-      return current++;
+      return current++ % 256;
     }
   }
 }
