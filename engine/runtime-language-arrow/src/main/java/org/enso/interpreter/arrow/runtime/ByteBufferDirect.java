@@ -113,11 +113,6 @@ final class ByteBufferDirect implements AutoCloseable {
     return dataBuffer.get(index);
   }
 
-  public void put(int index, byte b) throws UnsupportedMessageException {
-    setValidityBitmap(index, 1);
-    dataBuffer.put(index, b);
-  }
-
   public void putShort(short value) throws UnsupportedMessageException {
     setValidityBitmap(0, 2);
     dataBuffer.putShort(value);
@@ -127,11 +122,6 @@ final class ByteBufferDirect implements AutoCloseable {
     return dataBuffer.getShort(index);
   }
 
-  public void putShort(int index, short value) throws UnsupportedMessageException {
-    setValidityBitmap(index, 2);
-    dataBuffer.putShort(index, value);
-  }
-
   public void putInt(int value) throws UnsupportedMessageException {
     setValidityBitmap(0, 4);
     dataBuffer.putInt(value);
@@ -139,11 +129,6 @@ final class ByteBufferDirect implements AutoCloseable {
 
   public int getInt(int index) throws UnsupportedMessageException {
     return dataBuffer.getInt(index);
-  }
-
-  public void putInt(int index, int value) {
-    setValidityBitmap(index, 4);
-    dataBuffer.putInt(index, value);
   }
 
   public void putLong(long value) throws UnsupportedMessageException {
@@ -161,17 +146,6 @@ final class ByteBufferDirect implements AutoCloseable {
     return buf.getLong(index);
   }
 
-  public void putLong(int index, long value) {
-    setValidityBitmap(index, 8);
-    dataBuffer.putLong(index, value);
-  }
-
-  public void putLong(int index, long value, Node node, InlinedExactClassProfile profile) {
-    var buf = profile.profile(node, dataBuffer);
-    setValidityBitmap(index, 8);
-    buf.putLong(index, value);
-  }
-
   public void putFloat(float value) throws UnsupportedMessageException {
     setValidityBitmap(0, 4);
     dataBuffer.putFloat(value);
@@ -181,11 +155,6 @@ final class ByteBufferDirect implements AutoCloseable {
     return dataBuffer.getFloat(index);
   }
 
-  public void putFloat(int index, float value) throws UnsupportedMessageException {
-    setValidityBitmap(index, 4);
-    dataBuffer.putFloat(index, value);
-  }
-
   public void putDouble(double value) throws UnsupportedMessageException {
     setValidityBitmap(0, 8);
     dataBuffer.putDouble(value);
@@ -193,11 +162,6 @@ final class ByteBufferDirect implements AutoCloseable {
 
   public double getDouble(int index) throws UnsupportedMessageException {
     return dataBuffer.getDouble(index);
-  }
-
-  public void putDouble(int index, double value) throws UnsupportedMessageException {
-    setValidityBitmap(index, 8);
-    dataBuffer.putDouble(index, value);
   }
 
   public int capacity() throws UnsupportedMessageException {
@@ -220,7 +184,7 @@ final class ByteBufferDirect implements AutoCloseable {
     return (slot & mask) == 0;
   }
 
-  public void setNull(int index) {
+  private void setNull(int index) {
     if (bitmapBuffer == null) {
       this.bitmapBuffer =
           allocated.slice(dataBuffer.capacity(), allocated.capacity() - dataBuffer.capacity());
