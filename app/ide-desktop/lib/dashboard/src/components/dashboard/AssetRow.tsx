@@ -1,6 +1,7 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as tailwindMerge from 'tailwind-merge'
 
 import BlankIcon from 'enso-assets/blank.svg'
@@ -11,6 +12,7 @@ import * as store from '#/store'
 
 import * as backendHooks from '#/hooks/backendHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -33,6 +35,7 @@ import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
+import * as mergeRefs from '#/utilities/mergeRefs'
 import * as object from '#/utilities/object'
 import * as set from '#/utilities/set'
 
@@ -60,19 +63,20 @@ export interface AssetRowInnerProps {
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
-  readonly parentRef: React.RefObject<HTMLTableRowElement>
+  readonly parentRef: React.RefObject<HTMLTableRowElement> | null
   readonly item: backendHooks.WithPlaceholder<backendModule.AnyAsset>
   readonly depth: number
   readonly state: assetsTable.AssetsTableState
   readonly columns: readonly columnUtils.Column[]
 }
 
-// FIXME: use `parentRef` - it should be focused on when left is pressed
 /** A row containing an {@link backendModule.AnyAsset}. */
-export default function AssetRow(props: AssetRowProps) {
-  const { item, depth, state, columns } = props
+function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElement>) {
+  const { parentRef, item, depth, state, columns } = props
   const { backend, scrollContainerRef, rootDirectoryId, doPaste } = state
 
+  const queryClient = reactQuery.useQueryClient()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const setIsAssetOpen = store.useStore(storeState => storeState.setIsAssetOpen)
@@ -96,6 +100,7 @@ export default function AssetRow(props: AssetRowProps) {
 
   const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
 
   const clearDragState = () => {
     setIsDraggedOver(false)
@@ -104,6 +109,36 @@ export default function AssetRow(props: AssetRowProps) {
         ? oldRowState
         : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
     )
+  }
+
+  const onKeyDown = (event: React.KeyboardEvent<Element>) => {
+    switch (event.key) {
+      case 'ArrowLeft': {
+        if (item.type === backendModule.AssetType.directory) {
+          const isOpen = store.useStore.getState().getAssetState(backend.type, item.id).isOpen
+          if (isOpen) {
+            event.stopPropagation()
+            setIsAssetOpen(backend.type, item.id, false)
+            break
+          }
+        }
+        if (parentRef != null) {
+          event.stopPropagation()
+          parentRef.current?.focus()
+        }
+        break
+      }
+      case 'ArrowRight': {
+        if (item.type === backendModule.AssetType.directory) {
+          const isOpen = store.useStore.getState().getAssetState(backend.type, item.id).isOpen
+          if (!isOpen) {
+            event.stopPropagation()
+            setIsAssetOpen(backend.type, item.id, true)
+            break
+          }
+        }
+      }
+    }
   }
 
   const onClick = (event: React.MouseEvent<Element>) => {
@@ -130,16 +165,12 @@ export default function AssetRow(props: AssetRowProps) {
         newSelectedKeys = new Set([item.id])
         setSelectedAssetIds(newSelectedKeys)
       }
-      const assets = rootDirectoryEntries
-        .preorderTraversal()
-        .filter(node => newSelectedKeys.has(node.id))
-      const payload: drag.AssetRowsDragPayload = assets.map(node => ({
-        key: node.key,
-        asset: node,
-      }))
+      const payload = Object.values(
+        backendHooks.getBackendAllKnownDirectories(queryClient, user, backend)
+      ).flatMap(children => children.filter(child => newSelectedKeys.has(child.id)))
       event.dataTransfer.setData(
         mimeTypes.ASSETS_MIME_TYPE,
-        JSON.stringify(assets.map(node => node.id))
+        JSON.stringify(payload.map(node => node.id))
       )
       drag.setDragImageToBlank(event)
       drag.ASSET_ROWS.bind(event, payload)
@@ -151,7 +182,7 @@ export default function AssetRow(props: AssetRowProps) {
             drag.ASSET_ROWS.unbind(payload)
           }}
         >
-          {assets.map(asset => (
+          {payload.map(asset => (
             <NameColumn
               key={asset.id}
               item={asset}
@@ -233,13 +264,27 @@ export default function AssetRow(props: AssetRowProps) {
         event.stopPropagation()
         const storeState = store.useStore.getState()
         const ids = !isSelected ? [item.id] : storeState.getSelectedAssetIds()
+        // FIXME: Replace getBackendAllKnownDirectories with caches keyed by individual asset
+        const assets = Object.values(
+          backendHooks.getBackendAllKnownDirectories(queryClient, user, backend)
+        ).flat()
+        const assetsMap = new Map(assets.map(asset => [asset.id, asset]))
         if (event.shiftKey) {
+          const labelsSet = new Set(labelsPayload)
           for (const id of ids) {
-            // FIXME: remove label(s) mutation
+            const asset = assetsMap.get(id)
+            if (asset != null) {
+              const newLabels = (asset.labels ?? []).filter(label => !labelsSet.has(label))
+              associateTagMutation.mutate([asset.id, newLabels])
+            }
           }
         } else {
           for (const id of ids) {
-            // FIXME: add label(s) mutation
+            const asset = assetsMap.get(id)
+            if (asset != null) {
+              const newLabels = [...new Set([...(asset.labels ?? []), ...labelsPayload])]
+              associateTagMutation.mutate([asset.id, newLabels])
+            }
           }
         }
       }
@@ -261,7 +306,7 @@ export default function AssetRow(props: AssetRowProps) {
             <tr
               draggable
               tabIndex={0}
-              ref={element => {
+              ref={mergeRefs.mergeRefs(ref, element => {
                 rootRef.current = element
                 if (isSoleSelected && element != null && scrollContainerRef.current != null) {
                   const rect = element.getBoundingClientRect()
@@ -275,15 +320,13 @@ export default function AssetRow(props: AssetRowProps) {
                     })
                   }
                 }
-                if (isKeyboardSelected && element?.contains(document.activeElement) === false) {
-                  element.focus()
-                }
-              }}
+              })}
               className={tailwindMerge.twMerge(
                 'h-row rounded-full transition-all ease-in-out rounded-rows-child',
                 item.isPlaceholder && 'placeholder',
                 (isDraggedOver || isSelected) && 'selected'
               )}
+              onKeyDown={onKeyDown}
               onClick={onClick}
               onContextMenu={event => {
                 if (allowContextMenu) {
@@ -411,3 +454,6 @@ export default function AssetRow(props: AssetRowProps) {
     }
   }
 }
+
+/** A row containing an {@link backendModule.AnyAsset}. */
+export default React.forwardRef(AssetRow)

@@ -242,7 +242,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (!hidden) {
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         cancelCut: () => {
-          if (pasteDataRef.current == null) {
+          const pasteData = store.useStore.getState().assetPasteData
+          if (pasteData == null) {
             return false
           } else {
             setAssetPasteData(null)
@@ -253,167 +254,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [hidden, /* should never change */ inputBindings, setAssetPasteData])
 
-  // FIXME: re-add `setIsAssetPanelTemporarilyVisible(false)`
+  // FIXME: Re-add keyboard navigation
+  // FIXME: Re-add `setIsAssetPanelTemporarilyVisible(false)`
 
-  const mostRecentlySelectedIndexRef = React.useRef<number | null>(null)
-  const selectionStartIndexRef = React.useRef<number | null>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-
-  // This is not a React component, even though it contains JSX.
-  // eslint-disable-next-line no-restricted-syntax
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    const prevIndex = mostRecentlySelectedIndexRef.current
-    const item: backendModule.AnyAsset | null = prevIndex == null ? null : visibleItems[prevIndex]
-    const selectedIds = getSelectedAssetIds()
-    if (selectedIds.size === 1 && item != null) {
-      switch (event.key) {
-        case 'Enter':
-        case ' ': {
-          if (event.key === ' ' && event.ctrlKey) {
-            setSelectedAssetIds(set.withPresence(selectedIds, item.id, !selectedIds.has(item.id)))
-          } else {
-            switch (item.type) {
-              case backendModule.AssetType.directory: {
-                event.preventDefault()
-                event.stopPropagation()
-                toggleIsAssetOpen(backend.type, item.id)
-                break
-              }
-              case backendModule.AssetType.project: {
-                event.preventDefault()
-                event.stopPropagation()
-                openProjectMutation.mutate([
-                  item.id,
-                  { executeAsync: false, cognitoCredentials: session },
-                ])
-                break
-              }
-              case backendModule.AssetType.datalink: {
-                event.preventDefault()
-                event.stopPropagation()
-                setIsAssetPanelTemporarilyVisible(true)
-                break
-              }
-              case backendModule.AssetType.secret: {
-                event.preventDefault()
-                event.stopPropagation()
-                setModal(
-                  <UpsertSecretModal backend={backend} asset={item} parentDirectoryId={null} />
-                )
-                break
-              }
-              default: {
-                break
-              }
-            }
-          }
-          break
-        }
-        case 'ArrowLeft': {
-          if (item.type === backendModule.AssetType.directory && item.children != null) {
-            // The folder is expanded; collapse it.
-            event.preventDefault()
-            event.stopPropagation()
-            setIsAssetOpen(backend.type, item.id, false)
-          } else {
-            // Focus parent if there is one.
-            const index2 = allRows.findIndex(row => row.id === item.parentId)
-            if (index2 !== -1) {
-              event.preventDefault()
-              event.stopPropagation()
-              setSelectedAssetIds(new Set([item.parentId]))
-            }
-          }
-          break
-        }
-        case 'ArrowRight': {
-          if (item.type === backendModule.AssetType.directory && item.children == null) {
-            // The folder is collapsed; expand it.
-            event.preventDefault()
-            event.stopPropagation()
-            setIsAssetOpen(backend.type, item.id, true)
-          }
-          break
-        }
-      }
-    }
-    switch (event.key) {
-      case ' ': {
-        if (event.ctrlKey && item != null) {
-          const keys = selectedIds
-          setSelectedAssetIds(set.withPresence(keys, item.id, !keys.has(item.id)))
-        }
-        break
-      }
-      case 'Escape': {
-        setSelectedAssetIds(set.EMPTY)
-        selectionStartIndexRef.current = null
-        break
-      }
-      case 'ArrowUp':
-      case 'ArrowDown': {
-        if (!event.shiftKey) {
-          selectionStartIndexRef.current = null
-        }
-        let index = prevIndex ?? 0
-        let oldIndex = index
-        if (prevIndex != null) {
-          let itemType = visibleItems[index]?.item.type
-          do {
-            oldIndex = index
-            index =
-              event.key === 'ArrowUp'
-                ? Math.max(0, index - 1)
-                : Math.min(visibleItems.length - 1, index + 1)
-            itemType = visibleItems[index]?.item.type
-          } while (
-            index !== oldIndex &&
-            (itemType === backendModule.AssetType.specialEmpty ||
-              itemType === backendModule.AssetType.specialLoading)
-          )
-          if (
-            itemType === backendModule.AssetType.specialEmpty ||
-            itemType === backendModule.AssetType.specialLoading
-          ) {
-            index = prevIndex
-          }
-        }
-        if (event.shiftKey) {
-          event.preventDefault()
-          event.stopPropagation()
-          // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
-          if (selectionStartIndexRef.current == null) {
-            selectionStartIndexRef.current = prevIndex ?? 0
-          }
-          const startIndex = Math.min(index, selectionStartIndexRef.current)
-          const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
-          const selection = visibleItems.slice(startIndex, endIndex)
-          setSelectedAssetIds(
-            backend.type,
-            selection.map(newItem => newItem.id)
-          )
-        } else if (event.ctrlKey) {
-          event.preventDefault()
-          event.stopPropagation()
-          selectionStartIndexRef.current = null
-        } else if (index !== prevIndex) {
-          event.preventDefault()
-          event.stopPropagation()
-          const newItem = visibleItems[index]
-          if (newItem != null) {
-            setSelectedAssetIds(backend.type, [newItem.id])
-          }
-          selectionStartIndexRef.current = null
-        } else {
-          // The arrow key will escape this container. In that case, do not stop propagation
-          // and let `navigator2D` navigate to a different container.
-          setSelectedAssetIds(set.EMPTY)
-          selectionStartIndexRef.current = null
-        }
-        break
-      }
-    }
-  }
 
   const doOpenEditor = React.useCallback(
     (project: backendModule.ProjectAsset, switchPage: boolean) => {
@@ -612,9 +456,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
   const onSelectionDrag = React.useCallback(
     (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
-      if (mostRecentlySelectedIndexRef.current != null) {
-        setKeyboardSelectedIndex(null)
-      }
       cancelAnimationFrame(dragSelectionChangeLoopHandle.current)
       const scrollContainer = rootRef.current
       if (scrollContainer != null) {
@@ -746,6 +587,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             <tbody ref={bodyRef}>
               <AssetRows
                 hideRoot
+                parentRef={null}
                 columns={columns}
                 item={rootDirectoryAsset}
                 state={state}

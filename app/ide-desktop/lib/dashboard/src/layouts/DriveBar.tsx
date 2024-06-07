@@ -76,7 +76,7 @@ export default function DriveBar(props: DriveBarProps) {
         .flat()
         .map(asset => [asset.id, asset])
     )
-    const selectedIds = getSelectedAssetIds(backend.type)
+    const selectedIds = getSelectedAssetIds()
     let commonDirectoryId: backendModule.DirectoryId | null = null
     let otherCandidateDirectoryId: backendModule.DirectoryId | null = null
     for (const id of selectedIds) {

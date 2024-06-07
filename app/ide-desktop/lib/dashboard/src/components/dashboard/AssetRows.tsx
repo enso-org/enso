@@ -1,6 +1,8 @@
 /** @file An {@link AssetRow} for an asset, and its children (if present). */
 import * as React from 'react'
 
+import * as store from '#/store'
+
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import type * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -17,7 +19,7 @@ import type * as sorting from '#/utilities/sorting'
 
 /** Props for a {@link AssetRows}. */
 export interface AssetRowsProps extends assetRow.AssetRowProps {
-  readonly parentRef: React.RefObject<HTMLTableRowElement>
+  readonly parentRef: React.RefObject<HTMLTableRowElement> | null
   readonly hideRoot?: boolean
   readonly backend: Backend
   readonly filterBy: backendModule.FilterBy | null
@@ -38,6 +40,9 @@ export default function AssetRows(props: AssetRowsProps) {
   } = props
   const { item, depth } = assetRowProps
   const rootRef = React.useRef<HTMLTableRowElement>(null)
+  const isOpen = store.useStore(
+    storeState => storeState.getAssetState(backend.type, item.id).isOpen
+  )
 
   const row = !hideRoot && <AssetRow parentRef={parentRef} ref={rootRef} {...assetRowProps} />
 
@@ -46,15 +51,17 @@ export default function AssetRows(props: AssetRowsProps) {
   ) : (
     <>
       {row}
-      <DirectoryChildrenAssetRows
-        parentRef={rootRef}
-        backend={backend}
-        depth={depth + 1}
-        directory={item}
-        filterBy={filterBy}
-        sortInfo={sortInfo}
-        filter={filter}
-      />
+      {isOpen && (
+        <DirectoryChildrenAssetRows
+          parentRef={rootRef}
+          backend={backend}
+          depth={depth + 1}
+          directory={item}
+          filterBy={filterBy}
+          sortInfo={sortInfo}
+          filter={filter}
+        />
+      )}
     </>
   )
 }
