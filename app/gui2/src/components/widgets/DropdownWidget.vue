@@ -66,10 +66,11 @@ export interface DropdownEntry {
       <li
         v-for="entry in sortedValues"
         :key="entry.value"
+        :class="{ selected: entry.selected }"
         class="item clickable"
         @click.stop="emit('clickEntry', entry, $event.altKey)"
       >
-        <div v-if="entry.selected" class="selected"><span v-text="entry.value"></span></div>
+        <div v-if="entry.selected"><span v-text="entry.value"></span></div>
         <span v-else v-text="entry.value"></span>
       </li>
     </ul>
