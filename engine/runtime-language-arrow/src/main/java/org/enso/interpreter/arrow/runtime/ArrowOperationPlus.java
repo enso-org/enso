@@ -90,7 +90,11 @@ public final class ArrowOperationPlus implements TruffleObject {
             res = NullValue.get();
           }
         } else {
-          throw UnsupportedTypeException.create(new Object[] {elem0, elem1});
+          if (iopElem.isNull(elem0) || iopElem.isNull(elem1)) {
+            res = NullValue.get();
+          } else {
+            throw UnsupportedTypeException.create(new Object[] {elem0, elem1});
+          }
         }
         append.executeAppend(builder, res);
       } catch (StopIterationException ex) {

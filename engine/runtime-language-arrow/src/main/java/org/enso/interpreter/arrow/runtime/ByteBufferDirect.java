@@ -1,9 +1,10 @@
 package org.enso.interpreter.arrow.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateInline;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
@@ -11,6 +12,7 @@ import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.enso.interpreter.arrow.LogicalLayout;
+import org.enso.interpreter.arrow.runtime.ByteBufferDirect.DataBufferNode;
 import org.enso.interpreter.arrow.util.MemoryUtil;
 
 final class ByteBufferDirect implements AutoCloseable {
@@ -103,9 +105,14 @@ final class ByteBufferDirect implements AutoCloseable {
   }
 
   @GenerateInline(false)
+  @GenerateUncached
   abstract static class DataBufferNode extends Node {
     static DataBufferNode create() {
       return ByteBufferDirectFactory.DataBufferNodeGen.create();
+    }
+
+    static DataBufferNode getUncached() {
+      return ByteBufferDirectFactory.DataBufferNodeGen.getUncached();
     }
 
     abstract ByteBuffer executeDataBuffer(ByteBufferDirect direct);
@@ -120,16 +127,21 @@ final class ByteBufferDirect implements AutoCloseable {
   }
 
   static final class PutNode extends Node {
-    private @Child DataBufferNode dataBuffer = DataBufferNode.create();
+    private static final PutNode UNCACHED = new PutNode(DataBufferNode.getUncached());
+    private @Child DataBufferNode dataBuffer;
 
-    private PutNode() {}
-
-    static PutNode create() {
-      return new PutNode();
+    private PutNode(DataBufferNode dbn) {
+      this.dataBuffer = dbn;
     }
 
+    @NeverDefault
+    static PutNode create() {
+      return new PutNode(DataBufferNode.create());
+    }
+
+    @NeverDefault
     static PutNode getUncached() {
-      return new PutNode();
+      return UNCACHED;
     }
 
     final void put(ByteBufferDirect direct, byte b) {
@@ -190,6 +202,10 @@ final class ByteBufferDirect implements AutoCloseable {
     return dataBuffer.capacity();
   }
 
+  boolean hasNulls() {
+    return bitmapBuffer != null;
+  }
+
   public boolean isNull(int index) {
     if (bitmapBuffer == null) {
       return false;
@@ -197,7 +213,6 @@ final class ByteBufferDirect implements AutoCloseable {
     return checkForNull(index);
   }
 
-  @CompilerDirectives.TruffleBoundary
   private boolean checkForNull(int index) {
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);

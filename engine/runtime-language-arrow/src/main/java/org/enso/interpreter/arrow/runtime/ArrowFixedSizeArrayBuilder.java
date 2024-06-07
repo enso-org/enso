@@ -2,6 +2,7 @@ package org.enso.interpreter.arrow.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateInline;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -104,9 +105,9 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         ArrowFixedSizeArrayBuilder builder,
         Object value,
         @Cached(value = "builder.getUnit()", allowUncached = true) LogicalLayout cachedUnit,
-        @Cached ByteBufferDirect.PutNode put,
-        @Cached ValueToNumberNode valueNode,
-        @CachedLibrary(limit = "3") InteropLibrary iop)
+        @Shared("put") @Cached ByteBufferDirect.PutNode put,
+        @Shared("value") @Cached ValueToNumberNode valueNode,
+        @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop)
         throws UnsupportedTypeException, UnsupportedMessageException {
       if (iop.isNull(value)) {
         put.putNull(builder.buffer, cachedUnit);
@@ -126,9 +127,9 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
     static void writeToBufferUncached(
         ArrowFixedSizeArrayBuilder builder,
         Object value,
-        @Cached ByteBufferDirect.PutNode put,
-        @Cached ValueToNumberNode valueNode,
-        @CachedLibrary(limit = "3") InteropLibrary iop)
+        @Shared("put") @Cached ByteBufferDirect.PutNode put,
+        @Shared("value") @Cached ValueToNumberNode valueNode,
+        @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop)
         throws UnsupportedTypeException, UnsupportedMessageException {
       writeToBuffer(builder, value, builder.getUnit(), put, valueNode, iop);
     }
