@@ -10,8 +10,11 @@ import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -50,10 +53,12 @@ export interface DriveBarProps {
 export default function DriveBar(props: DriveBarProps) {
   const { backend, rootDirectoryId, category, canDownload } = props
   const queryClient = reactQuery.useQueryClient()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
+  const getSelectedAssetIds = store.useStore(storeState => storeState.getSelectedAssetIds)
   const isCloud = categoryModule.isCloud(category)
 
   const createDirectoryMutation = backendHooks.useBackendCreateDirectoryMutation(backend)
@@ -63,33 +68,63 @@ export default function DriveBar(props: DriveBarProps) {
   const createDirectoryMutate = createDirectoryMutation.mutate
   const createProjectMutate = createProjectMutation.mutate
 
+  const getTargetDirectoryIdRef = React.useRef(() => rootDirectoryId)
+  getTargetDirectoryIdRef.current = () => {
+    const directories = backendHooks.getBackendAllKnownDirectories(queryClient, user, backend)
+    const nodeMap = new Map(
+      Object.values(directories)
+        .flat()
+        .map(asset => [asset.id, asset])
+    )
+    const selectedIds = getSelectedAssetIds(backend.type)
+    let commonDirectoryId: backendModule.DirectoryId | null = null
+    let otherCandidateDirectoryId: backendModule.DirectoryId | null = null
+    for (const id of selectedIds) {
+      const asset = nodeMap.get(id)
+      if (asset != null) {
+        if (commonDirectoryId == null) {
+          commonDirectoryId = asset.parentId
+          otherCandidateDirectoryId =
+            asset.type === backendModule.AssetType.directory ? asset.id : null
+        } else if (asset.id === commonDirectoryId || asset.parentId === commonDirectoryId) {
+          otherCandidateDirectoryId = null
+        } else if (
+          otherCandidateDirectoryId != null &&
+          (asset.id === otherCandidateDirectoryId || asset.parentId === otherCandidateDirectoryId)
+        ) {
+          commonDirectoryId = otherCandidateDirectoryId
+          otherCandidateDirectoryId = null
+        } else {
+          // No match; there is no common parent directory for the entire selection.
+          commonDirectoryId = null
+          break
+        }
+      }
+    }
+    return commonDirectoryId ?? rootDirectoryId
+  }
+
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
       ...(isCloud
         ? {
             newFolder: () => {
               createDirectoryMutate([
-                { title: 'New Folder', parentId: targetDirectoryIdRef.current },
+                { title: 'New Folder', parentId: getTargetDirectoryIdRef.current() },
               ])
             },
           }
         : {}),
       newProject: () => {
         createProjectMutate([
-          { projectName: 'New Project', parentDirectoryId: targetDirectoryIdRef.current },
+          { projectName: 'New Project', parentDirectoryId: getTargetDirectoryIdRef.current() },
         ])
       },
       uploadFiles: () => {
         uploadFilesRef.current?.click()
       },
     })
-  }, [
-    isCloud,
-    createDirectoryMutate,
-    createProjectMutate,
-    targetDirectoryIdRef,
-    /* should never change */ inputBindings,
-  ])
+  }, [isCloud, createDirectoryMutate, createProjectMutate, /* should never change */ inputBindings])
 
   switch (category) {
     case Category.recent: {
@@ -195,7 +230,7 @@ export default function DriveBar(props: DriveBarProps) {
                       <UpsertSecretModal
                         backend={backend}
                         asset={null}
-                        parentDirectoryId={targetDirectoryIdRef.current}
+                        parentDirectoryId={getTargetDirectoryIdRef.current()}
                       />
                     )
                   }}
@@ -210,7 +245,7 @@ export default function DriveBar(props: DriveBarProps) {
                     setModal(
                       <CreateDatalinkModal
                         backend={backend}
-                        parentDirectoryId={targetDirectoryIdRef.current}
+                        parentDirectoryId={getTargetDirectoryIdRef.current()}
                       />
                     )
                   }}

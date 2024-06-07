@@ -41,8 +41,6 @@ export interface AssetsTableContextMenuProps {
     ReadonlyMap<backendModule.AssetId, backendModule.AnyAsset>
   >
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
-  readonly doCopy: () => void
-  readonly doCut: () => void
   readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
 
@@ -50,12 +48,13 @@ export interface AssetsTableContextMenuProps {
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   const { hidden = false, backend, category, pasteData, nodeMapRef, event, rootDirectoryId } = props
-  const { doCopy, doCut, doPaste } = props
+  const { doPaste } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const selectedIds = store.useStore(storeState => storeState.getSelectedAssetIds(backend.type))
   const setSelectedIds = store.useStore(storeState => storeState.setSelectedAssetIds)
+  const setAssetPasteData = store.useStore(storeState => storeState.setAssetPasteData)
   const isCloud = categoryModule.isCloud(category)
 
   const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
@@ -172,7 +171,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 hidden={hidden}
                 action="copy"
                 label={getText('copyAllShortcut')}
-                doAction={doCopy}
+                doAction={() => {
+                  setAssetPasteData(backend.type, 'copy', selectedIds)
+                }}
               />
             )}
             {ownsAllSelectedAssets && (
@@ -180,7 +181,9 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 hidden={hidden}
                 action="cut"
                 label={getText('cutAllShortcut')}
-                doAction={doCut}
+                doAction={() => {
+                  setAssetPasteData(backend.type, 'cut', selectedIds)
+                }}
               />
             )}
             {pasteData != null && pasteData.data.size > 0 && (

@@ -6,8 +6,6 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import DropFilesImage from 'enso-assets/drop_files.svg'
 
-import * as mimeTypes from '#/data/mimeTypes'
-
 import * as store from '#/store'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -28,10 +26,8 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import AssetRows from '#/components/dashboard/AssetRows'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import NameColumn from '#/components/dashboard/column/NameColumn'
 import * as columnHeading from '#/components/dashboard/columnHeading'
 import SelectionBrush from '#/components/SelectionBrush'
 import Button from '#/components/styled/Button'
@@ -39,7 +35,6 @@ import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
-import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
@@ -149,8 +144,6 @@ export interface AssetsTableState {
   readonly hideColumn: (column: columnUtils.Column) => void
   readonly doOpenEditor: (project: backendModule.ProjectAsset, switchPage: boolean) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
-  readonly doCopy: () => void
-  readonly doCut: () => void
   readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
 
@@ -790,8 +783,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             pasteData={pasteData}
             event={event}
             rootDirectoryId={rootDirectoryId}
-            doCopy={doCopy}
-            doCut={doCut}
             doPaste={doPaste}
           />
         )
@@ -838,56 +829,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                 filter={filter}
                 filterBy={CATEGORY_TO_FILTER_BY[category]}
                 onClick={onRowClick}
-                onDragStart={event => {
-                  let newSelectedKeys = selectedKeysRef.current
-                  if (!newSelectedKeys.has(item.id)) {
-                    setMostRecentlySelectedIndex(visibleItems.indexOf(item))
-                    selectionStartIndexRef.current = null
-                    newSelectedKeys = new Set([item.id])
-                    setSelectedAssetIds(newSelectedKeys)
-                  }
-                  const nodes = rootDirectoryEntries
-                    .preorderTraversal()
-                    .filter(node => newSelectedKeys.has(node.id))
-                  const payload: drag.AssetRowsDragPayload = nodes.map(node => ({
-                    key: node.key,
-                    asset: node,
-                  }))
-                  event.dataTransfer.setData(
-                    mimeTypes.ASSETS_MIME_TYPE,
-                    JSON.stringify(nodes.map(node => node.id))
-                  )
-                  drag.setDragImageToBlank(event)
-                  drag.ASSET_ROWS.bind(event, payload)
-                  setModal(
-                    <DragModal
-                      event={event}
-                      className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
-                      doCleanup={() => {
-                        drag.ASSET_ROWS.unbind(payload)
-                      }}
-                    >
-                      {nodes.map(node => (
-                        <NameColumn
-                          key={node.id}
-                          keyProp={node.id}
-                          item={node}
-                          state={state}
-                          // Default states.
-                          depth={0}
-                          isSoleSelected={false}
-                          selected={false}
-                          rowState={assetRowUtils.INITIAL_ROW_STATE}
-                          // The drag placeholder cannot be interacted with.
-                          setSelected={() => {}}
-                          setItem={() => {}}
-                          setRowState={() => {}}
-                          isEditable={false}
-                        />
-                      ))}
-                    </DragModal>
-                  )
-                }}
               />
               <tr className="hidden h-row first:table-row">
                 <td colSpan={columns.length} className="bg-transparent">

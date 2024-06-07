@@ -5,6 +5,8 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
+import * as mimeTypes from '#/data/mimeTypes'
+
 import * as store from '#/store'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -20,10 +22,11 @@ import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import NameColumn from '#/components/dashboard/column/NameColumn'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import FocusRing from '#/components/styled/FocusRing'
 
-import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
+import DragModal from '#/modals/DragModal'
 
 import * as backendModule from '#/services/Backend'
 
@@ -68,8 +71,7 @@ export interface AssetRowProps {
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
   const { item, depth, state, columns } = props
-  const { backend, scrollContainerRef, rootDirectoryId } = state
-  const { doCopy, doCut, doPaste } = state
+  const { backend, scrollContainerRef, rootDirectoryId, doPaste } = state
 
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -77,6 +79,8 @@ export default function AssetRow(props: AssetRowProps) {
   const toggleIsAssetOpen = store.useStore(storeState => storeState.toggleIsAssetOpen)
   const setIsAssetSelected = store.useStore(storeState => storeState.setIsAssetSelected)
   const setAssetsTemporaryLabels = store.useStore(storeState => storeState.setAssetsTemporaryLabels)
+  const getSelectedAssetIds = store.useStore(storeState => storeState.getSelectedAssetIds)
+  const setSelectedAssetIds = store.useStore(storeState => storeState.setSelectedAssetIds)
   const isSelected = store.useStore(
     storeState => storeState.getAssetState(backend.type, item.id).isSelected
   )
@@ -96,20 +100,6 @@ export default function AssetRow(props: AssetRowProps) {
 
   const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
-  const updateAssetMutate = updateAssetMutation.mutateAsync
-
-  const doTriggerDescriptionEdit = React.useCallback(() => {
-    setModal(
-      <EditAssetDescriptionModal
-        doChangeDescription={async description => {
-          if (description !== item.description) {
-            await updateAssetMutate([item.id, { parentDirectoryId: null, description }])
-          }
-        }}
-        initialDescription={item.description}
-      />
-    )
-  }, [setModal, item.description, item.id, updateAssetMutate])
 
   const clearDragState = () => {
     setIsDraggedOver(false)
@@ -118,6 +108,54 @@ export default function AssetRow(props: AssetRowProps) {
         ? oldRowState
         : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
     )
+  }
+
+  const onDragStart = (event: React.DragEvent<Element>) => {
+    if (rowState.isEditingName) {
+      event.preventDefault()
+    } else {
+      let newSelectedKeys = getSelectedAssetIds(backend.type)
+      if (!newSelectedKeys.includes(item.id)) {
+        newSelectedKeys = [item.id]
+        setSelectedAssetIds(backend.type, newSelectedKeys)
+      }
+      const assets = rootDirectoryEntries
+        .preorderTraversal()
+        .filter(node => newSelectedKeys.has(node.id))
+      const payload: drag.AssetRowsDragPayload = assets.map(node => ({
+        key: node.key,
+        asset: node,
+      }))
+      event.dataTransfer.setData(
+        mimeTypes.ASSETS_MIME_TYPE,
+        JSON.stringify(assets.map(node => node.id))
+      )
+      drag.setDragImageToBlank(event)
+      drag.ASSET_ROWS.bind(event, payload)
+      setModal(
+        <DragModal
+          event={event}
+          className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
+          doCleanup={() => {
+            drag.ASSET_ROWS.unbind(payload)
+          }}
+        >
+          {assets.map(asset => (
+            <NameColumn
+              key={asset.id}
+              item={asset}
+              state={state}
+              // Default states.
+              depth={0}
+              rowState={assetRowUtils.INITIAL_ROW_STATE}
+              // The drag placeholder cannot be interacted with.
+              setRowState={() => {}}
+              isEditable={false}
+            />
+          ))}
+        </DragModal>
+      )
+    }
   }
 
   const onDragOver = (event: React.DragEvent<Element>) => {
@@ -266,21 +304,12 @@ export default function AssetRow(props: AssetRowProps) {
                       eventTarget={
                         event.target instanceof HTMLElement ? event.target : event.currentTarget
                       }
-                      doCopy={doCopy}
-                      doCut={doCut}
                       doPaste={doPaste}
-                      doTriggerDescriptionEdit={doTriggerDescriptionEdit}
                     />
                   )
                 }
               }}
-              onDragStart={event => {
-                if (rowState.isEditingName) {
-                  event.preventDefault()
-                } else {
-                  props.onDragStart?.(event)
-                }
-              }}
+              onDragStart={onDragStart}
               onDragEnter={event => {
                 if (dragOverTimeoutHandle.current != null) {
                   window.clearTimeout(dragOverTimeoutHandle.current)
@@ -309,7 +338,6 @@ export default function AssetRow(props: AssetRowProps) {
                 ) {
                   clearDragState()
                 }
-                props.onDragLeave?.(event)
               }}
               onDrop={onDrop}
             >
@@ -347,10 +375,7 @@ export default function AssetRow(props: AssetRowProps) {
               rootDirectoryId={rootDirectoryId}
               event={{ pageX: 0, pageY: 0 }}
               eventTarget={null}
-              doCopy={doCopy}
-              doCut={doCut}
               doPaste={doPaste}
-              doTriggerDescriptionEdit={doTriggerDescriptionEdit}
             />
           )}
         </>

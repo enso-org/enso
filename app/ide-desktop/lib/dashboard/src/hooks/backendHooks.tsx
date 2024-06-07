@@ -20,7 +20,7 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
-// FIXME: Listeners and optimistic state for duplicateProjectMutation
+// FIXME: Listeners and optimistic state for duplicateProjectMutation and copyAssetMutation
 
 // FIXME: Keep track of the current project to open somewhere, and open project when ready when
 // the corresponding query returns state: Opened

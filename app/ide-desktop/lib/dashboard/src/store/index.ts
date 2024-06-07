@@ -5,12 +5,7 @@ import * as zustand from 'zustand'
 
 import * as assetsTableSlice from '#/store/assetsTableSlice'
 
-// =================
-// === Constants ===
-// =================
-
-/** The default `AssetState` for an arbitrary asset. */
-export const DEFAULT_ASSET_STATE = assetsTableSlice.DEFAULT_ASSET_STATE
+export * from '#/store/assetsTableSlice'
 
 // =============
 // === Store ===

@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as toast from 'react-toastify'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -22,6 +24,7 @@ import type * as assetRow from '#/components/dashboard/AssetRow'
 import Separator from '#/components/styled/Separator'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -43,16 +46,12 @@ export interface AssetContextMenuProps {
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly eventTarget: HTMLElement | null
-  readonly doCopy: () => void
-  readonly doCut: () => void
-  readonly doTriggerDescriptionEdit: () => void
   readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
-  const { doTriggerDescriptionEdit, doCopy, doCut, doPaste } = props
+  const { innerProps, rootDirectoryId, event, eventTarget, hidden = false, doPaste } = props
   const { item, state, setRowState } = innerProps
   const { backend, category, hasPasteData } = state
 
@@ -62,6 +61,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const setAssetPasteData = store.useStore(storeState => storeState.setAssetPasteData)
   const self = item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
@@ -82,6 +82,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     item.projectState.openedBy != null &&
     item.projectState.openedBy !== user?.email
 
+  const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
+  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
   const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
   const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
   const createProjectMutation = backendHooks.useBackendCreateProjectMutation(backend)
@@ -242,7 +244,19 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="editDescription"
             label={getText('editDescriptionShortcut')}
             doAction={() => {
-              doTriggerDescriptionEdit()
+              setModal(
+                <EditAssetDescriptionModal
+                  doChangeDescription={async description => {
+                    if (description !== item.description) {
+                      await updateAssetMutation.mutateAsync([
+                        item.id,
+                        { parentDirectoryId: null, description },
+                      ])
+                    }
+                  }}
+                  initialDescription={item.description}
+                />
+              )
             }}
           />
         )}
@@ -309,16 +323,26 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           isDisabled={!isCloud}
           action="duplicate"
           doAction={() => {
-            dispatchAssetListEvent({
-              type: AssetListEventType.copy,
-              newParentId: item.directoryId,
-              items: [item],
-            })
+            copyAssetMutation.mutate([item.id, item.parentId])
           }}
         />
-        {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
+        {isCloud && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="copy"
+            doAction={() => {
+              setAssetPasteData(backend.type, 'copy', [item.id])
+            }}
+          />
+        )}
         {!isOtherUserUsingProject && (
-          <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
+          <ContextMenuEntry
+            hidden={hidden}
+            action="cut"
+            doAction={() => {
+              setAssetPasteData(backend.type, 'cut', [item.id])
+            }}
+          />
         )}
         <ContextMenuEntry
           hidden={hidden}
