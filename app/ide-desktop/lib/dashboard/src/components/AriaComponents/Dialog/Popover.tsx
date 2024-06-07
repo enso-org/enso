@@ -57,7 +57,7 @@ export const POPOVER_STYLES = twv.tv({
     },
   },
   slots: {
-    content: 'flex-auto overflow-y-auto max-h-[inherit]',
+    dialog: 'flex-auto overflow-y-auto max-h-[inherit]',
   },
   defaultVariants: { rounded: 'xxlarge', size: 'small' },
 })
@@ -109,7 +109,7 @@ export function Popover(props: PopoverProps) {
           <aria.Dialog
             id={dialogId}
             ref={dialogRef}
-            className={POPOVER_STYLES({ ...opts, size, rounded }).content()}
+            className={POPOVER_STYLES({ ...opts, size, rounded }).dialog()}
           >
             {({ close }) => {
               closeRef.current = close
