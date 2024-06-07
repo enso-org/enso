@@ -38,13 +38,14 @@ type Foo
 
 
 add_specs suite_builder =
-    make_json header data all_rows ixes_header ixes =
+    make_json header data all_rows ixes_header ixes value_types =
         p_header      = ["header", header]
         p_data        = ["data",   data]
         p_all_rows    = ["all_rows_count", all_rows]
         p_ixes        = ["indices", ixes]
         p_ixes_header = ["indices_header", ixes_header]
-        pairs    = [p_header, p_data, p_all_rows, p_ixes, p_ixes_header, ["type", "Table"]]
+        p_value_types = ["value_type", value_types]
+        pairs    = [p_header, p_value_types, p_data, p_all_rows, p_ixes, p_ixes_header, ["type", "Table"]]
         JS_Object.from_pairs pairs . to_text
 
     suite_builder.group "Table Visualization" group_builder->
@@ -52,32 +53,38 @@ add_specs suite_builder =
 
         group_builder.specify "should visualize database tables" <|
             vis = Visualization.prepare_visualization data.t 1
-            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 ixes_header=[] ixes=[]
+            value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["bits", 64]]
+            value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["size", Nothing], ["variable_length", True]]
+            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 ixes_header=[] ixes=[] value_types=[value_type_char, value_type_int, value_type_int]
             vis . should_equal json
 
         group_builder.specify "should visualize database columns" <|
             vis = Visualization.prepare_visualization (data.t.at "A") 2
-            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 ixes_header=[] ixes=[]
+            value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["size", Nothing], ["variable_length", True]]
+            value_type_float = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Float"], ["bits", 64]]
+            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 ixes_header=[] ixes=[] value_types=[value_type_char]
             vis . should_equal json
 
             g = data.t.aggregate ["A", "B"] [Aggregate_Column.Average "C"] . at "Average C"
             vis2 = Visualization.prepare_visualization g 1
-            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 ixes_header=[] ixes=[]
+            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 ixes_header=[] ixes=[] value_types=[value_type_float]
             vis2 . should_equal json2
 
         group_builder.specify "should visualize dataframe tables" <|
             vis = Visualization.prepare_visualization data.t2 1
-            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 ixes_header=["#"] ixes=[[0]]
+            value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["bits", 64]]
+            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 ixes_header=["#"] ixes=[[0]] value_types=[value_type_int, value_type_int, value_type_int]
             vis . should_equal json
 
         group_builder.specify "should visualize dataframe columns" <|
             vis = Visualization.prepare_visualization (data.t2.at "A") 2
-            json = make_json header=["A"] data=[[1, 2]] all_rows=3 ixes_header=["#"] ixes=[[0, 1]]
+            value_type = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["bits", 64]]
+            json = make_json header=["A"] data=[[1, 2]] all_rows=3 ixes_header=["#"] ixes=[[0, 1]] value_types=[value_type]
             vis . should_equal json
 
         group_builder.specify "should handle Vectors" <|
             vis = Visualization.prepare_visualization [1, 2, 3] 2
-            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]]]
+            json = JS_Object.from_pairs [["type", "Vector"], ["all_rows_count", 3], ["json", [1, 2]]] 
             vis . should_equal json.to_text
 
             vis2 = Visualization.prepare_visualization [[1, 2], [3, 4]] 2
