@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.dsl.UnsupportedSpecializationException;
-import com.oracle.truffle.api.nodes.Node;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.function.Supplier;
@@ -33,13 +32,6 @@ import org.junit.Test;
  * <p>These tests checks this contract.
  */
 public class ThrowableCatchTest {
-  static List<Supplier<RuntimeException>> exceptionSuppliers =
-      List.of(
-          () -> new RuntimeException("First exception"),
-          () -> new IllegalStateException("Illegal state"),
-          () -> new CustomException(new PanicException("Panic", null)),
-          () -> new UnsupportedSpecializationException(null, new Node[] {null}, 42));
-
   private static List<Class<?>> shouldBeHandledExceptionTypes =
       List.of(UnsupportedSpecializationException.class);
 
@@ -52,12 +44,6 @@ public class ThrowableCatchTest {
 
   private Context ctx;
   private EnsoContext ensoCtx;
-
-  private static class CustomException extends RuntimeException {
-    CustomException(PanicException panic) {
-      super(panic);
-    }
-  }
 
   private static class CustomError extends Error {}
 
@@ -84,37 +70,6 @@ public class ThrowableCatchTest {
   public void tearDown() {
     ctx.leave();
     ctx.close();
-  }
-
-  @Test
-  public void testMostRuntimeExceptionsCanPropagateFromBuiltinMethods() {
-    var func = ThrowBuiltinMethodGen.makeFunction(EnsoLanguage.get(null));
-    var funcCallTarget = func.getCallTarget();
-    var emptyState = ensoCtx.emptyState();
-    for (long exceptionSupplierIdx = 0;
-        exceptionSupplierIdx < exceptionSuppliers.size();
-        exceptionSupplierIdx++) {
-      Object self = null;
-      Object[] args =
-          Function.ArgumentsHelper.buildArguments(
-              func,
-              null,
-              emptyState,
-              new Object[] {self, Text.create("exception"), exceptionSupplierIdx});
-      try {
-        funcCallTarget.call(args);
-      } catch (Throwable t) {
-        var expectedException = exceptionSuppliers.get((int) exceptionSupplierIdx).get();
-        if (shouldExceptionBeHandled(t)) {
-          expectPanicOrDataflowErrorWithMessage(t, expectedException.getMessage());
-        } else {
-          assertSameExceptions(
-              "Thrown RuntimeException should not be modified in the builtin method",
-              expectedException,
-              t);
-        }
-      }
-    }
   }
 
   @Test

@@ -4,6 +4,8 @@ import * as twv from 'tailwind-variants'
 import * as aria from '#/components/aria'
 import * as portal from '#/components/Portal'
 
+import * as text from '../Text'
+
 // =================
 // === Constants ===
 // =================
@@ -18,7 +20,7 @@ export const TOOLTIP_STYLES = twv.tv({
     },
     size: {
       custom: '',
-      medium: 'text-xs leading-[25px] px-2 py-1',
+      medium: text.TEXT_STYLE({ className: 'px-2 py-1', color: 'custom', balance: true }),
     },
     rounded: {
       custom: '',

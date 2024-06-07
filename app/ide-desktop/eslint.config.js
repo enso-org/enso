@@ -453,11 +453,6 @@ export default [
                     selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
                 },
-                {
-                    selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
-                    message:
-                        'Use `export default` on the declaration, instead of as a separate statement',
-                },
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.
             'no-undef': 'off',

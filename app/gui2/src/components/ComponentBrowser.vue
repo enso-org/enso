@@ -589,6 +589,7 @@ const handler = componentBrowserBindings.handler({
         :icon="selectedSuggestionIcon"
         :nodeColor="nodeColor"
         class="component-editor"
+        :style="{ '--component-editor-padding': cssComponentEditorPadding }"
       />
     </div>
   </div>
@@ -721,7 +722,6 @@ const handler = componentBrowserBindings.handler({
 
 .component-editor {
   position: absolute;
-  --component-editor-padding: v-bind('cssComponentEditorPadding');
 }
 
 .visualization-preview {

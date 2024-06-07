@@ -448,6 +448,21 @@ add_specs suite_builder =
             foo = v:Foo
             Foo.Value 10 . should_equal foo
 
+        group_builder.specify "Foo.Value constructor is not autoscoped" <|
+
+            v = ..Value
+            err = Test.expect_panic Type_Error <|
+                f = v:Foo
+                f
+
+            msg = err.to_text
+
+            msg . should_contain "Type error:"
+            msg . should_contain "Expected `..Value` to be Foo"
+            msg . should_contain "got Foo.Value["
+            msg . should_contain "foo=_"
+            msg . should_contain "Try to apply foo argument"
+
         group_builder.specify "..False can be autoscoped" <|
 
             bool b:Boolean = b
