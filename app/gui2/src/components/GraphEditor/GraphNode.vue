@@ -421,9 +421,9 @@ watchEffect(() => {
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator && !edited"
-        :class="{ dragged: isDragged }"
         :nodePosition="props.node.position"
         :nodeSize="graphSelectionSize"
+        :class="{ draggable: true, dragged: isDragged }"
         :selected
         :nodeId
         :color
@@ -684,11 +684,7 @@ watchEffect(() => {
   margin-right: 4px;
 }
 
-.draggable {
-  cursor: grab;
-}
-
 .dragged {
-  cursor: grabbing;
+  cursor: grabbing !important;
 }
 </style>

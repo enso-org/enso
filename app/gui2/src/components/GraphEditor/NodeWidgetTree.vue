@@ -107,7 +107,7 @@ export const ICON_WIDTH = 16
     <!-- Display an icon for the node if no widget in the tree provides one. -->
     <SvgIcon
       v-if="!props.connectedSelfArgumentId"
-      class="icon grab-handle nodeCategoryIcon"
+      class="icon grab-handle nodeCategoryIcon draggable"
       :style="{ margin: `0 ${GRAB_HANDLE_X_MARGIN}px` }"
       :name="props.icon"
       @click.right.stop.prevent="emit('openFullMenu')"
