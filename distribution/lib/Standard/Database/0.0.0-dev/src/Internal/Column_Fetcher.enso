@@ -98,6 +98,18 @@ big_integer_fetcher =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
+big_decimal_fetcher : Column_Fetcher
+big_decimal_fetcher =
+    fetch_value rs i =
+        big_decimal = rs.getBigDecimal i
+        if rs.wasNull then Nothing else
+            big_decimal
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_bigdecimal_builder initial_size java_problem_aggregator
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
 text_fetcher : Value_Type -> Column_Fetcher
 text_fetcher value_type =
     fetch_value rs i =
