@@ -11,6 +11,7 @@ declare module '@tanstack/react-query' {
    * Specifies the invalidation behavior of a mutation.
    */
   interface Register {
+    // eslint-disable-next-line no-restricted-syntax
     readonly mutationMeta: {
       /**
        * List of query keys to invalidate when the mutation succeeds.
