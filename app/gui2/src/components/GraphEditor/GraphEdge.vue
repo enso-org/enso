@@ -571,7 +571,7 @@ const connected = computed(() => isConnected(props.edge))
       <path
         v-if="connected"
         :d="basePath"
-        class="edge io"
+        class="edge io clickable"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
         :data-testid="edgeIsBroken ? 'broken-edge' : null"
@@ -628,7 +628,6 @@ const connected = computed(() => isConnected(props.edge))
   stroke-width: 14;
   stroke: transparent;
   pointer-events: stroke;
-  cursor: pointer;
 }
 .edge.visible {
   stroke-width: 4;

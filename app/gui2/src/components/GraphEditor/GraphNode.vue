@@ -439,7 +439,7 @@ watchEffect(() => {
     <div class="binding" v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
-      class="overrideRecordButton"
+      class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
       @click="isRecordingOverridden = false"
     >
@@ -671,7 +671,6 @@ watchEffect(() => {
 
 .overrideRecordButton {
   position: absolute;
-  cursor: pointer;
   display: flex;
   align-items: center;
   backdrop-filter: var(--blur-app-bg);

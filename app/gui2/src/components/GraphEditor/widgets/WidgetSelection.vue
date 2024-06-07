@@ -370,7 +370,7 @@ declare module '@/providers/widgetRegistry' {
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetSelection"
+    class="WidgetSelection clickable"
     :class="{ multiSelect: isMulti }"
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
@@ -406,7 +406,6 @@ declare module '@/providers/widgetRegistry' {
   align-items: center;
   position: relative;
   min-height: var(--node-port-height);
-  cursor: pointer;
 }
 
 .arrow {

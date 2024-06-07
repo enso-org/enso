@@ -111,7 +111,7 @@ function portGroupStyle(port: PortData) {
     <g :style="portGroupStyle(port)">
       <g class="portClip">
         <rect
-          class="outputPortHoverArea"
+          class="outputPortHoverArea clickable"
           @pointerenter="outputHovered = port.portId"
           @pointerleave="outputHovered = undefined"
           @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
@@ -166,7 +166,6 @@ function portGroupStyle(port: PortData) {
   /* stroke: red; */
   stroke-linecap: butt;
   pointer-events: stroke;
-  cursor: pointer;
 }
 
 .portClip {
