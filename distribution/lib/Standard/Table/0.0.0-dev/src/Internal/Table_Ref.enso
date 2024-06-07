@@ -42,6 +42,9 @@ type Table_Ref
         Column_Ref.Name name -> self.at name
         Column_Ref.Index index -> self.at index
         Expression.Value _ -> self.evaluate_expression value
+        _ : Function ->
+            col_ref = Panic.catch Any (value:Column_Ref) _->Nothing
+            if col_ref.is_nothing then value else self.resolve col_ref
         _ -> value
 
     ## PRIVATE

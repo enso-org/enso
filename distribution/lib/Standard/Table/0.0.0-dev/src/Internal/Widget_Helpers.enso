@@ -94,8 +94,8 @@ make_column_name_multi_selector table display:Display=Display.Always add_regex:B
 
 ## PRIVATE
    Make a column reference by name selector.
-make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
-make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False =
+make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
+make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False use_fqn_column_ref:Boolean=False =
     text = if add_text then [Option "<Text Value>" "''"] else []
     regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
     number = if add_number then [Option "<Number Value>" "0"] else []
@@ -105,7 +105,8 @@ make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean
         ## Can't use auto-scoping as Named_Patterns are materialised into Regex.
         patterns.map p-> Option "<"+p+">" "Named_Pattern."+p
     expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
-    col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(..Name "+name.pretty+")")
+    fqn = if use_fqn_column_ref then "Column_Ref." else ".."
+    col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "("+fqn+"Name "+name.pretty+")")
     values = text + regex + number + boolean + named_pattern + expression + col_names
     Single_Choice values=values display=display
 
@@ -121,9 +122,9 @@ make_fill_default_value_selector column_source=Nothing display=Display.Always ad
    Make a filter condition selector.
 make_filter_condition_selector : Table -> Display -> Widget
 make_filter_condition_selector table display=Display.Always =
-    with_all_types = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
-    with_number_text = make_column_ref_by_name_selector table add_text=True add_number=True
-    with_text = make_column_ref_by_name_selector table add_text=True
+    with_all_types = make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True use_fqn_column_ref=True
+    with_number_text = make_column_ref_by_name_selector table add_text=True add_number=True use_fqn_column_ref=True
+    with_text = make_column_ref_by_name_selector table add_text=True use_fqn_column_ref=True
 
     options = Vector.build builder->
         builder.append (Option "Equals" "..Equal" [["to", with_all_types]])
