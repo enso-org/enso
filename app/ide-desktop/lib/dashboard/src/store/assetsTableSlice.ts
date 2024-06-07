@@ -104,7 +104,6 @@ export interface AssetsTableSlice {
   // fine-grained updates - zustand can subscribe to the results of arbitrary functions, rather
   // than an explicit list of dependencies.
   readonly selectedAssetIds: ReadonlySet<backendModule.AssetId>
-  readonly dragSelectedAssetIds: ReadonlySet<backendModule.AssetId>
   readonly assetPasteData: PasteData | null
   readonly temporaryLabelData: TemporaryLabelData | null
   readonly clearAllAssetsState: () => void
@@ -125,7 +124,6 @@ export interface AssetsTableSlice {
   ) => void
   readonly getSelectedAssetIds: () => ReadonlySet<backendModule.AssetId>
   readonly setSelectedAssetIds: (ids: ReadonlySet<backendModule.AssetId>) => void
-  readonly setDragSelectedAssetIds: (ids: ReadonlySet<backendModule.AssetId>) => void
   readonly setAssetPasteData: (data: PasteData | null) => void
   readonly setAssetTemporaryLabelData: (temporaryLabelData: TemporaryLabelData | null) => void
 }
@@ -138,7 +136,6 @@ export interface AssetsTableSlice {
 export const createAssetsTableSlice = defineSlice.defineSlice<AssetsTableSlice>()((set, get) => ({
   backends: INITIAL_BACKENDS_STATE,
   selectedAssetIds: setModule.EMPTY,
-  dragSelectedAssetIds: setModule.EMPTY,
   assetPasteData: null,
   temporaryLabelData: null,
   clearAllAssetsState: () => {
@@ -234,9 +231,6 @@ export const createAssetsTableSlice = defineSlice.defineSlice<AssetsTableSlice>(
   },
   setSelectedAssetIds: ids => {
     set({ selectedAssetIds: ids })
-  },
-  setDragSelectedAssetIds: ids => {
-    set({ dragSelectedAssetIds: ids })
   },
   setAssetPasteData: data => {
     set({ assetPasteData: data })

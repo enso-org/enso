@@ -16,7 +16,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
@@ -28,13 +27,10 @@ import AssetRow from '#/components/dashboard/AssetRow'
 import AssetRows from '#/components/dashboard/AssetRows'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import * as columnHeading from '#/components/dashboard/columnHeading'
-import SelectionBrush from '#/components/SelectionBrush'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
-
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -43,7 +39,6 @@ import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
-import type * as geometry from '#/utilities/geometry'
 import * as inputBindingsModule from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -77,35 +72,11 @@ LocalStorage.registerKey('enabledColumns', {
 // === Constants ===
 // =================
 
-/** If the drag pointer is less than this distance away from the top or bottom of the
- * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
- * the top of the scroll container, or downwards if the cursor is near the bottom. */
-const AUTOSCROLL_THRESHOLD_PX = 50
-/** An arbitrary constant that controls the speed of autoscroll. */
-const AUTOSCROLL_SPEED = 100
-/** The autoscroll speed is `AUTOSCROLL_SPEED / (distance + AUTOSCROLL_DAMPENING)`. */
-const AUTOSCROLL_DAMPENING = 10
-/** The height of the header row. */
-const HEADER_HEIGHT_PX = 33
-/** The height of each row in the table body. MUST be identical to the value as set by the
- * Tailwind styling. */
-const ROW_HEIGHT_PX = 32
 /** The number of pixels the header bar should shrink when the column selector is visible,
  * assuming 0 icons are visible in the column selector. */
 const COLUMNS_SELECTOR_BASE_WIDTH_PX = 4
 /** The number of pixels the header bar should shrink per collapsed column. */
 const COLUMNS_SELECTOR_ICON_WIDTH_PX = 28
-
-// =========================
-// === DragSelectionInfo ===
-// =========================
-
-/** Information related to a drag selection. */
-interface DragSelectionInfo {
-  readonly initialIndex: number
-  readonly start: number
-  readonly end: number
-}
 
 // =============================
 // === Category to filter by ===
@@ -174,16 +145,12 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
   const { setAssetPanelProps, setIsAssetPanelTemporarilyVisible } = props
 
-  const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
-  const getSelectedAssetIds = store.useStore(storeState => storeState.getSelectedAssetIds)
-  const toggleIsAssetOpen = store.useStore(storeState => storeState.toggleIsAssetOpen)
   const setIsAssetOpen = store.useStore(storeState => storeState.setIsAssetOpen)
   const setSelectedAssetIds = store.useStore(storeState => storeState.setSelectedAssetIds)
-  const setDragSelectedAssetIds = store.useStore(storeState => storeState.setDragSelectedAssetIds)
   const setAssetPasteData = store.useStore(storeState => storeState.setAssetPasteData)
   const setAssetTemporaryLabelData = store.useStore(
     storeState => storeState.setAssetTemporaryLabelData
@@ -232,7 +199,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
   const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
-  const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
 
   React.useEffect(() => {
     setIsAssetOpen(backend.type, rootDirectoryId, true)
@@ -420,125 +386,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     [backend.type, setSelectedAssetIds, /* should never change */ inputBindings]
   )
 
-  const calculateNewKeys = React.useCallback(
-    (
-      event: MouseEvent | React.MouseEvent,
-      keys: backendModule.AssetId[],
-      getRange: () => backendModule.AssetId[]
-    ) => {
-      event.stopPropagation()
-      let result = new Set<backendModule.AssetId>()
-      const selectedIds = () => store.useStore.getState().getSelectedAssetIds()
-      inputBindings.handler({
-        selectRange: () => {
-          result = new Set(getRange())
-        },
-        selectAdditionalRange: () => {
-          result = new Set([...selectedIds(), ...getRange()])
-        },
-        selectAdditional: bindingEvent => {
-          const newSelectedKeys = new Set(selectedIds())
-          for (const key of keys) {
-            set.setPresence(newSelectedKeys, key, !bindingEvent.shiftKey)
-          }
-          result = newSelectedKeys
-        },
-        [inputBindingsModule.DEFAULT_HANDLER]: () => {
-          result = new Set(keys)
-        },
-      })(event, false)
-      return result
-    },
-    [/* should never change */ inputBindings]
-  )
-
-  const dragSelectionChangeLoopHandle = React.useRef(0)
-  const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
-  const onSelectionDrag = React.useCallback(
-    (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
-      cancelAnimationFrame(dragSelectionChangeLoopHandle.current)
-      const scrollContainer = rootRef.current
-      if (scrollContainer != null) {
-        const rect = scrollContainer.getBoundingClientRect()
-        if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
-          const distanceToTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
-          if (distanceToTop < AUTOSCROLL_THRESHOLD_PX) {
-            scrollContainer.scrollTop -= Math.floor(
-              AUTOSCROLL_SPEED / (distanceToTop + AUTOSCROLL_DAMPENING)
-            )
-            dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
-              onSelectionDrag(rectangle, event)
-            })
-          }
-        }
-        if (
-          rectangle.signedHeight >= 0 &&
-          scrollContainer.scrollTop + rect.height < scrollContainer.scrollHeight
-        ) {
-          const distanceToBottom = Math.max(0, rect.bottom - rectangle.bottom)
-          if (distanceToBottom < AUTOSCROLL_THRESHOLD_PX) {
-            scrollContainer.scrollTop += Math.floor(
-              AUTOSCROLL_SPEED / (distanceToBottom + AUTOSCROLL_DAMPENING)
-            )
-            dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
-              onSelectionDrag(rectangle, event)
-            })
-          }
-        }
-        const overlapsHorizontally = rect.right > rectangle.left && rect.left < rectangle.right
-        const selectionTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
-        const selectionBottom = Math.max(
-          0,
-          Math.min(rect.height, rectangle.bottom - rect.top - HEADER_HEIGHT_PX)
-        )
-        const range = dragSelectionRangeRef.current
-        if (!overlapsHorizontally) {
-          dragSelectionRangeRef.current = null
-        } else if (range == null) {
-          const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT_PX
-          const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT_PX
-          dragSelectionRangeRef.current = {
-            initialIndex: rectangle.signedHeight < 0 ? bottomIndex : topIndex,
-            start: Math.floor(topIndex),
-            end: Math.ceil(bottomIndex),
-          }
-        } else {
-          const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT_PX
-          const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT_PX
-          const endIndex = rectangle.signedHeight < 0 ? topIndex : bottomIndex
-          dragSelectionRangeRef.current = {
-            initialIndex: range.initialIndex,
-            start: Math.floor(Math.min(range.initialIndex, endIndex)),
-            end: Math.ceil(Math.max(range.initialIndex, endIndex)),
-          }
-        }
-        if (range == null) {
-          setDragSelectedAssetIds(set.EMPTY)
-        } else {
-          const ids = displayItems.slice(range.start, range.end).map(node => node.key)
-          setDragSelectedAssetIds(new Set(calculateNewKeys(event, ids, () => [])))
-        }
-      }
-    },
-    [calculateNewKeys, setDragSelectedAssetIds]
-  )
-
-  const onSelectionDragEnd = React.useCallback(
-    (event: MouseEvent) => {
-      const range = dragSelectionRangeRef.current
-      if (range != null) {
-        const ids = displayItems.slice(range.start, range.end).map(node => node.key)
-        setSelectedAssetIds(calculateNewKeys(event, ids, () => []))
-      }
-      dragSelectionRangeRef.current = null
-    },
-    [calculateNewKeys, /* should never change */ setSelectedAssetIds]
-  )
-
-  const onSelectionDragCancel = React.useCallback(() => {
-    dragSelectionRangeRef.current = null
-  }, [])
-
   const table = (
     <div
       className="flex grow flex-col"
@@ -678,18 +525,10 @@ export default function AssetsTable(props: AssetsTableProps) {
             {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
               ref: rootRef,
               className: 'flex-1 overflow-auto container-size w-full h-full',
-              onKeyDown,
               onScroll,
             })}
           >
             {!hidden && hiddenContextMenu}
-            {!hidden && (
-              <SelectionBrush
-                onDrag={onSelectionDrag}
-                onDragEnd={onSelectionDragEnd}
-                onDragCancel={onSelectionDragCancel}
-              />
-            )}
             <div className="flex h-max min-h-full w-max min-w-full flex-col">
               {isCloud && (
                 <div className="flex-0 sticky top flex h flex-col">
