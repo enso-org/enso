@@ -130,10 +130,8 @@ type Table_Column_Helper
          specified types will also be selected (i.e. ignore size, precision).
     remove_by_type : Vector Value_Type -> Boolean -> Vector
     remove_by_type self types:Vector strict:Boolean=False =
-        remaining_columns = if strict then self.columns.filter (c->(types.contains c.value_type).not) else
+        if strict then self.columns.filter (c->(types.contains c.value_type).not) else
             self.columns.filter c->(types.all (t->(c.value_type.is_same_type t . not)))
-        if remaining_columns.length == self.columns.length then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
-            remaining_columns
 
     ## PRIVATE
        A helper function encapsulating shared code for `reorder_columns`
