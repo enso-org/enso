@@ -1,5 +1,6 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateInline;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -9,6 +10,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
@@ -19,7 +21,6 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
   private final LogicalLayout unit;
   private final int size;
   private ByteBufferDirect buffer;
-  private int index;
 
   private static final String APPEND_OP = "append";
   private static final String BUILD_OP = "build";
@@ -28,7 +29,6 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
     this.size = size;
     this.unit = unit;
     this.buffer = ByteBufferDirect.forSize(size, unit);
-    this.index = 0;
   }
 
   public LogicalLayout getUnit() {
@@ -97,11 +97,38 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
     abstract void executeAppend(ArrowFixedSizeArrayBuilder builder, Object value)
         throws UnsupportedTypeException, UnsupportedMessageException;
 
-    @Specialization
+    @Specialization(
+        limit = "3",
+        guards = {"builder.getUnit() == cachedUnit"})
     static void writeToBuffer(
-        ArrowFixedSizeArrayBuilder builder, Object value, @Cached WriteToBuilderNode writeNode)
+        ArrowFixedSizeArrayBuilder builder,
+        Object value,
+        @Cached(value = "builder.getUnit()", allowUncached = true) LogicalLayout cachedUnit,
+        @Cached ValueToNumberNode valueNode,
+        @CachedLibrary(limit = "3") InteropLibrary iop)
         throws UnsupportedTypeException, UnsupportedMessageException {
-      writeNode.executeWrite(builder, builder.index++, value);
+      if (iop.isNull(value)) {
+        builder.buffer.putNull(cachedUnit);
+        return;
+      }
+      var number = valueNode.executeAdjust(cachedUnit, value);
+      switch (number) {
+        case Byte b -> builder.buffer.put(b);
+        case Short s -> builder.buffer.putShort(s);
+        case Integer i -> builder.buffer.putInt(i);
+        case Long l -> builder.buffer.putLong(l);
+        default -> throw CompilerDirectives.shouldNotReachHere();
+      }
+    }
+
+    @Specialization(replaces = "writeToBuffer")
+    static void writeToBufferUncached(
+        ArrowFixedSizeArrayBuilder builder,
+        Object value,
+        @Cached ValueToNumberNode valueNode,
+        @CachedLibrary(limit = "3") InteropLibrary iop)
+        throws UnsupportedTypeException, UnsupportedMessageException {
+      writeToBuffer(builder, value, builder.getUnit(), valueNode, iop);
     }
   }
 

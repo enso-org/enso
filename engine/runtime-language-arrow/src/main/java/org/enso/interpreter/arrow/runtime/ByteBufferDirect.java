@@ -6,6 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import org.enso.interpreter.arrow.LogicalLayout;
 import org.enso.interpreter.arrow.util.MemoryUtil;
 
 final class ByteBufferDirect implements AutoCloseable {
@@ -100,6 +101,12 @@ final class ByteBufferDirect implements AutoCloseable {
   public void put(byte b) throws UnsupportedMessageException {
     setValidityBitmap(0, 1);
     dataBuffer.put(b);
+  }
+
+  void putNull(LogicalLayout unit) {
+    var index = dataBuffer.position() / unit.sizeInBytes();
+    setNull(index);
+    dataBuffer.position(dataBuffer.position() + unit.sizeInBytes());
   }
 
   public byte get(int index) throws UnsupportedMessageException {

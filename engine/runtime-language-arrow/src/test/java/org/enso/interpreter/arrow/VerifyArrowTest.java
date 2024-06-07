@@ -19,6 +19,7 @@ import org.apache.arrow.vector.BaseFixedWidthVector;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.IntVector;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
@@ -84,7 +85,7 @@ public class VerifyArrowTest {
     date32ArrayBuilder.invokeMember("build");
     assertFalse(date32ArrayBuilder.canInvokeMember("append"));
     assertThrows(
-        IllegalArgumentException.class,
+        PolyglotException.class,
         () -> finalDate32ArrayBuilder.invokeMember("append", startDateTime));
     assertFalse(date32Array.canInvokeMember("append"));
   }
