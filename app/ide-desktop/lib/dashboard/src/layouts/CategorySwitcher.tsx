@@ -12,13 +12,14 @@ import type * as text from '#/text'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as store from '#/store'
+
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
@@ -28,6 +29,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
 import type * as backend from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // =============
 // === Types ===
@@ -144,16 +146,18 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
+  readonly backend: Backend
   readonly category: Category
   readonly setCategory: (category: Category) => void
 }
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
-  const { category, setCategory } = props
+  const { backend, category, setCategory: setCategoryRaw } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const clearAllAssetsState = store.useStore(storeState => storeState.clearAllAssetsState)
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const categoryData = React.useMemo(
@@ -171,9 +175,17 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     [remoteBackend, localBackend]
   )
 
-  React.useEffect(() => {
-    localStorage.set('driveCategory', category)
-  }, [category, /* should never change */ localStorage])
+  const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
+  const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
+
+  const setCategory = React.useCallback(
+    (newCategory: Category) => {
+      setCategoryRaw(newCategory)
+      localStorage.set('driveCategory', newCategory)
+      clearAllAssetsState()
+    },
+    [clearAllAssetsState, localStorage, setCategoryRaw]
+  )
 
   return (
     <FocusArea direction="vertical">
@@ -214,25 +226,28 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                         const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
                         const payload: unknown = JSON.parse(text)
                         return Array.isArray(payload)
-                          ? payload.flatMap(key =>
+                          ? payload.flatMap(id =>
                               // This is SAFE, assuming only this app creates payloads with
                               // the specific mimetype above.
                               // eslint-disable-next-line no-restricted-syntax
-                              typeof key === 'string' ? [key as backend.AssetId] : []
+                              typeof id === 'string' ? [id as backend.AssetId] : []
                             )
                           : []
                       } else {
                         return []
                       }
                     })
-                  ).then(keys => {
-                    dispatchAssetEvent({
-                      type:
-                        category === Category.trash
-                          ? AssetEventType.restore
-                          : AssetEventType.delete,
-                      ids: new Set(keys.flat(1)),
-                    })
+                  ).then(idLists => {
+                    const ids = idLists.flat(1)
+                    if (category === Category.trash) {
+                      for (const id of ids) {
+                        undoDeleteAssetMutation.mutate([id])
+                      }
+                    } else {
+                      for (const id of ids) {
+                        deleteAssetMutation.mutate([id, { force: false }])
+                      }
+                    }
                   })
                 }}
               />

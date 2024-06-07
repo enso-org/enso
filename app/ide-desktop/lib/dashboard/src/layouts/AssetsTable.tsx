@@ -24,7 +24,6 @@ import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
-import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import AssetRows from '#/components/dashboard/AssetRows'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
@@ -47,8 +46,6 @@ import * as drag from '#/utilities/drag'
 import type * as geometry from '#/utilities/geometry'
 import * as inputBindingsModule from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import type * as pasteDataModule from '#/utilities/pasteData'
-import PasteType from '#/utilities/PasteType'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as set from '#/utilities/set'
 import type * as sorting from '#/utilities/sorting'
@@ -132,8 +129,6 @@ export interface AssetsTableState {
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly category: Category
-  readonly hasPasteData: boolean
-  readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
   readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
@@ -184,10 +179,15 @@ export default function AssetsTable(props: AssetsTableProps) {
   const backend = backendProvider.useBackend(category)
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const getSelectedAssetIds = store.useStore(storeState => storeState.getSelectedAssetIds)
   const toggleIsAssetOpen = store.useStore(storeState => storeState.toggleIsAssetOpen)
   const setIsAssetOpen = store.useStore(storeState => storeState.setIsAssetOpen)
   const setSelectedAssetIds = store.useStore(storeState => storeState.setSelectedAssetIds)
   const setDragSelectedAssetIds = store.useStore(storeState => storeState.setDragSelectedAssetIds)
+  const setAssetPasteData = store.useStore(storeState => storeState.setAssetPasteData)
+  const setAssetTemporaryLabelData = store.useStore(
+    storeState => storeState.setAssetTemporaryLabelData
+  )
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [enabledColumns, setEnabledColumns] = localStorageProvider.useLocalStorageValue(
     'enabledColumns',
@@ -195,17 +195,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
-  const selectedKeysRef = React.useRef<readonly backendModule.AssetId[]>([])
-  React.useEffect(
-    () =>
-      store.useStore.subscribe(state => {
-        selectedKeysRef.current = state.getSelectedAssetIds(backend.type)
-      }),
-    [backend.type]
-  )
-  const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
-    ReadonlySet<backendModule.AssetId>
-  > | null>(null)
   const rootDirectoryId = React.useMemo(
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
     [backend, user]
@@ -233,9 +222,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const isCloud = backend.type === backendModule.BackendType.remote
   const rootRef = React.useRef<HTMLDivElement | null>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
-  const pasteDataRef = React.useRef<pasteDataModule.PasteData<
-    ReadonlySet<backendModule.AssetId>
-  > | null>(null)
   const columns = columnUtils.getColumnList(backend.type, enabledColumns)
   const dropzoneText = isDropzoneVisible
     ? droppedFilesCount === 1
@@ -253,24 +239,19 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [backend.type, rootDirectoryId, setIsAssetOpen])
 
   React.useEffect(() => {
-    pasteDataRef.current = pasteData
-  }, [pasteData])
-
-  React.useEffect(() => {
     if (!hidden) {
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         cancelCut: () => {
           if (pasteDataRef.current == null) {
             return false
           } else {
-            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
-            setPasteData(null)
+            setAssetPasteData(null)
             return
           }
         },
       })
     }
-  }, [hidden, /* should never change */ inputBindings])
+  }, [hidden, /* should never change */ inputBindings, setAssetPasteData])
 
   // FIXME: re-add `setIsAssetPanelTemporarilyVisible(false)`
 
@@ -282,14 +263,14 @@ export default function AssetsTable(props: AssetsTableProps) {
   // eslint-disable-next-line no-restricted-syntax
   const onKeyDown = (event: React.KeyboardEvent) => {
     const prevIndex = mostRecentlySelectedIndexRef.current
-    const item = prevIndex == null ? null : visibleItems[prevIndex]
-    if (selectedKeysRef.current.length === 1 && item != null) {
+    const item: backendModule.AnyAsset | null = prevIndex == null ? null : visibleItems[prevIndex]
+    const selectedIds = getSelectedAssetIds()
+    if (selectedIds.size === 1 && item != null) {
       switch (event.key) {
         case 'Enter':
         case ' ': {
           if (event.key === ' ' && event.ctrlKey) {
-            const keys = selectedKeysRef.current
-            setSelectedAssetIds(set.withPresence(keys, item.id, !keys.has(item.id)))
+            setSelectedAssetIds(set.withPresence(selectedIds, item.id, !selectedIds.has(item.id)))
           } else {
             switch (item.type) {
               case backendModule.AssetType.directory: {
@@ -340,8 +321,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             if (index2 !== -1) {
               event.preventDefault()
               event.stopPropagation()
-              setSelectedAssetIds(backend.type, [item.parentId])
-              setMostRecentlySelectedIndex(index2, true)
+              setSelectedAssetIds(new Set([item.parentId]))
             }
           }
           break
@@ -360,14 +340,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     switch (event.key) {
       case ' ': {
         if (event.ctrlKey && item != null) {
-          const keys = selectedKeysRef.current
+          const keys = selectedIds
           setSelectedAssetIds(set.withPresence(keys, item.id, !keys.has(item.id)))
         }
         break
       }
       case 'Escape': {
-        setSelectedAssetIds(backend.type, [])
-        setMostRecentlySelectedIndex(null)
+        setSelectedAssetIds(set.EMPTY)
         selectionStartIndexRef.current = null
         break
       }
@@ -399,7 +378,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             index = prevIndex
           }
         }
-        setMostRecentlySelectedIndex(index, true)
         if (event.shiftKey) {
           event.preventDefault()
           event.stopPropagation()
@@ -429,7 +407,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         } else {
           // The arrow key will escape this container. In that case, do not stop propagation
           // and let `navigator2D` navigate to a different container.
-          setSelectedAssetIds(backend.type, [])
+          setSelectedAssetIds(set.EMPTY)
           selectionStartIndexRef.current = null
         }
         break
@@ -453,50 +431,42 @@ export default function AssetsTable(props: AssetsTableProps) {
     [projectStartupInfo, doCloseEditorRaw]
   )
 
-  const doCopy = React.useCallback(() => {
-    unsetModal()
-    setPasteData({ type: PasteType.copy, data: selectedKeysRef.current })
-  }, [/* should never change */ unsetModal])
-
-  const doCut = React.useCallback(() => {
-    unsetModal()
-    if (pasteData != null) {
-      dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
-    }
-    setPasteData({ type: PasteType.move, data: selectedKeysRef.current })
-    dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeysRef.current })
-    setSelectedAssetIds(backend.type, [])
-  }, [backend.type, pasteData, setSelectedAssetIds, /* should never change */ unsetModal])
-
   const doPaste = React.useCallback(
     (newParentId: backendModule.DirectoryId) => {
       unsetModal()
+      const pasteData = store.useStore.getState().assetPasteData
       if (pasteData != null) {
-        if (pasteData.data.has(newParentKey)) {
+        if (pasteData.ids.has(newParentId)) {
           toast.toast.error('Cannot paste a folder into itself.')
         } else {
           setIsAssetOpen(backend.type, newParentId, true)
-          const assets = Array.from(pasteData.data, id => nodeMapRef.current.get(id)).flatMap(
+          const assets = Array.from(pasteData.ids, id => nodeMapRef.current.get(id)).flatMap(
             asset => (asset ? [asset.item] : [])
-          )
-          if (pasteData.type === PasteType.copy) {
+          ) as backendModule.Asset[]
+          if (pasteData.action === 'copy') {
             for (const asset of assets) {
-              copyAssetMutation.mutate([asset.id, newParentId, asset.title, '(unknown)'])
+              copyAssetMutation.mutate([asset.id, newParentId])
             }
           } else {
             for (const asset of assets) {
               updateAssetMutation.mutate([
                 asset.id,
                 { parentDirectoryId: newParentId, description: null },
-                asset.title,
               ])
             }
           }
-          setPasteData(null)
+          setAssetPasteData(null)
         }
       }
     },
-    [pasteData, /* should never change */ unsetModal]
+    [
+      backend.type,
+      copyAssetMutation,
+      setAssetPasteData,
+      setIsAssetOpen,
+      unsetModal,
+      updateAssetMutation,
+    ]
   )
 
   const hideColumn = React.useCallback(
@@ -514,15 +484,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         hidden
         backend={backend}
         category={category}
-        pasteData={pasteData}
         rootDirectoryId={rootDirectoryId}
         event={{ pageX: 0, pageY: 0 }}
-        doCopy={doCopy}
-        doCut={doCut}
         doPaste={doPaste}
       />
     ),
-    [backend, rootDirectoryId, category, pasteData, doCopy, doCut, doPaste]
+    [backend, rootDirectoryId, category, doPaste]
   )
 
   const onDropzoneDragOver = (event: React.DragEvent<Element>) => {
@@ -544,8 +511,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       rootDirectoryId,
       scrollContainerRef: rootRef,
       category,
-      hasPasteData: pasteData != null,
-      setPasteData,
       sortInfo,
       setSortInfo,
       query,
@@ -556,21 +521,16 @@ export default function AssetsTable(props: AssetsTableProps) {
       hideColumn,
       doOpenEditor,
       doCloseEditor,
-      doCopy,
-      doCut,
       doPaste,
     }),
     [
       backend,
       rootDirectoryId,
       category,
-      pasteData,
       sortInfo,
       query,
       doOpenEditor,
       doCloseEditor,
-      doCopy,
-      doCut,
       doPaste,
       /* should never change */ hideColumn,
       /* should never change */ setAssetPanelProps,
@@ -608,10 +568,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           selectAdditional: () => {},
           selectAdditionalRange: () => {},
           [inputBindingsModule.DEFAULT_HANDLER]: () => {
-            if (selectedKeysRef.current.length !== 0) {
-              setSelectedAssetIds(backend.type, [])
-              setMostRecentlySelectedIndex(null)
-            }
+            setSelectedAssetIds(set.EMPTY)
           },
         },
         false
@@ -627,15 +584,16 @@ export default function AssetsTable(props: AssetsTableProps) {
     ) => {
       event.stopPropagation()
       let result = new Set<backendModule.AssetId>()
+      const selectedIds = () => store.useStore.getState().getSelectedAssetIds()
       inputBindings.handler({
         selectRange: () => {
           result = new Set(getRange())
         },
         selectAdditionalRange: () => {
-          result = new Set([...selectedKeysRef.current, ...getRange()])
+          result = new Set([...selectedIds(), ...getRange()])
         },
         selectAdditional: bindingEvent => {
-          const newSelectedKeys = new Set(selectedKeysRef.current)
+          const newSelectedKeys = new Set(selectedIds())
           for (const key of keys) {
             set.setPresence(newSelectedKeys, key, !bindingEvent.shiftKey)
           }
@@ -714,61 +672,31 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }
         if (range == null) {
-          setDragSelectedAssetIds(backend.type, [])
+          setDragSelectedAssetIds(set.EMPTY)
         } else {
-          const keys = displayItems.slice(range.start, range.end).map(node => node.key)
-          setDragSelectedAssetIds(
-            backend.type,
-            calculateNewKeys(event, keys, () => [])
-          )
+          const ids = displayItems.slice(range.start, range.end).map(node => node.key)
+          setDragSelectedAssetIds(new Set(calculateNewKeys(event, ids, () => [])))
         }
       }
     },
-    [backend.type, displayItems, calculateNewKeys]
+    [calculateNewKeys, setDragSelectedAssetIds]
   )
 
   const onSelectionDragEnd = React.useCallback(
     (event: MouseEvent) => {
       const range = dragSelectionRangeRef.current
       if (range != null) {
-        const keys = displayItems.slice(range.start, range.end).map(node => node.key)
-        setSelectedAssetIds(calculateNewKeys(event, keys, () => []))
+        const ids = displayItems.slice(range.start, range.end).map(node => node.key)
+        setSelectedAssetIds(calculateNewKeys(event, ids, () => []))
       }
-      setVisuallySelectedKeysOverride(null)
       dragSelectionRangeRef.current = null
     },
-    [displayItems, calculateNewKeys, /* should never change */ setSelectedAssetIds]
+    [calculateNewKeys, /* should never change */ setSelectedAssetIds]
   )
 
   const onSelectionDragCancel = React.useCallback(() => {
-    setVisuallySelectedKeysOverride(null)
     dragSelectionRangeRef.current = null
   }, [])
-
-  const onRowClick = React.useCallback(
-    (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
-      const { key } = innerRowProps
-      event.stopPropagation()
-      const newIndex = visibleItems.findIndex(innerItem => AssetTreeNode.getKey(innerItem) === key)
-      const getRange = () => {
-        if (mostRecentlySelectedIndexRef.current == null) {
-          return [key]
-        } else {
-          const index1 = mostRecentlySelectedIndexRef.current
-          const index2 = newIndex
-          const startIndex = Math.min(index1, index2)
-          const endIndex = Math.max(index1, index2) + 1
-          return visibleItems.slice(startIndex, endIndex).map(AssetTreeNode.getKey)
-        }
-      }
-      setSelectedAssetIds(calculateNewKeys(event, [key], getRange))
-      setMostRecentlySelectedIndex(newIndex)
-      if (!event.shiftKey) {
-        selectionStartIndexRef.current = null
-      }
-    },
-    [visibleItems, calculateNewKeys, /* should never change */ setSelectedAssetIds]
-  )
 
   const table = (
     <div
@@ -780,7 +708,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           <AssetsTableContextMenu
             backend={backend}
             category={category}
-            pasteData={pasteData}
             event={event}
             rootDirectoryId={rootDirectoryId}
             doPaste={doPaste}
@@ -795,11 +722,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           event.relatedTarget instanceof Node &&
           !event.currentTarget.contains(event.relatedTarget)
         ) {
-          dispatchAssetEvent({
-            type: AssetEventType.temporarilyAddLabels,
-            ids: selectedKeysRef.current,
-            labelNames: set.EMPTY,
-          })
+          setAssetTemporaryLabelData(null)
         }
       }}
     >
@@ -828,7 +751,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                 state={state}
                 filter={filter}
                 filterBy={CATEGORY_TO_FILTER_BY[category]}
-                onClick={onRowClick}
               />
               <tr className="hidden h-row first:table-row">
                 <td colSpan={columns.length} className="bg-transparent">
@@ -882,7 +804,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }}
         onClick={() => {
-          setSelectedAssetIds(backend.type, [])
+          setSelectedAssetIds(set.EMPTY)
         }}
       >
         <aria.FileTrigger
@@ -916,14 +838,6 @@ export default function AssetsTable(props: AssetsTableProps) {
               className: 'flex-1 overflow-auto container-size w-full h-full',
               onKeyDown,
               onScroll,
-              onBlur: event => {
-                if (
-                  event.relatedTarget instanceof HTMLElement &&
-                  !event.currentTarget.contains(event.relatedTarget)
-                ) {
-                  setKeyboardSelectedIndex(null)
-                }
-              },
             })}
           >
             {!hidden && hiddenContextMenu}

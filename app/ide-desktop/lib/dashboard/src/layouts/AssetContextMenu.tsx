@@ -53,7 +53,7 @@ export interface AssetContextMenuProps {
 export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false, doPaste } = props
   const { item, state, setRowState } = innerProps
-  const { backend, category, hasPasteData } = state
+  const { backend, category } = state
 
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
@@ -62,6 +62,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setAssetPasteData = store.useStore(storeState => storeState.setAssetPasteData)
+  const hasPasteData = store.useStore(storeState => storeState.assetPasteData != null)
   const self = item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
@@ -331,7 +332,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             action="copy"
             doAction={() => {
-              setAssetPasteData(backend.type, 'copy', [item.id])
+              setAssetPasteData({ action: 'copy', ids: new Set([item.id]) })
             }}
           />
         )}
@@ -340,7 +341,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             action="cut"
             doAction={() => {
-              setAssetPasteData(backend.type, 'cut', [item.id])
+              setAssetPasteData({ action: 'cut', ids: new Set([item.id]) })
             }}
           />
         )}

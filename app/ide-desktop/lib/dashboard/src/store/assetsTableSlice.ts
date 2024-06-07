@@ -4,6 +4,7 @@ import * as defineSlice from '#/store/defineSlice'
 import type * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
+import * as setModule from '#/utilities/set'
 
 // =================
 // === Constants ===
@@ -12,16 +13,13 @@ import * as object from '#/utilities/object'
 /** The default {@link AssetState} for a {@link backendModule.AnyAsset}. */
 const DEFAULT_ASSET_STATE: AssetState = {
   isVisible: true,
-  isSelected: false,
-  isDragSelected: false,
   isDeleted: false,
   isOpen: false,
   isSelectedForPaste: false,
-  temporaryLabels: null,
 }
 
 /** The initial {@link AssetState} for each backends. */
-const INITIAL_BACKEND_STATE: BackendState = { selectedCount: 0, canDownload: false, assets: {} }
+const INITIAL_BACKEND_STATE: BackendState = { canDownload: false, assets: {} }
 
 /** The initial {@link AssetState} for all backends. */
 const INITIAL_BACKENDS_STATE: Readonly<Record<BackendType, BackendState>> = {
@@ -34,30 +32,41 @@ const INITIAL_BACKENDS_STATE: Readonly<Record<BackendType, BackendState>> = {
 // ===================
 
 /** Possible types for backends. */
-export type BackendType = 'local' | 'remote'
+type BackendType = 'local' | 'remote'
 
 // ===========================
 // === TemporaryLabelsType ===
 // ===========================
 
 /** Variants of temporary label data. */
-export type TemporaryLabelsType = 'add' | 'remove'
+type TemporaryLabelsType = 'add' | 'remove'
+
+// ==========================
+// === TemporaryLabelData ===
+// ==========================
+
+/** Temporary label data. */
+interface TemporaryLabelData {
+  readonly type: TemporaryLabelsType
+  readonly labels: readonly backendModule.LabelName[]
+  readonly ids: ReadonlySet<backendModule.AssetId>
+}
 
 // =================
 // === PasteType ===
 // =================
 
 /** Possible types of paste actions. */
-export type PasteAction = 'copy' | 'cut'
+type PasteAction = 'copy' | 'cut'
 
-// =======================
-// === TemporaryLabels ===
-// =======================
+// =================
+// === PasteData ===
+// =================
 
-/** Temporary label data */
-interface TemporaryLabels {
-  readonly type: TemporaryLabelsType
-  readonly labels: readonly backendModule.LabelName[]
+/** A paste action and the set of keys to be pasted. */
+interface PasteData {
+  readonly action: PasteAction
+  readonly ids: ReadonlySet<backendModule.AssetId>
 }
 
 // ==================
@@ -67,14 +76,11 @@ interface TemporaryLabels {
 /** State for a specific {@link backendModule.AnyAsset}. */
 export interface AssetState {
   readonly isVisible: boolean
-  readonly isSelected: boolean
-  readonly isDragSelected: boolean
   // FIXME: Actually set this variable by listening in on mutations
   /** Whether this {@link backendModule.AnyAsset} is in the process of being deleted. */
   readonly isDeleted: boolean
   readonly isOpen: boolean
   readonly isSelectedForPaste: boolean
-  readonly temporaryLabels: TemporaryLabels | null
 }
 
 // ====================
@@ -83,7 +89,6 @@ export interface AssetState {
 
 /** State for a specific backend. */
 interface BackendState {
-  readonly selectedCount: number
   readonly canDownload: boolean
   readonly assets: Readonly<Record<backendModule.AssetId, AssetState>>
 }
@@ -95,7 +100,13 @@ interface BackendState {
 /** State and actions for this slice. */
 export interface AssetsTableSlice {
   readonly backends: Readonly<Record<BackendType, BackendState>>
-  readonly assetPasteAction: PasteAction | null
+  // These values are put in global state not to avoid prop drilling, but instead for the
+  // fine-grained updates - zustand can subscribe to the results of arbitrary functions, rather
+  // than an explicit list of dependencies.
+  readonly selectedAssetIds: ReadonlySet<backendModule.AssetId>
+  readonly dragSelectedAssetIds: ReadonlySet<backendModule.AssetId>
+  readonly assetPasteData: PasteData | null
+  readonly temporaryLabelData: TemporaryLabelData | null
   readonly clearAllAssetsState: () => void
   readonly getAssetState: (backendType: BackendType, assetId: backendModule.AssetId) => AssetState
   readonly setIsAssetOpen: (
@@ -104,41 +115,19 @@ export interface AssetsTableSlice {
     isOpen: boolean
   ) => void
   readonly toggleIsAssetOpen: (backendType: BackendType, assetId: backendModule.AssetId) => void
-  readonly setIsAssetSelected: (
-    backendType: BackendType,
-    assetId: backendModule.AssetId,
-    isSelected: boolean
-  ) => void
-  readonly getIsAssetSoleSelected: (
-    backendType: BackendType,
-    assetId: backendModule.AssetId
-  ) => boolean
+  readonly getIsAssetSelected: (assetId: backendModule.AssetId) => boolean
+  readonly setIsAssetSelected: (assetId: backendModule.AssetId, isSelected: boolean) => void
+  readonly getIsAssetSoleSelected: (assetId: backendModule.AssetId) => boolean
   readonly setIsAssetDeleted: (
     backendType: BackendType,
     assetId: backendModule.AssetId,
     isDeleted: boolean
   ) => void
-  readonly setAssetsTemporaryLabels: (
-    backendType: BackendType,
-    assetIds: readonly backendModule.AssetId[],
-    temporaryLabels: TemporaryLabels | null
-  ) => void
-  /** Note: This returns a different object every time, which will affect re-renders. */
-  readonly getSelectedAssetIds: (backendType: BackendType) => readonly backendModule.AssetId[]
-  readonly setSelectedAssetIds: (
-    backendType: BackendType,
-    selectedIds: readonly backendModule.AssetId[]
-  ) => void
-  readonly setDragSelectedAssetIds: (
-    backendType: BackendType,
-    selectedIds: readonly backendModule.AssetId[]
-  ) => void
-  readonly setAssetPasteData: (
-    backendType: BackendType,
-    action: PasteAction,
-    ids: readonly backendModule.AssetId[]
-  ) => void
-  readonly clearAssetPasteData: (backendType: BackendType) => void
+  readonly getSelectedAssetIds: () => ReadonlySet<backendModule.AssetId>
+  readonly setSelectedAssetIds: (ids: ReadonlySet<backendModule.AssetId>) => void
+  readonly setDragSelectedAssetIds: (ids: ReadonlySet<backendModule.AssetId>) => void
+  readonly setAssetPasteData: (data: PasteData | null) => void
+  readonly setAssetTemporaryLabelData: (temporaryLabelData: TemporaryLabelData | null) => void
 }
 
 // ===========================
@@ -147,10 +136,17 @@ export interface AssetsTableSlice {
 
 /** A store for data used for rendering the assets table. */
 export const createAssetsTableSlice = defineSlice.defineSlice<AssetsTableSlice>()((set, get) => ({
-  assetPasteAction: null,
   backends: INITIAL_BACKENDS_STATE,
+  selectedAssetIds: setModule.EMPTY,
+  dragSelectedAssetIds: setModule.EMPTY,
+  assetPasteData: null,
+  temporaryLabelData: null,
   clearAllAssetsState: () => {
-    set({ backends: INITIAL_BACKENDS_STATE })
+    set({
+      backends: INITIAL_BACKENDS_STATE,
+      selectedAssetIds: setModule.EMPTY,
+      assetPasteData: null,
+    })
   },
   getAssetState: (backendType, assetId) => {
     return get().backends[backendType].assets[assetId] ?? DEFAULT_ASSET_STATE
@@ -212,176 +208,40 @@ export const createAssetsTableSlice = defineSlice.defineSlice<AssetsTableSlice>(
       })
     }
   },
-  setIsAssetSelected: (backendType, assetId, isSelected) => {
-    const backends = get().backends
-    const backend = backends[backendType]
-    const assets = backend.assets
-    const assetInfo = assets[assetId] ?? DEFAULT_ASSET_STATE
-    const currentIsSelected = assetInfo.isSelected
-    if (currentIsSelected !== isSelected) {
-      set({
-        backends: {
-          ...backends,
-          ...object.singleKeyObject(backendType, {
-            ...backend,
-            // FIXME: Also update `canDownload`.
-            // The new count is guaranteed to be different by exactly 1, because this code only
-            // runs if the value of `isSelected` is changed.
-            selectedCount: backend.selectedCount + (isSelected ? 1 : -1),
-            assets: {
-              ...assets,
-              ...object.singleKeyObject(assetId, { ...assetInfo, isSelected }),
-            },
-          }),
-        },
-      })
+  getIsAssetSelected: assetId => {
+    return get().selectedAssetIds.has(assetId)
+  },
+  setIsAssetSelected: (assetId, isSelected) => {
+    const ids = get().selectedAssetIds
+    const isCurrentlySelected = ids.has(assetId)
+    if (isSelected !== isCurrentlySelected) {
+      const newIds = new Set(ids)
+      if (isSelected) {
+        newIds.add(assetId)
+        set({ selectedAssetIds: new Set([...ids, assetId]) })
+      } else {
+        newIds.delete(assetId)
+      }
+      set({ selectedAssetIds: newIds })
     }
   },
-  getIsAssetSoleSelected: (backendType, assetId) => {
-    const backendState = get().backends[backendType]
-    const assetState = backendState.assets[assetId] ?? DEFAULT_ASSET_STATE
-    const isSelected = assetState.isSelected
-    return isSelected && backendState.selectedCount === 1
+  getIsAssetSoleSelected: assetId => {
+    const selectedAssetIds = get().selectedAssetIds
+    return selectedAssetIds.size === 1 && selectedAssetIds.has(assetId)
   },
-  setAssetsTemporaryLabels: (backendType, assetIds, temporaryLabels) => {
-    const selectedIdsSet = new Set(assetIds)
-    const backends = get().backends
-    const backend = backends[backendType]
-    const assets = backend.assets
-    set({
-      backends: {
-        ...backends,
-        ...object.singleKeyObject(backendType, {
-          ...backend,
-          selectedCount: assetIds.length,
-          assets: {
-            ...Object.fromEntries(
-              assetIds.map(id => [id, { ...DEFAULT_ASSET_STATE, temporaryLabels }])
-            ),
-            ...Object.fromEntries(
-              object.unsafeEntries(assets).map(kv => {
-                const [k, v] = kv
-                const effectiveTemporaryLabels = selectedIdsSet.has(k) ? temporaryLabels : null
-                return [
-                  k,
-                  v.temporaryLabels === effectiveTemporaryLabels
-                    ? v
-                    : { ...v, effectiveTemporaryLabels },
-                ]
-              })
-            ),
-          },
-        }),
-      },
-    })
+  getSelectedAssetIds: () => {
+    return get().selectedAssetIds
   },
-  getSelectedAssetIds: backendType => {
-    return object.unsafeEntries(get().backends[backendType].assets).flatMap(kv => {
-      const [k, v] = kv
-      return v.isSelected ? [k] : []
-    })
+  setSelectedAssetIds: ids => {
+    set({ selectedAssetIds: ids })
   },
-  setSelectedAssetIds: (backendType, selectedIds) => {
-    const selectedIdsSet = new Set(selectedIds)
-    const backends = get().backends
-    const backend = backends[backendType]
-    const assets = backend.assets
-    set({
-      backends: {
-        ...backends,
-        ...object.singleKeyObject(backendType, {
-          ...backend,
-          selectedCount: selectedIds.length,
-          assets: {
-            ...Object.fromEntries(
-              selectedIds.map(id => [id, { ...DEFAULT_ASSET_STATE, isSelected: true }])
-            ),
-            ...Object.fromEntries(
-              object.unsafeEntries(assets).map(kv => {
-                const [k, v] = kv
-                const isSelected = selectedIdsSet.has(k)
-                return [k, v.isSelected === isSelected ? v : { ...v, isSelected }]
-              })
-            ),
-          },
-        }),
-      },
-    })
+  setDragSelectedAssetIds: ids => {
+    set({ dragSelectedAssetIds: ids })
   },
-  setDragSelectedAssetIds: (backendType, selectedIds) => {
-    const selectedIdsSet = new Set(selectedIds)
-    const backends = get().backends
-    const backend = backends[backendType]
-    const assets = backend.assets
-    set({
-      backends: {
-        ...backends,
-        ...object.singleKeyObject(backendType, {
-          ...backend,
-          selectedCount: selectedIds.length,
-          assets: {
-            ...Object.fromEntries(
-              selectedIds.map(id => [id, { ...DEFAULT_ASSET_STATE, isSelected: true }])
-            ),
-            ...Object.fromEntries(
-              object.unsafeEntries(assets).map(kv => {
-                const [k, v] = kv
-                const isSelected = selectedIdsSet.has(k)
-                return [k, v.isSelected === isSelected ? v : { ...v, isSelected }]
-              })
-            ),
-          },
-        }),
-      },
-    })
+  setAssetPasteData: data => {
+    set({ assetPasteData: data })
   },
-  setAssetPasteData: (backendType, action, ids) => {
-    const idsSet = new Set(ids)
-    const backends = get().backends
-    const backend = backends[backendType]
-    const assets = backend.assets
-    set({
-      assetPasteAction: action,
-      backends: {
-        ...backends,
-        ...object.singleKeyObject(backendType, {
-          ...backend,
-          assets: {
-            ...Object.fromEntries(
-              ids.map(id => [id, { ...DEFAULT_ASSET_STATE, isSelectedForPaste: true }])
-            ),
-            ...Object.fromEntries(
-              object.unsafeEntries(assets).map(kv => {
-                const [k, v] = kv
-                const isSelectedForPaste = idsSet.has(k)
-                return [
-                  k,
-                  v.isSelectedForPaste === isSelectedForPaste ? v : { ...v, isSelectedForPaste },
-                ]
-              })
-            ),
-          },
-        }),
-      },
-    })
-  },
-  clearAssetPasteData: backendType => {
-    const backends = get().backends
-    const backend = backends[backendType]
-    const assets = backend.assets
-    set({
-      backends: {
-        ...backends,
-        ...object.singleKeyObject(backendType, {
-          ...backend,
-          assets: Object.fromEntries(
-            object.unsafeEntries(assets).map(kv => {
-              const [k, v] = kv
-              return [k, !v.isSelectedForPaste ? v : { ...v, isSelectedForPaste: false }]
-            })
-          ),
-        }),
-      },
-    })
+  setAssetTemporaryLabelData: data => {
+    set({ temporaryLabelData: data })
   },
 }))

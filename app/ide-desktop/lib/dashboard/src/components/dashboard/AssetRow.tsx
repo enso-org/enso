@@ -78,25 +78,21 @@ export default function AssetRow(props: AssetRowProps) {
   const setIsAssetOpen = store.useStore(storeState => storeState.setIsAssetOpen)
   const toggleIsAssetOpen = store.useStore(storeState => storeState.toggleIsAssetOpen)
   const setIsAssetSelected = store.useStore(storeState => storeState.setIsAssetSelected)
-  const setAssetsTemporaryLabels = store.useStore(storeState => storeState.setAssetsTemporaryLabels)
+  const setAssetsTemporaryLabels = store.useStore(
+    storeState => storeState.setAssetTemporaryLabelData
+  )
   const getSelectedAssetIds = store.useStore(storeState => storeState.getSelectedAssetIds)
   const setSelectedAssetIds = store.useStore(storeState => storeState.setSelectedAssetIds)
-  const isSelected = store.useStore(
-    storeState => storeState.getAssetState(backend.type, item.id).isSelected
-  )
-  const isSoleSelected = store.useStore(
-    storeState => isSelected && storeState.backends[backend.type].selectedCount === 1
-  )
-  const areNoKeysSelected = store.useStore(
-    storeState => storeState.backends[backend.type].selectedCount === 0
-  )
+  const isSelected = store.useStore(storeState => storeState.getIsAssetSelected(item.id))
+  const isSoleSelected = store.useStore(storeState => storeState.getIsAssetSoleSelected(item.id))
+  const isNothingSelected = store.useStore(storeState => storeState.selectedAssetIds.size === 0)
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE
   )
-  const allowContextMenu = areNoKeysSelected || !isSelected || isSoleSelected
+  const allowContextMenu = isNothingSelected || !isSelected || isSoleSelected
 
   const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
@@ -110,14 +106,29 @@ export default function AssetRow(props: AssetRowProps) {
     )
   }
 
+  const onClick = (event: React.MouseEvent<Element>) => {
+    if (
+      item.type === backendModule.AssetType.directory &&
+      eventModule.isDoubleClick(event) &&
+      !rowState.isEditingName
+    ) {
+      // This must be processed on the next tick, otherwise it will be overridden
+      // by the default click handler.
+      window.setTimeout(() => {
+        setIsAssetSelected(item.id, false)
+      })
+      toggleIsAssetOpen(backend.type, item.id)
+    }
+  }
+
   const onDragStart = (event: React.DragEvent<Element>) => {
     if (rowState.isEditingName) {
       event.preventDefault()
     } else {
-      let newSelectedKeys = getSelectedAssetIds(backend.type)
-      if (!newSelectedKeys.includes(item.id)) {
-        newSelectedKeys = [item.id]
-        setSelectedAssetIds(backend.type, newSelectedKeys)
+      let newSelectedKeys = getSelectedAssetIds()
+      if (!newSelectedKeys.has(item.id)) {
+        newSelectedKeys = new Set([item.id])
+        setSelectedAssetIds(newSelectedKeys)
       }
       const assets = rootDirectoryEntries
         .preorderTraversal()
@@ -178,10 +189,10 @@ export default function AssetRow(props: AssetRowProps) {
       event.preventDefault()
       event.stopPropagation()
       const storeState = store.useStore.getState()
-      const assetState = storeState.getAssetState(backend.type, item.id)
-      const ids = !assetState.isSelected ? [item.id] : storeState.getSelectedAssetIds(backend.type)
-      setAssetsTemporaryLabels(backend.type, ids, {
+      const ids = !isSelected ? new Set([item.id]) : storeState.getSelectedAssetIds()
+      setAssetsTemporaryLabels({
         type: event.shiftKey ? 'remove' : 'add',
+        ids,
         labels: labelsPayload,
       })
     }
@@ -189,7 +200,7 @@ export default function AssetRow(props: AssetRowProps) {
 
   const onDragEnd = () => {
     clearDragState()
-    setAssetsTemporaryLabels(backend.type, [], null)
+    setAssetsTemporaryLabels(null)
   }
 
   const onDrop = (event: React.DragEvent<Element>) => {
@@ -221,10 +232,7 @@ export default function AssetRow(props: AssetRowProps) {
         event.preventDefault()
         event.stopPropagation()
         const storeState = store.useStore.getState()
-        const assetState = storeState.getAssetState(backend.type, item.id)
-        const ids = !assetState.isSelected
-          ? [item.id]
-          : storeState.getSelectedAssetIds(backend.type)
+        const ids = !isSelected ? [item.id] : storeState.getSelectedAssetIds()
         if (event.shiftKey) {
           for (const id of ids) {
             // FIXME: remove label(s) mutation
@@ -235,7 +243,7 @@ export default function AssetRow(props: AssetRowProps) {
           }
         }
       }
-      setAssetsTemporaryLabels(backend.type, [], null)
+      setAssetsTemporaryLabels(null)
       return
     }
   }
@@ -276,22 +284,7 @@ export default function AssetRow(props: AssetRowProps) {
                 item.isPlaceholder && 'placeholder',
                 (isDraggedOver || isSelected) && 'selected'
               )}
-              onClick={event => {
-                unsetModal()
-                onClick(innerProps, event)
-                if (
-                  item.type === backendModule.AssetType.directory &&
-                  eventModule.isDoubleClick(event) &&
-                  !rowState.isEditingName
-                ) {
-                  // This must be processed on the next tick, otherwise it will be overridden
-                  // by the default click handler.
-                  window.setTimeout(() => {
-                    setIsAssetSelected(backend.type, item.id, false)
-                  })
-                  toggleIsAssetOpen(backend.type, item.id)
-                }
-              }}
+              onClick={onClick}
               onContextMenu={event => {
                 if (allowContextMenu) {
                   event.preventDefault()
