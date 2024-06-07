@@ -83,7 +83,11 @@ public final class ArrowOperationPlus implements TruffleObject {
         if (iopElem.fitsInLong(elem0) && iopElem.fitsInLong(elem1)) {
           var l0 = iopElem.asLong(elem0);
           var l1 = iopElem.asLong(elem1);
-          res = l0 + l1;
+          try {
+            res = Math.addExact(l0, l1);
+          } catch (ArithmeticException ex) {
+            res = -1;
+          }
         } else {
           throw UnsupportedTypeException.create(new Object[] {elem0, elem1});
         }

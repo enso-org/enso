@@ -34,6 +34,11 @@ abstract class WriteToBuilderNode extends Node {
     return WriteToBuilderNodeGen.create();
   }
 
+  @NeverDefault
+  static WriteToBuilderNode getUncached() {
+    return WriteToBuilderNodeGen.getUncached();
+  }
+
   @Specialization(guards = "receiver.getUnit() == Date32")
   void doWriteDay(
       ArrowFixedSizeArrayBuilder receiver,

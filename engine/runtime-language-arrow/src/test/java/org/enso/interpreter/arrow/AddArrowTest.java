@@ -61,8 +61,8 @@ public class AddArrowTest {
 
     for (var i = 0; i < arrLength; i++) {
       var ni = arrLength - i - 1;
-      var v1 = resultArr.getArrayElement(i).asInt();
-      var v2 = resultArr.getArrayElement(ni).asInt();
+      var v1 = resultArr.getArrayElement(i).asLong();
+      var v2 = resultArr.getArrayElement(ni).asLong();
 
       assertEquals("Values at " + i + " and " + ni + " are the same", v1, v2);
       assertTrue("Values are always bigger than zero: " + v1, v1 > 0);
