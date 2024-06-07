@@ -23,6 +23,10 @@ public final class ArrowOperationPlus implements TruffleObject {
     this.layout = layout;
   }
 
+  final LogicalLayout layout() {
+    return layout;
+  }
+
   @ExportMessage
   boolean isExecutable() {
     return true;
@@ -47,6 +51,7 @@ public final class ArrowOperationPlus implements TruffleObject {
   Object execute(
       Object[] args,
       @Bind("$node") Node node,
+      @Cached(value = "this.layout()", allowUncached = true) LogicalLayout cachedLayout,
       @Cached ArrowFixedSizeArrayFactory.InstantiateNode factory,
       @CachedLibrary("args(args, 0)") InteropLibrary iopArray0,
       @CachedLibrary("args(args, 1)") InteropLibrary iopArray1,
@@ -69,7 +74,7 @@ public final class ArrowOperationPlus implements TruffleObject {
     }
     var it0 = iopArray0.getIterator(arr0);
     var it1 = iopArray1.getIterator(arr1);
-    var builder = factory.allocateBuilder(layout, len);
+    var builder = factory.allocateBuilder(cachedLayout, len);
 
     for (long i = 0; i < len; i++) {
       try {

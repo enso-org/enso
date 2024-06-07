@@ -42,9 +42,11 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   }
 
   @ExportMessage
-  Object getIterator() throws UnsupportedMessageException {
-    return switch (unit) {
-      case Int64 -> new LongIterator(buffer.dataBuffer, unit.sizeInBytes());
+  Object getIterator(
+      @Cached(value = "this.getUnit()", allowUncached = true) LogicalLayout cachedUnit)
+      throws UnsupportedMessageException {
+    return switch (cachedUnit) {
+      case Int64 -> new LongIterator(buffer.dataBuffer, cachedUnit.sizeInBytes());
       default -> new GenericIterator(this);
     };
   }
