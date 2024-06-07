@@ -95,12 +95,12 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
   @GenerateInline(false)
   abstract static class AppendNode extends Node {
     abstract void executeAppend(ArrowFixedSizeArrayBuilder builder, Object value)
-        throws UnsupportedTypeException;
+        throws UnsupportedTypeException, UnsupportedMessageException;
 
     @Specialization
     static void writeToBuffer(
         ArrowFixedSizeArrayBuilder builder, Object value, @Cached WriteToBuilderNode writeNode)
-        throws UnsupportedTypeException {
+        throws UnsupportedTypeException, UnsupportedMessageException {
       writeNode.executeWrite(builder, builder.index++, value);
     }
   }
