@@ -2751,7 +2751,8 @@ lazy val `benchmarks-common` =
         "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion,
         "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion,
         "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion,
-        "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion
+        "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion,
+        "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
       )
     )
     .dependsOn(`polyglot-api`)
