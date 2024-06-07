@@ -1,6 +1,7 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as tailwindMerge from 'tailwind-merge'
 
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
@@ -10,6 +11,7 @@ import * as store from '#/store'
 
 import * as backendHooks from '#/hooks/backendHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -38,6 +40,8 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, depth, state, rowState, setRowState, isEditable } = props
   const { backend } = state
+  const queryClient = reactQuery.useQueryClient()
+  const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.directory) {
@@ -118,14 +122,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         )}
         checkSubmittable={newTitle =>
           newTitle !== item.title &&
-          (nodeMap.current.get(item.parentId)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.id ||
-              // that are directories,
-              !backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
+          (
+            backendHooks.getBackendListDirectory(queryClient, user, backend, item.parentId) ?? []
+          ).every(
+            child => child.id === item.id || child.type !== item.type || child.title !== newTitle
           )
         }
         onSubmit={doRename}

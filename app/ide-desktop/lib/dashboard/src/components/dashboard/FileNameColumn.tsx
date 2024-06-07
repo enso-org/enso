@@ -1,12 +1,14 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as store from '#/store'
 
 import * as backendHooks from '#/hooks/backendHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import type * as column from '#/components/dashboard/column'
@@ -34,6 +36,8 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
 export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, depth, state, rowState, setRowState, isEditable } = props
   const { backend } = state
+  const queryClient = reactQuery.useQueryClient()
+  const { user } = authProvider.useNonPartialUserSession()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
@@ -97,14 +101,10 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         className="text grow bg-transparent"
         checkSubmittable={newTitle =>
           newTitle !== item.title &&
-          (nodeMap.current.get(item.parentId)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child === item.id ||
-              // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
+          (
+            backendHooks.getBackendListDirectory(queryClient, user, backend, item.parentId) ?? []
+          ).every(
+            child => child.id === item.id || child.type !== item.type || child.title !== newTitle
           )
         }
         onSubmit={doRename}

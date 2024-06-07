@@ -1,6 +1,7 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as tailwindMerge from 'tailwind-merge'
 
 import NetworkIcon from 'enso-assets/network.svg'
@@ -42,6 +43,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, depth, rowState, setRowState, state } = props
   const { isEditable } = props
   const { backend, setProjectStartupInfo, doOpenEditor, doCloseEditor } = state
+  const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const { session } = sessionProvider.useSession()
   const { getText } = textProvider.useText()
@@ -156,14 +158,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         )}
         checkSubmittable={newTitle =>
           newTitle !== item.title &&
-          (nodeMap.current.get(item.parentId)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.id ||
-              // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
+          (
+            backendHooks.getBackendListDirectory(queryClient, user, backend, item.parentId) ?? []
+          ).every(
+            child => child.id === item.id || child.type !== item.type || child.title !== newTitle
           )
         }
         onSubmit={doRename}
