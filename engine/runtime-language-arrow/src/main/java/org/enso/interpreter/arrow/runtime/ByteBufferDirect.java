@@ -1,6 +1,10 @@
 package org.enso.interpreter.arrow.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateInline;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
@@ -98,42 +102,78 @@ final class ByteBufferDirect implements AutoCloseable {
     return new ByteBufferDirect(allocated, dataBuffer, bitmapBuffer);
   }
 
-  public void put(byte b) throws UnsupportedMessageException {
-    setValidityBitmap(0, 1);
-    dataBuffer.put(b);
+  @GenerateInline(false)
+  abstract static class DataBufferNode extends Node {
+    static DataBufferNode create() {
+      return ByteBufferDirectFactory.DataBufferNodeGen.create();
+    }
+
+    abstract ByteBuffer executeDataBuffer(ByteBufferDirect direct);
+
+    @Specialization
+    static ByteBuffer profiledDataBuffer(
+        ByteBufferDirect direct,
+        @Bind("$node") Node node,
+        @Cached InlinedExactClassProfile bufferClazz) {
+      return bufferClazz.profile(node, direct.dataBuffer);
+    }
   }
 
-  void putNull(LogicalLayout unit) {
-    var index = dataBuffer.position() / unit.sizeInBytes();
-    setNull(index);
-    dataBuffer.position(dataBuffer.position() + unit.sizeInBytes());
+  static final class PutNode extends Node {
+    private @Child DataBufferNode dataBuffer = DataBufferNode.create();
+
+    private PutNode() {}
+
+    static PutNode create() {
+      return new PutNode();
+    }
+
+    static PutNode getUncached() {
+      return new PutNode();
+    }
+
+    final void put(ByteBufferDirect direct, byte b) {
+      var db = dataBuffer.executeDataBuffer(direct);
+      direct.setValidityBitmap(db.position(), 1);
+      db.put(b);
+    }
+
+    final void putNull(ByteBufferDirect direct, LogicalLayout unit) {
+      var db = dataBuffer.executeDataBuffer(direct);
+      var index = db.position() / unit.sizeInBytes();
+      direct.setNull(index);
+      db.position(db.position() + unit.sizeInBytes());
+    }
+
+    final void putShort(ByteBufferDirect direct, short value) {
+      var db = dataBuffer.executeDataBuffer(direct);
+      direct.setValidityBitmap(db.position(), 2);
+      db.putShort(value);
+    }
+
+    final void putInt(ByteBufferDirect direct, int value) {
+      var db = dataBuffer.executeDataBuffer(direct);
+      direct.setValidityBitmap(db.position(), 4);
+      db.putInt(value);
+    }
+
+    final void putLong(ByteBufferDirect direct, long value) throws UnsupportedMessageException {
+      var db = dataBuffer.executeDataBuffer(direct);
+      direct.setValidityBitmap(db.position(), 8);
+      db.putLong(value);
+    }
   }
 
   public byte get(int index) throws UnsupportedMessageException {
     return dataBuffer.get(index);
   }
 
-  public void putShort(short value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 2);
-    dataBuffer.putShort(value);
-  }
-
   public short getShort(int index) throws UnsupportedMessageException {
     return dataBuffer.getShort(index);
   }
 
-  public void putInt(int value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 4);
-    dataBuffer.putInt(value);
-  }
-
   public int getInt(int index) throws UnsupportedMessageException {
     return dataBuffer.getInt(index);
-  }
-
-  public void putLong(long value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 8);
-    dataBuffer.putLong(value);
   }
 
   public long getLong(int index) throws UnsupportedMessageException {
@@ -144,24 +184,6 @@ final class ByteBufferDirect implements AutoCloseable {
       throws UnsupportedMessageException {
     var buf = profile.profile(node, dataBuffer);
     return buf.getLong(index);
-  }
-
-  public void putFloat(float value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 4);
-    dataBuffer.putFloat(value);
-  }
-
-  public float getFloat(int index) throws UnsupportedMessageException {
-    return dataBuffer.getFloat(index);
-  }
-
-  public void putDouble(double value) throws UnsupportedMessageException {
-    setValidityBitmap(0, 8);
-    dataBuffer.putDouble(value);
-  }
-
-  public double getDouble(int index) throws UnsupportedMessageException {
-    return dataBuffer.getDouble(index);
   }
 
   public int capacity() throws UnsupportedMessageException {

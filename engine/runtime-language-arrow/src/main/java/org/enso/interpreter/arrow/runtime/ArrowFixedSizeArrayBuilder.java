@@ -104,19 +104,20 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         ArrowFixedSizeArrayBuilder builder,
         Object value,
         @Cached(value = "builder.getUnit()", allowUncached = true) LogicalLayout cachedUnit,
+        @Cached ByteBufferDirect.PutNode put,
         @Cached ValueToNumberNode valueNode,
         @CachedLibrary(limit = "3") InteropLibrary iop)
         throws UnsupportedTypeException, UnsupportedMessageException {
       if (iop.isNull(value)) {
-        builder.buffer.putNull(cachedUnit);
+        put.putNull(builder.buffer, cachedUnit);
         return;
       }
       var number = valueNode.executeAdjust(cachedUnit, value);
       switch (number) {
-        case Byte b -> builder.buffer.put(b);
-        case Short s -> builder.buffer.putShort(s);
-        case Integer i -> builder.buffer.putInt(i);
-        case Long l -> builder.buffer.putLong(l);
+        case Byte b -> put.put(builder.buffer, b);
+        case Short s -> put.putShort(builder.buffer, s);
+        case Integer i -> put.putInt(builder.buffer, i);
+        case Long l -> put.putLong(builder.buffer, l);
         default -> throw CompilerDirectives.shouldNotReachHere();
       }
     }
@@ -125,10 +126,11 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
     static void writeToBufferUncached(
         ArrowFixedSizeArrayBuilder builder,
         Object value,
+        @Cached ByteBufferDirect.PutNode put,
         @Cached ValueToNumberNode valueNode,
         @CachedLibrary(limit = "3") InteropLibrary iop)
         throws UnsupportedTypeException, UnsupportedMessageException {
-      writeToBuffer(builder, value, builder.getUnit(), valueNode, iop);
+      writeToBuffer(builder, value, builder.getUnit(), put, valueNode, iop);
     }
   }
 
