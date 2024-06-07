@@ -389,7 +389,7 @@ watchEffect(() => {
     )
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
-        const valueType = data_.value_type[i].constructor
+        const valueType = data_.value_type ? data_.value_type[i].constructor : null
         return toField(v, valueType)
       }) ?? []
     columnDefs = [...indicesHeader, ...dataHeader]
