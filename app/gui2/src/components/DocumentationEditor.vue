@@ -1,47 +1,38 @@
 <script setup lang="ts">
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { fetcherUrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
+import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import type { Path, Uuid } from 'shared/languageServerTypes'
+import type { ToValue } from '@/util/reactivity'
+import type { Path } from 'shared/languageServerTypes'
 import { Err, Ok, mapOk, withContext, type Result } from 'shared/util/data/result'
+import { toRef, toValue } from 'vue'
 
 const documentation = defineModel<string>({ required: true })
 
+const graphStore = useGraphStore()
 const projectStore = useProjectStore()
 const { transformImageUrl } = useDocumentationImages(
-  projectStore.projectRootId,
+  toRef(graphStore, 'modulePath'),
   projectStore.readFileBinary,
 )
 
 function useDocumentationImages(
-  projectRootId: Promise<Uuid | undefined>,
+  modulePath: ToValue<Path | undefined>,
   readFileBinary: (path: Path) => Promise<Result<Blob>>,
 ) {
   async function urlToPath(url: string): Promise<Result<Path> | undefined> {
-    if (url.includes('//')) {
+    const modulePathValue = toValue(modulePath)
+    if (!modulePathValue) {
+      return Err('Current module path is unknown.')
+    }
+    const appliedUrl = new URL(url, `file:///${modulePathValue.segments.join('/')}`)
+    if (appliedUrl.protocol === 'file:') {
+      const segments = appliedUrl.pathname.split('/')
+      return Ok({ rootId: modulePathValue.rootId, segments })
+    } else {
       // Not a relative URL, custom fetching not needed.
       return undefined
-    } else {
-      return relativeUrlToPath(url)
-    }
-  }
-
-  async function relativeUrlToPath(url: string): Promise<Result<Path>> {
-    const rootId = await projectRootId
-    if (!rootId) {
-      return Err('Cannot find project root.')
-    }
-    if (url.startsWith('/')) {
-      // Relative to project root.
-      return Ok({ rootId, segments: url.slice(1).split('/') })
-    } else {
-      // Relative to current module.
-      const segments = url.split('/')
-      if (segments[0] === '..') {
-        return Ok({ rootId, segments: segments.slice(1) })
-      } else {
-        return Ok({ rootId, segments: ['src', ...segments] })
-      }
     }
   }
 

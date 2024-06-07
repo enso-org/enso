@@ -30,7 +30,7 @@ export function fetcherUrlTransformer<ResourceLocation>(
   locateResource: ResourceLocator<ResourceLocation>,
   fetchResource: ResourceFetcher<ResourceLocation>,
 ): UrlTransformer {
-  const allocatedUrls = new Map<ResourceId, Promise<Result<Rc<Url>>>>()
+  const allocatedUrls = new Map<ResourceId, Promise<Result<{ value: Url; refs: number }>>>()
 
   function startFetch(uniqueId: ResourceId, location: ResourceLocation) {
     const fetching = fetchResource(location).then((fetched) =>
@@ -63,9 +63,4 @@ export function fetcherUrlTransformer<ResourceLocation>(
       })
     }
   }
-}
-
-interface Rc<T> {
-  value: T
-  refs: number
 }

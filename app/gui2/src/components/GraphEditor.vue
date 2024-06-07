@@ -594,7 +594,7 @@ async function handleFileDrop(event: DragEvent) {
   if (!event.dataTransfer?.items) return
   const projectRootId = await projectStore.projectRootId
   if (projectRootId == null) {
-    console.error('Could not find project root, uploading not possible.')
+    toasts.userActionFailed.show(`Unable to upload file(s): Could not identify project root.`)
     return
   }
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
