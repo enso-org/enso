@@ -261,8 +261,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     select_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
-        new_columns = helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
+        new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         self.updated_columns (new_columns.map _.as_internal)
 
     ## PRIVATE
@@ -280,8 +279,7 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     select_columns_by_type : Vector Value_Type -> Boolean -> Table
     select_columns_by_type self types:Vector strict:Boolean=False =
-        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
-        new_columns = helper.select_by_type types strict
+        new_columns = self.columns_helper.select_by_type types strict
         result = self.updated_columns (new_columns.map _.as_internal)
         Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
 
@@ -341,8 +339,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     remove_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
-        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
-        new_columns = helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns (new_columns.map _.as_internal)
 
     ## PRIVATE
@@ -360,8 +357,7 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     remove_columns_by_type : Vector Value_Type -> Boolean -> Table
     remove_columns_by_type self types:Vector strict:Boolean=False =
-        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
-        new_columns = helper.remove_by_type types strict
+        new_columns = self.columns_helper.remove_by_type types strict
         result = self.updated_columns (new_columns.map _.as_internal)
         Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
 
@@ -469,8 +465,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     reorder_columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns
     reorder_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (position:Position=Position.Before_Other_Columns) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
-        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
-        new_columns = helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
+        new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
         self.updated_columns (new_columns.map _.as_internal)
 
     ## GROUP Standard.Base.Selections
@@ -840,8 +835,7 @@ type DB_Table
     add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
-        grouping_columns.each internal_column->
-            column = self.make_column internal_column
+        grouping_columns.each column->
             if column.value_type.is_floating_point then
                 problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
         ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
@@ -854,7 +848,7 @@ type DB_Table
                 True -> case self.default_ordering of
                     Nothing -> Error.throw (Illegal_Argument.Error "No `order_by` is specified and the table has no existing ordering (e.g. from an `order_by` operation or a primary key). Some ordering is required for `add_row_number` in Database tables.")
                     descriptors -> descriptors
-            grouping_expressions = grouping_columns.map .expression
+            grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
             # The SQL row_number() counts from 1, so we adjust the offset.
             offset = from - step
@@ -2519,8 +2513,7 @@ type DB_Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     cast : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Value_Type -> Boolean -> Problem_Behavior -> DB_Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
-        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
-        selected = helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
+        selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_cast->
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column as=column_to_cast.name set_mode=Set_Mode.Update
@@ -2664,7 +2657,7 @@ type DB_Table
     ## PRIVATE
     columns_helper : Table_Column_Helper
     columns_helper self =
-        Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
+        Table_Helpers.Table_Column_Helper.Value self.columns self.internal_columns self.make_column self .read
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
