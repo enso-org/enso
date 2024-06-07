@@ -122,14 +122,15 @@ export function useNodeCreation(
       return new Set()
     }
     const created = new Set<NodeId>()
+    const createdIdentifiers = new Set<Identifier>()
     const identifiersRenameMap = new Map<Identifier, Identifier>()
     graphStore.edit((edit) => {
       const statements = new Array<Ast.Owned>()
       for (const options of placedNodes) {
         const rhs = Ast.parse(options.expression, edit)
-        const ident = getIdentifier(rhs, options)
-        const fixup = afterCreation(edit, ident, options, identifiersRenameMap)
-        const { id, rootExpression } = newAssignmentNode(edit, ident, rhs, fixup, options)
+        const ident = getIdentifier(rhs, options, createdIdentifiers)
+        createdIdentifiers.add(ident)
+        const { id, rootExpression } = newAssignmentNode(edit, ident, rhs, options, identifiersRenameMap)
         statements.push(rootExpression)
         created.add(id)
         assert(options.metadata?.position != null, 'Node should already be placed')
@@ -140,31 +141,29 @@ export function useNodeCreation(
     onCreated(created)
   }
 
-  /** A callback that will be called with the created assignment expression.
-   * We resolve import conflicts and substitute identifiers if needed. */
+  /** We resolve import conflicts and substitute identifiers if needed. */
   function afterCreation(
     edit: Ast.MutableModule,
+    assignment: Ast.MutableAssignment,
     ident: Ast.Identifier,
     options: NodeCreationOptions,
     identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>,
   ) {
-    return (assignment: Ast.MutableAssignment) => {
-      // When nodes are copied, we need to substitute original names with newly assigned.
-      if (options.binding) {
-        if (isIdentifier(options.binding) && options.binding !== ident)
-          identifiersRenameMap.set(options.binding, ident)
-      }
-      for (const [old, replacement] of identifiersRenameMap.entries()) {
-        substituteIdentifier(assignment, old, replacement)
-      }
+    // When nodes are copied, we need to substitute original names with newly assigned.
+    if (options.binding) {
+      if (isIdentifier(options.binding) && options.binding !== ident)
+        identifiersRenameMap.set(options.binding, ident)
+    }
+    for (const [old, replacement] of identifiersRenameMap.entries()) {
+      substituteIdentifier(assignment, old, replacement)
+    }
 
-      // Resolve import conflicts.
-      const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
-      for (const _conflict of conflicts) {
-        // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
-        // https://github.com/enso-org/enso/issues/9356
-        // substituteQualifiedName(assignment, conflict.pattern, conflict.fullyQualified)
-      }
+    // Resolve import conflicts.
+    const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
+    for (const _conflict of conflicts) {
+      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+      // https://github.com/enso-org/enso/issues/9356
+      // substituteQualifiedName(assignment, conflict.pattern, conflict.fullyQualified)
     }
   }
 
@@ -176,12 +175,12 @@ export function useNodeCreation(
     edit: Ast.MutableModule,
     ident: Ast.Identifier,
     rhs: Ast.Owned,
-    fixup: (assignment: Ast.MutableAssignment) => void,
     options: NodeCreationOptions,
+    identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>
   ) {
     rhs.setNodeMetadata(options.metadata ?? {})
     const assignment = Ast.Assignment.new(edit, ident, rhs)
-    fixup(assignment)
+    afterCreation(edit, assignment, ident, options, identifiersRenameMap)
     const id = asNodeId(rhs.id)
     const rootExpression =
       options.documentation != null ?
@@ -190,12 +189,12 @@ export function useNodeCreation(
     return { rootExpression, id }
   }
 
-  function getIdentifier(expr: Ast.Ast, options: NodeCreationOptions): Ast.Identifier {
+  function getIdentifier(expr: Ast.Ast, options: NodeCreationOptions, alreadyCreated: Set<Ast.Identifier>): Ast.Identifier {
     const namePrefix =
       options.binding ? existingNameToPrefix(options.binding)
       : options.type ? typeToPrefix(options.type)
       : inferPrefixFromAst(expr)
-    const ident = graphStore.generateLocallyUniqueIdent(namePrefix)
+    const ident = graphStore.generateLocallyUniqueIdent(namePrefix, alreadyCreated)
     return ident
   }
 
