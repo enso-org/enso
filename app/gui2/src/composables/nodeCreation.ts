@@ -130,7 +130,13 @@ export function useNodeCreation(
         const rhs = Ast.parse(options.expression, edit)
         const ident = getIdentifier(rhs, options, createdIdentifiers)
         createdIdentifiers.add(ident)
-        const { id, rootExpression } = newAssignmentNode(edit, ident, rhs, options, identifiersRenameMap)
+        const { id, rootExpression } = newAssignmentNode(
+          edit,
+          ident,
+          rhs,
+          options,
+          identifiersRenameMap,
+        )
         statements.push(rootExpression)
         created.add(id)
         assert(options.metadata?.position != null, 'Node should already be placed')
@@ -176,7 +182,7 @@ export function useNodeCreation(
     ident: Ast.Identifier,
     rhs: Ast.Owned,
     options: NodeCreationOptions,
-    identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>
+    identifiersRenameMap: Map<Ast.Identifier, Ast.Identifier>,
   ) {
     rhs.setNodeMetadata(options.metadata ?? {})
     const assignment = Ast.Assignment.new(edit, ident, rhs)
@@ -189,7 +195,11 @@ export function useNodeCreation(
     return { rootExpression, id }
   }
 
-  function getIdentifier(expr: Ast.Ast, options: NodeCreationOptions, alreadyCreated: Set<Ast.Identifier>): Ast.Identifier {
+  function getIdentifier(
+    expr: Ast.Ast,
+    options: NodeCreationOptions,
+    alreadyCreated: Set<Ast.Identifier>,
+  ): Ast.Identifier {
     const namePrefix =
       options.binding ? existingNameToPrefix(options.binding)
       : options.type ? typeToPrefix(options.type)

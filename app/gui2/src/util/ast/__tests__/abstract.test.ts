@@ -9,10 +9,8 @@ import {
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
-import { tryQualifiedName } from '@/util/qualifiedName'
 import { fc, test } from '@fast-check/vitest'
 import { initializeFFI } from 'shared/ast/ffi'
-import { unwrap } from 'shared/util/data/result'
 import { describe, expect } from 'vitest'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
@@ -861,11 +859,7 @@ test.each([
     const module = expression.module
     module.replaceRoot(expression)
     const edit = expression.module.edit()
-    substituteQualifiedName(
-      expression,
-      pattern as Ast.Identifier,
-      substitution as Ast.Identifier,
-    )
+    substituteQualifiedName(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
     module.applyEdit(edit)
     expect(module.root()?.code()).toEqual(expected)
   },
@@ -915,11 +909,7 @@ test.each([
     const module = expression.module
     module.replaceRoot(expression)
     const edit = expression.module.edit()
-    substituteIdentifier(
-      expression,
-      pattern as Ast.Identifier,
-      substitution as Ast.Identifier,
-    )
+    substituteIdentifier(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
     module.applyEdit(edit)
     expect(module.root()?.code()).toEqual(expected)
   },

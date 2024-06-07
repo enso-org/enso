@@ -232,11 +232,14 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return Ok(method)
     }
 
-    /** Generate unique identifier from `prefix` and some numeric suffix. 
-    * @param prefix - of the identifier
-    * @param ignore - a list of identifiers to consider as unavailable. Useful when creating multiple identifiers in a batch.
-    * */
-    function generateLocallyUniqueIdent(prefix?: string | undefined, ignore: Set<Identifier> = new Set()): Identifier {
+    /** Generate unique identifier from `prefix` and some numeric suffix.
+     * @param prefix - of the identifier
+     * @param ignore - a list of identifiers to consider as unavailable. Useful when creating multiple identifiers in a batch.
+     * */
+    function generateLocallyUniqueIdent(
+      prefix?: string | undefined,
+      ignore: Set<Identifier> = new Set(),
+    ): Identifier {
       // FIXME: This implementation is not robust in the context of a synchronized document,
       // as the same name can likely be assigned by multiple clients.
       // Consider implementing a mechanism to repair the document in case of name clashes.
