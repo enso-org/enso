@@ -70,10 +70,6 @@ public record IntegerType(Bits bits) implements StorageType {
     }
   }
 
-  public boolean fits(BigDecimal value) {
-    return fits(value.toBigInteger());
-  }
-
   /**
    * Checks if this type can hold values of otherType - i.e. if otherType has the same or smaller
    * number of bits.

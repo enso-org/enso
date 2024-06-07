@@ -85,8 +85,9 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           builder.appendNulls(1);
         }
       } else if (o instanceof BigDecimal bigDecimal) {
-        if (targetType.fits(bigDecimal)) {
-          builder.appendLongUnchecked(bigDecimal.longValue());
+        BigInteger bigInteger = bigDecimal.toBigInteger();
+        if (targetType.fits(bigInteger)) {
+          builder.appendLongUnchecked(bigInteger.longValue());
         } else {
           problemAggregator.reportNumberOutOfRange(bigDecimal);
           builder.appendNulls(1);
@@ -210,11 +211,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       BigDecimal value = storage.getItemBoxed(i);
       if (value == null) {
         isNothing.set(i);
-      } else if (targetType.fits(value)) {
-        data[i] = value.longValue();
       } else {
-        isNothing.set(i);
-        problemAggregator.reportNumberOutOfRange(value);
+        BigInteger bigInteger = value.toBigInteger();
+        if (targetType.fits(bigInteger)) {
+          data[i] = bigInteger.longValue();
+        } else {
+          isNothing.set(i);
+          problemAggregator.reportNumberOutOfRange(value);
+        }
       }
 
       context.safepoint();
