@@ -45,21 +45,21 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 }
 
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByTitle('Visualization')
+  return page.getByLabel('Visualization')
 }
 
 export function toggleVisualizationSelectorButton(page: Locator | Page) {
-  return page.getByTitle('Visualization Selector')
+  return page.getByLabel('Visualization Selector')
 }
 
 // === Fullscreen ===
 
 export function enterFullscreenButton(page: Locator | Page) {
-  return page.getByTitle('Fullscreen')
+  return page.getByLabel('Fullscreen')
 }
 
 export function exitFullscreenButton(page: Locator | Page) {
-  return page.getByTitle('Exit Fullscreen')
+  return page.getByLabel('Exit Fullscreen')
 }
 
 export const toggleFullscreenButton = or(enterFullscreenButton, exitFullscreenButton)

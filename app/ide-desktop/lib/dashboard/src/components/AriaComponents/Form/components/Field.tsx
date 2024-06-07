@@ -19,29 +19,41 @@ import * as formContext from './useFormContext'
  */
 export interface FieldComponentProps
   extends twv.VariantProps<typeof FIELD_STYLES>,
-    types.FieldProps,
-    React.PropsWithChildren {
+    types.FieldProps {
   readonly name: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: types.FormInstance<any, any, any>
   readonly isInvalid?: boolean
   readonly className?: string
+  readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
+}
+
+/**
+ * Props for Field children
+ */
+export interface FieldChildrenRenderProps {
+  readonly isInvalid: boolean
+  readonly isDirty: boolean
+  readonly isTouched: boolean
+  readonly isValidating: boolean
+  // eslint-disable-next-line no-restricted-syntax
+  readonly error?: string | undefined
 }
 
 export const FIELD_STYLES = twv.tv({
   base: 'flex flex-col gap-0.5 items-start',
   variants: {
     fullWidth: { true: 'w-full' },
-    isInvalid: {
-      true: { label: 'text-danger' },
-    },
+    isInvalid: { true: { label: 'text-danger' } },
   },
   slots: {
+    labelContainer: 'contents',
     label: text.TEXT_STYLE({ variant: 'subtitle' }),
     content: 'flex flex-col items-start w-full',
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
     error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
   },
+  defaultVariants: { fullWidth: true },
 })
 
 /**
@@ -91,13 +103,25 @@ export const Field = React.forwardRef(function Field(
       aria-errormessage={hasError ? errorId : ''}
       aria-required={isRequired}
     >
-      {label != null && (
-        <aria.Label id={labelId} className={classes.label()}>
-          {label}
-        </aria.Label>
-      )}
+      <aria.Label id={labelId} className={classes.labelContainer()}>
+        {label != null && (
+          <span id={labelId} className={classes.label()}>
+            {label}
+          </span>
+        )}
 
-      <div className={classes.content()}>{children}</div>
+        <div className={classes.content()}>
+          {typeof children === 'function'
+            ? children({
+                isInvalid: invalid,
+                isDirty: fieldState.isDirty,
+                isTouched: fieldState.isTouched,
+                isValidating: fieldState.isValidating,
+                error: fieldState.error?.message,
+              })
+            : children}
+        </div>
+      </aria.Label>
 
       {description != null && (
         <span id={descriptionId} className={classes.description()}>

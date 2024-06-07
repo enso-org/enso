@@ -6,12 +6,12 @@
 import * as twv from 'tailwind-variants'
 
 export const DIALOG_BACKGROUND = twv.tv({
-  base: 'bg-clip-padding relative before:absolute before:inset before:h-full before:w-full before:bg-selected-frame before:backdrop-blur-default [:where(&>*)]:relative',
+  base: 'bg-white/80 backdrop-blur-md',
 })
 
 export const DIALOG_STYLES = twv.tv({
   extend: DIALOG_BACKGROUND,
-  base: 'flex flex-col overflow-hidden text-left align-middle shadow-sm border border-primary/10',
+  base: 'flex flex-col overflow-hidden text-left align-middle shadow-xl',
   variants: {
     rounded: {
       none: '',

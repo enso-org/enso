@@ -137,11 +137,11 @@ export function cachedGetter<T>(
  * time, the timer is restarted.
  */
 export function debouncedGetter<T>(
-  getter: () => T,
+  getter: WatchSource<T>,
   debounce: number,
   equalFn: (a: T, b: T) => boolean = defaultEquality,
 ): Ref<T> {
-  const valueRef = shallowRef<T>(getter())
+  const valueRef = shallowRef<T>(toValue(getter))
   debouncedWatch(
     getter,
     (newValue) => {

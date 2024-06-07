@@ -30,7 +30,7 @@ import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
-import { provideGraphNavigator } from '@/providers/graphNavigator'
+import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
@@ -90,7 +90,9 @@ onUnmounted(() => {
 
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
-const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
+const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
+  predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
+})
 
 // === Client saved state ===
 
@@ -256,8 +258,10 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusyExceptIn(documentationEditorArea.value) && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
-    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event))
+    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
+    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event))
 })
+
 useEvent(
   window,
   'pointerdown',
@@ -653,7 +657,7 @@ const groupColors = computed(() => {
     class="GraphEditor viewport"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
-    v-on.="graphNavigator.events"
+    v-on.="graphNavigator.pointerEvents"
     v-on..="nodeSelection.events"
     @click="handleClick"
     @dragover.prevent
