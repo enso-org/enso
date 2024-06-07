@@ -2,6 +2,7 @@ package org.enso.base;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 public class Stream_Utils {
   public static byte[] peek(InputStream stream, int n) throws IOException {
@@ -19,6 +20,9 @@ public class Stream_Utils {
       offset += read;
     }
     stream.reset();
+    if (offset < n) {
+      buffer = Arrays.copyOf(buffer, offset);
+    }
     return buffer;
   }
 }
