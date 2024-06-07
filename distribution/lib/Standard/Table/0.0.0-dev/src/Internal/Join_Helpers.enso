@@ -43,10 +43,7 @@ type Join_Condition_Resolver
         is_nothing column = case column of
             Nothing -> True
             _ -> False
-        conditions_vector = Vector.unify_vector_or_element conditions . map on_problems=No_Wrap condition->
-            case condition of
-                _ : Function -> (condition:Join_Condition)
-                _ -> condition
+        conditions_vector = Vector.unify_vector_or_element conditions . map on_problems=No_Wrap condition-> (condition:Join_Condition)
         handle_equals left_selector right_selector =
             left = resolve_left left_selector
             right = resolve_right right_selector
@@ -59,7 +56,6 @@ type Join_Condition_Resolver
             Join_Condition.Equals left_selector right_selector ->
                 right_resovled = if right_selector == "" then left_selector else right_selector
                 handle_equals left_selector right_resovled
-            column_name : Text -> handle_equals column_name column_name
             Join_Condition.Equals_Ignore_Case left_selector right_selector locale ->
                 left = resolve_left left_selector
                 right_resovled = if right_selector == "" then left_selector else right_selector

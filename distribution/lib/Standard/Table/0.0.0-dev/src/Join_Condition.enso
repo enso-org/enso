@@ -41,3 +41,6 @@ type Join_Condition
         - right_upper: A name or index of a column in the right table, used as
           the upper bound for the check.
     Between (left : Text | Integer = Missing_Argument.throw "left") (right_lower : Text | Integer = "") (right_upper : Text | Integer = "")
+
+## PRIVATE
+Join_Condition.from (that:Text) = Join_Condition.Equals that that

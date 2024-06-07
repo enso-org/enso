@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Data.Vector.Builder
 import Standard.Base.Data.Vector.Map_Error
@@ -359,10 +360,10 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         v = alter [0, 1, 2]
 
         r1 = v.filter Filter_Condition.Less
-        r1 . should_fail_with Illegal_Argument
-        r1.catch.to_display_text . should_contain "missing arguments"
+        r1 . should_fail_with Missing_Argument
+        r1.catch.to_display_text . should_contain "Provide a value for"
 
-        v.filter (Filter_Condition.Between 10) . should_fail_with Illegal_Argument
+        v.filter (Filter_Condition.Between 10) . should_fail_with Missing_Argument
 
     group_builder.specify "should filter elements with indices" <|
         (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]

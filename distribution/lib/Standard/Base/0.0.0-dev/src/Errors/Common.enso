@@ -464,12 +464,12 @@ type Missing_Argument
     ## PRIVATE
        Indicates that an expression cannot be evaluated because somewhere within
        it, a function does not have all required arguments provided.
-    Error (argument_name : Text) (function_name : Text = "") (call_location : Source_Location | Nothing = Nothing)
+    Error (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing)
 
     ## PRIVATE
     to_display_text : Text
     to_display_text self = case self.function_name of
-        "" -> "Provide a value for the argument `" + self.argument_name + "`."
+        Nothing -> "Provide a value for the argument `" + self.argument_name + "`."
         _ -> "Missing required argument `" + self.argument_name + "` in function `" + self.function_name + "`."
 
     ## PRIVATE
