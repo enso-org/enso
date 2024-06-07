@@ -664,10 +664,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     }
 
     /** Iterate over code lines, return node IDs from `ids` set in the order of code positions. */
-    function pickInCodeOrder(edit: MutableModule, ids: Set<NodeId>): NodeId[] {
+    function pickInCodeOrder(ids: Set<NodeId>): NodeId[] {
+      assert(syncModule.value != null)
+      const func = unwrap(getExecutedMethodAst(syncModule.value))
+      const lines = func.body instanceof Ast.BodyBlock ? func.body.lines : []
       const result: NodeId[] = []
-      const body = edit.getVersion(unwrap(getExecutedMethodAst(edit))).bodyAsBlock()
-      const lines = body.lines
       for (const line of lines) {
         const id = line.expression?.node.id
         const nodeId = db.getOuterExpressionNodeId(id)

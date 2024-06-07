@@ -128,8 +128,7 @@ export function useGraphEditorClipboard(
   /** Copy the content of the selected node to the clipboard. */
   function copySelectionToClipboard() {
     const nodes = new Array<Node>()
-    const edit = graphStore.startEdit()
-    const ids = graphStore.pickInCodeOrder(edit, toValue(selected))
+    const ids = graphStore.pickInCodeOrder(toValue(selected))
     for (const id of ids) {
       const node = graphStore.db.nodeIdToNode.get(id)
       if (!node) continue
