@@ -6,7 +6,7 @@ import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.MetadataStorage;
-import org.enso.syntax.text.Debug;
+import org.enso.compiler.debug.Debug;
 import scala.Option;
 import scala.collection.immutable.$colon$colon$;
 import scala.collection.immutable.List;
