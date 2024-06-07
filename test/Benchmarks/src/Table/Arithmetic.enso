@@ -64,28 +64,46 @@ type Data
 
 
 collect_benches = Bench.build builder->
+    column_arithmetic_plus_fitting d =
+        (d.table.at "X") + (d.table.at "U")
+
+    column_arithmetic_plus_overflowing d =
+        (d.table.at "Y") + (d.table.at "U")
+
+    column_arithmetic_multiply_fitting d =
+        (d.table.at "X") * (d.table.at "U")
+
+    column_arithmetic_multiply_overflowing d =
+        (d.table.at "Y") * (d.table.at "U")
+
+    arrow_arithmetic_plus_fitting d =
+        d.arrow_plus d.arrow_x d.arrow_u
+
+    arrow_arithmetic_plus_overflowing d =
+        d.arrow_plus d.arrow_y d.arrow_u
+
     num_rows = 1000000
     data = Data.create num_rows
 
+    Runtime.assert ((column_arithmetic_plus_fitting data . to_vector) == (arrow_arithmetic_plus_fitting data)) "Column and arrow correctness check one"
+    Runtime.assert ((column_arithmetic_plus_overflowing data . to_vector) == (arrow_arithmetic_plus_overflowing data)) "Column and arrow correctness check two"
+
     builder.group ("Column_Arithmetic_" + num_rows.to_text) options group_builder->
         group_builder.specify "Plus_Fitting" <|
-            (data.table.at "X") + (data.table.at "U")
+            column_arithmetic_plus_fitting data
         group_builder.specify "Plus_Overflowing" <|
-            (data.table.at "Y") + (data.table.at "U")
+            column_arithmetic_plus_overflowing data
+
         group_builder.specify "Multiply_Fitting" <|
-            (data.table.at "X") * (data.table.at "U")
+            column_arithmetic_multiply_fitting data
         group_builder.specify "Multiply_Overflowing" <|
-            (data.table.at "Y") * (data.table.at "U")
+            column_arithmetic_multiply_overflowing data
 
     builder.group ("Arrow_Arithmetic_" + num_rows.to_text) options group_builder->
-        bench_arrow_plus v1 v2 =
-            data.arrow_plus v1 v2
-
         group_builder.specify "Plus_Fitting" <|
-            bench_arrow_plus data.arrow_x data.arrow_u
+            arrow_arithmetic_plus_fitting data
 
         group_builder.specify "Plus_Overflowing" <|
-            bench_arrow_plus data.arrow_y data.arrow_u
-            # IO.println <| r . take 30
+            arrow_arithmetic_plus_overflowing data
 
-main filter=Nothing = collect_benches . run_main filter
+main = collect_benches . run_main
