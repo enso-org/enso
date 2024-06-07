@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage.type;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public record IntegerType(Bits bits) implements StorageType {
