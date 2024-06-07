@@ -8,6 +8,7 @@ import * as twv from 'tailwind-variants'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
@@ -16,7 +17,7 @@ import * as varants from './variants'
 const CONTENT_EDITABLE_STYLES = twv.tv({
   extend: varants.INPUT_STYLES,
   base: '',
-  slots: { placeholder: 'text-primary/25 absolute inset-0 pointer-events-none' },
+  slots: { placeholder: 'opacity-50 absolute inset-0 pointer-events-none' },
 })
 
 /**
@@ -106,22 +107,22 @@ export const ResizableContentEditableInput = React.forwardRef(
               }}
             />
 
-            <span className={placeholderClass({ class: value ? 'hidden' : '' })}>
+            <ariaComponents.Text className={placeholderClass({ class: value ? 'hidden' : '' })}>
               {placeholder}
-            </span>
+            </ariaComponents.Text>
           </div>
 
           {description != null && (
-            <aria.Text slot="description" className={descriptionClass()}>
+            <ariaComponents.Text slot="description" className={descriptionClass()}>
               {description}
-            </aria.Text>
+            </ariaComponents.Text>
           )}
         </div>
 
         {errorMessage != null && (
-          <aria.Text slot="errorMessage" className={error()}>
+          <ariaComponents.Text slot="errorMessage" color="danger" className={error()}>
             {errorMessage}
-          </aria.Text>
+          </ariaComponents.Text>
         )}
       </aria.TextField>
     )

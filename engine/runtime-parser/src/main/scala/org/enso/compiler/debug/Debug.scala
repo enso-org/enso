@@ -1,4 +1,4 @@
-package org.enso.syntax.text
+package org.enso.compiler.debug
 
 import scala.annotation.tailrec
 
