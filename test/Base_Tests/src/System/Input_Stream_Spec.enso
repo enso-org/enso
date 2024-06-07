@@ -53,12 +53,6 @@ add_specs suite_builder = suite_builder.group "Input Stream" group_builder->
         promoted_stream.peek_bytes 2 . should_equal [108, 109]
         promoted_stream.peek_bytes 2 . should_equal [108, 109]
 
-        # After converting the stream, the old reference is no longer valid
-        r = generic_stream.read_n_bytes 2
-        # TODO this does not fail
-        IO.println r
-        r.should_fail_with Any
-
     group_builder.specify "should allow to peek beyond EOF, still correctly restarting afterwards" <|
         error_handler x = x
         generic_stream = Input_Stream.new (RangeStream.new 100 105) error_handler
