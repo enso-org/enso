@@ -24,41 +24,40 @@ make_aggregate_column_selector table display=Display.Always =
     col_names_selector = make_column_name_selector table display=Display.Always add_expression=True
     column_widget = ["column", col_names_selector]
 
-    fqn = Meta.get_qualified_type_name Aggregate_Column
-    count = Option "Count" fqn+".Count"
+    count = Option "Count" "..Count"
 
     ## Currently can't support nested vector editors so using single picker
     col_list_selector = make_column_name_multi_selector table display=Display.Always
-    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_list_selector]]
+    count_distinct = Option "Count Distinct" "..Count_Distinct" [["columns", col_list_selector]]
 
     ## Currently can't support nested vector editors so using single order by picker
     order_by_selector = make_order_by_selector table Display.When_Modified name_only=True
-    first = Option "First" fqn+".First" [column_widget, ["order_by" , order_by_selector]]
-    last = Option "Last" fqn+".Last" [column_widget, ["order_by" , order_by_selector]]
+    first = Option "First" "..First" [column_widget, ["order_by" , order_by_selector]]
+    last = Option "Last" "..Last" [column_widget, ["order_by" , order_by_selector]]
 
-    count_not_nothing = Option "Count Not Nothing" fqn+".Count_Not_Nothing" [column_widget]
-    count_nothing = Option "Count Nothing" fqn+".Count_Nothing" [column_widget]
+    count_not_nothing = Option "Count Not Nothing" "..Count_Not_Nothing" [column_widget]
+    count_nothing = Option "Count Nothing" "..Count_Nothing" [column_widget]
 
     ## Should be a list of Text columns only
-    count_not_empty = Option "Count Not Empty" fqn+".Count_Not_Empty" [column_widget]
-    count_empty = Option "Count Empty" fqn+".Count_Empty" [column_widget]
-    concatenate = Option "Concatenate" fqn+".Concatenate" [column_widget]
-    shortest = Option "Shortest" fqn+".Shortest" [column_widget]
-    longest = Option "Longest" fqn+".Longest" [column_widget]
+    count_not_empty = Option "Count Not Empty" "..Count_Not_Empty" [column_widget]
+    count_empty = Option "Count Empty" "..Count_Empty" [column_widget]
+    concatenate = Option "Concatenate" "..Concatenate" [column_widget]
+    shortest = Option "Shortest" "..Shortest" [column_widget]
+    longest = Option "Longest" "..Longest" [column_widget]
 
     ## Should be a list of Numeric columns only
-    sum = Option "Sum" fqn+".Sum" [column_widget]
-    average = Option "Average" fqn+".Average" [column_widget]
-    median = Option "Median" fqn+".Median" [column_widget]
-    percentile = Option "Percentile" fqn+".Percentile" [column_widget]
-    mode = Option "Mode" fqn+".Mode" [column_widget]
-    standard_deviation = Option "Standard Deviation" fqn+".Standard_Deviation" [column_widget]
+    sum = Option "Sum" "..Sum" [column_widget]
+    average = Option "Average" "..Average" [column_widget]
+    median = Option "Median" "..Median" [column_widget]
+    percentile = Option "Percentile" "..Percentile" [column_widget]
+    mode = Option "Mode" "..Mode" [column_widget]
+    standard_deviation = Option "Standard Deviation" "..Standard_Deviation" [column_widget]
 
     # Should be a list of comparable columns only
-    maximum = Option "Maximum" fqn+".Maximum" [column_widget]
-    minimum = Option "Minimum" fqn+".Minimum" [column_widget]
+    maximum = Option "Maximum" "..Maximum" [column_widget]
+    minimum = Option "Minimum" "..Minimum" [column_widget]
 
-    Single_Choice display=display values=[count, sum, average, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation, maximum, minimum]
+    Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]
 
 ## PRIVATE
    Make an Aggregate_Column list editor
@@ -66,7 +65,7 @@ make_aggregate_column_vector_selector : Table -> Display -> Widget
 make_aggregate_column_vector_selector table display=Display.Always =
     item_editor = make_aggregate_column_selector table display=Display.Always
     # TODO this is a workaround for a dropdown issue
-    Vector_Editor item_editor=item_editor item_default="(Aggregate_Column.Count)" display=display
+    Vector_Editor item_editor=item_editor item_default="..Count" display=display
 
 ## PRIVATE
    Make a column name selector.

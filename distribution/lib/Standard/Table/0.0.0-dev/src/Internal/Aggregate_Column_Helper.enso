@@ -189,6 +189,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
             internal_column
 
     result = case aggregate_column of
+        _ : Function -> resolve (aggregate_column:Aggregate_Column)
         Group_By c as -> Group_By (resolve c) as
         Count as -> Count as
         Count_Distinct c as ignore_nothing -> if c == [] then Count as else
