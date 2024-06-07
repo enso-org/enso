@@ -103,15 +103,15 @@ function run(props: Omit<app.AppProps, 'portalRoot'>) {
                 {...props}
                 supportsDeepLinks={actuallySupportsDeepLinks}
                 portalRoot={portalRoot}
-              />)}
-            </React.Suspense>
-          </errorBoundary.ErrorBoundary>
+              />
+            )}
+          </React.Suspense>
+        </errorBoundary.ErrorBoundary>
 
-          <reactQueryDevtools.ReactQueryDevtools />
-        </reactQuery.QueryClientProvider>
-      </React.StrictMode>
-    )
-
+        <reactQueryDevtools.ReactQueryDevtools />
+      </reactQuery.QueryClientProvider>
+    </React.StrictMode>
+  )
 }
 
 /** Global configuration for the {@link App} component. */
