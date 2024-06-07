@@ -37,7 +37,7 @@ type Project_Description
 
              Project_Description.new Standard.Base.Data.Vector
     new : (Any | Nothing) -> Project_Description ! Module_Not_In_Package_Error
-    private new module=Nothing = Project_Description.enso_project_builtin module
+    new module=Nothing = Project_Description.enso_project_builtin module
 
     ## PRIVATE
        A representation of an Enso project.
