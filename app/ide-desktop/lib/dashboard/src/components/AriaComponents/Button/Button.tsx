@@ -63,7 +63,7 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
 }
 
 export const BUTTON_STYLES = twv.tv({
-  base: 'group flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out select-none text-center items-center justify-center appearance-none',
+  base: 'group flex h-[max-content] whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out select-none text-center items-center justify-center appearance-none',
   variants: {
     isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
     isFocused: {
@@ -72,7 +72,7 @@ export const BUTTON_STYLES = twv.tv({
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     size: {
-      custom: { base: '', extraClickZone: 'after:inset-[-12px]' },
+      custom: { base: '', extraClickZone: 'after:inset-[-12px]', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: 'px-[11px] py-[5px]',
@@ -122,7 +122,7 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-12px]',
       },
     },
-    iconOnly: { true: { base: '', icon: 'w-full h-full' } },
+    iconOnly: { true: { base: '' } },
     rounded: {
       full: 'rounded-full',
       large: 'rounded-lg',
@@ -137,7 +137,7 @@ export const BUTTON_STYLES = twv.tv({
       custom: 'focus-visible:outline-offset-2',
       link: {
         base: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
-        icon: 'h-[1.25cap] mt-0.5',
+        icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
       tertiary: 'bg-share text-white hover:bg-share/90',
@@ -181,28 +181,42 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: false,
   },
   compoundVariants: [
-    { variant: 'icon', isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-0' },
+    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-3' },
     {
       variant: 'link',
       isFocused: true,
       class: 'focus-visible:outline-offset-1',
     },
     {
-      variant: 'icon',
       size: 'xxsmall',
-      class: 'aspect-square rounded-full w-4 p-0',
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.25cap] -mt-[0.1cap]' },
       iconOnly: true,
     },
     {
-      variant: 'icon',
       size: 'xsmall',
-      class: 'aspect-square p-0 rounded-full w-5',
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.45cap] -mt-[0.1cap]' },
       iconOnly: true,
     },
-    { size: 'small', class: 'aspect-square p-0 rounded-full w-6', iconOnly: true },
-    { size: 'medium', class: 'aspect-square p-0 rounded-full w-8', iconOnly: true },
-    { size: 'large', class: 'aspect-square p-0 rounded-full w-10', iconOnly: true },
-    { size: 'hero', class: 'aspect-square p-0 rounded-full w-16', iconOnly: true },
+    {
+      size: 'small',
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.65cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
+    {
+      size: 'medium',
+      class: { base: 'p-0 rounded-full', icon: 'h-[2cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
+    {
+      size: 'large',
+      class: { base: 'p-0 rounded-full', icon: 'h-[2.25cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
+    {
+      size: 'hero',
+      class: { base: 'p-0 rounded-full', icon: 'h-[2.5cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
     { variant: 'link', size: 'xxsmall', class: 'font-medium' },
     { variant: 'link', size: 'xsmall', class: 'font-medium' },
     { variant: 'link', size: 'small', class: 'font-medium' },
