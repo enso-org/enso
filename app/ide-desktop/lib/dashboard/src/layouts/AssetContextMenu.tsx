@@ -61,6 +61,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const downloadAsset = backendHooks.useDownloadAsset(backend)
   const setAssetPasteData = store.useStore(storeState => storeState.setAssetPasteData)
   const hasPasteData = store.useStore(storeState => storeState.assetPasteData != null)
   const self = item.permissions?.find(
@@ -355,10 +356,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }
           action="download"
           doAction={() => {
-            dispatchAssetEvent({
-              type: AssetEventType.download,
-              ids: new Set([item.id]),
-            })
+            void downloadAsset(item)
           }}
         />
         {hasPasteData && (

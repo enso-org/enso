@@ -57,6 +57,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const downloadAsset = backendHooks.useDownloadAsset(backend)
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const getSelectedAssetIds = store.useStore(storeState => storeState.getSelectedAssetIds)
   const isCloud = categoryModule.isCloud(category)
@@ -284,7 +285,17 @@ export default function DriveBar(props: DriveBarProps) {
                   isCloud ? getText('canOnlyDownloadFilesError') : getText('noProjectSelectedError')
                 }
                 onPress={() => {
-                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+                  const selectedIds = store.useStore.getState().selectedAssetIds
+                  const assets = Object.values(
+                    backendHooks.getBackendAllKnownDirectories(queryClient, user, backend)
+                  ).flat()
+                  const assetsMap = new Map(assets.map(asset => [asset.id, asset]))
+                  for (const id of selectedIds) {
+                    const asset = assetsMap.get(id)
+                    if (asset != null) {
+                      void downloadAsset(asset)
+                    }
+                  }
                 }}
               />
             </div>
