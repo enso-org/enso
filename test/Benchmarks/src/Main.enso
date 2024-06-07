@@ -31,6 +31,7 @@ import project.Text.Reverse
 import project.Time.Work_Days
 import project.Time.Format
 import project.Vector.Array_Proxy_Bench
+import project.Vector.Build as Vector_Build
 import project.Vector.Distinct
 import project.Vector.Map_Error_Benchmark
 import project.Vector.Operations
@@ -44,6 +45,7 @@ all_benchmarks =
 
         # Vector
         builder.append Array_Proxy_Bench.collect_benches
+        builder.append Vector_Build.collect_benches
         builder.append Distinct.collect_benches
         builder.append Map_Error_Benchmark.collect_benches
         builder.append Operations.collect_benches

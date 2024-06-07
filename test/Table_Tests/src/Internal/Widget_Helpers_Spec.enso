@@ -17,6 +17,10 @@ main filter=Nothing =
 add_specs suite_builder =
     table = Table.new [["X", [1, 2, 3, 4]], ["Y", ["a", "b", "c", "d"]]]
     suite_builder.group "Can run each helper" group_builder->
+        group_builder.specify "make_column_name_multi_selector with regex and by_type" <|
+            w = make_column_name_multi_selector table add_regex=True add_by_type=True
+            j = (Widgets.get_widget_json w) . to_text
+            j.should_contain "(Multiple_Choice [(Option '<Regular Expression>' '(regex \'\')' [] ''), (Option '<By Type>' '(By_Type [])' [] ''), (Option 'X' '\'X\'' [] ''), (Option 'Y' '\'Y\'' [] '')"
         group_builder.specify "make_column_ref_by_name_selector with named_pattern" <|
             w = make_column_ref_by_name_selector table add_named_pattern=True
             j = (Widgets.get_widget_json w) . to_text

@@ -69,7 +69,7 @@ final class HostClassLoader extends URLClassLoader {
 
   @Override
   public URL findResource(String name) {
-    if (ClassLoaderConstants.RESOURCE_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
       return polyglotClassLoader.getResource(name);
     } else {
       return super.findResource(name);
@@ -78,7 +78,7 @@ final class HostClassLoader extends URLClassLoader {
 
   @Override
   public Enumeration<URL> findResources(String name) throws IOException {
-    if (ClassLoaderConstants.RESOURCE_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+    if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
       return polyglotClassLoader.getResources(name);
     } else {
       return super.findResources(name);

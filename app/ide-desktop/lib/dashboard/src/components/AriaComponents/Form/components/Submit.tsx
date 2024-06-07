@@ -6,11 +6,12 @@
  */
 import * as React from 'react'
 
-import * as reactHookForm from 'react-hook-form'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
+
+import type * as types from './types'
+import * as formContext from './useFormContext'
 
 /**
  * Additional props for the Submit component.
@@ -25,13 +26,20 @@ interface SubmitButtonBaseProps {
    */
   // For this component, we don't need to know the form fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly form?: reactHookForm.UseFormReturn<any>
+  readonly form?: types.FormInstance<any, any>
+  /**
+   * Prop that allows to close the parent dialog without submitting the form.
+   *
+   * This looks tricky, but it's recommended by MDN as a receipt for closing the dialog without submitting the form.
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog#closing_a_dialog_with_a_required_form_input
+   */
+  readonly formnovalidate?: boolean
 }
 
 /**
  * Props for the Submit component.
  */
-export type SubmitProps = Omit<ariaComponents.ButtonProps, 'loading' | 'variant'> &
+export type SubmitProps = Omit<ariaComponents.ButtonProps, 'href' | 'variant'> &
   SubmitButtonBaseProps
 
 /**
@@ -41,24 +49,40 @@ export type SubmitProps = Omit<ariaComponents.ButtonProps, 'loading' | 'variant'
  */
 export function Submit(props: SubmitProps): React.JSX.Element {
   const {
-    form = reactHookForm.useFormContext(),
+    form = formContext.useFormContext(),
     variant = 'submit',
     size = 'medium',
     testId = 'form-submit-button',
+    formnovalidate = false,
+    loading = false,
     children,
+    rounded = 'large',
+    ...buttonProps
   } = props
 
   const { getText } = textProvider.useText()
+  const dialogContext = ariaComponents.useDialogContext()
   const { formState } = form
+
+  const isLoading = loading || formState.isSubmitting
+  const type = formnovalidate || isLoading ? 'button' : 'submit'
 
   return (
     <ariaComponents.Button
-      {...props}
-      type="submit"
+      /* This is safe because we are passing all props to the button */
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
+      {...(buttonProps as any)}
+      rounded={rounded}
+      type={type}
       variant={variant}
       size={size}
-      loading={formState.isSubmitting}
+      loading={isLoading}
       testId={testId}
+      onPress={() => {
+        if (formnovalidate) {
+          dialogContext?.close()
+        }
+      }}
     >
       {children ?? getText('submit')}
     </ariaComponents.Button>

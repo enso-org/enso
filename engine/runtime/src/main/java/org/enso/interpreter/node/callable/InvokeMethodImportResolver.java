@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 import org.enso.compiler.phase.ImportResolverAlgorithm;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -74,10 +73,8 @@ final class InvokeMethodImportResolver
   }
 
   @Override
-  protected List<Type> definedEntities(UnresolvedSymbol name) {
-    var associatedType = module.getScope().getType(name.getName());
-    var allRelativeTypes = module.getScope().getTypes().values();
-    return Stream.concat(associatedType.stream(), allRelativeTypes.stream()).toList();
+  protected List<Type> definedEntities(UnresolvedSymbol symbol) {
+    return module.getScope().getAllTypes(symbol.getName());
   }
 
   @Override

@@ -1,12 +1,25 @@
 # Next Release
 
+#### Enso IDE
+
+- [Arrows navigation][10179] selected nodes may be moved around, or entire scene
+  if no node is selected.
+
+[10179]: https://github.com/enso-org/enso/pull/10179
+
 #### Enso Standard Library
 
 - [Added Statistic.Product][10122]
+- [Added Encoding.Default that tries to detect UTF-8 or UTF-16 encoding based on
+  BOM][10130]
+- [Added `Decimal` column to the in-memory database, with some arithmetic
+  operations.][9950]
 
 [debug-shortcuts]:
 
+[9950]: https://github.com/enso-org/enso/pull/9950
 [10122]: https://github.com/enso-org/enso/pull/10122
+[10130]: https://github.com/enso-org/enso/pull/10130
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
 

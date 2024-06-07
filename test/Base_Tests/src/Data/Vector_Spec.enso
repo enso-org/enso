@@ -1160,6 +1160,24 @@ add_specs suite_builder =
             v . should_equal [1, 20, 21, 22, 3]
             Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
 
+        group_builder.specify "Builder should not propagate warnings attached to an item with .append with propagate_warnings=False" <|
+            v = Vector.build propagate_warnings=False builder->
+                ww = Warning.attach (My_Error.Error "err") 2
+                builder.append 1
+                builder.append ww
+                builder.append 3
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . should_equal []
+
+        group_builder.specify "Builder should not propagate warnings attached to an item with .append_vector_range with propagate_warnings=False" <|
+            v = Vector.build propagate_warnings=False builder->
+                ww = Warning.attach (My_Error.Error "err") 21
+                builder.append 1
+                builder.append_vector_range [20, ww, 22]
+                builder.append 3
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . should_equal []
+
         group_builder.specify ".build_multiple count must be non-negative" <|
             Vector.build_multiple -2 (_->Nothing) . should_fail_with Illegal_Argument
 

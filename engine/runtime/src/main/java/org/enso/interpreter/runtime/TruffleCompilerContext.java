@@ -137,10 +137,16 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void truffleRunCodegen(CompilerContext.Module module, CompilerConfig config)
+  public void truffleRunCodegen(
+      CompilerContext.Module module,
+      CompilerContext.ModuleScopeBuilder scopeBuilder,
+      CompilerConfig config)
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
-    new IrToTruffle(context, m.getSource(), m.getScope(), config).run(module.getIr());
+    var s =
+        org.enso.interpreter.runtime.scope.ModuleScope.Builder.fromCompilerModuleScopeBuilder(
+            scopeBuilder);
+    new IrToTruffle(context, m.getSource(), s, config).run(module.getIr());
   }
 
   // module related
@@ -241,8 +247,13 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void runStubsGenerator(CompilerContext.Module module) {
-    stubsGenerator.run(((Module) module).unsafeModule());
+  public void runStubsGenerator(
+      CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
+    var m = ((Module) module).unsafeModule();
+    var s =
+        ((org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder) scopeBuilder)
+            .unsafeScopeBuilder();
+    stubsGenerator.run(m.getIr(), s);
   }
 
   @Override
@@ -579,14 +590,7 @@ final class TruffleCompilerContext implements CompilerContext {
               })
           .foreach(suggestions::add);
 
-      var cachedSuggestions =
-          new SuggestionsCache.CachedSuggestions(
-              libraryName,
-              new SuggestionsCache.Suggestions(suggestions),
-              context
-                  .getPackageRepository()
-                  .getPackageForLibraryJava(libraryName)
-                  .map(Package::listSourcesJava));
+      var cachedSuggestions = new SuggestionsCache.CachedSuggestions(libraryName, suggestions);
       var cache = SuggestionsCache.create(libraryName);
       var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
       return file != null;
@@ -603,7 +607,7 @@ final class TruffleCompilerContext implements CompilerContext {
   public scala.Option<Object> deserializeSuggestions(LibraryName libraryName)
       throws InterruptedException {
     var option = deserializeSuggestionsImpl(libraryName);
-    return option.map(s -> s.getSuggestions());
+    return option.map(s -> s.suggestions());
   }
 
   private scala.Option<SuggestionsCache.CachedSuggestions> deserializeSuggestionsImpl(
@@ -723,8 +727,7 @@ final class TruffleCompilerContext implements CompilerContext {
         module.module.setLoadedFromCache(loadedFromCache);
       }
       if (resetScope) {
-        module.module.ensureScopeExists();
-        module.module.getScope().reset();
+        module.module.newScopeBuilder(true);
       }
       if (invalidateCache) {
         module.module.getCache().invalidate(context);
@@ -815,6 +818,18 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public boolean isPrivate() {
       return module.isPrivate();
+    }
+
+    @Override
+    public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
+      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
+          module.getScopeBuilder());
+    }
+
+    @Override
+    public ModuleScopeBuilder newScopeBuilder() {
+      return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
+          module.newScopeBuilder(false));
     }
 
     @Override

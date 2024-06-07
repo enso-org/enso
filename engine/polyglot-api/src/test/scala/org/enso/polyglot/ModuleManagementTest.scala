@@ -69,7 +69,8 @@ class ModuleManagementTest
                     |""".stripMargin)
 
     mainModule.reparse()
-    val mainFun2 = mainModule.getMethod(assocCons, "main").get
+    val assocCons2 = mainModule.getAssociatedType
+    val mainFun2   = mainModule.getMethod(assocCons2, "main").get
     mainFun2.execute().asLong() shouldEqual 4567L
   }
 
@@ -88,13 +89,15 @@ class ModuleManagementTest
     mainModule.setSource("""
                            |main = 456
                            |""".stripMargin)
-    val mainFun2 = mainModule.getMethod(assocCons, "main").get
+    val assocCons2 = mainModule.getAssociatedType
+    val mainFun2   = mainModule.getMethod(assocCons2, "main").get
     mainFun2.execute().asLong() shouldEqual 456L
 
     mainModule.setSource("""
                            |main = 789
                            |""".stripMargin)
-    val mainFun3 = mainModule.getMethod(assocCons, "main").get
+    val assocCons3 = mainModule.getAssociatedType
+    val mainFun3   = mainModule.getMethod(assocCons3, "main").get
     mainFun3.execute().asLong() shouldEqual 789L
 
     ctx.writeMain("""
@@ -102,7 +105,8 @@ class ModuleManagementTest
                     |""".stripMargin)
 
     mainModule.setSourceFile(ctx.pkg.mainFile.getAbsolutePath)
-    val mainFun4 = mainModule.getMethod(assocCons, "main").get
+    val assocCons4 = mainModule.getAssociatedType
+    val mainFun4   = mainModule.getMethod(assocCons4, "main").get
     mainFun4.execute().asLong() shouldEqual 987L
   }
 
