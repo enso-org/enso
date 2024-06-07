@@ -389,9 +389,11 @@ const documentationEditorHandler = documentationEditorBindings.handler({
 
 const rightDockComputedSize = useResizeObserver(documentationEditorArea)
 const rightDockComputedBounds = computed(() => new Rect(Vec2.Zero, rightDockComputedSize.value))
-const cssRightDockWidth = computed(() =>
-  rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
-)
+const rightDockStyle = computed(() => {
+  return {
+    width: rightDockWidth.value != null ? `${rightDockWidth.value}px` : undefined,
+  }
+})
 
 const { documentation } = useAstDocumentation(graphStore, () =>
   unwrapOr(graphStore.methodAst, undefined),
@@ -679,6 +681,7 @@ const groupColors = computed(() => {
         v-if="showDocumentationEditor"
         ref="documentationEditorArea"
         class="rightDock"
+        :style="rightDockStyle"
         data-testid="rightDock"
       >
         <div class="scrollArea">
@@ -744,7 +747,7 @@ const groupColors = computed(() => {
   position: absolute;
   top: 46px;
   bottom: 0;
-  width: v-bind('cssRightDockWidth');
+  width: var(--right-dock-default-width);
   right: 0;
   border-radius: 7px 0 0;
   background-color: rgba(255, 255, 255, 0.35);
