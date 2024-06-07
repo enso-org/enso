@@ -13,24 +13,19 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
-import java.nio.ByteBuffer;
 import org.enso.interpreter.arrow.LogicalLayout;
 
 @ExportLibrary(InteropLibrary.class)
 public final class ArrowOperationPlus implements TruffleObject {
-  private final ArrowFixedSizeArrayFactory factory;
+  private final LogicalLayout layout;
 
-  public ArrowOperationPlus(ArrowFixedSizeArrayFactory factory) {
-    this.factory = factory;
+  public ArrowOperationPlus(LogicalLayout layout) {
+    this.layout = layout;
   }
 
   @ExportMessage
   boolean isExecutable() {
     return true;
-  }
-
-  static ArrowFixedSizeArrayFactory factory(ArrowOperationPlus thiz) {
-    return thiz.factory;
   }
 
   static Object args(Object[] args, int index) throws ArityException {
@@ -52,13 +47,14 @@ public final class ArrowOperationPlus implements TruffleObject {
   Object execute(
       Object[] args,
       @Bind("$node") Node node,
-      @CachedLibrary("factory(this)") InteropLibrary iop,
+      @Cached ArrowFixedSizeArrayFactory.InstantiateNode factory,
       @CachedLibrary("args(args, 0)") InteropLibrary iopArray0,
       @CachedLibrary("args(args, 1)") InteropLibrary iopArray1,
       @CachedLibrary("it(args, iopArray0, 0)") InteropLibrary iopIt0,
       @CachedLibrary("it(args, iopArray1, 1)") InteropLibrary iopIt1,
       @CachedLibrary(limit = "3") InteropLibrary iopElem,
-      @CachedLibrary(limit = "3") InteropLibrary iopBuilder,
+      @Cached ArrowFixedSizeArrayBuilder.AppendNode append,
+      @Cached ArrowFixedSizeArrayBuilder.BuildNode build,
       @Cached InlinedExactClassProfile typeOfBuf0,
       @Cached InlinedExactClassProfile typeOfBuf1)
       throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
@@ -73,7 +69,7 @@ public final class ArrowOperationPlus implements TruffleObject {
     }
     var it0 = iopArray0.getIterator(arr0);
     var it1 = iopArray1.getIterator(arr1);
-    var out = ByteBuffer.allocate((int) (8 * len));
+    var builder = factory.allocateBuilder(layout, len);
 
     for (long i = 0; i < len; i++) {
       try {
@@ -91,12 +87,11 @@ public final class ArrowOperationPlus implements TruffleObject {
         } else {
           throw UnsupportedTypeException.create(new Object[] {elem0, elem1});
         }
-        out.putLong(res);
+        append.executeAppend(builder, res);
       } catch (StopIterationException ex) {
         throw UnsupportedTypeException.create(new Object[] {it0, it1});
       }
     }
-    var outBuf = ByteBufferDirect.forBuffer(out);
-    return new ArrowFixedArrayInt(outBuf, (int) len, LogicalLayout.Int64);
+    return build.executeBuild(builder);
   }
 }

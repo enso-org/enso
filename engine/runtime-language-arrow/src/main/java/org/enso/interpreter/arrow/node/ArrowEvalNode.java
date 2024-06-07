@@ -27,10 +27,7 @@ public class ArrowEvalNode extends RootNode {
       case Primitive -> switch (code.mode()) {
         case Allocate -> new ArrowFixedSizeArrayFactory(code.logicalLayout());
         case Cast -> new ArrowCastToFixedSizeArrayFactory(code.logicalLayout());
-        case Plus -> {
-          var factory = new ArrowFixedSizeArrayFactory(code.logicalLayout());
-          yield new ArrowOperationPlus(factory);
-        }
+        case Plus -> new ArrowOperationPlus(code.logicalLayout());
         default -> throw CompilerDirectives.shouldNotReachHere("unsupported mode");
       };
       default -> throw CompilerDirectives.shouldNotReachHere("unsupported physical layout");

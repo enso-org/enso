@@ -43,7 +43,10 @@ public final class ArrowFixedArrayInt implements TruffleObject {
 
   @ExportMessage
   Object getIterator() throws UnsupportedMessageException {
-    return new LongIterator(buffer.dataBuffer, unit.sizeInBytes());
+    return switch (unit) {
+      case Int64 -> new LongIterator(buffer.dataBuffer, unit.sizeInBytes());
+      default -> new GenericIterator(this);
+    };
   }
 
   @ExportMessage
@@ -159,6 +162,44 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     @ExportMessage
     boolean hasIteratorNextElement() throws UnsupportedMessageException {
       return at < buffer.limit();
+    }
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class GenericIterator implements TruffleObject {
+    private int at;
+    private final TruffleObject array;
+
+    GenericIterator(TruffleObject array) {
+      assert InteropLibrary.getUncached().hasArrayElements(array);
+      this.array = array;
+    }
+
+    TruffleObject array() {
+      return array;
+    }
+
+    @ExportMessage(limit = "3")
+    Object getIteratorNextElement(@CachedLibrary("this.array()") InteropLibrary iop)
+        throws StopIterationException {
+      try {
+        var res = iop.readArrayElement(array, at);
+        at++;
+        return res;
+      } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
+        throw StopIterationException.create();
+      }
+    }
+
+    @ExportMessage
+    boolean isIterator() {
+      return true;
+    }
+
+    @ExportMessage(limit = "3")
+    boolean hasIteratorNextElement(@CachedLibrary("this.array()") InteropLibrary iop)
+        throws UnsupportedMessageException {
+      return at < iop.getArraySize(array);
     }
   }
 }

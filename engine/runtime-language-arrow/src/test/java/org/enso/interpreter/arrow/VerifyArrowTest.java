@@ -84,7 +84,7 @@ public class VerifyArrowTest {
     date32ArrayBuilder.invokeMember("build");
     assertFalse(date32ArrayBuilder.canInvokeMember("append"));
     assertThrows(
-        UnsupportedOperationException.class,
+        IllegalArgumentException.class,
         () -> finalDate32ArrayBuilder.invokeMember("append", startDateTime));
     assertFalse(date32Array.canInvokeMember("append"));
   }

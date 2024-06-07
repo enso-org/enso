@@ -69,24 +69,26 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
   @ExportMessage
   Object invokeMember(String name, Object[] args, @Cached AppendNode append)
       throws UnsupportedMessageException, UnknownIdentifierException, UnsupportedTypeException {
+    return switch (name) {
+      case BUILD_OP -> build();
+      case APPEND_OP -> {
+        append.executeAppend(this, args[0]);
+        yield NullValue.get();
+      }
+      default -> throw UnknownIdentifierException.create(name);
+    };
+  }
+
+  private final TruffleObject build() throws UnsupportedMessageException {
     var b = buffer;
     if (b == null) {
       throw UnsupportedMessageException.create();
     }
-    switch (name) {
-      case BUILD_OP -> {
-        buffer = null;
-        return switch (unit) {
-          case Date32, Date64 -> new ArrowFixedArrayDate(b, size, unit);
-          case Int8, Int16, Int32, Int64 -> new ArrowFixedArrayInt(b, size, unit);
-        };
-      }
-      case APPEND_OP -> {
-        append.executeAppend(this, args[0]);
-        return NullValue.get();
-      }
-      default -> throw UnknownIdentifierException.create(name);
-    }
+    buffer = null;
+    return switch (unit) {
+      case Date32, Date64 -> new ArrowFixedArrayDate(b, size, unit);
+      case Int8, Int16, Int32, Int64 -> new ArrowFixedArrayInt(b, size, unit);
+    };
   }
 
   @GenerateUncached
@@ -100,6 +102,19 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         ArrowFixedSizeArrayBuilder builder, Object value, @Cached WriteToBuilderNode writeNode)
         throws UnsupportedTypeException {
       writeNode.executeWrite(builder, builder.index++, value);
+    }
+  }
+
+  @GenerateUncached
+  @GenerateInline(false)
+  abstract static class BuildNode extends Node {
+    abstract TruffleObject executeBuild(ArrowFixedSizeArrayBuilder builder)
+        throws UnsupportedMessageException;
+
+    @Specialization
+    static TruffleObject buildIt(ArrowFixedSizeArrayBuilder builder)
+        throws UnsupportedMessageException {
+      return builder.build();
     }
   }
 }
