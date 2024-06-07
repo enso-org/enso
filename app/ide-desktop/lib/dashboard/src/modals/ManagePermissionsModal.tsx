@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -21,6 +20,7 @@ import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import Modal from '#/components/Modal'
 import * as paywall from '#/components/Paywall'
 import FocusArea from '#/components/styled/FocusArea'
+import * as toast from '#/components/Toast'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'

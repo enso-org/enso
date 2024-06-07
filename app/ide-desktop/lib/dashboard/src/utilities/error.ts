@@ -1,5 +1,4 @@
 /** @file Contains useful error types common across the module. */
-import type * as toastify from 'react-toastify'
 
 // =====================
 // === tryGetMessage ===
@@ -67,12 +66,6 @@ export function tryGetStack<T, DefaultMessage extends string | null = null>(
  * {@link Error}. */
 export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
   return tryGetMessage(error) ?? String(error)
-}
-
-/** Return a toastify option object that renders an error message. */
-// eslint-disable-next-line no-restricted-syntax
-export function render(f: (message: string) => string): toastify.UpdateOptions {
-  return { render: ({ data }) => f(getMessageOrToString(data)) }
 }
 
 // ============================

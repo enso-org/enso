@@ -119,3 +119,4 @@ function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
 
 /** Global configuration for the {@link App} component. */
 export type AppProps = app.AppProps
+export * from '#/components/Toast'

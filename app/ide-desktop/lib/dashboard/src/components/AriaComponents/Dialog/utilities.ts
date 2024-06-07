@@ -15,6 +15,8 @@ import * as dialogStackProvider from './DialogStackProvider'
 const IGNORE_INTERACT_OUTSIDE_ELEMENTS = [
   // Toastify toasts
   '.Toastify__toast-container',
+  // Sonner toaster
+  '[data-sonner-toaster]',
   // ReactQuery devtools
   '.tsqd-parent-container',
   // Our components that should ignore the interact outside event
@@ -62,9 +64,6 @@ export function useInteractOutside(props: UseInteractOutsideProps) {
   aria.useInteractOutside({
     ref,
     isDisabled: isDisabled || !isLatest,
-    // we need to prevent the dialog from closing when interacting with the toastify container
-    // and when interaction starts, we check if the target is inside the toastify container
-    // and in the next callback we prevent the dialog from closing
     // For some reason aria doesn't fire onInteractOutsideStart if onInteractOutside is not defined
     onInteractOutsideStart: onInteractOutsideStartCb,
     onInteractOutside: onInteractOutsideCb,

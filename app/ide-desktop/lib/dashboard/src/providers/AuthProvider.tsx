@@ -8,7 +8,6 @@ import * as React from 'react'
 import * as sentry from '@sentry/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
-import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
 
 import * as detect from 'enso-common/src/detect'
@@ -26,6 +25,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as resultComponent from '#/components/Result'
+import * as toast from '#/components/Toast'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -239,26 +239,20 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
 
   const toastSuccess = (message: string) => {
-    toast.toast.update(toastId, {
-      isLoading: null,
-      autoClose: null,
-      closeOnClick: null,
-      closeButton: null,
-      draggable: null,
-      type: toast.toast.TYPE.SUCCESS,
-      render: message,
+    toast.toast.success(message, {
+      toastId,
+      duration: Infinity,
+      closeButton: false,
+      dismissible: false,
     })
   }
 
   const toastError = (message: string) => {
-    toast.toast.update(toastId, {
-      isLoading: null,
-      autoClose: null,
-      closeOnClick: null,
-      closeButton: null,
-      draggable: null,
-      type: toast.toast.TYPE.ERROR,
-      render: message,
+    toast.toast.error(message, {
+      toastId,
+      duration: Infinity,
+      closeButton: false,
+      dismissible: false,
     })
   }
 
@@ -338,7 +332,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         const organizationId = await cognito.organizationId()
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
-        await toast.toast.promise(
+        toast.toast.promise(
           createUserMutation.mutateAsync({
             userName: username,
             userEmail: backendModule.EmailAddress(email),
@@ -348,7 +342,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           {
             success: getText('setUsernameSuccess'),
             error: getText('setUsernameError'),
-            pending: getText('settingUsername'),
+            loading: getText('settingUsername'),
           }
         )
         const redirectTo = localStorage.get('loginRedirect')

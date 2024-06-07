@@ -1,8 +1,6 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
 
-import * as toast from 'react-toastify'
-
 import * as billingHooks from '#/hooks/billing'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -24,6 +22,7 @@ import ContextMenus from '#/components/ContextMenus'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import * as paywall from '#/components/Paywall'
 import Separator from '#/components/styled/Separator'
+import * as toast from '#/components/Toast'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'

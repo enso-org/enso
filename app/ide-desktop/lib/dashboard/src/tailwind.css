@@ -1,5 +1,4 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap");
-@import "react-toastify/dist/ReactToastify.css";
 
 /* Scoped to `.enso-dashboard, .enso-chat, .enso-portal-root` in tailwind config. */
 @tailwind base;
@@ -541,4 +540,43 @@ body[data-debug] {
 }
 :root::highlight(field-existing-email) {
   @apply text-amber-500;
+}
+
+/** The default styles for the popover. */
+:where(
+    :is(
+        .enso-dashboard [popover],
+        .enso-chat [popover],
+        .enso-portal-root [popover]
+      )
+  ) {
+  inset: unset;
+  margin: unset;
+  width: unset;
+  height: unset;
+  overflow: unset;
+}
+
+:where(
+    :is(
+        .enso-dashboard [data-sonner-toast],
+        .enso-chat [data-sonner-toast],
+        .enso-portal-root [data-sonner-toast]
+      )
+  ) {
+  &:hover [data-close-button] {
+    opacity: 1;
+  }
+
+  &:not(:hover) [data-button] {
+    opacity: 0;
+  }
+}
+
+.hacky-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(1.35);
+
+  .fix-dark {
+    filter: invert(100%) hue-rotate(180deg) brightness(1);
+  }
 }

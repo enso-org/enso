@@ -382,6 +382,7 @@ inset 0 36px 51px -51px #00000014, inset 0 -1px 1.4px -1.4px #00000002, \
 inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
 inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
 inset 0 -36px 51px -51px #00000014`,
+        'dim-background': '0 0 8px 8px rgba(255, 255, 255, 1)',
       },
       animation: {
         'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
