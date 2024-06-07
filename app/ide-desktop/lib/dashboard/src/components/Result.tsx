@@ -82,14 +82,17 @@ export function Result(props: ResultProps) {
       ) : null}
 
       {typeof title === 'string' ? (
-        <aria.Heading level={2} className="mb-2 text-2xl leading-10">
+        <aria.Heading level={2} className="mb-2 text-2xl leading-10 text-primary/60">
           {title}
         </aria.Heading>
       ) : (
         title
       )}
 
-      <aria.Text elementType="p" className="max-w-[750px] text-balance text-lg leading-6">
+      <aria.Text
+        elementType="p"
+        className="max-w-[750px] text-balance text-lg leading-6 text-primary/60"
+      >
         {subtitle}
       </aria.Text>
 

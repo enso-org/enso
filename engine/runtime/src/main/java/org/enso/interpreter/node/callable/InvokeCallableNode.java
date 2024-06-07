@@ -2,12 +2,14 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
@@ -283,7 +285,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       VirtualFrame callerFrame,
       State state,
       Object[] arguments,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
 
     Warning[] extracted;
     Object callable;
@@ -341,16 +343,26 @@ public abstract class InvokeCallableNode extends BaseNode {
       State state,
       Object[] arguments,
       @CachedLibrary(limit = "3") InteropLibrary iop,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached ThunkExecutorNode thunkNode) {
+    var errors = EnsoContext.get(this).getBuiltins().error();
     try {
       for (int i = 0; i < arguments.length; i++) {
         arguments[i] = thunkNode.executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
       }
       return iop.execute(self, arguments);
-    } catch (InteropException e) {
-      throw EnsoContext.get(this).raiseAssertionPanic(this, "Cannot execute", e);
+    } catch (UnsupportedTypeException ex) {
+      var err = errors.makeUnsupportedArgumentsError(ex.getSuppliedValues(), ex.getMessage());
+      throw new PanicException(err, this);
+    } catch (ArityException ex) {
+      var err =
+          errors.makeArityError(
+              ex.getExpectedMinArity(), ex.getExpectedMaxArity(), arguments.length);
+      throw new PanicException(err, this);
+    } catch (UnsupportedMessageException ex) {
+      var err = errors.makeNotInvokable(self);
+      throw new PanicException(err, this);
     }
   }
 
