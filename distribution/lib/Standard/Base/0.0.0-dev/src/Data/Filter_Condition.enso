@@ -145,12 +145,6 @@ type Filter_Condition
          will likely be faster than using the vector directly.
     Is_In values:Vector|Any=[] action:Filter_Action=Filter_Action.Keep
 
-    ## PRIVATE
-       Resolves a possibly auto-scoped Filter_Condition.
-    resolve_autoscoped filter:(Function|Filter_Condition) -> (Function|Filter_Condition) = case filter of
-        _ : Function ->  Panic.catch Any (filter:Filter_Condition) _->filter
-        _ -> filter
-
     ## ICON convert
        Converts a `Filter_Condition` condition into a predicate taking an
        element and returning a value indicating whether the element should be
