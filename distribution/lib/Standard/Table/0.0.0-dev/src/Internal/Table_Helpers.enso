@@ -132,8 +132,7 @@ type Table_Column_Helper
     remove_by_type self types:Vector strict:Boolean=False =
         remaining_columns = if strict then self.columns.filter (c->(types.contains c.value_type).not) else
             self.columns.filter c->(types.all (t->(c.value_type.is_same_type t . not)))
-        ## TODO below is defect
-        if remaining_columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
+        if remaining_columns.length == self.columns.length then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
             remaining_columns
 
     ## PRIVATE
