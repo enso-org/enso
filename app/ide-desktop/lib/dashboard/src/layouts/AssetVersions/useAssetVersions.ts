@@ -25,13 +25,14 @@ export function useAssetVersions(params: UseAssetVersionsParams) {
   return reactQuery.useQuery({
     queryKey,
     enabled,
-    queryFn: () =>
-      backend
-        .listAssetVersions(assetId, title)
-        .then(assetVersions => assetVersions.versions)
-        .catch(backendError => {
-          onError?.(backendError)
-          throw backendError
-        }),
+    queryFn: async () => {
+      try {
+        const assetVersions = await backend.listAssetVersions(assetId)
+        return assetVersions.versions
+      } catch (backendError) {
+        onError?.(backendError)
+        throw backendError
+      }
+    },
   })
 }

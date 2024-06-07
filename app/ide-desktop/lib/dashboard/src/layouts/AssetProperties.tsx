@@ -88,15 +88,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     setIsEditingDescription(false)
     if (description !== item.description) {
       try {
-        const projectPath = item.projectState?.path
-        await updateAssetMutation.mutateAsync([
-          item.id,
-          {
-            parentDirectoryId: null,
-            description,
-            ...(projectPath == null ? {} : { projectPath }),
-          },
-        ])
+        await updateAssetMutation.mutateAsync([item.id, { parentDirectoryId: null, description }])
       } catch (error) {
         toastAndLog('editDescriptionError')
       }

@@ -517,17 +517,18 @@ export default class LocalBackend extends Backend {
     assetId: backend.AssetId,
     body: backend.UpdateAssetRequestBody
   ): Promise<void> {
-    if (body.parentDirectoryId != null) {
+    if (body.parentDirectoryId == null) {
+      return
+    } else {
       const typeAndId = extractTypeAndId(assetId)
-      const from = typeAndId.type === backend.AssetType.project ? body.projectPath : typeAndId.id
-      if (from == null) {
-        throw new Error('Could not move project: project has no `projectPath`.')
-      } else {
-        const fileName = fileInfo.fileName(from)
-        const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
-        await this.projectManager.moveFile(from, to)
-        return
-      }
+      const from =
+        typeAndId.type === backend.AssetType.project
+          ? this.projectManager.getProjectDirectoryPath(typeAndId.id)
+          : typeAndId.id
+      const fileName = fileInfo.fileName(from)
+      const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
+      await this.projectManager.moveFile(from, to)
+      return
     }
   }
 

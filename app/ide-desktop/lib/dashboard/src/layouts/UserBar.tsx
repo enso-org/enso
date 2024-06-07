@@ -37,14 +37,13 @@ export interface UserBarProps {
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly projectAsset: backendModule.ProjectAsset | null
-  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
-  const { projectAsset, setProjectAsset, onSignOut } = props
+  const { backend, invisible = false, page, setPage, setIsHelpChatOpen, projectAsset } = props
+  const { onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -55,11 +54,7 @@ export default function UserBar(props: UserBarProps) {
         ) ?? null
       : null
   const shouldShowShareButton =
-    backend != null &&
-    page === pageSwitcher.Page.editor &&
-    projectAsset != null &&
-    setProjectAsset != null &&
-    self != null
+    backend != null && page === pageSwitcher.Page.editor && projectAsset != null && self != null
   const shouldShowInviteButton =
     backend != null && sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
 
@@ -110,7 +105,6 @@ export default function UserBar(props: UserBarProps) {
                   <ManagePermissionsModal
                     backend={backend}
                     item={projectAsset}
-                    setItem={setProjectAsset}
                     self={self}
                     eventTarget={null}
                   />

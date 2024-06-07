@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as backendHooks from '#/hooks/backendHooks'
 
+import type * as assetsTable from '#/layouts/AssetsTable'
+
 import AssetRows from '#/components/dashboard/AssetRows'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 
@@ -23,12 +25,14 @@ export interface DirectoryChildrenAssetRowsProps {
   readonly directory: backendModule.DirectoryAsset
   readonly filterBy: backendModule.FilterBy | null
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
+  readonly columns: readonly columnUtils.Column[]
+  readonly state: assetsTable.AssetsTableState
   readonly filter: (asset: backendModule.AnyAsset) => boolean
 }
 
 /** Rows for each of a directory's children. */
 export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAssetRowsProps) {
-  const { parentRef, backend, depth, directory, filterBy, sortInfo, filter } = props
+  const { backend, directory, filterBy, sortInfo, filter } = props
   const children = backendHooks.useBackendListDirectory(
     backend,
     directory.id,
@@ -75,6 +79,5 @@ export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAsset
     [displayItems, filter]
   )
 
-  // FIXME: AssetRowProps
-  return visibleItems.map(item => <AssetRows parentRef={parentRef} item={item} depth={depth} />)
+  return visibleItems.map(item => <AssetRows {...props} item={item} />)
 }

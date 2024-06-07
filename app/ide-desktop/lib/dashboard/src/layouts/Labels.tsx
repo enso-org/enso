@@ -90,7 +90,7 @@ export default function Labels(props: LabelsProps) {
                     }}
                     onDragStart={event => {
                       drag.setDragImageToBlank(event)
-                      const payload: drag.LabelsDragPayload = new Set([label.value])
+                      const payload: drag.LabelsDragPayload = [label.value]
                       drag.LABELS.bind(event, payload)
                       setModal(
                         <DragModal
@@ -120,7 +120,7 @@ export default function Labels(props: LabelsProps) {
                             <ConfirmDeleteModal
                               actionText={getText('deleteLabelActionText', label.value)}
                               doDelete={() => {
-                                deleteTagMutation.mutate([label.id, label.value])
+                                deleteTagMutation.mutate([label.id])
                               }}
                             />
                           )

@@ -30,7 +30,7 @@ export function useFetchVersionContent(params: FetchVersionContentOptions) {
 
   return reactQuery.useQuery({
     queryKey: ['versionContent', versionId],
-    queryFn: () => backend.getFileContent(project.id, versionId, project.title),
+    queryFn: () => backend.getFileContent(project.id, versionId),
     select: data => (metadata ? data : omitMetadata(data)),
     staleTime: TWO_MINUTES_MS,
   })

@@ -38,7 +38,7 @@ export default function AssetRows(props: AssetRowsProps) {
     filter,
     ...assetRowProps
   } = props
-  const { item, depth } = assetRowProps
+  const { item, depth, columns, state } = assetRowProps
   const rootRef = React.useRef<HTMLTableRowElement>(null)
   const isOpen = store.useStore(
     storeState => storeState.getAssetState(backend.type, item.id).isOpen
@@ -60,6 +60,8 @@ export default function AssetRows(props: AssetRowsProps) {
           filterBy={filterBy}
           sortInfo={sortInfo}
           filter={filter}
+          columns={columns}
+          state={state}
         />
       )}
     </>

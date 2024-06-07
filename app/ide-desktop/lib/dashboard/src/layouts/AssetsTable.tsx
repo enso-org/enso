@@ -1,6 +1,7 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 import * as tailwindMerge from 'tailwind-merge'
 
@@ -145,6 +146,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
   const { setAssetPanelProps, setIsAssetPanelTemporarilyVisible } = props
 
+  const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -250,9 +252,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           toast.toast.error('Cannot paste a folder into itself.')
         } else {
           setIsAssetOpen(backend.type, newParentId, true)
-          const assets = Array.from(pasteData.ids, id => nodeMapRef.current.get(id)).flatMap(
-            asset => (asset ? [asset.item] : [])
-          ) as backendModule.Asset[]
+          const allAssets = Object.values(
+            backendHooks.getBackendAllKnownDirectories(queryClient, user, backend)
+          ).flat()
+          const allAssetsMap = new Map(allAssets.map(asset => [asset.id, asset]))
+          const assets = Array.from(pasteData.ids, id => allAssetsMap.get(id)).flatMap(asset =>
+            asset ? [asset] : []
+          )
           if (pasteData.action === 'copy') {
             for (const asset of assets) {
               copyAssetMutation.mutate([asset.id, newParentId])
@@ -270,12 +276,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
     },
     [
-      backend.type,
+      backend,
       copyAssetMutation,
+      queryClient,
       setAssetPasteData,
       setIsAssetOpen,
       unsetModal,
       updateAssetMutation,
+      user,
     ]
   )
 
@@ -435,8 +443,11 @@ export default function AssetsTable(props: AssetsTableProps) {
               <AssetRows
                 hideRoot
                 parentRef={null}
-                columns={columns}
+                backend={backend}
                 item={rootDirectoryAsset}
+                depth={-1}
+                sortInfo={sortInfo}
+                columns={columns}
                 state={state}
                 filter={filter}
                 filterBy={CATEGORY_TO_FILTER_BY[category]}

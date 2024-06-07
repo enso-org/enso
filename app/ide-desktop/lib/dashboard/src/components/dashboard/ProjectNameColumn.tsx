@@ -41,7 +41,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, depth, rowState, setRowState, state } = props
   const { isEditable } = props
-  const { backend, nodeMap, setProjectStartupInfo, doOpenEditor, doCloseEditor } = state
+  const { backend, setProjectStartupInfo, doOpenEditor, doCloseEditor } = state
   const { user } = authProvider.useNonPartialUserSession()
   const { session } = sessionProvider.useSession()
   const { getText } = textProvider.useText()
@@ -123,7 +123,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         } else if (
           !isRunning &&
           eventModule.isSingleClick(event) &&
-          store.useStore.getState().getIsAssetSoleSelected(backend.type, item.id)
+          store.useStore.getState().getIsAssetSoleSelected(item.id)
         ) {
           setIsEditing(true)
         }

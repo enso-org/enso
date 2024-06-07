@@ -75,7 +75,7 @@ export function Subscribe() {
   })
 
   const onCompleteMutation = reactQuery.useMutation({
-    mutationFn: async (data: backendModule.CreateCheckoutSessionRequestParams) => {
+    mutationFn: async (data: backendModule.CreateCheckoutSessionRequestBody) => {
       const { id } = await backend.createCheckoutSession(data)
       return backend.getCheckoutSession(id)
     },

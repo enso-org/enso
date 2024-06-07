@@ -33,7 +33,7 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, depth, state, rowState, setRowState, isEditable } = props
-  const { backend, nodeMap } = state
+  const { backend } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
@@ -82,7 +82,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           // Already handled.
         } else if (
           eventModule.isSingleClick(event) &&
-          store.useStore.getState().getAssetState(backend.type, item.id).isSelected
+          store.useStore.getState().getIsAssetSelected(item.id)
         ) {
           if (!isCloud) {
             setIsEditing(true)

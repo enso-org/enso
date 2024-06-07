@@ -70,7 +70,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
           // Already handled.
         } else if (
           eventModule.isSingleClick(event) &&
-          store.useStore.getState().getAssetState(backend.type, item.id).isSelected
+          store.useStore.getState().getIsAssetSelected(item.id)
         ) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event) && isEditable) {

@@ -2,6 +2,8 @@
  * are selected. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import * as store from '#/store'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -36,9 +38,6 @@ export interface AssetsTableContextMenuProps {
   readonly backend: Backend
   readonly category: Category
   readonly rootDirectoryId: backendModule.DirectoryId
-  readonly nodeMapRef: React.MutableRefObject<
-    ReadonlyMap<backendModule.AssetId, backendModule.AnyAsset>
-  >
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
@@ -46,8 +45,9 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { hidden = false, backend, category, nodeMapRef, event, rootDirectoryId } = props
+  const { hidden = false, backend, category, event, rootDirectoryId } = props
   const { doPaste } = props
+  const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -60,13 +60,20 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
   const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
 
+  const getAllAssetsMap = () => {
+    const allAssets = Object.values(
+      backendHooks.getBackendAllKnownDirectories(queryClient, user, backend)
+    ).flat()
+    return new Map(allAssets.map(asset => [asset.id, asset]))
+  }
+
   // This works because all items are mutated, ensuring their value stays
   // up to date.
   const ownsAllSelectedAssets =
     !isCloud ||
     (user != null &&
       Array.from(selectedAssetIds, key => {
-        const userPermissions = nodeMapRef.current.get(key)?.permissions
+        const userPermissions = getAllAssetsMap().get(key)?.permissions
         const selfPermission = userPermissions?.find(
           backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
         )
@@ -85,13 +92,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       deleteAll()
     } else {
       const [firstKey] = selectedAssetIds
-      const soleAssetName =
-        firstKey != null ? nodeMapRef.current.get(firstKey)?.title ?? '(unknown)' : '(unknown)'
+      const getSoleAssetName = () => {
+        return firstKey != null
+          ? getAllAssetsMap().get(firstKey)?.title ?? '(unknown)'
+          : '(unknown)'
+      }
       setModal(
         <ConfirmDeleteModal
           actionText={
             selectedAssetIds.size === 1
-              ? getText('deleteSelectedAssetActionText', soleAssetName)
+              ? getText('deleteSelectedAssetActionText', getSoleAssetName())
               : getText('deleteSelectedAssetsActionText', selectedAssetIds.size)
           }
           doDelete={() => {
@@ -124,15 +134,16 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               label={getText('deleteAllForeverShortcut')}
               doAction={() => {
                 const [firstKey] = selectedAssetIds
-                const soleAssetName =
-                  firstKey != null
-                    ? nodeMapRef.current.get(firstKey)?.title ?? '(unknown)'
+                const getSoleAssetName = () => {
+                  return firstKey != null
+                    ? getAllAssetsMap().get(firstKey)?.title ?? '(unknown)'
                     : '(unknown)'
+                }
                 setModal(
                   <ConfirmDeleteModal
                     actionText={
                       selectedAssetIds.size === 1
-                        ? getText('deleteSelectedAssetForeverActionText', soleAssetName)
+                        ? getText('deleteSelectedAssetForeverActionText', getSoleAssetName())
                         : getText('deleteSelectedAssetsForeverActionText', selectedAssetIds.size)
                     }
                     doDelete={() => {
@@ -193,7 +204,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                   const [firstKey] = selectedAssetIds
                   const selectedNode =
                     selectedAssetIds.size === 1 && firstKey != null
-                      ? nodeMapRef.current.get(firstKey)
+                      ? getAllAssetsMap().get(firstKey)
                       : null
                   if (selectedNode?.type === backendModule.AssetType.directory) {
                     doPaste(selectedNode.id)

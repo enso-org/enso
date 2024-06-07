@@ -198,7 +198,7 @@ export default function Drive(props: DriveProps) {
           />
           <div className="flex flex-1 gap-drive overflow-hidden">
             <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
-              <CategorySwitcher category={category} setCategory={onSetCategory} />
+              <CategorySwitcher backend={backend} category={category} setCategory={onSetCategory} />
               {isCloud && (
                 <Labels
                   backend={backend}

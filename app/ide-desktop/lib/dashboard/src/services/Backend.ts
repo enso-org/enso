@@ -1036,8 +1036,6 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
-  /** Only present on the Local backend. */
-  readonly projectPath?: Path
 }
 
 /** HTTP request body for the "delete asset" endpoint. */

@@ -30,7 +30,7 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   const { item, depth, state, rowState, setRowState, isEditable } = props
-  const { backend, setIsAssetPanelTemporarilyVisible } = state
+  const { setIsAssetPanelTemporarilyVisible } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
@@ -76,7 +76,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
           // Already handled.
         } else if (
           eventModule.isSingleClick(event) &&
-          store.useStore.getState().getAssetState(backend.type, item.id).isSelected
+          store.useStore.getState().getIsAssetSelected(item.id)
         ) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {

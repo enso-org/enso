@@ -79,11 +79,7 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
               if (!groups.includes(userGroupId)) {
                 try {
                   const newUserGroups = [...groups, userGroupId]
-                  await changeUserGroup.mutateAsync([
-                    newUser.userId,
-                    { userGroups: newUserGroups },
-                    newUser.name,
-                  ])
+                  await changeUserGroup.mutateAsync([newUser.userId, { userGroups: newUserGroups }])
                 } catch (error) {
                   toastAndLog('changeUserGroupsError', error)
                 }
@@ -97,7 +93,7 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
 
   const doDeleteUserGroup = async (userGroup: backendModule.UserGroupInfo) => {
     try {
-      await deleteUserGroup.mutateAsync([userGroup.id, userGroup.groupName])
+      await deleteUserGroup.mutateAsync([userGroup.id])
     } catch (error) {
       toastAndLog('deleteUserGroupError', error, userGroup.groupName)
     }
@@ -111,11 +107,7 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
       const intermediateUserGroups =
         otherUser.userGroups?.filter(userGroupId => userGroupId !== userGroup.id) ?? null
       const newUserGroups = intermediateUserGroups?.length === 0 ? null : intermediateUserGroups
-      await changeUserGroup.mutateAsync([
-        otherUser.userId,
-        { userGroups: newUserGroups ?? [] },
-        otherUser.name,
-      ])
+      await changeUserGroup.mutateAsync([otherUser.userId, { userGroups: newUserGroups ?? [] }])
     } catch (error) {
       toastAndLog('removeUserFromUserGroupError', error, otherUser.name, userGroup.groupName)
     }

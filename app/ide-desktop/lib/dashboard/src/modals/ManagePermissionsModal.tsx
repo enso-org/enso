@@ -219,7 +219,7 @@ export default function ManagePermissionsModal<
 
     const doDelete = async (permissionId: backendModule.UserPermissionIdentifier) => {
       if (permissionId === self.user.userId) {
-        deleteAssetMutation.mutate([item.id, { force: false, parentId: item.parentId }])
+        deleteAssetMutation.mutate([item.id, { force: false }])
       } else {
         const oldPermission = permissions.find(
           permission => backendModule.getAssetPermissionId(permission) === permissionId

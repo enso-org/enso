@@ -5,7 +5,6 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserBar from '#/layouts/UserBar'
@@ -42,7 +41,7 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { backend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
+  const { backend, isCloud, page, setPage, projectAsset } = props
   const { isEditorDisabled, setIsHelpChatOpen, query, setQuery, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, onSignOut } = props
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -80,7 +79,6 @@ export default function TopBar(props: TopBarProps) {
             setPage={setPage}
             setIsHelpChatOpen={setIsHelpChatOpen}
             projectAsset={projectAsset}
-            setProjectAsset={setProjectAsset}
             onSignOut={onSignOut}
           />
         </div>
@@ -106,7 +104,6 @@ export default function TopBar(props: TopBarProps) {
             setPage={setPage}
             setIsHelpChatOpen={setIsHelpChatOpen}
             projectAsset={projectAsset}
-            setProjectAsset={setProjectAsset}
             onSignOut={onSignOut}
           />
         </div>

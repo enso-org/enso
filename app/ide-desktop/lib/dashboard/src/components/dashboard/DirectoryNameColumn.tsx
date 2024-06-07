@@ -37,7 +37,7 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, depth, state, rowState, setRowState, isEditable } = props
-  const { backend, nodeMap } = state
+  const { backend } = state
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.directory) {
@@ -90,7 +90,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           // Already handled.
         } else if (
           eventModule.isSingleClick(event) &&
-          store.useStore.getState().getIsAssetSoleSelected(backend.type, item.id)
+          store.useStore.getState().getIsAssetSoleSelected(item.id)
         ) {
           event.stopPropagation()
           setIsEditing(true)
