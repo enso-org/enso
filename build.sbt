@@ -1582,6 +1582,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
           "runtime-compiler"
         ) / Compile / productDirectories).value ++
         (LocalProject("runtime-parser") / Compile / productDirectories).value ++
+        (LocalProject("persistance") / Compile / productDirectories).value ++
         (LocalProject(
           "interpreter-dsl"
         ) / Compile / productDirectories).value ++
