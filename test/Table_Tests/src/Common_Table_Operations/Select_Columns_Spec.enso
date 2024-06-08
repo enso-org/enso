@@ -433,6 +433,16 @@ add_specs suite_builder setup =
             err = data.table.reorder_columns selector Position.After_Other_Columns error_on_missing_columns=True
             err.should_fail_with Missing_Input_Columns
 
+    suite_builder.group prefix+"Table.reorder_columns by type" group_builder->
+        data = Mixed_Columns_Data.setup create_connection_fn table_builder
+
+        group_builder.teardown <|
+            data.teardown
+
+        group_builder.specify "should correctly handle By_Type matching" <|
+            expect_column_names ["float", "text", "bool", "int"] <| data.table.reorder_columns [..By_Type ..Integer] Position.After_Other_Columns
+            expect_column_names ["float", "text", "int", "bool"] <| data.table.reorder_columns [..By_Type ..Integer, ..By_Type ..Boolean] Position.After_Other_Columns
+
     suite_builder.group prefix+"Table.sort_columns" group_builder->
         data = Sort_Columns_Data.setup create_connection_fn table_builder
 

@@ -32,6 +32,10 @@ public class BigDecimalBuilder extends TypedBuilderImpl<BigDecimal> {
     }
   }
 
+  public void appendRawNoGrow(BigDecimal value) {
+    data[currentSize++] = value;
+  }
+
   @Override
   public void append(Object o) {
     appendNoGrow(o);
