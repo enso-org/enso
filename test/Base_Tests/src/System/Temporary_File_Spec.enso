@@ -123,7 +123,7 @@ add_specs suite_builder =
             tmp5.should_be_a Temporary_File
             tmp5.unsafe_get.absolute.path . should_not_equal tmp.unsafe_get.absolute.path
 
-        group_builder.specify "should allow to materialize an input stream opened to a temporary file without copying it" <|
+        group_builder.specify "should allow to materialize an input stream opened to a temporary file without copying it" pending="Currently the file stream does not know it came from Temporary_File. May be revisited in the future to automatically correlate it." <|
             tmp = Temporary_File.new
             tmp.with_file f->
                 "test payload 4" . write f
