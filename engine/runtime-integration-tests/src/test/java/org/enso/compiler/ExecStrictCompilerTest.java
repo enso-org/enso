@@ -110,4 +110,21 @@ public class ExecStrictCompilerTest {
       assertNotEquals("Location defined " + errors, -1, errors.indexOf("wrong_cons:2:5"));
     }
   }
+
+  @Test
+  public void testUnknownTypeExtensionMethod() throws Exception {
+    var code = """
+    Unknown_Type.foo = 42
+
+    main = 42
+    """;
+    var src = Source.newBuilder("enso", code, "extension.enso").build();
+    try {
+      var module = ctx.eval(src);
+      fail("Unexpected result: " + module);
+    } catch (PolyglotException ex) {
+      var firstLine = ex.getMessage().split("\n")[0];
+      assertEquals("extension:1:1: error: The name `Unknown_Type` could not be found.", firstLine);
+    }
+  }
 }

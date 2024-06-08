@@ -67,6 +67,9 @@ collect_benches = Bench.build builder->
         group_builder.specify "Sum_Stats" <|
             random_vec.compute Statistic.Sum
 
+        group_builder.specify "Product_Stats" <|
+            random_vec.compute Statistic.Product
+
         group_builder.specify "Variance_Stats" <|
             random_vec.compute Statistic.Variance
 

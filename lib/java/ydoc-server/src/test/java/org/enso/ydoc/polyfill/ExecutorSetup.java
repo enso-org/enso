@@ -2,19 +2,19 @@ package org.enso.ydoc.polyfill;
 
 import static org.junit.Assert.fail;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 
 public abstract class ExecutorSetup {
 
-  protected ExecutorService executor;
+  protected ScheduledExecutorService executor;
 
   @Before
   public void setup() throws Exception {
-    executor = Executors.newSingleThreadExecutor();
+    executor = Executors.newSingleThreadScheduledExecutor();
   }
 
   @After

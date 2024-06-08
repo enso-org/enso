@@ -13,6 +13,7 @@ import java.util.UUID
 sealed trait Method extends Definition {
   val methodReference: Name.MethodReference
   val body: Expression
+  val isPrivate: Boolean
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Method
@@ -51,6 +52,7 @@ object Method {
     override val methodReference: Name.MethodReference,
     val bodyReference: Persistance.Reference[Expression],
     val isStatic: Boolean,
+    val isPrivate: Boolean,
     val isStaticWrapperForInstanceMethod: Boolean,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage,
@@ -61,6 +63,7 @@ object Method {
     def this(
       methodReference: Name.MethodReference,
       body: Expression,
+      isPrivate: Boolean,
       location: Option[IdentifiedLocation],
       passData: MetadataStorage      = new MetadataStorage(),
       diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -69,6 +72,7 @@ object Method {
         methodReference,
         Persistance.Reference.of(body, false),
         Explicit.computeIsStatic(body),
+        isPrivate,
         Explicit.computeIsStaticWrapperForInstanceMethod(body),
         location,
         passData,
@@ -92,6 +96,7 @@ object Method {
       methodReference: Name.MethodReference = methodReference,
       body: Expression                      = body,
       isStatic: Boolean                     = Explicit.computeIsStatic(body),
+      isPrivate: Boolean                    = isPrivate,
       isStaticWrapperForInstanceMethod: Boolean =
         Explicit.computeIsStaticWrapperForInstanceMethod(body),
       location: Option[IdentifiedLocation] = location,
@@ -103,6 +108,7 @@ object Method {
         methodReference,
         Persistance.Reference.of(body, false),
         isStatic,
+        isPrivate,
         isStaticWrapperForInstanceMethod,
         location,
         passData,
@@ -229,6 +235,8 @@ object Method {
     *
     * @param methodReference a reference to the method being defined
     * @param arguments       the arguments to the method
+    * @param isPrivate        if the method is declared as private (project-private).
+    *                         i.e. with prepended `private` keyword.
     * @param body            the body of the method
     * @param location        the source location that the node corresponds to
     * @param passData        the pass metadata associated with this node
@@ -237,6 +245,7 @@ object Method {
   sealed case class Binding(
     override val methodReference: Name.MethodReference,
     arguments: List[DefinitionArgument],
+    isPrivate: Boolean,
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = new MetadataStorage(),
@@ -259,6 +268,7 @@ object Method {
     def copy(
       methodReference: Name.MethodReference = methodReference,
       arguments: List[DefinitionArgument]   = arguments,
+      isPrivate: Boolean                    = isPrivate,
       body: Expression                      = body,
       location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
@@ -268,6 +278,7 @@ object Method {
       val res = Binding(
         methodReference,
         arguments,
+        isPrivate,
         body,
         location,
         passData,
@@ -384,6 +395,9 @@ object Method {
   ) extends Method
       with IRKind.Primitive
       with LazyId {
+
+    // Conversion methods cannot be private for now
+    override val isPrivate: Boolean = false
 
     /** Creates a copy of `this`.
       *

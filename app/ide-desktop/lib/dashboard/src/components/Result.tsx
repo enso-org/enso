@@ -33,14 +33,22 @@ export interface ResultProps extends React.PropsWithChildren {
    */
   readonly status?: React.ReactElement | Status
   readonly icon?: string | false
-  readonly qa?: string
+  readonly testId?: string
 }
 
 /**
  * A component for displaying the result of an operation.
  */
 export function Result(props: ResultProps) {
-  const { title, children, status = 'success', subtitle, className, icon, qa = 'Result' } = props
+  const {
+    title,
+    children,
+    status = 'success',
+    subtitle,
+    className,
+    icon,
+    testId = 'Result',
+  } = props
 
   const statusIcon = typeof status === 'string' ? STATUS_ICON_MAP[status] : null
   const showIcon = icon !== false
@@ -51,7 +59,7 @@ export function Result(props: ResultProps) {
         'm-auto flex flex-col items-center justify-center px-6 py-4 text-center',
         className
       )}
-      data-testid={qa}
+      data-testid={testId}
     >
       {showIcon ? (
         <>
@@ -74,14 +82,17 @@ export function Result(props: ResultProps) {
       ) : null}
 
       {typeof title === 'string' ? (
-        <aria.Heading level={2} className="mb-2 text-2xl leading-10">
+        <aria.Heading level={2} className="mb-2 text-2xl leading-10 text-primary/60">
           {title}
         </aria.Heading>
       ) : (
         title
       )}
 
-      <aria.Text elementType="p" className="max-w-[750px] text-balance text-lg leading-6">
+      <aria.Text
+        elementType="p"
+        className="max-w-[750px] text-balance text-lg leading-6 text-primary/60"
+      >
         {subtitle}
       </aria.Text>
 

@@ -9,6 +9,7 @@ import org.enso.interpreter.node.expression.builtin.number.integer.AbsNode;
 import org.enso.interpreter.node.expression.builtin.number.integer.AddNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -18,7 +19,7 @@ import org.junit.runner.RunWith;
 
 /** Tests Truffle nodes for integer operations. */
 @RunWith(Theories.class)
-public class IntegerTest extends TestBase {
+public class IntegerTest {
 
   private static AbsNode absNode;
   private static AddNode addNode;
@@ -26,8 +27,8 @@ public class IntegerTest extends TestBase {
 
   @BeforeClass
   public static void setup() {
-    ctx = createDefaultContext();
-    executeInContext(
+    ctx = ContextUtils.createDefaultContext();
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           absNode = AbsNode.build();
@@ -48,7 +49,7 @@ public class IntegerTest extends TestBase {
 
   @Test
   public void testAbs() {
-    executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           assertEquals(23L, absNode.execute(23L));
@@ -66,7 +67,7 @@ public class IntegerTest extends TestBase {
 
   @Test
   public void testAdd() {
-    executeInContext(
+    ContextUtils.executeInContext(
         ctx,
         () -> {
           assertEquals(23L, addNode.execute(22L, 1L));

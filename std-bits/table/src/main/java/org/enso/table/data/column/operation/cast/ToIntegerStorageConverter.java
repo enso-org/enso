@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
@@ -8,6 +9,7 @@ import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
@@ -37,6 +39,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
       return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
+    } else if (storage instanceof BigDecimalStorage bigDecimalStorage) {
+      return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
     } else {
@@ -78,6 +82,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           builder.appendLongUnchecked(bigInteger.longValue());
         } else {
           problemAggregator.reportNumberOutOfRange(bigInteger);
+          builder.appendNulls(1);
+        }
+      } else if (o instanceof BigDecimal bigDecimal) {
+        BigInteger bigInteger = bigDecimal.toBigInteger();
+        if (targetType.fits(bigInteger)) {
+          builder.appendLongUnchecked(bigInteger.longValue());
+        } else {
+          problemAggregator.reportNumberOutOfRange(bigDecimal);
           builder.appendNulls(1);
         }
       } else {
@@ -181,6 +193,32 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       } else {
         isNothing.set(i);
         problemAggregator.reportNumberOutOfRange(value);
+      }
+
+      context.safepoint();
+    }
+
+    return new LongStorage(data, n, isNothing, targetType);
+  }
+
+  private Storage<Long> convertBigDecimalStorage(
+      Storage<BigDecimal> storage, CastProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
+    int n = storage.size();
+    long[] data = new long[n];
+    BitSet isNothing = new BitSet();
+    for (int i = 0; i < n; i++) {
+      BigDecimal value = storage.getItemBoxed(i);
+      if (value == null) {
+        isNothing.set(i);
+      } else {
+        BigInteger bigInteger = value.toBigInteger();
+        if (targetType.fits(bigInteger)) {
+          data[i] = bigInteger.longValue();
+        } else {
+          isNothing.set(i);
+          problemAggregator.reportNumberOutOfRange(value);
+        }
       }
 
       context.safepoint();

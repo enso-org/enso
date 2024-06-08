@@ -127,7 +127,7 @@ public final class EqualsNode extends Node {
 
     private static boolean isDefinedIn(ModuleScope scope, Function fn) {
       if (fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
-        return ensoRoot.getModuleScope() == scope;
+        return ensoRoot.getModuleScope().getModule() == scope.getModule();
       } else {
         return false;
       }

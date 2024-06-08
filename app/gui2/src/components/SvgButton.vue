@@ -8,11 +8,12 @@ const _props = defineProps<{
   name: Icon | URLString
   label?: string
   disabled?: boolean
+  title?: string
 }>()
 </script>
 
 <template>
-  <MenuButton :disabled="disabled" class="SvgButton">
+  <MenuButton :disabled="disabled" class="SvgButton" :title="title">
     <SvgIcon :name="name" />
     <div v-if="label" v-text="label" />
   </MenuButton>

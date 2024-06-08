@@ -9,10 +9,14 @@ import * as sentry from '@sentry/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as errorBoundary from 'react-error-boundary'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/AriaComponents'
+import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
+
+import * as errorUtils from '#/utilities/error'
 
 /**
  * Props for the ErrorBoundary component
@@ -59,12 +63,21 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 }
 
 /**
+ * Props for the DefaultFallbackComponent
+ */
+export interface FallBackProps extends errorBoundary.FallbackProps {
+  readonly error: unknown
+}
+
+/**
  * Default fallback component to show when there is an error
  */
-function DefaultFallbackComponent(props: errorBoundary.FallbackProps): React.JSX.Element {
-  const { resetErrorBoundary } = props
+function DefaultFallbackComponent(props: FallBackProps): React.JSX.Element {
+  const { resetErrorBoundary, error } = props
 
   const { getText } = textProvider.useText()
+
+  const stack = errorUtils.tryGetStack(error)
 
   return (
     <result.Result
@@ -73,11 +86,30 @@ function DefaultFallbackComponent(props: errorBoundary.FallbackProps): React.JSX
       title={getText('arbitraryErrorTitle')}
       subtitle={getText('arbitraryErrorSubtitle')}
     >
-      <aria.ButtonGroup align="center">
-        <aria.Button variant="submit" size="medium" onPress={resetErrorBoundary}>
+      {detect.IS_DEV_MODE && stack != null && (
+        <ariaComponents.Alert className="mx-auto mb-4 max-w-screen-lg" variant="neutral">
+          <ariaComponents.Text
+            elementType="pre"
+            className="whitespace-pre-wrap text-left"
+            color="primary"
+            variant="subtitle"
+          >
+            {stack}
+          </ariaComponents.Text>
+        </ariaComponents.Alert>
+      )}
+
+      <ariaComponents.ButtonGroup align="center">
+        <ariaComponents.Button
+          variant="submit"
+          size="large"
+          rounded="full"
+          className="w-24"
+          onPress={resetErrorBoundary}
+        >
           {getText('tryAgain')}
-        </aria.Button>
-      </aria.ButtonGroup>
+        </ariaComponents.Button>
+      </ariaComponents.ButtonGroup>
     </result.Result>
   )
 }
