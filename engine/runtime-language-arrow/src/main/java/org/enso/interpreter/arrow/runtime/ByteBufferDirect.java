@@ -18,7 +18,7 @@ import org.enso.interpreter.arrow.util.MemoryUtil;
 
 final class ByteBufferDirect implements AutoCloseable {
   private final ByteBuffer allocated;
-  final ByteBuffer dataBuffer;
+  private final ByteBuffer dataBuffer;
   private ByteBuffer bitmapBuffer;
 
   /**
@@ -61,8 +61,9 @@ final class ByteBufferDirect implements AutoCloseable {
     this.dataBuffer = dataBuffer;
     this.bitmapBuffer = allocated.slice(dataBuffer.capacity(), bitmapSizeInBytes);
     for (int i = 0; i < bitmapBuffer.capacity(); i++) {
-      bitmapBuffer.put(i, (byte) 255);
+      bitmapBuffer.put(i, (byte) 0xff);
     }
+    bitmapBuffer.rewind();
   }
 
   static ByteBufferDirect forBuffer(ByteBuffer buf) {
@@ -113,6 +114,14 @@ final class ByteBufferDirect implements AutoCloseable {
     for (var i = 0; i < bitmapBuffer.capacity(); i++) {
       bitmapBuffer.put(i, (byte) 0xff);
     }
+    return bitmapBuffer;
+  }
+
+  final ByteBuffer getDataBuffer() {
+    return dataBuffer;
+  }
+
+  final ByteBuffer getBitmapBuffer() {
     return bitmapBuffer;
   }
 

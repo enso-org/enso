@@ -45,10 +45,10 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   Object getIterator(
       @Cached(value = "this.getUnit()", allowUncached = true) LogicalLayout cachedUnit)
       throws UnsupportedMessageException {
-    if (!buffer.hasNulls()) {
-      if (cachedUnit == LogicalLayout.Int64) {
-        return new LongIterator(buffer.dataBuffer, cachedUnit.sizeInBytes());
-      }
+    if (cachedUnit == LogicalLayout.Int64) {
+      var dataIt = new LongIterator(buffer.getDataBuffer(), cachedUnit.sizeInBytes());
+      var nullIt = new NullIterator(dataIt, buffer.getBitmapBuffer());
+      return nullIt;
     }
     return new GenericIterator(this);
   }
@@ -166,6 +166,57 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     @ExportMessage
     boolean hasIteratorNextElement() throws UnsupportedMessageException {
       return at < buffer.limit();
+    }
+  }
+
+  @ExportLibrary(value = InteropLibrary.class)
+  static final class NullIterator implements TruffleObject {
+    private final TruffleObject it;
+    private final ByteBuffer buffer;
+    private byte byteMask;
+    private byte byteValue;
+
+    NullIterator(TruffleObject delegate, ByteBuffer buffer) {
+      this.it = delegate;
+      this.buffer = buffer;
+    }
+
+    final TruffleObject it() {
+      return it;
+    }
+
+    @ExportMessage(limit = "3")
+    Object getIteratorNextElement(
+        @Bind("$node") Node node,
+        @CachedLibrary("this.it()") InteropLibrary iopIt,
+        @Cached InlinedExactClassProfile bufferTypeProfile)
+        throws StopIterationException, UnsupportedMessageException {
+      var element = iopIt.getIteratorNextElement(it);
+      if (buffer != null) {
+        var buf = bufferTypeProfile.profile(node, buffer);
+        if (byteMask == 0) {
+          // (byte) (0x01 << 8) ==> 0
+          byteValue = buf.get();
+          byteMask = 0x01;
+        }
+        var include = byteValue & byteMask;
+        byteMask = (byte) (byteMask << 1);
+        if (include == 0) {
+          return NullValue.get();
+        }
+      }
+      return element;
+    }
+
+    @ExportMessage
+    boolean isIterator() {
+      return true;
+    }
+
+    @ExportMessage(limit = "3")
+    boolean hasIteratorNextElement(@CachedLibrary("this.it()") InteropLibrary iopIt)
+        throws UnsupportedMessageException {
+      return iopIt.hasIteratorNextElement(it);
     }
   }
 

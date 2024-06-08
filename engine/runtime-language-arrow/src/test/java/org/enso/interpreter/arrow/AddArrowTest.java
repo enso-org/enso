@@ -68,4 +68,75 @@ public class AddArrowTest {
       assertTrue("Values are always bigger than zero: " + v1, v1 > 0);
     }
   }
+
+  @Test
+  public void addTwoInt64ArrowArraysWithNulls() {
+    var arrow = ctx.getEngine().getLanguages().get("arrow");
+    assertNotNull("Arrow is available", arrow);
+    var constr = ctx.eval("arrow", "new[Int64]");
+    assertNotNull(constr);
+
+    var arrLength = 10;
+    var builder1 = constr.newInstance(arrLength);
+    for (int i = 0; i < arrLength; i++) {
+      if (i % 7 < 2) {
+        builder1.invokeMember("append", Long.MAX_VALUE);
+      } else {
+        builder1.invokeMember("append", i);
+      }
+    }
+
+    var builder2 = constr.newInstance(arrLength);
+    for (var i = 0; i < arrLength; i++) {
+      builder2.invokeMember("append", 10 + i);
+    }
+
+    var arr1 = builder1.invokeMember("build");
+    assertEquals("Right size of arr1", arrLength, arr1.getArraySize());
+    var addArr = builder2.invokeMember("build");
+    assertEquals("Right size of arr2", arrLength, addArr.getArraySize());
+
+    var plus = ctx.eval("arrow", "+[Int64]");
+    var res1 = plus.execute(arr1, addArr);
+
+    assertTrue("Result is an array", res1.hasArrayElements());
+    assertEquals("Right size", arrLength, res1.getArraySize());
+
+    assertTrue("is null", res1.getArrayElement(0).isNull());
+    assertTrue("is null", res1.getArrayElement(1).isNull());
+    assertTrue("is null", res1.getArrayElement(7).isNull());
+    assertTrue("is null", res1.getArrayElement(8).isNull());
+
+    var countNulls = 0;
+    for (var i = 0; i < arrLength; i++) {
+      var v = res1.getArrayElement(i);
+      if (v.isNull()) {
+        countNulls++;
+      } else {
+        assertEquals(i * 2 + 10, v.asLong());
+      }
+    }
+    assertEquals("Four nulls", 4, countNulls);
+
+    var res2 = plus.execute(res1, addArr);
+
+    assertTrue("Result is an array", res2.hasArrayElements());
+    assertEquals("Right size", arrLength, res2.getArraySize());
+
+    assertTrue("is null", res2.getArrayElement(0).isNull());
+    assertTrue("is null", res2.getArrayElement(1).isNull());
+    assertTrue("is null", res2.getArrayElement(7).isNull());
+    assertTrue("is null", res2.getArrayElement(8).isNull());
+
+    var countNullsAgain = 0;
+    for (var i = 0; i < arrLength; i++) {
+      var v = res2.getArrayElement(i);
+      if (v.isNull()) {
+        countNullsAgain++;
+      } else {
+        assertEquals(i * 3 + 20, v.asLong());
+      }
+    }
+    assertEquals("Four nulls", 4, countNullsAgain);
+  }
 }
