@@ -22,12 +22,16 @@ from project.Data.Boolean import Boolean, False, True
    A stream backed by an existing file can be converted to
    `Restartable_Input_Stream` at no cost.
 
-   ! Assumptions
+   ! Stream Lifetime
 
      Note that if we use an existing file as a shortcut to avoid copying the
      data, we need to assume that the file will not be modified in the meantime.
      Thus the `Restartable_Input_Stream` does not fully guarantee immutability
-     of the data.
+     of the data. The lifetime of such `Restartable_Input_Stream` is tied to the
+     lifetime of its backing file.
+
+     If the stream should stay usable for a longer time, `extend_lifetime=True`
+     should be passed when creating it.
 type Restartable_Input_Stream
     ## PRIVATE
        `bytes` may be a Vector or a raw `byte[]` array (convertible to vector, but no annotation to avoid conversions).
@@ -48,10 +52,12 @@ type Restartable_Input_Stream
         "Restartable_Input_Stream."+suffix
 
     ## PRIVATE
-    make (input_stream : Input_Stream) -> Restartable_Input_Stream =
+    make (input_stream : Input_Stream) (extend_lifetime : Boolean) -> Restartable_Input_Stream =
         case input_stream.associated_source of
             temp_file : Temporary_File -> Restartable_Input_Stream.From_Temporary_File temp_file
-            file : File -> Restartable_Input_Stream.From_Existing_File file
+            file : File ->
+                if extend_lifetime then cache_generic_input_stream input_stream else
+                    Restartable_Input_Stream.From_Existing_File file
             bytes : Vector -> Restartable_Input_Stream.From_Bytes bytes
             _ -> cache_generic_input_stream input_stream
 

@@ -125,11 +125,21 @@ type Input_Stream
 
     ## PRIVATE
        Converts this stream into a restartable stream.
-       The conversion tries to be efficient, avoiding reading the stream if it 
+
+       The conversion tries to be efficient, avoiding reading the stream if it
        is simply backed by a file or byte array.
        This stream is invalidated after the conversion.
-    as_restartable_stream self -> Restartable_Input_Stream =
-        Restartable_Input_Stream.make self
+
+       Arguments:
+       - extend_lifetime: This option is only applicable if the source stream
+         was backed by a file. If set to `True`, a new temporary file will be
+         created, to untie the lifetime of the returned stream from the backing
+         file. If set to `False`, the returned stream will be valid only as long
+         as the original backing file, but the operation will be more efficient
+         - so it is preferred if the caller can guarantee the lifetime of such
+         backing file.
+    as_restartable_stream self (extend_lifetime : Boolean = True) -> Restartable_Input_Stream =
+        Restartable_Input_Stream.make self extend_lifetime
 
     ## PRIVATE
     is_peekable self -> Boolean =

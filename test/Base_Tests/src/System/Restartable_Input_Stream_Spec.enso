@@ -49,12 +49,12 @@ add_specs suite_builder = suite_builder.group "Restartable Input Stream" group_b
         restartable_stream.with_fresh_stream stream->
             stream.read_n_bytes 4 . should_equal [1, 2, 3, 4]
 
-    group_builder.specify "will be backed by a file, if a file stream is converted" <|
+    group_builder.specify "will be backed by a file, if a file stream is converted and extend_lifetime=False" <|
         file = File.create_temporary_file "test" ".bin"
         [10, 20, 30, 40, 50].write_bytes file . should_succeed
 
         restartable_stream = file.with_input_stream [File_Access.Read] file_stream->
-            file_stream.as_restartable_stream
+            file_stream.as_restartable_stream extend_lifetime=False
 
         restartable_stream.with_fresh_stream stream->
             stream.read_n_bytes 3 . should_equal [10, 20, 30]
@@ -69,12 +69,19 @@ add_specs suite_builder = suite_builder.group "Restartable Input Stream" group_b
         restartable_stream.with_fresh_stream stream->
             stream.read_n_bytes 3 . should_equal [11, 12, 13]
 
-    group_builder.specify "will be backed by a temporary file if created from a temporary file stream" <|
-        tmp_file = Temporary_File.new
-        tmp_file.with_file f-> f.with_output_stream [File_Access.Write] file_stream->
-            file_stream.write_bytes [100, 110, 115, 120] . should_succeed
-        restartable_stream = tmp_file.with_file f-> f.with_input_stream [File_Access.Read] file_stream->
+    group_builder.specify "will not be tied to the original backing file if extend_lifetime=True (default)" <|
+        file = File.create_temporary_file "test" ".bin"
+        [10, 20, 30, 40, 50].write_bytes file . should_succeed
+
+        restartable_stream = file.with_input_stream [File_Access.Read] file_stream->
             file_stream.as_restartable_stream
-        restartable_stream.to_text . should_contain "From_Temporary_File"
+
         restartable_stream.with_fresh_stream stream->
-            stream.read_n_bytes 3 . should_equal [100, 110, 115]
+            stream.read_n_bytes 3 . should_equal [10, 20, 30]
+
+        # Modify backing file
+        [11, 12, 13, 14].write_bytes file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+
+        # The stream still yields old values because it was untied:
+        restartable_stream.with_fresh_stream stream->
+            stream.read_n_bytes 3 . should_equal [10, 20, 30]
