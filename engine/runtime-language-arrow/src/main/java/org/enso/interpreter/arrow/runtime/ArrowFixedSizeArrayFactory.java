@@ -2,6 +2,7 @@ package org.enso.interpreter.arrow.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateInline;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -50,6 +51,7 @@ public final class ArrowFixedSizeArrayFactory implements TruffleObject {
   }
 
   @GenerateUncached
+  @GenerateInline(false)
   abstract static class InstantiateNode extends Node {
     abstract ArrowFixedSizeArrayBuilder executeNew(LogicalLayout logicalLayout, long size);
 

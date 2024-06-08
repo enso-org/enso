@@ -47,6 +47,10 @@ public final class ArrowOperationPlus implements TruffleObject {
     return iop.getIterator(args[index]);
   }
 
+  ScalarOperationNode createScalarOp(boolean cached) {
+    return cached ? OperationPlus.create() : OperationPlus.getUncached();
+  }
+
   @ExportMessage(limit = "3")
   Object execute(
       Object[] args,
@@ -58,6 +62,8 @@ public final class ArrowOperationPlus implements TruffleObject {
       @CachedLibrary("it(args, iopArray0, 0)") InteropLibrary iopIt0,
       @CachedLibrary("it(args, iopArray1, 1)") InteropLibrary iopIt1,
       @CachedLibrary(limit = "3") InteropLibrary iopElem,
+      @Cached(value = "this.createScalarOp(true)", uncached = "this.createScalarOp(false)")
+          ScalarOperationNode opNode,
       @Cached ArrowFixedSizeArrayBuilder.AppendNode append,
       @Cached ArrowFixedSizeArrayBuilder.BuildNode build,
       @Cached InlinedExactClassProfile typeOfBuf0,
@@ -80,22 +86,7 @@ public final class ArrowOperationPlus implements TruffleObject {
       try {
         var elem0 = iopIt0.getIteratorNextElement(it0);
         var elem1 = iopIt1.getIteratorNextElement(it1);
-        Object res;
-        if (iopElem.fitsInLong(elem0) && iopElem.fitsInLong(elem1)) {
-          var l0 = iopElem.asLong(elem0);
-          var l1 = iopElem.asLong(elem1);
-          try {
-            res = Math.addExact(l0, l1);
-          } catch (ArithmeticException ex) {
-            res = NullValue.get();
-          }
-        } else {
-          if (iopElem.isNull(elem0) || iopElem.isNull(elem1)) {
-            res = NullValue.get();
-          } else {
-            throw UnsupportedTypeException.create(new Object[] {elem0, elem1});
-          }
-        }
+        var res = opNode.executeOp(elem0, elem1);
         append.executeAppend(builder, res);
       } catch (StopIterationException ex) {
         throw UnsupportedTypeException.create(new Object[] {it0, it1});
