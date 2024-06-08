@@ -24,7 +24,7 @@ import org.enso.languageserver.monitoring.{
   IdlenessEndpoint,
   IdlenessMonitor
 }
-import org.enso.languageserver.profiling.ProfilingManager
+import org.enso.languageserver.profiling.{EventsMonitorActor, ProfilingManager}
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -50,10 +50,12 @@ import org.enso.logger.masking.Masking
 import org.enso.logger.JulHandler
 import org.enso.logger.akka.AkkaConverter
 import org.enso.common.HostAccessFactory
+import org.enso.languageserver.boot.config.ApplicationConfig
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
+import org.enso.ydoc.Ydoc
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -81,6 +83,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     serverConfig,
     logLevel
   )
+
+  private val applicationConfig = ApplicationConfig.load()
 
   private val utcClock = Clock.systemUTC()
 
@@ -172,22 +176,39 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     "lock-manager-service"
   )
 
-  val runtimeEventsMonitor =
+  private val (runtimeEventsMonitor, messagesCallbackOpt) =
     languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
         val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
-        new RuntimeEventsMonitor(out)
+        new RuntimeEventsMonitor(out) -> Some(())
       case None =>
-        new NoopEventsMonitor()
+        new NoopEventsMonitor() -> None
     }
   log.trace(
     "Started runtime events monitor [{}].",
     runtimeEventsMonitor.getClass.getName
   )
 
+  private val eventsMonitor =
+    system.actorOf(
+      EventsMonitorActor.props(runtimeEventsMonitor),
+      "events-monitor"
+    )
+
+  private val messagesCallback =
+    messagesCallbackOpt
+      .map(_ => EventsMonitorActor.messagesCallback(eventsMonitor))
+      .toList
+
+  private val profilingManager =
+    system.actorOf(
+      ProfilingManager.props(eventsMonitor, distributionManager),
+      "profiling-manager"
+    )
+
   lazy val runtimeConnector =
     system.actorOf(
-      RuntimeConnector.props(lockManagerService, runtimeEventsMonitor),
+      RuntimeConnector.props(lockManagerService, eventsMonitor),
       "runtime-connector"
     )
 
@@ -370,12 +391,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     "project-settings-manager"
   )
 
-  val profilingManager =
-    system.actorOf(
-      ProfilingManager.props(runtimeConnector, distributionManager),
-      "profiling-manager"
-    )
-
   val libraryLocations =
     LibraryLocations.resolve(
       distributionManager,
@@ -476,7 +491,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           lazyMessageTimeout = 10.seconds,
           secureConfig       = secureConfig
         ),
-      List(healthCheckEndpoint, idlenessEndpoint)
+      List(healthCheckEndpoint, idlenessEndpoint),
+      messagesCallback
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
 
@@ -489,9 +505,18 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         outgoingBufferSize = 100,
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
-      )
+      ),
+      messagesCallback
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
+
+  private val ydoc = Ydoc
+    .builder()
+    .hostname(applicationConfig.ydoc.hostname)
+    .port(applicationConfig.ydoc.port)
+    .build()
+  ydoc.start()
+  log.debug("Started Ydoc server.")
 
   log.info(
     "Main module of the Language Server initialized with config [{}].",
@@ -502,6 +527,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     context.close()
+    runtimeEventsMonitor.close()
+    ydoc.close()
     log.info("Closed Language Server main module.")
   }
 

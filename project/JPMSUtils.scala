@@ -126,6 +126,10 @@ object JPMSUtils {
     truffleRelatedArtifacts
   }
 
+  lazy val extraMp = taskKey[Def.Classpath](
+    "Additional internal projects to put on the module path"
+  )
+
   /** Compiles a single `module-info.java` source file with the default java compiler (
     * the one that is defined for the project). Before the module-info is compiled, all the
     * class files from `scopeFilter` are copied into the `target` directory of the current project.
@@ -140,20 +144,22 @@ object JPMSUtils {
     * Compilation of `module-info.java` is skipped iff none of all the classes from all the dependencies
     * changed and if the `module-info.java` itself have not changed.
     *
+    * To put internal modules (any sbt project defined in `build.sbt`) on module path, use `extraMp` setting.
+    *
+    * Note that this task will only work if it is defined inside `Compile` scope. In other words, it won't work
+    * e.g. in `Test` scope.
+    *
     * @param copyDepsFilter The filter of scopes of the projects from which the class files are first
     *                    copied into the `target` directory before `module-info.java` is compiled.
     * @param modulePath IDs of dependencies that should be put on the module path. The modules
     *                   put into `modulePath` are filtered away from class-path, so that module-path
     *                   and class-path passed to the `javac` are exclusive.
-    * @param modulePathExtra More directories that should be added on `--module-path`. This parameter is of
-    *                        type [[File]], because this is how inter project dependencies are gathered.
     *
     * @see https://users.scala-lang.org/t/scala-jdk-11-and-jpms/6102/19
     */
   def compileModuleInfo(
     copyDepsFilter: ScopeFilter,
-    modulePath: Seq[ModuleID]  = Seq(),
-    modulePathExtra: Seq[File] = Seq()
+    modulePath: Seq[ModuleID] = Seq()
   ): Def.Initialize[Task[Unit]] =
     Def
       .task {
@@ -170,10 +176,11 @@ object JPMSUtils {
         val sourceProducts =
           productDirectories.all(copyDepsFilter).value.flatten
 
-        val moduleName     = javaModuleName.value
-        val cacheStore     = streams.value.cacheStoreFactory
-        val repoRootDir    = (LocalProject("enso") / baseDirectory).value
-        var someDepChanged = false
+        val extraModuleDirs = (Compile / extraMp).value.map(_.data)
+        val moduleName      = javaModuleName.value
+        val cacheStore      = streams.value.cacheStoreFactory
+        val repoRootDir     = (LocalProject("enso") / baseDirectory).value
+        var someDepChanged  = false
         sourceProducts.foreach(sourceProduct => {
           if (!sourceProduct.exists()) {
             log.error(s"Source product ${sourceProduct} does not exist")
@@ -216,7 +223,7 @@ object JPMSUtils {
                 mod.revision == moduleID.revision
               })
             })
-            val allDirsOnMp = mp.map(_.data) ++ modulePathExtra
+            val allDirsOnMp = mp.map(_.data) ++ extraModuleDirs
 
             val allOpts = baseJavacOpts ++ Seq(
               "--class-path",

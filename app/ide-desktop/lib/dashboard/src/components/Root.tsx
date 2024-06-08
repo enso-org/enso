@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import * as portal from '#/components/Portal'
 
 // ============
@@ -22,7 +23,9 @@ export function Root(props: RootProps) {
   return (
     <portal.PortalProvider value={portalRoot}>
       <aria.RouterProvider navigate={navigate}>
-        <aria.I18nProvider locale={locale}>{children}</aria.I18nProvider>
+        <aria.I18nProvider locale={locale}>
+          <ariaComponents.DialogStackProvider>{children}</ariaComponents.DialogStackProvider>
+        </aria.I18nProvider>
       </aria.RouterProvider>
     </portal.PortalProvider>
   )
