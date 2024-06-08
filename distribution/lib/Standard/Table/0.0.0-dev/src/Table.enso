@@ -1510,9 +1510,7 @@ type Table
     filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.filter filter_column.java_column)
-            filter_condition = case filter of
-                _ : Function ->  Panic.catch Any (filter:Filter_Condition) _->filter
-                _ -> filter
+            filter_condition = Filter_Condition.resolve_auto_scoped filter
             case filter_condition of
                 _ : Filter_Condition ->
                     resolved = (self:Table_Ref).resolve_condition filter_condition

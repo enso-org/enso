@@ -8,6 +8,7 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
@@ -687,8 +688,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         Test.expect_panic Type_Error <| [].drop "FOO"
 
         r1 = [].take (Index_Sub_Range.While)
-        r1.should_fail_with Illegal_Argument
-        r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+        r1.should_fail_with Missing_Argument
+        r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
 
         r2 = [].drop (Index_Sub_Range.Every ...)
         r2.should_fail_with Illegal_Argument
