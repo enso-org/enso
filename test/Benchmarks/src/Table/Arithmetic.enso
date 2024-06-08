@@ -15,8 +15,10 @@ create_vectors num_rows =
         if i % 10 < 2 then Java_Long.MAX_VALUE else i+1
     u = Vector.new num_rows i->
         10 + (i % 100)
+    z = Vector.new num_rows i->
+        if i % 10 < 2 then Nothing else i+1
 
-    [x, y, u]
+    [x, y, u, z]
 
 create_table : Table
 create_table num_rows =
@@ -24,15 +26,14 @@ create_table num_rows =
     x = v.at 0
     y = v.at 1
     u = v.at 2
+    z = v.at 3
 
-    t = Table.new [["X", x], ["Y", y], ["U", u]]
+    t = Table.new [["X", x], ["Y", y], ["U", u], ["Z", z]]
 
-    assert condition =
-        if condition.not then Panic.throw "Assertion failed"
-
-    assert ((t.at "X" . value_type) == Value_Type.Integer)
-    assert ((t.at "Y" . value_type) == Value_Type.Integer)
-    assert ((t.at "U" . value_type) == Value_Type.Integer)
+    Runtime.assert ((t.at "X" . value_type) == Value_Type.Integer)
+    Runtime.assert ((t.at "Y" . value_type) == Value_Type.Integer)
+    Runtime.assert ((t.at "U" . value_type) == Value_Type.Integer)
+    Runtime.assert ((t.at "Z" . value_type) == Value_Type.Integer)
     t
 
 foreign arrow int64_new = """
@@ -48,6 +49,7 @@ type Data
     arrow_x self = self.arrow.at 1
     arrow_y self = self.arrow.at 2
     arrow_u self = self.arrow.at 3
+    arrow_z self = self.arrow.at 4
 
     create num_rows = Data.Value (create_table num_rows) <|
         column_to_arrow v:Vector -> Array =
@@ -60,7 +62,8 @@ type Data
         x = column_to_arrow (v.at 0)
         y = column_to_arrow (v.at 1)
         u = column_to_arrow (v.at 2)
-        [int64_plus, x, y, u]
+        z = column_to_arrow (v.at 3)
+        [int64_plus, x, y, u, z]
 
 
 collect_benches = Bench.build builder->
@@ -69,6 +72,9 @@ collect_benches = Bench.build builder->
 
     column_arithmetic_plus_overflowing d =
         (d.table.at "Y") + (d.table.at "U")
+
+    column_arithmetic_plus_nothing d =
+        (d.table.at "Z") + (d.table.at "U")
 
     column_arithmetic_multiply_fitting d =
         (d.table.at "X") * (d.table.at "U")
@@ -82,17 +88,23 @@ collect_benches = Bench.build builder->
     arrow_arithmetic_plus_overflowing d =
         d.arrow_plus d.arrow_y d.arrow_u
 
+    arrow_arithmetic_plus_nothing d =
+        d.arrow_plus d.arrow_y d.arrow_u
+
     num_rows = 1000000
     data = Data.create num_rows
 
     Runtime.assert ((column_arithmetic_plus_fitting data . to_vector) == (arrow_arithmetic_plus_fitting data)) "Column and arrow correctness check one"
     Runtime.assert ((column_arithmetic_plus_overflowing data . to_vector) == (arrow_arithmetic_plus_overflowing data)) "Column and arrow correctness check two"
+    Runtime.assert ((column_arithmetic_plus_nothing data . to_vector) == (arrow_arithmetic_plus_nothing data)) "Column and arrow correctness check three"
 
     builder.group ("Column_Arithmetic_" + num_rows.to_text) options group_builder->
         group_builder.specify "Plus_Fitting" <|
             column_arithmetic_plus_fitting data
         group_builder.specify "Plus_Overflowing" <|
             column_arithmetic_plus_overflowing data
+        group_builder.specify "Plus_Nothing" <|
+            column_arithmetic_plus_nothing data
 
         group_builder.specify "Multiply_Fitting" <|
             column_arithmetic_multiply_fitting data
@@ -105,5 +117,8 @@ collect_benches = Bench.build builder->
 
         group_builder.specify "Plus_Overflowing" <|
             arrow_arithmetic_plus_overflowing data
+
+        group_builder.specify "Plus_Nothing" <|
+            arrow_arithmetic_plus_nothing data
 
 main = collect_benches . run_main
