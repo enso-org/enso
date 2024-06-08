@@ -16,7 +16,6 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.context.LocalScope;
-import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
