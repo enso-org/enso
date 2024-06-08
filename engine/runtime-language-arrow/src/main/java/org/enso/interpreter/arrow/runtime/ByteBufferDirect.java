@@ -1,5 +1,6 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateInline;
@@ -104,6 +105,17 @@ final class ByteBufferDirect implements AutoCloseable {
     return new ByteBufferDirect(allocated, dataBuffer, bitmapBuffer);
   }
 
+  @CompilerDirectives.TruffleBoundary
+  ByteBuffer initializeBitmapBuffer() {
+    assert bitmapBuffer == null;
+    bitmapBuffer =
+        allocated.slice(dataBuffer.capacity(), allocated.capacity() - dataBuffer.capacity());
+    for (var i = 0; i < bitmapBuffer.capacity(); i++) {
+      bitmapBuffer.put(i, (byte) 0xff);
+    }
+    return bitmapBuffer;
+  }
+
   @GenerateInline(false)
   @GenerateUncached
   abstract static class DataBufferNode extends Node {
@@ -126,17 +138,51 @@ final class ByteBufferDirect implements AutoCloseable {
     }
   }
 
-  static final class PutNode extends Node {
-    private static final PutNode UNCACHED = new PutNode(DataBufferNode.getUncached());
-    private @Child DataBufferNode dataBuffer;
+  @GenerateInline(false)
+  @GenerateUncached
+  abstract static class BitmapBufferNode extends Node {
+    static BitmapBufferNode create() {
+      return ByteBufferDirectFactory.BitmapBufferNodeGen.create();
+    }
 
-    private PutNode(DataBufferNode dbn) {
+    static BitmapBufferNode getUncached() {
+      return ByteBufferDirectFactory.BitmapBufferNodeGen.getUncached();
+    }
+
+    abstract ByteBuffer executeBitmapBuffer(ByteBufferDirect direct, boolean forceCreation);
+
+    @Specialization
+    static ByteBuffer profiledBitmapBuffer(
+        ByteBufferDirect direct,
+        boolean forceCreation,
+        @Bind("$node") Node node,
+        @Cached InlinedExactClassProfile bufferClazz) {
+
+      if (direct.bitmapBuffer == null) {
+        if (forceCreation) {
+          direct.bitmapBuffer = direct.initializeBitmapBuffer();
+        } else {
+          return null;
+        }
+      }
+      return bufferClazz.profile(node, direct.bitmapBuffer);
+    }
+  }
+
+  static final class PutNode extends Node {
+    private static final PutNode UNCACHED =
+        new PutNode(DataBufferNode.getUncached(), BitmapBufferNode.getUncached());
+    private @Child DataBufferNode dataBuffer;
+    private @Child BitmapBufferNode bitmapBuffer;
+
+    private PutNode(DataBufferNode dbn, BitmapBufferNode bbn) {
       this.dataBuffer = dbn;
+      this.bitmapBuffer = bbn;
     }
 
     @NeverDefault
     static PutNode create() {
-      return new PutNode(DataBufferNode.create());
+      return new PutNode(DataBufferNode.create(), BitmapBufferNode.create());
     }
 
     @NeverDefault
@@ -146,33 +192,56 @@ final class ByteBufferDirect implements AutoCloseable {
 
     final void put(ByteBufferDirect direct, byte b) {
       var db = dataBuffer.executeDataBuffer(direct);
-      direct.setValidityBitmap(db.position(), 1);
+      addValidityBitmap(direct, db.position(), 1);
       db.put(b);
     }
 
     final void putNull(ByteBufferDirect direct, LogicalLayout unit) {
       var db = dataBuffer.executeDataBuffer(direct);
       var index = db.position() / unit.sizeInBytes();
-      direct.setNull(index);
+
+      var bb = bitmapBuffer.executeBitmapBuffer(direct, true);
+
+      var bufferIndex = index >> 3;
+      var slot = bb.get(bufferIndex);
+      var byteIndex = index & BYTE_MASK;
+      var mask = ~(1 << byteIndex);
+      bb.put(bufferIndex, (byte) (slot & mask));
+
       db.position(db.position() + unit.sizeInBytes());
     }
 
     final void putShort(ByteBufferDirect direct, short value) {
       var db = dataBuffer.executeDataBuffer(direct);
-      direct.setValidityBitmap(db.position(), 2);
+      addValidityBitmap(direct, db.position(), 2);
       db.putShort(value);
     }
 
     final void putInt(ByteBufferDirect direct, int value) {
       var db = dataBuffer.executeDataBuffer(direct);
-      direct.setValidityBitmap(db.position(), 4);
+      addValidityBitmap(direct, db.position(), 4);
       db.putInt(value);
     }
 
     final void putLong(ByteBufferDirect direct, long value) throws UnsupportedMessageException {
       var db = dataBuffer.executeDataBuffer(direct);
-      direct.setValidityBitmap(db.position(), 8);
+      addValidityBitmap(direct, db.position(), 8);
       db.putLong(value);
+    }
+
+    private void addValidityBitmap(ByteBufferDirect direct, int pos, int size) {
+      var bb = bitmapBuffer.executeBitmapBuffer(direct, false);
+      if (bb == null) {
+        return;
+      }
+      var index = pos / size;
+      var bufferIndex = index >> 3;
+      var slot = bb.get(bufferIndex);
+      var byteIndex = index & BYTE_MASK;
+
+      var mask = 1 << byteIndex;
+      var updated = (slot | mask);
+      bb.put(bufferIndex, (byte) (updated));
     }
   }
 
@@ -216,42 +285,12 @@ final class ByteBufferDirect implements AutoCloseable {
   private boolean checkForNull(int index) {
     var bufferIndex = index >> 3;
     var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & byteMask;
+    var byteIndex = index & BYTE_MASK;
     var mask = 1 << byteIndex;
     return (slot & mask) == 0;
   }
 
-  private void setNull(int index) {
-    if (bitmapBuffer == null) {
-      this.bitmapBuffer =
-          allocated.slice(dataBuffer.capacity(), allocated.capacity() - dataBuffer.capacity());
-      for (var i = 0; i < bitmapBuffer.capacity(); i++) {
-        bitmapBuffer.put(i, (byte) 0xff);
-      }
-    }
-    var bufferIndex = index >> 3;
-    var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & byteMask;
-    var mask = ~(1 << byteIndex);
-    bitmapBuffer.put(bufferIndex, (byte) (slot & mask));
-  }
-
-  private void setValidityBitmap(int index0, int unitSize) {
-    if (bitmapBuffer == null) {
-      // all non-null
-      return;
-    }
-    var index = index0 / unitSize;
-    var bufferIndex = index >> 3;
-    var slot = bitmapBuffer.get(bufferIndex);
-    var byteIndex = index & byteMask;
-
-    var mask = 1 << byteIndex;
-    var updated = (slot | mask);
-    bitmapBuffer.put(bufferIndex, (byte) (updated));
-  }
-
-  private static final int byteMask = ~(~(1 << 3) + 1); // 7
+  private static final int BYTE_MASK = ~(~(1 << 3) + 1); // 7
 
   @Override
   public void close() throws Exception {
