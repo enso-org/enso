@@ -22,8 +22,13 @@ abstract class OperationPlus extends ScalarOperationNode {
     return OperationPlusNodeGen.getUncached();
   }
 
-  @Specialization
-  Object doLongs(long a, long b) {
+  @Specialization(rewriteOn = ArithmeticException.class)
+  long doLongs(long a, long b) {
+    return Math.addExact(a, b);
+  }
+
+  @Specialization(replaces = "doLongs")
+  Object doLongsWithOverflowCheck(long a, long b) {
     long res = a + b;
     long check1 = a ^ res;
     long check2 = b ^ res;
@@ -34,13 +39,26 @@ abstract class OperationPlus extends ScalarOperationNode {
     return res;
   }
 
-  @Specialization(guards = {"iop.fitsInLong(a)", "iop.fitsInLong(b)"})
+  @Specialization(
+      guards = {"iop.fitsInLong(a)", "iop.fitsInLong(b)"},
+      rewriteOn = ArithmeticException.class)
   Object doFitInLong(
       Object a, Object b, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop)
       throws UnsupportedMessageException {
     var la = iop.asLong(a);
     var lb = iop.asLong(b);
     return doLongs(la, lb);
+  }
+
+  @Specialization(
+      guards = {"iop.fitsInLong(a)", "iop.fitsInLong(b)"},
+      replaces = "doFitInLong")
+  Object doFitInLongWithOverflowCheck(
+      Object a, Object b, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    var la = iop.asLong(a);
+    var lb = iop.asLong(b);
+    return doLongsWithOverflowCheck(la, lb);
   }
 
   @Specialization(guards = {"iop.isNull(a) || iop.isNull(b)"})
