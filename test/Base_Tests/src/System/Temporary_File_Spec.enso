@@ -92,7 +92,7 @@ add_specs suite_builder =
             tmp.to_text . should_not_contain "pref"
             tmp.to_text . should_not_contain "suf"
 
-        group_builder.specify "should allow to materialize an input stream that is already associated with a temporary file without copying it" <|
+        group_builder.specify "should allow to materialize an input stream that is already associated with a temporary file without copying it (low-level)" <|
             tmp = Temporary_File.new
             tmp.with_file f->
                 "test payload 3" . write f
@@ -103,7 +103,7 @@ add_specs suite_builder =
             tmp2 = Temporary_File.from_stream_light stream
             # The returned tmp file should be the same one as original.
             tmp2.should_be_a Temporary_File
-            tmp2.unsafe_get.absolute.path . should_equal tmp.unsafe_get.absolute.path
+            tmp2.should_equal tmp
 
             # If the raw file is associated, the stream will return that File descriptor (not as temporary file, but regular one):
             stream3 = Input_Stream.new (FileInputStream.new java_file) (File_Error.handle_java_exceptions tmp.unsafe_get) associated_source=tmp.unsafe_get
@@ -122,6 +122,16 @@ add_specs suite_builder =
             tmp5 = Temporary_File.from_stream stream5
             tmp5.should_be_a Temporary_File
             tmp5.unsafe_get.absolute.path . should_not_equal tmp.unsafe_get.absolute.path
+
+        group_builder.specify "should allow to materialize an input stream opened to a temporary file without copying it" <|
+            tmp = Temporary_File.new
+            tmp.with_file f->
+                "test payload 4" . write f
+
+            tmp2 = tmp.with_file f-> f.with_input_stream [File_Access.Read] input_stream->
+                Temporary_File.from_stream_light input_stream
+            # The returned file should be the same as original
+            tmp2.should_equal tmp
 
 make_stream text =
     raw_stream = ByteArrayInputStream.new text.utf_8
