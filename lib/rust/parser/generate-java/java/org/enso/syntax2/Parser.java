@@ -1,14 +1,10 @@
 package org.enso.syntax2;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public final class Parser implements AutoCloseable {
   private static void initializeLibraries() {
@@ -25,7 +21,7 @@ public final class Parser implements AutoCloseable {
     File parser = null;
     try {
       var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
-  /*
+      /*
         try {
           if ("jar".equals(whereAmI.getProtocol()) && whereAmI.openConnection() instanceof JarURLConnection jar) {
             whereAmI = jar.getJarFileURL();
