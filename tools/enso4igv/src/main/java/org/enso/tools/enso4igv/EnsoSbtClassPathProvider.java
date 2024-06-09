@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.event.ChangeListener;
 import org.netbeans.api.java.classpath.ClassPath;
@@ -35,9 +37,11 @@ import org.openide.util.ImageUtilities;
 final class EnsoSbtClassPathProvider extends ProjectOpenedHook
 implements ClassPathProvider, SourceLevelQueryImplementation2, CompilerOptionsQueryImplementation,
 Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSources>, SourceForBinaryQueryImplementation2 {
+    private static final Logger LOG = Logger.getLogger(EnsoSources.class.getName());
     private static final String BOOT = "classpath/boot";
     private static final String SOURCE = "classpath/source";
     private static final String COMPILE = "classpath/compile";
+    private static final String MODULES_COMPILE = "modules/compile";
     private final EnsoSbtProject project;
     private final SourceGroup[] sources;
 
@@ -48,14 +52,22 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
 
     @Override
     public ClassPath findClassPath(FileObject file, String type) {
+        var res = findClassPathImpl(file, type);
+        LOG.log(Level.FINE, "findClassPath{0} for {1}  yields {2}", new Object[]{type, file, res});
+        return res;
+    }
+
+    private ClassPath findClassPathImpl(FileObject file, String type) {
         for (var g : sources) {
             if (g instanceof EnsoSources i && i.controlsSource(file)) {
-                return switch (type) {
+                var cp = switch (type) {
                     case SOURCE -> i.srcCp;
                     case COMPILE -> i.cp;
+                    case MODULES_COMPILE -> i.moduleCp;
                     case BOOT -> i.platform.getBootstrapLibraries();
                     default -> null;
                 };
+                return cp;
             }
         }
         return null;
@@ -84,11 +96,12 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     private static SourceGroup[] computeSbtClassPath(EnsoSbtProject prj) {
         var sources = new ArrayList<SourceGroup>();
         var platform = JavaPlatform.getDefault();
-        var roots = new LinkedHashSet<>();
-        var generatedSources = new LinkedHashSet<>();
-        var source = "19";
+        var roots = new LinkedHashSet<FileObject>();
+        var modulePath = new LinkedHashSet<FileObject>();
+        var generatedSources = new LinkedHashSet<FileObject>();
+        var source = "21";
         var options = new ArrayList<String>();
-        for (FileObject ch : prj.getProjectDirectory().getChildren()) {
+        for (var ch : prj.getProjectDirectory().getChildren()) {
             if (ch.getNameExt().startsWith(".enso-sources-")) {
                 Properties p = new Properties();
                 try (InputStream is = ch.getInputStream()) {
@@ -131,6 +144,22 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                         i++;
                         continue;
                     }
+                    if ("--module-path".equals(prop) && next != null) {
+                        var paths = next.split(File.pathSeparator);
+                        for (var element : paths) {
+                            FileObject fo = findProjectFileObject(prj, element);
+                            if (fo != null) {
+                                if (fo.isFolder()) {
+                                    modulePath.add(fo);
+                                } else {
+                                    var jarRoot = FileUtil.getArchiveRoot(fo);
+                                    modulePath.add(jarRoot);
+                                }
+                            }
+                        }
+                        i++;
+                        continue;
+                    }
                     if ("-s".equals(prop) && next != null) {
                         var fo = FileUtil.toFileObject(new File(next));
                         if (fo != null) {
@@ -139,29 +168,38 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                     }
                     options.add(prop);
                 }
-                var srcRoots = new LinkedHashSet<>();
+                var srcRoots = new LinkedHashSet<FileObject>();
 
                 var inputSrc = p.getProperty("input");
-                FileObject inputDir = findProjectFileObject(prj, inputSrc);
+                var inputDir = findProjectFileObject(prj, inputSrc);
                 if (inputDir != null) {
+                  var addSibblings = true;
                   if (inputDir.getNameExt().equals("org")) {
                     // lib/rust/parser doesn't follow typical project conventions
                     inputDir = inputDir.getParent();
+                    addSibblings = false;
                   }
                   srcRoots.add(inputDir);
-                }
-
-                var srcDir = prj.getProjectDirectory().getFileObject("src");
-                if (srcDir != null) {
-                    for (var group : srcDir.getChildren()) {
-                        if (group.isFolder()) {
-                            for (var child : group.getChildren()) {
-                                if (child.isFolder()) {
-                                    srcRoots.add(child);
-                                }
-                            }
-                        }
+                  if (addSibblings) {
+                    for (var sibbling : inputDir.getParent().getChildren()) {
+                      if (sibbling.isFolder() && sibbling != inputDir) {
+                        srcRoots.add(sibbling);
+                      }
                     }
+                  }
+                } else {
+                  var srcDir = prj.getProjectDirectory().getFileObject("src");
+                  if (srcDir != null) {
+                    for (var group : srcDir.getChildren()) {
+                      if (group.isFolder()) {
+                        for (var child : group.getChildren()) {
+                          if (child.isFolder()) {
+                            srcRoots.add(child);
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
                 srcRoots.addAll(generatedSources);
 
@@ -174,10 +212,14 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                   srcRoots.add(generatedDir);
                 }
 
+                for (var r : srcRoots) {
+                  assert r.isFolder() : "Expecting folders in " + srcRoots;
+                }
 
                 var cp = ClassPathSupport.createClassPath(roots.toArray(new FileObject[0]));
+                var moduleCp = ClassPathSupport.createClassPath(modulePath.toArray(new FileObject[0]));
                 var srcCp = ClassPathSupport.createClassPath(srcRoots.toArray(new FileObject[0]));
-                var s = new EnsoSources(cp, srcCp, platform, outputDir, source, options);
+                var s = new EnsoSources(cp, moduleCp, srcCp, platform, outputDir, source, options);
                 if ("main".equals(s.getName())) {
                   sources.add(0, s);
                 } else {
@@ -292,11 +334,11 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
 
     @Override
     public URL[] computeRoots(EnsoSources result) {
-      if (result.output() == null) {
-        return new URL[0];
-      } else {
-        return new URL[] { result.output().toURL() };
-      }
+        if (result.output() != null) {
+            return new URL[] { result.output().toURL() };
+        } else {
+            return new URL[0];
+        }
     }
 
     @Override
@@ -346,14 +388,21 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     }
 
     record EnsoSources(
-        ClassPath cp, ClassPath srcCp,
+        ClassPath cp,
+        ClassPath moduleCp,
+        ClassPath srcCp,
         JavaPlatform platform,
         FileObject output,
         String source, List<String> options
     ) implements SourceGroup {
         @Override
         public FileObject getRootFolder() {
-            return srcCp.getRoots()[0];
+            var arr = srcCp.getRoots();
+            if (arr.length == 0) {
+                LOG.log(Level.SEVERE, "Source classpath is empty for {0}", this);
+                return output;
+            }
+            return arr[0];
         }
 
         private FileObject[] getRoots() {

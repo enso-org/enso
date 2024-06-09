@@ -44,7 +44,7 @@ public abstract class PrintlnNode extends Node {
     try {
       print(ctx.getOut(), strings.asString(message));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible. `message` is guaranteed to be a string");
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
     return ctx.getNothing();
   }
@@ -63,7 +63,8 @@ public abstract class PrintlnNode extends Node {
       try {
         probablyStr = warnings.removeWarnings(probablyStr);
       } catch (UnsupportedMessageException e) {
-        throw CompilerDirectives.shouldNotReachHere(e);
+        var ctx = EnsoContext.get(this);
+        throw ctx.raiseAssertionPanic(this, null, e);
       }
     }
 
@@ -72,7 +73,8 @@ public abstract class PrintlnNode extends Node {
       try {
         str = strings.asString(probablyStr);
       } catch (UnsupportedMessageException e) {
-        throw CompilerDirectives.shouldNotReachHere(e);
+        var ctx = EnsoContext.get(this);
+        throw ctx.raiseAssertionPanic(this, null, e);
       }
     } else {
       str = fallbackToString(probablyStr);

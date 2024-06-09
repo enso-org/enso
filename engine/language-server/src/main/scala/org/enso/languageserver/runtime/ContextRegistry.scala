@@ -5,7 +5,8 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.{ClientId, Config}
 import org.enso.languageserver.event.{
   ExecutionContextCreated,
-  ExecutionContextDestroyed
+  ExecutionContextDestroyed,
+  JsonSessionTerminated
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.handler._
@@ -84,6 +85,8 @@ final class ContextRegistry(
       .subscribe(self, classOf[Api.ExecutionUpdate])
     context.system.eventStream
       .subscribe(self, classOf[Api.VisualizationEvaluationFailed])
+    context.system.eventStream
+      .subscribe(self, classOf[JsonSessionTerminated])
   }
 
   override def receive: Receive =
@@ -112,8 +115,11 @@ final class ContextRegistry(
       case update: Api.ExecutionUpdate =>
         store.getListener(update.contextId).foreach(_ ! update)
 
+      case update: Api.VisualizationExpressionFailed =>
+        store.getListener(update.ctx.contextId).foreach(_ ! update)
+
       case update: Api.VisualizationEvaluationFailed =>
-        store.getListener(update.contextId).foreach(_ ! update)
+        store.getListener(update.ctx.contextId).foreach(_ ! update)
 
       case CreateContextRequest(client, contextIdOpt) =>
         val contextId = contextIdOpt.getOrElse(UUID.randomUUID())
@@ -261,8 +267,13 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
-      case ExecuteExpression(clientId, visualizationId, expressionId, cfg) =>
-        val contextId = cfg.executionContextId
+      case ExecuteExpression(
+            clientId,
+            contextId,
+            visualizationId,
+            expressionId,
+            expression
+          ) =>
         if (store.hasContext(clientId, contextId)) {
           store.getListener(contextId).foreach { listener =>
             listener ! RegisterOneshotVisualization(
@@ -272,17 +283,18 @@ final class ContextRegistry(
             )
           }
           val handler = context.actorOf(
-            AttachVisualizationHandler.props(
+            ExecuteExpressionHandler.props(
               runtimeFailureMapper,
               timeout,
               runtime
             )
           )
           handler.forward(
-            Api.AttachVisualization(
+            Api.ExecuteExpression(
+              contextId,
               visualizationId,
               expressionId,
-              cfg.toApi
+              expression
             )
           )
         } else {
@@ -345,6 +357,11 @@ final class ContextRegistry(
           )
         } else {
           sender() ! AccessDenied
+        }
+
+      case JsonSessionTerminated(session) =>
+        store.contexts.getOrElse(session.clientId, Set()).map { contextId =>
+          self ! DestroyContextRequest(session, contextId)
         }
     }
 

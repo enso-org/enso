@@ -4,6 +4,9 @@ import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
+import project.Data.Set.Set
+import project.Data.Vector.Map_Error
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
@@ -13,6 +16,7 @@ import project.Runtime
 import project.Runtime.Source_Location.Source_Location
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False, True
+from project.Function import flip
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
@@ -24,6 +28,12 @@ type Warning
     attach warning value =
         origin = Runtime.get_stack_trace
         attach_with_stacktrace value warning (origin.drop (Index_Sub_Range.First 1))
+
+    ## PRIVATE
+       ADVANCED
+       Attaches a new warning to the value.
+    attach_multiple : Vector Any -> Any -> Any
+    attach_multiple warnings value = warnings.fold value (flip Warning.attach)
 
     ## PRIVATE
        ADVANCED
@@ -43,22 +53,28 @@ type Warning
         Warning.detach_selected_warnings value (w-> w.is_a warning_type) . first
 
     ## GROUP Errors
+       ICON error
        Throws the first matching warning (either all or of a specified type) as a data flow error.
 
        Arguments:
        - warning_type: The type to throw if attached to the value. Defaults to all warnings.
-    throw_on_warning : Any -> Any
-    throw_on_warning self warning_type=Any =
-        warnings = Warning.get_all self
+    throw_on_warning : Any -> Any -> Any
+    throw_on_warning value warning_type=Any =
+        warnings = Warning.get_all value
         first = warnings.find (w-> w.value.is_a warning_type) if_missing=Nothing
-        if first.is_nothing then self else Error.throw first.value
+        if first.is_nothing then value else Error.throw first.value
 
     ## PRIVATE
        ADVANCED
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
-    get_all : Any -> Vector Warning
-    get_all value = Vector.from_polyglot_array (get_all_array value)
+
+       Arguments:
+       - value: The value to get the attached warnings of.
+       - wrap_errors: If true, warnings attached to elements in array-likes are
+         wrapped in Map_Error.
+    get_all : Any -> Boolean -> Vector Warning
+    get_all value wrap_errors:Boolean=False = get_all_vector value wrap_errors
 
     ## PRIVATE
        ADVANCED
@@ -227,11 +243,14 @@ type Warning
                 Warning.attach warning acc
 
     ## GROUP Metadata
+       ICON metadata
        Returns the warning value – usually its explanation or other contents.
     value : Any
     value self = @Builtin_Method "Warning.value"
 
     ## ADVANCED
+       GROUP Metadata
+       ICON metadata
 
        A stack trace for the original warning creation.
     origin : Vector Stack_Trace_Element
@@ -287,8 +306,8 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
 ## PRIVATE
 
    Builtin function that gets all the warnings attached to the given value.
-get_all_array : Any -> Array Warning
-get_all_array value = @Builtin_Method "Warning.get_all_array"
+get_all_vector : Any -> Boolean -> Vector Warning
+get_all_vector value should_wrap = @Builtin_Method "Warning.get_all_vector"
 
 ## PRIVATE
 
@@ -308,7 +327,7 @@ set_array value warnings = @Builtin_Method "Warning.set_array"
 map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
 map_attached_warnings_helper mapper value frames_to_drop =
     warnings = Warning.get_all value
-    mapped_warnings = warnings.map warning->
+    mapped_warnings = warnings.map on_problems=No_Wrap warning->
         case mapper warning.value of
             Maybe.Some new_payload ->
                 self_call_name = "Warning.map_attached_warnings_helper"

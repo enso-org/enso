@@ -34,18 +34,6 @@ class ExecutionContextManager {
       contexts -= id
     }
 
-  /** Gets a context with a given id.
-    *
-    * @param id the context id.
-    * @return the context with the given id, if exists.
-    */
-  def get(id: ContextId): Option[ContextId] =
-    synchronized {
-      for {
-        _ <- contexts.get(id)
-      } yield id
-    }
-
   /** Gets a stack for a given context id.
     *
     * @param id the context id.
@@ -102,6 +90,20 @@ class ExecutionContextManager {
       contexts.contains(contextId)
     }
 
+  /** Set oneshot expression for the specified context.
+    *
+    * @param contextId the identifier of the execution context
+    * @param oneshotExpression the oneshot visualization
+    */
+  def setOneshotExpression(
+    contextId: ContextId,
+    oneshotExpression: OneshotExpression
+  ): Unit =
+    synchronized {
+      val state = contexts(contextId)
+      state.visualizations.setOneshotExpression(oneshotExpression)
+    }
+
   /** Upserts a visualization for the specified context.
     *
     * @param contextId the identifier of the execution context
@@ -114,6 +116,16 @@ class ExecutionContextManager {
     synchronized {
       val state = contexts(contextId)
       state.visualizations.upsert(visualization)
+    }
+
+  /** Gets a context with a given id.
+    *
+    * @param id the context id.
+    * @return the context with the given id, if exists.
+    */
+  def getVisualizationHolder(id: ContextId): VisualizationHolder =
+    synchronized {
+      contexts.get(id).map(_.visualizations).getOrElse(new VisualizationHolder)
     }
 
   /** Get visualizations of all execution contexts. */

@@ -1,0 +1,45 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+
+add_specs suite_builder =
+    suite_builder.group "identity" group_builder->
+        group_builder.specify "identity on number" <|
+            (identity 5) . should_equal 5
+
+        group_builder.specify "identity on text" <|
+            (identity '5') . should_equal '5'
+
+        group_builder.specify "identity on boolean" <|
+            (identity False) . should_equal False
+
+    suite_builder.group "flip" group_builder->
+        group_builder.specify "flip on number" <|
+            (flip (-) 2 5) . should_equal 3
+
+        group_builder.specify "flip on text" <|
+            (flip (+) "world" "hello") . should_equal "helloworld"
+
+    suite_builder.group "const" group_builder->
+        group_builder.specify "const on number" <|
+            two = const 2
+            two 5 . should_equal 2
+
+    suite_builder.group "curry" group_builder->
+        group_builder.specify "curry on number list" <|
+            sum = x -> x.fold 0 (+)
+            sum [1, 2, 3, 4] . should_equal 10
+            plus = curry sum
+            plus 6 3 . should_equal 9
+
+    suite_builder.group "uncurry" group_builder->
+        group_builder.specify "uncurry on number list" <|
+            times = uncurry (*)
+            times [6, 7] . should_equal 42
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

@@ -10,6 +10,7 @@ import org.enso.interpreter.instrument.job.{
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 
+import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that modifies a visualization.
@@ -29,6 +30,11 @@ class ModifyVisualizationCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
+    ctx.executionService.getLogger.log(
+      Level.FINE,
+      "Modify visualization cmd for request id [{}] and visualization id [{}]",
+      Array[Object](maybeRequestId, request.visualizationId)
+    )
     val existingVisualization = ctx.contextManager.getVisualizationById(
       request.visualizationConfig.executionContextId,
       request.visualizationId
@@ -38,7 +44,7 @@ class ModifyVisualizationCmd(
         val jobFilter: PartialFunction[Job[_], Option[ExpressionId]] = {
           case upsert: UpsertVisualizationJob
               if upsert.visualizationId == request.visualizationId =>
-            Some(upsert.key)
+            Some(upsert.expressionId)
         }
         ctx.jobControlPlane.jobInProgress(jobFilter)
       }
@@ -69,9 +75,7 @@ class ModifyVisualizationCmd(
 
           case Some(exec) =>
             for {
-              _ <- Future {
-                ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
-              }
+              _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
               _ <- ctx.jobProcessor.run(ExecuteJob(exec))
             } yield ()
         }

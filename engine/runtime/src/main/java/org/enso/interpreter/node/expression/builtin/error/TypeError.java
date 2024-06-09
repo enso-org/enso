@@ -13,6 +13,6 @@ public class TypeError extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("expected", "actual", "name");
+    return List.of("expected", "actual", "comment");
   }
 }

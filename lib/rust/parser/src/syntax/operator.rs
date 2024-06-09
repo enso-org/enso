@@ -107,7 +107,8 @@ fn starts_new_no_space_group(item: &syntax::item::Item) -> bool {
         return true;
     }
     if let syntax::item::Item::Token(Token { variant: token::Variant::Operator(opr), .. }) = item
-            && opr.properties.is_sequence() {
+        && opr.properties.is_sequence()
+    {
         return true;
     }
     false
@@ -136,13 +137,27 @@ impl<'s> ExpressionBuilder<'s> {
     /// Extend the expression with an operand.
     pub fn operand(&mut self, operand: Operand<syntax::Tree<'s>>) {
         if self.prev_type == Some(ItemType::Ast) {
-            if let Some(Operand { value: syntax::Tree { variant: box
-                    syntax::tree::Variant::TextLiteral(ref mut lhs), .. }, .. }) = self.output.last_mut()
-                    && !lhs.closed
-                    && let box syntax::tree::Variant::TextLiteral(mut rhs) = operand.value.variant {
-                syntax::tree::join_text_literals(lhs, &mut rhs, operand.value.span);
-                if let syntax::tree::TextLiteral { open: Some(open), newline: None, elements, closed: true, close: None } = lhs
-                    && open.code.starts_with('#') {
+            if let Some(Operand {
+                value:
+                    syntax::Tree {
+                        variant: box syntax::tree::Variant::TextLiteral(ref mut lhs),
+                        span: lhs_span,
+                    },
+                ..
+            }) = self.output.last_mut()
+                && !lhs.closed
+                && let box syntax::tree::Variant::TextLiteral(mut rhs) = operand.value.variant
+            {
+                syntax::tree::join_text_literals(lhs, &mut rhs, lhs_span, operand.value.span);
+                if let syntax::tree::TextLiteral {
+                    open: Some(open),
+                    newline: None,
+                    elements,
+                    closed: true,
+                    close: None,
+                } = lhs
+                    && open.code.starts_with('#')
+                {
                     let elements = mem::take(elements);
                     let mut open = open.clone();
                     let lhs_tree = self.output.pop().unwrap().value;
@@ -202,7 +217,8 @@ impl<'s> ExpressionBuilder<'s> {
             && let Some(prev_opr) = self.operator_stack.last_mut()
             && let Arity::Binary { tokens, .. } = &mut prev_opr.opr
             && !self.nospace
-            && let Unary::Simple(opr) = arity {
+            && let Unary::Simple(opr) = arity
+        {
             tokens.push(opr);
             return;
         }
@@ -221,7 +237,8 @@ impl<'s> ExpressionBuilder<'s> {
     fn unary_operator_section(&mut self, opr: token::Operator<'s>) {
         if self.prev_type == Some(ItemType::Opr)
             && let Some(prev_opr) = self.operator_stack.last_mut()
-            && let Arity::Binary { tokens, .. } = &mut prev_opr.opr {
+            && let Arity::Binary { tokens, .. } = &mut prev_opr.opr
+        {
             // Multiple-operator error.
             tokens.push(opr);
         } else {
@@ -241,12 +258,21 @@ impl<'s> ExpressionBuilder<'s> {
         opr: token::Operator<'s>,
     ) {
         if self.prev_type == Some(ItemType::Opr)
-                && let Some(prev_opr) = self.operator_stack.last_mut()
-                && let Arity::Binary { tokens, .. } = &mut prev_opr.opr {
+            && let Some(prev_opr) = self.operator_stack.last_mut()
+            && let Arity::Binary { tokens, .. } = &mut prev_opr.opr
+        {
             if tokens.len() == 1 && tokens[0].properties.is_dot() {
                 let Token { left_offset, code, .. } = opr;
                 let is_operator = true;
-                let opr_ident = token::ident(left_offset, code, default(), default(), default(), is_operator, default());
+                let opr_ident = token::ident(
+                    left_offset,
+                    code,
+                    default(),
+                    default(),
+                    default(),
+                    is_operator,
+                    default(),
+                );
                 self.output.push(Operand::from(syntax::Tree::ident(opr_ident)));
                 self.prev_type = Some(ItemType::Ast);
                 return;
@@ -315,9 +341,10 @@ impl<'s> ExpressionBuilder<'s> {
                         let ast = syntax::tree::apply_operator(lhs, tokens, rhs);
                         Operand::from(ast)
                     } else if self.nospace
-                            && tokens.len() < 2
-                            && let Some(opr) = tokens.first()
-                            && opr.properties.can_form_section() {
+                        && tokens.len() < 2
+                        && let Some(opr) = tokens.first()
+                        && opr.properties.can_form_section()
+                    {
                         let mut rhs = None;
                         let mut elided = 0;
                         let mut wildcards = 0;
@@ -401,9 +428,10 @@ impl<'s> ExpressionBuilder<'s> {
             return;
         }
         if child.prev_type == Some(ItemType::Opr)
-                && let Arity::Binary { tokens, .. } = &child.operator_stack.last().unwrap().opr
-                && let Some(token) = tokens.last()
-                && token.properties.is_arrow() {
+            && let Arity::Binary { tokens, .. } = &child.operator_stack.last().unwrap().opr
+            && let Some(token) = tokens.last()
+            && token.properties.is_arrow()
+        {
             let precedence = token::Precedence::min_valid();
             let associativity = token::Associativity::Right;
             let fragment = ExpressionBuilder {

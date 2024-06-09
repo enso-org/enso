@@ -1,9 +1,0 @@
-[package]
-name = "ensogl-shadow"
-version = "0.1.0"
-authors = ["Enso Team <contact@enso.org>"]
-edition = "2021"
-
-[dependencies]
-ensogl-core = { path = "../../core" }
-ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }

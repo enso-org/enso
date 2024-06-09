@@ -20,14 +20,14 @@ const RENAME = new Map([
   ['type', 'typeNode'],
   // Rename source references to reflect our usage:
   // - In `Tree`s:
-  ['spanLeftOffsetCodeOffsetUtf16', 'whitespaceStartInCodeParsed'],
-  ['spanLeftOffsetCodeUtf16', 'whitespaceLengthInCodeParsed'],
+  ['spanLeftOffsetCodeStartUtf16', 'whitespaceStartInCodeParsed'],
+  ['spanLeftOffsetCodeLenUtf16', 'whitespaceLengthInCodeParsed'],
   ['spanCodeLengthUtf16', 'childrenLengthInCodeParsed'],
   // - In `Tokens`s:
-  ['leftOffsetCodeOffsetUtf16', 'whitespaceStartInCodeBuffer'],
-  ['leftOffsetCodeUtf16', 'whitespaceLengthInCodeBuffer'],
-  ['codeUtf16', 'lengthInCodeBuffer'],
-  ['codeOffsetUtf16', 'startInCodeBuffer'],
+  ['leftOffsetCodeStartUtf16', 'whitespaceStartInCodeBuffer'],
+  ['leftOffsetCodeLenUtf16', 'whitespaceLengthInCodeBuffer'],
+  ['codeLenUtf16', 'lengthInCodeBuffer'],
+  ['codeStartUtf16', 'startInCodeBuffer'],
 ])
 
 export function mapIdent(ident: string): string {

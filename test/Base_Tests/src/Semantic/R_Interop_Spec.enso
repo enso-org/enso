@@ -1,0 +1,185 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+
+foreign js my_method a b = """
+    return a + b;
+
+type My_Type
+    Value a b
+
+    foreign r my_method self = """
+        self$a + self$b
+
+    my_method_2 self x = self.my_method * x
+
+    foreign r my_method_3 self y = """
+        r <- self@my_method_2(y)
+        r + 1
+
+    foreign r my_throw self = """
+        stop("error in R code!", call.=FALSE)
+
+    do_throw self = Panic.throw "error!"
+
+    foreign r do_catch = """
+        tryCatch(self@do_throw(), error = function(e) e$message)
+
+foreign r make_object = """
+    x = 10
+    list(x=x, y=FALSE, compare=function(guess) x < guess)
+
+foreign r make_array = """
+    list(list(x=30), list(x=10), list(x=20))
+
+foreign r make_num_array = """
+    list(30, 10, 20)
+
+foreign r make_str str = """
+    paste("foo", str, "bar", sep=" ")
+
+foreign r does_not_parse = """
+    @@ x y z foo
+
+foreign r make_int = """
+    10
+
+foreign r make_double = """
+    10.5
+
+foreign r make_true = """
+    TRUE
+
+foreign r make_false = """
+    FALSE
+
+foreign r make_null = """
+    NULL
+
+add_specs suite_builder =
+    pending = if Polyglot.is_language_installed "R" then Nothing else """
+        Can't run R tests, R is not installed.
+    suite_builder.group "Polyglot R" pending=pending group_builder->
+        group_builder.specify "should allow declaring module-level methods in R" <|
+            my_method 1 2 . should_equal 3
+
+        group_builder.specify "should allow mutual calling of instance-level methods" <|
+            My_Type.Value 3 4 . my_method_3 5 . should_equal 36
+
+        group_builder.specify "should expose methods and fields of R objects" <|
+            obj = make_object
+            obj.x . should_equal 10
+            obj.y . should_be_false
+            obj.compare 5 . should_be_false
+            obj.compare 11 . should_be_true
+
+        group_builder.specify "should expose array interfaces for R arrays" <|
+            vec = Vector.from_polyglot_array make_array
+            vec.map .x . should_equal [30, 10, 20]
+
+            arr = vec.map .x . to_array
+            sorted = arr.sort
+            arr . should_equal [30, 10, 20]
+            sorted . should_equal [10, 20, 30]
+
+            arr_2 = make_num_array
+            sorted_2 = arr_2.sort
+            arr_2 . should_equal [30, 10, 20]
+            sorted_2 . should_equal [10, 20, 30]
+
+        group_builder.specify "should correctly marshall strings" <|
+            str = make_str "x" + " baz"
+            str.should_equal "foo x bar baz"
+
+        group_builder.specify "should make R strings type pattern-matchable" <|
+            str = make_str "x"
+            t = case str of
+                Text -> False
+                _ : Text -> True
+                _ -> False
+            t.should_be_true
+
+        group_builder.specify "should make R booleans type pattern-matchable" <|
+            bool = make_true
+            t = case bool of
+                True -> True
+                _ -> False
+            t.should_be_true
+            bool_2 = make_false
+            f = case bool_2 of
+                False -> True
+                _ -> False
+            f.should_be_true
+            c = case bool of
+                _ : Boolean -> True
+                _ -> False
+            c.should_be_true
+            c_2 = case bool_2 of
+                _ : Boolean -> True
+                _ -> False
+            c_2.should_be_true
+
+        group_builder.specify "should make R arrays type pattern-matchable as arrays" <|
+            arr = make_array
+            r = case arr of
+                Array -> False
+                _ : Array -> True
+                _ -> False
+            r.should_be_true
+
+        group_builder.specify "should make R numbers type pattern-matchable" <|
+            int_match = case make_int of
+                _ : Integer -> True
+                _ -> False
+            int_match.should_be_true
+            double_match = case make_double of
+                _ : Float -> True
+                _ -> False
+            double_match.should_be_true
+            num_int_match = case make_int of
+                _ : Number -> True
+                _ -> False
+            num_int_match.should_be_true
+            num_double_match = case make_double of
+                _ : Number -> True
+                _ -> False
+            num_double_match.should_be_true
+
+        group_builder.specify "should make R null objects equal to Nothing" <|
+            r_null = make_null
+            r_null . should_equal Nothing
+
+        group_builder.specify "should allow Enso to catch R exceptions" <|
+            value = My_Type.Value 1 2
+            result = Panic.recover Any <| value.my_throw
+            err = result.catch
+            err.to_text.should_equal "Error: error in R code!"
+            err.to_display_text.should_equal "Error: error in R code!"
+
+        pending="R does not support catching polyglot exceptions"
+        group_builder.specify "should allow R to catch Enso exceptions" pending=pending <|
+            value = My_Type.Value 7 2
+            result = value.do_catch
+            result . should_equal 7
+
+        group_builder.specify "should properly report parse errors" <|
+            err = Panic.recover Any does_not_parse . catch
+            err.to_text.should_contain 'parse exception'
+            err.to_display_text.should_contain 'parse exception'
+
+        group_builder.specify "should perform maths with mixed numbers" <|
+            r_num = make_int
+            enso_num = 10
+            (enso_num + r_num) . should_equal 20
+            (r_num - enso_num) . should_equal 0
+
+        group_builder.specify "should propagate dataflow errors" <|
+            error = Error.throw 42
+            my_method error 0 . should_fail_with Integer
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

@@ -17,6 +17,7 @@ crate-type = ["rlib"]
 default = []
 
 [dependencies]
-bytemuck = { workspace = true }
-serde = { version = "1.0.126", features = ["derive", "rc"] }
-paste = { workspace = true }
+serde = { workspace = true }
+
+[lints]
+workspace = true

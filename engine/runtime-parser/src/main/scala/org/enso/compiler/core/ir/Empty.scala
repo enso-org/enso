@@ -1,7 +1,9 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+
+import java.util.UUID
 
 /** A node representing an empty IR construct that can be used in any place.
   *
@@ -11,13 +13,12 @@ import org.enso.compiler.core.IR.{randomId, ToStringHelper}
   */
 sealed case class Empty(
   override val location: Option[IdentifiedLocation],
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage      = new MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends IR
     with Expression
-    with Diagnostic
-    with IRKind.Primitive {
-  override protected var id: IR.Identifier = randomId
+    with IRKind.Primitive
+    with LazyId {
 
   /** Creates a copy of `this`
     *
@@ -31,7 +32,7 @@ sealed case class Empty(
     location: Option[IdentifiedLocation] = location,
     passData: MetadataStorage            = passData,
     diagnostics: DiagnosticStorage       = diagnostics,
-    id: IR.Identifier                    = id
+    id: UUID @Identifier                 = id
   ): Empty = {
     val res = Empty(location, passData, diagnostics)
     res.id = id
@@ -47,10 +48,11 @@ sealed case class Empty(
   ): Empty =
     copy(
       location = if (keepLocations) location else None,
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = if (keepIdentifiers) id else randomId
+      id = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */
@@ -58,7 +60,9 @@ sealed case class Empty(
     copy(location = location)
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Empty = this
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Empty = this
 
   /** @inheritdoc */
   override def toString: String =
@@ -73,13 +77,6 @@ sealed case class Empty(
 
   /** @inheritdoc */
   override def children: List[IR] = List()
-
-  /** @inheritdoc */
-  override def message: String =
-    "Empty IR: Please report this as a compiler bug."
-
-  /** @inheritdoc */
-  override def diagnosticKeys(): Array[Any] = Array()
 
   /** @inheritdoc */
   override def showCode(indent: Int): String = "IR.Empty"

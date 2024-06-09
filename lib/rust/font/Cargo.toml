@@ -10,3 +10,6 @@ derive_more = { workspace = true }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true

@@ -12,6 +12,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 
 ## ALIAS text input
    GROUP Standard.Base.Constants
+   ICON text_input
 
    Creating text in Enso is as simple as adding a node that contains the text
    that you would like to create.
@@ -24,6 +25,7 @@ text_input = Unimplemented.throw "This function should not be called."
 
 ## ALIAS number input
    GROUP Standard.Base.Constants
+   ICON input_number
 
    Creating a number in Enso is as simple as adding a node that contains the
    number that you would like to create.
@@ -39,10 +41,11 @@ text_input = Unimplemented.throw "This function should not be called."
      Creating a node containing the decimal 0.0.
 
          0.0
-number_input = Unimplemented.throw "This function should not be called."
+input_number = Unimplemented.throw "This function should not be called."
 
 ## ALIAS table input
    GROUP Standard.Base.Constants
+   ICON data_input
 
    Creating a table in Enso is usually done directly from data. Nevertheless, it
    can be useful to create tables manually.

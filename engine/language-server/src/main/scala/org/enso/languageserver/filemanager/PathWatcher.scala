@@ -18,13 +18,16 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.effect._
 import org.enso.languageserver.event.JsonSessionTerminated
+import org.enso.languageserver.filemanager.PathWatcher.{
+  ForwardRequest,
+  ForwardResponse
+}
 import org.enso.languageserver.util.UnhandledLogging
-import zio._
+import zio.ZIO
 
 import java.io.File
-
 import scala.concurrent.Await
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /** Starts [[Watcher]], handles errors, converts and sends
   * events to the client.
@@ -78,7 +81,7 @@ final class PathWatcher(
         _       <- ZIO.fromEither(startWatcher(watcher))
       } yield ()
 
-    exec
+    val executedResult = exec
       .exec(result)
       .map {
         case Right(()) => CapabilityAcquired
@@ -86,15 +89,29 @@ final class PathWatcher(
       }
       .pipeTo(sender())
 
-    pathToWatchResult.onComplete {
-      case Success(Right(root)) =>
-        logger.info("Initialized [{}] for [{}].", watcherFactory.getClass, path)
-        context.become(initializedStage(root, path, clients))
-      case Success(Left(err)) =>
-        logger.error("Failed to resolve the path [{}]. {}", path, err)
-        context.stop(self)
+    Try(Await.ready(executedResult, config.timeout)) match {
+      case Success(_) =>
+        pathToWatchResult.onComplete {
+          case Success(Right(root)) =>
+            logger.info(
+              "Initialized [{}] for [{}].",
+              watcherFactory.getClass,
+              path
+            )
+            context.become(initializedStage(root, path, clients))
+          case Success(Left(err)) =>
+            logger.error("Failed to resolve the path [{}]. {}", path, err)
+            context.stop(self)
+          case Failure(err) =>
+            logger.error("Failed to resolve the path [{}]", path, err)
+            context.stop(self)
+        }
       case Failure(err) =>
-        logger.error("Failed to resolve the path [{}]", path, err)
+        logger.error(
+          "Failed to initialize path watcher for path [{}]. {}",
+          path,
+          err
+        )
         context.stop(self)
     }
   }
@@ -108,9 +125,14 @@ final class PathWatcher(
       sender() ! CapabilityAcquired
       context.become(initializedStage(root, base, clients ++ newClients))
 
-    case UnwatchPath(client) =>
-      sender() ! CapabilityReleased
-      unregisterClient(root, base, clients - client)
+    case ForwardRequest(originalSender, UnwatchPath(client)) =>
+      val newClients = clients - client
+      sender() ! ForwardResponse(
+        originalSender,
+        CapabilityReleased,
+        newClients.isEmpty
+      )
+      unregisterClient(root, base, newClients)
 
     case JsonSessionTerminated(client)
         if clients.contains(client.rpcController) =>
@@ -118,7 +140,17 @@ final class PathWatcher(
 
     case e: Watcher.WatcherEvent =>
       restartCounter.reset()
-      val event = FileEvent.fromWatcherEvent(root, base, e)
+
+      val fileInfo =
+        if (e.eventType == Watcher.EventTypeDelete) ZIO.fail(FileNotFound)
+        else fs.info(e.path.toFile)
+
+      exec
+        .exec(fileInfo)
+        .map(FileEvent.fromWatcherEvent(root, base, e, _))
+        .pipeTo(self)
+
+    case event: FileEvent =>
       clients.foreach(_ ! FileEventResult(event))
       context.system.eventStream.publish(event)
 
@@ -174,7 +206,7 @@ final class PathWatcher(
     Either
       .catchNonFatal {
         fileWatcher = Some(watcher)
-        exec.exec_(ZIO.attempt(watcher.start()))
+        exec.exec__(ec => ZIO.attempt(watcher.start(ec.asJava)))
       }
       .leftMap(errorHandler)
 
@@ -222,6 +254,21 @@ object PathWatcher {
     def canRestart: Boolean =
       restartCount < maxRestarts
   }
+
+  /** A PathWatcher request that should be replied to the handler rather than sender.
+    *
+    * @param sender the original sender of the request
+    * @param request the request to be handled by `PathWatcher`
+    */
+  case class ForwardRequest(sender: ActorRef, request: Any)
+
+  /** A PathWatcher response to the proxy (handler) containing information about the original sender.
+    *
+    * @param sender the original sender of the request
+    * @param response response that should be sent to the `sender`
+    * @param last true, if the handling path watcher will shutdown after serving this request, false otherwise
+    */
+  case class ForwardResponse(sender: ActorRef, response: Any, last: Boolean)
 
   /** Creates a configuration object used to create a [[PathWatcher]].
     *

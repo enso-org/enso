@@ -1,7 +1,7 @@
 package org.enso.projectmanager.service.versionmanagement
 
 import akka.actor.ActorRef
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.projectmanager.data.EngineVersion
 import org.enso.projectmanager.service.ProjectServiceFailure
 

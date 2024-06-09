@@ -100,7 +100,8 @@ class TestDistributionConfiguration(
     val javaCommand = JavaCommand(currentProcess, None)
     new JVMSettings(
       javaCommandOverride = Some(javaCommand),
-      jvmOptions          = Seq()
+      jvmOptions          = Seq(),
+      extraOptions        = Seq()
     )
   }
 

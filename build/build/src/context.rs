@@ -24,7 +24,7 @@ pub struct BuildContext {
 
     /// Remote repository is used for release-related operations. This also includes deducing a new
     /// version number.
-    pub remote_repo: ide_ci::github::Repo,
+    pub remote_repo: github::Repo,
 }
 
 impl BuildContext {

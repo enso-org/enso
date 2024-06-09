@@ -105,7 +105,7 @@ pub fn progress_bar(f: impl FnOnce() -> ProgressBar) -> ProgressBar {
 }
 
 pub fn new_spinner(message: impl Into<Cow<'static, str>>) -> ProgressBar {
-    let ret = progress_bar(indicatif::ProgressBar::new_spinner);
+    let ret = progress_bar(ProgressBar::new_spinner);
     ret.set_message(message);
     ret
 }
@@ -144,14 +144,3 @@ pub async fn complete_tasks() -> Result {
     debug!("All pending tasks have been completed.");
     Ok(())
 }
-
-
-//
-// pub fn complete_tasks(rt: &Runtime) -> Result {
-//     info!("Waiting for remaining tasks to complete.");
-//     while let tasks = std::mem::replace(&mut GLOBAL.lock().unwrap().ongoing_tasks, default()) &&
-// !tasks.is_empty() {         let tasks = try_join_all(tasks, AsyncPolicy::FutureParallelism);
-//          rt.block_on(tasks)?;
-//     }
-//     Ok(())
-// }

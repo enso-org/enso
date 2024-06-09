@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use byte_unit::Byte;
 use ide_ci::program;
 use ide_ci::programs;
 use semver::VersionReq;
@@ -49,7 +48,6 @@ impl RecognizedProgram {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ConfigRaw {
-    pub wasm_size_limit:   Option<String>,
     pub required_versions: HashMap<String, String>,
 }
 
@@ -58,7 +56,6 @@ pub struct ConfigRaw {
 /// In our case, it is usually a configuration file in the main repository.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
-    pub wasm_size_limit:   Option<Byte>,
     pub required_versions: HashMap<RecognizedProgram, VersionReq>,
 }
 
@@ -90,13 +87,7 @@ impl TryFrom<ConfigRaw> for Config {
             );
         }
 
-        Ok(Self {
-            wasm_size_limit: value
-                .wasm_size_limit
-                .map(|limit_text| <Byte as FromString>::from_str(&limit_text))
-                .transpose()?,
-            required_versions,
-        })
+        Ok(Self { required_versions })
     }
 }
 
@@ -122,12 +113,11 @@ pub async fn check_program(program: &RecognizedProgram, version_req: &VersionReq
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ide_ci::log::setup_logging;
     use ide_ci::programs::Node;
 
     #[tokio::test]
     async fn check_node_version() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
 
         let version = Node.parse_version("v16.13.2")?;
         let requirement = VersionReq::parse("=16.15.0")?;
@@ -138,7 +128,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn deserialize() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let config = r#"
 # Options intended to be common for all developers.
 wasm-size-limit: "4.37MB"
@@ -157,7 +147,7 @@ required-versions:
 
     #[tokio::test]
     async fn deserialize_config_in_repo() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         // let config = include_str!("../../../build-config.yaml");
         let config = r#"# Options intended to be common for all developers.
 

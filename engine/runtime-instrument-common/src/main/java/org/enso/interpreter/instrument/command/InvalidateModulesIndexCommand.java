@@ -25,17 +25,21 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Future<BoxedUnit> executeAsynchronously(RuntimeContext ctx, ExecutionContext ec) {
     return Future.apply(
         () -> {
           TruffleLogger logger = ctx.executionService().getLogger();
-          long writeCompilationLockTimestamp = ctx.locking().acquireWriteCompilationLock();
           try {
-            ctx.jobControlPlane().abortAllJobs();
+            logger.log(Level.FINE, "Invalidating modules, cancelling background jobs");
+            ctx.jobControlPlane().stopBackgroundJobs();
+            ctx.jobControlPlane().abortBackgroundJobs(DeserializeLibrarySuggestionsJob.class);
 
             EnsoContext context = ctx.executionService().getContext();
-            context.getTopScope().getModules().forEach(module -> module.setIndexed(false));
-            ctx.jobControlPlane().stopBackgroundJobs();
+            context
+                .getTopScope()
+                .getModules()
+                .forEach(module -> ctx.state().suggestions().markIndexAsDirty(module));
 
             context
                 .getPackageRepository()
@@ -46,19 +50,9 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
                           .runBackground(new DeserializeLibrarySuggestionsJob(pkg.libraryName()));
                       return BoxedUnit.UNIT;
                     });
-
-            reply(new Runtime$Api$InvalidateModulesIndexResponse(), ctx);
           } finally {
-            ctx.locking().releaseWriteCompilationLock();
-            logger.log(
-                Level.FINEST,
-                "Kept write compilation lock [{0}] for {1} milliseconds.",
-                new Object[] {
-                  this.getClass().getSimpleName(),
-                  System.currentTimeMillis() - writeCompilationLockTimestamp
-                });
+            reply(new Runtime$Api$InvalidateModulesIndexResponse(), ctx);
           }
-
           return BoxedUnit.UNIT;
         },
         ec);

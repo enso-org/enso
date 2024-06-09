@@ -9,9 +9,9 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
@@ -25,15 +25,11 @@ public abstract class AnyToTextNode extends Node {
   public abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(
-      Atom at,
-      @CachedLibrary(limit = "10") StructsLibrary structs,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
-    var fields = structs.getFields(at);
-    if (fields.length == 0) {
+  Text doAtom(Atom at) {
+    if (at.getConstructor().getArity() == 0) {
       return consName(at.getConstructor());
     } else {
-      return doComplexAtom(at, fields, interop);
+      return doComplexAtom(at);
     }
   }
 
@@ -53,20 +49,22 @@ public abstract class AnyToTextNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Text doComplexAtom(Atom atom, Object[] fields, InteropLibrary interop) {
+  private Text doComplexAtom(Atom atom) {
+    var interop = InteropLibrary.getUncached();
+    var structs = StructsLibrary.getUncached();
     Text res = Text.create("(", consName(atom.getConstructor()));
     res = Text.create(res, " ");
     try {
-      res = Text.create(res, showObject(fields[0], interop));
+      res = Text.create(res, showObject(structs.getField(atom, 0), interop));
     } catch (UnsupportedMessageException e) {
-      res = Text.create(res, fields[0].toString());
+      res = Text.create(res, structs.getField(atom, 0).toString());
     }
-    for (int i = 1; i < fields.length; i++) {
+    for (int i = 1; i < atom.getConstructor().getArity(); i++) {
       res = Text.create(res, " ");
       try {
-        res = Text.create(res, showObject(fields[i], interop));
+        res = Text.create(res, showObject(structs.getField(atom, i), interop));
       } catch (UnsupportedMessageException e) {
-        res = Text.create(res, fields[i].toString());
+        res = Text.create(res, structs.getField(atom, i).toString());
       }
     }
     res = Text.create(res, ")");

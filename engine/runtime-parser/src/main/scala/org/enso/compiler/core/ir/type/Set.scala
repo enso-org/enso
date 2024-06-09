@@ -1,15 +1,20 @@
 package org.enso.compiler.core.ir
 package `type`
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.ir.Type.Info
+
+import java.util.UUID
+import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** IR nodes for dealing with typesets. */
 sealed trait Set extends Type {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Set
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Set
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Set
@@ -39,11 +44,11 @@ object Set {
     memberType: Expression,
     value: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -63,7 +68,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Member = {
       val res =
         Member(label, memberType, value, location, passData, diagnostics)
@@ -99,10 +104,11 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -110,7 +116,9 @@ object Set {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Member = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Member = {
       copy(
         label      = label.mapExpressions(fn),
         memberType = fn(memberType),
@@ -159,11 +167,11 @@ object Set {
     left: Expression,
     right: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -181,7 +189,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Subsumption = {
       val res = Subsumption(left, right, location, passData, diagnostics)
       res.id = id
@@ -209,10 +217,11 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -222,7 +231,7 @@ object Set {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Subsumption = {
       copy(left = fn(left), right = fn(right))
     }
@@ -263,11 +272,11 @@ object Set {
     left: Expression,
     right: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -285,7 +294,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Equality = {
       val res = Equality(left, right, location, passData, diagnostics)
       res.id = id
@@ -313,10 +322,11 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -325,7 +335,9 @@ object Set {
     ): Equality = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Equality = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Equality = {
       copy(left = fn(left), right = fn(right))
     }
 
@@ -365,11 +377,11 @@ object Set {
     left: Expression,
     right: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -387,7 +399,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Concat = {
       val res = Concat(left, right, location, passData, diagnostics)
       res.id = id
@@ -415,10 +427,11 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -426,7 +439,9 @@ object Set {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Concat = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Concat = {
       copy(left = fn(left), right = fn(right))
     }
 
@@ -464,11 +479,11 @@ object Set {
   sealed case class Union(
     operands: List[Expression],
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -485,7 +500,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Union = {
       val res = Union(operands, location, passData, diagnostics)
       res.id = id
@@ -509,10 +524,11 @@ object Set {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -520,8 +536,10 @@ object Set {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Union = {
-      copy(operands = operands.map(fn))
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Union = {
+      copy(operands = operands.map(fn.asScala))
     }
 
     /** @inheritdoc */
@@ -559,11 +577,11 @@ object Set {
     left: Expression,
     right: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Set
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -581,7 +599,7 @@ object Set {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Intersection = {
       val res = Intersection(left, right, location, passData, diagnostics)
       res.id = id
@@ -609,10 +627,11 @@ object Set {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -622,7 +641,7 @@ object Set {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Intersection = {
       copy(left = fn(left), right = fn(right))
     }

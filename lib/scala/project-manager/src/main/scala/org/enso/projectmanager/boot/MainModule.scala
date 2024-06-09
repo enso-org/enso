@@ -21,7 +21,10 @@ import org.enso.projectmanager.infrastructure.languageserver.{
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
-import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
+import org.enso.projectmanager.infrastructure.repository.{
+  ProjectFileRepository,
+  ProjectFileRepositoryFactory
+}
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.{
   JsonRpcProtocolFactory,
@@ -67,6 +70,9 @@ class MainModule[
   lazy val gen = new SystemGenerator[F]
 
   lazy val projectValidator = new ProjectNameValidator[F]()
+
+  lazy val projectRepositoryFactory =
+    new ProjectFileRepositoryFactory[F](config.storage, clock, fileSystem, gen)
 
   lazy val projectRepository =
     new ProjectFileRepository[F](
@@ -120,7 +126,7 @@ class MainModule[
   lazy val projectService =
     new ProjectService[F](
       projectValidator,
-      projectRepository,
+      projectRepositoryFactory,
       projectCreationService,
       globalConfigService,
       logging,

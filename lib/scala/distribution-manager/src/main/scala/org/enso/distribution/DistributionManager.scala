@@ -26,6 +26,7 @@ import scala.util.control.NonFatal
   * @param locks a directory for storing lockfiles that are used to synchronize
   *              access to the various components
   * @param logs a directory for storing logs
+  * @param profiling a directory for storing profiling information
   * @param unsafeTemporaryDirectory path to the temporary directory, should not
   *                                 be used directly, see
   *                                 [[TemporaryDirectoryManager]]
@@ -43,6 +44,7 @@ case class DistributionPaths(
   runRoot: Path,
   locks: Path,
   logs: Path,
+  profiling: Path,
   unsafeTemporaryDirectory: Path,
   customEditions: Seq[Path],
   localLibrariesSearchPaths: Seq[Path],
@@ -60,7 +62,8 @@ case class DistributionPaths(
        |  locks    = ${mask(locks)},
        |  logs     = ${mask(logs)},
        |  tmp      = ${mask(unsafeTemporaryDirectory)},
-       |  ensoHome = ${mask(ensoHome)},
+       |  profiling = ${mask(profiling)},
+       |  ensoHome  = ${mask(ensoHome)},
        |  customEditions = ${mask(customEditions)},
        |  localLibrariesSearchpaths = ${mask(localLibrariesSearchPaths)}
        |)""".stripMargin
@@ -72,13 +75,13 @@ case class DistributionPaths(
   /** Sequence of paths to search for engine installations, in order of
     * precedence.
     */
-  def engineSearchPaths: Seq[Path] = Seq(engines) ++ bundle.map(_.engines).toSeq
+  def engineSearchPaths: Seq[Path] = bundle.map(_.engines).toSeq ++ Seq(engines)
 
   /** Sequence of paths to search for runtime installations, in order of
     * precedence.
     */
   def runtimeSearchPaths: Seq[Path] =
-    Seq(runtimes) ++ bundle.map(_.runtimes).toSeq
+    bundle.map(_.runtimes).toSeq ++ Seq(runtimes)
 
   /** The directory for cached editions managed by us. */
   def cachedEditions: Path = dataRoot / DistributionManager.EDITIONS_DIRECTORY
@@ -90,8 +93,8 @@ case class DistributionPaths(
     * precedence.
     */
   def editionSearchPaths: Seq[Path] =
-    customEditions ++ Seq(cachedEditions) ++
-    bundledWithEngines(DistributionManager.EDITIONS_DIRECTORY)
+    bundledWithEngines(DistributionManager.EDITIONS_DIRECTORY) ++
+    customEditions ++ Seq(cachedEditions)
 
   /** Returns a sequence of paths to some subdirectory in all installed engines.
     */
@@ -154,6 +157,7 @@ class DistributionManager(val env: Environment) {
       runRoot                   = runRoot,
       locks                     = runRoot / LOCK_DIRECTORY,
       logs                      = LocallyInstalledDirectories.logDirectory,
+      profiling                 = dataRoot / PROFILING_DIRECTORY,
       unsafeTemporaryDirectory  = dataRoot / TMP_DIRECTORY,
       customEditions            = detectCustomEditionPaths(home),
       localLibrariesSearchPaths = detectLocalLibraryPaths(home),
@@ -446,6 +450,7 @@ object DistributionManager {
   val TMP_DIRECTORY       = "tmp"
   val EDITIONS_DIRECTORY  = "editions"
   val LIBRARIES_DIRECTORY = "lib"
+  val PROFILING_DIRECTORY = "profiling"
 
   /** Defines paths inside of the ENSO_HOME directory. */
   object Home {

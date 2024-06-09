@@ -1,6 +1,6 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, ActorRef, Props, Stash, Terminated}
+import akka.actor.{Actor, ActorRef, PoisonPill, Props, Stash, Terminated}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.filewatcher.WatcherFactory
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -15,6 +15,10 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.effect._
 import org.enso.languageserver.event.InitializedEvent
+import org.enso.languageserver.filemanager.PathWatcher.{
+  ForwardRequest,
+  ForwardResponse
+}
 import org.enso.languageserver.util.UnhandledLogging
 
 /** Handles `receivesTreeUpdates` capabilities acquisition and release.
@@ -146,13 +150,27 @@ final class ReceivesTreeUpdatesHandler(
         ) =>
       store.getWatcher(path) match {
         case Some(watcher) =>
-          watcher.forward(PathWatcherProtocol.UnwatchPath(client.rpcController))
+          watcher ! ForwardRequest(
+            sender(),
+            PathWatcherProtocol.UnwatchPath(client.rpcController)
+          )
         case None =>
           sender() ! CapabilityNotAcquiredResponse
       }
 
+    case ForwardResponse(client, response, isLast) =>
+      client.forward(response)
+      if (isLast) {
+        context.become(withStore(store.removeWatcher(sender())))
+      }
+
     case Terminated(watcher) =>
       context.become(withStore(store.removeWatcher(watcher)))
+
+    case Stop =>
+      store.watchers.foreach { case (_, watcher) =>
+        watcher ! PoisonPill
+      }
   }
 }
 
@@ -197,6 +215,9 @@ object ReceivesTreeUpdatesHandler {
     def apply(): Store =
       new Store(Map())
   }
+
+  // A message sent to the handler to stop all watchers and the handler itself
+  case object Stop
 
   /** Creates a configuration object used to create a
     * [[ReceivesTreeUpdatesHandler]].

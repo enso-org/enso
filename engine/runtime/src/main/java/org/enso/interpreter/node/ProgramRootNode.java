@@ -61,7 +61,10 @@ public class ProgramRootNode extends RootNode {
       } else {
         module = new Module(name, null, sourceCode.getCharacters().toString());
       }
-      ctx.getPackageRepository().registerModuleCreatedInRuntime(module);
+      ctx.getPackageRepository().registerModuleCreatedInRuntime(module.asCompilerModule());
+      if (ctx.isStrictErrors()) {
+        module.compileScope(ctx);
+      }
     }
     // Note [Static Passes]
     return module;

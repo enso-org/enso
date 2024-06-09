@@ -42,7 +42,7 @@ public abstract class ArrayLikeCopyToArrayNode extends Node {
             hostValueToEnsoNode.execute(arrays.readArrayElement(src, source_index + i));
       }
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Unreachable");
+      throw EnsoContext.get(arrays).raiseAssertionPanic(arrays, null, e);
     } catch (InvalidArrayIndexException e) {
       throw ArrayPanics.invalidIndex(this, src, e);
     }

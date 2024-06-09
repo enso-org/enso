@@ -1,0 +1,92 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Compile_Error
+
+from Standard.Test import all
+
+
+polyglot java import java.lang.Float as Java_Float
+polyglot java import java.lang.Integer as Java_Integer
+polyglot java import java.lang.Long
+polyglot java import java.lang.String
+polyglot java import java.lang.StringBuilder as Java_String_Builder
+polyglot java import java.lang.Thread.State
+polyglot java import java.util.ArrayList
+polyglot java import java.time.LocalDate
+polyglot java import java.time.LocalTime
+polyglot java import org.enso.base.statistics.Moments
+
+Any.test_me self x = x.is_nothing
+
+add_specs suite_builder =
+    suite_builder.group "Java FFI" group_builder->
+        group_builder.specify "should call methods imported from Java" <|
+            Long.sum 1 2 . should_equal 3
+
+        group_builder.specify "should call constructors imported from Java" <|
+            list = ArrayList.new
+            list.add 432
+            list.get 0 . should_equal 432
+        group_builder.specify "should report missing method error on Java Arrays" pending="Failing due to #6609" <|
+            list = ArrayList.new
+            list.add 432
+            Test.expect_panic_with (list.asList) No_Such_Method
+        group_builder.specify "should auto-convert numeric types across the polyglot boundary" <|
+            (Java_Float.valueOf "123.3" + 5).should_equal 128.3 epsilon=0.0001
+            (Java_Integer.sum 1 2 + 3) . should_equal 6
+        group_builder.specify "should auto-convert strings across the polyglot boundary" <|
+            (String.format "%s bar %s" "baz" "quux" + " foo").should_equal "baz bar quux foo"
+        group_builder.specify "should support Java import renaming" <|
+            builder = Java_String_Builder.new
+            builder.append "foo"
+            builder.append "bar"
+            str = builder.toString
+            str.should_equal "foobar"
+        group_builder.specify "should invoke static methods" <|
+            x = Java_Integer.valueOf 1
+            x.test_me x . should_equal False
+
+    suite_builder.group "Java/Enso Date" group_builder->
+        group_builder.specify "Java date has Enso properties" <|
+            april1st = LocalDate.of 2022 04 01
+            april1st.year.should_equal 2022
+            april1st.month.should_equal 4
+            april1st.day.should_equal 1
+
+        group_builder.specify "send Enso date into Java" <|
+            ensodate = Date.new 2022 04 01
+            javatime = LocalTime.of 10 26
+            javatimedate = javatime . to_date_time ensodate
+            april1st = javatimedate . date
+            april1st.year.should_equal 2022
+            april1st.month.should_equal 4
+            april1st.day.should_equal 1
+
+    suite_builder.group "Java case of" group_builder->
+        group_builder.specify "case on Thread.State enum" <|
+            match x = case x of
+                State.NEW -> "new"
+                _ -> "unknown"
+            match State.NEW . should_equal "new"
+            match State.BLOCKED . should_equal "unknown"
+
+        group_builder.specify "case on String static field" <|
+            match x = case x of
+                String.CASE_INSENSITIVE_ORDER -> "match"
+                _ -> "unknown"
+            match String.CASE_INSENSITIVE_ORDER . should_equal "match"
+
+        group_builder.specify "case on non-existing field yields Compile_Error" <|
+            match x = case x of
+                State.NON_EXISTING -> "match"
+                _ -> "unknown"
+            err = Panic.recover Any (match State.BLOCKED)
+            err . should_fail_with Compile_Error
+            err.to_text . contains "NON_EXISTING" . should_be_true
+            err.to_text . contains "is not visible in this scope" . should_be_true
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

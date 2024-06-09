@@ -10,7 +10,7 @@ parse_json1 = Json.parse 3
 
 main =
 ## The file contains three different sheets relating to operations of an
-online store.
+   online store.
 operator2 = Enso_Project.data / 3
 ## Read the customers table.
 operator3 = operator2.read_xlsx 3
@@ -19,10 +19,10 @@ operator4 = operator2.read_xlsx 3
 ## Read the orders history.
 operator5 = operator2.read_xlsx 3
 ## Index the items table on `Item ID`. This will allow this data to be
-joined to other tables that also contain Item IDs.
+   joined to other tables that also contain Item IDs.
 operator7 = operator4.set_index 3
 ## Join the item data to the order history, to get information on item
-prices in the orders table.
+   prices in the orders table.
 operator8 = operator5.join operator7 3
 operator1 = operator8.at 3
 operator9 = operator8.at 3
@@ -30,20 +30,20 @@ operator9 = operator8.at 3
 product1 = operator1 * operator9
 operator10 = operator8.set 3 product1
 ## Group all orders by the Customer ID, to compute the total value of orders
-placed by each client.
+   placed by each client.
 operator11 = operator10.group by=3
 operator12 = operator11.at 3
 ## Compute the lifetime value of each client.
 operator13 = operator12.sum
 operator14 = operator13.rename 3
 ## Index the customers table by Customer ID. This will allow this table
-to be joined to other tables that also contain Customer IDs.
+   to be joined to other tables that also contain Customer IDs.
 operator15 = operator3.set_index 3
 ## Join the customer data into orders table, to include names in the final
-ranking.
+   ranking.
 operator16 = operator14.join operator15
 ## Sort the customers by their lifetime value, with the most valuable
-customers at the start of the table.
+   customers at the start of the table.
 operator17 = operator16.sort by=3 order=Sort_Order.Descending
 
 

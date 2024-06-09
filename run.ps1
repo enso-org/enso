@@ -5,17 +5,12 @@
 #
 # This was developed and tested on Windows only, though there is no reason 
 # why it should not work on other platforms through PowerShell Core.
-$ErrorActionPreference = "Stop"
-$TargetDir = Join-Path $PSScriptRoot "target" "enso-build"
-$BuildScriptProfile = "buildscript"
-$BuildScriptBin = "enso-build-cli"
 
-$TargetExe = Join-Path $TargetDir $BuildScriptProfile $BuildScriptBin
+$RunArgs = @("run", "--profile", "buildscript", "--package",  "enso-build-cli", "--")
+$RunArgs += $args
 
-$BuildArgs = "build", "--profile", $BuildScriptProfile, "--target-dir", $TargetDir, "--package", $BuildScriptBin
-$BuildScriptProcess = Start-Process cargo -NoNewWindow -PassThru -Wait -WorkingDirectory $PSScriptRoot -ArgumentList $BuildArgs
-if ($BuildScriptProcess.ExitCode -ne 0) {
-    Exit $BuildScriptProcess.ExitCode
-}
-$BuildScriptBinProcess = Start-Process $TargetExe -NoNewWindow -PassThru -Wait -WorkingDirectory $PSScriptRoot -ArgumentList $args
-Exit $BuildScriptBinProcess.ExitCode
+$psi = New-Object -TypeName System.Diagnostics.ProcessStartInfo -ArgumentList "cargo",$RunArgs
+$psi.WorkingDirectory = $PSScriptRoot
+$handle = [System.Diagnostics.Process]::Start($psi)
+$handle.WaitForExit()
+Exit $handle.ExitCode

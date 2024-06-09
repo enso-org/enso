@@ -3,7 +3,7 @@ package org.enso.languageserver.libraries.handler
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.jsonrpc._
@@ -16,7 +16,7 @@ import org.enso.librarymanager.published.repository.RepositoryHelper.RepositoryM
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import scala.util.Try
+import scala.util.{Success, Try}
 
 /** A request handler for the `library/getPackage` endpoint.
   *
@@ -48,14 +48,14 @@ class LibraryGetPackageHandler(
             libraryName
           )
         case LibraryEntry.PublishedLibraryVersion(version, repositoryUrl) =>
-          SemVer(version) match {
-            case Some(semVerVersion) =>
+          SemVer.parse(version) match {
+            case Success(semVerVersion) =>
               getOrFetchPublishedPackage(
                 libraryName,
                 semVerVersion,
                 repositoryUrl
               ) pipeTo self
-            case None =>
+            case _ =>
               self ! LocalLibraryManagerProtocol.InvalidSemverVersionError(
                 version
               )

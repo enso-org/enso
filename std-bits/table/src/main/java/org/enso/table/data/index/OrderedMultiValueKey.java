@@ -1,7 +1,6 @@
 package org.enso.table.data.index;
 
 import java.util.Comparator;
-
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 
@@ -21,8 +20,7 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
 
   private final int[] directions;
 
-  public OrderedMultiValueKey(
-          Storage<?>[] storages, int rowIndex, int[] directions) {
+  public OrderedMultiValueKey(Storage<?>[] storages, int rowIndex, int[] directions) {
     this(storages, rowIndex, directions, ObjectComparator.DEFAULT);
   }
 
@@ -72,5 +70,28 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
     throw new IllegalStateException(
         "Currently no hash_code implementation consistent with the ObjectComparator is exposed, so"
             + " OrderedMultiValueKey is not hashable.");
+  }
+
+  @Override
+  public String toString() {
+    return "OrderedMultiValueKey{row=" + rowIndex + "}";
+  }
+
+  /** A comparator that uses only one dimension of the key. */
+  public static class ProjectionComparator implements Comparator<OrderedMultiValueKey> {
+    private final int ix;
+
+    public ProjectionComparator(int ix) {
+      this.ix = ix;
+    }
+
+    @Override
+    public int compare(OrderedMultiValueKey o1, OrderedMultiValueKey o2) {
+      if (o1.storages.length != o2.storages.length) {
+        throw new ClassCastException("Incomparable keys.");
+      }
+
+      return o1.objectComparator.compare(o1.get(ix), o2.get(ix));
+    }
   }
 }

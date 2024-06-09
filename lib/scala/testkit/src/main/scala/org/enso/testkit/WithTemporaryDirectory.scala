@@ -38,7 +38,7 @@ trait WithTemporaryDirectory
     * because if the test runs other executables, they may take a moment to
     * terminate even after the test completed).
     */
-  def robustDeleteDirectory(dir: File): Unit = {
+  private def robustDeleteDirectory(dir: File): Unit = {
     @scala.annotation.tailrec
     def tryRemoving(retry: Int): Unit = {
       try {

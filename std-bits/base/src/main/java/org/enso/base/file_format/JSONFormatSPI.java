@@ -11,4 +11,9 @@ public class JSONFormatSPI extends FileFormatSPI {
   protected String getTypeName() {
     return "JSON_Format";
   }
+
+  @Override
+  protected String getDataLinkFormatName() {
+    return "json";
+  }
 }

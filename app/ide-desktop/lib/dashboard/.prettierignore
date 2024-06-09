@@ -1,0 +1,3 @@
+playwright-report/
+playwright/.cache/
+dist/

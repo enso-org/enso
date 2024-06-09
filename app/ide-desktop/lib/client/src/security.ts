@@ -2,6 +2,7 @@
  * guide: https://www.electronjs.org/docs/latest/tutorial/security. */
 
 import * as electron from 'electron'
+import * as common from 'enso-common'
 
 // =================
 // === Constants ===
@@ -13,14 +14,23 @@ const TRUSTED_HOSTS = [
     'accounts.youtube.com',
     'github.com',
     'production-enso-domain.auth.eu-west-1.amazoncognito.com',
+    'production-enso-organizations-files.s3.amazonaws.com',
     'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
+    's3.eu-west-1.amazonaws.com',
     // This (`localhost`) is required to access Project Manager HTTP endpoints.
     // This should be changed appropriately if the Project Manager's port number becomes dynamic.
     '127.0.0.1:30535',
 ]
 
 /** The list of hosts that the app can open external links to. */
-const TRUSTED_EXTERNAL_HOSTS = ['enso.org', 'www.youtube.com', 'discord.gg', 'github.com']
+const TRUSTED_EXTERNAL_HOSTS = [
+    'enso.org',
+    common.CLOUD_DASHBOARD_DOMAIN,
+    'www.youtube.com',
+    'discord.gg',
+    'github.com',
+]
+const TRUSTED_EXTERNAL_PROTOCOLS = ['mailto:']
 
 /** The list of URLs a new WebView can be pointed to. */
 const WEBVIEW_URL_WHITELIST: string[] = []
@@ -65,6 +75,37 @@ function rejectPermissionRequests() {
     })
 }
 
+/** This Electron app is configured with extra CORS headers. Those headers are added because they
+ * increase security and enable higher resolution for `performance.now()` timers. However, one of
+ * these headers (i.e., `Cross-Origin-Embedder-Policy: require-corp`), breaks the Stripe.js library.
+ * This is because Stripe.js does not provide a `Cross-Origin-Resource-Policy` header or
+ * `Cross-Origin-Embedder-Policy` header on resources hosted at `https://js.stripe.com`. Without
+ * these headers, the browser will not load the resources. To fix this without compromising security
+ * or profiling capabilities, add the missing headers to the Stripe.js resources by intercepting the
+ * response headers.
+ *
+ * At the time of writing, these are the Stripe.js resources in question:
+ *
+ * - https://js.stripe.com/v3/m-outer-3437aaddcdf6922d623e172c2d6f9278.html
+ * - https://js.stripe.com/v3/fingerprinted/js/embedded-checkout-outer-d5c7fe9d44281b88cdffdf803de759f1.js
+ * - https://js.stripe.com/v3/controller-a8f00e403bc9538a7c1880ae6b6a2dc3.html
+ *
+ * The missing headers are added more generally to all resources hosted at `https://js.stripe.com`.
+ * This is because the resources are fingerprinted and the fingerprint changes every time the
+ * resources are updated. Additionally, Stripe.js may choose to add more resources in the future. */
+function addMissingCorsHeaders() {
+    void electron.app.whenReady().then(() => {
+        electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+            details.responseHeaders = details.responseHeaders ?? {}
+            if (details.url.includes('https://js.stripe.com/v3/')) {
+                details.responseHeaders['Cross-Origin-Resource-Policy'] = ['cross-origin']
+                details.responseHeaders['Cross-Origin-Embedder-Policy'] = ['require-corp']
+            }
+            callback({ responseHeaders: details.responseHeaders })
+        })
+    })
+}
+
 /** A WebView created in a renderer process that does not have Node.js integration enabled will not
  * be able to enable integration itself. However, a WebView will always create an independent
  * renderer process with its own webPreferences. It is a good idea to control the creation of new
@@ -88,10 +129,14 @@ function limitWebViewCreation() {
  * link to learn more:
  * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation. */
 function preventNavigation() {
+    let lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+    electron.app.on('browser-window-focus', () => {
+        lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+    })
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl)
-            const currentWindowUrl = electron.BrowserWindow.getFocusedWindow()?.webContents.getURL()
+            const currentWindowUrl = lastFocusedWindow?.webContents.getURL()
             const parsedCurrentWindowUrl =
                 currentWindowUrl != null ? new URL(currentWindowUrl) : null
             if (
@@ -115,7 +160,10 @@ function disableNewWindowsCreation() {
         contents.setWindowOpenHandler(details => {
             const { url } = details
             const parsedUrl = new URL(url)
-            if (TRUSTED_EXTERNAL_HOSTS.includes(parsedUrl.host)) {
+            if (
+                TRUSTED_EXTERNAL_HOSTS.includes(parsedUrl.host) ||
+                TRUSTED_EXTERNAL_PROTOCOLS.includes(parsedUrl.protocol)
+            ) {
                 void electron.shell.openExternal(url)
                 return { action: 'deny' }
             } else {
@@ -130,6 +178,7 @@ function disableNewWindowsCreation() {
 export function enableAll() {
     enableGlobalSandbox()
     rejectPermissionRequests()
+    addMissingCorsHeaders()
     limitWebViewCreation()
     preventNavigation()
     disableNewWindowsCreation()

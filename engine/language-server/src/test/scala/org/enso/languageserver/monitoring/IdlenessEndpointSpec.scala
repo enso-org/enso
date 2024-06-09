@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import org.enso.languageserver.TestClock
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -16,7 +17,8 @@ class IdlenessEndpointSpec
     with Matchers
     with FlakySpec
     with ScalatestRouteTest
-    with Directives {
+    with Directives
+    with ReportLogsOnFailure {
 
   implicit val timeout: RouteTestTimeout = RouteTestTimeout(25.seconds)
 

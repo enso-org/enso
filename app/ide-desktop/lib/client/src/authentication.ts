@@ -57,16 +57,16 @@
  *
  * To prepare the application to handle deep links:
  * - Register a custom URL protocol scheme with the OS (c.f., `electron-builder-config.ts`).
- * - Define a listener for Electron {@link OPEN_URL_EVENT}s (c.f., {@link initOpenUrlListener}).
+ * - Define a listener for Electron `OPEN_URL_EVENT`s (c.f., {@link initOpenUrlListener}).
  * - Define a listener for {@link ipc.Channel.openDeepLink} events (c.f., `preload.ts`).
  *
  * Then when the user clicks on a deep link from an external source to the IDE:
  * - The OS redirects the user to the application.
- * - The application emits an Electron {@link OPEN_URL_EVENT}.
- * - The {@link OPEN_URL_EVENT} listener checks if the {@link URL} is a deep link.
- * - If the {@link URL} is a deep link, the {@link OPEN_URL_EVENT} listener prevents Electron from
+ * - The application emits an Electron `OPEN_URL_EVENT`.
+ * - The `OPEN_URL_EVENT` listener checks if the {@link URL} is a deep link.
+ * - If the {@link URL} is a deep link, the `OPEN_URL_EVENT` listener prevents Electron from
  * handling the event.
- * - The {@link OPEN_URL_EVENT} listener then emits an {@link ipc.Channel.openDeepLink} event.
+ * - The `OPEN_URL_EVENT` listener then emits an {@link ipc.Channel.openDeepLink} event.
  * - The {@link ipc.Channel.openDeepLink} listener registered by the dashboard receives the event.
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
@@ -93,7 +93,6 @@ const logger = contentConfig.logger
 
 /** Configure all the functionality that must be set up in the Electron app to support
  * authentication-related flows. Must be called in the Electron app `whenReady` event.
- *
  * @param window - A function that returns the main Electron window. This argument is a lambda and
  * not a variable because the main window is not available when this function is called. This module
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
@@ -137,7 +136,6 @@ function initOpenUrlListener(window: () => electron.BrowserWindow) {
 
 /** Handle the 'open-url' event by parsing the received URL, checking if it is a deep link, and
  * sending it to the appropriate BrowserWindow via IPC.
- *
  * @param url - The URL to handle.
  * @param window - A function that returns the BrowserWindow to send the parsed URL to. */
 export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
@@ -158,30 +156,51 @@ export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
  * The credentials file is placed in the user's home directory in the `.enso` subdirectory
  * in the `credentials` file. */
 function initSaveAccessTokenListener() {
-    electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken: string) => {
-        /** Home directory for the credentials file.  */
-        const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
-        /** File name of the credentials file. */
-        const credentialsFileName = 'credentials'
-        /** System agnostic credentials directory home path. */
-        const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
+    electron.ipcMain.on(
+        ipc.Channel.saveAccessToken,
+        (event, accessTokenPayload: SaveAccessTokenPayload | null) => {
+            event.preventDefault()
 
-        fs.mkdir(credentialsHomePath, { recursive: true }, error => {
-            if (error) {
-                logger.error(`Couldn't create ${credentialsDirectoryName} directory.`)
+            /** Home directory for the credentials file.  */
+            const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
+            /** File name of the credentials file. */
+            const credentialsFileName = 'credentials'
+            /** System agnostic credentials directory home path. */
+            const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
+
+            if (accessTokenPayload == null) {
+                try {
+                    fs.unlinkSync(path.join(credentialsHomePath, credentialsFileName))
+                } catch {
+                    // Ignored, most likely the path does not exist.
+                }
             } else {
-                fs.writeFile(
-                    path.join(credentialsHomePath, credentialsFileName),
-                    accessToken,
-                    innerError => {
-                        if (innerError) {
-                            logger.error(`Could not write to ${credentialsFileName} file.`)
-                        }
+                fs.mkdir(credentialsHomePath, { recursive: true }, error => {
+                    if (error) {
+                        logger.error(`Could not create '${credentialsDirectoryName}' directory.`)
+                    } else {
+                        fs.writeFile(
+                            path.join(credentialsHomePath, credentialsFileName),
+                            JSON.stringify({
+                                /* eslint-disable @typescript-eslint/naming-convention */
+                                client_id: accessTokenPayload.clientId,
+                                access_token: accessTokenPayload.accessToken,
+                                refresh_token: accessTokenPayload.refreshToken,
+                                refresh_url: accessTokenPayload.refreshUrl,
+                                expire_at: accessTokenPayload.expireAt,
+                                /* eslint-enable @typescript-eslint/naming-convention */
+                            }),
+                            innerError => {
+                                if (innerError) {
+                                    logger.error(
+                                        `Could not write to '${credentialsFileName}' file.`
+                                    )
+                                }
+                            }
+                        )
                     }
-                )
+                })
             }
-        })
-
-        event.preventDefault()
-    })
+        }
+    )
 }

@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.cache.ReadOnlyLibraryCache
 import org.enso.librarymanager.resolved.LibraryRoot

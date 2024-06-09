@@ -3,6 +3,13 @@ package org.enso.table.read;
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
+import java.io.Reader;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Queue;
+import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -11,36 +18,33 @@ import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptyFileException;
 import org.enso.table.parsing.DatatypeParser;
 import org.enso.table.parsing.TypeInferringParser;
-import org.enso.table.parsing.problems.AdditionalInvalidRows;
-import org.enso.table.parsing.problems.InvalidRow;
-import org.enso.table.parsing.problems.MismatchedQuote;
-import org.enso.table.parsing.problems.NoOpProblemAggregator;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.Problem;
-import org.enso.table.problems.WithAggregatedProblems;
-import org.enso.table.problems.WithProblems;
+import org.enso.table.parsing.problems.CommonParseProblemAggregator;
+import org.enso.table.parsing.problems.NoOpParseProblemAggregator;
+import org.enso.table.parsing.problems.ParseProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
-
-import java.io.Reader;
-import java.util.*;
-import java.util.stream.Collectors;
+import org.graalvm.polyglot.Value;
 
 /** A helper for reading delimited (CSV-like) files. */
 public class DelimitedReader {
 
   /**
-   * Due to limitations of our CSV parser, we cannot truly disable the comment parsing, so if we want to ensure that a
-   * CSV file is parsed without comments enabled we need to set it to some obscure character.
-   * <p>
-   * The default is to set it to '\0' but that will cause this character (which is not that uncommon, and valid) to act
-   * as a start of a comment. However, other parts of the parser may not be dealing best with '\0' anyway, so for now we
-   * can keep it. If we want to improve the support for the NULL character, we can select something else here.
-   * <p>
-   * I considered to  choose `\u0F8EE` which comes from the Private Use Area of the Basic Multilingual Plane. Is has no
-   * meaning designated by the Unicode standard.
+   * Due to limitations of our CSV parser, we cannot truly disable the comment parsing, so if we
+   * want to ensure that a CSV file is parsed without comments enabled we need to set it to some
+   * obscure character.
+   *
+   * <p>The default is to set it to '\0' but that will cause this character (which is not that
+   * uncommon, and valid) to act as a start of a comment. However, other parts of the parser may not
+   * be dealing best with '\0' anyway, so for now we can keep it. If we want to improve the support
+   * for the NULL character, we can select something else here.
+   *
+   * <p>I considered to choose `\u0F8EE` which comes from the Private Use Area of the Basic
+   * Multilingual Plane. Is has no meaning designated by the Unicode standard.
    */
-  public static final char UNUSED_CHARACTER = '\0';
+  public static final char COMMENT_CHARACTER = '\0';
+
+  public static final char UNUSED_CHARACTER = '\uF8EE';
 
   private static final String COLUMN_NAME = "Column";
   private static final char noQuoteCharacter = '\0';
@@ -52,19 +56,19 @@ public class DelimitedReader {
   private final long skipRows;
   private final long rowLimit;
   private final int maxColumns;
-  private final List<Problem> warnings = new ArrayList<>();
   private final CsvParser parser;
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
   private String newlineSetting;
-  private final boolean warningsAsErrors;
-  private final NoOpProblemAggregator noOpProblemAggregator = new NoOpProblemAggregator();
-  private long invalidRowsCount = 0;
+  private final NoOpParseProblemAggregator noOpProblemAggregator = new NoOpParseProblemAggregator();
   private long targetTableIndex = 0;
+
   /** The line number of the start of the current row in the input file. */
   private long currentLine = 0;
+
   private StringBuilder[] builders = null;
+  private final DelimitedReaderProblemAggregator problemAggregator;
 
   /**
    * Creates a new reader.
@@ -87,11 +91,14 @@ public class DelimitedReader {
    * @param cellTypeGuesser a helper used to guess cell types, used for the purpose of inferring the
    *     headers, it must not be null if {@code headerBehavior} is set to {@code INFER}.
    * @param keepInvalidRows specifies whether to keep rows that had an unexpected number of columns
-   * @param newline specifies what newline character to assume; if set to null, the newline character is autodetected
-   * @param commentCharacter specifies what character indicates start of comments; if set to null, comments are disabled
+   * @param newline specifies what newline character to assume; if set to null, the newline
+   *     character is autodetected
+   * @param commentCharacter specifies what character indicates start of comments; if set to null,
+   *     comments are disabled
    * @param warningsAsErrors specifies if the first warning should be immediately raised as an error
    *     (used as a fast-path for the error-reporting mode to avoid computing a value that is going
    *     to be discarded anyway)
+   * @param problemAggregator the problem aggregator
    */
   public DelimitedReader(
       String delimiter,
@@ -106,16 +113,19 @@ public class DelimitedReader {
       boolean keepInvalidRows,
       String newline,
       String commentCharacter,
-      boolean warningsAsErrors) {
-    if (delimiter.isEmpty()) {
-      throw new IllegalArgumentException("Empty delimiters are not supported.");
-    }
+      boolean warningsAsErrors,
+      ProblemAggregator problemAggregator) {
     if (delimiter.length() > 1) {
       throw new IllegalArgumentException(
           "Delimiters consisting of multiple characters or code units are not supported.");
     }
-
-    this.delimiter = delimiter.charAt(0);
+    if (delimiter.isEmpty()) {
+      // User wants to read each row into a single cell. So we delimit on a character that we assume
+      // is not in user data
+      this.delimiter = UNUSED_CHARACTER;
+    } else {
+      this.delimiter = delimiter.charAt(0);
+    }
 
     if (quote != null) {
       if (quote.isEmpty()) {
@@ -138,7 +148,8 @@ public class DelimitedReader {
     if (quoteEscape != null) {
       if (quoteEscape.isEmpty()) {
         throw new IllegalArgumentException(
-            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping quotes.");
+            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping"
+                + " quotes.");
       }
       if (quoteEscape.length() > 1) {
         throw new IllegalArgumentException(
@@ -155,11 +166,13 @@ public class DelimitedReader {
     this.rowLimit = rowLimit;
     this.maxColumns = maxColumns;
     this.keepInvalidRows = keepInvalidRows;
-    this.warningsAsErrors = warningsAsErrors;
 
     this.valueParser = valueParser;
     this.cellTypeGuesser = cellTypeGuesser;
     this.newlineSetting = newline;
+    this.problemAggregator =
+        new DelimitedReaderProblemAggregator(
+            problemAggregator, warningsAsErrors, quoteCharacter, invalidRowsLimit);
     this.parser = setupCsvParser(commentCharacter);
   }
 
@@ -180,17 +193,21 @@ public class DelimitedReader {
       settings.setLineSeparatorDetectionEnabled(true);
     } else {
       if (newlineSetting.length() > 2 || newlineSetting.isEmpty()) {
-        throw new IllegalArgumentException("The newline sequence should consist of at least 1 and at most 2 characters (codepoints).");
+        throw new IllegalArgumentException(
+            "The newline sequence should consist of at least 1 and at most 2 characters"
+                + " (codepoints).");
       }
       settings.setLineSeparatorDetectionEnabled(false);
       format.setLineSeparator(newlineSetting);
     }
 
     if (commentCharacter == null) {
-      format.setComment(UNUSED_CHARACTER);
+      format.setComment(COMMENT_CHARACTER);
     } else {
       if (commentCharacter.length() != 1) {
-        throw new IllegalArgumentException("The comment character should be set to Nothing or consist of exactly one character (codepoint).");
+        throw new IllegalArgumentException(
+            "The comment character should be set to Nothing or consist of exactly one character"
+                + " (codepoint).");
       }
 
       format.setComment(commentCharacter.charAt(0));
@@ -205,47 +222,7 @@ public class DelimitedReader {
   /** Parses a header cell, removing surrounding quotes (if applicable). */
   private String parseHeader(String cell) {
     if (cell == null) return null;
-    return QuoteHelper.stripQuotes(quoteCharacter, this::reportMismatchedQuote, cell);
-  }
-
-  private void reportMismatchedQuote(String cellText) {
-    throw new MismatchedQuote(cellText);
-  }
-
-  private void reportInvalidRow(long source_row, Long table_index, String[] row, long expected_length) {
-    // Mismatched quote error takes precedence over invalid row.
-    for (int i = 0; i < row.length; i++) {
-      String cell = row[i];
-      if (cell != null && QuoteHelper.hasMismatchedQuotes(quoteCharacter, cell)) {
-        reportMismatchedQuote(cell);
-      }
-    }
-
-    if (invalidRowsCount < invalidRowsLimit) {
-      reportProblem(new InvalidRow(source_row, table_index, row, expected_length));
-    }
-
-    invalidRowsCount++;
-  }
-
-  /** Returns a list of currently reported problems encountered when parsing the input. */
-  private AggregatedProblems getReportedProblems(List<Problem> nameProblems) {
-    AggregatedProblems result = new AggregatedProblems(nameProblems.size() + warnings.size() + 1);
-    result.addAll(nameProblems);
-    result.addAll(warnings);
-    if (invalidRowsCount > invalidRowsLimit) {
-      long additionalInvalidRows = invalidRowsCount - invalidRowsLimit;
-      result.add(new AdditionalInvalidRows(additionalInvalidRows));
-    }
-    return result;
-  }
-
-  private void reportProblem(Problem problem) {
-    if (warningsAsErrors) {
-      throw new ParsingFailedException(problem);
-    } else {
-      warnings.add(problem);
-    }
+    return QuoteHelper.stripQuotes(quoteCharacter, problemAggregator::reportMismatchedQuote, cell);
   }
 
   /**
@@ -288,7 +265,8 @@ public class DelimitedReader {
     assert canFitMoreRows();
 
     if (row.length != builders.length) {
-      reportInvalidRow(currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
+      problemAggregator.reportInvalidRow(
+          currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.length);
 
       if (keepInvalidRows) {
         for (int i = 0; i < builders.length && i < row.length; i++) {
@@ -323,21 +301,21 @@ public class DelimitedReader {
     }
   }
 
-  private WithProblems<List<String>> headersFromRow(String[] row) {
+  private List<String> headersFromRow(String[] row) {
     List<String> preprocessedHeaders =
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
 
-    NameDeduplicator deduplicator = new NameDeduplicator();
+    NameDeduplicator deduplicator = NameDeduplicator.createDefault(problemAggregator);
     List<String> names = deduplicator.makeUniqueList(preprocessedHeaders);
-    return new WithProblems<>(names, deduplicator.getProblems());
+    return names;
   }
 
-  private WithProblems<List<String>> generateDefaultHeaders(int columnCount) {
+  private List<String> generateDefaultHeaders(int columnCount) {
     List<String> headerNames = new ArrayList<>(columnCount);
     for (int i = 0; i < columnCount; ++i) {
       headerNames.add(COLUMN_NAME + " " + (i + 1));
     }
-    return new WithProblems<>(headerNames, Collections.emptyList());
+    return headerNames;
   }
 
   /**
@@ -354,12 +332,13 @@ public class DelimitedReader {
   /** The column names as defined in the input (if applicable, otherwise null). */
   private String[] definedColumnNames = null;
 
-  /** The effective column names.
+  /**
+   * The effective column names.
    *
-   * If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found, this will be populated with automatically generated column names. */
+   * <p>If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found,
+   * this will be populated with automatically generated column names.
+   */
   private String[] effectiveColumnNames;
-
-  private List<Problem> headerProblems;
 
   private int getColumnCount() {
     return effectiveColumnNames.length;
@@ -367,8 +346,8 @@ public class DelimitedReader {
 
   /**
    * Tries to infer some metadata about the input.
-   * <p>
-   * The input is used after this call, but not necessarily read until the end.
+   *
+   * <p>The input is used after this call, but not necessarily read until the end.
    */
   public DelimitedFileMetadata readMetadata(Reader input) {
     markUsed();
@@ -377,21 +356,18 @@ public class DelimitedReader {
       detectHeaders();
       boolean hasAnyContent = getVisitedCharactersCount() > 0;
       return new DelimitedFileMetadata(
-          getColumnCount(),
-          definedColumnNames,
-          hasAnyContent,
-          getEffectiveLineSeparator()
-      );
+          getColumnCount(), definedColumnNames, hasAnyContent, getEffectiveLineSeparator());
     } finally {
       parser.stopParsing();
     }
   }
 
-  /** Returns the line separator.
-   * <p>
-   * If it was provided explicitly at construction, the selected separator is used.
-   * If the initial separator was set to {@code null}, the reader tries to detect
-   * the separator from file contents.
+  /**
+   * Returns the line separator.
+   *
+   * <p>If it was provided explicitly at construction, the selected separator is used. If the
+   * initial separator was set to {@code null}, the reader tries to detect the separator from file
+   * contents.
    */
   private String getEffectiveLineSeparator() {
     return newlineSetting;
@@ -411,13 +387,12 @@ public class DelimitedReader {
 
     if (firstRow == null) {
       effectiveColumnNames = new String[0];
-      headerProblems = Collections.emptyList();
       return;
     }
 
     int expectedColumnCount = firstRow.cells.length;
     boolean wereHeadersDefined = false;
-    WithProblems<List<String>> headerNames;
+    List<String> headerNames;
 
     switch (headerBehavior) {
       case INFER -> {
@@ -430,7 +405,7 @@ public class DelimitedReader {
         } else {
           assert cellTypeGuesser != null;
           boolean firstAllText = Arrays.stream(firstRow.cells).allMatch(this::isPlainText);
-          boolean secondAllText = Arrays.stream(secondRow.cells).allMatch(this ::isPlainText);
+          boolean secondAllText = Arrays.stream(secondRow.cells).allMatch(this::isPlainText);
           boolean useFirstRowAsHeader = firstAllText && !secondAllText;
           if (useFirstRowAsHeader) {
             headerNames = headersFromRow(firstRow.cells);
@@ -454,8 +429,7 @@ public class DelimitedReader {
       default -> throw new IllegalStateException("Impossible branch.");
     }
 
-    headerProblems = headerNames.problems();
-    effectiveColumnNames = headerNames.value().toArray(new String[0]);
+    effectiveColumnNames = headerNames.toArray(new String[0]);
     if (wereHeadersDefined) {
       definedColumnNames = effectiveColumnNames;
     }
@@ -463,21 +437,20 @@ public class DelimitedReader {
 
   /**
    * Reads the input stream and returns a Table.
-   * <p>
-   * It should only be called once.
+   *
+   * <p>It should only be called once.
    */
-  public WithAggregatedProblems<Table> read(Reader input) {
+  public Table read(Reader input) {
     markUsed();
     Context context = Context.getCurrent();
     try {
       parser.beginParsing(input);
       detectHeaders();
       int columnCount = getColumnCount();
-      if  (columnCount == 0) {
+      if (columnCount == 0) {
         throw new EmptyFileException();
       }
 
-      // TODO initialize parser only here
       initBuilders(columnCount);
       while (canFitMoreRows()) {
         var currentRow = readNextRow();
@@ -493,26 +466,30 @@ public class DelimitedReader {
     }
 
     Column[] columns = new Column[builders.length];
-    AggregatedProblems[] problems = new AggregatedProblems[builders.length + 1];
     for (int i = 0; i < builders.length; i++) {
       String columnName = effectiveColumnNames[i];
       Storage<String> col = builders[i].seal();
 
-      WithAggregatedProblems<Storage<?>> parseResult = valueParser.parseColumn(columnName, col);
-      Storage<?> storage = parseResult.value();
-      problems[i] = parseResult.problems();
+      // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type
+      // that we expect, so it can safely be null.
+      Value expectedEnsoValueType = Value.asValue(null);
+      CommonParseProblemAggregator parseProblemAggregator =
+          ParseProblemAggregator.make(problemAggregator, columnName, expectedEnsoValueType);
+      Storage<?> storage = valueParser.parseColumn(col, parseProblemAggregator);
       columns[i] = new Column(columnName, storage);
       context.safepoint();
     }
 
-    problems[builders.length] = getReportedProblems(headerProblems);
-    return new WithAggregatedProblems<>(new Table(columns), AggregatedProblems.merge(problems));
+    return new Table(columns);
   }
 
   private boolean wasAlreadyUsed = false;
+
   private void markUsed() {
     if (wasAlreadyUsed) {
-      throw new IllegalStateException("The `read` on the DelimitedReader may be called only once. Please create a new instance of the reader.");
+      throw new IllegalStateException(
+          "The `read` on the DelimitedReader may be called only once. Please create a new instance"
+              + " of the reader.");
     }
     wasAlreadyUsed = true;
   }

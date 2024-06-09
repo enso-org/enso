@@ -6,7 +6,11 @@ import scala.collection.mutable
 /** A rose-tree like data structure that distinguishes between root and node
   * elements.
   */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonTypeInfo(
+  use      = JsonTypeInfo.Id.NAME,
+  include  = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+  property = "type"
+)
 @JsonSubTypes(
   Array(
     new JsonSubTypes.Type(
@@ -107,21 +111,16 @@ object Tree {
 
   case class Root[+A](
     @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
-      include = JsonTypeInfo.As.PROPERTY
+      use = JsonTypeInfo.Id.NAME
     )
     children: Vector[Node[A]]
   ) extends Tree[A]
 
   case class Node[+A](
-    @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
-      include = JsonTypeInfo.As.PROPERTY
-    )
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
     element: A,
     @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.CLASS,
-      include = JsonTypeInfo.As.PROPERTY
+      use = JsonTypeInfo.Id.NAME
     )
     children: Vector[Node[A]]
   ) extends Tree[A]

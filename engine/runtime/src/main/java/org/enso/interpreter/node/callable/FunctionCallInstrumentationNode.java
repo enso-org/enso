@@ -10,22 +10,19 @@ import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
-
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.tag.IdentifiedTag;
-
 import java.util.Arrays;
 import java.util.UUID;
-
 import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
+import org.enso.interpreter.runtime.tag.IdentifiedTag;
 
 /**
  * A node used for instrumenting function calls. It does nothing useful from the language
@@ -61,7 +58,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   @ExportLibrary(InteropLibrary.class)
   public static final class FunctionCall implements EnsoObject {
     private final Function function;
-    private final Object state;
+    private final State state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
 
     /**
@@ -71,7 +68,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
      * @param state the monadic state to pass to the function.
      * @param arguments the arguments passed to the function.
      */
-    public FunctionCall(Function function, Object state, Object[] arguments) {
+    public FunctionCall(Function function, State state, Object[] arguments) {
       this.function = function;
       this.state = state;
       this.arguments = arguments;
@@ -108,17 +105,23 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
       }
     }
 
-    /** @return the function for this call. */
+    /**
+     * @return the function for this call.
+     */
     public Function getFunction() {
       return function;
     }
 
-    /** @return the state passed to the function in this call. */
-    public Object getState() {
+    /**
+     * @return the state passed to the function in this call.
+     */
+    public State getState() {
       return state;
     }
 
-    /** @return the arguments passed to the function in this call. */
+    /**
+     * @return the arguments passed to the function in this call.
+     */
     public Object[] getArguments() {
       return arguments;
     }
@@ -126,7 +129,11 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     @Override
     @CompilerDirectives.TruffleBoundary
     public String toString() {
-      return "FunctionCall[function=" + function + ", arguments: " + Arrays.toString(arguments) + "]";
+      return "FunctionCall[function="
+          + function
+          + ", arguments: "
+          + Arrays.toString(arguments)
+          + "]";
     }
   }
 
@@ -139,7 +146,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
    * @param arguments the arguments passed to the function.
    * @return an instance of {@link FunctionCall} containing the function, state and arguments.
    */
-  public Object execute(VirtualFrame frame, Function function, Object state, Object[] arguments) {
+  public Object execute(VirtualFrame frame, Function function, State state, Object[] arguments) {
     return new FunctionCall(function, state, arguments);
   }
 
@@ -170,14 +177,25 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     return tag == StandardTags.CallTag.class || (tag == IdentifiedTag.class && id != null);
   }
 
-  /** @return the source section of this node. */
+  /**
+   * @return the source section of this node.
+   */
   @Override
   public SourceSection getSourceSection() {
-    Node parent = getParent();
-    return parent == null ? null : parent.getSourceSection();
+    var parent = getParent();
+    while (parent != null) {
+      var ss = parent.getSourceSection();
+      if (ss != null) {
+        return ss;
+      }
+      parent = parent.getParent();
+    }
+    return null;
   }
 
-  /** @return the expression ID of this node. */
+  /**
+   * @return the expression ID of this node.
+   */
   public UUID getId() {
     return id;
   }

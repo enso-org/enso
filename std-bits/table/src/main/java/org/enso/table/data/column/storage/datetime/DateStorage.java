@@ -1,10 +1,7 @@
 package org.enso.table.data.column.storage.datetime;
 
 import java.time.LocalDate;
-import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateBuilder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.datetime.DatePartExtractors;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -24,11 +21,6 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
     MapOperationStorage<LocalDate, SpecializedStorage<LocalDate>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalDate.class));
-    t.add(DatePartExtractors.year());
-    t.add(DatePartExtractors.quarter());
-    t.add(DatePartExtractors.month());
-    t.add(DatePartExtractors.week());
-    t.add(DatePartExtractors.day());
     return t;
   }
 
@@ -45,10 +37,5 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   @Override
   public StorageType getType() {
     return DateType.INSTANCE;
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new DateBuilder(capacity);
   }
 }

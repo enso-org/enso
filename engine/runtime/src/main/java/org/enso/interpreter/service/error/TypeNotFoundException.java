@@ -16,7 +16,9 @@ public class TypeNotFoundException extends RuntimeException implements ServiceEx
     this.module = module;
   }
 
-  /** @return module name. */
+  /**
+   * @return module name.
+   */
   public String getModule() {
     return module;
   }

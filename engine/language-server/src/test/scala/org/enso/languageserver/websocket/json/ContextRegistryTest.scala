@@ -1,18 +1,22 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import org.enso.languageserver.event.JsonSessionTerminated
 import org.enso.languageserver.runtime.{
+  MethodPointer,
   TestComponentGroups,
   VisualizationConfiguration
 }
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
 
-class ContextRegistryTest extends BaseServerTest {
+class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
 
   "ContextRegistry" must {
 
@@ -631,21 +635,21 @@ class ContextRegistryTest extends BaseServerTest {
       // attach visualization
       val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
-      val config =
-        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
         json.executionContextExecuteExpressionRequest(
           2,
+          contextId,
           visualizationId,
           expressionId,
-          config
+          "expression"
         )
       )
       val requestId2 =
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualization(
+                Api.ExecuteExpression(
+                  `contextId`,
                   `visualizationId`,
                   `expressionId`,
                   _
@@ -660,63 +664,6 @@ class ContextRegistryTest extends BaseServerTest {
         Api.VisualizationAttached()
       )
       client.expectJson(json.ok(2))
-    }
-
-    "return ModuleNotFound error when executing expression" in {
-      val client = getInitialisedWsClient()
-
-      // create context
-      client.send(json.executionContextCreateRequest(1))
-      val (requestId, contextId) =
-        runtimeConnectorProbe.receiveN(1).head match {
-          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
-            (requestId, contextId)
-          case msg =>
-            fail(s"Unexpected message: $msg")
-        }
-      runtimeConnectorProbe.lastSender ! Api.Response(
-        requestId,
-        Api.CreateContextResponse(contextId)
-      )
-      client.expectJson(json.executionContextCreateResponse(1, contextId))
-
-      // attach visualization
-      val visualizationId = UUID.randomUUID()
-      val expressionId    = UUID.randomUUID()
-      val config =
-        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
-      client.send(
-        json.executionContextExecuteExpressionRequest(
-          2,
-          visualizationId,
-          expressionId,
-          config
-        )
-      )
-      val requestId2 =
-        runtimeConnectorProbe.receiveN(1).head match {
-          case Api.Request(
-                requestId,
-                Api.AttachVisualization(
-                  `visualizationId`,
-                  `expressionId`,
-                  _
-                )
-              ) =>
-            requestId
-          case msg =>
-            fail(s"Unexpected message: $msg")
-        }
-      runtimeConnectorProbe.lastSender ! Api.Response(
-        requestId2,
-        Api.ModuleNotFound(config.visualizationModule)
-      )
-      client.expectJson(
-        json.executionContextModuleNotFound(
-          2,
-          config.visualizationModule
-        )
-      )
     }
 
     "successfully attach visualization" in {
@@ -741,7 +688,12 @@ class ContextRegistryTest extends BaseServerTest {
       val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val config =
-        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(
+          contextId,
+          "Test.Main",
+          ".to_json.to_text",
+          Vector()
+        )
       client.send(
         json.executionContextAttachVisualizationRequest(
           2,
@@ -793,7 +745,12 @@ class ContextRegistryTest extends BaseServerTest {
       val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val config =
-        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(
+          contextId,
+          "Test.Main",
+          ".to_json.to_text",
+          Vector()
+        )
       client.send(
         json.executionContextAttachVisualizationRequest(
           2,
@@ -850,7 +807,12 @@ class ContextRegistryTest extends BaseServerTest {
       val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val config =
-        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(
+          contextId,
+          "Test.Main",
+          ".to_json.to_text",
+          Vector()
+        )
       val expressionFailureMessage = "Method `to_json` could not be found."
       client.send(
         json.executionContextAttachVisualizationRequest(
@@ -876,7 +838,11 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.VisualizationExpressionFailed(expressionFailureMessage, None)
+        Api.VisualizationExpressionFailed(
+          Api.VisualizationContext(visualizationId, contextId, expressionId),
+          expressionFailureMessage,
+          None
+        )
       )
       client.expectJson(
         json.executionContextVisualizationExpressionFailed(
@@ -936,7 +902,7 @@ class ContextRegistryTest extends BaseServerTest {
       client.expectJson(json.ok(2))
     }
 
-    "successfully modify visualization" in {
+    "successfully modify visualization expression" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -957,7 +923,12 @@ class ContextRegistryTest extends BaseServerTest {
       // modify visualization
       val visualizationId = UUID.randomUUID()
       val config =
-        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(
+          contextId,
+          "Test.Main",
+          ".to_json.to_text",
+          Vector("foo", "bar")
+        )
       client.send(
         json.executionContextModifyVisualizationRequest(
           2,
@@ -971,9 +942,65 @@ class ContextRegistryTest extends BaseServerTest {
                 requestId,
                 Api.ModifyVisualization(
                   `visualizationId`,
-                  _
+                  visualizationConfig
                 )
               ) =>
+            visualizationConfig shouldEqual config.toApi
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.VisualizationModified()
+      )
+      client.expectJson(json.ok(2))
+    }
+
+    "successfully modify visualization method pointer" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // modify visualization
+      val visualizationId = UUID.randomUUID()
+      val config =
+        VisualizationConfiguration(
+          contextId,
+          "Test.Main",
+          MethodPointer("Module", "DefinedOnType", "name"),
+          Vector("foo", "bar")
+        )
+      client.send(
+        json.executionContextModifyVisualizationRequest(
+          2,
+          visualizationId,
+          config
+        )
+      )
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.ModifyVisualization(
+                  `visualizationId`,
+                  visualizationConfig
+                )
+              ) =>
+            visualizationConfig shouldEqual config.toApi
             requestId
           case msg =>
             fail(s"Unexpected message: $msg")
@@ -1006,7 +1033,12 @@ class ContextRegistryTest extends BaseServerTest {
       // modify visualization
       val visualizationId = UUID.randomUUID()
       val config =
-        VisualizationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+        VisualizationConfiguration(
+          contextId,
+          "Test.Main",
+          ".to_json.to_text",
+          Vector()
+        )
       client.send(
         json.executionContextModifyVisualizationRequest(
           2,
@@ -1089,6 +1121,36 @@ class ContextRegistryTest extends BaseServerTest {
             }
           }
           """)
+    }
+
+    "destroy execution context when client disconnected" in {
+      val (client, clientId) = getInitialisedWsClientAndId()
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId1, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId1,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // destroy context
+      system.eventStream.publish(
+        JsonSessionTerminated(JsonSession(clientId, client.actorRef()))
+      )
+      runtimeConnectorProbe.receiveN(1).head match {
+        case Api.Request(_, Api.DestroyContextRequest(`contextId`)) =>
+          succeed
+        case msg =>
+          fail(s"Unexpected message: $msg")
+      }
     }
 
   }

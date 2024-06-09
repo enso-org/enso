@@ -54,6 +54,10 @@ pub trait ResultExt<T, E>: Sized {
         self,
     ) -> Either<Ready<std::result::Result<T::Ok, T::Error>>, futures::future::IntoFuture<T>>
     where T: TryFuture<Error: From<E>>;
+
+    /// Checks if the result is `Ok` and contains the given value.
+    fn contains<U>(&self, x: &U) -> bool
+    where U: PartialEq<T>;
 }
 
 impl<T, E> ResultExt<T, E> for std::result::Result<T, E> {
@@ -117,6 +121,14 @@ impl<T, E> ResultExt<T, E> for std::result::Result<T, E> {
         match self {
             Ok(fut) => fut.into_future().right_future(),
             Err(e) => ready(Err(T::Error::from(e))).left_future(),
+        }
+    }
+
+    fn contains<U>(&self, x: &U) -> bool
+    where U: PartialEq<T> {
+        match self {
+            Ok(y) => x == y,
+            Err(_) => false,
         }
     }
 }

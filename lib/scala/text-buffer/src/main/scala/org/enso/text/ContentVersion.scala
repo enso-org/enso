@@ -1,7 +1,5 @@
 package org.enso.text
 
-import org.bouncycastle.util.encoders.Hex
-
 /** Version of the text contents. */
 case class ContentVersion(toHexString: String)
 

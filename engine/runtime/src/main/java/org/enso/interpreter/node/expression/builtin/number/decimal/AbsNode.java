@@ -4,7 +4,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Float", name = "abs", description = "Absolute value of a number.")
 public class AbsNode extends FloatNode {
-  double execute(double self) {
-    return Math.abs(self);
+  double execute(double own) {
+    return Math.abs(own);
   }
 }

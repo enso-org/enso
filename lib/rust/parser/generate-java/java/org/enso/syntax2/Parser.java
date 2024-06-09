@@ -11,7 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class Parser implements AutoCloseable {
-  static {
+  private static void initializeLibraries() {
     String os = System.getProperty("os.name");
     String name;
     if (os.startsWith("Mac")) {
@@ -25,6 +25,7 @@ public final class Parser implements AutoCloseable {
     File parser = null;
     try {
       var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
+  /*
         try {
           if ("jar".equals(whereAmI.getProtocol()) && whereAmI.openConnection() instanceof JarURLConnection jar) {
             whereAmI = jar.getJarFileURL();
@@ -34,6 +35,20 @@ public final class Parser implements AutoCloseable {
         }
       File dir = new File(whereAmI.toURI()).getParentFile();
       parser = new File(dir, name);
+      */
+
+      var d = new File(whereAmI.toURI()).getParentFile();
+      File path = null;
+      while (d != null) {
+        path = new File(d, name);
+        if (path.exists()) break;
+        d = d.getParentFile();
+      }
+      if (d == null) {
+        throw new LinkageError(
+            "Cannot find parser in " + new File(whereAmI.toURI()).getParentFile());
+      }
+      parser = path;
       System.load(parser.getAbsolutePath());
     } catch (IllegalArgumentException | URISyntaxException | LinkageError e) {
       File root = new File(".").getAbsoluteFile();
@@ -73,7 +88,11 @@ public final class Parser implements AutoCloseable {
 
   private static native void freeState(long state);
 
-  private static native ByteBuffer parseInput(long state, ByteBuffer input);
+  private static native ByteBuffer parseTree(long state, ByteBuffer input);
+
+  private static native ByteBuffer parseTreeLazy(long state, ByteBuffer input);
+
+  private static native long isIdentOrOperator(ByteBuffer input);
 
   private static native long getLastInputBase(long state);
 
@@ -84,15 +103,31 @@ public final class Parser implements AutoCloseable {
   static native long getUuidLow(long metadata, long codeOffset, long codeLength);
 
   public static Parser create() {
+    initializeLibraries();
     var state = allocState();
     return new Parser(state);
+  }
+
+  public long isIdentOrOperator(CharSequence input) {
+    byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+    ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+    inputBuf.put(inputBytes);
+
+    return isIdentOrOperator(inputBuf);
+  }
+
+  public ByteBuffer parseInputLazy(CharSequence input) {
+    byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
+    ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
+    inputBuf.put(inputBytes);
+    return parseTreeLazy(state, inputBuf);
   }
 
   public Tree parse(CharSequence input) {
     byte[] inputBytes = input.toString().getBytes(StandardCharsets.UTF_8);
     ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
     inputBuf.put(inputBytes);
-    var serializedTree = parseInput(state, inputBuf);
+    var serializedTree = parseTree(state, inputBuf);
     var base = getLastInputBase(state);
     var metadata = getMetadata(state);
     serializedTree.order(ByteOrder.LITTLE_ENDIAN);

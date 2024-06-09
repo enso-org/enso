@@ -38,7 +38,7 @@ import org.enso.librarymanager.{
   ResolvingLibraryProvider
 }
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{ExecutorService, Executors}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
 
@@ -59,8 +59,9 @@ class LibraryPreinstallHandler(
     with LazyLogging
     with UnhandledLogging {
 
+  private val threadPool: ExecutorService = Executors.newCachedThreadPool()
   implicit private val ec: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+    ExecutionContext.fromExecutor(threadPool)
 
   override def receive: Receive = requestStage
 
@@ -186,6 +187,7 @@ class LibraryPreinstallHandler(
           replyTo ! ResponseResult(LibraryPreinstall, requestId, Unused)
       }
 
+      threadPool.shutdown()
       context.stop(self)
 
     case Status.Failure(throwable) =>

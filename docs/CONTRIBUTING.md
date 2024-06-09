@@ -165,11 +165,11 @@ In order to build and run Enso you will need the following tools:
   [`project/build.properties`](../project/build.properties).
 - [Maven](https://maven.apache.org/) with version at least 3.6.3.
 - [GraalVM](https://www.graalvm.org/) with the same version as described in the
-  [`build.sbt`](../build.sbt) file, configured as your default JVM. GraalVM is
-  distributed for different Java versions, so you need a GraalVM distribution
-  for the same Java version as specified in [`build.sbt`](../build.sbt).
+  [`build.sbt`](../build.sbt) file, configured as your default JVM.
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
-  1.12.0.
+  24.3.25. It is automatically downloaded when using the `run` command. For
+  direct `sbt` usage, you can download the `flatc` binary from the
+  [release assets](https://github.com/google/flatbuffers/releases/tag/v24.3.25).
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
 - On MacOS and Linux, the `tar` command is required for running some tests. It
   should be installed by default on most distributions.
@@ -190,26 +190,6 @@ helper tools for that. We recommend:
 
 **For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
-
-**For users of MacOS Monterey and later**: building desktop IDE currently
-requires Python 2 installed in the system. It can be installed using the
-following commands:
-
-```sh
-brew install pyenv
-pyenv install 2.7.18
-pyenv global 2.7.18
-export PYTHON_PATH=$(pyenv root)/shims/python
-```
-
-The flatbuffers `flatc` compiler can be installed from the following locations:
-
-- Using the `conda` package manager (`conda install flatbuffers`). This will
-  work on all platforms, but requires some knowledge of `conda` and how its
-  environments work.
-- Windows users can download binaries directly from the flatbuffers github
-  [releases](https://github.com/google/flatbuffers/releases).
-- MacOS users can install it via homebrew (`brew install flatbuffers`).
 
 ### Getting the Sources
 
@@ -258,24 +238,6 @@ working on modern macOS properly. Thus, we've developed a replacement, the
 [Cargo Watch Plus](https://github.com/enso-org/cargo-watch-plus). To use it,
 simply export the `USE_CARGO_WATCH_PLUS=1` in your shell and the build system
 will pick it up instead of the `cargo-watch`.
-
-### Getting Set Up (JVM)
-
-In order to properly build the `runtime` component, the JVM running SBT needs to
-have some dependency JARs available in its module path at startup. To ensure
-they are available, before running any compilation or other tasks, these
-dependencies should be prepared. To do so, run the following command in the
-repository root directory:
-
-```bash
-sbt bootstrap
-```
-
-It is preferred to not run this command from the sbt shell, but in batch mode,
-because SBT has to be launched again anyway to pick up these JARs at startup.
-
-Bootstrap has to be run only when building the project for the first time
-**and** after each change of Graal version.
 
 ### Getting Set Up (Documentation)
 
@@ -331,31 +293,6 @@ You can substitute both `bench` and `test` for `compile` in step 3, and the sbt
 shell will execute the appropriate thing. Furthermore we have `testOnly` and
 `benchOnly` that accept a glob pattern that delineates some subset of the tests
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
-
-#### Building the Interpreter CLI Fat Jar
-
-In order to build a fat jar with the CLI component, run the `assembly` task
-inside the `runner` subproject:
-
-```bash
-sbt "engine-runner/assembly"
-```
-
-This will produce an executable `runner.jar` fat jar and a `runtime.jar` fat jar
-in the repository root. The `runner.jar` depends only on the `runtime.jar` and a
-vanilla GraalVM distribution.
-
-#### Building the Project Manager Fat Jar
-
-In order to build a fat jar with the Project Manager component, run the
-`assembly` task on the `project-manager` subproject:
-
-```bash
-sbt "project-manager/assembly"
-```
-
-This will produce a `project-manager` fat jar and a `runtime.jar` fat jar in the
-repository root.
 
 #### Building the Launcher Native Binary
 
@@ -450,22 +387,22 @@ Internally, most of the developers working on the Enso project use IntelliJ as
 their primary IDE. To that end, what follows is a basic set of instructions for
 getting the project into a working state in IntelliJ.
 
-1.  Clone the project sources.
-2.  Open IntelliJ
-3.  File -> New -> Project From Existing Sources.
-4.  Navigate to the directory into which you cloned the project sources. By
-    default this will be called `enso`. Select the directory, and not the
-    `build.sbt` file it contains.
-5.  In the 'Import Project' dialogue, select 'Import project from external
-    model' and choose 'sbt'.
-6.  Where it says 'Download:', ensure you check both 'Library Sources' and 'sbt
-    sources'.
-7.  In addition, check the boxes next to 'Use sbt shell:' such that it is used
-    both 'for imports' and 'for builds'.
-8.  Disallow the overriding of the sbt version.
-9.  Under the 'Project JDK' setting, please ensure that it is set up to use a
-    GraalVM version as described in [System requirements](#system-requirements).
-    You may need to add it using the 'New' button if it isn't already set up.
+1. Clone the project sources.
+2. Open IntelliJ
+3. File -> New -> Project From Existing Sources.
+4. Navigate to the directory into which you cloned the project sources. By
+   default this will be called `enso`. Select the directory, and not the
+   `build.sbt` file it contains.
+5. In the 'Import Project' dialogue, select 'Import project from external model'
+   and choose 'sbt'.
+6. Where it says 'Download:', ensure you check both 'Library Sources' and 'sbt
+   sources'.
+7. In addition, check the boxes next to 'Use sbt shell:' such that it is used
+   both 'for imports' and 'for builds'.
+8. Disallow the overriding of the sbt version.
+9. Under the 'Project JDK' setting, please ensure that it is set up to use a
+   GraalVM version as described in [System requirements](#system-requirements).
+   You may need to add it using the 'New' button if it isn't already set up.
 10. Click 'Finish'. This will prompt you as to whether you want to overwrite the
     `project` folder. Select 'Yes' to continue. The Enso project will load up
     with an open SBT shell, which can be interacted with as described above. You
@@ -565,7 +502,7 @@ To run the tests you can run the following commands (where `enso` refers to the
 built runner executable as explained above):
 
 ```bash
-enso --run test/Tests # for the Base library
+enso --run test/Base_Tests
 enso --run test/Geo_Tests
 enso --run test/Table_Tests
 ```
@@ -573,7 +510,7 @@ enso --run test/Table_Tests
 Or to run just a single test (e.g., `Duration_Spec.enso`):
 
 ```bash
-enso --in-project test/Tests --run test/Tests/src/Data/Time/Duration_Spec.enso
+enso --in-project test/Base_Tests --run test/Base_Tests/src/Data/Time/Duration_Spec.enso
 ```
 
 The Database tests will by default only test the SQLite backend, to test other
@@ -586,7 +523,7 @@ the `LANG` environment variable to `C` to make sure that the language is
 configured correctly and run the tests as following:
 
 ```bash
-LANG=C enso --run test/Tests
+LANG=C enso --run test/Base_Tests
 ```
 
 Note that JVM assertions are not enabled by default, one has to pass `-ea` via
@@ -600,7 +537,7 @@ assertions are enabled as well.
 To run all the stdlib test suites, set `CI=true` environment variable:
 
 ```bash
-env CI=true enso --run test/Tests/
+env CI=true enso --run test/Base_Tests/
 ```
 
 For more details about the CI setup, you can check the

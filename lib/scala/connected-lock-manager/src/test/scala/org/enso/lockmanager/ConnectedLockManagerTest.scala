@@ -15,6 +15,7 @@ import org.enso.lockmanager.client.{
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.{TestSynchronizer, WithTemporaryDirectory}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -24,7 +25,13 @@ class ConnectedLockManagerTest
     extends TestKit(ActorSystem("TestSystem"))
     with AnyWordSpecLike
     with Matchers
+    with BeforeAndAfterAll
     with WithTemporaryDirectory {
+
+  override def afterAll(): Unit = {
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
+  }
 
   private def lockRoot = getTestDirectory.resolve("locks")
 
@@ -67,8 +74,8 @@ class ConnectedLockManagerTest
               )
           )
         ) { _ =>
-          sync.signal("primary-acquired")
           sync.report("primary-acquired")
+          sync.signal("primary-acquired")
           sync.waitFor("connected-is-waiting")
           sync.report("primary-releasing")
         }
@@ -115,8 +122,8 @@ class ConnectedLockManagerTest
               )
           )
         ) { _ =>
-          sync.signal("primary-acquired")
           sync.report("primary-acquired")
+          sync.signal("primary-acquired")
           sync.waitFor("connected-acquired")
         }
 

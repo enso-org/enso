@@ -1,0 +1,18 @@
+{
+    "type": "HTTP",
+    "libraryName": "Standard.Base",
+    "method": "GET",
+    "uri": "http://http-test-helper.local/testfiles/table.tsv",
+    "format": {
+        "type": "format",
+        "subType": "delimited",
+        "delimiter": "\t",
+        "headers": true,
+        "quote_style": {
+            "type": "quote_style",
+            "subType": "with_quotes",
+            "quote": "'",
+            "escape": "\\"
+        }
+    }
+}

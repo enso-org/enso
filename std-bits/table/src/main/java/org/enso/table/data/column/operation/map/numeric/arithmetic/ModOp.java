@@ -1,7 +1,8 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
 
 public class ModOp<T extends Number, I extends Storage<? super T>>
@@ -11,18 +12,19 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
   }
 
   @Override
-  public double doDouble(double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
+  public double doDouble(
+      double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0.0) {
-      problemBuilder.reportDivisionByZero(ix);
+      problemAggregator.reportDivisionByZero(ix);
     }
 
     return a % b;
   }
 
   @Override
-  public Long doLong(long a, long b, int ix, MapOperationProblemBuilder problemBuilder) {
+  public Long doLong(long a, long b, int ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0) {
-      problemBuilder.reportDivisionByZero(ix);
+      problemAggregator.reportDivisionByZero(ix);
       return null;
     }
 
@@ -31,12 +33,23 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public BigInteger doBigInteger(
-      BigInteger a, BigInteger b, int ix, MapOperationProblemBuilder problemBuilder) {
+      BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemAggregator) {
     if (b.equals(BigInteger.ZERO)) {
-      problemBuilder.reportDivisionByZero(ix);
+      problemAggregator.reportDivisionByZero(ix);
       return null;
     }
 
     return a.mod(b);
+  }
+
+  @Override
+  public BigDecimal doBigDecimal(
+      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
+    if (b.equals(BigDecimal.ZERO)) {
+      problemAggregator.reportDivisionByZero(ix);
+      return null;
+    }
+
+    return a.remainder(b);
   }
 }

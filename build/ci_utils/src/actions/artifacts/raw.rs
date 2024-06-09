@@ -15,15 +15,14 @@ use reqwest::header::HeaderMap;
 use reqwest::Body;
 use reqwest::Response;
 use reqwest::StatusCode;
-use serde::de::DeserializeOwned;
 use tokio::io::AsyncReadExt;
 
 
 
 pub mod endpoints {
     use super::*;
+    use crate::io::retry;
     use reqwest::header::HeaderValue;
-    use std::pin::Pin;
     use tokio::io::AsyncRead;
 
     /// Creates a file container for the new artifact in the remote blob storage/file service.
@@ -37,16 +36,8 @@ pub mod endpoints {
         artifact_name: impl AsRef<str>,
     ) -> Result<CreateArtifactResponse> {
         let body = CreateArtifactRequest::new(artifact_name.as_ref(), None);
-        //
-        // dbg!(&self.json_client);
-        // dbg!(serde_json::to_string(&body)?);
         let request = json_client.post(artifact_url).json(&body).build()?;
-
-        // dbg!(&request);
-        // TODO retry
         let response = json_client.execute(request).await?;
-        // dbg!(&response);
-        // let status = response.status();
         check_response_json(response, |status, err| match status {
             StatusCode::FORBIDDEN => err.context(
                 "Artifact storage quota has been hit. Unable to upload any new artifacts.",
@@ -110,32 +101,28 @@ pub mod endpoints {
     #[context("Failed to finalize upload of the artifact `{}`.", artifact_name.as_ref())]
     pub async fn patch_artifact_size(
         json_client: &reqwest::Client,
-        artifact_url: Url,
+        artifact_url: &Url,
         artifact_name: impl AsRef<str>,
         size: usize,
     ) -> Result<PatchArtifactSizeResponse> {
         debug!("Patching the artifact `{}` size.", artifact_name.as_ref());
-        let artifact_url = artifact_url.clone();
-
-        let patch_request = json_client
-            .patch(artifact_url.clone())
-            .query(&[("artifactName", artifact_name.as_ref())]) // OsStr can be passed here, fails runtime
-            .json(&PatchArtifactSize { size });
-
-        // TODO retry
-        let response = patch_request.send().await?;
-        Ok(response.json().await?)
+        let artifact_name = artifact_name.as_ref();
+        retry(move || async move {
+            let patch_request = json_client
+                .patch(artifact_url.clone())
+                .query(&[("artifactName", artifact_name)]) // OsStr can be passed here, fails runtime
+                .json(&PatchArtifactSize { size });
+            let response = patch_request.send().await?;
+            Ok(response.json().await?)
+        })
+        .await
     }
 
     pub async fn download_item(
         bin_client: &reqwest::Client,
         artifact_location: Url,
     ) -> Result<Pin<Box<dyn AsyncRead + Send>>> {
-        // debug!("Downloading {} to {}.", artifact_location, destination.as_ref().display());
-        // let file = tokio::fs::File::create(destination);
-
         let response = crate::io::web::execute(bin_client.get(artifact_location)).await?;
-        // let expected_size = decode_content_length(response.headers());
         let is_gzipped = response
             .headers()
             .get(reqwest::header::ACCEPT_ENCODING)
@@ -145,10 +132,8 @@ pub mod endpoints {
         if is_gzipped {
             let decoded_stream = async_compression::tokio::bufread::GzipDecoder::new(reader);
             Ok(Box::pin(decoded_stream) as Pin<Box<dyn AsyncRead + Send>>)
-            // tokio::io::copy(&mut decoded_stream, &mut file.await?).await?;
         } else {
             Ok(Box::pin(reader) as Pin<Box<dyn AsyncRead + Send>>)
-            // tokio::io::copy(&mut reader, &mut destination).await?;
         }
     }
 }
@@ -217,7 +202,6 @@ pub async fn check_response(
     response: Response,
     additional_context: impl FnOnce(StatusCode, anyhow::Error) -> anyhow::Error,
 ) -> Result<Bytes> {
-    // dbg!(&response);
     let status = response.status();
     if !status.is_success() {
         let mut err = anyhow!("Server replied with status {}.", status);
@@ -242,7 +226,7 @@ pub fn stream_file_in_chunks(
     file: tokio::fs::File,
     chunk_size: usize,
 ) -> impl Stream<Item = Result<Bytes>> + Send {
-    futures::stream::try_unfold(file, async move |mut file| {
+    futures::stream::try_unfold(file, move |mut file: tokio::fs::File| async move {
         let mut buffer = BytesMut::with_capacity(chunk_size);
         while file.read_buf(&mut buffer).await? > 0 && buffer.len() < chunk_size {}
         if buffer.is_empty() {

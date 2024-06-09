@@ -62,7 +62,8 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
         launcher,
         Seq("--auto-confirm", "uninstall", "distribution"),
         env,
-        extraJVMProps
+        extraJVMProps,
+        timeoutSeconds = 30
       ) should returnSuccess
 
       assert(Files.notExists(installedRoot), "Should remove the data root.")
@@ -81,7 +82,8 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
         launcher,
         Seq("--auto-confirm", "uninstall", "distribution"),
         env,
-        extraJVMProps
+        extraJVMProps,
+        timeoutSeconds = 30
       ) should returnSuccess
 
       assert(Files.notExists(installedRoot), "Should remove the data root.")
@@ -98,7 +100,8 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
         launcher,
         Seq("--auto-confirm", "uninstall", "distribution"),
         env,
-        extraJVMProps
+        extraJVMProps,
+        timeoutSeconds = 30
       ) should returnSuccess
 
       assert(

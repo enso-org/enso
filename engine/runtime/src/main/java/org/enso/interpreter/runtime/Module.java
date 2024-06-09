@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -22,10 +23,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
-import org.enso.compiler.ModuleCache;
-import org.enso.compiler.context.SimpleUpdate;
+import org.enso.common.CompilationStage;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
+import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.suggestions.SimpleUpdate;
+import org.enso.interpreter.caches.Cache;
+import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
@@ -36,34 +43,29 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.data.TypeGraph;
 import org.enso.text.buffer.Rope;
-import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
 public final class Module implements EnsoObject {
-  private ModuleScope scope;
   private ModuleSources sources;
+  private QualifiedName name;
+  private ModuleScope.Builder scopeBuilder;
+  private final Package<TruffleFile> pkg;
+  private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
+  private boolean wasLoadedFromCache;
+  private final boolean synthetic;
   private PatchedModuleValues patchedValues;
   private final Map<Source, Module> allSources = new WeakHashMap<>();
-  private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
-  private boolean isIndexed = false;
   private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
-  private QualifiedName name;
-  private final ModuleCache cache;
-  private boolean wasLoadedFromCache;
-  private boolean hasCrossModuleLinks;
-  private final boolean synthetic;
+
   /**
    * This list is filled in case there is a directory with the same name as this module. The
    * directory then contains submodules of this module that should be directly accessible from this
@@ -84,11 +86,11 @@ public final class Module implements EnsoObject {
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
     this.sources = ModuleSources.NONE.newWith(sourceFile);
-    this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.pkg = pkg;
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.synthetic = false;
   }
 
@@ -102,11 +104,11 @@ public final class Module implements EnsoObject {
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
-    this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.pkg = pkg;
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
   }
@@ -121,11 +123,11 @@ public final class Module implements EnsoObject {
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
     this.sources = ModuleSources.NONE.newWith(literalSource);
-    this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.pkg = pkg;
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
   }
@@ -142,13 +144,27 @@ public final class Module implements EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scope = new ModuleScope(this);
+    this.scopeBuilder = new ModuleScope.Builder(this);
     this.pkg = pkg;
-    this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
-    this.hasCrossModuleLinks = false;
     this.synthetic = synthetic;
+    if (synthetic) {
+      this.compilationStage = CompilationStage.INITIAL;
+      scopeBuilder.build();
+    } else {
+      this.compilationStage = CompilationStage.AFTER_CODEGEN;
+    }
+  }
+
+  /**
+   * Unwraps runtime module from compiler module.
+   *
+   * @param module module created by {@link #asCompilerModule()} method
+   * @return
+   */
+  public static Module fromCompilerModule(CompilerContext.Module module) {
+    return ((TruffleCompilerContext.Module) module).unsafeModule();
   }
 
   /**
@@ -183,17 +199,23 @@ public final class Module implements EnsoObject {
     this.compilationStage = CompilationStage.INITIAL;
   }
 
-  /** @return the literal source of this module. */
+  /**
+   * @return the literal source of this module.
+   */
   public Rope getLiteralSource() {
     return sources.rope();
   }
 
-  /** @return true if this module represents a synthetic (compiler-generated) module */
+  /**
+   * @return true if this module represents a synthetic (compiler-generated) module
+   */
   public boolean isSynthetic() {
     return synthetic;
   }
 
-  /** @return true iff this module is private (project-private). */
+  /**
+   * @return true iff this module is private (project-private).
+   */
   public boolean isPrivate() {
     return ir.isPrivate();
   }
@@ -240,15 +262,15 @@ public final class Module implements EnsoObject {
    * @see PatchedModuleValues
    */
   public void setLiteralSource(Rope source, SimpleUpdate update) {
-    if (this.scope != null && update != null) {
+    if (update != null) {
       var change = update.ir();
       if (this.patchedValues == null) {
         this.patchedValues = new PatchedModuleValues(this);
       }
       if (patchedValues.simpleUpdate(update)) {
         this.sources = this.sources.newWith(source);
-        final Function1<Expression, Expression> fn =
-            new Function1<Expression, Expression>() {
+        final java.util.function.Function<Expression, Expression> fn =
+            new java.util.function.Function<Expression, Expression>() {
               @Override
               public Expression apply(Expression v1) {
                 if (v1 == change) {
@@ -286,7 +308,9 @@ public final class Module implements EnsoObject {
     }
   }
 
-  /** @return the location of this module. */
+  /**
+   * @return the location of this module.
+   */
   public String getPath() {
     return sources.getPath();
   }
@@ -298,22 +322,13 @@ public final class Module implements EnsoObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(EnsoContext context) {
-    ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
       } catch (IOException ignored) {
       }
     }
-    return scope;
-  }
-
-  /** Create scope if it does not exist. */
-  public void ensureScopeExists() {
-    if (scope == null) {
-      scope = new ModuleScope(this);
-      compilationStage = CompilationStage.INITIAL;
-    }
+    return scopeBuilder.build();
   }
 
   /**
@@ -369,15 +384,16 @@ public final class Module implements EnsoObject {
   }
 
   private void compile(EnsoContext context) throws IOException {
-    ensureScopeExists();
     Source source = getSource();
     if (source == null) return;
-    scope.reset();
+    scopeBuilder = newScopeBuilder(false);
     compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(this);
+    context.getCompiler().run(asCompilerModule());
   }
 
-  /** @return IR defined by this module. */
+  /**
+   * @return IR defined by this module.
+   */
   public org.enso.compiler.core.ir.Module getIr() {
     return ir;
   }
@@ -404,7 +420,9 @@ public final class Module implements EnsoObject {
     return map.containsKey(id);
   }
 
-  /** @return the current compilation stage of this module. */
+  /**
+   * @return the current compilation stage of this module.
+   */
   public CompilationStage getCompilationStage() {
     return compilationStage;
   }
@@ -434,26 +452,29 @@ public final class Module implements EnsoObject {
     this.uuidsMap = null;
   }
 
-  /** @return the runtime scope of this module. */
+  /**
+   * @return the runtime scope of this module.
+   */
   public ModuleScope getScope() {
-    return scope;
+    return scopeBuilder.asModuleScope();
+  }
+
+  public ModuleScope.Builder getScopeBuilder() {
+    return scopeBuilder;
+  }
+
+  public ModuleScope.Builder newScopeBuilder(boolean inheritTypes) {
+    if (inheritTypes) {
+      this.scopeBuilder = this.scopeBuilder.newBuilderInheritingTypes();
+    } else {
+      this.scopeBuilder = new ModuleScope.Builder(this);
+    }
+    return this.scopeBuilder;
   }
 
   /**
-   * Returns the runtime scope of this module that filters out only the requested types. If the list
-   * of requested types is empty, returns the unchanged runtime scope.
-   *
-   * @param types a list of types to include in the scope
+   * @return the qualified name of this module.
    */
-  public ModuleScope getScope(List<String> types) {
-    if (types.isEmpty()) {
-      return scope;
-    } else {
-      return scope.withTypes(types);
-    }
-  }
-
-  /** @return the qualified name of this module. */
   public QualifiedName getName() {
     return name;
   }
@@ -471,52 +492,57 @@ public final class Module implements EnsoObject {
     this.name = name.renameProject(newName);
   }
 
-  /** @return the indexed flag. */
-  public boolean isIndexed() {
-    return isIndexed;
-  }
-
-  /** Set the indexed flag. */
-  public void setIndexed(boolean indexed) {
-    isIndexed = indexed;
-  }
-
-  /** @return the source file of this module. */
+  /**
+   * @return the source file of this module.
+   */
   public TruffleFile getSourceFile() {
     return sources.file();
   }
 
-  /** @return {@code true} if the module is interactive, {@code false} otherwise */
+  /**
+   * @return {@code true} if the module is interactive, {@code false} otherwise
+   */
   public boolean isInteractive() {
     return patchedValues != null;
   }
 
-  /** @return the cache for this module */
-  public ModuleCache getCache() {
+  /**
+   * @return the cache for this module
+   */
+  public Cache<ModuleCache.CachedModule, ModuleCache.Metadata> getCache() {
     return cache;
   }
 
-  /** @return {@code true} if the module was loaded from the cache, {@code false} otherwise */
+  /**
+   * @return {@code true} if the module was loaded from the cache, {@code false} otherwise
+   */
   public boolean wasLoadedFromCache() {
     return wasLoadedFromCache;
   }
 
-  /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
+  /**
+   * @param wasLoadedFromCache whether or not the module was loaded from the cache
+   */
   void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
   }
 
   /**
-   * @return {@code true} if the module has had its cross-module links restored, otherwise {@code
-   *     false}
+   * Turns this module into appropriate {@link CompilerContext} wrapper.
+   *
+   * @return instance of {@link CompilerContext.Module} that delegates to this module
    */
-  public boolean hasCrossModuleLinks() {
-    return hasCrossModuleLinks;
+  public final CompilerContext.Module asCompilerModule() {
+    return new TruffleCompilerContext.Module(this);
   }
 
-  /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
-  void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
-    this.hasCrossModuleLinks = hasCrossModuleLinks;
+  /**
+   * Locates associated type hierarchy for given context.
+   *
+   * @return type hierarchy or {@code null} when it is not found
+   */
+  public static TypeGraph findTypeHierarchy(CompilerContext context) {
+    return context instanceof TruffleCompilerContext tcc ? tcc.getTypeHierarchy() : null;
   }
 
   /**
@@ -542,15 +568,20 @@ public final class Module implements EnsoObject {
         TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
         logger.log(
             Level.SEVERE,
-            "Failed to get the requested method. Try clearing your IR caches or disabling caching.");
+            "Failed to get the requested method. Try clearing your IR caches or disabling"
+                + " caching.");
         throw npe;
       }
     }
 
     private static Type getType(ModuleScope scope, Object[] args)
-        throws ArityException, UnsupportedTypeException {
-      String name = Types.extractArguments(args, String.class);
-      return scope.getTypes().get(name);
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      var iop = InteropLibrary.getUncached();
+      if (!iop.isString(args[0])) {
+        throw UnsupportedTypeException.create(args, "First argument must be a string");
+      }
+      String name = iop.asString(args[0]);
+      return scope.getType(name, true);
     }
 
     private static Module reparse(Module module, Object[] args, EnsoContext context)
@@ -567,15 +598,23 @@ public final class Module implements EnsoObject {
     }
 
     private static Module setSource(Module module, Object[] args, EnsoContext context)
-        throws ArityException, UnsupportedTypeException {
-      String source = Types.extractArguments(args, String.class);
+        throws UnsupportedTypeException, UnsupportedMessageException {
+      var iop = InteropLibrary.getUncached();
+      if (!iop.isString(args[0])) {
+        throw UnsupportedTypeException.create(args, "First argument must be a string");
+      }
+      String source = iop.asString(args[0]);
       module.setLiteralSource(source);
       return module;
     }
 
     private static Module setSourceFile(Module module, Object[] args, EnsoContext context)
-        throws ArityException, UnsupportedTypeException {
-      String file = Types.extractArguments(args, String.class);
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      var iop = InteropLibrary.getUncached();
+      if (!iop.isString(args[0])) {
+        throw UnsupportedTypeException.create(args, "First argument must be a string");
+      }
+      String file = iop.asString(args[0]);
       module.setSourceFile(context.getTruffleFile(new File(file)));
       return module;
     }
@@ -587,8 +626,15 @@ public final class Module implements EnsoObject {
 
     private static Object evalExpression(
         ModuleScope scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
-        throws ArityException, UnsupportedTypeException {
-      String expr = Types.extractArguments(args, String.class);
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      if (args.length != 1) {
+        throw ArityException.create(1, 1, args.length);
+      }
+      var iop = InteropLibrary.getUncached();
+      if (!iop.isString(args[0])) {
+        throw UnsupportedTypeException.create(args, "First argument must be a string");
+      }
+      String expr = iop.asString(args[0]);
       Builtins builtins = context.getBuiltins();
       BuiltinFunction eval =
           builtins
@@ -606,12 +652,12 @@ public final class Module implements EnsoObject {
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {
-      return context.getCompiler().generateDocs(module);
+      return context.getCompiler().generateDocs(module.asCompilerModule());
     }
 
     @CompilerDirectives.TruffleBoundary
     private static Object gatherImportStatements(Module module, EnsoContext context) {
-      String[] imports = context.getCompiler().gatherImportStatements(module);
+      String[] imports = context.getCompiler().gatherImportStatements(module.asCompilerModule());
       return ArrayLikeHelpers.wrapStrings(imports);
     }
 
@@ -622,7 +668,10 @@ public final class Module implements EnsoObject {
         String member,
         Object[] arguments,
         @Cached LoopingCallOptimiserNode callOptimiserNode)
-        throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
+        throws UnknownIdentifierException,
+            ArityException,
+            UnsupportedTypeException,
+            UnsupportedMessageException {
       EnsoContext context = EnsoContext.get(null);
       ModuleScope scope;
       switch (member) {
@@ -631,7 +680,11 @@ public final class Module implements EnsoObject {
         case MethodNames.Module.GET_METHOD:
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
-          return result == null ? context.getBuiltins().nothing() : result;
+          if (result == null || result.getSchema().isProjectPrivate()) {
+            return context.getBuiltins().nothing();
+          } else {
+            return result;
+          }
         case MethodNames.Module.GET_TYPE:
           scope = module.compileScope(context);
           return getType(scope, arguments);

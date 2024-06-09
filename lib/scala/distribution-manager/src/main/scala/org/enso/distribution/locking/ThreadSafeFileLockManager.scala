@@ -325,4 +325,6 @@ class ThreadSafeFileLockManager(locksRoot: Path) extends ThreadSafeLockManager {
       case LockType.Shared    => lock.tryAcquireReader()
     }
   }
+
+  override def reset(): Unit = localLocks.clear()
 }

@@ -1,12 +1,11 @@
 package org.enso.interpreter.node.callable;
 
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 
 @NodeInfo(shortName = "[]", description = "Creates a vector from given expressions.")
 public class SequenceLiteralNode extends ExpressionNode {

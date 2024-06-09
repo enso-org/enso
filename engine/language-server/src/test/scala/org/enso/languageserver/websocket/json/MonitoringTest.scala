@@ -1,9 +1,13 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
-class MonitoringTest extends BaseServerTest with FlakySpec {
+class MonitoringTest
+    extends BaseServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   "Monitoring subsystem" must {
 

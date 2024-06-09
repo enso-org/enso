@@ -3,19 +3,24 @@ package module
 package scope
 package definition
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+
+import java.util.UUID
 
 /** A trait representing method definitions in Enso. */
 sealed trait Method extends Definition {
   val methodReference: Name.MethodReference
   val body: Expression
+  val isPrivate: Boolean
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Method
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Method
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Method
 
   /** @inheritdoc */
   override def duplicate(
@@ -44,13 +49,37 @@ object Method {
     */
   sealed case class Explicit(
     override val methodReference: Name.MethodReference,
-    override val body: Expression,
+    val bodySeq: Seq[Expression],
+    val isStatic: Boolean,
+    val isPrivate: Boolean,
+    val isStaticWrapperForInstanceMethod: Boolean,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val passData: MetadataStorage,
+    override val diagnostics: DiagnosticStorage
   ) extends Method
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
+    def this(
+      methodReference: Name.MethodReference,
+      body: Expression,
+      isPrivate: Boolean,
+      location: Option[IdentifiedLocation],
+      passData: MetadataStorage      = new MetadataStorage(),
+      diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) = {
+      this(
+        methodReference,
+        Seq(body),
+        Explicit.computeIsStatic(body),
+        isPrivate,
+        Explicit.computeIsStaticWrapperForInstanceMethod(body),
+        location,
+        passData,
+        diagnostics
+      );
+    }
+
+    lazy val body = bodySeq.head
 
     /** Creates a copy of `this`.
       *
@@ -65,14 +94,21 @@ object Method {
     def copy(
       methodReference: Name.MethodReference = methodReference,
       body: Expression                      = body,
-      location: Option[IdentifiedLocation]  = location,
-      passData: MetadataStorage             = passData,
-      diagnostics: DiagnosticStorage        = diagnostics,
-      id: Identifier                        = id
+      isStatic: Boolean                     = Explicit.computeIsStatic(body),
+      isPrivate: Boolean                    = isPrivate,
+      isStaticWrapperForInstanceMethod: Boolean =
+        Explicit.computeIsStaticWrapperForInstanceMethod(body),
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: UUID @Identifier                 = id
     ): Explicit = {
       val res = Explicit(
         methodReference,
-        body,
+        List(body),
+        isStatic,
+        isPrivate,
+        isStaticWrapperForInstanceMethod,
         location,
         passData,
         diagnostics
@@ -102,11 +138,12 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -117,7 +154,7 @@ object Method {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Explicit = {
       copy(
         methodReference = methodReference.mapExpressions(fn),
@@ -151,8 +188,21 @@ object Method {
 
       s"${methodReference.showCode(indent)} = $exprStr"
     }
+  }
 
-    def isStatic: Boolean = body match {
+  object Explicit {
+    def unapply(m: Explicit): Option[
+      (
+        Name.MethodReference,
+        Expression,
+        Option[IdentifiedLocation],
+        MetadataStorage,
+        DiagnosticStorage
+      )
+    ] = {
+      Some((m.methodReference, m.body, m.location, m.passData, m.diagnostics))
+    }
+    private def computeIsStatic(body: IR): Boolean = body match {
       case function: Function.Lambda =>
         function.arguments.headOption.map(_.name) match {
           case Some(Name.Self(_, true, _, _)) => true
@@ -162,21 +212,21 @@ object Method {
         true // if it's not a function, it has no arguments, therefore no `self`
     }
 
-    def isStaticWrapperForInstanceMethod: Boolean = body match {
-      case function: Function.Lambda =>
-        function.arguments.map(_.name) match {
-          case Name.Self(_, true, _, _) :: Name.Self(
-                _,
-                false,
-                _,
-                _
-              ) :: _ =>
-            true
-          case _ => false
-        }
-      case _ => false
-    }
-
+    private def computeIsStaticWrapperForInstanceMethod(body: IR): Boolean =
+      body match {
+        case function: Function.Lambda =>
+          function.arguments.map(_.name) match {
+            case Name.Self(_, true, _, _) :: Name.Self(
+                  _,
+                  false,
+                  _,
+                  _
+                ) :: _ =>
+              true
+            case _ => false
+          }
+        case _ => false
+      }
   }
 
   /** The definition of a method for a given constructor using sugared
@@ -184,6 +234,8 @@ object Method {
     *
     * @param methodReference a reference to the method being defined
     * @param arguments       the arguments to the method
+    * @param isPrivate        if the method is declared as private (project-private).
+    *                         i.e. with prepended `private` keyword.
     * @param body            the body of the method
     * @param location        the source location that the node corresponds to
     * @param passData        the pass metadata associated with this node
@@ -192,13 +244,14 @@ object Method {
   sealed case class Binding(
     override val methodReference: Name.MethodReference,
     arguments: List[DefinitionArgument],
+    isPrivate: Boolean,
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
-      with IRKind.Sugar {
-    override protected var id: Identifier = randomId
+      with IRKind.Sugar
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -214,15 +267,17 @@ object Method {
     def copy(
       methodReference: Name.MethodReference = methodReference,
       arguments: List[DefinitionArgument]   = arguments,
+      isPrivate: Boolean                    = isPrivate,
       body: Expression                      = body,
       location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
       diagnostics: DiagnosticStorage        = diagnostics,
-      id: Identifier                        = id
+      id: UUID @Identifier                  = id
     ): Binding = {
       val res = Binding(
         methodReference,
         arguments,
+        isPrivate,
         body,
         location,
         passData,
@@ -261,11 +316,12 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -276,7 +332,7 @@ object Method {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Binding = {
       copy(
         methodReference = methodReference.mapExpressions(fn),
@@ -333,11 +389,14 @@ object Method {
     sourceTypeName: Expression,
     override val body: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Method
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
+
+    // Conversion methods cannot be private for now
+    override val isPrivate: Boolean = false
 
     /** Creates a copy of `this`.
       *
@@ -359,7 +418,7 @@ object Method {
       location: Option[IdentifiedLocation]  = location,
       passData: MetadataStorage             = passData,
       diagnostics: DiagnosticStorage        = diagnostics,
-      id: Identifier                        = id
+      id: UUID @Identifier                  = id
     ): Conversion = {
       val res = Conversion(
         methodReference,
@@ -400,11 +459,12 @@ object Method {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy
           else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
     }
 
@@ -415,7 +475,7 @@ object Method {
 
     /** @inheritdoc */
     override def mapExpressions(
-      fn: Expression => Expression
+      fn: java.util.function.Function[Expression, Expression]
     ): Conversion = {
       copy(
         methodReference = methodReference.mapExpressions(fn),

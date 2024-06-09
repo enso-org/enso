@@ -6,7 +6,7 @@ import org.enso.table.data.column.storage.Storage;
 
 public class ToMixedStorageConverter implements StorageConverter<Object> {
   @Override
-  public Storage<Object> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
+  public Storage<Object> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof ObjectStorage objectStorage) {
       return objectStorage;
     } else if (storage instanceof MixedStorageFacade facade) {

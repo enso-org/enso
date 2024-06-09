@@ -7,7 +7,9 @@ import scala.collection.mutable
 
 /** A mutable holder of all visualizations attached to an execution context.
   */
-class VisualizationHolder() {
+class VisualizationHolder {
+
+  private var oneshotExpression: OneshotExpression = _
 
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
@@ -15,11 +17,20 @@ class VisualizationHolder() {
   /** Upserts a visualization.
     *
     * @param visualization the visualization to upsert
+    * @param specificId UUID to attach visualization to
     */
-  def upsert(visualization: Visualization): Unit = {
-    val visualizations = visualizationMap(visualization.expressionId)
+  def upsert(
+    visualization: Visualization,
+    specificId: ExpressionId = null
+  ): Unit = {
+    val id = if (specificId == null) {
+      visualization.expressionId
+    } else {
+      specificId
+    }
+    val visualizations = visualizationMap(id)
     val rest           = visualizations.filterNot(_.id == visualization.id)
-    visualizationMap.update(visualization.expressionId, visualization :: rest)
+    visualizationMap.update(id, visualization :: rest)
   }
 
   /** Removes a visualization from the holder.
@@ -50,8 +61,14 @@ class VisualizationHolder() {
     * @param module the qualified module name
     * @return a list of matching visualization
     */
-  def findByModule(module: QualifiedName): Iterable[Visualization] =
-    visualizationMap.values.flatten.filter(_.module.getName == module)
+  def findByModule(
+    module: QualifiedName
+  ): Iterable[Visualization] =
+    visualizationMap.values.flatten.collect {
+      case visualization: Visualization
+          if visualization.module.getName == module =>
+        visualization
+    }
 
   /** Returns a visualization with the provided id.
     *
@@ -64,11 +81,29 @@ class VisualizationHolder() {
   /** @return all available visualizations. */
   def getAll: Iterable[Visualization] =
     visualizationMap.values.flatten
+
+  /** @return the oneshot expression attached to the `expressionId`. */
+  def getOneshotExpression(
+    expressionId: ExpressionId
+  ): OneshotExpression = {
+    if (
+      oneshotExpression != null && oneshotExpression.expressionId == expressionId
+    ) {
+      return oneshotExpression
+    }
+
+    null
+  }
+
+  /** Set oneshot expression for execution. */
+  def setOneshotExpression(oneshotExpression: OneshotExpression): Unit = {
+    this.oneshotExpression = oneshotExpression
+  }
 }
 
 object VisualizationHolder {
 
   /** Returns an empty visualization holder. */
-  def empty = new VisualizationHolder()
+  def empty = new VisualizationHolder
 
 }

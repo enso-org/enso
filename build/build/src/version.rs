@@ -274,7 +274,7 @@ where
 }
 
 #[derive(
-    clap::ArgEnum,
+    clap::ValueEnum,
     Clone,
     Copy,
     PartialEq,

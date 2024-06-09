@@ -12,9 +12,11 @@ license-file = "../../LICENSE"
 [dependencies]
 enso-prelude = { path = "../../prelude" }
 enso-parser = { path = "../" }
-bincode = { workspace = true }
 jni = "0.19.0"
 
 [lib]
 name = "enso_parser"
 crate-type = ["cdylib"]
+
+[lints]
+workspace = true

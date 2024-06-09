@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count, Sum
+from Standard.Table import Table, Aggregate_Column
 
 from Standard.Test import Bench, Faker
 
@@ -23,7 +22,7 @@ create_table num_rows =
     size = ["size", vgen sizes]
     store = ["store", vgen stores]
     typ = ["type", vgen types]
-    price = ["price", 0.up_to num_rows . map _-> faker.decimal -200.0 200.0]
+    price = ["price", 0.up_to num_rows . map _-> faker.float -200.0 200.0]
 
     Table.new [size, store, typ, price]
 
@@ -42,7 +41,7 @@ collect_benches = Bench.build builder->
         data = Data.create num_rows
 
         builder.group ("CrossTab_" + num_rows.to_text) options group_builder->
-            specify group_by name_column values=[Count] =
+            specify group_by name_column values=[Aggregate_Column.Count] =
                 name = (group_by.join '_') + "_" + name_column + "_" + (values.map .to_text . join "_")
                 group_builder.specify (normalize_name name) <|
                     data.table.cross_tab group_by name_column values
@@ -53,7 +52,7 @@ collect_benches = Bench.build builder->
             specify ["type"] "size"
             specify ["store"] "size"
             specify ["size"] "store"
-            specify ["size"] "store" values=[Count, Sum "price"]
+            specify ["size"] "store" values=[Aggregate_Column.Count, Aggregate_Column.Sum "price"]
 
 
 normalize_name : Text -> Text

@@ -1,6 +1,10 @@
 package org.enso.projectmanager.service
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
+import org.enso.projectmanager.requesthandler.{
+  FailureMapper,
+  ProjectServiceFailureMapper
+}
 
 /** Base interface for project service failures.
   */
@@ -111,5 +115,10 @@ object ProjectServiceFailure {
   /** Signals a failure in the configuration service. */
   case class GlobalConfigurationAccessFailure(msg: String)
       extends ProjectServiceFailure
+
+  /** [[FailureMapper]] instance for [[ProjectServiceFailure]]. */
+  implicit val failureMapper: FailureMapper[ProjectServiceFailure] =
+    (failure: ProjectServiceFailure) =>
+      ProjectServiceFailureMapper.mapFailure(failure)
 
 }

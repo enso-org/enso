@@ -1,19 +1,17 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-import project.Data.Column.Column
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Type.Storage
-import project.Data.Type.Value_Type.Value_Type
 
+import project.Column.Column
+import project.Data_Formatter.Data_Formatter
+import project.Internal.Storage
+import project.Value_Type.Value_Type
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.time.temporal.UnsupportedTemporalTypeException
-polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.operations.OrderBuilder
 
 ## PRIVATE
    Create a formatter for the specified `Value_Type`.

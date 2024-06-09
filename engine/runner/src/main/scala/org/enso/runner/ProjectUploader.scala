@@ -33,7 +33,6 @@ object ProjectUploader {
     showProgress: Boolean,
     logLevel: Level
   ): Unit = {
-    import scala.concurrent.ExecutionContext.Implicits.global
     val progressReporter = new ProgressReporter {
       override def trackProgress(
         message: String,

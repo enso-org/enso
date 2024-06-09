@@ -3,12 +3,16 @@ package org.enso.compiler.core.ir
 /** A representation of various kinds of diagnostic in the IR. */
 trait Diagnostic extends Serializable {
 
-  /** @return a human-readable description of this error condition.
+  /** @param source Location of the diagnostic.
+    * @return a human-readable description of this error condition.
     */
-  def message: String
+  def message(source: (IdentifiedLocation => String)): String
 
-  /** @return a human-readable description of this error condition, formatted for immediate reporting. */
-  def formattedMessage: String = message
+  /** @param source Location of the diagnostic.
+    * @return a human-readable description of this error condition, formatted for immediate reporting.
+    */
+  def formattedMessage(source: (IdentifiedLocation => String)): String =
+    message(source)
 
   /** The location at which the diagnostic occurs. */
   val location: Option[IdentifiedLocation]

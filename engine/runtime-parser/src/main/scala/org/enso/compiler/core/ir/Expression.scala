@@ -1,12 +1,12 @@
 package org.enso.compiler.core.ir
 
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{
-  indentLevel,
-  mkIndent,
-  randomId,
-  ToStringHelper
-}
+import org.enso.compiler.core.Identifier
+import org.enso.compiler.core.IR.{indentLevel, mkIndent}
+
+import java.util.UUID
+import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 trait Expression extends IR {
 
@@ -26,7 +26,9 @@ trait Expression extends IR {
   }
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Expression
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Expression
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Expression
@@ -56,13 +58,13 @@ object Expression {
   sealed case class Block(
     expressions: List[Expression],
     returnValue: Expression,
-    override val location: Option[IdentifiedLocation],
-    suspended: Boolean                          = false,
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    suspended: Boolean             = false,
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Expression
-      with IRKind.Primitive {
-    override protected var id: IR.Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -82,7 +84,7 @@ object Expression {
       suspended: Boolean                   = suspended,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: IR.Identifier                    = id
+      id: UUID @Identifier                 = id
     ): Block = {
       val res = Block(
         expressions,
@@ -119,10 +121,11 @@ object Expression {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -130,9 +133,11 @@ object Expression {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Block = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Block = {
       copy(
-        expressions = expressions.map(fn),
+        expressions = expressions.map(fn.asScala),
         returnValue = fn(returnValue)
       )
     }
@@ -180,12 +185,12 @@ object Expression {
   sealed case class Binding(
     name: Name,
     expression: Expression,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Expression
-      with IRKind.Primitive {
-    override protected var id: IR.Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -203,7 +208,7 @@ object Expression {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: IR.Identifier                    = id
+      id: UUID @Identifier                 = id
     ): Binding = {
       val res = Binding(name, expression, location, passData, diagnostics)
       res.id = id
@@ -231,10 +236,11 @@ object Expression {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -242,7 +248,9 @@ object Expression {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Binding = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Binding = {
       copy(name = name.mapExpressions(fn), expression = fn(expression))
     }
 

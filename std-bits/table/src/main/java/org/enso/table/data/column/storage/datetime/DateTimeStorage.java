@@ -3,11 +3,9 @@ package org.enso.table.data.column.storage.datetime;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.datetime.DatePartExtractors;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -27,17 +25,6 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
-    t.add(DatePartExtractors.year());
-    t.add(DatePartExtractors.quarter());
-    t.add(DatePartExtractors.month());
-    t.add(DatePartExtractors.week());
-    t.add(DatePartExtractors.day());
-    t.add(DatePartExtractors.hour());
-    t.add(DatePartExtractors.minute());
-    t.add(DatePartExtractors.second());
-    t.add(DatePartExtractors.millisecond());
-    t.add(DatePartExtractors.microsecond());
-    t.add(DatePartExtractors.nanosecond());
     t.add(
         new GenericBinaryObjectMapOperation<
             ZonedDateTime, SpecializedStorage<ZonedDateTime>, Duration>(
@@ -68,10 +55,5 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   @Override
   public StorageType getType() {
     return DateTimeType.INSTANCE;
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new DateTimeBuilder(capacity);
   }
 }

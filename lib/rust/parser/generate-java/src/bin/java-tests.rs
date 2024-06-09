@@ -6,12 +6,6 @@
 //! javac -d generated-java/ GeneratedFormatTests.java && java GeneratedFormatTests
 //! ```
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
-
 
 
 // ============================
@@ -34,6 +28,7 @@ fn main() {
     println!("import java.nio.ByteOrder;");
     println!();
     println!("class GeneratedFormatTests {{");
+    println!("    private static final Object INIT = {package}.Parser.create();");
     println!("    private static java.util.Vector<byte[]> accept;");
     println!("    private static java.util.Vector<byte[]> reject;");
     for (i, case) in cases.accept.iter().enumerate() {

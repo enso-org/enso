@@ -4,7 +4,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.function.Predicate;
-import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Literal;
 import org.enso.interpreter.node.ExpressionNode;
@@ -13,7 +12,8 @@ import org.enso.interpreter.runtime.tag.Patchable;
 
 /** Generic literal node. */
 @NodeInfo(shortName = "Literal", description = "Constant literal expression")
-final class PatchableLiteralNode extends ExpressionNode implements Patchable, Predicate<Expression> {
+final class PatchableLiteralNode extends ExpressionNode
+    implements Patchable, Predicate<Expression> {
   private final LiteralNode node;
   private Object value;
 
@@ -72,5 +72,4 @@ final class PatchableLiteralNode extends ExpressionNode implements Patchable, Pr
       default -> null;
     };
   }
-
 }

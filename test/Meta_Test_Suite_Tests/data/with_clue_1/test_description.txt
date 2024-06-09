@@ -1,1 +1,0 @@
-with_clue should only apply the relevant clue

@@ -43,16 +43,20 @@ object VisualizationConfiguration {
     * @param contextId an execution context of the visualization
     * @param module a qualified module name containing the visualization
     * @param expression a visualization expression
+    * @param positionalArgumentsExpressions the list of arguments that will
+    * be passed to the visualization expression
     * @return an instance of [[VisualizationConfiguration]]
     */
   def apply(
     contextId: UUID,
     module: String,
-    expression: String
+    expression: String,
+    positionalArgumentsExpressions: Vector[String]
   ): VisualizationConfiguration =
     new VisualizationConfiguration(
       contextId,
-      VisualizationExpression.Text(module, expression),
+      VisualizationExpression
+        .Text(module, expression, positionalArgumentsExpressions),
       module
     )
 
@@ -123,10 +127,14 @@ object VisualizationConfiguration {
             visualizationModule <- cursor
               .downField(CodecField.VisualizationModule)
               .as[String]
+            arguments <- cursor
+              .downField(CodecField.Arguments)
+              .as[Option[Vector[String]]]
           } yield VisualizationConfiguration(
             contextId,
             visualizationModule,
-            expression
+            expression,
+            arguments.getOrElse(Vector())
           )
       }
     }
@@ -138,6 +146,9 @@ sealed trait VisualizationExpression extends ToLogString {
   /** A qualified module name. */
   def module: String
 
+  /** The list of arguments that will be passed to the visualization expression. */
+  def positionalArgumentsExpressions: Vector[String]
+
   /** Convert to corresponding [[Api]] message. */
   def toApi: Api.VisualizationExpression
 }
@@ -147,19 +158,30 @@ object VisualizationExpression {
     *
     * @param module a qualified module name containing the expression
     * @param expression an expression that creates a visualization
+    * @param positionalArgumentsExpressions the list of arguments that will
+    * be passed to the method
     */
-  case class Text(module: String, expression: String)
-      extends VisualizationExpression {
+  case class Text(
+    module: String,
+    expression: String,
+    positionalArgumentsExpressions: Vector[String]
+  ) extends VisualizationExpression {
 
     /** @inheritdoc */
     override def toApi: Api.VisualizationExpression =
-      Api.VisualizationExpression.Text(module, expression)
+      Api.VisualizationExpression.Text(
+        module,
+        expression,
+        positionalArgumentsExpressions
+      )
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       s"Text(module=$module" +
-      s",expression=" +
+      ",expression=" +
       (if (shouldMask) STUB else expression) +
+      ",positionalArgumentExpressions=" +
+      (if (shouldMask) STUB else positionalArgumentsExpressions) +
       ")"
   }
 

@@ -13,4 +13,9 @@ public class DelimitedFormatSPI extends FileFormatSPI {
   protected String getTypeName() {
     return "Delimited_Format";
   }
+
+  @Override
+  protected String getDataLinkFormatName() {
+    return "delimited";
+  }
 }

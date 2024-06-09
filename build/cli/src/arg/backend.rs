@@ -12,6 +12,7 @@ use enso_build::project::backend::Backend;
 
 
 #[derive(Args, Clone, Debug, PartialEq)]
+#[group(skip)]
 pub struct BuildInput {
     #[clap(flatten)]
     pub runtime: Source<project::Runtime>,
@@ -39,18 +40,18 @@ pub enum Command {
         /// the benchmarks can execute without issues.
         #[clap(long, enso_env())]
         minimal_run: bool,
-        #[clap(arg_enum)]
+        #[clap(value_enum)]
         which:       Vec<enso_build::engine::Benchmarks>,
     },
     /// Run the tests.
     Test {
-        #[clap(arg_enum, required = true)]
+        #[clap(value_enum, required = true)]
         which: Vec<enso_build::engine::Tests>,
     },
     /// Run an SBT command.
     Sbt {
         #[clap(last = true)]
-        command: Vec<String>,
+        args: Vec<String>,
     },
     /// Perform the CI check routine for the backend.
     CiCheck {},

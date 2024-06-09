@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.Storage;
 
 public class DivideOp<T extends Number, I extends Storage<? super T>>
@@ -10,9 +10,10 @@ public class DivideOp<T extends Number, I extends Storage<? super T>>
   }
 
   @Override
-  public double doDouble(double a, double b, int ix, MapOperationProblemBuilder problemBuilder) {
+  public double doDouble(
+      double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0.0) {
-      problemBuilder.reportDivisionByZero(ix);
+      problemAggregator.reportDivisionByZero(ix);
     }
     return a / b;
   }

@@ -104,6 +104,12 @@ impl const From<&'static str> for PathBufVariable {
     }
 }
 
+impl AsRef<str> for PathBufVariable {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
+
 impl RawVariable for PathBufVariable {
     fn name(&self) -> &str {
         self.0
@@ -124,7 +130,7 @@ impl TypedVariable for PathBufVariable {
     }
 }
 
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, derive_more::Deref)]
+#[derive(Clone, Copy, Debug, Ord, PartialOrd, Eq, PartialEq, derive_more::Deref)]
 pub struct SimpleVariable<Value, Borrowed: ?Sized = Value> {
     #[deref]
     pub name:          &'static str,
@@ -141,6 +147,12 @@ impl<Value, Borrowed: ?Sized> From<&'static str> for SimpleVariable<Value, Borro
 impl<Value, Borrowed: ?Sized> const AsRef<str> for SimpleVariable<Value, Borrowed> {
     fn as_ref(&self) -> &str {
         self.name
+    }
+}
+
+impl<Value, Borrowed: ?Sized> AsRef<OsStr> for SimpleVariable<Value, Borrowed> {
+    fn as_ref(&self) -> &OsStr {
+        OsStr::new(self.name)
     }
 }
 

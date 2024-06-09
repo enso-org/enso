@@ -5,23 +5,13 @@
 #![feature(assert_matches)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
-#![feature(local_key_cell_methods)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
 #![allow(dead_code)]
 #![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 use enso_prelude::*;
@@ -36,11 +26,6 @@ pub mod doc_sections;
 pub use doc_sections::parse;
 pub use doc_sections::Argument;
 pub use doc_sections::DocSection;
-
-
-
-pub(crate) use enso_profiler as profiler;
-pub(crate) use enso_profiler::profile;
 
 
 
@@ -68,7 +53,6 @@ pub enum Tag {
     Modified,
     Private,
     Removed,
-    TextOnly,
     Unstable,
     Upcoming,
 }
@@ -98,7 +82,6 @@ impl Tag {
             "MODIFIED" => Some(Modified),
             "PRIVATE" => Some(Private),
             "REMOVED" => Some(Removed),
-            "TEXT_ONLY" => Some(TextOnly),
             "UNSTABLE" => Some(Unstable),
             "UPCOMING" => Some(Upcoming),
             _ => None,
@@ -117,7 +100,6 @@ impl Tag {
             Tag::Modified => "MODIFIED",
             Tag::Private => "PRIVATE",
             Tag::Removed => "REMOVED",
-            Tag::TextOnly => "TEXT_ONLY",
             Tag::Unstable => "UNSTABLE",
             Tag::Upcoming => "UPCOMING",
         }
@@ -264,9 +246,7 @@ impl<'a, L: Location> Span<'a, L> {
                 }
                 Some(_) => break,
                 None => {
-                    let unexpected_condition = "Internal error: Expected greater indent level.";
-                    self.warn(unexpected_condition);
-                    warn!("{unexpected_condition}");
+                    self.warn("Internal error: Expected greater indent level.");
                     break;
                 }
             }
@@ -413,8 +393,7 @@ impl Lexer {
                 self.state = State::Normal;
                 self.normal_line(line, docs)
             }
-            (State::Tags, None) =>
-                raw.warn("Unneeded empty line before content or between tags."),
+            (State::Tags, None) => raw.warn("Unneeded empty line before content or between tags."),
             (State::ExampleDescription, None) => {
                 self.scopes.end_all().for_each(|scope| docs.end(scope));
                 // TODO: within_indent
@@ -424,7 +403,8 @@ impl Lexer {
             (State::ExampleExpectingCode { .. }, None) =>
                 raw.warn("Extra empty line before example code."),
             (State::ExampleExpectingCode { within_indent }, Some(line))
-                    if line.indent.visible <= within_indent => {
+                if line.indent.visible <= within_indent =>
+            {
                 line.content.warn("No code found in example section.");
                 self.state = State::Normal;
                 self.normal_line(line, docs)
@@ -437,7 +417,7 @@ impl Lexer {
             }
             (State::ExampleCode, None) if let Some(_) = self.scopes.raw() => {
                 docs.raw_line(raw.after());
-            },
+            }
             (State::ExampleCode, None) => (),
             (State::ExampleCode, Some(line)) => {
                 self.scopes.end_below(line.indent).for_each(|scope| docs.end(scope));
@@ -479,11 +459,11 @@ impl Lexer {
                 if marked.mark == Mark::Example {
                     self.state = State::ExampleDescription;
                 }
-            },
+            }
             t if let Some(t) = t.strip_suffix(':') => {
                 self.scopes.end_all().for_each(|scope| docs.end(scope));
                 docs.enter_keyed_section(t);
-            },
+            }
             t if let Some(content) = t.strip_prefix("- ") => {
                 self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
                 if self.scopes.start_list_if_not_started(indent) {
@@ -502,7 +482,7 @@ impl Lexer {
                     docs.start_paragraph();
                 }
                 self.text(content, docs);
-            },
+            }
         }
     }
 
@@ -699,7 +679,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_list_parsing() {
+    fn test_doc_parsing() {
         use crate::doc_sections::Argument;
         use crate::DocSection::*;
         use crate::Mark::*;
@@ -708,13 +688,13 @@ mod tests {
         let docs = r#"
         ALIAS From Text
 
-        Parses a textual representation of an integer into an integer number, returning
+        Parses a textual <representation> of an integer into an integer number, returning
         a `Number_Parse_Error` if the text does not represent a valid integer.
 
         Arguments:
         - text: The text to parse into a integer.
         - radix: The number base to use for parsing (defaults to 10). `radix`
-            must be between 2 and 36 (inclusive)
+            must be between 2 and (&) 36 (inclusive)
         - arg argument without colon
         - argument_without_description
 
@@ -728,8 +708,8 @@ mod tests {
                 Integer.parse "20220216""#;
         let res = parse(docs);
         let expected = [
-            Tag { tag: Alias, body: "From Text".into() }, 
-            Paragraph { body: "Parses a textual representation of an integer into an integer number, \
+            Tag { tag: Alias, body: "From Text".into() },
+            Paragraph { body: "Parses a textual &lt;representation&gt; of an integer into an integer number, \
                 returning a <code>Number_Parse_Error</code> if the text does not represent a valid integer.".into() },
             Keyed { key: "Arguments".into(), body: "".into() },
             Arguments { args: [
@@ -739,7 +719,7 @@ mod tests {
                 Argument {
                     name: "radix".into(),
                     description: "The number base to use for parsing (defaults to 10). <code>radix</code> \
-                    must be between 2 and 36 (inclusive)".into()
+                    must be between 2 and (&amp;) 36 (inclusive)".into()
                 },
                 Argument {
                     name: "arg".into(),
@@ -753,7 +733,7 @@ mod tests {
             List { items: ["List item 1".into(), "List item 2".into(), "List item 3".into()].to_vec() },
             Marked {
                 mark: Example,
-                header: Some("Example".into()), 
+                header: Some("Example".into()),
                 body: "<p>Parse the text \"20220216\" into an integer number.<div class=\"example\">\nInteger.parse \"20220216\"</div>".into()
             }].to_vec();
         assert_eq!(res, expected);

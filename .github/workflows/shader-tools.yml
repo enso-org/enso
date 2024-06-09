@@ -10,16 +10,8 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -37,16 +29,8 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -64,16 +48,8 @@ jobs:
     runs-on:
       - macos-latest
     steps:
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -91,16 +67,8 @@ jobs:
     runs-on:
       - windows-latest
     steps:
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive
@@ -121,16 +89,8 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - if: runner.os == 'Windows'
-        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
-        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
-        shell: cmd
-      - if: runner.os != 'Windows'
-        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
-        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
-        shell: bash
       - name: Checking out the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           clean: false
           submodules: recursive

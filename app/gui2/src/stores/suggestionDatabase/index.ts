@@ -1,46 +1,48 @@
+import { createContextStore } from '@/providers'
+import { type ProjectStore } from '@/stores/project'
+import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { applyUpdates, entryFromLs } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import { AsyncQueue, rpcWithRetries } from '@/util/net'
-import { type Opt } from '@/util/opt'
-import { qnParent, type QualifiedName } from '@/util/qualifiedName'
-import { defineStore } from 'pinia'
+import { AsyncQueue } from '@/util/net'
+import {
+  normalizeQualifiedName,
+  qnJoin,
+  qnParent,
+  tryQualifiedName,
+  type QualifiedName,
+} from '@/util/qualifiedName'
 import { LanguageServer } from 'shared/languageServer'
-import { reactive, ref, type Ref } from 'vue'
-import { useProjectStore } from '../project'
-import { entryQn, type SuggestionEntry, type SuggestionId } from './entry'
-import { applyUpdates, entryFromLs } from './lsUpdate'
+import type { MethodPointer } from 'shared/languageServerTypes'
+import { exponentialBackoff } from 'shared/util/net'
+import { markRaw, proxyRefs, ref, type Ref } from 'vue'
 
-export class SuggestionDb {
-  internal: ReactiveDb<SuggestionId, SuggestionEntry>
-  public nameToId: ReactiveIndex<SuggestionId, SuggestionEntry, QualifiedName, SuggestionId>
-  public parent: ReactiveIndex<SuggestionId, SuggestionEntry, SuggestionId, SuggestionId>
-  constructor() {
-    this.internal = new ReactiveDb()
-    this.nameToId = new ReactiveIndex(this.internal, (id, entry) => [[entryQn(entry), id]])
-    this.parent = new ReactiveIndex(this.internal, (id, entry) => {
-      let qualifiedName: Opt<QualifiedName>
-      if (entry.memberOf) {
-        qualifiedName = entry.memberOf
-      } else {
-        qualifiedName = qnParent(entryQn(entry))
-      }
-      if (qualifiedName) {
-        const parents = Array.from(this.nameToId.lookup(qualifiedName))
-        return parents.map((p) => [id, p])
-      }
-      return []
-    })
+export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
+  nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
+  childIdToParentId = new ReactiveIndex(this, (id, entry) => {
+    const qualifiedName = entry.memberOf ?? qnParent(entryQn(entry))
+    if (qualifiedName) {
+      const parents = this.nameToId.lookup(qualifiedName)
+      return Array.from(parents, (p) => [id, p])
+    }
+    return []
+  })
+  conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
+
+  getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
+    const [id] = this.nameToId.lookup(name)
+    if (id) {
+      return this.get(id)
+    }
   }
-  set(id: SuggestionId, entry: SuggestionEntry): void {
-    this.internal.set(id, reactive(entry))
-  }
-  get(id: SuggestionId): SuggestionEntry | undefined {
-    return this.internal.get(id)
-  }
-  delete(id: SuggestionId): boolean {
-    return this.internal.delete(id)
-  }
-  entries(): IterableIterator<[SuggestionId, SuggestionEntry]> {
-    return this.internal.entries()
+
+  findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
+    if (method == null) return
+    const moduleName = tryQualifiedName(method.definedOnType)
+    const methodName = tryQualifiedName(method.name)
+    if (!moduleName.ok || !methodName.ok) return
+    const qualifiedName = qnJoin(normalizeQualifiedName(moduleName.value), methodName.value)
+    const [suggestionId] = this.nameToId.lookup(qualifiedName)
+    return suggestionId
   }
 }
 
@@ -51,20 +53,22 @@ export interface Group {
 }
 
 class Synchronizer {
-  entries: SuggestionDb
-  groups: Ref<Group[]>
   queue: AsyncQueue<{ currentVersion: number }>
 
-  constructor(entries: SuggestionDb, groups: Ref<Group[]>) {
-    this.entries = entries
-    this.groups = groups
-
-    const projectStore = useProjectStore()
-    const initState = projectStore.lsRpcConnection.then(async (lsRpc) => {
-      await rpcWithRetries(() =>
-        lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
-      )
-      this.setupUpdateHandler(lsRpc)
+  constructor(
+    projectStore: ProjectStore,
+    public entries: SuggestionDb,
+    public groups: Ref<Group[]>,
+  ) {
+    const lsRpc = projectStore.lsRpcConnection
+    const initState = exponentialBackoff(() =>
+      lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),
+    ).then((capability) => {
+      if (!capability.ok) {
+        capability.error.log('Will not receive database updates')
+      }
+      this.#setupUpdateHandler(lsRpc)
+      this.#loadGroups(lsRpc, projectStore.firstExecution)
       return Synchronizer.loadDatabase(entries, lsRpc, groups.value)
     })
 
@@ -76,8 +80,14 @@ class Synchronizer {
     lsRpc: LanguageServer,
     groups: Group[],
   ): Promise<{ currentVersion: number }> {
-    const initialDb = await lsRpc.getSuggestionsDatabase()
-    for (const lsEntry of initialDb.entries) {
+    const initialDb = await exponentialBackoff(() => lsRpc.getSuggestionsDatabase())
+    if (!initialDb.ok) {
+      initialDb.error.log(
+        'Cannot load initial suggestion database. Continuing with empty suggestion database',
+      )
+      return { currentVersion: 0 }
+    }
+    for (const lsEntry of initialDb.value.entries) {
       const entry = entryFromLs(lsEntry.suggestion, groups)
       if (!entry.ok) {
         entry.error.log()
@@ -86,13 +96,24 @@ class Synchronizer {
         entries.set(lsEntry.id, entry.value)
       }
     }
-    return { currentVersion: initialDb.currentVersion }
+    return { currentVersion: initialDb.value.currentVersion }
   }
 
-  private setupUpdateHandler(lsRpc: LanguageServer) {
+  #setupUpdateHandler(lsRpc: LanguageServer) {
     lsRpc.on('search/suggestionsDatabaseUpdates', (param) => {
       this.queue.pushTask(async ({ currentVersion }) => {
-        if (param.currentVersion <= currentVersion) {
+        // There are rare cases where the database is updated twice in quick succession, with the
+        // second update containing the same version as the first. In this case, we still need to
+        // apply the second set of updates. Skipping it would result in the database then containing
+        // references to entries that don't exist. This might be an engine issue, but accepting the
+        // second updates seems to be harmless, so we do that.
+        if (param.currentVersion == currentVersion) {
+          console.log(
+            `Received multiple consecutive suggestion database updates with version ${param.currentVersion}`,
+          )
+        }
+
+        if (param.currentVersion < currentVersion) {
           console.log(
             `Skipping suggestion database update ${param.currentVersion}, because it's already applied`,
           )
@@ -103,23 +124,34 @@ class Synchronizer {
         }
       })
     })
-    lsRpc.once('executionContext/executionComplete', async () => {
-      const groups = await lsRpc.getComponentGroups()
-      this.groups.value = groups.componentGroups.map(
+  }
+
+  async #loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown>) {
+    this.queue.pushTask(async ({ currentVersion }) => {
+      await firstExecution
+      const groups = await exponentialBackoff(() => lsRpc.getComponentGroups())
+      if (!groups.ok) {
+        groups.error.log('Cannot read component groups. Continuing without gruops.')
+        return { currentVersion }
+      }
+      this.groups.value = groups.value.componentGroups.map(
         (group): Group => ({
           name: group.name,
           ...(group.color ? { color: group.color } : {}),
           project: group.library as QualifiedName,
         }),
       )
+      return { currentVersion }
     })
   }
 }
 
-export const useSuggestionDbStore = defineStore('suggestionDatabase', () => {
-  const entries = new SuggestionDb()
-  const groups = ref<Group[]>([])
+export type SuggestionDbStore = ReturnType<typeof useSuggestionDbStore>
+export const { provideFn: provideSuggestionDbStore, injectFn: useSuggestionDbStore } =
+  createContextStore('suggestionDatabase', (projectStore: ProjectStore) => {
+    const entries = new SuggestionDb()
+    const groups = ref<Group[]>([])
 
-  const synchronizer = new Synchronizer(entries, groups)
-  return { entries, groups, _synchronizer: synchronizer }
-})
+    const _synchronizer = new Synchronizer(projectStore, entries, groups)
+    return proxyRefs({ entries: markRaw(entries), groups, _synchronizer })
+  })

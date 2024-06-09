@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.text;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -10,6 +11,10 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
@@ -22,15 +27,12 @@ public abstract class AnyToDisplayTextNode extends Node {
 
   abstract Text execute(Object self);
 
-  @Specialization(guards = {"displays.isException(self)", "displays.hasExceptionMessage(self)"})
-  Text showExceptions(
-      Object self,
-      @CachedLibrary(limit = "3") InteropLibrary strings,
-      @CachedLibrary(limit = "3") InteropLibrary displays) {
+  @Specialization(guards = {"iop.isException(self)", "iop.hasExceptionMessage(self)"})
+  Text showExceptions(Object self, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
-      return Text.create(strings.asString(displays.getExceptionMessage(self)));
+      return Text.create(iop.asString(iop.getExceptionMessage(self)));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(iop).raiseAssertionPanic(iop, null, e);
     }
   }
 
@@ -59,6 +61,36 @@ public abstract class AnyToDisplayTextNode extends Node {
     } else {
       return takePrefix(self, limit);
     }
+  }
+
+  @Specialization
+  Text convertBoolean(boolean self) {
+    return Text.create(self ? "True" : "False");
+  }
+
+  @Specialization
+  Text convertAtomConstructor(AtomConstructor self) {
+    return Text.create(self.getDisplayName());
+  }
+
+  @Specialization
+  Text convertAtom(Atom self) {
+    return convertAtomConstructor(self.getConstructor());
+  }
+
+  @Specialization
+  Text convertType(Type self) {
+    return Text.create(self.getName());
+  }
+
+  @Specialization(
+      guards = {"iop.isMetaObject(self)"},
+      rewriteOn = UnsupportedMessageException.class)
+  Text convertMetaObject(Object self, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    var maybeName = iop.getMetaQualifiedName(self);
+    var name = iop.asString(maybeName);
+    return Text.create(name);
   }
 
   @CompilerDirectives.TruffleBoundary

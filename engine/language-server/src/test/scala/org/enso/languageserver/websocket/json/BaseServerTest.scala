@@ -1,5 +1,6 @@
 package org.enso.languageserver.websocket.json
 
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestProbe
 import io.circe.literal._
 import io.circe.parser.parse
@@ -20,18 +21,24 @@ import org.enso.languageserver.boot.{
 }
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
+  InitializationComponent,
   RepoInitialization,
   SequentialResourcesInitialization,
   ZioRuntimeInitialization
 }
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
-import org.enso.languageserver.effect.{TestRuntime, ZioExec}
+import org.enso.languageserver.effect.{ExecutionContextRuntime, ZioExec}
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
+import org.enso.languageserver.profiling.{
+  EventsMonitorActor,
+  ProfilingManager,
+  TestProfilingSnapshot
+}
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpcProtocolFactory
@@ -48,29 +55,35 @@ import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
 }
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
+import org.scalactic.source
 import org.scalatest.OptionValues
 import org.slf4j.event.Level
 
+import java.io.File
+import java.net.URISyntaxException
 import java.nio.file.{Files, Path}
 import java.util.UUID
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import java.util.concurrent.{Executors, ThreadFactory}
+import java.util.concurrent.atomic.AtomicInteger
 
-class BaseServerTest
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+import org.slf4j.LoggerFactory
+
+abstract class BaseServerTest
     extends JsonRpcServerTestKit
     with EitherValue
     with OptionValues
     with WithTemporaryDirectory
     with FakeEnvironment {
-
-  import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
 
@@ -85,6 +98,7 @@ class BaseServerTest
   val runtimeConnectorProbe = TestProbe()
   val versionCalculator     = Sha3_224VersionCalculator
   val clock                 = TestClock()
+  val profilingSnapshot     = new TestProfilingSnapshot
 
   val typeGraph: TypeGraph = {
     val graph = TypeGraph("Any")
@@ -136,21 +150,40 @@ class BaseServerTest
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  val zioRuntime      = new TestRuntime
-  val zioExec         = ZioExec(zioRuntime)
-  val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
-  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+  class TestThreadFactory(name: String) extends ThreadFactory {
+    private val counter = new AtomicInteger(0)
+    override def newThread(r: Runnable): Thread = {
+      val t = new Thread();
+      t.setName(name + "-" + counter.getAndIncrement())
+      t
+    }
+  }
 
-  val initializationComponent = SequentialResourcesInitialization(
-    new DirectoriesInitialization(config.directories),
-    new ZioRuntimeInitialization(zioRuntime, system.eventStream),
-    new RepoInitialization(
-      config.directories,
-      system.eventStream,
-      sqlDatabase,
-      suggestionsRepo
+  val initThreadPool = Executors.newWorkStealingPool(4)
+  val threadPool =
+    Executors.newWorkStealingPool(10)
+  val testExecutor = ExecutionContext.fromExecutor(threadPool)
+  val zioRuntime   = new ExecutionContextRuntime(testExecutor)
+
+  val zioExec         = ZioExec(zioRuntime)
+  val suggestionsRepo = new InMemorySuggestionsRepo()(system.dispatcher)
+
+  private def initializationComponent =
+    new SequentialResourcesInitialization(
+      initThreadPool,
+      new DirectoriesInitialization(initThreadPool, config.directories),
+      new ZioRuntimeInitialization(
+        initThreadPool,
+        zioRuntime,
+        system.eventStream
+      ),
+      new RepoInitialization(
+        initThreadPool,
+        config.directories,
+        system.eventStream,
+        suggestionsRepo
+      )
     )
-  )
 
   val contentRootManagerActor =
     system.actorOf(ContentRootManagerActor.props(config))
@@ -166,7 +199,39 @@ class BaseServerTest
     super.afterEach()
   }
 
-  override def clientControllerFactory: ClientControllerFactory = {
+  override def afterAll(): Unit = {
+    suggestionsRepo.close()
+    threadPool.shutdown()
+    initThreadPool.shutdown()
+    super.afterAll()
+  }
+
+  /** Locates the root of the Enso repository. Heuristic: we just keep going up the directory tree
+    * until we are in a directory containing ".git" subdirectory. Note that we cannot use the "enso"
+    * name, as users are free to name their cloned directories however they like.
+    */
+  protected def locateRootDirectory(): File = {
+    var rootDir: File = null
+    try {
+      rootDir = new File(
+        classOf[
+          BaseServerTest
+        ].getProtectionDomain.getCodeSource.getLocation.toURI
+      )
+    } catch {
+      case e: URISyntaxException =>
+        fail("repository root directory not found: " + e.getMessage)
+    }
+    while (rootDir != null && !Files.exists(rootDir.toPath.resolve(".git"))) {
+      rootDir = rootDir.getParentFile
+    }
+    if (rootDir == null) {
+      fail("repository root directory not found")
+    }
+    rootDir
+  }
+
+  override def clientControllerFactory(): ClientControllerFactory = {
     val contentRootManagerWrapper: ContentRootManager =
       new ContentRootManagerWrapper(config, contentRootManagerActor)
 
@@ -174,7 +239,7 @@ class BaseServerTest
       FileManager.props(
         config.fileManager,
         contentRootManagerWrapper,
-        new FileSystem,
+        new FileSystem(LoggerFactory.getLogger(classOf[BaseServerTest])),
         zioExec
       ),
       s"file-manager-${UUID.randomUUID()}"
@@ -212,7 +277,7 @@ class BaseServerTest
         config,
         contentRootManagerWrapper,
         watcherFactory,
-        new FileSystem,
+        new FileSystem(LoggerFactory.getLogger(classOf[BaseServerTest])),
         zioExec
       ),
       s"fileevent-registry-${UUID.randomUUID()}"
@@ -262,11 +327,14 @@ class BaseServerTest
       UUID.randomUUID(),
       Api.GetTypeGraphResponse(typeGraph)
     )
-    Await.ready(initializationComponent.init(), timeout)
+    initializationComponent.init().get(timeout.length, timeout.unit)
     suggestionsHandler ! ProjectNameUpdated("Test")
 
-    val environment         = fakeInstalledEnvironment()
-    val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
+    val environment = fakeInstalledEnvironment()
+    val languageHomePath =
+      locateRootDirectory().toPath.resolve("distribution").resolve("component")
+    val languageHome = LanguageHome(languageHomePath)
+    languageHome.rootPath.toFile.exists() shouldBe true
     val distributionManager = new DistributionManager(environment)
     val lockManager: TestableThreadSafeFileLockManager =
       new TestableThreadSafeFileLockManager(distributionManager.paths.locks)
@@ -310,6 +378,19 @@ class BaseServerTest
       )
     )
 
+    val eventsMonitor = system.actorOf(
+      EventsMonitorActor.props(new NoopEventsMonitor)
+    )
+
+    val profilingManager = system.actorOf(
+      ProfilingManager.props(
+        eventsMonitor,
+        distributionManager,
+        profilingSnapshot,
+        clock
+      )
+    )
+
     val libraryConfig = LibraryConfig(
       localLibraryManager      = localLibraryManager,
       editionReferenceResolver = editionReferenceResolver,
@@ -325,10 +406,11 @@ class BaseServerTest
       )
     )
 
-    new JsonConnectionControllerFactory(
+    new TestJsonConnectionControllerFactory(
       mainComponent          = initializationComponent,
       bufferRegistry         = bufferRegistry,
       capabilityRouter       = capabilityRouter,
+      fileEventRegistry      = fileEventRegistry,
       fileManager            = fileManager,
       vcsManager             = vcsManager,
       contentRootManager     = contentRootManagerActor,
@@ -340,6 +422,7 @@ class BaseServerTest
       runtimeConnector       = runtimeConnectorProbe.ref,
       idlenessMonitor        = idlenessMonitor,
       projectSettingsManager = projectSettingsManager,
+      profilingManager       = profilingManager,
       libraryConfig          = libraryConfig,
       config                 = config
     )
@@ -350,7 +433,7 @@ class BaseServerTest
     * was more suited towards testing the launcher.
     */
   override def fakeExecutablePath(portable: Boolean): Path =
-    Path.of("distribution/component/runner.jar")
+    Path.of("distribution/component/runner/runner.jar")
 
   /** Specifies if the `package.yaml` at project root should be auto-created. */
   protected def initializeProjectPackage: Boolean = true
@@ -410,5 +493,86 @@ class BaseServerTest
           """
     )
     clientId
+  }
+
+  def receiveAndReplyToOpenFile()(implicit pos: source.Position): Unit = {
+    receiveAndReplyToOpenFile(None)
+  }
+  def receiveAndReplyToOpenFile(
+    fileName: String
+  )(implicit pos: source.Position): Unit = {
+    receiveAndReplyToOpenFile(Some(fileName))
+  }
+  private def receiveAndReplyToOpenFile(
+    fileName: Option[String]
+  )(implicit pos: source.Position): Unit = {
+    runtimeConnectorProbe.receiveN(1).head match {
+      case Api.Request(requestId, Api.OpenFileRequest(file, _)) =>
+        fileName match {
+          case Some(f) if f != file.getName =>
+            fail(
+              "expected OpenFile notification for `" + f + "`, got it for `" + file.getName + "`"
+            )
+          case _ =>
+        }
+        runtimeConnectorProbe.lastSender ! Api.Response(
+          requestId,
+          Api.OpenFileResponse
+        )
+      case Api.Request(
+            _,
+            _: Api.GetTypeGraphRequest | _: Api.EditFileNotification |
+            _: Api.CloseFileNotification
+          ) =>
+        // ignore
+        receiveAndReplyToOpenFile(fileName)
+      case msg =>
+        fail("expected OpenFile notification got " + msg)
+    }
+  }
+
+  class TestJsonConnectionControllerFactory(
+    mainComponent: InitializationComponent,
+    bufferRegistry: ActorRef,
+    capabilityRouter: ActorRef,
+    fileEventRegistry: ActorRef,
+    fileManager: ActorRef,
+    vcsManager: ActorRef,
+    contentRootManager: ActorRef,
+    contextRegistry: ActorRef,
+    suggestionsHandler: ActorRef,
+    stdOutController: ActorRef,
+    stdErrController: ActorRef,
+    stdInController: ActorRef,
+    runtimeConnector: ActorRef,
+    idlenessMonitor: ActorRef,
+    projectSettingsManager: ActorRef,
+    profilingManager: ActorRef,
+    libraryConfig: LibraryConfig,
+    config: Config
+  )(implicit system: ActorSystem)
+      extends JsonConnectionControllerFactory(
+        mainComponent,
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        vcsManager,
+        contentRootManager,
+        contextRegistry,
+        suggestionsHandler,
+        stdOutController,
+        stdErrController,
+        stdInController,
+        runtimeConnector,
+        idlenessMonitor,
+        projectSettingsManager,
+        profilingManager,
+        libraryConfig,
+        config
+      )(system) {
+    override def shutdown(): Unit = {
+      fileEventRegistry ! ReceivesTreeUpdatesHandler.Stop
+      super.shutdown()
+    }
   }
 }

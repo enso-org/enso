@@ -1,10 +1,23 @@
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import type { Opt } from '@/util/opt'
-import { qnParent, type QualifiedName } from '@/util/qualifiedName'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+  type Typename,
+} from '@/stores/suggestionDatabase/entry'
+import type { Opt } from '@/util/data/opt'
+import { Range } from '@/util/data/range'
+import { qnIsTopElement, qnParent, type QualifiedName } from '@/util/qualifiedName'
+import escapeStringRegexp from '@/util/regexp'
+
+export type SelfArg =
+  | {
+      type: 'known'
+      typename: Typename
+    }
+  | { type: 'unknown' }
 
 export interface Filter {
   pattern?: string
-  selfType?: QualifiedName
+  selfArg?: SelfArg
   qualifiedNamePattern?: string
   showUnstable?: boolean
   showLocal?: boolean
@@ -19,8 +32,14 @@ export enum MatchTypeScore {
   AliasInitialMatch = 5000,
 }
 
-export type MatchResult = {
+interface MatchedParts {
   matchedAlias?: string
+  nameRanges?: Range[]
+  definedInRanges?: Range[]
+  memberOfRanges?: Range[]
+}
+
+export interface MatchResult extends MatchedParts {
   score: number
 }
 
@@ -32,25 +51,43 @@ class FilteringWithPattern {
   constructor(pattern: string) {
     this.pattern = pattern
     // Each word in pattern should try to match a beginning of a word in the name.  Each matched
-    // word is put to regex group - this is used to compute score (details in matchedWordsScore
+    // word is put to regex group - this is used to compute score (details in `matchedWordsScore`
     // method). See `Filtering` docs for full algorithm description.
+    // The first match (`match[1]`) is the part before the first matched input.
+    // The rest of the matches come in groups of three:
+    // - The matched part of the word (including a leading underscore for all but the first match)
+    // - The unmatched rest of the word, up to, but excluding, the next underscore
+    // - The unmatched words before the next matched word, including any underscores
     this.wordMatchRegex = new RegExp(
-      '(?:^|_)(' + pattern.replace(/_/g, '[^_]*).*?_(') + '[^_]*).*',
+      '(^|.*?_)(' +
+        escapeStringRegexp(pattern).replace(/_/g, ')([^_]*)(.*?)([_ ]') +
+        ')([^_]*)(.*)',
       'i',
     )
-    if (pattern.length > 1 && pattern.indexOf('_') < 0) {
-      // Similar to wordMatchRegex, but each letter in pattern is considered a word (and we don't
-      // specify any groups).
-      this.initialsMatchRegex = new RegExp('(^|_)' + pattern.split('').join('.*_'), 'i')
+    if (pattern.length > 1 && !/_/.test(pattern)) {
+      // Similar to `wordMatchRegex`, but each letter in the pattern is considered a word,
+      // and we don't skip word (initials must match consecutive words).
+      // The first match (`match[1]`) is the part before the first matched letter.
+      // The rest of the matches come in groups of two:
+      // - The matched letter
+      // - The unmatched part up to the next matched letter
+      const regex = pattern
+        .split('')
+        .map((c) => `(${escapeStringRegexp(c)})`)
+        .join('([^_]*?[_ ])')
+      this.initialsMatchRegex = new RegExp('(^|.*?_)' + regex + '(.*)', 'i')
     }
   }
 
   private matchedWordsScore(
     matchType: MatchTypeScore,
     matchedString: string,
-    words: RegExpExecArray,
+    matches: RegExpExecArray,
   ): number {
-    words.shift()
+    const words: string[] = []
+    for (let i = 2; i < matches.length; i += 3) {
+      words.push(matches[i]!, matches[i + 1]!)
+    }
     const matchedWords = words.join('_')
     const nonexactMatchPenalty = this.pattern === matchedString ? 0 : 50
     const nonexactWordMatchPenalty = Math.floor(
@@ -67,19 +104,44 @@ class FilteringWithPattern {
     return null
   }
 
-  tryMatch(entry: SuggestionEntry): Opt<MatchResult> {
+  private static wordMatchRanges(wordMatch: RegExpExecArray) {
+    const result: Range[] = []
+    for (let i = 1, pos = 0; i < wordMatch.length; i += 1) {
+      // Matches come in groups of three, and the first matched part is `match[2]`.
+      if (i % 3 === 2) {
+        result.push(new Range(pos, pos + wordMatch[i]!.length))
+      }
+      pos += wordMatch[i]!.length
+    }
+    return result
+  }
+
+  private static initialsMatchRanges(initialsMatch: RegExpExecArray) {
+    const result: Range[] = []
+    for (let i = 1, pos = 0; i < initialsMatch.length; i += 1) {
+      // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
+      if (i % 2 === 0) {
+        result.push(new Range(pos, pos + initialsMatch[i]!.length))
+      }
+      pos += initialsMatch[i]!.length
+    }
+    return result
+  }
+
+  tryMatch(entry: SuggestionEntry): MatchResult | null {
     const nameWordsMatch = this.wordMatchRegex?.exec(entry.name)
-    if (nameWordsMatch?.index === 0) {
+    if (nameWordsMatch?.[1]?.length === 0) {
       return {
         score: this.matchedWordsScore(
           MatchTypeScore.NameWordMatchFirst,
           entry.name,
           nameWordsMatch,
         ),
+        nameRanges: FilteringWithPattern.wordMatchRanges(nameWordsMatch),
       }
     }
     const matchedAlias = this.firstMatchingAlias(entry)
-    if (matchedAlias?.match.index === 0) {
+    if (matchedAlias?.match?.[1]?.length === 0) {
       return {
         matchedAlias: matchedAlias.alias,
         score: this.matchedWordsScore(
@@ -87,11 +149,13 @@ class FilteringWithPattern {
           matchedAlias.alias,
           matchedAlias.match,
         ),
+        nameRanges: FilteringWithPattern.wordMatchRanges(matchedAlias.match),
       }
     }
     if (nameWordsMatch) {
       return {
         score: this.matchedWordsScore(MatchTypeScore.NameWordMatch, entry.name, nameWordsMatch),
+        nameRanges: FilteringWithPattern.wordMatchRanges(nameWordsMatch),
       }
     }
     if (matchedAlias) {
@@ -102,20 +166,28 @@ class FilteringWithPattern {
           matchedAlias.alias,
           matchedAlias.match,
         ),
+        nameRanges: FilteringWithPattern.wordMatchRanges(matchedAlias.match),
       }
     }
     if (this.initialsMatchRegex) {
-      if (this.initialsMatchRegex.test(entry.name)) {
-        return { score: MatchTypeScore.NameInitialMatch }
+      const initialsMatch = this.initialsMatchRegex.exec(entry.name)
+      if (initialsMatch) {
+        return {
+          score: MatchTypeScore.NameInitialMatch,
+          nameRanges: FilteringWithPattern.initialsMatchRanges(initialsMatch),
+        }
       }
-      const matchedAliasInitials = entry.aliases.find(
-        (alias) => this.initialsMatchRegex?.test(alias),
-      )
-      if (matchedAliasInitials) {
-        return { matchedAlias: matchedAliasInitials, score: MatchTypeScore.AliasInitialMatch }
+      for (const alias of entry.aliases) {
+        const initialsMatch = this.initialsMatchRegex.exec(alias)
+        if (initialsMatch) {
+          return {
+            matchedAlias: alias,
+            score: MatchTypeScore.AliasInitialMatch,
+            nameRanges: FilteringWithPattern.initialsMatchRanges(initialsMatch),
+          }
+        }
       }
     }
-
     return null
   }
 }
@@ -129,20 +201,38 @@ class FilteringQualifiedName {
     this.pattern = pattern
     // Starting at some segment, each segment should start with the respective
     // pattern's segment. See `Filtering` docs for full algorithm description.
-    const segmentsMatch = '(^|\\.)' + pattern.replace(/\./g, '[^\\.]*\\.')
+    // For both regexes below:
+    // The first match (`match[1]`) is the part before the first matched input.
+    // The rest of the matches come in pairs:
+    // - The matched segment
+    // - The unmatched part before the next matched segment
+    const segmentsMatch = '(^|.*?[.])(' + pattern.replace(/[.]/g, ')([^.]*)([.]') + ')'
     // The direct members must have no more segments in their path.
-    this.memberRegex = new RegExp(segmentsMatch + '[^\\.]*$', 'i')
-    this.memberOfAnyDescendantRegex = new RegExp(segmentsMatch, 'i')
+    this.memberRegex = new RegExp(segmentsMatch + '([^.]*$)', 'i')
+    this.memberOfAnyDescendantRegex = new RegExp(segmentsMatch + '(.*)', 'i')
   }
 
-  matches(entry: SuggestionEntry, alsoFilteringByPattern: boolean): boolean {
+  private static matchRanges(match: RegExpExecArray) {
+    const result: Range[] = []
+    for (let i = 1, pos = 0; i < match.length; i += 1) {
+      // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
+      if (i % 2 === 0) {
+        result.push(new Range(pos, pos + match[i]!.length))
+      }
+      pos += match[i]!.length
+    }
+    return result
+  }
+
+  matches(entry: SuggestionEntry, alsoFilteringByPattern: boolean): MatchedParts | null {
     const entryOwner =
       entry.kind == SuggestionKind.Module ? qnParent(entry.definedIn) : entry.definedIn
     const regex = alsoFilteringByPattern ? this.memberOfAnyDescendantRegex : this.memberRegex
-    return (
-      (entryOwner != null && regex.test(entryOwner)) ||
-      (entry.memberOf != null && regex.test(entry.memberOf))
-    )
+    const ownerMatch = entryOwner && regex.exec(entryOwner)
+    if (ownerMatch) return { definedInRanges: FilteringQualifiedName.matchRanges(ownerMatch) }
+    const memberOfMatch = entry.memberOf && regex.exec(entry.memberOf)
+    if (memberOfMatch) return { definedInRanges: FilteringQualifiedName.matchRanges(memberOfMatch) }
+    return null
   }
 }
 
@@ -153,8 +243,8 @@ class FilteringQualifiedName {
  *
  * - The private entries never matches.
  *
- * - If `selfType` is specified, only entries of methods taking a value of this type as self
- *   argument are accepted. Static methods, and methods of other types are filtered out.
+ * - If `selfArg` is specified, only entries of methods taking a value of this type as self
+ *   argument are accepted (or any non-static method if the type of self argument is unknown).
  *
  * - If `qualifiedNamePattern` is specified, only entries being a content of a module or type
  *   matching the pattern are accepted. If `pattern` is also specified (see below), the content
@@ -165,7 +255,8 @@ class FilteringQualifiedName {
  *
  * - Without `showUnstable` flag, unstable entries will be filtered out.
  *
- * - 'showLocal' flag is not implemented yet.
+ * - If 'showLocal' flag is set, only entries defined in currentModule (passed as constructor
+ *   argument) are accepted.
  *
  * - Finally, if `pattern` is specified, the entry name or any alias must match the pattern:
  *   there must exists a subsequence of words in name/alias (words are separated by `_`), so each
@@ -183,61 +274,106 @@ class FilteringQualifiedName {
  */
 export class Filtering {
   pattern?: FilteringWithPattern
-  selfType?: QualifiedName | undefined
+  selfArg?: SelfArg
   qualifiedName?: FilteringQualifiedName
+  fullPattern: string | undefined
+  /** The first and last match are the parts of the string that are outside of the match.
+   * The middle matches come in groups of three, and contain respectively:
+   * - the unmatched prefix (must end with a `_`)
+   *   (an empty string if the entire qualified name segment was matched)
+   * - the matched text
+   * - the unmatched suffix (an empty string if the entire qualified name segment was matched)
+   * - the separator (`.` or `_`, or the empty string if this is the last segment) */
+  extractMatchesRegex: RegExp | undefined
   showUnstable: boolean = false
   showLocal: boolean = false
+  currentModule?: QualifiedName
+  browsingInternalModule: boolean = false
 
-  constructor(filter: Filter) {
-    const { pattern, selfType, qualifiedNamePattern, showUnstable, showLocal } = filter
-    if (pattern != null && pattern !== '') {
+  constructor(filter: Filter, currentModule: Opt<QualifiedName> = undefined) {
+    const { pattern, selfArg, qualifiedNamePattern, showUnstable, showLocal } = filter
+    if (pattern) {
       this.pattern = new FilteringWithPattern(pattern)
     }
-    this.selfType = selfType
-    if (qualifiedNamePattern != null && qualifiedNamePattern !== '') {
+    if (selfArg != null) this.selfArg = selfArg
+    if (qualifiedNamePattern) {
       this.qualifiedName = new FilteringQualifiedName(qualifiedNamePattern)
+      this.fullPattern = pattern ? `${qualifiedNamePattern}.${pattern}` : qualifiedNamePattern
+      this.browsingInternalModule = isInternalModulePath(qualifiedNamePattern)
+    } else if (pattern) this.fullPattern = pattern
+    if (this.fullPattern) {
+      let prefix = ''
+      let suffix = ''
+      for (const [, text, separator] of this.fullPattern.matchAll(/(.+?)([._]|$)/g)) {
+        const escaped = escapeStringRegexp(text ?? '')
+        const segment =
+          separator === '_' ?
+            `()(${escaped})([^_.]*)(_)`
+          : `([^.]*_)?(${escaped})([^.]*)(${separator === '.' ? '\\.' : ''})`
+        prefix = '(?:' + prefix
+        suffix += segment + ')?'
+      }
+      this.extractMatchesRegex = new RegExp('^(.*?)' + prefix + suffix + '(.*)$', 'i')
     }
     this.showUnstable = showUnstable ?? false
     this.showLocal = showLocal ?? false
+    if (currentModule != null) this.currentModule = currentModule
   }
 
   private selfTypeMatches(entry: SuggestionEntry): boolean {
-    if (this.selfType == null) {
-      return entry.selfType == null
-    } else {
-      return entry.selfType === this.selfType
-    }
+    if (this.selfArg == null) return entry.selfType == null
+    else if (this.selfArg.type == 'known') return entry.selfType === this.selfArg.typename
+    else return entry.selfType != null
   }
 
-  private qualifiedNameMatches(entry: SuggestionEntry): boolean {
-    if (this.qualifiedName == null) return true
-    return this.qualifiedName.matches(entry, this.pattern != null)
+  private qualifiedNameMatches(entry: SuggestionEntry): MatchedParts | null {
+    if (this.qualifiedName == null) return {}
+    else return this.qualifiedName.matches(entry, this.pattern != null)
   }
 
   isMainView() {
     return (
-      this.pattern == null && this.selfType == null && this.qualifiedName == null && !this.showLocal
+      this.pattern == null && this.selfArg == null && this.qualifiedName == null && !this.showLocal
     )
   }
 
-  private mainViewFilter(entry: SuggestionEntry) {
+  private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
     const isModule = entry.kind === SuggestionKind.Module
-    const isTopElement = (entry.definedIn.match(/\./g)?.length ?? 0) <= 2
-    if (hasGroup || (isModule && isTopElement)) {
-      return { score: 0 }
-    } else {
-      return null
-    }
+    const isMethod = entry.kind === SuggestionKind.Method
+    const isInTopModule = qnIsTopElement(entry.definedIn)
+    const isTopElementInMainView = (isMethod || isModule) && isInTopModule
+    if (hasGroup || isTopElementInMainView) return { score: 0 }
+    else return null
   }
 
-  filter(entry: SuggestionEntry): Opt<MatchResult> {
-    if (entry.isPrivate) return null
-    else if (!this.selfTypeMatches(entry)) return null
-    else if (!this.qualifiedNameMatches(entry)) return null
-    else if (!this.showUnstable && entry.isUnstable) return null
-    else if (this.pattern) return this.pattern.tryMatch(entry)
-    else if (this.isMainView()) return this.mainViewFilter(entry)
-    else return { score: 0 }
+  private isLocal(entry: SuggestionEntry): boolean {
+    return this.currentModule != null && entry.definedIn === this.currentModule
   }
+
+  filter(entry: SuggestionEntry): MatchResult | null {
+    if (entry.isPrivate) return null
+    if (this.selfArg == null && isInternal(entry) && !this.browsingInternalModule) return null
+    if (!this.selfTypeMatches(entry)) return null
+    const qualifiedNameMatch = this.qualifiedNameMatches(entry)
+    if (!qualifiedNameMatch) return null
+    if (!this.showUnstable && entry.isUnstable) return null
+    if (this.showLocal && !this.isLocal(entry)) return null
+    if (this.pattern) {
+      const patternMatch = this.pattern.tryMatch(entry)
+      if (!patternMatch) return null
+      if (!this.showLocal && this.isLocal(entry)) patternMatch.score *= 2
+      return { ...qualifiedNameMatch, ...patternMatch }
+    }
+    if (this.isMainView()) return this.mainViewFilter(entry)
+    return { score: 0 }
+  }
+}
+
+function isInternal(entry: SuggestionEntry): boolean {
+  return isInternalModulePath(entry.definedIn)
+}
+
+function isInternalModulePath(path: string): boolean {
+  return /Standard[.].*Internal(?:[._]|$)/.test(path)
 }

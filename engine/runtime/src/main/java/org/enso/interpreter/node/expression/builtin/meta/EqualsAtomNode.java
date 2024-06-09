@@ -7,6 +7,8 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
@@ -18,11 +20,12 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.state.State;
 
 @GenerateUncached
@@ -32,7 +35,7 @@ public abstract class EqualsAtomNode extends Node {
     return EqualsAtomNodeGen.create();
   }
 
-  public abstract boolean execute(Atom left, Atom right);
+  public abstract boolean execute(VirtualFrame frame, Atom left, Atom right);
 
   static EqualsNode[] createEqualsNodes(int size) {
     EqualsNode[] nodes = new EqualsNode[size];
@@ -48,6 +51,7 @@ public abstract class EqualsAtomNode extends Node {
       limit = "10")
   @ExplodeLoop
   boolean equalsAtomsWithDefaultComparator(
+      VirtualFrame frame,
       Atom self,
       Atom other,
       @Cached("self.getConstructor()") AtomConstructor selfCtorCached,
@@ -61,14 +65,11 @@ public abstract class EqualsAtomNode extends Node {
     if (constructorsNotEqualProfile.profile(self.getConstructor() != other.getConstructor())) {
       return false;
     }
-    var selfFields = structsLib.getFields(self);
-    var otherFields = structsLib.getFields(other);
-    assert selfFields.length == otherFields.length
-        : "Constructors are same, atoms should have the same number of fields";
-
     CompilerAsserts.partialEvaluationConstant(fieldsLenCached);
     for (int i = 0; i < fieldsLenCached; i++) {
-      boolean fieldsAreEqual = fieldEqualsNodes[i].execute(selfFields[i], otherFields[i]);
+      var selfValue = structsLib.getField(self, i);
+      var otherValue = structsLib.getField(other, i);
+      var fieldsAreEqual = fieldEqualsNodes[i].execute(frame, selfValue, otherValue);
       if (!fieldsAreEqual) {
         return false;
       }
@@ -98,16 +99,39 @@ public abstract class EqualsAtomNode extends Node {
     var ctx = EnsoContext.get(this);
     var args = new Object[] {cachedComparator, self, other};
     var result = invokeNode.execute(compareFn, null, State.create(ctx), args);
+    assert orderingOrNull(this, ctx, result, compareFn);
     return ctx.getBuiltins().ordering().newEqual() == result;
   }
 
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
+  private static boolean orderingOrNull(Node where, EnsoContext ctx, Object obj, Function fn) {
+    var type = TypeOfNode.getUncached().execute(obj);
+    if (type == ctx.getBuiltins().ordering().getType() || type == ctx.getBuiltins().nothing()) {
+      return true;
+    } else {
+      var msg =
+          "Expecting Ordering or Nothing, but got: "
+              + obj
+              + " with type "
+              + type
+              + " calling "
+              + fn;
+      throw ctx.raiseAssertionPanic(where, msg, null);
+    }
+  }
+
   @Specialization(
       replaces = {"equalsAtomsWithDefaultComparator", "equalsAtomsWithCustomComparator"})
-  boolean equalsAtomsUncached(Atom self, Atom other) {
+  boolean equalsAtomsUncached(VirtualFrame frame, Atom self, Atom other) {
     if (self.getConstructor() != other.getConstructor()) {
       return false;
+    } else {
+      return equalsAtomsUncached(frame == null ? null : frame.materialize(), self, other);
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private boolean equalsAtomsUncached(MaterializedFrame frame, Atom self, Atom other) {
     Type customComparator = CustomComparatorNode.getUncached().execute(self);
     if (customComparator != null) {
       Function compareFunc = findCompareMethod(customComparator);
@@ -121,13 +145,10 @@ public abstract class EqualsAtomNode extends Node {
           compareFunc,
           invokeFuncNode);
     }
-    Object[] selfFields = StructsLibrary.getUncached().getFields(self);
-    Object[] otherFields = StructsLibrary.getUncached().getFields(other);
-    if (selfFields.length != otherFields.length) {
-      return false;
-    }
-    for (int i = 0; i < selfFields.length; i++) {
-      boolean areFieldsSame = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
+    for (int i = 0; i < self.getConstructor().getArity(); i++) {
+      var selfField = StructsLibrary.getUncached().getField(self, i);
+      var otherField = StructsLibrary.getUncached().getField(other, i);
+      boolean areFieldsSame = EqualsNode.getUncached().execute(frame, selfField, otherField);
       if (!areFieldsSame) {
         return false;
       }

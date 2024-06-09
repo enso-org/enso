@@ -7,7 +7,6 @@ import java.io.IOException;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "IO",
@@ -27,7 +26,8 @@ public abstract class ReadlnNode extends Node {
     try {
       return Text.create(EnsoContext.get(this).getInReader().readLine());
     } catch (IOException e) {
-      throw new PanicException("Empty input stream", this);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
     }
   }
 }

@@ -2,9 +2,11 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.google.common.base.Objects;
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -20,18 +22,14 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
-
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNodeGen;
 import org.enso.interpreter.node.expression.builtin.ordering.HashCallbackNode;
@@ -40,14 +38,13 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -74,28 +71,21 @@ import org.enso.polyglot.common_utils.Core_Text_Utils;
 @BuiltinMethod(
     type = "Comparable",
     name = "hash_builtin",
-    description = """
-        Returns hash code of this atom. Use only for overriding default Comparator.
+    description =
         """
-)
+        Returns hash code of this atom. Use only for overriding default Comparator.
+        """)
 public abstract class HashCodeNode extends Node {
 
   public static HashCodeNode build() {
     return HashCodeNodeGen.create();
   }
 
+  static HashCodeNode getUncached() {
+    return HashCodeNodeGen.getUncached();
+  }
+
   public abstract long execute(@AcceptsError Object object);
-
-  /** Specializations for primitive values * */
-  @Specialization
-  long hashCodeForShort(short s) {
-    return s;
-  }
-
-  @Specialization
-  long hashCodeForByte(byte b) {
-    return b;
-  }
 
   @Specialization
   long hashCodeForLong(long l) {
@@ -104,40 +94,27 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
-  long hashCodeForInt(int i) {
-    return hashCodeForLong(i);
-  }
-
-  @Specialization
-  long hashCodeForFloat(float f) {
-    return Float.hashCode(f);
-  }
-
-  @Specialization
   long hashCodeForDouble(double d) {
-    if (Double.isNaN(d)) {
-      // NaN is Incomparable, just return a "random" constant
-      return 456879;
-    } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
-      return Double.hashCode(d);
-    } else {
-      return bigDoubleHash(d);
-    }
-  }
-
-  @TruffleBoundary
-  private static long bigDoubleHash(double d) {
-    try {
-      return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
-    } catch (ArithmeticException e) {
-      throw new IllegalStateException(e);
-    }
+    return Double.hashCode(d);
   }
 
   @Specialization
   @TruffleBoundary
-  long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
-    return bigInteger.getValue().hashCode();
+  long hashCodeForBigInteger(
+      EnsoBigInteger bigInteger,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+    return hashCodeForDouble(bigInteger.getValue().doubleValue());
+  }
+
+  @Specialization(guards = {"interop.fitsInBigInteger(v)"})
+  @TruffleBoundary
+  long hashCodeForBigInteger(
+      Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+    try {
+      return hashCodeForDouble(interop.asBigInteger(v).doubleValue());
+    } catch (UnsupportedMessageException ex) {
+      throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);
+    }
   }
 
   @Specialization
@@ -148,7 +125,8 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   @TruffleBoundary
-  long hashCodeForUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
+  long hashCodeForUnresolvedSymbol(
+      UnresolvedSymbol unresolvedSymbol,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
     long scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
@@ -156,39 +134,39 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
-  long hashCodeForUnresolvedConversion(UnresolvedConversion unresolvedConversion,
+  long hashCodeForUnresolvedConversion(
+      UnresolvedConversion unresolvedConversion,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForModuleScope(unresolvedConversion.getScope(), interop);
   }
 
   @Specialization
-  long hashCodeForModuleScope(ModuleScope moduleScope,
+  long hashCodeForModuleScope(
+      ModuleScope moduleScope,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForModule(moduleScope.getModule(), interop);
   }
 
   @Specialization
   @TruffleBoundary
-  long hashCodeForModule(Module module,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+  long hashCodeForModule(
+      Module module, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForString(module.toString(), interop);
   }
 
   @Specialization
-  long hashCodeForFile(EnsoFile file,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+  long hashCodeForFile(
+      EnsoFile file, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForString(file.getPath(), interop);
   }
 
   /**
-   * There is no specialization for {@link TypesLibrary#hasType(Object)}, because also
-   * primitive values would fall into that specialization and it would be too complicated
-   * to make that specialization disjunctive. So we rather specialize directly for
-   * {@link Type}.
+   * There is no specialization for {@link TypesLibrary#hasType(Object)}, because also primitive
+   * values would fall into that specialization and it would be too complicated to make that
+   * specialization disjunctive. So we rather specialize directly for {@link Type}.
    */
   @Specialization
-  long hashCodeForType(Type type,
-      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
+  long hashCodeForType(Type type, @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     if (EnsoContext.get(this).getNothing() == type) {
       // Nothing should be equal to `null`
       return 0;
@@ -204,15 +182,17 @@ public abstract class HashCodeNode extends Node {
     return nodes;
   }
 
-  @Specialization(guards = {
-      "atomCtorCached == atom.getConstructor()",
-      "customComparatorNode.execute(atom) == null",
-  }, limit = "5")
+  @Specialization(
+      guards = {
+        "atomCtorCached == atom.getConstructor()",
+        "customComparatorNode.execute(atom) == null",
+      },
+      limit = "5")
   @ExplodeLoop
   long hashCodeForAtomWithDefaultComparator(
       Atom atom,
       @Cached("atom.getConstructor()") AtomConstructor atomCtorCached,
-      @Cached("atomCtorCached.getFields().length") int fieldsLenCached,
+      @Cached("atomCtorCached.getArity()") int fieldsLenCached,
       @Cached(value = "createHashCodeNodes(fieldsLenCached)", allowUncached = true)
           HashCodeNode[] fieldHashCodeNodes,
       @Cached ConditionProfile isHashCodeCached,
@@ -223,17 +203,15 @@ public abstract class HashCodeNode extends Node {
       return atom.getHashCode();
     }
 
-    Object[] fields = structs.getFields(atom);
-    int fieldsCount = fields.length;
-
     CompilerAsserts.partialEvaluationConstant(fieldsLenCached);
     // hashes stores hash codes for all fields, and for constructor.
-    int[] hashes = new int[fieldsCount + 1];
+    int[] hashes = new int[fieldsLenCached + 1];
     for (int i = 0; i < fieldsLenCached; i++) {
-      if (fields[i] instanceof Atom atomField && customComparatorNode.execute(atomField) != null) {
+      var f = structs.getField(atom, i);
+      if (f instanceof Atom atomField && customComparatorNode.execute(atomField) != null) {
         hashes[i] = (int) hashCallbackNode.execute(atomField);
       } else {
-        hashes[i] = (int) fieldHashCodeNodes[i].execute(fields[i]);
+        hashes[i] = (int) fieldHashCodeNodes[i].execute(f);
       }
     }
 
@@ -246,12 +224,8 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization(
-      guards = {
-        "atomCtorCached == atom.getConstructor()",
-        "cachedComparator != null"
-      },
-      limit = "5"
-  )
+      guards = {"atomCtorCached == atom.getConstructor()", "cachedComparator != null"},
+      limit = "5")
   long hashCodeForAtomWithCustomComparator(
       Atom atom,
       @Cached("atom.getConstructor()") AtomConstructor atomCtorCached,
@@ -259,19 +233,18 @@ public abstract class HashCodeNode extends Node {
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached(value = "customComparatorNode.execute(atom)") Type cachedComparator,
       @Cached(value = "findHashMethod(cachedComparator)", allowUncached = true)
-        Function compareMethod,
-      @Cached(value = "createInvokeNode(compareMethod)") InvokeFunctionNode invokeFunctionNode
-  ) {
+          Function compareMethod,
+      @Cached(value = "createInvokeNode(compareMethod)") InvokeFunctionNode invokeFunctionNode) {
     var ctx = EnsoContext.get(this);
-    var args = new Object[] { cachedComparator, atom};
+    var args = new Object[] {cachedComparator, atom};
     var result = invokeFunctionNode.execute(compareMethod, null, State.create(ctx), args);
     if (!interop.isNumber(result)) {
-      throw new PanicException("Custom comparator must return a number", this);
+      throw ctx.raiseAssertionPanic(this, "Custom comparator must return a number", null);
     } else {
       try {
         return interop.asLong(result);
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
+        throw ctx.raiseAssertionPanic(this, null, e);
       }
     }
   }
@@ -297,7 +270,8 @@ public abstract class HashCodeNode extends Node {
   }
 
   @TruffleBoundary
-  @Specialization(replaces = {"hashCodeForAtomWithDefaultComparator", "hashCodeForAtomWithCustomComparator"})
+  @Specialization(
+      replaces = {"hashCodeForAtomWithDefaultComparator", "hashCodeForAtomWithCustomComparator"})
   long hashCodeForAtomUncached(Atom atom) {
     if (atom.getHashCode() != null) {
       return atom.getHashCode();
@@ -313,18 +287,18 @@ public abstract class HashCodeNode extends Node {
           InteropLibrary.getFactory().getUncached(),
           customComparator,
           compareMethod,
-          createInvokeNode(compareMethod)
-      );
+          createInvokeNode(compareMethod));
     }
 
-    Object[] fields = StructsLibrary.getUncached().getFields(atom);
-    int[] hashes = new int[fields.length + 1];
-    for (int i = 0; i < fields.length; i++) {
-      if (fields[i] instanceof Atom atomField
+    var len = atom.getConstructor().getArity();
+    var hashes = new int[len + 1];
+    for (int i = 0; i < len; i++) {
+      var f = StructsLibrary.getUncached().getField(atom, i);
+      if (f instanceof Atom atomField
           && CustomComparatorNode.getUncached().execute(atomField) != null) {
         hashes[i] = (int) HashCallbackNode.getUncached().execute(atomField);
       } else {
-        hashes[i] = (int) HashCodeNodeGen.getUncached().execute(fields[i]);
+        hashes[i] = (int) HashCodeNodeGen.getUncached().execute(f);
       }
     }
 
@@ -346,7 +320,7 @@ public abstract class HashCodeNode extends Node {
     try {
       return hashCodeNode.execute(warnLib.removeWarnings(selfWithWarning));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -359,7 +333,7 @@ public abstract class HashCodeNode extends Node {
     try {
       return Boolean.hashCode(interop.asBoolean(selfBool));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -376,7 +350,7 @@ public abstract class HashCodeNode extends Node {
     try {
       return interop.asTimeZone(selfTimeZone).hashCode();
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -397,7 +371,7 @@ public abstract class HashCodeNode extends Node {
               interop.asTimeZone(selfZonedDateTime))
           .hashCode();
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -414,7 +388,7 @@ public abstract class HashCodeNode extends Node {
       return LocalDateTime.of(interop.asDate(selfDateTime), interop.asTime(selfDateTime))
           .hashCode();
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -429,7 +403,7 @@ public abstract class HashCodeNode extends Node {
     try {
       return interop.asTime(selfTime).hashCode();
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -444,7 +418,7 @@ public abstract class HashCodeNode extends Node {
     try {
       return interop.asDate(selfDate).hashCode();
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -458,14 +432,13 @@ public abstract class HashCodeNode extends Node {
     try {
       return interop.asDuration(selfDuration).hashCode();
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
   @Specialization
   long hashCodeForText(
-      Text text,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+      Text text, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     if (text.is_normalized()) {
       return text.toString().hashCode();
     } else {
@@ -477,23 +450,18 @@ public abstract class HashCodeNode extends Node {
   @Specialization(
       guards = {"interop.isString(selfStr)"},
       limit = "3")
-  long hashCodeForString(
-      Object selfStr,
-      @CachedLibrary("selfStr") InteropLibrary interop) {
+  long hashCodeForString(Object selfStr, @CachedLibrary("selfStr") InteropLibrary interop) {
     String str;
     try {
       str = interop.asString(selfStr);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
     return Core_Text_Utils.unicodeNormalizedHashCode(str);
   }
 
   @Specialization(
-      guards = {
-          "interop.hasArrayElements(selfArray)",
-          "!interop.hasHashEntries(selfArray)"
-      },
+      guards = {"interop.hasArrayElements(selfArray)", "!interop.hasHashEntries(selfArray)"},
       limit = "3")
   long hashCodeForArray(
       Object selfArray,
@@ -518,7 +486,7 @@ public abstract class HashCodeNode extends Node {
       }
       return Arrays.hashCode(elemHashCodes);
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -526,10 +494,11 @@ public abstract class HashCodeNode extends Node {
    * Two maps are considered equal, if they have the same entries. Note that we do not care about
    * ordering.
    */
-  @Specialization(guards = {
-      "interop.hasHashEntries(selfMap)",
-      "!interop.hasArrayElements(selfMap)",
-  })
+  @Specialization(
+      guards = {
+        "interop.hasHashEntries(selfMap)",
+        "!interop.hasArrayElements(selfMap)",
+      })
   long hashCodeForMap(
       Object selfMap,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
@@ -549,22 +518,24 @@ public abstract class HashCodeNode extends Node {
         valuesHashCode += hashCodeNode.execute(value);
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
     return Arrays.hashCode(new long[] {keysHashCode, valuesHashCode, mapSize});
   }
 
-  @Specialization(guards = {
-      "!isAtom(objectWithMembers)",
-      "!isJavaObject(objectWithMembers)",
-      "interop.hasMembers(objectWithMembers)",
-      "!interop.hasArrayElements(objectWithMembers)",
-      "!interop.isTime(objectWithMembers)",
-      "!interop.isDate(objectWithMembers)",
-      "!interop.isTimeZone(objectWithMembers)",
-      "!typesLib.hasType(objectWithMembers)",
-  })
-  long hashCodeForInteropObjectWithMembers(Object objectWithMembers,
+  @Specialization(
+      guards = {
+        "!isAtom(objectWithMembers)",
+        "!isJavaObject(objectWithMembers)",
+        "interop.hasMembers(objectWithMembers)",
+        "!interop.hasArrayElements(objectWithMembers)",
+        "!interop.isTime(objectWithMembers)",
+        "!interop.isDate(objectWithMembers)",
+        "!interop.isTimeZone(objectWithMembers)",
+        "!typesLib.hasType(objectWithMembers)",
+      })
+  long hashCodeForInteropObjectWithMembers(
+      Object objectWithMembers,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") TypesLibrary typesLib,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
@@ -586,12 +557,18 @@ public abstract class HashCodeNode extends Node {
         }
       }
       return Arrays.hashCode(hashCodes);
-    } catch (UnsupportedMessageException | InvalidArrayIndexException | UnknownIdentifierException e) {
-      throw new IllegalStateException(
-          String.format("An interop object (%s) has probably wrongly specified interop API"
-              + " for members.", objectWithMembers),
-          e
-      );
+    } catch (UnsupportedMessageException
+        | InvalidArrayIndexException
+        | UnknownIdentifierException e) {
+      CompilerDirectives.transferToInterpreter();
+      throw EnsoContext.get(this)
+          .raiseAssertionPanic(
+              this,
+              String.format(
+                  "An interop object (%s) has probably wrongly specified interop API"
+                      + " for members.",
+                  objectWithMembers),
+              e);
     }
   }
 
@@ -602,10 +579,17 @@ public abstract class HashCodeNode extends Node {
     return 0;
   }
 
-  @Specialization(guards = "isJavaObject(hostObject)")
+  @Specialization(
+      guards = {
+        "isJavaObject(hostObject)",
+        "!interop.hasMembers(hostObject)",
+        "!interop.hasArrayElements(hostObject)",
+        "!interop.isTime(hostObject)",
+        "!interop.isDate(hostObject)",
+        "!interop.isTimeZone(hostObject)"
+      })
   long hashCodeForHostObject(
-      Object hostObject,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+      Object hostObject, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       Object hashCodeRes = interop.invokeMember(hostObject, "hashCode");
       assert interop.fitsInInt(hashCodeRes);
@@ -614,20 +598,26 @@ public abstract class HashCodeNode extends Node {
         | ArityException
         | UnknownIdentifierException
         | UnsupportedTypeException e) {
-      throw new IllegalStateException(e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 
   /**
-   * Every host function has a unique fully qualified name, it is not a lambda.
-   * We get the hashcode from the qualified name.
+   * Every host function has a unique fully qualified name, it is not a lambda. We get the hashcode
+   * from the qualified name.
    */
   @TruffleBoundary
   @Specialization(guards = "isJavaFunction(hostFunction)")
-  long hashCodeForHostFunction(Object hostFunction,
+  long hashCodeForHostFunction(
+      Object hostFunction,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     return hashCodeNode.execute(interop.toDisplayString(hostFunction));
+  }
+
+  @Fallback
+  long fallbackConstant(Object any) {
+    return 5343210;
   }
 
   static boolean isAtom(Object object) {

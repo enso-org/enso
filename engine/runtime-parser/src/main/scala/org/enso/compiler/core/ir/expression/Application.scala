@@ -1,26 +1,14 @@
 package org.enso.compiler.core.ir
 package expression
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
+
+import java.util.UUID
+import scala.jdk.FunctionConverters.enrichAsScalaFromFunction
 
 /** All function applications in Enso. */
-trait Application extends Expression {
-
-  /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Application
-
-  /** @inheritdoc */
-  override def setLocation(location: Option[IdentifiedLocation]): Application
-
-  /** @inheritdoc */
-  override def duplicate(
-    keepLocations: Boolean   = true,
-    keepMetadata: Boolean    = true,
-    keepDiagnostics: Boolean = true,
-    keepIdentifiers: Boolean = false
-  ): Application
-}
+trait Application extends Expression
 
 object Application {
 
@@ -39,11 +27,11 @@ object Application {
     arguments: List[CallArgument],
     hasDefaultsSuspended: Boolean,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Application
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -64,7 +52,7 @@ object Application {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Prefix = {
       val res =
         Prefix(
@@ -102,10 +90,11 @@ object Application {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -113,7 +102,9 @@ object Application {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Prefix = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Prefix = {
       copy(function = fn(function), arguments.map(_.mapExpressions(fn)))
     }
 
@@ -152,11 +143,11 @@ object Application {
   sealed case class Force(
     target: Expression,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Application
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -172,7 +163,7 @@ object Application {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Force = {
       val res = Force(target, location, passData, diagnostics)
       res.id = id
@@ -194,10 +185,11 @@ object Application {
           keepIdentifiers
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -205,7 +197,9 @@ object Application {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Force = {
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Force = {
       copy(target = fn(target))
     }
 
@@ -233,7 +227,9 @@ object Application {
   sealed trait Literal extends Application {
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Literal
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Literal
 
     /** @inheritdoc */
     override def setLocation(location: Option[IdentifiedLocation]): Literal
@@ -259,14 +255,16 @@ object Application {
   sealed case class Typeset(
     expression: Option[Expression],
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Literal
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
-    override def mapExpressions(fn: Expression => Expression): Typeset =
-      copy(expression = expression.map(fn))
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Typeset =
+      copy(expression = expression.map(fn.asScala))
 
     /** Creates a copy of `this`.
       *
@@ -282,7 +280,7 @@ object Application {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Typeset = {
       val res = Typeset(expression, location, passData, diagnostics)
       res.id = id
@@ -306,10 +304,11 @@ object Application {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -352,14 +351,16 @@ object Application {
   sealed case class Sequence(
     items: List[Expression],
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Literal
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
-    override def mapExpressions(fn: Expression => Expression): Sequence =
-      copy(items = items.map(fn))
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Sequence =
+      copy(items = items.map(fn.asScala))
 
     /** Creates a copy of `this`.
       *
@@ -375,7 +376,7 @@ object Application {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Sequence = {
       val res = Sequence(items, location, passData, diagnostics)
       res.id = id
@@ -399,10 +400,11 @@ object Application {
           )
         ),
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */

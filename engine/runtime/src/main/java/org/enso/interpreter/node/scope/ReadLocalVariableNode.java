@@ -8,9 +8,9 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.compiler.context.FramePointer;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.scope.FramePointer;
 
 /**
  * Reads from a local target (variable or call target).
@@ -45,10 +45,10 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    */
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected long readLong(VirtualFrame frame) throws FrameSlotTypeException {
-    if (getFramePointer().getParentLevel() == 0)
-      return frame.getLong(getFramePointer().getFrameSlotIdx());
+    if (getFramePointer().parentLevel() == 0)
+      return frame.getLong(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getLong(getFramePointer().getFrameSlotIdx());
+    return currentFrame.getLong(getFramePointer().frameSlotIdx());
   }
 
   /**
@@ -61,18 +61,18 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    */
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected Object readGeneric(VirtualFrame frame) throws FrameSlotTypeException {
-    if (getFramePointer().getParentLevel() == 0)
-      return frame.getObject(getFramePointer().getFrameSlotIdx());
+    if (getFramePointer().parentLevel() == 0)
+      return frame.getObject(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getObject(getFramePointer().getFrameSlotIdx());
+    return currentFrame.getObject(getFramePointer().frameSlotIdx());
   }
 
   @Specialization
   protected Object readGenericValue(VirtualFrame frame) {
-    if (getFramePointer().getParentLevel() == 0)
-      return frame.getValue(getFramePointer().getFrameSlotIdx());
+    if (getFramePointer().parentLevel() == 0)
+      return frame.getValue(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getValue(getFramePointer().getFrameSlotIdx());
+    return currentFrame.getValue(getFramePointer().frameSlotIdx());
   }
 
   /**
@@ -97,7 +97,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
   @ExplodeLoop
   public MaterializedFrame getProperFrame(Frame frame) {
     MaterializedFrame currentFrame = getParentFrame(frame);
-    for (int i = 1; i < getFramePointer().getParentLevel(); i++) {
+    for (int i = 1; i < getFramePointer().parentLevel(); i++) {
       currentFrame = getParentFrame(currentFrame);
     }
     return currentFrame;

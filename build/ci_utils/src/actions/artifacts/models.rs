@@ -114,13 +114,8 @@ pub struct ContainerEntry {
 
 impl ContainerEntry {
     pub fn relative_path(&self) -> PathBuf {
-        //ensure!(self.path.is_relative(), "Path {} is not relative.", self.path.display());
         // First part is artifact name.
         let path_iter = self.path.iter().skip(1);
-        // ensure!(
-        //     path_iter.next() == Some(&OsStr::new(artifact_name)),
-        //     "Entry path does not start with an artifact name."
-        // );
         PathBuf::from_iter(path_iter)
     }
 }

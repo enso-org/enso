@@ -1,9 +1,42 @@
 use crate::prelude::*;
 
+use crate::archive::extract_files::ExtractFiles;
+
 use flate2::read::GzDecoder;
 use std::fs::File;
 
 
+
+/// Synchronous version of [`extract_files`].
+#[context("Failed to extract files from the archive.")]
+pub fn extract_files_sync<R: Read>(
+    mut archive: tar::Archive<R>,
+    mut filter: impl FnMut(&tar::Entry<R>) -> Option<PathBuf>,
+) -> Result {
+    let entries = archive.entries()?;
+    for entry in entries {
+        let mut entry = entry?;
+        let path_in_archive = entry.path()?.to_path_buf();
+        if let Some(output_path) = filter(&entry) {
+            let entry_type = entry.header().entry_type();
+            let make_message = |prefix, path: &Path| {
+                format!(
+                    "{} {:?} entry: {} => {}",
+                    prefix,
+                    entry_type,
+                    path.display(),
+                    output_path.display()
+                )
+            };
+
+            trace!("{}", make_message("Extracting", &path_in_archive));
+            entry
+                .unpack(&output_path)
+                .with_context(|| make_message("Failed to extract", &path_in_archive))?;
+        }
+    }
+    Ok(())
+}
 
 // ===============
 // === Archive ===
@@ -27,52 +60,20 @@ impl Archive {
         let file = file
             .try_into_std()
             .map_err(|_| anyhow!("Failed to convert tokio::fs::File to std::fs::File"))?;
-        let tar_stream = flate2::read::GzDecoder::new(file);
+        let tar_stream = GzDecoder::new(file);
         let archive = tar::Archive::new(tar_stream);
         let path = path.as_ref().to_owned().into_boxed_path();
         Ok(Self { path, file: archive })
     }
 
     /// Synchronous version of [`extract_files`].
-    #[context("Failed to extract files from archive {}", self.path.display())]
     pub fn extract_files_sync(
-        mut self,
-        mut filter: impl FnMut(&Path) -> Option<PathBuf>,
+        self,
+        filter: impl FnMut(&tar::Entry<GzDecoder<File>>) -> Option<PathBuf>,
     ) -> Result {
-        let entries = self.file.entries()?;
-        for entry in entries {
-            let mut entry = entry?;
-            let path_in_archive = entry.path()?;
-            if let Some(output_path) = filter(&path_in_archive) {
-                let entry_type = entry.header().entry_type();
-                let make_message = |prefix, path: Cow<Path>| {
-                    format!(
-                        "{} {:?} entry: {} => {}",
-                        prefix,
-                        entry_type,
-                        path.display(),
-                        output_path.display()
-                    )
-                };
-
-                trace!("{}", make_message("Extracting", path_in_archive));
-                entry.unpack(&output_path).with_context(|| {
-                    make_message("Failed to extract", entry.path().unwrap_or_default())
-                })?;
-            }
-        }
-        Ok(())
-    }
-
-    /// The given function will be called with the path of each file within the archive. For each
-    /// input path, if it returns a path the file will be extracted to the returned path.
-    ///
-    /// IMPORTANT: If the function uses its input path to generate an output path, care must be
-    /// taken that the output path is not in an unexpected location, especially if coming from an
-    /// untrusted archive.
-    pub async fn extract_files(self, filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
-        let job = move || self.extract_files_sync(filter);
-        tokio::task::block_in_place(job)
+        extract_files_sync(self.file, filter).with_context(|| {
+            format!("Failed to extract files from archive {}", self.path.display())
+        })
     }
 
     /// Extract all files from the specified subtree in the archive, placing them in the specified
@@ -104,5 +105,13 @@ impl Archive {
                 output.as_ref().display()
             )
         })
+    }
+}
+
+impl ExtractFiles for Archive {
+    async fn extract_files(self, mut filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result {
+        let filter = move |entry: &tar::Entry<GzDecoder<File>>| filter(entry.path().ok()?.as_ref());
+        let job = move || self.extract_files_sync(filter);
+        tokio::task::block_in_place(job)
     }
 }

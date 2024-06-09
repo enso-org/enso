@@ -1,6 +1,6 @@
 package org.enso.downloader.http
 
-import akka.http.scaladsl.model.HttpRequest
+import java.net.http.HttpRequest
 
 /** Wraps an underlying HTTP request implementation to make the outside API
   * independent of the internal implementation.

@@ -67,7 +67,7 @@ Enso provides rich support for textual literals in the language, supporting both
 raw and interpolated strings natively.
 
 - **Raw Strings:** Raw strings are delimited using the standard double-quote
-  character (`"`). Raw strings don't support escape sequences except for `\"`.
+  character (`"`). Raw strings don't support any escape sequences.
 
   ```ruby
   raw_string = "Hello, world!"

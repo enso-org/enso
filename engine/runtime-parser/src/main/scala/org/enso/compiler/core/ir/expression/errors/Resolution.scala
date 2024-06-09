@@ -2,8 +2,9 @@ package org.enso.compiler.core.ir
 package expression
 package errors
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier}
+import org.enso.compiler.core.{IR, Identifier}
+
+import java.util.UUID
 
 /** A representation of an error resulting from name resolution.
   *
@@ -15,15 +16,18 @@ import org.enso.compiler.core.IR.{randomId, Identifier}
 sealed case class Resolution(
   originalName: Name,
   reason: Resolution.Reason,
-  override val passData: MetadataStorage      = MetadataStorage(),
-  override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+  passData: MetadataStorage      = new MetadataStorage(),
+  diagnostics: DiagnosticStorage = DiagnosticStorage()
 ) extends Error
     with Diagnostic.Kind.Interactive
     with IRKind.Primitive
-    with Name {
+    with Name
+    with LazyId {
   override val name: String = originalName.name
 
-  override def mapExpressions(fn: Expression => Expression): Resolution =
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Resolution =
     this
 
   override def setLocation(
@@ -45,7 +49,7 @@ sealed case class Resolution(
     reason: Resolution.Reason      = reason,
     passData: MetadataStorage      = passData,
     diagnostics: DiagnosticStorage = diagnostics,
-    id: Identifier                 = id
+    id: UUID @Identifier           = id
   ): Resolution = {
     val res = Resolution(originalName, reason, passData, diagnostics)
     res.id = id
@@ -67,26 +71,27 @@ sealed case class Resolution(
           keepDiagnostics,
           keepIdentifiers
         ),
-      passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+      passData =
+        if (keepMetadata) passData.duplicate else new MetadataStorage(),
       diagnostics =
         if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-      id = randomId
+      id = if (keepIdentifiers) id else null
     )
 
   /** @inheritdoc */
   override def children: List[IR] = List(originalName)
 
   /** @inheritdoc */
-  override protected var id: Identifier = randomId
-
-  /** @inheritdoc */
   override def showCode(indent: Int): String = originalName.showCode(indent)
 
   /** @inheritdoc */
-  override def message: String = reason.explain(originalName)
+  override def message(source: (IdentifiedLocation => String)): String =
+    reason.explain(originalName)
 
   /** @inheritdoc */
-  override def formattedMessage: String = s"${message}."
+  override def formattedMessage(
+    source: (IdentifiedLocation => String)
+  ): String = s"${message(source)}."
 
   override def diagnosticKeys(): Array[Any] = Array(reason)
 
@@ -184,6 +189,18 @@ object Resolution {
   case object VariableNotInScope extends Reason {
     override def explain(originalName: Name): String =
       s"Variable `${originalName.name}` is not defined"
+  }
+
+  /** An error when a project-private entity (module, type, method) is used from a different project.
+    * @param callerProject Name of the project of caller.
+    * @param calleeProject Name of the project of callee.
+    */
+  case class PrivateEntity(
+    callerProject: String,
+    calleeProject: String
+  ) extends Reason {
+    override def explain(originalName: Name): String =
+      s"Project-private entity '${originalName.name}' in project '$calleeProject' cannot be used from project '$callerProject'"
   }
 
   /** An error coming from name resolver.

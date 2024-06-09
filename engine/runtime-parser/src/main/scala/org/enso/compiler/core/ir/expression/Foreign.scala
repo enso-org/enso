@@ -1,9 +1,11 @@
 package org.enso.compiler.core.ir
 package expression
 
-import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{IR, Identifier}
 import org.enso.compiler.core.ir.MetadataStorage
+
+import java.util.UUID
 
 // === Foreign ==============================================================
 
@@ -11,7 +13,9 @@ import org.enso.compiler.core.ir.MetadataStorage
 sealed trait Foreign extends Expression {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Foreign
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Foreign
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Foreign
@@ -39,11 +43,11 @@ object Foreign {
     lang: String,
     code: String,
     override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
+    override val passData: MetadataStorage      = new MetadataStorage(),
     override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends Foreign
-      with IRKind.Primitive {
-    override protected var id: Identifier = randomId
+      with IRKind.Primitive
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -61,7 +65,7 @@ object Foreign {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Definition = {
       val res = Definition(lang, code, location, passData, diagnostics)
       res.id = id
@@ -77,10 +81,11 @@ object Foreign {
     ): Definition =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -89,7 +94,9 @@ object Foreign {
     ): Definition = copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Definition =
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Definition =
       this
 
     /** @inheritdoc */

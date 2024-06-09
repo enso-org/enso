@@ -1,0 +1,11 @@
+{
+  "type": "Postgres_Connection",
+  "libraryName": "Standard.Database",
+  "host": "example.com",
+  "port": 12345,
+  "database_name": "DBNAME",
+  "credentials": {
+    "username": "USERNAME",
+    "password": "PASSWORD"
+  }
+}

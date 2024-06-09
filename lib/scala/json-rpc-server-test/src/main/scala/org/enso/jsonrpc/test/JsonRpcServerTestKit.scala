@@ -14,6 +14,7 @@ import org.enso.jsonrpc.{
   JsonRpcServer,
   ProtocolFactory
 }
+import org.scalactic.source.Position
 import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -44,7 +45,8 @@ abstract class JsonRpcServerTestKit
   }
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   val interface       = "127.0.0.1"
@@ -55,18 +57,22 @@ abstract class JsonRpcServerTestKit
 
   def protocolFactory: ProtocolFactory
 
-  def clientControllerFactory: ClientControllerFactory
+  def clientControllerFactory(): ClientControllerFactory
+
+  var _clientControllerFactory: ClientControllerFactory = _
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     val factory = protocolFactory
     factory.init()
-    server  = new JsonRpcServer(factory, clientControllerFactory)
-    binding = Await.result(server.bind(interface, port = 0), 3.seconds)
-    address = s"ws://$interface:${binding.localAddress.getPort}"
+    _clientControllerFactory = clientControllerFactory()
+    server                   = new JsonRpcServer(factory, _clientControllerFactory)
+    binding                  = Await.result(server.bind(interface, port = 0), 3.seconds)
+    address                  = s"ws://$interface:${binding.localAddress.getPort}"
   }
 
   override def afterEach(): Unit = {
+    _clientControllerFactory.shutdown()
     Await.ready(binding.terminate(10.seconds.dilated), 15.seconds.dilated)
     super.afterEach()
   }
@@ -113,8 +119,38 @@ abstract class JsonRpcServerTestKit
 
     def send(json: Json): Unit = send(json.noSpaces)
 
-    def expectMessage(timeout: FiniteDuration = 5.seconds.dilated): String = {
-      val message = outActor.expectMsgClass[String](timeout, classOf[String])
+    def expectMessage(
+      timeout: FiniteDuration            = 5.seconds.dilated,
+      printStackTracesOnFailure: Boolean = false
+    ): String = {
+      val message =
+        try {
+          outActor.expectMsgClass[String](timeout, classOf[String])
+        } catch {
+          case e: AssertionError
+              if e.getMessage.contains(
+                "timeout"
+              ) && printStackTracesOnFailure =>
+            val sb = new StringBuilder(
+              "Thread dump when timeout is reached while waiting for the message:\n"
+            )
+            Thread.getAllStackTraces.entrySet.forEach { entry =>
+              sb.append(entry.getKey.getName).append("\n")
+              entry.getValue.foreach { e =>
+                sb.append("    ")
+                  .append(e.getClassName)
+                  .append(".")
+                  .append(e.getMethodName)
+                  .append("(")
+                  .append(e.getFileName)
+                  .append(":")
+                  .append(e.getLineNumber)
+                  .append(")\n")
+              }
+            }
+            println(sb.toString())
+            throw e
+        }
       if (debugMessages) println(message)
       message
     }
@@ -122,20 +158,23 @@ abstract class JsonRpcServerTestKit
     def expectJson(
       json: Json,
       timeout: FiniteDuration = 5.seconds.dilated
-    ): Assertion = {
+    )(implicit pos: Position): Assertion = {
       val parsed = parse(expectMessage(timeout))
       parsed shouldEqual Right(json)
     }
 
-    def expectSomeJson(timeout: FiniteDuration = 5.seconds.dilated): Json = {
-      val parsed = parse(expectMessage(timeout))
+    def expectSomeJson(
+      timeout: FiniteDuration            = 10.seconds.dilated,
+      printStackTracesOnFailure: Boolean = false
+    )(implicit pos: Position): Json = {
+      val parsed = parse(expectMessage(timeout, printStackTracesOnFailure))
       inside(parsed) { case Right(json) => json }
     }
 
     def fuzzyExpectJson(
       json: Json,
       timeout: FiniteDuration = 5.seconds.dilated
-    ): Assertion = {
+    )(implicit pos: Position): Assertion = {
       val parsed = parse(expectMessage(timeout))
 
       parsed should fuzzyMatchJson(json)

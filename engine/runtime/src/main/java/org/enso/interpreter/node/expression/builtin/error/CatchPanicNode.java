@@ -17,9 +17,8 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
@@ -39,6 +38,7 @@ public abstract class CatchPanicNode extends Node {
             new CallArgumentInfo[] {new CallArgumentInfo()},
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
             InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+    // Note [Tail call]
     this.invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
@@ -60,7 +60,8 @@ public abstract class CatchPanicNode extends Node {
       @Cached BranchProfile otherExceptionBranchProfile,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
-      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.TAIL_DIRECT);
+      // Note [Tail call]
+      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
@@ -81,16 +82,27 @@ public abstract class CatchPanicNode extends Node {
       InteropLibrary interopLibrary) {
 
     if (profile.profile(isValueOfTypeNode.execute(panicType, payload))) {
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      Atom caughtPanic =
-          builtins.caughtPanic().getUniqueConstructor().newInstance(payload, originalException);
+      var builtins = EnsoContext.get(this).getBuiltins();
+      var cons = builtins.caughtPanic().getUniqueConstructor();
+      var caughtPanic =
+          AtomNewInstanceNode.getUncached().newInstance(cons, payload, originalException);
       return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
     } else {
       try {
         return interopLibrary.throwException(originalException);
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
+        throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
       }
     }
   }
+
+  /* Note [Tail call]
+   * ~~~~~~~~~~~~~~~~~~~~~~
+   * The `NOT_TAIL` in `isTail` parameter is important here. Panic.catch cannot be in
+   * the tail call position. If it is, the panic may not be caught when a tail-call-optimized
+   * thunk is evaluated (as that will effectively discard this method call from the stack).
+   *
+   * This is important for the `action` parameter of `Panic.catch`. The `handler` callback can
+   * be executed as tail, as there is nothing in this class that needs to run after the `handler`.
+   */
 }

@@ -49,7 +49,7 @@ public class BlockNode extends ExpressionNode {
   @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
     for (ExpressionNode statement : statements) {
-      statement.executeVoid(frame);
+      statement.executeGeneric(frame);
     }
     return returnExpr.executeGeneric(frame);
   }

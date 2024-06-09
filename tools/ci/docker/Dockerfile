@@ -1,8 +1,15 @@
-FROM ghcr.io/graalvm/graalvm-community:17.0.7
+FROM ghcr.io/graalvm/jdk-community:21
 
 USER root
 
-ENV LOG_LEVEL=INFO
+ARG LOG_LEVEL=info
+ARG RPC_PORT=30001
+ARG DATA_PORT=30002
+ARG YDOC_PORT=1234
+ARG PRINT_VERSION=0
+ARG JAVA_OPTS="-XX:MaxRAMPercentage=90.0 -XX:InitialRAMPercentage=90.0"
+ARG PROFILING_FILENAME
+ARG PROFILING_TIME
 
 RUN useradd -u 2000 -c 'Enso Developer' -U -m ensodev
 
@@ -23,6 +30,7 @@ ADD editions /opt/enso/editions
 
 RUN mkdir /opt/enso/work
 RUN mkdir /opt/enso/logs
+RUN mkdir /opt/enso/profiling
 
 ENV ENSO_DATA_DIRECTORY=/volumes/workspace/data_root
 ENV ENSO_CONFIG_DIRECTORY=/volumes/workspace/config
@@ -30,16 +38,17 @@ ENV ENSO_RUNTIME_DIRECTORY=/opt/enso/work
 ENV ENSO_LOG_DIRECTORY=/opt/enso/logs
 ENV ENSO_HOME=/volumes/workspace/home
 
-RUN gu install js python
 RUN chown -hR ensodev:ensodev /opt/enso
 RUN chmod -R u=rX,g=rX /opt/enso
 RUN chmod a+x /opt/enso/bin/*
 RUN chmod a+rw /opt/enso/work
 RUN chmod a+rw /opt/enso/logs
+RUN chmod a+rw /opt/enso/profiling
 
 RUN mkdir -p /volumes
 RUN chown -hR ensodev:ensodev /volumes
 RUN chmod -R u=rwX,g=rwX /volumes
+COPY --from=docker-tools docker-entrypoint.sh /opt/enso/bin/
 
 USER ensodev:ensodev
 
@@ -47,7 +56,16 @@ WORKDIR /opt/enso
 
 ENTRYPOINT [ "/opt/enso/bin/docker-entrypoint.sh" ]
 
-EXPOSE 30001
-EXPOSE 30002
+ENV RPC_PORT=${RPC_PORT}
+ENV DATA_PORT=${DATA_PORT}
+ENV YDOC_PORT=${YDOC_PORT}
+ENV LOG_LEVEL=${LOG_LEVEL}
+ENV PRINT_VERSION=${PRINT_VERSION}
+ENV JAVA_OPTS=${JAVA_OPTS}
 
-CMD ["--server", "--daemon", "--rpc-port", "30001", "--data-port", "30002", "--root-id", "00000000-0000-0000-0000-000000000001", "--path", "/volumes/workspace/project_root", "--interface", "0.0.0.0"]
+EXPOSE ${RPC_PORT}
+EXPOSE ${DATA_PORT}
+EXPOSE ${YDOC_PORT}
+
+
+CMD ["--server", "--daemon", "--path", "/volumes/workspace/project_root"]

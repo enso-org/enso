@@ -213,7 +213,7 @@ public class ExcelRange {
   }
 
   /**
-   * @param index Index to the next character after the parsed value
+   * @param index The index to the next character after the parsed value
    * @param value Parsed integer value or 0 if not valid
    */
   private record ParsedInteger(int index, int value) {}

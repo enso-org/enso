@@ -1,8 +1,8 @@
 package org.enso.editions
 
-import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.provider.EditionProvider
+import org.enso.semver.SemVer
 
 /** A helper class which resolves the engine version that is entailed by the
   * edition configuration.

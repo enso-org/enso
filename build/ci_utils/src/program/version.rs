@@ -53,6 +53,13 @@ impl IsVersionPredicate for semver::VersionReq {
     }
 }
 
+impl IsVersionPredicate for Version {
+    type Version = Version;
+    fn matches(&self, version: &Self::Version) -> bool {
+        self == version
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -2,9 +2,10 @@ package src.main.scala.licenses
 
 import sbt.IO
 import src.main.scala.licenses.report.{
+  Diagnostic,
   LicenseReview,
   PackageNotices,
-  WithWarnings
+  WithDiagnostics
 }
 
 /** Contains a sequence of dependencies and any attachments found.
@@ -87,7 +88,28 @@ case class ReviewedDependency(
   licenseReview: LicenseReview,
   files: Seq[(AttachedFile, AttachmentStatus)],
   copyrights: Seq[(CopyrightMention, AttachmentStatus)]
-)
+) {
+
+  /** Returns the count of problems that need to be addressed, like un-reviewed licenses or files.
+    * This count may not be accurate and not include some of the problems,
+    * as we only count the immediately addressable problems.
+    * This is enough for a sorting heuristic.
+    */
+  def problemsCount: Int = {
+    val unreviewedFiles = files.count(_._2 == AttachmentStatus.NotReviewed)
+    val unreviewedCopyrights =
+      copyrights.count(_._2 == AttachmentStatus.NotReviewed)
+    val unreviewedLicenses = licenseReview match {
+      case LicenseReview.NotReviewed => 1
+      case _                         => 0
+    }
+
+    // If there's no info at all, that will also be a problem - add +1 problem to bring such dependencies higher up.
+    val missingInfo = if (files.isEmpty && copyrights.isEmpty) 1 else 0
+
+    unreviewedFiles + unreviewedCopyrights + unreviewedLicenses + missingInfo
+  }
+}
 
 /** Summarizes the dependency review.
   *
@@ -122,37 +144,54 @@ object ReviewedSummary {
 
   /** Returns a list of warnings that indicate missing reviews or other issues.
     */
-  def warnAboutMissingReviews(summary: ReviewedSummary): WithWarnings[Unit] = {
-    val warnings = summary.dependencies.flatMap { dep =>
-      val warnings = collection.mutable.Buffer[String]()
-      val name     = dep.information.moduleInfo.toString
+  def warnAboutMissingReviews(
+    summary: ReviewedSummary
+  ): WithDiagnostics[Unit] = {
+    val diagnostics = summary.dependencies.flatMap { dep =>
+      val diagnostics = collection.mutable.Buffer[Diagnostic]()
+      val name        = dep.information.moduleInfo.toString
 
       val missingFiles = dep.files.filter(_._2 == AttachmentStatus.NotReviewed)
       if (missingFiles.nonEmpty) {
-        warnings.append(
-          s"${missingFiles.size} files are not reviewed in $name."
+        diagnostics.append(
+          Diagnostic.Error(
+            s"${missingFiles.size} files are not reviewed in $name."
+          )
         )
       }
       val missingCopyrights =
         dep.copyrights.filter(_._2 == AttachmentStatus.NotReviewed)
       if (missingCopyrights.nonEmpty) {
-        warnings.append(
-          s"${missingCopyrights.size} copyrights are not reviewed in $name."
+        diagnostics.append(
+          Diagnostic.Error(
+            s"${missingCopyrights.size} copyrights are not reviewed in $name."
+          )
         )
       }
 
       val includedInfos =
         (dep.files.map(_._2) ++ dep.copyrights.map(_._2)).filter(_.included)
       if (includedInfos.isEmpty) {
-        warnings.append(
-          s"No files or copyright information are included for $name."
+        diagnostics.append(
+          Diagnostic.Error(
+            s"No files or copyright information are included for $name. " +
+            s"Generally every dependency should have _some_ copyright info, so " +
+            s"this suggests all our heuristics failed. " +
+            s"Please find the information manually and add it using `files-add` " +
+            s"or `copyright-add`. Even if the dependency is in public domain, " +
+            s"it may be good to include some information about its source."
+          )
         )
       }
 
       dep.licenseReview match {
         case LicenseReview.NotReviewed =>
-          warnings.append(
-            s"License ${dep.information.license.name} for $name is not reviewed."
+          diagnostics.append(
+            Diagnostic.Error(
+              s"Default license ${dep.information.license.name} for $name is " +
+              s"used, but that license is not reviewed " +
+              s"(need to add an entry to `reviewed-licenses`)."
+            )
           )
         case LicenseReview.Default(
               defaultPath,
@@ -163,10 +202,21 @@ object ReviewedSummary {
               case Some(includedLicense) =>
                 val licenseContent = IO.read(defaultPath.toFile)
                 if (licenseContent.strip != includedLicense.content) {
-                  warnings.append(
-                    s"A license file was discovered in $name that is different " +
-                    s"from the default license file that is associated with its " +
-                    s"license ${dep.information.license.name}."
+                  diagnostics.append(
+                    Diagnostic.Error(
+                      s"A license file was discovered in $name that is different " +
+                      s"from the default license file that is associated with its " +
+                      s"license ${dep.information.license.name}, " +
+                      s"but a custom license was not expected. " +
+                      s"If this custom license should override the default one, " +
+                      s"create a `custom-license` config file. " +
+                      s"If both files are expected to be included, " +
+                      s"create an empty `default-and-custom-license` file.",
+                      metadata = Map(
+                        "class"     -> "default-and-custom-license-clash",
+                        "data-path" -> includedLicense.path.toString
+                      )
+                    )
                   )
                 }
               case None =>
@@ -178,14 +228,16 @@ object ReviewedSummary {
           val fileWillBeIncludedAsCopyrightNotices =
             filename == PackageNotices.gatheredNoticesFilename
           if (!fileIsIncluded && !fileWillBeIncludedAsCopyrightNotices) {
-            warnings.append(
-              s"License for $name is set to custom file `$filename`, but no such file is attached."
+            diagnostics.append(
+              Diagnostic.Error(
+                s"License for $name is set to custom file `$filename`, but no such file is attached."
+              )
             )
           }
       }
 
-      warnings
+      diagnostics
     }
-    WithWarnings.justWarnings(warnings)
+    WithDiagnostics.justDiagnostics(diagnostics)
   }
 }

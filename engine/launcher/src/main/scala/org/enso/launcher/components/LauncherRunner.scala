@@ -1,6 +1,6 @@
 package org.enso.launcher.components
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
 import org.enso.launcher.Constants
@@ -220,7 +220,7 @@ class LauncherRunner(
       }
 
       val version = resolveVersion(None, Some(project))
-      if (version < Constants.uploadIntroducedVersion) {
+      if (version.isLessThan(Constants.uploadIntroducedVersion)) {
         throw RunnerError(
           s"Library Upload feature is not available in Enso $version. " +
           s"Please upgrade your project to a newer version."
@@ -266,7 +266,9 @@ class LauncherRunner(
       }
 
       val version = resolveVersion(versionOverride, Some(project))
-      if (version < Constants.preinstallDependenciesIntroducedVersion) {
+      if (
+        version.isLessThan(Constants.preinstallDependenciesIntroducedVersion)
+      ) {
         throw RunnerError(
           s"Project dependency installation feature is not available in Enso " +
           s"$version. Please upgrade your project to a newer version to use it."

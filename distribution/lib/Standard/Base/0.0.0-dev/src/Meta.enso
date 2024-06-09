@@ -11,11 +11,11 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error as Base_Error
 import project.Errors.Common.Not_Found
-import project.Nothing.Nothing
 import project.Function.Function
+import project.Nothing.Nothing
 import project.Polyglot.Java
-from project.Runtime.Managed_Resource import Managed_Resource
 from project.Data.Boolean import Boolean, False, True
+from project.Runtime.Managed_Resource import Managed_Resource
 
 type Type
     ## PRIVATE
@@ -28,6 +28,7 @@ type Type
     Value value
 
     ## ADVANCED
+       ICON metadata
 
        Returns a vector of `Meta.Constructor` for this type
     constructors : Vector
@@ -36,6 +37,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns a vector of method names that can be invoked
        on instances of this type.
@@ -63,6 +65,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the fully qualified name of the type.
     qualified_name : Text
@@ -72,6 +75,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the short name of the type.
     name : Text
@@ -81,6 +85,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON find
 
        Finds type specified by fully qualified name. Searches
        all the types known to the system by transitive closure
@@ -107,12 +112,14 @@ type Atom
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns a vector of field values of the given atom.
     fields : Vector
     fields self = Vector.from_polyglot_array (get_atom_fields self.value)
 
     ## ADVANCED
+       ICON metadata
 
        Returns a constructor value of the given atom.
     constructor : Constructor
@@ -132,6 +139,7 @@ type Constructor
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns a vector of field names defined by a constructor.
     fields : Vector
@@ -141,6 +149,7 @@ type Constructor
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the name of a constructor.
     name : Text
@@ -149,6 +158,7 @@ type Constructor
         get_constructor_name c
 
     ## ADVANCED
+       ICON braces
 
        Creates a new atom of the given constructor.
 
@@ -162,6 +172,7 @@ type Constructor
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
        Returns the type that this constructor is a part of.
     declaring_type : Type
     declaring_type self =
@@ -198,10 +209,11 @@ type Unresolved_Symbol
        - new_name: The new name for the unresolved symbol.
     rename : Text -> Any
     rename self new_name =
-        create_unresolved_symbol new_name self.scope
+        create_unresolved_symbol new_name self.value
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the name of an unresolved symbol.
     name : Text
@@ -209,13 +221,7 @@ type Unresolved_Symbol
 
     ## ADVANCED
        GROUP Metadata
-
-       Returns the definition scope of an unresolved symbol.
-    scope : Any
-    scope self = get_unresolved_symbol_scope self.value
-
-    ## ADVANCED
-       GROUP Metadata
+       ICON metadata
 
        Starts building an instrumentation for a given node
     instrument : Instrumentor
@@ -243,6 +249,7 @@ type Polyglot
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Returns the language with which a polyglot value is associated.
     get_language : Language
@@ -251,6 +258,7 @@ type Polyglot
         if lang_str == "java" then Language.Java else Language.Unknown
 
 ## ADVANCED
+   ICON metadata
 
    Checks whether `self` represents the same underlying reference as `value`.
 
@@ -261,6 +269,7 @@ Any.is_same_object_as : Any -> Boolean
 Any.is_same_object_as self value = is_same_object self value
 
 ## ADVANCED
+   ICON metadata
 
    Checks if `self` is an instance of `typ`.
 
@@ -270,6 +279,7 @@ Any.is_a : Any -> Boolean
 Any.is_a self typ = is_a self typ
 
 ## ADVANCED
+   ICON metadata
 
    Checks if `self` is an instance of `typ`.
 
@@ -330,9 +340,9 @@ get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
 
    Arguments:
    - name: The name of the unresolved symbol.
-   - scope: The scope in which the symbol name is unresolved.
+   - symbol: The unresolved symbol from which to get the scope.
 create_unresolved_symbol : Text -> Any -> Unresolved_Symbol
-create_unresolved_symbol name scope = @Builtin_Method "Meta.create_unresolved_symbol"
+create_unresolved_symbol name symbol = @Builtin_Method "Meta.create_unresolved_symbol"
 
 ## PRIVATE
 
@@ -342,15 +352,6 @@ create_unresolved_symbol name scope = @Builtin_Method "Meta.create_unresolved_sy
    - symbol: The unresolved symbol from which to get the name.
 get_unresolved_symbol_name : Unresolved_Symbol -> Text
 get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
-
-## PRIVATE
-
-   Obtains the scope in which the provided unresolved symbol was created.
-
-   Arguments:
-   - symbol: The unresolved symbol from which to get the scope.
-get_unresolved_symbol_scope : Unresolved_Symbol -> Any
-get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
 
 ## PRIVATE
 
@@ -386,8 +387,19 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
    `fill` properties. Value contains the created atom and `fill` holds a
    function to "fill the hole" later.
 
+   There can be only one hole in the atom, i.e., only one field of the atom
+   returned by the `value` method should be a hole. If this condition is
+   violated, a Panic error with `Uninitialized_State` payload is thrown.
+
    Arguments:
    - factory: a function that takes the "hole" element and returns newly created atom
+
+   > Example
+     Create a Pair that has a hole in its first element.
+         atom_with_hole = Meta.atom_with_hole (e-> Pair.Value e 2)
+         atom_with_hole.value.first.to_text == "Meta.atom_with_hole"
+         atom_with_hole.fill 1
+         atom_with_hole.value.first.to_text == "1"
 atom_with_hole : (Any -> Atom) -> Any
 atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
 
@@ -588,6 +600,7 @@ get_short_type_name typ = @Builtin_Method "Meta.get_short_type_name"
 get_constructor_declaring_type : Any -> Any
 get_constructor_declaring_type constructor = @Builtin_Method "Meta.get_constructor_declaring_type"
 
+## PRIVATE
 instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"
 
 ## PRIVATE
@@ -597,6 +610,9 @@ instrumentor_builtin op args = @Builtin_Method "Meta.instrumentor_builtin"
 type Instrumentor
     ## PRIVATE
     Value impl
+
+    ## PRIVATE
+    uuid id:Text -> Any = instrumentor_builtin "uuid" id
 
     ## PRIVATE
        ADVANCED
@@ -616,14 +632,25 @@ type Instrumentor
        ADVANCED
 
        Registers callback to be executed when a node/expression evaluation
-       is over. The callback `fn` gets UUID and the computed value. Usually
+       is over. The callback `fn` gets UUID and the computed value (or value
+       of `expression` if specified). Usually
        the value is _cached_ and returned from `on_enter` callback next time
        the same expression is evaluated.
 
+       > Example
+         Specify `expression` to _"inline evaluate"_ it.
+            see_a_b uuid:Text ~result =
+              if uuid == "expected-uuid" then
+                IO.println "evalutated to "+result.to_text
+
+            Meta.meta .fn . instrument . on_return fn=see_a_b expression="a+b" . activate
+
        Arguments:
        - fn: The callback function accepting UUID and computed value
-    on_return self (fn : Text -> Any -> Nothing) =
-        new = instrumentor_builtin "onReturn" [ self.impl, fn ]
+       - expression: Expression to evaluate on_return - by default Nothing -
+         e.g. to provide the return value of the function
+    on_return self (fn : Text -> Any -> Nothing) expression:(Text | Nothing)=Nothing =
+        new = instrumentor_builtin "onReturn" [ self.impl, fn, expression ]
         Instrumentor.Value new
 
     ## PRIVATE

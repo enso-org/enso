@@ -4,10 +4,8 @@ import java.time.Duration;
 import java.time.LocalTime;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
-import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.datetime.DatePartExtractors;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -27,12 +25,6 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalTime.class));
-    t.add(DatePartExtractors.hour());
-    t.add(DatePartExtractors.minute());
-    t.add(DatePartExtractors.second());
-    t.add(DatePartExtractors.millisecond());
-    t.add(DatePartExtractors.microsecond());
-    t.add(DatePartExtractors.nanosecond());
     t.add(
         new GenericBinaryObjectMapOperation<LocalTime, SpecializedStorage<LocalTime>, Duration>(
             Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
@@ -62,10 +54,5 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   @Override
   public StorageType getType() {
     return TimeOfDayType.INSTANCE;
-  }
-
-  @Override
-  public Builder createDefaultBuilderOfSameType(int capacity) {
-    return new TimeOfDayBuilder(capacity);
   }
 }

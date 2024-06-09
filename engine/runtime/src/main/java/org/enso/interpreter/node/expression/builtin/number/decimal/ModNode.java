@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Float", name = "%", description = "Modulo division of numbers.")
 public abstract class ModNode extends FloatNode {
-  abstract double execute(double self, Object that);
+  abstract double execute(double own, Object that);
 
   static ModNode build() {
     return ModNodeGen.create();

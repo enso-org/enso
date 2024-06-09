@@ -1,5 +1,9 @@
 import project.Data.Text.Text
+import project.Error.Error
 import project.Nothing.Nothing
+import project.Panic.Panic
+
+polyglot java import java.lang.IllegalStateException
 
 type Illegal_State
     ## PRIVATE
@@ -19,3 +23,8 @@ type Illegal_State
        Provides a human-readable representation of the encoding error.
     to_display_text : Text
     to_display_text self = "Illegal State: " + self.message
+
+    ## PRIVATE
+       Capture a Java `IllegalStateException` and convert it to an Enso dataflow error - `Illegal_State.Error`.
+    handle_java_exception =
+        Panic.catch IllegalStateException handler=(cause-> Error.throw (Illegal_State.Error cause.payload.getMessage cause.payload))

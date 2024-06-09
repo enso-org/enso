@@ -2,17 +2,18 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
-import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.TruffleStackTraceElement;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Objects;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /**
@@ -27,7 +28,16 @@ public final class DataflowError extends AbstractTruffleException {
   /** Signals (local) values that haven't yet been initialized */
   public static final DataflowError UNINITIALIZED = new DataflowError(null, (Node) null);
 
+  private static final boolean assertsOn;
+
+  static {
+    var b = false;
+    assert b = true;
+    assertsOn = b;
+  }
+
   private final Object payload;
+  private final boolean ownTrace;
 
   /**
    * Construct a new dataflow error with the default stack trace.
@@ -40,9 +50,14 @@ public final class DataflowError extends AbstractTruffleException {
    */
   public static DataflowError withoutTrace(Object payload, Node location) {
     assert payload != null;
-    DataflowError result = new DataflowError(payload, location);
-    TruffleStackTrace.fillIn(result);
-    return result;
+    if (assertsOn) {
+      var result = new DataflowError(payload, UNLIMITED_STACK_TRACE, location);
+      TruffleStackTrace.fillIn(result);
+      return result;
+    } else {
+      var result = new DataflowError(payload, location);
+      return result;
+    }
   }
 
   /**
@@ -57,16 +72,26 @@ public final class DataflowError extends AbstractTruffleException {
    */
   public static DataflowError withTrace(Object payload, AbstractTruffleException prototype) {
     assert payload != null;
-    return new DataflowError(payload, prototype);
+    var result = new DataflowError(payload, prototype);
+    TruffleStackTrace.fillIn(result);
+    return result;
   }
 
-  DataflowError(Object payload, Node location) {
-    super(location);
+  private DataflowError(Object payload, Node location) {
+    super(null, null, 1, location);
     this.payload = payload;
+    this.ownTrace = location != null && location.getRootNode() != null;
   }
 
-  DataflowError(Object payload, AbstractTruffleException prototype) {
+  private DataflowError(Object payload, AbstractTruffleException prototype) {
     super(prototype);
+    this.payload = payload;
+    this.ownTrace = false;
+  }
+
+  private DataflowError(Object payload, int stackTraceElementLimit, Node location) {
+    super(null, null, stackTraceElementLimit, location);
+    this.ownTrace = false;
     this.payload = payload;
   }
 
@@ -102,8 +127,8 @@ public final class DataflowError extends AbstractTruffleException {
   }
 
   @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().dataflowError();
+  Type getMetaObject(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().dataflowError();
   }
 
   @ExportMessage
@@ -114,6 +139,21 @@ public final class DataflowError extends AbstractTruffleException {
   @ExportMessage
   boolean isException() {
     return true;
+  }
+
+  @ExportMessage
+  boolean hasExceptionStackTrace() {
+    return ownTrace;
+  }
+
+  @ExportMessage
+  Object getExceptionStackTrace() throws UnsupportedMessageException {
+    if (!ownTrace) {
+      throw UnsupportedMessageException.create();
+    }
+    var node = this.getLocation();
+    var frame = TruffleStackTraceElement.create(node, node.getRootNode().getCallTarget(), null);
+    return ArrayLikeHelpers.asVectorWithCheckAt(frame.getGuestObject());
   }
 
   @ExportMessage
@@ -137,7 +177,7 @@ public final class DataflowError extends AbstractTruffleException {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().dataflowError();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().dataflowError();
   }
 }

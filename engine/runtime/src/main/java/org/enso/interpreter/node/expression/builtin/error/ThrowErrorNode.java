@@ -8,7 +8,8 @@ import org.enso.interpreter.runtime.error.DataflowError;
 @BuiltinMethod(
     type = "Error",
     name = "throw",
-    description = "Returns a new value error with given payload.")
+    description = "Returns a new value error with given payload.",
+    inlineable = true)
 public class ThrowErrorNode extends Node {
   public Object execute(VirtualFrame giveMeAStackFrame, Object payload) {
     return DataflowError.withoutTrace(payload, this);

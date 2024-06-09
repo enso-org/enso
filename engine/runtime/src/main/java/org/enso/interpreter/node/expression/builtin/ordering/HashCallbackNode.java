@@ -14,8 +14,8 @@ import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMo
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -58,8 +58,7 @@ public abstract class HashCallbackNode extends Node {
     try {
       return interop.asLong(res);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(
-          "Return type from Comparable.hash_callback should be Long", e);
+      throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
   }
 

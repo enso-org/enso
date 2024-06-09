@@ -12,7 +12,7 @@ use ide_ci::programs::git::Ref;
 
 /// Describes what kind of version should be generated.
 #[derive(
-    clap::ArgEnum,
+    clap::ValueEnum,
     Clone,
     Copy,
     Debug,

@@ -9,6 +9,8 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing a percentile value in a group. */
@@ -23,7 +25,9 @@ public class Percentile extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     int count = 0;
     SortedMap<Double, Integer> currentMap = new TreeMap<>();
@@ -33,7 +37,7 @@ public class Percentile extends Aggregator {
         Double dValue = NumericConverter.tryConvertingToDouble(value);
 
         if (dValue == null) {
-          this.addProblem(
+          innerAggregator.reportColumnAggregatedProblem(
               new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
           return null;
         } else if (dValue.isNaN()) {
@@ -80,7 +84,7 @@ public class Percentile extends Aggregator {
       context.safepoint();
     }
 
-    this.addProblem(
+    innerAggregator.reportColumnAggregatedProblem(
         new InvalidAggregation(this.getName(), -1, "Failed calculating the percentile."));
     return null;
   }

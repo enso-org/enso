@@ -9,7 +9,7 @@ additional `--inspect` option and debug your Enso programs in _Chrome Developer
 Tools_.
 
 ```bash
-enso$ ./built-distribution/enso-engine-*/enso-*/bin/enso --inspect --run ./test/Tests/src/Data/Numbers_Spec.enso
+enso$ ./built-distribution/enso-engine-*/enso-*/bin/enso --inspect --run ./test/Base_Tests/src/Data/Numbers_Spec.enso
 Debugger listening on ws://127.0.0.1:9229/Wugyrg9
 For help, see: https://www.graalvm.org/tools/chrome-debugger
 E.g. in Chrome open: devtools://devtools/bundled/js_app.html?ws=127.0.0.1:9229/Wugyrg9

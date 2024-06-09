@@ -1,0 +1,9 @@
+{
+  "type": "S3",
+  "libraryName": "Standard.AWS",
+  "uri": "s3://enso-data-samples/examples/folder 2/hello.txt",
+  "auth": {
+    "type": "aws_auth",
+    "subType": "default"
+  }
+}

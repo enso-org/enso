@@ -1,10 +1,15 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
@@ -12,22 +17,25 @@ import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -215,8 +223,10 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
-        thatArgument = thatExecutor.executeThunk(callerFrame, thatArgument, state, TailStatus.NOT_TAIL);
+        selfArgument =
+            thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
+        thatArgument =
+            thatExecutor.executeThunk(callerFrame, thatArgument, state, TailStatus.NOT_TAIL);
 
         arguments[thisArgumentPosition] = selfArgument;
         arguments[thatArgumentPosition] = thatArgument;
@@ -226,8 +236,18 @@ public abstract class InvokeCallableNode extends BaseNode {
     } else {
       CompilerDirectives.transferToInterpreter();
       var ctx = EnsoContext.get(this);
-      throw new PanicException(ctx.getBuiltins().error().makeNoConversionCurrying(canApplyThis, canApplyThat, conversion), this);
+      throw new PanicException(
+          ctx.getBuiltins()
+              .error()
+              .makeNoConversionCurrying(canApplyThis, canApplyThat, conversion),
+          this);
     }
+  }
+
+  @Specialization
+  public Object invokeDynamicConstructor(
+      UnresolvedConstructor symbol, VirtualFrame callerFrame, State state, Object[] arguments) {
+    return symbol.withArguments(this, invokeFunctionNode.getSchema(), arguments);
   }
 
   @Specialization
@@ -248,7 +268,8 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
+        selfArgument =
+            thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = selfArgument;
       }
       return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
@@ -264,15 +285,16 @@ public abstract class InvokeCallableNode extends BaseNode {
       VirtualFrame callerFrame,
       State state,
       Object[] arguments,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
 
     Warning[] extracted;
     Object callable;
     try {
-      extracted = warnings.getWarnings(warning, null);
+      extracted = warnings.getWarnings(warning, null, false);
       callable = warnings.removeWarnings(warning);
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
     }
     try {
       if (childDispatch == null) {
@@ -282,11 +304,11 @@ public abstract class InvokeCallableNode extends BaseNode {
         try {
           if (childDispatch == null) {
             childDispatch =
-                    insert(
-                            build(
-                                    invokeFunctionNode.getSchema(),
-                                    invokeFunctionNode.getDefaultsExecutionMode(),
-                                    invokeFunctionNode.getArgumentsExecutionMode()));
+                insert(
+                    build(
+                        invokeFunctionNode.getSchema(),
+                        invokeFunctionNode.getDefaultsExecutionMode(),
+                        invokeFunctionNode.getArgumentsExecutionMode()));
             childDispatch.setTailStatus(getTailStatus());
             childDispatch.setId(invokeFunctionNode.getId());
             notifyInserted(childDispatch);
@@ -296,22 +318,51 @@ public abstract class InvokeCallableNode extends BaseNode {
         }
       }
 
-      var result = childDispatch.execute(
-                  callable,
-                  callerFrame,
-                  state,
-                  arguments);
-
+      var result = childDispatch.execute(callable, callerFrame, state, arguments);
 
       if (result instanceof DataflowError) {
         return result;
-      } else if (result instanceof WithWarnings withWarnings) {
-        return withWarnings.append(EnsoContext.get(this), extracted);
       } else {
         return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
       }
     } catch (TailCallException e) {
       throw new TailCallException(e, extracted);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "iop.isExecutable(self)",
+      })
+  Object doPolyglot(
+      Object self,
+      VirtualFrame frame,
+      State state,
+      Object[] arguments,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Cached ThunkExecutorNode thunkNode) {
+    var errors = EnsoContext.get(this).getBuiltins().error();
+    try {
+      for (int i = 0; i < arguments.length; i++) {
+        arguments[i] = thunkNode.executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
+      }
+      return iop.execute(self, arguments);
+    } catch (UnsupportedTypeException ex) {
+      var err = errors.makeUnsupportedArgumentsError(ex.getSuppliedValues(), ex.getMessage());
+      throw new PanicException(err, this);
+    } catch (ArityException ex) {
+      var err =
+          errors.makeArityError(
+              ex.getExpectedMinArity(), ex.getExpectedMaxArity(), arguments.length);
+      throw new PanicException(err, this);
+    } catch (UnsupportedMessageException ex) {
+      var err = errors.makeNotInvokable(self);
+      throw new PanicException(err, this);
     }
   }
 
@@ -350,7 +401,9 @@ public abstract class InvokeCallableNode extends BaseNode {
     }
   }
 
-  /** @return the source section for this node. */
+  /**
+   * @return the source section for this node.
+   */
   @Override
   public SourceSection getSourceSection() {
     Node parent = getParent();

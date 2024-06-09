@@ -1,9 +1,0 @@
-from Standard.Base import all
-
-## Reference to a column in a table.
-type Column_Ref
-    ## Reference to a column by name in a table.
-    Name name:Text
-
-    ## Reference to a column by index in a table.
-    Index index:Integer

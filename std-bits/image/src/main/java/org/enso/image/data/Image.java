@@ -36,6 +36,7 @@ public class Image {
     }
     return new MatOfByte(bytes).reshape(channels, rows);
   }
+
   /**
    * Get the pixels of an image as a byte array.
    *

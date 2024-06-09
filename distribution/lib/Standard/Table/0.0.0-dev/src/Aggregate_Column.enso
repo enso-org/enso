@@ -1,0 +1,199 @@
+from Standard.Base import all
+
+import project.Sort_Column.Sort_Column
+
+## Defines an Aggregate Column
+type Aggregate_Column
+    ## PRIVATE
+       Specifies a column to group the rows by. Deprecated but used internally.
+
+       Arguments:
+       - column: the column (either name, expression or index) to group by.
+       - as: name of new column.
+    Group_By (column:Text|Integer|Any) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the row count of each group. If no rows,
+       evaluates to 0.
+
+       Arguments:
+       - as: name of new column.
+    Count (as:Text="")
+
+    ## Creates a new column with the count of unique items in the selected
+       column(s) within each group. If no rows, evaluates to 0.
+
+       Arguments:
+       - columns: either a single or set of columns (specified by name or
+         index) to count across. The aggregation may also be computed over
+         an expression evaluated on the Table, if provided instead of a
+         single column name. Currently expressions are not supported with
+         multiple selection.
+       - as: name of new column.
+       - ignore_nothing: if all values are Nothing won't be included.
+    Count_Distinct (columns:(Text | Integer | Regex | Vector (Integer | Text | Regex | Any))=0) (as:Text="") (ignore_nothing:Boolean=False) # Any needed because of 6866
+
+    ## ALIAS Count_Not_Null
+
+       Creates a new column with the count of not `Nothing` (null) values of the
+       specified column within each group. If no rows, evaluates to 0.
+
+       Arguments:
+       - column: the column (specified by name, expression or index) to count.
+       - as: name of new column.
+    Count_Not_Nothing (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## ALIAS Count_Null, Count_Missing
+
+       Creates a new column with the count of `Nothing` (null) values of the
+       specified column within each group. If no rows, evaluates to 0.
+
+       Arguments:
+       - column: the column (specified by name, expression or index) to count.
+       - as: name of new column.
+    Count_Nothing (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the count of not `Nothing` (null) and non-empty
+       ("") values of the column within each group. If no rows, evaluates to 0.
+
+       Arguments:
+       - column: the column (specified by name, expression or index) to count.
+       - as: name of new column.
+    Count_Not_Empty (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the count of `Nothing` (null) or empty ("")
+       text values of the column within each group. If no rows, evaluates to 0.
+
+       Arguments:
+       - column: the column (specified by name, expression or index) to count.
+       - as: name of new column.
+    Count_Empty (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the sum of values (ignoring missing values) of
+       the column within each group. If no rows, evaluates to `Nothing`.
+
+       Arguments:
+       - column: the column (specified by name, expression or index) to total.
+       - as: name of new column.
+    Sum (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the mean of values (ignoring missing values) of
+       the column within each group. If no rows, evaluates to `Nothing`.
+
+       Arguments:
+       - column: the column (specified by name, expression or index) to average.
+       - as: name of new column.
+    Average (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the median of values (ignoring missing values)
+       of the column within each group. If no rows, evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to calculate
+         median on.
+       - as: name of new column.
+    Median (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the percentile of values (ignoring missing values)
+       of the column within each group. If no rows, evaluates to `Nothing`.
+
+       Arguments:
+       - percentile: Percentage to compute from 0-1 inclusive.
+       - column: column (specified by name, expression or index) to compute
+         percentile.
+       - as: name of new column.
+    Percentile (percentile:Number=0.5) (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the mode of values (ignoring missing values)
+       of the column within each group. If no rows, evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to find the
+         most common value.
+       - as: name of new column.
+    Mode (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the standard deviation of values (ignoring
+       missing values) of the column within each group. If no rows, evaluates to
+       `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to compute
+         standard deviation.
+       - as: name of new column.
+       - population: specifies if group is a sample or the population
+    Standard_Deviation (column:Text|Integer|Any=0) (as:Text="") (population:Boolean=False) # Any needed because of 6866
+
+    ## Creates a new column with the values concatenated together. `Nothing`
+       values will become an empty string. If no rows, evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to concatenate.
+       - as: name of new column.
+       - separator: added between each value.
+       - prefix: added at the start of the result.
+       - suffix: added at the end of the result.
+       - quote_char: character used to quote the values if the value is `Empty`
+         or contains the separator.
+    Concatenate (column:Text|Integer|Any=0) (as:Text="") (separator:Text="") (prefix:Text="") (suffix:Text="") (quote_char:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the first value in each group. If no rows,
+       evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to find first
+         group entry.
+       - as: name of new column.
+       - ignore_nothing: if `True`, then missing values are ignored and first
+         not missing value returned.
+       - order_by: required for database tables. Specifies how to order the
+         results within the group.
+    First (column:Text|Integer|Any=0) (as:Text="") (ignore_nothing:Boolean=True) (order_by:(Sort_Column | Text | Nothing | Vector (Text | Sort_Column))=[]) # Any needed because of 6866
+
+    ## Creates a new column with the last value in each group. If no rows,
+       evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to find last
+         group entry.
+       - as: name of new column.
+       - ignore_nothing: if `True`, then missing values are ignored and last
+         not missing value returned.
+       - order_by: required for database tables. Specifies how to order the
+         results within the group.
+    Last (column:Text|Integer|Any=0) (as:Text="") (ignore_nothing:Boolean=True) (order_by:(Sort_Column | Text | Nothing | Vector (Text | Sort_Column))=[]) # Any needed because of 6866
+
+    ## Creates a new column with the maximum value in each group. If no rows,
+       evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to find the
+         group maximum.
+       - as: name of new column.
+    Maximum (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the maximum value in each group. If no rows,
+       evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to find the
+         group minimum.
+       - as: name of new column.
+    Minimum (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the shortest text in each group. If no rows,
+       evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to find the
+         group shortest value.
+       - as: name of new column.
+    Shortest (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866
+
+    ## Creates a new column with the longest text in each group. If no rows,
+       evaluates to `Nothing`.
+
+       Arguments:
+       - column: column (specified by name, expression or index) to find the
+         group longest value.
+       - as: name of new column.
+    Longest (column:Text|Integer|Any=0) (as:Text="") # Any needed because of 6866

@@ -1,6 +1,6 @@
 package org.enso.projectmanager.infrastructure.file
 
-import java.io.File
+import java.io.{File, InputStream}
 
 /** Represents abstraction for filesystem operations.
   *
@@ -15,6 +15,14 @@ trait FileSystem[F[+_, +_]] {
     */
   def readFile(file: File): F[FileSystemFailure, String]
 
+  /** Writes binary content to a file.
+    *
+    * @param file path to the file
+    * @param contents a contents of the file
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def writeFile(file: File, contents: InputStream): F[FileSystemFailure, Unit]
+
   /** Writes textual content to a file.
     *
     * @param file path to the file
@@ -26,12 +34,19 @@ trait FileSystem[F[+_, +_]] {
     contents: String
   ): F[FileSystemFailure, Unit]
 
-  /** Deletes the specified directory recursively.
+  /** Creates the specified directory with all required parent directories.
     *
     * @param path a path to the directory
     * @return either [[FileSystemFailure]] or Unit
     */
-  def removeDir(path: File): F[FileSystemFailure, Unit]
+  def createDir(path: File): F[FileSystemFailure, Unit]
+
+  /** Deletes the specified file or directory recursively.
+    *
+    * @param path a path to the file or directory
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def remove(path: File): F[FileSystemFailure, Unit]
 
   /** Move a file or directory recursively
     *

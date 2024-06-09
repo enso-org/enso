@@ -29,7 +29,7 @@ fn normalize_variable_name(ident: impl AsRef<str>) -> Ident {
 }
 
 fn to_ident(name: impl AsRef<str>) -> Ident {
-    syn::Ident::new(name.as_ref(), Span::call_site())
+    Ident::new(name.as_ref(), Span::call_site())
 }
 
 lazy_static::lazy_static! {
@@ -42,7 +42,7 @@ pub struct ParameterRegex(Regex);
 
 impl ParameterRegex {
     pub fn new() -> Self {
-        Self(regex::Regex::new(r"<([^>]+)>").unwrap())
+        Self(Regex::new(r"<([^>]+)>").unwrap())
     }
 
     pub fn find_all<'a>(&'a self, text: &'a str) -> impl IntoIterator<Item = &str> {

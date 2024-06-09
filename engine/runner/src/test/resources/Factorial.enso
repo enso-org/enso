@@ -1,9 +1,12 @@
+import Standard.Base.Data.Numbers
+import Standard.Base.IO
+
 fac n =
     facacc n v = if n <= 1 then v else @Tail_Call facacc n-1 n*v
-    
+
     res = facacc n 1
     res
-    
-main number =
-    ## Note: This assumes that number is of type Integer already
-    fac number
+
+main number=5 =
+    v = fac number
+    IO.println v

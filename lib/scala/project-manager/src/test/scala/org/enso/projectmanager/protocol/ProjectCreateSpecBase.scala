@@ -2,11 +2,11 @@ package org.enso.projectmanager.protocol
 
 import io.circe.Json
 import io.circe.literal.JsonStringContext
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 
 abstract class ProjectCreateSpecBase
     extends BaseServerSpec

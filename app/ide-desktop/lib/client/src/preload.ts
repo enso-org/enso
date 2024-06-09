@@ -5,18 +5,28 @@
 
 import * as electron from 'electron'
 
+import * as debug from 'debug'
 import * as ipc from 'ipc'
 
 // =================
 // === Constants ===
 // =================
 
-/** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
+/** Name given to the {@link BACKEND_API} object, when it is exposed on the Electron main
  * window. */
 const BACKEND_API_KEY = 'backendApi'
 /** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
  * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
+/** Name given to the {@link FILE_BROWSER_API} object, when it is exposed on the Electron main
+ * window. */
+const FILE_BROWSER_API_KEY = 'fileBrowserApi'
+
+const NAVIGATION_API_KEY = 'navigationApi'
+
+const MENU_API_KEY = 'menuApi'
+
+const VERSION_INFO_KEY = 'versionInfo'
 
 // =============================
 // === importProjectFromPath ===
@@ -24,12 +34,22 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
 
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
 
-electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, {
-    importProjectFromPath: (projectPath: string) => {
-        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
+const BACKEND_API = {
+    importProjectFromPath: (projectPath: string, directory: string | null = null) => {
+        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory)
         return new Promise<string>(resolve => {
             IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
         })
+    },
+}
+electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, BACKEND_API)
+
+electron.contextBridge.exposeInMainWorld(NAVIGATION_API_KEY, {
+    goBack: () => {
+        electron.ipcRenderer.send(ipc.Channel.goBack)
+    },
+    goForward: () => {
+        electron.ipcRenderer.send(ipc.Channel.goForward)
     },
 })
 
@@ -146,8 +166,38 @@ const AUTHENTICATION_API = {
      *
      * The backend doesn't have access to Electron's `localStorage` so we need to save access token
      * to a file. Then the token will be used to sign cloud API requests. */
-    saveAccessToken: (accessToken: string) => {
-        electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessToken)
+    saveAccessToken: (accessTokenPayload: SaveAccessTokenPayload | null) => {
+        electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessTokenPayload)
     },
 }
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
+
+const FILE_BROWSER_API = {
+    openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
+        electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
+}
+electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
+
+// ====================
+// === Version info ===
+// ====================
+
+electron.contextBridge.exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
+
+// ================
+// === Menu API ===
+// ================
+
+let showAboutModalHandler: (() => void) | null = null
+
+electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
+    showAboutModalHandler?.()
+})
+
+const MENU_API = {
+    setShowAboutModalHandler: (callback: () => void) => {
+        showAboutModalHandler = callback
+    },
+}
+
+electron.contextBridge.exposeInMainWorld(MENU_API_KEY, MENU_API)

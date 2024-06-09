@@ -1,4 +1,4 @@
-import { parse_doc_to_json } from './ffi'
+import { parse_doc_to_json } from 'shared/ast/ffi'
 
 export function parseDocs(docs: string): Doc.Section[] {
   const json = parse_doc_to_json(docs)
@@ -17,7 +17,6 @@ export namespace Doc {
     | 'Modified'
     | 'Private'
     | 'Removed'
-    | 'TextOnly'
     | 'Unstable'
     | 'Upcoming'
   export type Mark = 'Important' | 'Info' | 'Example'

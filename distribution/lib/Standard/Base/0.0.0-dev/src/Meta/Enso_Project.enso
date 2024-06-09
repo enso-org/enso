@@ -48,6 +48,7 @@ type Project_Description
     Value prim_root_file prim_config
 
     ## GROUP Metadata
+       ICON folder
        Returns the root directory of the project.
 
        > Example
@@ -58,6 +59,7 @@ type Project_Description
     root self = File.new self.prim_root_file
 
     ## GROUP Input
+       ICON folder
        Returns the root data directory of the project.
 
        > Example
@@ -68,6 +70,7 @@ type Project_Description
     data self = self.root / "data"
 
     ## GROUP Metadata
+       ICON metadata
        Returns the name of the project.
 
        > Example
@@ -78,6 +81,7 @@ type Project_Description
     name self = self.prim_config.name
 
     ## GROUP Metadata
+       ICON metadata
        Returns the namespace of the project.
 
        > Example
@@ -87,7 +91,8 @@ type Project_Description
     namespace : Text
     namespace self = self.prim_config.namespace
 
-## Returns the Enso project description for the project that the engine was
+## ICON enso_icon
+   Returns the Enso project description for the project that the engine was
    executed with, i.e., the project that contains the `main` method, or
    throws `Module_Not_In_Package_Error` if executing a single file.
 

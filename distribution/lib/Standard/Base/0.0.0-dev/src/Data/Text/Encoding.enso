@@ -6,7 +6,9 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
+import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Warning.Warning
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
@@ -39,7 +41,8 @@ type Encoding
     all_encodings =
         Encoding.all_character_sets.map Encoding.Value
 
-    ## Create an Encoding from a Text.
+    ## ICON convert
+       Create an Encoding from a Text.
     from_name : Text -> Encoding ! Illegal_Argument
     from_name name =
         handler = _-> Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + name))
@@ -48,82 +51,142 @@ type Encoding
             Encoding.Value charset.name
 
     ## PRIVATE
-       Create a new Encoding object.
+    from_java_charset (charset : Charset) -> Encoding =
+        Encoding.Value charset.name
+
+    ## ICON convert
+       A default encoding that will try to guess the encoding based on some
+       heuristics.
+
+       If a BOM is present, it will be used to determine UTF-8 or UTF-16
+       encoding. Otherwise, the input is decoded using UTF-8 unless it contains
+       invalid UTF-8 sequences, in which case Windows-1252 is used as a fallback.
+
+       When used for encoding, it will always encode using UTF-8.
+       This encoding cannot be passed to some functions that require a Java
+       Charset.
+    default -> Encoding =
+        # This factory method is used to publicly expose the `Default` constructor.
+        # The constructor itself has to be private, because we want to make `Value` constructor private, but all constructors must have the same privacy.
+        Encoding.Default
+
+    ## PRIVATE
+       A default encoding that will try to guess the encoding based on some heuristics.
+       See `Encoding.default`.
+    private Default
+
+    ## PRIVATE
+       An encoding identified by its Java name.
 
        Arguments:
        - character_set: java.nio.charset name.
-    Value (character_set:Text)
+    private Value (internal_character_set:Text)
 
     ## PRIVATE
-       Convert an Encoding to it's corresponding Java Charset
-    to_java_charset : Charset
-    to_java_charset self =
-        Panic.catch UnsupportedCharsetException (Charset.forName self.character_set) _->
-            Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + self.character_set))
+       Convert an Encoding to it's corresponding Java Charset, if applicable.
+       This method should be used in places not aware of special logic for the
+       Default encoding. In such places, usage of Default encoding will be forbidden.
+    to_java_charset self -> Charset ! Illegal_Argument =
+        self.to_java_charset_or_null.if_nothing <|
+            warning = Illegal_Argument.Error "The Default encoding has been used in an unexpected place (e.g. Write operation). It will be replaced with UTF-8. Please specify the desired encoding explicitly)"
+            Warning.attach warning (Encoding.utf_8.to_java_charset)
 
-    ## Encoding for ASCII.
+    ## PRIVATE
+       Convert an Encoding to it's corresponding Java Charset or null if it is the Default encoding.
+       This method should only be used in places where a null Charset is expected - i.e. places aware of the Default encoding.
+    to_java_charset_or_null self -> Charset ! Illegal_Argument = case self of
+        Encoding.Value charset_name ->
+            Panic.catch UnsupportedCharsetException (Charset.forName charset_name) _->
+                Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + charset_name))
+        Encoding.Default -> Nothing
+
+    ## ICON metadata
+       Get the name of the character set.
+    character_set_name self -> Text ! Illegal_Argument = case self of
+        Encoding.Value charset_name -> charset_name
+        Encoding.Default ->
+            Error.throw (Illegal_Argument.Error "The Default encoding does not have a character set name. Please select a specific encoding.")
+
+    ## ICON convert
+       Encoding for ASCII.
     ascii : Encoding
     ascii = Encoding.Value "US-ASCII"
 
-    ## Encoding for Unicode UTF-8.
+    ## ICON convert
+       Encoding for Unicode UTF-8.
     utf_8 : Encoding
     utf_8 = Encoding.Value "UTF-8"
 
-    ## Encoding for Unicode UTF-16 Little Endian.
+    ## ICON convert
+       Encoding for Unicode UTF-16 Little Endian.
     utf_16_le : Encoding
     utf_16_le = Encoding.Value "UTF-16LE"
 
-    ## Encoding for Unicode UTF-16 Big Endian.
+    ## ICON convert
+       Encoding for Unicode UTF-16 Big Endian.
     utf_16_be : Encoding
     utf_16_be = Encoding.Value "UTF-16BE"
 
-    ## Encoding for Unicode UTF-32 Little Endian.
+    ## ICON convert
+       Encoding for Unicode UTF-32 Little Endian.
     utf_32_le : Encoding
     utf_32_le = Encoding.Value "UTF-32LE"
 
-    ## Encoding for Unicode UTF-32 Big Endian.
+    ## ICON convert
+       Encoding for Unicode UTF-32 Big Endian.
     utf_32_be : Encoding
     utf_32_be = Encoding.Value "UTF-32BE"
 
-    ## Encoding for Central European (Windows).
+    ## ICON convert
+       Encoding for Central European (Windows).
     windows_1250 : Encoding
     windows_1250 = Encoding.Value "windows-1250"
 
-    ## Encoding for Cyrillic (Windows).
+    ## ICON convert
+       Encoding for Cyrillic (Windows).
     windows_1251 : Encoding
     windows_1251 = Encoding.Value "windows-1251"
 
     ## ALIAS iso-8859-1
+       ICON convert
        Encoding for Western European (Windows).
     windows_1252 : Encoding
     windows_1252 = Encoding.Value "windows-1252"
 
-    ## Encoding for Greek (Windows).
+    ## ICON convert
+       Encoding for Greek (Windows).
     windows_1253 : Encoding
     windows_1253 = Encoding.Value "windows-1253"
 
     ## ALIAS iso-8859-9
+       ICON convert
        Encoding for Turkish (Windows).
     windows_1254 : Encoding
     windows_1254 = Encoding.Value "windows-1254"
 
-    ## Encoding for Hebrew (Windows).
+    ## ICON convert
+       Encoding for Hebrew (Windows).
     windows_1255 : Encoding
     windows_1255 = Encoding.Value "windows-1255"
 
-    ## Encoding for Arabic (Windows).
+    ## ICON convert
+       Encoding for Arabic (Windows).
     windows_1256 : Encoding
     windows_1256 = Encoding.Value "windows-1256"
 
-    ## Encoding for Baltic (Windows).
+    ## ICON convert
+       Encoding for Baltic (Windows).
     windows_1257 : Encoding
     windows_1257 = Encoding.Value "windows-1257"
 
-    ## Encoding for Vietnamese (Windows).
+    ## ICON convert
+       Encoding for Vietnamese (Windows).
     windows_1258 : Encoding
     windows_1258 = Encoding.Value "windows-1258"
 
     ## PRIVATE
        Convert Encoding to a friendly string.
     to_display_text : Text
-    to_display_text self = self.character_set
+    to_display_text self = case self of
+        Encoding.Value charset_name -> charset_name
+        Encoding.Default -> "Default Encoding"

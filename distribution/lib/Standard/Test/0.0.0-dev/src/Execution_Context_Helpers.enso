@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Context
 
-from Standard.Test import Test
+import project.Test.Test
 
 ## PRIVATE
    Runs the action twice, once with the Output context enabled and once with it

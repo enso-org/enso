@@ -1,13 +1,17 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.core.IR.{randomId, Identifier, ToStringHelper}
+import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
+import org.enso.compiler.core.{CompilerError, IR, Identifier}
+
+import java.util.UUID
 
 /** Enso literals. */
 sealed trait Literal extends Expression with IRKind.Primitive {
 
   /** @inheritdoc */
-  override def mapExpressions(fn: Expression => Expression): Literal
+  override def mapExpressions(
+    fn: java.util.function.Function[Expression, Expression]
+  ): Literal
 
   /** @inheritdoc */
   override def setLocation(location: Option[IdentifiedLocation]): Literal
@@ -34,11 +38,11 @@ object Literal {
   sealed case class Number(
     base: Option[String],
     value: String,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Literal {
-    override protected var id: Identifier = randomId
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Literal
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -56,7 +60,7 @@ object Literal {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Number = {
       val res = Number(base, value, location, passData, diagnostics)
       res.id = id
@@ -72,10 +76,11 @@ object Literal {
     ): Number =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -83,7 +88,9 @@ object Literal {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Number = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Number = this
 
     /** @inheritdoc */
     override def toString: String =
@@ -158,11 +165,11 @@ object Literal {
     */
   sealed case class Text(
     text: String,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-  ) extends Literal {
-    override protected var id: Identifier = randomId
+    location: Option[IdentifiedLocation],
+    passData: MetadataStorage      = new MetadataStorage(),
+    diagnostics: DiagnosticStorage = DiagnosticStorage()
+  ) extends Literal
+      with LazyId {
 
     /** Creates a copy of `this`.
       *
@@ -178,7 +185,7 @@ object Literal {
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
-      id: Identifier                       = id
+      id: UUID @Identifier                 = id
     ): Text = {
       val res = Text(text, location, passData, diagnostics)
       res.id = id
@@ -194,10 +201,11 @@ object Literal {
     ): Text =
       copy(
         location = if (keepLocations) location else None,
-        passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
         diagnostics =
           if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else randomId
+        id = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -205,12 +213,14 @@ object Literal {
       copy(location = location)
 
     /** @inheritdoc */
-    override def mapExpressions(fn: Expression => Expression): Text = this
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Text = this
 
     /** @inheritdoc */
     override def toString: String =
       s"""
-         |Literal.String(
+         |Literal.Text(
          |text = $text,
          |location = $location,
          |passData = ${this.showPassData},

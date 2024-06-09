@@ -2,6 +2,7 @@
 
 //use crate::prelude::*;
 
+use ide_ci::cache::goodie::graalvm;
 use ide_ci::define_env_var;
 
 
@@ -12,4 +13,7 @@ define_env_var! {
 
     /// Whether flaku tests should be run.
     CI_TEST_FLAKY_ENABLE, bool;
+
+    /// GraalVM edition. Either Community or Enterprise.
+    GRAAL_EDITION, graalvm::Edition;
 }

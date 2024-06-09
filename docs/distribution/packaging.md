@@ -85,6 +85,12 @@ used by the supported polyglot languages. The contents of each subdirectory is
 specified on a per-language basis, in the
 [polyglot documentation](../polyglot/README.md).
 
+The way to populate the `polyglot` directory is _language dependent_. It is
+different for JavaScript or Python, etc. A tutorial describing how to
+incorporate a
+[Java library](../polyglot/java.md#download-a-java-library-from-maven-central)
+is available.
+
 ### The `data` Directory
 
 The `data` directory contains any data files and resources that the user needs

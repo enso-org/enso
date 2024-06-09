@@ -100,4 +100,13 @@ trait ProjectRepository[F[+_, +_]] {
     * @return either a failure or a package namespace
     */
   def getPackageNamespace(projectId: UUID): F[ProjectRepositoryFailure, String]
+
+  /** Load the project in the provided directory.
+    *
+    * @param directory the project directory
+    * @return the project located in the provided directory
+    */
+  def tryLoadProject(
+    directory: File
+  ): F[ProjectRepositoryFailure, Option[Project]]
 }

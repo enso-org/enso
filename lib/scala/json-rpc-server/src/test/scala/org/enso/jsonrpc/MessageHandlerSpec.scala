@@ -21,7 +21,8 @@ class MessageHandlerSpec
     with BeforeAndAfterEach {
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   case object MyRequest extends Method("RequestMethod") {

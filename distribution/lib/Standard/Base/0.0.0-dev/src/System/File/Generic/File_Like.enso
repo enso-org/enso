@@ -1,0 +1,31 @@
+import project.Data.Text.Text
+import project.System.File.File
+import project.System.File_Format_Metadata.File_Format_Metadata
+
+## PRIVATE
+   A generic interface for file-like objects.
+type File_Like
+    ## PRIVATE
+    Value underlying
+
+    ## PRIVATE
+       Returns the file's path.
+    path self -> Text = self.underlying.path
+
+    ## PRIVATE
+       Returns the file's name.
+    name self -> Text = self.underlying.name
+
+    ## PRIVATE
+    parent self -> File_Like = File_Like.from self.underlying.parent
+
+    ## PRIVATE
+    to_display_text self -> Text = self.underlying.to_display_text
+
+## PRIVATE
+File_Like.from (that : Text) = File_Like.from (File.new that)
+
+## PRIVATE
+   If a conversion to `File_Format_Metadata` is needed, we delegate to the underlying file.
+   Every `File_Like` should be able to provide its file format metadata.
+File_Format_Metadata.from (that : File_Like) = File_Format_Metadata.from that.underlying

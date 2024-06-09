@@ -10,7 +10,7 @@ public class SimpleStorageAggregateHelpers {
   public static long sumLongStorage(LongStorage storage) {
     long sum = 0;
     for (int i = 0; i < storage.size(); i++) {
-      if (!storage.isNa(i)) {
+      if (!storage.isNothing(i)) {
         sum += storage.getItem(i);
       }
     }
@@ -32,7 +32,7 @@ public class SimpleStorageAggregateHelpers {
     String longestText = null;
     int n = storage.size();
     for (int i = 0; i < n; i++) {
-      if (!storage.isNa(i)) {
+      if (!storage.isNothing(i)) {
         String text = storage.getItem(i);
         long length = Text_Utils.grapheme_length(text);
         if (length > longest) {

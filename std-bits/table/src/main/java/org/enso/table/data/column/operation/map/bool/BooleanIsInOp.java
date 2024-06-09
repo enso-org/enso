@@ -1,17 +1,17 @@
 package org.enso.table.data.column.operation.map.bool;
 
-import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.util.ImmutableBitSet;
 import org.graalvm.polyglot.Context;
 
 /**
  * A specialized implementation for the IS_IN operation on booleans - since booleans have just three
  * possible values we can have a highly efficient implementation that does not even rely on hashmap
- * and after processing the input vector, performs the checks in constant time.
+ * and after processing the input vector, performs the checks using only BitSet builtins.
  */
 public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   public BooleanIsInOp() {
@@ -19,7 +19,8 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   @Override
-  public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(
+      BoolStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -50,7 +51,8 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   @Override
-  public Storage<?> runZip(BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runZip(
+      BoolStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     // We could try BitSets for BoolStorage, but it is unclear if they will improve performance due
     // to need for additional allocations. It does not seem worth optimizing this rare usecase
     // currently.
@@ -58,43 +60,34 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   private BoolStorage run(BoolStorage storage, boolean hadNull, boolean hadTrue, boolean hadFalse) {
-    BitSet newVals;
-    boolean negated = false;
+    int size = storage.size();
+    ImmutableBitSet values = new ImmutableBitSet(storage.getValues(), size);
+    ImmutableBitSet isNothing = new ImmutableBitSet(storage.getIsNothingMap(), size);
+    boolean negated = storage.isNegated();
 
-    if (hadNull && hadTrue && hadFalse) {
-      // We use empty newVals which has everything set to false and negate it to make all of that
-      // set to true with zero cost.
-      newVals = new BitSet();
-      negated = true;
-    } else if (!hadNull && !hadTrue && !hadFalse) {
-      // No values are present, so the result is to be false everywhere.
-      newVals = new BitSet();
-    } else if (hadNull && !hadTrue && !hadFalse) {
-      // Only missing values are in the set, so we just return the missing indicator.
-      newVals = storage.getIsMissing();
-    } else if (hadTrue && hadFalse) { // && !hadNull
-      // All non-missing values are in the set - so we just return the negated missing indicator.
-      newVals = storage.getIsMissing();
-      negated = true;
+    ImmutableBitSet newValues;
+    ImmutableBitSet newIsNothing;
+
+    if (hadTrue && !hadFalse) {
+      newValues = storage.isNegated() ? isNothing.notAndNot(values) : isNothing.notAnd(values);
+      newIsNothing =
+          hadNull
+              ? (storage.isNegated() ? isNothing.or(values) : isNothing.orNot(values))
+              : isNothing;
+    } else if (!hadTrue && hadFalse) {
+      newValues = storage.isNegated() ? isNothing.notAnd(values) : isNothing.notAndNot(values);
+      newIsNothing =
+          hadNull
+              ? (storage.isNegated() ? isNothing.orNot(values) : isNothing.or(values))
+              : isNothing;
+    } else if (hadTrue) {
+      newValues = isNothing.not();
+      newIsNothing = isNothing;
     } else {
-      // hadTrue != hadFalse
-      newVals = storage.getValues().get(0, storage.size());
-      if (hadTrue) {
-        if (storage.isNegated()) {
-          newVals.flip(0, storage.size());
-        }
-      } else { // hadFalse
-        if (!storage.isNegated()) {
-          newVals.flip(0, storage.size());
-        }
-      }
-      newVals.andNot(storage.getIsMissing());
-
-      if (hadNull) {
-        newVals.or(storage.getIsMissing());
-      }
+      newValues = ImmutableBitSet.allFalse(size);
+      newIsNothing = hadNull ? ImmutableBitSet.allTrue(size) : ImmutableBitSet.allFalse(size);
     }
 
-    return new BoolStorage(newVals, new BitSet(), storage.size(), negated);
+    return new BoolStorage(newValues.toBitSet(), newIsNothing.toBitSet(), size, false);
   }
 }

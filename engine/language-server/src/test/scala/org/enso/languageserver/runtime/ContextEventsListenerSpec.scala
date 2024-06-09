@@ -19,6 +19,7 @@ import org.enso.languageserver.session.SessionRouter.{
   DeliverToBinaryController,
   DeliverToJsonController
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterAll
@@ -35,10 +36,12 @@ class ContextEventsListenerSpec
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with RetrySpec {
+    with RetrySpec
+    with ReportLogsOnFailure {
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   "ContextEventsListener" should {
@@ -304,6 +307,47 @@ class ContextEventsListenerSpec
         registry.expectNoMessage()
     }
 
+    "detach oneshot visualization when evaluation fails" taggedAs Retry in withEventsListener {
+      (clientId, contextId, router, registry, listener) =>
+        val ctx = Api.VisualizationContext(
+          UUID.randomUUID(),
+          contextId,
+          UUID.randomUUID()
+        )
+
+        listener ! RegisterOneshotVisualization(
+          ctx.contextId,
+          ctx.visualizationId,
+          ctx.expressionId
+        )
+
+        val message = "boom!"
+        listener ! Api.VisualizationEvaluationFailed(ctx, message, None)
+        registry.expectMsg(
+          DetachVisualization(
+            clientId,
+            ctx.contextId,
+            ctx.visualizationId,
+            ctx.expressionId
+          )
+        )
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            VisualizationEvaluationFailed(
+              VisualizationContext(
+                ctx.visualizationId,
+                contextId,
+                ctx.expressionId
+              ),
+              message,
+              None
+            )
+          )
+        )
+    }
+
     "send visualization updates" taggedAs Retry in withEventsListener {
       (clientId, contextId, router, registry, listener) =>
         val ctx = Api.VisualizationContext(
@@ -415,9 +459,11 @@ class ContextEventsListenerSpec
         val visualizationId = UUID.randomUUID()
         val expressionId    = UUID.randomUUID()
         listener ! Api.VisualizationEvaluationFailed(
-          contextId,
-          visualizationId,
-          expressionId,
+          Api.VisualizationContext(
+            visualizationId,
+            contextId,
+            expressionId
+          ),
           message,
           None
         )
@@ -426,9 +472,11 @@ class ContextEventsListenerSpec
           DeliverToJsonController(
             clientId,
             VisualizationEvaluationFailed(
-              contextId,
-              visualizationId,
-              expressionId,
+              VisualizationContext(
+                visualizationId,
+                contextId,
+                expressionId
+              ),
               message,
               None
             )

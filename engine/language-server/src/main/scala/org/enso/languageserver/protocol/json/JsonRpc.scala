@@ -7,7 +7,11 @@ import org.enso.cli.task.notifications.TaskNotificationApi.{
   TaskStarted
 }
 import org.enso.jsonrpc.Protocol
-import org.enso.languageserver.ai.AICompletion
+import org.enso.languageserver.ai.AiApi.{
+  AiCompletion,
+  AiCompletion2,
+  AiCompletionProgress
+}
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -24,6 +28,11 @@ import org.enso.languageserver.runtime.VisualizationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.profiling.ProfilingApi.{
+  ProfilingSnapshot,
+  ProfilingStart,
+  ProfilingStop
+}
 import org.enso.languageserver.runtime.RuntimeApi.RuntimeGetComponentGroups
 import org.enso.languageserver.vcsmanager.VcsManagerApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
@@ -83,7 +92,8 @@ object JsonRpc {
     .registerRequest(GetSuggestionsDatabaseVersion)
     .registerRequest(InvalidateSuggestionsDatabase)
     .registerRequest(Completion)
-    .registerRequest(AICompletion)
+    .registerRequest(AiCompletion)
+    .registerRequest(AiCompletion2)
     .registerRequest(RenameProject)
     .registerRequest(RenameSymbol)
     .registerRequest(ProjectInfo)
@@ -102,6 +112,9 @@ object JsonRpc {
     .registerRequest(LibraryPublish)
     .registerRequest(LibraryPreinstall)
     .registerRequest(RuntimeGetComponentGroups)
+    .registerRequest(ProfilingStart)
+    .registerRequest(ProfilingStop)
+    .registerRequest(ProfilingSnapshot)
     .registerNotification(TaskStarted)
     .registerNotification(TaskProgressUpdate)
     .registerNotification(TaskFinished)
@@ -123,5 +136,6 @@ object JsonRpc {
     .registerNotification(SuggestionsDatabaseUpdates)
     .registerNotification(VisualizationEvaluationFailed)
     .registerNotification(ProjectRenamed)
+    .registerNotification(AiCompletionProgress)
     .finalized()
 }

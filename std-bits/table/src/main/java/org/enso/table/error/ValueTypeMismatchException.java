@@ -15,7 +15,8 @@ public class ValueTypeMismatchException extends RuntimeException {
             + value
             + " ("
             + value.getClass().getSimpleName()
-            + ") that does not fit it. If this error is ever encountered in user-facing code, that is a bug in the Table library.");
+            + ") that does not fit it. If this error is ever encountered in user-facing code, that"
+            + " is a bug in the Table library.");
     this.expectedType = expectedType;
     this.value = value;
   }

@@ -12,4 +12,11 @@ polyglot java import org.enso.base.Environment_Utils
    `System.getenv` Java call remains unchanged.
 unsafe_with_environment_override : Text -> Text -> Any -> Any
 unsafe_with_environment_override key value ~action =
-    Environment_Utils.with_environment_variable_override key value (_->action)
+    ## This has to be done in Enso, not in Java, due to the bug: https://github.com/enso-org/enso/issues/7117
+       If done in Java, Enso test functions do not work correctly, because they cannot access State.
+    old_value = Environment_Utils.getOverride key
+    restore_previous =
+        if old_value.is_nothing then Environment_Utils.removeOverride key else Environment_Utils.setOverride key old_value
+    Panic.with_finalizer restore_previous <|
+        Environment_Utils.setOverride key value
+        action

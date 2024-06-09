@@ -158,9 +158,9 @@ public class CaseFoldedString {
 
     return new CaseFoldedString(
         stringBuilder.toString(),
-        grapheme_mapping.unsafeGetStorageAndInvalidateTheBuilder(),
-        codeunit_start_mapping.unsafeGetStorageAndInvalidateTheBuilder(),
-        codeunit_end_mapping.unsafeGetStorageAndInvalidateTheBuilder());
+        grapheme_mapping.unsafeGetResultAndInvalidate(),
+        codeunit_start_mapping.unsafeGetResultAndInvalidate(),
+        codeunit_end_mapping.unsafeGetResultAndInvalidate());
   }
 
   /**

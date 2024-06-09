@@ -1,0 +1,717 @@
+<p>Copyright (c) 2007, Eclipse Foundation, Inc. and its licensors. </p>
+
+<p>Copyright (c) 2017:</p>
+
+<p>Redistribution and use in source and binary forms, with or without modification, 
+	are permitted provided that the following conditions are met:
+<ul><li>Redistributions of source code must retain the above copyright notice, 
+	this list of conditions and the following disclaimer. </li>
+<li>Redistributions in binary form must reproduce the above copyright notice, 
+
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+
+<ul><li>Redistributions of source code must retain the above copyright notice, 
+	this list of conditions and the following disclaimer. </li>
+<li>Redistributions in binary form must reproduce the above copyright notice, 
+	this list of conditions and the following disclaimer in the documentation 
+	and/or other materials provided with the distribution. </li>
+
+<ul><li>The above copyright notice and this permission notice shall be included
+
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+
+Copyright (C) 2006, 2007, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2006, 2008, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2006, 2022, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2006, Shawn O. Pearce <spearce@spearce.org>
+
+Copyright (C) 2006, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2006-2007, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2006-2008, Shawn O. Pearce <spearce@spearce.org>
+
+Copyright (C) 2006-2008, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2006-2010, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2006-2021, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2007 The Guava Authors
+
+Copyright (C) 2007, Dave Watson <dwatson@mimvista.com>
+
+Copyright (C) 2007, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2007-2008, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2007-2009, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2007-2010, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2008, 2009 Google Inc.
+
+Copyright (C) 2008, 2009 Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2008, 2009, Google Inc.
+
+Copyright (C) 2008, 2010 Google Inc.
+
+Copyright (C) 2008, 2010, Google Inc.
+
+Copyright (C) 2008, 2013 Google Inc.
+
+Copyright (C) 2008, 2014 Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2008, 2015 Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2008, 2017, Google Inc.
+
+Copyright (C) 2008, 2019 Google Inc. and others
+
+Copyright (C) 2008, 2020 Google Inc. and others
+
+Copyright (C) 2008, 2020 Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2008, 2021, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2008, 2022 Google Inc. and others
+
+Copyright (C) 2008, 2022 Marek Zawirski <marek.zawirski@gmail.com> and others
+
+Copyright (C) 2008, 2022 Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2008, 2023 Google Inc. and others
+
+Copyright (C) 2008, Charles O'Farrell <charleso@charleso.org>
+
+Copyright (C) 2008, Florian Köberle <florianskarten@web.de>
+
+Copyright (C) 2008, Florian Köberle <florianskarten@web.de> and others
+
+Copyright (C) 2008, Google Inc.
+
+Copyright (C) 2008, Google Inc. and others
+
+Copyright (C) 2008, Imran M Yousuf <imyousuf@smartitengineering.com>
+
+Copyright (C) 2008, Jonas Fonseca <fonseca@diku.dk>
+
+Copyright (C) 2008, Marek Zawirski <marek.zawirski@gmail.com>
+
+Copyright (C) 2008, Marek Zawirski <marek.zawirski@gmail.com> and others
+
+Copyright (C) 2008, Mike Ralphson <mike@abacus.co.uk>
+
+Copyright (C) 2008, Robin Rosenberg <robin.rosenberg.lists@dewire.com>
+
+Copyright (C) 2008, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2008, Robin Rosenberg <robin.rosenberg@dewire.com> and others
+
+Copyright (C) 2008, Roger C. Soares <rogersoares@intelinet.com.br>
+
+Copyright (C) 2008, Shawn O. Pearce <spearce@spearce.org>
+
+Copyright (C) 2008, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2008, Shawn O. Pearce <spearce@spearce.org>,
+
+Copyright (C) 2008, Thad Hughes <thadh@thad.corp.google.com> and others
+
+Copyright (C) 2008-2009, Google Inc.
+
+Copyright (C) 2008-2009, Google Inc. and others
+
+Copyright (C) 2008-2009, Johannes E. Schindelin <johannes.schindelin@gmx.de>
+
+Copyright (C) 2008-2009, Johannes E. Schindelin <johannes.schindelin@gmx.de> and others
+
+Copyright (C) 2008-2009, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2008-2009, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2008-2010, Google Inc.
+
+Copyright (C) 2008-2010, Google Inc. and others
+
+Copyright (C) 2008-2011, Google Inc.
+
+Copyright (C) 2008-2011, Google Inc. and others
+
+Copyright (C) 2008-2012, Google Inc.
+
+Copyright (C) 2008-2013, Google Inc.
+
+Copyright (C) 2008-2013, Google Inc. and others
+
+Copyright (C) 2008-2016, Google Inc. and others
+
+Copyright (C) 2008-2018, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2008-2020, Johannes E. Schindelin <johannes.schindelin@gmx.de> and others
+
+Copyright (C) 2008-2021, Johannes E. Schindelin <johannes.schindelin@gmx.de> and others
+
+Copyright (C) 2009, 2013 Google Inc. and others
+
+Copyright (C) 2009, 2021 Google Inc. and others
+
+Copyright (C) 2009, 2022 Google Inc. and others
+
+Copyright (C) 2009, Alex Blewitt <alex.blewitt@gmail.com>
+
+Copyright (C) 2009, Christian Halstrick <christian.halstrick@sap.com>
+
+Copyright (C) 2009, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2009, Constantine Plotnikov <constantine.plotnikov@gmail.com>
+
+Copyright (C) 2009, Google Inc.
+
+Copyright (C) 2009, Google Inc. and others
+
+Copyright (C) 2009, Google, Inc.
+
+Copyright (C) 2009, Igor Fedorenko <igor@ifedorenko.com>
+
+Copyright (C) 2009, JetBrains s.r.o.
+
+Copyright (C) 2009, JetBrains s.r.o. and others
+
+Copyright (C) 2009, Johannes Schindelin <johannes.schindelin@gmx.de> and others
+
+Copyright (C) 2009, Jonas Fonseca <fonseca@diku.dk>
+
+Copyright (C) 2009, Mark Struberg <struberg@yahoo.de>
+
+Copyright (C) 2009, Matthias Sohn <matthias.sohn@sap.com>
+
+Copyright (C) 2009, Robin Rosenberg
+
+Copyright (C) 2009, Robin Rosenberg <robin.rosenberg@dewire.com>
+
+Copyright (C) 2009, Robin Rosenberg <robin.rosenberg@dewire.com> and others
+
+Copyright (C) 2009, Robin Rosenberg <robin.rosenberg@gmail.com>
+
+Copyright (C) 2009, Robin Rosenberg and others
+
+Copyright (C) 2009, Sasa Zivkov <sasa.zivkov@sap.com>
+
+Copyright (C) 2009, Sasa Zivkov <sasa.zivkov@sap.com> and others
+
+Copyright (C) 2009, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2009, The Android Open Source Project
+
+Copyright (C) 2009, Vasyl' Vavrychuk <vvavrychuk@gmail.com>
+
+Copyright (C) 2009, Vasyl' Vavrychuk <vvavrychuk@gmail.com> and others
+
+Copyright (C) 2009, Yann Simon <yann.simon.fr@gmail.com>
+
+Copyright (C) 2009-2010, Google Inc.
+
+Copyright (C) 2009-2010, Google Inc. and others
+
+Copyright (C) 2009-2022, Google Inc. and others
+
+Copyright (C) 2010, 2012 Chris Aniszczyk <caniszczyk@gmail.com> and others
+
+Copyright (C) 2010, 2013 Google Inc. and others
+
+Copyright (C) 2010, 2013 Marc Strapetz <marc.strapetz@syntevo.com>
+
+Copyright (C) 2010, 2013 Marc Strapetz <marc.strapetz@syntevo.com> and others
+
+Copyright (C) 2010, 2013 Mathias Kinzler <mathias.kinzler@sap.com>
+
+Copyright (C) 2010, 2013 Sasa Zivkov <sasa.zivkov@sap.com>
+
+Copyright (C) 2010, 2013, Google Inc. and others
+
+Copyright (C) 2010, 2013, Mathias Kinzler <mathias.kinzler@sap.com> and others
+
+Copyright (C) 2010, 2014, Stefan Lay <stefan.lay@sap.com>
+
+Copyright (C) 2010, 2017 Red Hat Inc. and others
+
+Copyright (C) 2010, 2020 Chris Aniszczyk <caniszczyk@gmail.com> and others
+
+Copyright (C) 2010, 2020 Mathias Kinzler <mathias.kinzler@sap.com> and others
+
+Copyright (C) 2010, 2020, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2010, 2021 Chris Aniszczyk <caniszczyk@gmail.com> and others
+
+Copyright (C) 2010, 2021 Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2010, 2021 Google Inc. and others
+
+Copyright (C) 2010, 2021 Red Hat Inc. and others
+
+Copyright (C) 2010, 2022 Chris Aniszczyk <caniszczyk@gmail.com> and others
+
+Copyright (C) 2010, 2022 Google Inc. and others
+
+Copyright (C) 2010, 2022 JetBrains s.r.o. and others
+
+Copyright (C) 2010, Chris Aniszczyk <caniszczyk@gmail.com>
+
+Copyright (C) 2010, Chris Aniszczyk <caniszczyk@gmail.com> and
+
+Copyright (C) 2010, Chris Aniszczyk <caniszczyk@gmail.com> and others
+
+Copyright (C) 2010, Chrisian Halstrick <christian.halstrick@sap.com> and
+
+Copyright (C) 2010, Christian Halstrick <christian.halstrick@sap.com>
+
+Copyright (C) 2010, Christian Halstrick <christian.halstrick@sap.com> and
+
+Copyright (C) 2010, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2010, Christian Halstrick <christian.halstrick@sap.com>,
+
+Copyright (C) 2010, Google Inc.
+
+Copyright (C) 2010, Google Inc. and others
+
+Copyright (C) 2010, Jens Baumgart <jens.baumgart@sap.com>
+
+Copyright (C) 2010, Jens Baumgart <jens.baumgart@sap.com> and others
+
+Copyright (C) 2010, Marc Strapetz <marc.strapetz@syntevo.com>
+
+Copyright (C) 2010, Marc Strapetz <marc.strapetz@syntevo.com> and others
+
+Copyright (C) 2010, Mathias Kinzler <mathias.kinzler@sap.com>
+
+Copyright (C) 2010, Mathias Kinzler <mathias.kinzler@sap.com> and
+
+Copyright (C) 2010, Mathias Kinzler <mathias.kinzler@sap.com> and others
+
+Copyright (C) 2010, Matt Fischer <matt.fischer@garmin.com> and others
+
+Copyright (C) 2010, Matthias Sohn <matthias.sohn@sap.com>
+
+Copyright (C) 2010, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2010, Red Hat Inc. and others
+
+Copyright (C) 2010, Robin Rosenberg and others
+
+Copyright (C) 2010, Sasa Zivkov <sasa.zivkov@sap.com> and others
+
+Copyright (C) 2010, Stefan Lay <stefan.lay@sap.com>
+
+Copyright (C) 2010, Stefan Lay <stefan.lay@sap.com> and
+
+Copyright (C) 2010, Stefan Lay <stefan.lay@sap.com> and others
+
+Copyright (C) 2010,Mathias Kinzler <mathias.kinzler@sap.com> and
+
+Copyright (C) 2010-2012, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2010-2012, Matthias Sohn <matthias.sohn@sap.com>
+
+Copyright (C) 2010-2012, Robin Stocker <robin@nibor.org> and others
+
+Copyright (C) 2011, 2012 Google Inc. and others. and others
+
+Copyright (C) 2011, 2012 IBM Corporation and others. and others
+
+Copyright (C) 2011, 2012 Robin Rosenberg and others
+
+Copyright (C) 2011, 2013 Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2011, 2013 Google Inc., and others. and others
+
+Copyright (C) 2011, 2013 Robin Rosenberg and others
+
+Copyright (C) 2011, 2019 GitHub Inc. and others
+
+Copyright (C) 2011, 2019 Google Inc. and others
+
+Copyright (C) 2011, 2020, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2011, 2021 IBM Corporation and others
+
+Copyright (C) 2011, 2022 Chris Aniszczyk <caniszczyk@gmail.com> and others
+
+Copyright (C) 2011, 2022 Christoph Brill <egore911@egore911.de> and others
+
+Copyright (C) 2011, 2022 Google Inc. and others
+
+Copyright (C) 2011, 2023 Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2011, Chris Aniszczyk <caniszczyk@gmail.com>
+
+Copyright (C) 2011, Chris Aniszczyk <caniszczyk@gmail.com> and others
+
+Copyright (C) 2011, Chris Aniszczyk <zx@redhat.com>
+
+Copyright (C) 2011, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2011, GEBIT Solutions and others
+
+Copyright (C) 2011, GitHub Inc.
+
+Copyright (C) 2011, GitHub Inc. and others
+
+Copyright (C) 2011, Google Inc. and others
+
+Copyright (C) 2011, Ketan Padegaonkar <ketanpadegaonkar@gmail.com> and others
+
+Copyright (C) 2011, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2011, Philipp Thun <philipp.thun@sap.com> and others
+
+Copyright (C) 2011, Roberto Tyley <roberto.tyley@gmail.com> and others
+
+Copyright (C) 2011, Robin Rosenberg and others
+
+Copyright (C) 2011, Robin Stocker <robin@nibor.org>
+
+Copyright (C) 2011, Sasa Zivkov <sasa.zivkov@sap.com> and others
+
+Copyright (C) 2011, Shawn O. Pearce <spearce@spearce.org> and others
+
+Copyright (C) 2011, Stefan Lay <stefan.lay@.com> and others
+
+Copyright (C) 2011, Tomasz Zarna <Tomasz.Zarna@pl.ibm.com> and others
+
+Copyright (C) 2011-2012, Google Inc. and others
+
+Copyright (C) 2011-2012, Robin Stocker <robin@nibor.org> and others
+
+Copyright (C) 2011-2013, Chris Aniszczyk <caniszczyk@gmail.com> and others
+
+Copyright (C) 2011-2013, Robin Rosenberg <robin.rosenberg@dewire.com> and others
+
+Copyright (C) 2012 Christian Halstrick and others
+
+Copyright (C) 2012 Google Inc. and others
+
+Copyright (C) 2012, 2022, Robin Rosenberg and others
+
+Copyright (C) 2012, 2023 GitHub Inc. and others
+
+Copyright (C) 2012, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2012, Daniel Megert <daniel_megert@ch.ibm.com>
+
+Copyright (C) 2012, Daniel Megert <daniel_megert@ch.ibm.com> and others
+
+Copyright (C) 2012, GitHub Inc. and others
+
+Copyright (C) 2012, Google Inc.
+
+Copyright (C) 2012, Google Inc. and others
+
+Copyright (C) 2012, IBM Corporation and others. and others
+
+Copyright (C) 2012, Matthias Sohn <matthias.sohn@sap.com> and
+
+Copyright (C) 2012, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2012, Research In Motion Limited
+
+Copyright (C) 2012, Research In Motion Limited and others
+
+Copyright (C) 2012, Robin Rosenberg <robin.rosenberg@dewire.com> and others
+
+Copyright (C) 2012, Sasa Zivkov <sasa.zivkov@sap.com> and others
+
+Copyright (C) 2013 Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2013, 2017 Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2013, 2020 Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2013, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2013, CloudBees, Inc. and others
+
+Copyright (C) 2013, Google Inc. and others
+
+Copyright (C) 2013, Gunnar Wagenknecht
+
+Copyright (C) 2013, Gustaf Lundh <gustaf.lundh@sonymobile.com> and others
+
+Copyright (C) 2013, Matthias Sohn <matthias.sohn@sap.com>
+
+Copyright (C) 2013, Robin Rosenberg <robin.rosenberg@dewire.com> and others
+
+Copyright (C) 2013, Robin Rosenberg and others
+
+Copyright (C) 2013, Robin Stocker <robin@nibor.org>
+
+Copyright (C) 2013, Robin Stocker <robin@nibor.org> and others
+
+Copyright (C) 2013, Stefan Lay <stefan.lay@sap.com> and
+
+Copyright (C) 2014 Laurent Goujon <lgoujon@twitter.com> and others
+
+Copyright (C) 2014 Obeo. and others
+
+Copyright (C) 2014, 2017 Andrey Loskutov <loskutov@gmx.de> and others
+
+Copyright (C) 2014, 2020 Andrey Loskutov <loskutov@gmx.de> and others
+
+Copyright (C) 2014, 2021 Andrey Loskutov <loskutov@gmx.de> and others
+
+Copyright (C) 2014, Alexey Kuznetsov <axet@me.com>
+
+Copyright (C) 2014, Andrey Loskutov <loskutov@gmx.de> and others
+
+Copyright (C) 2014, André de Oliveira <andre.oliveira@liferay.com>
+
+Copyright (C) 2014, André de Oliveira <andre.oliveira@liferay.com> and others
+
+Copyright (C) 2014, Arthur Daussy <arthur.daussy@obeo.fr>
+
+Copyright (C) 2014, Arthur Daussy <arthur.daussy@obeo.fr> and others
+
+Copyright (C) 2014, Google Inc. and others
+
+Copyright (C) 2014, Gustaf Lundh <gustaf.lundh@sonymobile.com> and others
+
+Copyright (C) 2014, Konrad Kügler and others
+
+Copyright (C) 2014, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2014, Robin Stocker <robin@nibor.org> and others
+
+Copyright (C) 2014, Sasa Zivkov <sasa.zivkov@sap.com>, SAP AG and others
+
+Copyright (C) 2015 Ericsson and others
+
+Copyright (C) 2015 Obeo. and others
+
+Copyright (C) 2015, 2020 Ivan Motsch <ivan.motsch@bsiag.com> and others
+
+Copyright (C) 2015, 2022 Ivan Motsch <ivan.motsch@bsiag.com> and others
+
+Copyright (C) 2015, 2022 Obeo and others
+
+Copyright (C) 2015, Andrey Loskutov <loskutov@gmx.de> and others
+
+Copyright (C) 2015, Christian Halstrick <christian.halstrick@sap.com>
+
+Copyright (C) 2015, Christian Halstrick <christian.halstrick@sap.com> and
+
+Copyright (C) 2015, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2015, Google Inc.
+
+Copyright (C) 2015, Google Inc. and others
+
+Copyright (C) 2015, Ivan Motsch <ivan.motsch@bsiag.com>
+
+Copyright (C) 2015, Ivan Motsch <ivan.motsch@bsiag.com>,
+
+Copyright (C) 2015, Kaloyan Raev <kaloyan.r@zend.com> and others
+
+Copyright (C) 2015, Patrick Steinhardt <ps@pks.im> and others
+
+Copyright (C) 2015,Matthias Sohn <matthias.sohn@sap.com> and
+
+Copyright (C) 2016 Ericsson and others
+
+Copyright (C) 2016, 2020 JGit contributors
+
+Copyright (C) 2016, 2021 Laurent Delaigue <laurent.delaigue@obeo.fr> and others
+
+Copyright (C) 2016, Christian Halstrick <christian.halstrick@sap.com> and others
+
+Copyright (C) 2016, Google Inc. and others
+
+Copyright (C) 2016, Laurent Delaigue <laurent.delaigue@obeo.fr> and others
+
+Copyright (C) 2016, Matthias Sohn <matthias.sohn@sap.com> and
+
+Copyright (C) 2016, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2017 Ericsson and others
+
+Copyright (C) 2017 Google Inc. and others
+
+Copyright (C) 2017 Two Sigma Open Source and others
+
+Copyright (C) 2017, 2020 Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2017, 2022 David Pursehouse <david.pursehouse@gmail.com> and others
+
+Copyright (C) 2017, David Pursehouse <david.pursehouse@gmail.com> and others
+
+Copyright (C) 2017, Google Inc.
+
+Copyright (C) 2017, Google Inc. and others
+
+Copyright (C) 2017, Google LLC and others
+
+Copyright (C) 2017, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2017, Obeo (mathieu.cartaud@obeo.fr)
+
+Copyright (C) 2017, Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2017, Two Sigma Open Source
+
+Copyright (C) 2017, Two Sigma Open Source and others
+
+Copyright (C) 2018, 2021 Salesforce and others
+
+Copyright (C) 2018, 2021 Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2018, 2022 Google LLC. and others
+
+Copyright (C) 2018, 2022 Salesforce and others
+
+Copyright (C) 2018, David Pursehouse <david.pursehouse@gmail.com> and others
+
+Copyright (C) 2018, Google LLC. and others
+
+Copyright (C) 2018, Konrad Windszus <konrad_w@gmx.de> and others
+
+Copyright (C) 2018, Markus Duft <markus.duft@ssi-schaefer.com> and others
+
+Copyright (C) 2018, Salesforce and
+
+Copyright (C) 2018, Salesforce. and others
+
+Copyright (C) 2018, Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2018-2019, Tim Neumann <Tim.Neumann@advantest.com>
+
+Copyright (C) 2018-2021, Andre Bossert <andre.bossert@siemens.com>
+
+Copyright (C) 2018-2022, Andre Bossert <andre.bossert@siemens.com>
+
+Copyright (C) 2018-2022, Andre Bossert <andre.bossert@siemens.com> and others
+
+Copyright (C) 2019 Google LLC and others
+
+Copyright (C) 2019, Google Inc. and others
+
+Copyright (C) 2019, Google LLC and others
+
+Copyright (C) 2019, Google LLC. and others
+
+Copyright (C) 2019, Marc Strapetz <marc.strapetz@syntevo.com>
+
+Copyright (C) 2019, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2019, Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2019, Tim Neumann <tim.neumann@advantest.com>
+
+Copyright (C) 2020 Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2020, Google LLC and others
+
+Copyright (C) 2020, Google LLC. and others
+
+Copyright (C) 2020, Matthias Sohn <matthias.sohn@sap.com> and
+
+Copyright (C) 2020, Michael Dardis. and others
+
+Copyright (C) 2020, Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2021 Simeon Andreev <simeon.danailov.andreev@gmail.com> and others
+
+Copyright (C) 2021 Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2021 Thomas Wolf <thomas.wolf@paranor.ch> and others.
+
+Copyright (C) 2021, 2022 Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2021, Fabio Ponciroli <ponch@gerritforge.com>
+
+Copyright (C) 2021, Google Inc. and others
+
+Copyright (C) 2021, Google LLC. and others
+
+Copyright (C) 2021, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2021, Tencent.
+
+Copyright (C) 2021, Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2022 Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (C) 2022,  Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2022, Fabio Ponciroli <ponch78@gmail.com> and others
+
+Copyright (C) 2022, Google LLC and others
+
+Copyright (C) 2022, Matthias Sohn <matthias.sohn@sap.com> and others
+
+Copyright (C) 2022, Simeon Andreev and others
+
+Copyright (C) 2022, Tencent.
+
+Copyright (C) 2022, Workday Inc.
+
+Copyright (C) 2023, Google Inc. and others
+
+Copyright (C) 2023, Google LLC
+
+Copyright (C) 2023, Google LLC and others
+
+Copyright (C) 2023, Google LLC.
+
+Copyright (C) 2023, SAP SE and others
+
+Copyright (C) 2023, Tencent.
+
+Copyright (C) 2023, Thomas Wolf <twolf@apache.org> and others
+
+Copyright (c) 2014 Konrad Kügler and others
+
+Copyright (c) 2019 Matthias Sohn <matthias.sohn@sap.com>
+
+Copyright (c) 2019, Google LLC  and others
+
+Copyright (c) 2019, Thomas Wolf <thomas.wolf@paranor.ch> and others
+
+Copyright (c) 2020 Thomas Wolf <thomas.wolf@paranor.ch>
+
+Copyright (c) 2020, 2022 Julian Ruppel <julian.ruppel@sap.com> and others
+
+Copyright (c) 2020, Google LLC  and others
+
+Copyright (c) 2020, Google LLC and others
+
+Copyright (c) 2021 Qualcomm Innovation Center, Inc.
+
+Copyright (c) 2023 Qualcomm Innovation Center, Inc.
+
+Copyright 2017 Marc Stevens <marc@marc-stevens.nl>, Dan Shumow <danshu@microsoft.com>
+
+IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+
+Redistributions in binary form must reproduce the above copyright notice,
+
+Redistributions of source code must retain the above copyright
+
+Redistributions of source code must retain the above copyright notice, this
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+
+and other copyright owners as documented in the project's IP log.
+
+copyright notice, this list of conditions and the following
+
+other copyright owners as documented in the project's IP log.

@@ -15,7 +15,9 @@ public abstract class GCNode extends Node {
 
   public abstract Object execute();
 
-  /** @return A new GCNode. */
+  /**
+   * @return A new GCNode.
+   */
   public static GCNode build() {
     return GCNodeGen.create();
   }

@@ -1,25 +1,30 @@
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import {
+  documentationData,
+  type DocumentationData,
+} from '@/stores/suggestionDatabase/documentation'
+import {
   SuggestionKind,
   type SuggestionEntry,
   type SuggestionEntryArgument,
   type SuggestionEntryScope,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import { assert } from '@/util/assert'
+import { assert, assertNever } from '@/util/assert'
+import { type Opt } from '@/util/data/opt'
+import { Err, Ok, withContext, type Result } from '@/util/data/result'
 import type { Doc } from '@/util/docParser'
-import { type Opt } from '@/util/opt'
+import type { Icon } from '@/util/iconName'
 import {
+  normalizeQualifiedName,
   qnJoin,
   qnLastSegment,
-  tryIdentifier,
+  tryIdentifierOrOperatorIdentifier,
   tryQualifiedName,
-  type Identifier,
+  type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { Err, Ok, withContext, type Result } from '@/util/result'
 import * as lsTypes from 'shared/languageServerTypes/suggestions'
-import { documentationData, type DocumentationData } from './documentation'
 
 interface UnfinishedEntry {
   kind: SuggestionKind
@@ -27,7 +32,7 @@ interface UnfinishedEntry {
   memberOf?: QualifiedName
   isPrivate?: boolean
   isUnstable?: boolean
-  name?: Identifier
+  name?: IdentifierOrOperatorIdentifier
   aliases?: string[]
   selfType?: Typename
   arguments?: SuggestionEntryArgument[]
@@ -35,34 +40,36 @@ interface UnfinishedEntry {
   reexportedIn?: QualifiedName
   documentation?: Doc.Section[]
   scope?: SuggestionEntryScope
-  iconName?: string
-  groupIndex?: number
+  iconName?: Icon
+  groupIndex?: number | undefined
+  annotations?: string[]
 }
 
 function setLsName(
   entry: UnfinishedEntry,
   name: string,
-): entry is UnfinishedEntry & { name: Identifier } {
-  const ident = tryIdentifier(name)
+): entry is UnfinishedEntry & { name: IdentifierOrOperatorIdentifier } {
+  const ident = tryIdentifierOrOperatorIdentifier(name)
   if (!ident.ok) return false
   entry.name = ident.value
   return true
 }
 
 function setLsModule(
-  entry: UnfinishedEntry & { name: Identifier },
+  entry: UnfinishedEntry & { name: IdentifierOrOperatorIdentifier },
   module: string,
-): entry is UnfinishedEntry & { name: Identifier; definedIn: QualifiedName } {
+): entry is UnfinishedEntry & { name: IdentifierOrOperatorIdentifier; definedIn: QualifiedName } {
   const qn = tryQualifiedName(module)
   if (!qn.ok) return false
-  entry.definedIn = qn.value
+  const normalizedQn = normalizeQualifiedName(qn.value)
+  entry.definedIn = normalizedQn
   switch (entry.kind) {
     case SuggestionKind.Module:
-      entry.name = qnLastSegment(qn.value)
-      entry.returnType = qn.value
+      entry.name = qnLastSegment(normalizedQn)
+      entry.returnType = normalizedQn
       break
     case SuggestionKind.Type:
-      entry.returnType = qnJoin(qn.value, entry.name)
+      entry.returnType = qnJoin(normalizedQn, entry.name)
       break
   }
   return true
@@ -71,7 +78,7 @@ function setLsModule(
 function setAsOwner(entry: UnfinishedEntry, type: string) {
   const qn = tryQualifiedName(type)
   if (qn.ok) {
-    entry.memberOf = qn.value
+    entry.memberOf = normalizeQualifiedName(qn.value)
   } else {
     delete entry.memberOf
   }
@@ -99,7 +106,7 @@ function setLsReexported(
 ): entry is UnfinishedEntry & { reexprotedIn: QualifiedName } {
   const qn = tryQualifiedName(reexported)
   if (!qn.ok) return false
-  entry.reexportedIn = qn.value
+  entry.reexportedIn = normalizeQualifiedName(qn.value)
   return true
 }
 
@@ -124,7 +131,10 @@ export function entryFromLs(
     () => {
       switch (lsEntry.type) {
         case 'function': {
-          const entry = { kind: SuggestionKind.Function }
+          const entry = {
+            kind: SuggestionKind.Function,
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)
@@ -138,9 +148,10 @@ export function entryFromLs(
         case 'module': {
           const entry = {
             kind: SuggestionKind.Module,
-            name: 'MODULE' as Identifier,
+            name: 'MODULE' as IdentifierOrOperatorIdentifier,
             arguments: [],
             returnType: '',
+            annotations: [],
           }
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
@@ -150,7 +161,11 @@ export function entryFromLs(
           return Ok(entry)
         }
         case 'type': {
-          const entry = { kind: SuggestionKind.Type, returnType: '' }
+          const entry = {
+            kind: SuggestionKind.Type,
+            returnType: '',
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           if (lsEntry.reexport != null && !setLsReexported(entry, lsEntry.reexport))
@@ -172,6 +187,7 @@ export function entryFromLs(
           setLsReturnType(entry, lsEntry.returnType)
           return Ok({
             arguments: lsEntry.arguments,
+            annotations: lsEntry.annotations,
             ...entry,
           })
         }
@@ -186,11 +202,16 @@ export function entryFromLs(
           setLsReturnType(entry, lsEntry.returnType)
           return Ok({
             arguments: lsEntry.arguments,
+            annotations: lsEntry.annotations,
             ...entry,
           })
         }
         case 'local': {
-          const entry = { kind: SuggestionKind.Function, arguments: [] }
+          const entry = {
+            kind: SuggestionKind.Local,
+            arguments: [],
+            annotations: [],
+          }
           if (!setLsName(entry, lsEntry.name)) return Err('Invalid name')
           if (!setLsModule(entry, lsEntry.module)) return Err('Invalid module name')
           setLsReturnType(entry, lsEntry.returnType)
@@ -200,6 +221,8 @@ export function entryFromLs(
             ...entry,
           })
         }
+        default:
+          assertNever(lsEntry)
       }
     },
   )
@@ -281,7 +304,7 @@ function applyArgumentsUpdate(
           const nameUpdate = applyPropertyUpdate('name', arg, update)
           if (!nameUpdate.ok) return nameUpdate
           const typeUpdate = applyFieldUpdate('reprType', update, (type) => {
-            arg.type = type
+            arg.reprType = type
           })
           if (!typeUpdate.ok) return typeUpdate
           const isSuspendedUpdate = applyPropertyUpdate('isSuspended', arg, update)
@@ -380,8 +403,10 @@ export function applyUpdates(
     const updateResult = applyUpdate(entries, update, groups)
     if (!updateResult.ok) {
       updateResult.error.log()
-      console.error(`Removing entry ${update.id}, because its state is unclear`)
-      entries.delete(update.id)
+      if (entries.get(update.id) != null) {
+        console.error(`Removing entry ${update.id}, because its state is unclear`)
+        entries.delete(update.id)
+      }
     }
   }
 }

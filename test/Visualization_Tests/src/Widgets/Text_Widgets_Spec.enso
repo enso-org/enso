@@ -7,12 +7,12 @@ import Standard.Base.Metadata.Display
 
 import Standard.Visualization.Widgets
 
-from Standard.Test import Test, Test_Suite
-import Standard.Test.Extensions
+from Standard.Test import all
 
-spec =
-    Test.group "Widgets for the Text type" <|
-        Test.specify "works for `take` and `drop`" <|
+
+add_specs suite_builder =
+    suite_builder.group "Widgets for the Text type" group_builder->
+        group_builder.specify "works for `take` and `drop`" <|
             mock_text = "abc def"
             default_widget = Text_Sub_Range.default_widget
             expect = [["range", default_widget]] . to_json
@@ -32,4 +32,8 @@ spec =
             labels.should_contain "After"
             labels.should_contain "Before_Last"
 
-main = Test_Suite.run_main spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

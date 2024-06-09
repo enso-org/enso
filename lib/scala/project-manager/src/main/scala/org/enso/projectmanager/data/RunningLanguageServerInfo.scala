@@ -1,6 +1,6 @@
 package org.enso.projectmanager.data
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 
 /** Information about running language server.
   *

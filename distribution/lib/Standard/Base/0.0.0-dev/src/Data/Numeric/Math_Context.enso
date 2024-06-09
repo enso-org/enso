@@ -1,0 +1,48 @@
+import project.Data.Numeric.Rounding_Mode.Rounding_Mode
+from project.Data.Numbers import Integer
+
+polyglot java import java.math.MathContext
+
+## Specifies infinite precision in a `Math_Context`.
+
+   > Example
+     Specify infinite precision in constructing a Decimal.
+
+         d1 = Decimal.new "1"
+         d3 = Decimal.new "3"
+         d4 = Decimal.new "4"
+
+         d1.divide d3 (Math_Context.new 12)
+         # => 0.333333333333
+
+         d1.divide d3 (Math_Context.new Unlimited)
+         # => Arithmetic_Error.Error 'Non-terminating decimal expansion; no exact representable decimal result.'
+
+         d1.divide d4 (Math_Context.new Unlimited)
+         # => 0.25
+type Unlimited
+
+## A wrapper around the Java
+   [`MathContext`](https://docs.oracle.com/javase/8/docs/api/java/math/MathContext.html)
+   class.
+
+   `Math_Context` is used to specify finite or infinite precision requirements
+   to operations that construct `Decimal` values, or that compute them from
+   other values. It can also specify the `Rounding_Mode` to use when rounding is
+   used to meet precision requirements. See `Decimal` for more details.
+type Math_Context
+    ## PRIVATE
+    Value (math_context:MathContext)
+
+    ## ICON math
+       Construct a `Math_Context` value.
+
+       Arguments:
+       - precision: The non-negative int precision setting. A value of `0`
+         specifies exact operations.
+       - rounding_mode: The rounding mode to use.
+    new : Integer | Unlimited -> Rounding_Mode -> Math_Context
+    new (precision : Integer | Unlimited) (rounding_mode : Rounding_Mode = Rounding_Mode.half_up) =
+        case precision of
+            _ : Integer -> Math_Context.Value (MathContext.new precision rounding_mode.rounding_mode)
+            _ : Unlimited -> Math_Context.Value (MathContext.new 0 rounding_mode.rounding_mode)

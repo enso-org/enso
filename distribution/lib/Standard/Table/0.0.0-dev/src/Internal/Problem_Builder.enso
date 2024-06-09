@@ -1,8 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
-from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregate_Column, Invalid_Column_Names, Missing_Input_Columns, Truncated_Column_Names
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregate_Column, Invalid_Column_Names, Missing_Input_Columns, No_Output_Columns, Truncated_Column_Names
 
 ## PRIVATE
 type Problem_Builder
@@ -35,14 +36,12 @@ type Problem_Builder
        Returns a vector containing all reported problems, aggregated.
     build_problemset : Vector
     build_problemset self =
-        problems = Vector.new_builder
+        Vector.build problems->
 
-        missing_criteria = self.missing_input_columns.get.build + self.oob_indices.get.build
-        if missing_criteria.not_empty then
-            problems.append (Missing_Input_Columns.Error missing_criteria where=self.missing_input_columns_location)
-        self.other.to_vector.each problems.append
-
-        problems.to_vector
+            missing_criteria = self.missing_input_columns.get.build + self.oob_indices.get.build
+            if missing_criteria.not_empty then
+                problems.append (Missing_Input_Columns.Error missing_criteria where=self.missing_input_columns_location)
+            self.other.to_vector.each problems.append
 
     ## PRIVATE
        Attaches gathered warnings to the result.
@@ -79,6 +78,14 @@ type Problem_Builder
             problem -> Error.throw problem
 
     ## PRIVATE
+       Raises `No_Output_Columns` error, with cause set to the first problem
+       from this builder (if any were reported).
+    raise_no_output_columns_with_cause : Any ! No_Output_Columns
+    raise_no_output_columns_with_cause self =
+        first_problem = self.build_problemset.get 0 if_missing=Nothing
+        Error.throw (No_Output_Columns.Error first_problem)
+
+    ## PRIVATE
        Creates a new helper object for aggregating problems to report.
 
        Arguments:
@@ -95,7 +102,7 @@ type Problem_Builder
     new : Vector -> Boolean -> Text | Nothing -> Problem_Builder
     new types_to_always_throw=[] error_on_missing_columns=False missing_input_columns_location=Nothing =
         additional_types_to_throw = if error_on_missing_columns then [Missing_Input_Columns, Invalid_Aggregate_Column] else []
-        Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) missing_input_columns_location other=Vector.new_builder
+        Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) missing_input_columns_location other=Builder.new
 
 ## PRIVATE
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.

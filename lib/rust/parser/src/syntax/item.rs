@@ -73,11 +73,6 @@ impl<'s> From<Tree<'s>> for Item<'s> {
     }
 }
 
-impl<'s> TryAsRef<Item<'s>> for Item<'s> {
-    fn try_as_ref(&self) -> Option<&Item<'s>> {
-        Some(self)
-    }
-}
 
 /// Given a sequence of [`Line`]s belonging to one block, create an AST block node, of a type
 /// determined by the syntax of the lines in the block.
@@ -93,7 +88,6 @@ pub fn build_block<'s>(
 }
 
 
-
 // ===========
 // === Ref ===
 // ===========
@@ -105,37 +99,3 @@ pub enum Ref<'s, 'a> {
     Token(token::Ref<'s, 'a>),
     Tree(&'a Tree<'s>),
 }
-
-
-
-// ======================
-// === Variant Checks ===
-// ======================
-
-/// For each token variant, generates a function checking if the token is of the given variant. For
-/// example, the `is_ident` function checks if the token is an identifier.
-macro_rules! generate_variant_checks {
-    (
-        $(#$enum_meta:tt)*
-        pub enum $enum:ident {
-            $(
-                $(#$variant_meta:tt)*
-                $variant:ident $({
-                    $($(#$field_meta:tt)* pub $field:ident : $field_ty:ty),* $(,)?
-                })?
-            ),* $(,)?
-        }
-    ) => { paste!{
-        impl<'s> Item<'s> {
-            $(
-                $(#[$($variant_meta)*])*
-                #[allow(missing_docs)]
-                pub fn [<is_ $variant:snake:lower>](&self) -> bool {
-                    self.is_variant(token::variant::VariantMarker::$variant)
-                }
-            )*
-        }
-    }};
-}
-
-crate::with_token_definition!(generate_variant_checks());

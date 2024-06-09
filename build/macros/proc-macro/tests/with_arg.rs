@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 
 
-#[derive(enso_build_macros::Arg)]
+#[derive(Clone, Debug, enso_build_macros::Arg)]
 pub enum Foo {
     Bar,
     BarBaz(String),

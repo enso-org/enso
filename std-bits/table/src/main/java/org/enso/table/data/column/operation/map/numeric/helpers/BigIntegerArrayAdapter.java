@@ -44,7 +44,7 @@ public interface BigIntegerArrayAdapter {
 
     @Override
     public BigInteger getItem(int i) {
-      if (storage.isNa(i)) {
+      if (storage.isNothing(i)) {
         return null;
       } else {
         long x = storage.getItem(i);

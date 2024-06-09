@@ -1,44 +1,15 @@
-import project.IO
 export project.IO
-
-import project.Panic.Panic
 export project.Panic.Panic
-
-import project.Error.Error
 export project.Error.Error
-
-import project.Any.Any
 export project.Any.Any
-
-import project.Data.Array.Array
 export project.Data.Array.Array
-
-import project.Data.Boolean
 from project.Data.Boolean export Boolean, True, False
-
-import project.Data.Text.Text
 export project.Data.Text.Text
-
-import project.Data.Time.Date.Date
 export project.Data.Time.Date.Date
-
-import project.Data.List.List
 export project.Data.List.List
-
-import project.Data.Numbers
 from project.Data.Numbers export Number, Integer
-
-import project.Data.Vector.Vector
 export project.Data.Vector.Vector
-
-import project.Polyglot.Java
 export project.Polyglot.Java
-
-import project.Polyglot.Polyglot
 export project.Polyglot.Polyglot
-
-import project.Runtime
 export project.Runtime
-
-import project.Warning
 export project.Warning

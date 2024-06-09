@@ -1,17 +1,17 @@
 import { assert } from '@/util/assert'
 import type { Doc } from '@/util/docParser'
+import type { Icon } from '@/util/iconName'
 import {
-  isIdentifier,
+  isIdentifierOrOperatorIdentifier,
   isQualifiedName,
   qnJoin,
   qnLastSegment,
   qnParent,
   qnSplit,
-  tryQualifiedName,
-  type Identifier,
+  type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { unwrap } from '@/util/result'
+import type { MethodPointer } from 'shared/languageServerTypes'
 import type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -41,30 +41,32 @@ export enum SuggestionKind {
 
 export interface SuggestionEntry {
   kind: SuggestionKind
-  /// A module where the suggested object is defined.
+  /** A module where the suggested object is defined. */
   definedIn: QualifiedName
-  /// A type or module this method or constructor belongs to.
+  /** A type or module this method or constructor belongs to. */
   memberOf?: QualifiedName
   isPrivate: boolean
   isUnstable: boolean
-  name: Identifier
+  name: IdentifierOrOperatorIdentifier
   aliases: string[]
-  /// A type of the "self" argument. This field is present only for instance methods.
+  /** A type of the "self" argument. This field is present only for instance methods. */
   selfType?: Typename
-  /// Argument lists of suggested object (atom or function). If the object does not take any
-  /// arguments, the list is empty.
+  /** Argument lists of suggested object (atom or function). If the object does not take any
+   * arguments, the list is empty. */
   arguments: SuggestionEntryArgument[]
-  /// A type returned by the suggested object.
+  /** A type returned by the suggested object. */
   returnType: Typename
-  /// A least-nested module reexporting this entity.
+  /** A least-nested module reexporting this entity. */
   reexportedIn?: QualifiedName
   documentation: Doc.Section[]
-  /// A scope where this suggestion is visible.
+  /** A scope where this suggestion is visible. */
   scope?: SuggestionEntryScope
-  /// A name of a custom icon to use when displaying the entry.
-  iconName?: string
-  /// An index of a group from group list in suggestionDb store this entry belongs to.
+  /** A name of a custom icon to use when displaying the entry. */
+  iconName?: Icon
+  /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex?: number
+  /** A list of annotations. They are present for methods and constructors only. */
+  annotations: string[]
 }
 
 /**
@@ -76,14 +78,26 @@ export function entryQn(entry: SuggestionEntry): QualifiedName {
   } else if (entry.memberOf) {
     return qnJoin(entry.memberOf, entry.name)
   } else {
-    return qnJoin(entry.definedIn, unwrap(tryQualifiedName(entry.name)))
+    return qnJoin(entry.definedIn, entry.name)
+  }
+}
+
+/**
+ * Get the MethodPointer pointing to definition represented by the entry.
+ */
+export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | undefined {
+  if (entry.kind !== SuggestionKind.Method || !entry.memberOf) return
+  return {
+    module: entry.definedIn,
+    definedOnType: entry.memberOf,
+    name: entry.name,
   }
 }
 
 function makeSimpleEntry(
   kind: SuggestionKind,
   definedIn: QualifiedName,
-  name: Identifier,
+  name: IdentifierOrOperatorIdentifier,
   returnType: QualifiedName,
 ): SuggestionEntry {
   return {
@@ -96,6 +110,7 @@ function makeSimpleEntry(
     arguments: [],
     returnType,
     documentation: [],
+    annotations: [],
   }
 }
 
@@ -111,7 +126,7 @@ export function makeType(fqn: string): SuggestionEntry {
   return makeSimpleEntry(SuggestionKind.Type, definedIn, name, fqn)
 }
 
-export function makeCon(fqn: string): SuggestionEntry {
+export function makeConstructor(fqn: string): SuggestionEntry {
   assert(isQualifiedName(fqn))
   const [type, name] = qnSplit(fqn)
   assert(type != null)
@@ -167,7 +182,7 @@ export function makeFunction(
   returnType: string = 'Any',
 ): SuggestionEntry {
   assert(isQualifiedName(definedIn))
-  assert(isIdentifier(name))
+  assert(isIdentifierOrOperatorIdentifier(name))
   assert(isQualifiedName(returnType))
   return makeSimpleEntry(SuggestionKind.Function, definedIn, name, returnType)
 }
@@ -178,7 +193,16 @@ export function makeLocal(
   returnType: string = 'Any',
 ): SuggestionEntry {
   assert(isQualifiedName(definedIn))
-  assert(isIdentifier(name))
+  assert(isIdentifierOrOperatorIdentifier(name))
   assert(isQualifiedName(returnType))
   return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
+}
+
+export function makeArgument(name: string, type: string = 'Any'): SuggestionEntryArgument {
+  return {
+    name,
+    reprType: type,
+    isSuspended: false,
+    hasDefault: false,
+  }
 }

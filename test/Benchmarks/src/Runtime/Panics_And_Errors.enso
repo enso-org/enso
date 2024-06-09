@@ -1,0 +1,93 @@
+from Standard.Base import all
+from Standard.Test import Bench
+
+from project.Config import extended_tests
+
+polyglot java import org.enso.benchmark_helpers.PanicsHelpers
+polyglot java import org.enso.benchmark_helpers.PanicsHelpers.MyException
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
+
+type My_Error_Type
+    Error
+
+extend_enso_stack : Integer -> Integer -> Integer
+extend_enso_stack k ~action =
+    case k of
+        0 -> action + 1
+        _ ->
+            # Ensure that this is not tail recursive
+            r = extend_enso_stack (k - 1) action
+            r+1
+
+condition i = i % 3 == 0
+
+iterate_optional n =
+    0.up_to n . fold 0 acc-> i->
+        r = if condition i then 1 else Nothing
+        d = r.if_nothing -1
+        acc+d
+
+iterate_panicking n =
+    handler _ = -1
+    0.up_to n . fold 0 acc-> i->
+        r = Panic.catch My_Error_Type handler=handler <|
+            if condition i then 1 else Panic.throw My_Error_Type.Error
+        acc+r
+
+iterate_dataflow n =
+    0.up_to n . fold 0 acc-> i->
+        r = if condition i then 1 else
+            Error.throw My_Error_Type.Error
+        d = r.catch My_Error_Type _-> -1
+        acc+d
+
+iterate_java_interop n =
+    handler _ = -1
+    0.up_to n . fold 0 acc-> i->
+        r = Panic.catch MyException handler=handler <|
+            if condition i then 1 else PanicsHelpers.throwMyException
+        acc+r
+
+collect_benches = Bench.build builder->
+    n = 10000
+    half_depth = 100
+
+    builder.group ("Panics_And_Errors_" + n.to_text) options group_builder->
+
+
+        group_builder.specify "Panic" <|
+            iterate_panicking n
+        group_builder.specify "Dataflow_Error" <|
+            iterate_dataflow n
+
+        if extended_tests then
+            group_builder.specify "Java_Exception_Caught_In_Enso_Shallow" <|
+                iterate_java_interop n
+            group_builder.specify "Java_Exception_In_Java_Shallow" <|
+                PanicsHelpers.iteratePureJava n
+            group_builder.specify "Sum_Type_Shallow" <|
+                iterate_optional n
+
+            group_builder.specify "Panic_Deep" <|
+                PanicsHelpers.extendJavaStack half_depth _->
+                    extend_enso_stack half_depth <|
+                        iterate_panicking n
+            group_builder.specify "Java_Exception_Caught_In_Enso_Deep" <|
+                PanicsHelpers.extendJavaStack half_depth _->
+                    extend_enso_stack half_depth <|
+                        iterate_java_interop n
+            group_builder.specify "Java_Exception_In_Java_Deep" <|
+                PanicsHelpers.extendJavaStack half_depth _->
+                    extend_enso_stack half_depth <|
+                        PanicsHelpers.iteratePureJava n
+            group_builder.specify "Dataflow_Error_Deep" <|
+                PanicsHelpers.extendJavaStack half_depth _->
+                    extend_enso_stack half_depth <|
+                        iterate_dataflow n
+            group_builder.specify "Sum_Type_Deep" <|
+                PanicsHelpers.extendJavaStack half_depth _->
+                    extend_enso_stack half_depth <|
+                        iterate_optional n
+
+main = collect_benches . run_main

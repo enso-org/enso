@@ -22,6 +22,7 @@ type Maybe
     Some value
 
     ## GROUP Metadata
+       ICON operators
        Applies the provided function to the contained value if it exists,
        otherwise returning the provided default value.
 
@@ -43,6 +44,7 @@ type Maybe
         Maybe.Some val -> function val
 
     ## GROUP Metadata
+       ICON metadata
        Check if the maybe value is `Some`.
 
        > Example
@@ -57,6 +59,7 @@ type Maybe
         Maybe.Some _ -> True
 
     ## GROUP Metadata
+       ICON metadata
        Check if the maybe value is `None`.
     is_none : Boolean
     is_none self = self.is_some.not

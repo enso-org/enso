@@ -1,6 +1,3 @@
-use crate::prelude::*;
-
-
 // ==============
 // === Export ===
 // ==============
@@ -8,12 +5,12 @@ use crate::prelude::*;
 pub mod cargo;
 pub mod cmake;
 pub mod cmd;
-pub mod conda;
 pub mod docker;
+pub mod explorer;
 pub mod flatc;
 pub mod git;
 pub mod go;
-pub mod graal;
+pub mod graalpy;
 pub mod java;
 pub mod javac;
 pub mod node;
@@ -26,8 +23,7 @@ pub mod rustup;
 pub mod sbt;
 pub mod seven_zip;
 pub mod sh;
-pub mod shaderc;
-pub mod spirv_cross;
+pub mod signtool;
 pub mod strip;
 pub mod tar;
 pub mod vs;
@@ -38,7 +34,6 @@ pub mod wasm_pack;
 pub use cargo::Cargo;
 pub use cmake::CMake;
 pub use cmd::Cmd;
-pub use conda::Conda;
 pub use docker::Docker;
 pub use flatc::Flatc;
 pub use git::Git;

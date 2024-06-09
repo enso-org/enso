@@ -1,16 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
-import Standard.Table.Data.Column.Column as Dataframe_Column
-import Standard.Table.Data.Row.Row
-import Standard.Table.Data.Table.Table as Dataframe_Table
+import Standard.Table.Row.Row
+from Standard.Table import Column, Table
 
-import Standard.Database.Data.Column.Column as Database_Column
-import Standard.Database.Data.Table.Table as Database_Table
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 
-# TODO add an initial offset to fully support lazy visualizations
+## TODO add an initial offset to fully support lazy visualizations
 
 ## PRIVATE
 
@@ -31,21 +30,23 @@ prepare_visualization y max_rows=1000 =
         _ : Map -> make_json_for_map x max_rows
         _ : JS_Object -> make_json_for_js_object x max_rows
         _ : Row -> make_json_for_map x.to_map max_rows "column"
-        _ : Dataframe_Column -> prepare_visualization x.to_table max_rows
-        _ : Dataframe_Table ->
+        _ : Column -> prepare_visualization x.to_table max_rows
+        _ : Table ->
             dataframe = x.take max_rows
             all_rows_count = x.row_count
-            index = Dataframe_Column.from_vector "#" (Vector.new dataframe.row_count i->i)
+            index = Column.from_vector "#" (Vector.new dataframe.row_count i->i)
             make_json_for_table dataframe [index] all_rows_count
-        _ : Database_Column -> prepare_visualization x.to_table max_rows
-        _ : Database_Table ->
-            dataframe = x.read max_rows
+        _ : DB_Column -> prepare_visualization x.to_table max_rows
+        _ : DB_Table ->
+            dataframe = x.read (..First max_rows)
             all_rows_count = x.row_count
             make_json_for_table dataframe [] all_rows_count
         _ : Function ->
             pairs = [['_display_text_', '[Function '+x.to_text+']']]
             value = JS_Object.from_pairs pairs
             JS_Object.from_pairs [["json", value]]
+        _ : Number ->
+            JS_Object.from_pairs [["json", make_json_for_value x]]
         _ ->
             js_value = x.to_js_object
             value = if js_value.is_a JS_Object . not then js_value else
@@ -65,12 +66,13 @@ make_json_for_vector : Vector -> Integer -> JS_Object
 make_json_for_vector vector max_rows =
     all_rows = ["all_rows_count", vector.length]
     truncated = vector.take max_rows
-
-    matrix = make_json_for_matrix (Vector.new_builder truncated.length) truncated
-    if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length]] else
-        object_matrix = make_json_for_object_matrix (Vector.new_builder truncated.length) truncated
-        if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix]] else
-            JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]]
+    some_values = truncated.any (v->v.is_nothing.not)
+    if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]] else
+        matrix = make_json_for_matrix (Builder.new truncated.length) truncated
+        if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length]] else
+            object_matrix = make_json_for_object_matrix (Builder.new truncated.length) truncated
+            if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix]] else
+                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]]
 
 ## PRIVATE
    Render Vector of Vector / Array to JSON
@@ -83,8 +85,8 @@ make_json_for_matrix current vector idx=0 = if idx == vector.length then current
         _ : Array -> row.to_vector.take max_columns . map make_json_for_value
         _ -> False
     if to_append == False then Nothing else
-        next = current.append to_append
-        @Tail_Call make_json_for_matrix next vector idx+1
+        current.append to_append
+        @Tail_Call make_json_for_matrix current vector idx+1
 
 ## PRIVATE
    Render Vector of Objects to JSON
@@ -111,8 +113,8 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
                     pairs = js_object.field_names.map f-> [f, make_json_for_value (js_object.get f)]
                     JS_Object.from_pairs pairs
     if to_append == False then Nothing else
-        next = current.append to_append
-        @Tail_Call make_json_for_object_matrix next vector idx+1
+        current.append to_append
+        @Tail_Call make_json_for_object_matrix current vector idx+1
 
 ## PRIVATE
    Render Map to JSON
@@ -148,7 +150,7 @@ make_json_for_js_object js_object max_items =
      `dataframe`.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Dataframe_Table -> Vector Dataframe_Column -> Integer -> JS_Object
+make_json_for_table : Table -> Vector Column -> Integer -> JS_Object
 make_json_for_table dataframe indices all_rows_count =
     get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
     columns     = dataframe.columns
@@ -167,7 +169,7 @@ make_json_for_value val level=0 = case val of
     Nothing -> Nothing
     _ : Text -> val
     _ : Number ->
-        js_version = val.to_js_object
+        js_version = if val.is_finite then val.to_js_object else JS_Object.from_pairs [["type", "Float"], ["value", val.to_text]]
         if js_version.is_a JS_Object . not then js_version else
             pairs = [['_display_text_', val.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
             JS_Object.from_pairs pairs
@@ -183,14 +185,27 @@ make_json_for_value val level=0 = case val of
             truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "{" + (prepared.join ", ") + "}"
-    _ : Dataframe_Column -> make_json_for_value val.to_table level
-    _ : Database_Column -> make_json_for_value val.to_table level
-    _ : Dataframe_Table ->
+    _ : Column ->
+        if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
+            items = make_json_for_value val.to_vector level
+            "Column{" + val.name + ": " + items + "}"
+    _ : Row ->
+        if level != 0 then "Row{" + val.table.column_count + " columns}" else
+            truncated = val.table.column_names.take 5 . map _.to_text
+            prepared = if val.table.column_count > 5 then truncated + ["… " + (val.table.column_count - 5).to_text+ " more"] else truncated
+            "Row{" + (prepared.join ", ") + "}"
+    _ : DB_Column ->
+        if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
+            materialise = val.read (..First 5)
+            truncated = materialise . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
+            prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
+            "Column{" + val.name + ": " + prepared + "}"
+    _ : Table ->
         if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
             truncated = val.columns.take 5 . map _.name
             prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated
             "Table{" + val.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
-    _ : Database_Table ->
+    _ : DB_Table ->
         if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
             truncated = val.columns.take 5 . map _.name
             prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated

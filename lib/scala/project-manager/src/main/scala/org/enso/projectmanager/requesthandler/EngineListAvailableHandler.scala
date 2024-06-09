@@ -1,13 +1,13 @@
 package org.enso.projectmanager.requesthandler
 
 import akka.actor.Props
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.jsonrpc.Unused
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.protocol.ProjectManagementApi.EngineListAvailable
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.ProjectServiceFailure
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementServiceApi
 

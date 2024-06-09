@@ -12,15 +12,12 @@ import { Server } from 'http'
 import { IncomingMessage } from 'node:http'
 import { parse } from 'url'
 import { WebSocket, WebSocketServer } from 'ws'
+import { initializeFFI } from '../shared/ast/ffi'
+import { ConnectionData, docName } from './auth'
 import { setupGatewayClient } from './ydoc'
 
-type ConnectionData = {
-  lsUrl: string
-  doc: string
-  user: string
-}
-
-export function createGatewayServer(httpServer: Server) {
+export async function createGatewayServer(httpServer: Server, rustFFIPath: string | undefined) {
+  await initializeFFI(rustFFIPath)
   const wss = new WebSocketServer({ noServer: true })
   wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {
     ws.on('error', onWebSocketError)
@@ -68,16 +65,4 @@ function authenticate(
   const lsUrl = query.ls
   const data = doc != null && typeof lsUrl === 'string' ? { lsUrl, doc, user } : null
   callback(null, data)
-}
-
-const docNameRegex = /^[a-z0-9/-]+$/i
-function docName(pathname: string) {
-  const prefix = '/project/'
-  if (pathname != null && pathname.startsWith(prefix)) {
-    const docName = pathname.slice(prefix.length)
-    if (docNameRegex.test(docName)) {
-      return docName
-    }
-  }
-  return null
 }

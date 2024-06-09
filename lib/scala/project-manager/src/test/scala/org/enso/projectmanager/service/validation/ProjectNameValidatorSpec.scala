@@ -1,5 +1,6 @@
 package org.enso.projectmanager.service.validation
 
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.control.effect.Effects
 import org.scalatest.EitherValues
 import org.scalatest.matchers.must.Matchers
@@ -11,7 +12,8 @@ class ProjectNameValidatorSpec
     extends AnyWordSpec
     with Matchers
     with EitherValues
-    with Effects {
+    with Effects
+    with ReportLogsOnFailure {
 
   val projectNameValidator = new ProjectNameValidator[ZIO[ZAny, *, *]]()
 

@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path}
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.logger.masking.MaskedPath
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.Manifest.JVMOption
@@ -33,33 +33,49 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     */
   def defaultJVMOptions: Seq[JVMOption] = manifest.jvmOptions
 
+  /** Path to the directory containing all the explicit JPMS modules as Jar archives.
+    * @return
+    */
+  def componentDirPath: Path = path / "component"
+
   /** Path to the runner JAR.
     */
-  def runnerPath: Path = path / "component" / "runner.jar"
+  def runnerPath: Option[Path] = {
+    if (graalRuntimeVersion.isUnchained) {
+      None
+    } else {
+      Some(
+        componentDirPath / "runner.jar"
+      )
+    }
+  }
 
   /** Path to the runtime JAR.
     */
-  def runtimePath: Path = path / "component" / "runtime.jar"
+  def runtimePath: Path = componentDirPath / "runtime.jar"
 
   /** Checks if the installation is not corrupted and reports any issues as
     * failures.
     */
-  def ensureValid(): Try[Unit] =
-    if (!Files.exists(runnerPath))
-      Failure(
+  def ensureValid(): Try[Unit] = {
+    if (runnerPath.isDefined && !Files.exists(runnerPath.get)) {
+      return Failure(
         CorruptedComponentError(
           s"Engine's runner.jar (expected at " +
-          s"`${MaskedPath(runnerPath).applyMasking()}`) is missing."
+          s"`${MaskedPath(runnerPath.get).applyMasking()}`) is missing."
         )
       )
-    else if (!Files.exists(runtimePath))
-      Failure(
+    }
+    if (!Files.exists(runtimePath)) {
+      return Failure(
         CorruptedComponentError(
           s"`Engine's runtime.jar (expected at " +
           s"${MaskedPath(runtimePath).applyMasking()}`) is missing."
         )
       )
-    else Success(())
+    }
+    Success(())
+  }
 
   /** Returns if the engine release was marked as broken when it was being
     * installed.
@@ -89,5 +105,7 @@ object Engine {
     * See `docs/distribution/nightly.md` for more information.
     */
   def isNightly(version: SemVer): Boolean =
-    version.preRelease.exists(_.contains(nightlyInfix))
+    version.preReleaseVersion() != null && version
+      .preReleaseVersion()
+      .contains(nightlyInfix)
 }

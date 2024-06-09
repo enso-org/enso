@@ -7,31 +7,43 @@ import org.enso.polyglot.runtime.Runtime.Api
 import java.util.logging.Level
 
 import scala.jdk.CollectionConverters._
+import org.enso.polyglot.Suggestion
 
 /** A job responsible for deserializing suggestions of loaded library.
   *
   * @param libraryName the name of loaded library
   */
 final class DeserializeLibrarySuggestionsJob(
-  libraryName: LibraryName
-) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority) {
+  val libraryName: LibraryName
+) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority, true)
+    with UniqueJob[Unit] {
+
+  /** @inheritdoc */
+  override def equalsTo(that: UniqueJob[_]): Boolean =
+    that match {
+      case that: DeserializeLibrarySuggestionsJob =>
+        this.libraryName == that.libraryName
+      case _ => false
+    }
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.executionService.getLogger.log(
       Level.FINE,
-      s"Deserializing suggestions for library [$libraryName]."
+      "Deserializing suggestions for library [{}].",
+      libraryName
     )
-    val serializationManager =
-      ctx.executionService.getContext.getCompiler.getSerializationManager
-    serializationManager
+    val cc = ctx.executionService.getContext.getCompiler.context
+    cc
       .deserializeSuggestions(libraryName)
       .foreach { cachedSuggestions =>
+        val suggestions =
+          cachedSuggestions.asInstanceOf[java.util.List[Suggestion]]
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.SuggestionsDatabaseSuggestionsLoadedNotification(
               libraryName,
-              cachedSuggestions.getSuggestions.asScala.toVector
+              suggestions.asScala.toVector
             )
           )
         )

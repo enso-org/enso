@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Float", name = "*", description = "Multiplication of numbers.")
 public abstract class MultiplyNode extends FloatNode {
-  abstract double execute(double self, Object that);
+  abstract double execute(double own, Object that);
 
   static MultiplyNode build() {
     return MultiplyNodeGen.create();

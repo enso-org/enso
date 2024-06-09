@@ -46,7 +46,10 @@ public class ExcelRow {
             return dateTime.toLocalTime();
           }
           if (dateTime.getHour() == 0 && dateTime.getMinute() == 0 && dateTime.getSecond() == 0) {
-            return dateTime.toLocalDate();
+            var dateFormat = cell.getCellStyle().getDataFormatString();
+            if (!dateFormat.contains("h") && !dateFormat.contains("H")) {
+              return dateTime.toLocalDate();
+            }
           }
           return dateTime.atZone(ZoneId.systemDefault());
         } else {

@@ -1,10 +1,9 @@
 package org.enso.table.formatting;
 
-import org.enso.base.time.EnsoDateTimeFormatter;
-import org.graalvm.polyglot.Value;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import org.enso.base.time.EnsoDateTimeFormatter;
+import org.graalvm.polyglot.Value;
 
 public class DateFormatter implements DataFormatter {
   private final DateTimeFormatter formatter;

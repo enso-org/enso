@@ -22,12 +22,14 @@ import java.nio.file.{Path, Paths}
 import scala.sys.process.Process
 import scala.util.Using
 import java.io.FileWriter
+import xsbti.Severity
+import xsbti.Position
 
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
 
-  val frgaal      = "org.frgaal" % "compiler" % "20.0.1" % "provided"
-  val sourceLevel = "20"
+  val frgaal      = "org.frgaal" % "compiler" % "21.0.0" % "provided"
+  val sourceLevel = "21"
 
   val debugArg =
     "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
@@ -218,9 +220,19 @@ object FrgaalJavaCompiler {
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ sources
 
     withArgumentFile(allArguments) { argsFile =>
+      // List of modules that Frgaal can use for compilation
+      val limitModules = Seq(
+        "java.base",
+        "jdk.zipfs",
+        "jdk.internal.vm.compiler.management",
+        "java.desktop",
+        "java.net.http",
+        "java.sql",
+        "jdk.jfr"
+      )
       val limitModulesArgs = Seq(
         "--limit-modules",
-        "java.base,jdk.zipfs,jdk.internal.vm.compiler.management,org.graalvm.locator,java.desktop,java.net.http"
+        limitModules.mkString(",")
       )
       // strippedJArgs needs to be passed via cmd line, and not via the argument file
       val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(
@@ -244,6 +256,29 @@ object FrgaalJavaCompiler {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {
         javacLogger.flush("frgaal", exitCode)
+      }
+      if (exitCode != 0) {
+        class FrgaalPosition extends xsbti.Position {
+          def line(): java.util.Optional[Integer]   = java.util.Optional.empty()
+          def lineContent()                         = "Frgaal errors"
+          def offset(): java.util.Optional[Integer] = java.util.Optional.empty()
+          def pointer(): java.util.Optional[Integer] =
+            java.util.Optional.empty()
+          def pointerSpace(): java.util.Optional[String] =
+            java.util.Optional.empty()
+          def sourceFile(): java.util.Optional[java.io.File] =
+            java.util.Optional.empty()
+          def sourcePath(): java.util.Optional[String] =
+            java.util.Optional.empty()
+        }
+
+        class FrgaalProblem extends xsbti.Problem {
+          def category()           = "Compiler error"
+          def severity(): Severity = Severity.Error
+          def message()            = "Error in frgaal compilation"
+          def position(): Position = new FrgaalPosition()
+        }
+        reporter.log(new FrgaalProblem())
       }
       // We return true or false, depending on success.
       exitCode == 0

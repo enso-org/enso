@@ -9,6 +9,8 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
 import org.graalvm.polyglot.Context;
 
@@ -37,13 +39,16 @@ public class CountDistinct extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     HashSet<UnorderedMultiValueKey> set = new HashSet<>();
     for (int row : indexes) {
       UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, row, textFoldingStrategy);
       if (key.hasFloatValues()) {
-        this.addProblem(new FloatingPointGrouping(this.getName(), row));
+        innerAggregator.reportColumnAggregatedProblem(
+            new FloatingPointGrouping(this.getName(), row));
       }
 
       if (!ignoreAllNull || !key.areAllNull()) {

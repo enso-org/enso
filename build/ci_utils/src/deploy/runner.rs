@@ -3,9 +3,6 @@ use crate::prelude::*;
 use crate::models::config::Runner;
 use crate::models::config::RunnerLocation;
 
-use platforms::target::OS;
-use std::collections::BTreeSet;
-
 
 
 /// Name of the directory with a runner that is placed in runner's container image build context.

@@ -71,12 +71,12 @@ public class BigIntegerOps {
 
   @CompilerDirectives.TruffleBoundary
   public static BigInteger modulo(BigInteger a, long b) {
-    return a.mod(BigInteger.valueOf(b));
+    return a.remainder(BigInteger.valueOf(b));
   }
 
   @CompilerDirectives.TruffleBoundary
   public static BigInteger modulo(BigInteger a, BigInteger b) {
-    return a.mod(b);
+    return a.remainder(b);
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -236,6 +236,15 @@ public class BigIntegerOps {
 
   public static boolean fitsInLong(double decimal) {
     return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
+  }
+
+  private static boolean fitsInLongCompat(double decimal) {
+    var nulaMinus = Double.doubleToRawLongBits(-0d);
+    if (nulaMinus == Double.doubleToRawLongBits(decimal)) {
+      return false;
+    }
+    var converted = (long) decimal;
+    return converted != Long.MAX_VALUE && converted == decimal;
   }
 
   public static boolean fitsInInt(long number) {

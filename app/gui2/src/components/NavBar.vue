@@ -1,24 +1,34 @@
 <script setup lang="ts">
-import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
+import NavBreadcrumbs, { type BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from './SvgButton.vue'
 
-const props = defineProps<{ breadcrumbs: string[] }>()
+const props = defineProps<{
+  breadcrumbs: BreadcrumbItem[]
+  allowNavigationLeft: boolean
+  allowNavigationRight: boolean
+}>()
 const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: number] }>()
 </script>
 
 <template>
   <div class="NavBar">
-    <SvgIcon name="graph_editor" draggable="false" class="icon" />
+    <SvgIcon name="graph_editor" draggable="false" />
     <div class="breadcrumbs-controls">
-      <SvgIcon
+      <SvgButton
         name="arrow_left"
-        draggable="false"
-        class="icon button inactive"
-        @click="emit('back')"
+        :disabled="!props.allowNavigationLeft"
+        title="Back"
+        @click.stop="emit('back')"
       />
-      <SvgIcon name="arrow_right" draggable="false" class="icon button" @click="emit('forward')" />
+      <SvgButton
+        name="arrow_right"
+        :disabled="!props.allowNavigationRight"
+        title="Forward"
+        @click.stop="emit('forward')"
+      />
     </div>
-    <NavBreadcrumbs :breadcrumbs="props.breadcrumbs" @click="emit('breadcrumbClick', $event)" />
+    <NavBreadcrumbs :breadcrumbs="props.breadcrumbs" @selected="emit('breadcrumbClick', $event)" />
   </div>
 </template>
 
@@ -28,6 +38,7 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
   display: flex;
   border-radius: var(--radius-full);
   background: var(--color-frame-bg);
+  backdrop-filter: var(--blur-app-bg);
   place-items: center;
   gap: 12px;
   padding-left: 8px;
@@ -37,10 +48,6 @@ const emit = defineEmits<{ back: []; forward: []; breadcrumbClick: [index: numbe
 
   > .breadcrumbs-controls {
     display: flex;
-  }
-
-  & .inactive {
-    opacity: 0.4;
   }
 }
 </style>

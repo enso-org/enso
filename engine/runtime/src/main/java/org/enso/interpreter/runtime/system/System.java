@@ -14,7 +14,7 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 
@@ -36,7 +36,7 @@ public class System {
 
   @Builtin.Method(description = "Check if the operating system is UNIX.", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
-  public static Boolean is_unix() {
+  public static boolean is_unix() {
     return SystemUtils.IS_OS_UNIX;
   }
 
@@ -109,8 +109,9 @@ public class System {
       if (startedWritingtoOut) throw e;
     }
 
-    p.waitFor();
-
+    // First read from stdout and stderr from the subprocess to prevent a deadlock.
+    // In other words, call `p.waitFor()` after reading from the streams.
+    // For more info, see https://stackoverflow.com/a/882795/4816269
     try (InputStream processOut = p.getInputStream()) {
       OutputStream stdout;
       if (redirectOut) {
@@ -139,6 +140,7 @@ public class System {
       }
     }
 
+    p.waitFor();
     long exitCode = p.exitValue();
     Text returnOut = Text.create(out.toString());
     Text returnErr = Text.create(err.toString());

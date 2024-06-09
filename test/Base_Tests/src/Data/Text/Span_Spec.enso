@@ -1,0 +1,45 @@
+from Standard.Base import all
+import Standard.Base.Data.Text.Span.Span
+import Standard.Base.Data.Text.Span.Utf_16_Span
+
+from Standard.Test import all
+
+
+add_specs suite_builder = suite_builder.group "Text.Span" group_builder->
+
+    group_builder.specify "should be able to be created over a text" <|
+        text = "Hello!"
+        span = Span.Value (0.up_to 3) text
+        span.start . should_equal 0
+        span.end . should_equal 3
+        span.parent . should_equal text
+        span.text . should_equal "Hel"
+
+    group_builder.specify "should be able to be converted to code units" <|
+        text = 'ae\u{301}fz'
+        span = Span.Value (1.up_to 3) text
+        span.to_utf_16_span . should_equal (Utf_16_Span.Value (1.up_to 4) text)
+        span.text . should_equal 'e\u{301}f'
+
+    group_builder.specify "should expand to the associated grapheme clusters" <|
+        text = 'a\u{301}e\u{302}o\u{303}'
+        span = Utf_16_Span.Value (1.up_to 5) text
+        extended = span.to_grapheme_span
+        extended . should_equal (Span.Value (0.up_to 3) text)
+        extended.to_utf_16_span . should_equal (Utf_16_Span.Value (0.up_to 6) text)
+
+        Utf_16_Span.Value (0.up_to 2) text . to_grapheme_span . should_equal (Span.Value (0.up_to 1) text)
+        Utf_16_Span.Value (0.up_to 1) text . to_grapheme_span . should_equal (Span.Value (0.up_to 1) text)
+        Utf_16_Span.Value (0.up_to 0) text . to_grapheme_span . should_equal (Span.Value (0.up_to 0) text)
+        Utf_16_Span.Value (1.up_to 1) text . to_grapheme_span . should_equal (Span.Value (0.up_to 0) text)
+        Utf_16_Span.Value (2.up_to 2) text . to_grapheme_span . should_equal (Span.Value (1.up_to 1) text)
+
+        Utf_16_Span.Value (0.up_to 4) text . to_grapheme_span . should_equal (Span.Value (0.up_to 2) text)
+        Utf_16_Span.Value (0.up_to 3) text . to_grapheme_span . should_equal (Span.Value (0.up_to 2) text)
+        Utf_16_Span.Value (0.up_to 2) text . to_grapheme_span . should_equal (Span.Value (0.up_to 1) text)
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

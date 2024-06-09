@@ -1,4 +1,5 @@
 /** @file Interfaces common to multiple modules. */
+import type * as React from 'react'
 
 // ======================================
 // === Globally accessible interfaces ===
@@ -6,16 +7,22 @@
 
 /** A configuration in which values may be strings or nested configurations. */
 interface StringConfig {
-    [key: string]: StringConfig | string
+    readonly [key: string]: StringConfig | string
+}
+
+/** Props for GUI editor root component. */
+interface EditorProps {
+    readonly config: StringConfig | null
+    readonly projectId: string
+    readonly hidden: boolean
+    readonly ignoreParamsRegex?: RegExp
+    readonly logEvent: (
+        message: string,
+        projectId?: string | null,
+        metadata?: object | null
+    ) => void
 }
 
 /** The value passed from the entrypoint to the dashboard, which enables the dashboard to
  * open a new IDE instance. */
-interface AppRunner {
-    stopApp: () => void
-    runApp: (
-        config: StringConfig | null,
-        accessToken: string | null,
-        metadata?: object
-    ) => Promise<void>
-}
+type EditorRunner = React.ComponentType<EditorProps>

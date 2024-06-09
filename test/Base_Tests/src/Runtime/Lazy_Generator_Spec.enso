@@ -1,0 +1,25 @@
+from Standard.Base import all
+from Standard.Test import all
+
+
+type Generator
+    Value n ~next
+
+natural =
+    gen n = Generator.Value n (gen n+1)
+    gen 2
+
+add_specs suite_builder = suite_builder.group "Lazy Generator" group_builder->
+    group_builder.specify "Generates four numbers properly" <|
+        two = natural
+        two.n . should_equal 2
+        three = two.next
+        three.n . should_equal 3
+        four = three.next
+        four.n . should_equal 4
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

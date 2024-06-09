@@ -1,7 +1,7 @@
 package org.enso.projectmanager.infrastructure.http
 
 import akka.NotUsed
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.model.ws._
 import akka.pattern.pipe
@@ -83,7 +83,7 @@ class AkkaBasedWebSocketConnection(
     receiver ! Detach(listener)
 
   /** @inheritdoc */
-  def connect(): Unit = {
+  override def connect(): Unit = {
     val server = Http()
     secureConfig
       .flatMap { config =>
@@ -121,10 +121,19 @@ class AkkaBasedWebSocketConnection(
   }
 
   /** @inheritdoc */
-  def send(message: String): Unit = outboundChannel ! message
+  override def send(message: String): Unit = {
+    outboundChannel ! message
+  }
 
   /** @inheritdoc */
-  def disconnect(): Unit = outboundChannel ! CloseWebSocket
+  override def disconnect(): Unit = {
+    outboundChannel ! CloseWebSocket
+  }
+
+  /** @inheritdoc */
+  override def close(): Unit = {
+    receiver ! PoisonPill
+  }
 
 }
 

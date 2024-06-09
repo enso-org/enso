@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -52,7 +53,7 @@ type Context
        their columns come and set filters and other settings for processing the
        query.
 
-        Arguments:
+       Arguments:
        - from_spec: the sources for the query, see `From_Spec` for more
          details.
        - where_filters: a list of expressions for filtering - only the rows
@@ -63,7 +64,7 @@ type Context
        - groups: a list of grouping expressions, for each entry a GROUP BY is
          added, the resulting query can then directly include only the
          grouped-by columns or aggregate expressions.
-       - limit: an optional maximum number of elements that the equery should
+       - limit: an optional maximum number of elements that the query should
          return.
     Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (distinct_on : Nothing | Vector SQL_Expression)
 
@@ -137,7 +138,7 @@ type Context
 
     ## PRIVATE
 
-         Returns a copy of the context with changed `distinct_on` expressions.
+       Returns a copy of the context with changed `distinct_on` expressions.
     set_distinct_on : (Nothing | Vector SQL_Expression) -> Context
     set_distinct_on self new_distinct_on =
        Context.Value self.from_spec self.where_filters self.orders self.groups self.limit new_distinct_on
@@ -162,8 +163,8 @@ type Context
         rewrite_internal_column column =
             Internal_Column.Value column.name column.sql_type_reference (SQL_Expression.Column alias column.name)
 
-        new_columns = column_lists.map columns->
-            columns.map rewrite_internal_column
+        new_columns = column_lists.map on_problems=No_Wrap columns->
+            columns.map on_problems=No_Wrap rewrite_internal_column
 
         encapsulated_columns = column_lists.flat_map columns->
             columns.map column-> [column.name, column.expression]

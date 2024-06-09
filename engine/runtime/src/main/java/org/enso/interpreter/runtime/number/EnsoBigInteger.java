@@ -1,19 +1,18 @@
 package org.enso.interpreter.runtime.number;
 
-import java.math.BigInteger;
-
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
+import java.math.BigInteger;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /** Internal wrapper for a {@link BigInteger}. */
 @ExportLibrary(InteropLibrary.class)
@@ -27,11 +26,13 @@ public final class EnsoBigInteger implements EnsoObject {
    * @param value the value to wrap.
    */
   public EnsoBigInteger(BigInteger value) {
-    assert (value.bitLength() > 63);
+    assert (value.bitLength() > 63) : "Too small BigInteger: " + value;
     this.value = value;
   }
 
-  /** @return the contained {@link BigInteger}. */
+  /**
+   * @return the contained {@link BigInteger}.
+   */
   public BigInteger getValue() {
     return value;
   }
@@ -139,8 +140,8 @@ public final class EnsoBigInteger implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getInteger();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().number().getInteger();
   }
 
   @Override

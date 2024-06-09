@@ -13,7 +13,7 @@ public abstract class NegateNode extends IntegerNode {
     return NegateNodeGen.create();
   }
 
-  abstract Object execute(Object self);
+  abstract Object execute(Object own);
 
   @Specialization(rewriteOn = ArithmeticException.class)
   long doNormal(long self) {

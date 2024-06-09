@@ -36,7 +36,9 @@ public abstract class BaseNode extends Node {
     this.tailStatus = tailStatus;
   }
 
-  /** @return the tail position status of this node. */
+  /**
+   * @return the tail position status of this node.
+   */
   public TailStatus getTailStatus() {
     return tailStatus;
   }

@@ -1,0 +1,14 @@
+import local.Test_Fully_Qualified_Name_1
+
+main =
+    # A_Type is directly exported from Test_Fully_Qualified_Name_1's Main module, so this
+    # expression will surely work
+    type_via_logical_path = Test_Fully_Qualified_Name_1.A_Type
+
+    # Try to use it also via physical FQN
+    type_via_physical_path = local.Test_Fully_Qualified_Name_1.Synthetic_Mod.A_Mod.A_Type
+
+    method_via_logical_path = Test_Fully_Qualified_Name_1.static_method "foo"
+    method_via_physical_path = local.Test_Fully_Qualified_Name_1.Synthetic_Mod.A_Mod.static_method "foo"
+
+    (type_via_logical_path == type_via_physical_path) && (method_via_logical_path == method_via_physical_path)

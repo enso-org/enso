@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 type Quote_Style
     ## Does not handle quotes at all.
@@ -30,4 +31,16 @@ type Quote_Style
          The quote and escape characters must consist of exactly one code-point
          (i.e. it can be only one character and complex characters like emojis
          may not be used).
-    With_Quotes (always_quote : Boolean = False) (quote : Text = '"') (quote_escape : Text = '"')
+    With_Quotes (always_quote : Boolean = False) (quote : Text = '"') (quote_escape : Text = quote)
+
+## PRIVATE
+Quote_Style.from (that : JS_Object) =
+    sub_type = that.get "subType" if_missing=(Error.throw (Illegal_Argument.Error "Missing `subType` field in quote style."))
+    case sub_type.to_case Case.Lower of
+        "no_quotes" -> Quote_Style.No_Quotes
+        "with_quotes" ->
+            always_quote = that.get "alwaysQuote" if_missing=False
+            quote = that.get "quote" if_missing='"'
+            escape = that.get "escape" if_missing=quote
+            Quote_Style.With_Quotes always_quote quote escape
+        _ -> Error.throw (Illegal_Argument.Error ("Unknown quote style: " + sub_type))

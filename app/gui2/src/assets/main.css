@@ -2,12 +2,9 @@
 
 body {
   display: flex;
+  min-height: 100vh;
 }
 
-#app {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  font-weight: 500;
-  cursor: default;
+[data-use-vue-component-wrap] {
+  display: contents !important;
 }

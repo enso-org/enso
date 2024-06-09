@@ -1,7 +1,25 @@
 <script lang="ts">
+import { useAutoBlur } from '@/util/autoBlur'
+import { VisualizationContainer } from '@/util/visualizationBuiltins'
+import '@ag-grid-community/styles/ag-grid.css'
+import '@ag-grid-community/styles/ag-theme-alpine.css'
+import type { CellClassParams, ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
+import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  shallowRef,
+  watchEffect,
+  type Ref,
+} from 'vue'
+
 export const name = 'Table'
+export const icon = 'table'
 export const inputType =
-  'Standard.Table.Data.Table.Table | Standard.Table.Data.Column.Column | Standard.Table.Data.Row.Row |Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
+  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Table.Row.Row | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
@@ -51,43 +69,34 @@ interface UnknownTable {
   type: undefined
   json: unknown
   all_rows_count?: number
-  header: string[]
+  header: string[] | undefined
   indices_header?: string[]
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
 }
 
-declare const agGrid: typeof import('ag-grid-enterprise')
+declare module 'ag-grid-enterprise' {
+  // These type parameters are defined on the original interface.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface AbstractColDef<TData, TValue> {
+    field: string
+  }
+}
+
+if (typeof import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY !== 'string') {
+  console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+}
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, watchEffect, type Ref } from 'vue'
-
-import { useDebounceFn } from '@vueuse/core'
-
-// @ts-expect-error
-// eslint-disable-next-line no-redeclare
-import * as agGrid from 'https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.1.0/+esm'
-
-import type {
-  ColDef,
-  ColumnResizedEvent,
-  GridOptions,
-  HeaderValueGetterParams,
-} from 'ag-grid-community'
-
-import VisualizationContainer from '@/components/VisualizationContainer.vue'
-import { useVisualizationConfig } from '@/providers/visualizationConfig.ts'
+const { LicenseManager, Grid } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
 
-const config = useVisualizationConfig()
-
 const INDEX_FIELD_NAME = '#'
-const SIDE_MARGIN = 20
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -95,6 +104,9 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const isTruncated = ref(false)
 const tableNode = ref<HTMLElement>()
+const dataGroupingMap = shallowRef<Map<string, boolean>>()
+useAutoBlur(tableNode)
+const widths = reactive(new Map<string, number>())
 const defaultColDef = {
   editable: false,
   sortable: true as boolean,
@@ -103,29 +115,59 @@ const defaultColDef = {
   minWidth: 25,
   headerValueGetter: (params: HeaderValueGetterParams) => params.colDef.field,
   cellRenderer: cellRenderer,
+  cellClass: cellClass,
 }
 const agGridOptions: Ref<GridOptions & Required<Pick<GridOptions, 'defaultColDef'>>> = ref({
-  headerHeight: 20,
-  rowHeight: 20,
+  headerHeight: 26,
+  rowHeight: 22,
   rowData: [],
   columnDefs: [],
   defaultColDef: defaultColDef as typeof defaultColDef & { manuallySized: boolean },
+  onFirstDataRendered: updateColumnWidths,
+  onRowDataUpdated: updateColumnWidths,
   onColumnResized: lockColumnSize,
   suppressFieldDotNotation: true,
+  enableRangeSelection: true,
+  popupParent: document.body,
 })
 
-const isFirstPage = computed(() => page.value === 0)
-const isLastPage = computed(() => page.value === pageLimit.value - 1)
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
-const selectableRowLimits = computed(() =>
-  [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter((r) => r <= rowCount.value),
-)
+const selectableRowLimits = computed(() => {
+  const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
+    (r) => r <= rowCount.value,
+  )
+  if (rowCount.value < 100000 && !defaults.includes(rowCount.value)) {
+    defaults.push(rowCount.value)
+  }
+  if (!defaults.includes(rowLimit.value)) {
+    defaults.push(rowLimit.value)
+  }
+  return defaults
+})
 const wasAutomaticallyAutosized = ref(false)
 
-function setRowLimitAndPage(newRowLimit: number, newPage: number) {
-  if (newRowLimit !== rowLimit.value || newPage !== page.value) {
+const numberFormatGroupped = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumFractionDigits: 12,
+  useGrouping: true,
+})
+
+const numberFormat = new Intl.NumberFormat(undefined, {
+  style: 'decimal',
+  maximumFractionDigits: 12,
+  useGrouping: false,
+})
+
+function formatNumber(params: ICellRendererParams) {
+  const valueType = params.value?.type
+  const value = valueType === 'BigInt' ? BigInt(params.value?.value) : params.value
+  const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
+  return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
+}
+
+function setRowLimit(newRowLimit: number) {
+  if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
-    page.value = newPage
     emit(
       'update:preprocessor',
       'Standard.Visualization.Table.Visualization',
@@ -146,15 +188,40 @@ function escapeHTML(str: string) {
   return str.replace(/[&<>"']/g, (m) => mapping[m]!)
 }
 
-function cellRenderer(params: { value: string | null }) {
-  if (params.value === null) {
-    return '<span style="color:grey; font-style: italic;">Nothing</span>'
-  } else if (params.value === undefined) {
-    return ''
-  } else if (params.value === '') {
-    return '<span style="color:grey; font-style: italic;">Empty</span>'
+function cellClass(params: CellClassParams) {
+  if (params.colDef.field === '#') return null
+  if (typeof params.value === 'number' || params.value === null) return 'ag-right-aligned-cell'
+  if (typeof params.value === 'object') {
+    const valueType = params.value?.type
+    if (valueType === 'BigInt' || valueType === 'Float') return 'ag-right-aligned-cell'
   }
-  return escapeHTML(params.value.toString())
+  return null
+}
+
+function cellRenderer(params: ICellRendererParams) {
+  // Convert's the value into a display string.
+  if (params.value === null) return '<span style="color:grey; font-style: italic;">Nothing</span>'
+  else if (params.value === undefined) return ''
+  else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
+  else if (typeof params.value === 'number') return formatNumber(params)
+  else if (Array.isArray(params.value)) {
+    const content = params.value
+    if (isMatrix({ json: content })) {
+      return `[Vector ${content.length} rows x ${content[0].length} cols]`
+    } else if (isObjectMatrix({ json: content })) {
+      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
+    } else {
+      return `[Vector ${content.length} items]`
+    }
+  } else if (typeof params.value === 'object') {
+    const valueType = params.value?.type
+    if (valueType === 'BigInt') return formatNumber(params)
+    else if (valueType === 'Float')
+      return `<span style="color:grey; font-style: italic;">${params.value?.value ?? 'Unknown'}</span>`
+    else if ('_display_text_' in params.value && params.value['_display_text_'])
+      return String(params.value['_display_text_'])
+    else return `{ ${valueType} Object }`
+  } else return escapeHTML(params.value.toString())
 }
 
 function addRowIndex(data: object[]): object[] {
@@ -199,7 +266,7 @@ function isMatrix(data: object): data is LegacyMatrix {
 }
 
 function toField(name: string): ColDef {
-  return { field: name, manuallySized: false }
+  return { field: name }
 }
 
 function indexField(): ColDef {
@@ -208,30 +275,22 @@ function indexField(): ColDef {
 
 /** Return a human-readable representation of an object. */
 function toRender(content: unknown) {
-  if (Array.isArray(content)) {
-    if (isMatrix({ json: content })) {
-      return `[Vector ${content.length} rows x ${content[0].length} cols]`
-    } else if (isObjectMatrix({ json: content })) {
-      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
-    } else {
-      return `[Vector ${content.length} items]`
-    }
-  }
-
-  if (typeof content === 'object' && content != null) {
-    const type = 'type' in content ? content.type : undefined
-    if ('_display_text_' in content && content['_display_text_']) {
-      return String(content['_display_text_'])
-    } else {
-      return `{ ${type} Object }`
-    }
-  }
-
-  return String(content)
+  return content
 }
 
 watchEffect(() => {
-  const data_ = props.data
+  // If the user switches from one visualization type to another, we can receive the raw object.
+  const data_ =
+    typeof props.data === 'object' ?
+      props.data
+    : {
+        type: typeof props.data,
+        json: props.data,
+        // eslint-disable-next-line camelcase
+        all_rows_count: 1,
+        data: undefined,
+        indices: undefined,
+      }
   const options = agGridOptions.value
   if (options.api == null) {
     return
@@ -241,36 +300,33 @@ watchEffect(() => {
   let rowData: object[] = []
 
   if ('error' in data_) {
-    options.api.setColumnDefs([
+    columnDefs = [
       {
         field: 'Error',
         cellStyle: { 'white-space': 'normal' },
-        manuallySized: false,
       },
-    ])
-    options.api.setRowData([{ Error: data_.error }])
+    ]
+    rowData = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
-    let defs: ColDef[] = [indexField()]
+    columnDefs.push(indexField())
     for (let i = 0; i < data_.column_count; i++) {
-      defs.push(toField(i.toString()))
+      columnDefs.push(toField(i.toString()))
     }
-    columnDefs = defs
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
-    let defs: ColDef[] = [indexField()]
+    columnDefs.push(indexField())
     let keys = new Set<string>()
     for (const val of data_.json) {
       if (val != null) {
         Object.keys(val).forEach((k) => {
           if (!keys.has(k)) {
             keys.add(k)
-            defs.push(toField(k))
+            columnDefs.push(toField(k))
           }
         })
       }
     }
-    columnDefs = defs
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (isMatrix(data_)) {
@@ -286,20 +342,18 @@ watchEffect(() => {
   } else if (Array.isArray(data_.json)) {
     columnDefs = [indexField(), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
-    isTruncated.value = data_.all_rows_count !== data_.json.length
+    isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs = [toField('Value')]
     rowData = [{ Value: toRender(data_.json) }]
   } else {
     const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map(toField)
-    columnDefs = [...indicesHeader, ...data_.header.map(toField)]
-
+    const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
+    columnDefs = [...indicesHeader, ...dataHeader]
     const rows =
-      data_.data && data_.data.length > 0
-        ? data_.data[0]?.length ?? 0
-        : data_.indices && data_.indices.length > 0
-        ? data_.indices[0]?.length ?? 0
-        : 0
+      data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0
+      : data_.indices && data_.indices.length > 0 ? data_.indices[0]?.length ?? 0
+      : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       const shift = data_.indices ? data_.indices.length : 0
       return Object.fromEntries(
@@ -321,61 +375,63 @@ watchEffect(() => {
     page.value = newPageLimit
   }
 
+  if (rowData.length) {
+    const headers = Object.keys(rowData[0] as object)
+    const headerGroupingMap = new Map()
+    headers.forEach((header) => {
+      const needsGrouping = rowData.some((row: any) => {
+        if (header in row && row[header] != null) {
+          const value = typeof row[header] === 'object' ? row[header].value : row[header]
+          return value > 9999
+        }
+      })
+      headerGroupingMap.set(header, needsGrouping)
+    })
+    dataGroupingMap.value = headerGroupingMap
+  }
+
+  // If an existing grid, merge width from manually sized columns.
+  const newWidths = new Map<string, number>()
+  const mergedColumnDefs = columnDefs.map((columnDef) => {
+    if (!columnDef.field) return columnDef
+    const width = widths.get(columnDef.field)
+    if (width != null) newWidths.set(columnDef.field, (columnDef.width = width))
+    return columnDef
+  })
+  widths.clear()
+  for (const [key, value] of newWidths) widths.set(key, value)
+
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
   options.defaultColDef.filter = !isTruncated.value
   options.defaultColDef.sortable = !isTruncated.value
-  options.api.setColumnDefs(columnDefs)
+  options.api.setColumnDefs(mergedColumnDefs)
   options.api.setRowData(rowData)
 })
 
-function updateTableSize(clientWidth: number | undefined) {
-  clientWidth ??= tableNode.value?.getBoundingClientRect().width ?? 0
+function updateColumnWidths() {
   const columnApi = agGridOptions.value.columnApi
   if (columnApi == null) {
     console.warn('AG Grid column API does not exist.')
     return
   }
-  // Resize columns to fit the table width unless the user manually resized them.
-  const cols = columnApi.getAllGridColumns().filter((c) => !c.getColDef().manuallySized)
-  // Compute the maximum width of a column: the client width minus a small margin.
-  const maxWidth = clientWidth - SIDE_MARGIN
-  // Resize based on the data and then shrink any columns that are too wide.
-  wasAutomaticallyAutosized.value = true
-  columnApi.autoSizeColumns(cols, true)
-  const bigCols = cols
-    .filter((c) => c.getActualWidth() > maxWidth)
-    .map((c) => ({ key: c, newWidth: maxWidth, manuallySized: false }))
-  columnApi.setColumnWidths(bigCols)
+  const cols = columnApi.getAllGridColumns().filter((c) => {
+    const field = c.getColDef().field
+    return field && !widths.has(field)
+  })
+  columnApi.autoSizeColumns(cols)
 }
 
 function lockColumnSize(e: ColumnResizedEvent) {
   // Check if the resize is finished, and it's not from the API (which is triggered by us).
-  if (!e.finished || e.source === 'api') {
-    return
-  }
+  if (!e.finished || e.source === 'api') return
   // If the user manually resized (or manually autosized) a column, we don't want to auto-size it
   // on a resize.
   const manuallySized = e.source !== 'autosizeColumns' || !wasAutomaticallyAutosized.value
   wasAutomaticallyAutosized.value = false
   for (const column of e.columns ?? []) {
-    column.getColDef().manuallySized = manuallySized
+    const field = column.getColDef().field
+    if (field && manuallySized) widths.set(field, column.getActualWidth())
   }
-}
-
-function goToFirstPage() {
-  setRowLimitAndPage(rowLimit.value, 0)
-}
-
-function goToPreviousPage() {
-  setRowLimitAndPage(rowLimit.value, page.value - 1)
-}
-
-function goToNextPage() {
-  setRowLimitAndPage(rowLimit.value, page.value + 1)
-}
-
-function goToLastPage() {
-  setRowLimitAndPage(rowLimit.value, pageLimit.value - 1)
 }
 
 // ===============
@@ -383,44 +439,44 @@ function goToLastPage() {
 // ===============
 
 onMounted(() => {
-  setRowLimitAndPage(1000, 0)
-  if ('AG_GRID_LICENSE_KEY' in window && typeof window.AG_GRID_LICENSE_KEY === 'string') {
-    agGrid.LicenseManager.setLicenseKey(window.AG_GRID_LICENSE_KEY)
-  } else {
-    console.warn('The AG_GRID_LICENSE_KEY is not defined.')
+  setRowLimit(1000)
+  const agGridLicenseKey = import.meta.env.VITE_ENSO_AG_GRID_LICENSE_KEY
+  if (typeof agGridLicenseKey === 'string') {
+    LicenseManager.setLicenseKey(agGridLicenseKey)
+  } else if (import.meta.env.DEV) {
+    // Hide annoying license validation errors in dev mode when the license is not defined. The
+    // missing define warning is still displayed to not forget about it, but it isn't as obnoxious.
+    const origValidateLicense = LicenseManager.prototype.validateLicense
+    LicenseManager.prototype.validateLicense = function (this) {
+      if (!('licenseManager' in this))
+        Object.defineProperty(this, 'licenseManager', {
+          configurable: true,
+          set(value: any) {
+            Object.getPrototypeOf(value).validateLicense = () => {}
+            delete this.licenseManager
+            this.licenseManager = value
+          },
+        })
+      origValidateLicense.call(this)
+    }
   }
-  new agGrid.Grid(tableNode.value!, agGridOptions.value)
-  setTimeout(() => updateTableSize(undefined), 0)
+  // TODO: consider using Vue component instead: https://ag-grid.com/vue-data-grid/getting-started/
+  new Grid(tableNode.value!, agGridOptions.value)
+  updateColumnWidths()
 })
 
-watch(
-  () => config.value.fullscreen,
-  () => queueMicrotask(() => updateTableSize(undefined)),
-)
-
-const debouncedUpdateTableSize = useDebounceFn((...args: Parameters<typeof updateTableSize>) => {
-  queueMicrotask(() => {
-    updateTableSize(...args)
-  })
-}, 500)
-
-watch(
-  () => [props.data, config.value.width],
-  () => {
-    debouncedUpdateTableSize(undefined)
-  },
-)
+onUnmounted(() => {
+  agGridOptions.value.api?.destroy()
+})
 </script>
 
 <template>
   <VisualizationContainer :belowToolbar="true" :overflow="true">
     <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
       <div class="table-visualization-status-bar">
-        <button :disabled="isFirstPage" @click="goToFirstPage">«</button>
-        <button :disabled="isFirstPage" @click="goToPreviousPage">&lsaquo;</button>
         <select
           v-if="isRowCountSelectorVisible"
-          @change="setRowLimitAndPage(Number(($event.target as HTMLOptionElement).value), page)"
+          @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
         >
           <option
             v-for="limit in selectableRowLimits"
@@ -436,8 +492,6 @@ watch(
         <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
         <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
         <span v-else v-text="`${rowCount} rows.`"></span>
-        <button :disabled="isLastPage" @click="goToNextPage">&rsaquo;</button>
-        <button :disabled="isLastPage" @click="goToLastPage">»</button>
       </div>
       <div ref="tableNode" class="scrollable ag-theme-alpine"></div>
     </div>
@@ -445,9 +499,6 @@ watch(
 </template>
 
 <style scoped>
-@import url('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css');
-@import url('https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css');
-
 .TableVisualization {
   display: flex;
   flex-flow: column;
@@ -468,12 +519,6 @@ watch(
   white-space: nowrap;
   padding: 0 5px;
   overflow: hidden;
-}
-
-.table-visualization-status-bar > button {
-  width: 12px;
-  margin: 0 2px;
-  display: none;
 }
 </style>
 

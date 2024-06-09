@@ -3,7 +3,7 @@ package org.enso.launcher
 import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.config.DefaultVersion
 import org.enso.editions.updater.EditionManager
 import org.enso.runtimeversionmanager.CurrentVersion
@@ -96,7 +96,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             additionalArguments = additionalArguments
           )
           .get,
-        JVMSettings(useSystemJVM, jvmOpts)
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq.empty)
       ) { command =>
         command.run().get
       }
@@ -223,7 +223,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             additionalArguments
           )
           .get,
-        JVMSettings(useSystemJVM, jvmOpts)
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
       ) { command =>
         command.run().get
       }
@@ -267,7 +267,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             additionalArguments
           )
           .get,
-        JVMSettings(useSystemJVM, jvmOpts)
+        JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
       ) { command =>
         command.run().get
       }
@@ -310,7 +310,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             additionalArguments
           )
           .get,
-        JVMSettings(useSystemJVM, jvmOpts)
+        JVMSettings(useSystemJVM, jvmOpts, Seq())
       ) { command =>
         command.run().get
       }
@@ -346,7 +346,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           additionalArguments = additionalArguments
         )
         .get,
-      JVMSettings(useSystemJVM, jvmOpts)
+      JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
     ) { command =>
       command.run().get
     }
@@ -413,8 +413,11 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       )
       .get
 
-    runner.withCommand(settings, JVMSettings(useSystemJVM, jvmOpts)) {
-      command => command.run().get
+    runner.withCommand(
+      settings,
+      JVMSettings(useSystemJVM, jvmOpts, extraOptions = Seq())
+    ) { command =>
+      command.run().get
     }
   }
 
@@ -530,7 +533,11 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val runtimeVersionString = if (isEngineInstalled) {
       val output = runner.withCommand(
         runtimeVersionRunSettings,
-        JVMSettings(useSystemJVM = false, jvmOptions = Seq.empty)
+        JVMSettings(
+          useSystemJVM = false,
+          jvmOptions   = Seq(),
+          extraOptions = Seq()
+        )
       ) { runtimeVersionCommand =>
         runtimeVersionCommand.captureOutput().get
       }
@@ -565,7 +572,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     if (targetVersion == CurrentVersion.version) {
       InfoLogger.info("Already up-to-date.")
       0
-    } else if (targetVersion < CurrentVersion.version && !isManuallyRequested) {
+    } else if (
+      targetVersion.isLessThan(CurrentVersion.version) && !isManuallyRequested
+    ) {
       logger.warn(
         s"The latest available version is $targetVersion, but you are " +
         s"running ${CurrentVersion.version} which is more recent."

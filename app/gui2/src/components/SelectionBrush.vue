@@ -1,34 +1,29 @@
 <script setup lang="ts">
-import { computed, ref, watch, type Ref } from 'vue'
-
-import { useApproach } from '@/util/animation'
-import { useDocumentEvent } from '@/util/events'
-import type { Vec2 } from '@/util/vec2'
+import { useApproach } from '@/composables/animation'
+import type { Vec2 } from '@/util/data/vec2'
+import { computed, shallowRef, watch } from 'vue'
 
 const props = defineProps<{
   position: Vec2
   anchor: Vec2 | undefined
 }>()
 
-const hidden = ref(false)
-const lastSetAnchor: Ref<Vec2 | undefined> = computed(() => props.anchor ?? lastSetAnchor.value)
+const hidden = computed(() => props.anchor == null)
+const lastSetAnchor = shallowRef<Vec2>()
+watch(
+  () => props.anchor,
+  (anchor) => {
+    if (anchor !== null && lastSetAnchor.value !== anchor) {
+      lastSetAnchor.value = anchor
+    }
+  },
+)
 
 const anchorAnimFactor = useApproach(() => (props.anchor != null ? 1 : 0), 60)
 watch(
   () => props.anchor != null,
   (set) => set && anchorAnimFactor.skip(),
 )
-
-let lastEventTarget: Element | null
-useDocumentEvent('mouseover', (event) => {
-  if (event.target instanceof Element) {
-    if (event.target === lastEventTarget) {
-      return
-    }
-    lastEventTarget = event.target
-    hidden.value = getComputedStyle(event.target).cursor !== 'none'
-  }
-})
 
 const brushStyle = computed(() => {
   const a = props.position
@@ -45,16 +40,11 @@ const brushStyle = computed(() => {
 </script>
 
 <template>
-  <div
-    class="SelectionBrush"
-    :class="{ cursor: props.anchor == null, hidden }"
-    :style="brushStyle"
-  ></div>
+  <div class="SelectionBrush" :class="{ hidden }" :style="brushStyle"></div>
 </template>
 
 <style scoped>
 .SelectionBrush {
-  --radius-cursor: 8px;
   --margin-brush: 6px;
   transition-property: border, margin;
   transition-duration: 100ms;
@@ -62,23 +52,15 @@ const brushStyle = computed(() => {
   position: absolute;
   pointer-events: none;
   background: lch(70% 0 0 / 0.5);
-  border-radius: var(--radius-cursor);
+  border-radius: 8px;
   border: var(--margin-brush) solid #0000;
   margin: calc(0px - var(--margin-brush));
   z-index: 1000;
 
   &.hidden {
-    display: none;
-  }
-
-  &.cursor {
-    border: var(--radius-cursor) solid #0000;
-    margin: calc(0px - var(--radius-cursor));
-
-    /* &.transition { */
-    /* transition-property: left, top, width, height; */
-    /* transition-duration: 150ms; */
-    /* } */
+    /* Keep brush "displayed" for animations */
+    display: block;
+    --margin-brush: 0px;
   }
 }
 </style>

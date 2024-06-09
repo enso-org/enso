@@ -1,0 +1,48 @@
+"Copyright (c) Oracle and/or its affiliates. Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.");
+1. Redistributions of source code must retain the above copyright
+1. Redistributions of source code must retain the above copyright notice, this list of
+2. Redistributions in binary form must reproduce the above copyright
+2. Redistributions in binary form must reproduce the above copyright notice, this list of
+<li>Changing the copyright date.</li>
+@CApiBuiltin(name = "Py_GetCopyright", ret = ConstCharPtrAsTruffleString, args = {}, call = NotImplemented)
+@Option(category = OptionCategory.USER, help = "Equivalent to the Python -q flag. Don't  print version and copyright messages on interactive startup.", usageSyntax = "true|false", stability = OptionStability.STABLE) //
+A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+Copyright (C) 1996-2021 Python Software Foundation
+Copyright (c) 2016 Jython Developers
+Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+Copyright (c) 2017, 2023, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+Copyright (c) 2021, 2021, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2022, 2022, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2023, 2023, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+OptionDescriptor.newBuilder(PythonOptions.QuietFlag, "python.QuietFlag").deprecated(false).help("Equivalent to the Python -q flag. Don't  print version and copyright messages on interactive startup.").usageSyntax("true|false").category(OptionCategory.USER).stability(OptionStability.STABLE).build(),
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+The above copyright notice and either this complete permission notice or at a
+addBuiltinConstant("copyright", T_LICENSE);
+copyright rights in the Software, and any and all patent rights owned or
+return OptionDescriptor.newBuilder(PythonOptions.QuietFlag, "python.QuietFlag").deprecated(false).help("Equivalent to the Python -q flag. Don't  print version and copyright messages on interactive startup.").usageSyntax("true|false").category(OptionCategory.USER).stability(OptionStability.STABLE).build();

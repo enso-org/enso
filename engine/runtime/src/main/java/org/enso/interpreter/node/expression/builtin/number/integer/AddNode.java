@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends IntegerNode {
 
-  public abstract Object execute(Object self, Object that);
+  public abstract Object execute(Object own, Object that);
 
   public static AddNode build() {
     return AddNodeGen.create();

@@ -1,11 +1,11 @@
 import project.Any.Any
+import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
-import project.Data.Text.Helpers
 import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
@@ -29,15 +29,17 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import sort_and_merge_ranges
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
+from project.Runtime import assert
 
 polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
 
 type Regex
-    ## Compile the provided `expression` into a `Regex` that can be used for
+    ## ICON text
+       Compile the provided `expression` into a `Regex` that can be used for
        matching.
 
-       Arguments
+       Arguments:
        - expression: The text representing the regular expression that you want to
          compile. Must be non-empty.
        - case_insensitive: Enables or disables case-insensitive matching. Case
@@ -45,8 +47,8 @@ type Regex
          text before matching on it.
 
        If an empty regex is used, `compile` throws an Illegal_Argument error.
-    compile : Text -> Boolean | Nothing -> Regex ! Regex_Syntax_Error | Illegal_Argument
-    compile expression case_insensitive=False =
+    compile : Text -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
+    compile expression:Text case_insensitive:Boolean=False =
         if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
             options_string = if case_insensitive == True then "usgi" else "usg"
 
@@ -62,6 +64,7 @@ type Regex
     Value (case_insensitive : Boolean) (internal_regex_object : Any)
 
     ## GROUP Metadata
+       ICON metadata
        Gets the original pattern used to create this `Regex`.
     pattern : Text
     pattern self = self.internal_regex_object.pattern
@@ -78,18 +81,19 @@ type Regex
     to_display_text self = "Regex /" + self.pattern + "/" + (if self.case_insensitive then "i" else "")
 
     ## GROUP Text
+       ICON preparation
        Returns `True` if the input matches against the pattern described by
        `self`, otherwise `False`.
 
        Arguments:
        - input: The text to check for matching.
     matches : Text -> Boolean | Type_Error
-    matches self input =
-        Helpers.expect_text input <|
-            m = self.internal_regex_object.exec input 0
-            m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
+    matches self (input : Text) =
+        m = self.internal_regex_object.exec input 0
+        m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
     ## GROUP Text
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Match` containing the matched text and its match groups, or
@@ -97,15 +101,15 @@ type Regex
 
        Arguments:
        - input: The text to match the pattern described by `self` against.
-    match : Text -> Match | Nothing | Type_Error
-    match self input =
-        Helpers.expect_text input <|
-            it = Match_Iterator.new self input
-            case it.next of
-                Match_Iterator_Value.Next _ match _ -> match
-                Match_Iterator_Value.Last _ -> Nothing
+    match : Text -> Match | Nothing ! Type_Error
+    match self (input : Text) =
+        it = Match_Iterator.new self input
+        case it.next of
+            Match_Iterator_Value.Next _ match _ -> match
+            Match_Iterator_Value.Last _ -> Nothing
 
     ## GROUP Text
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Vector Match` object, each containing the matched text
@@ -114,11 +118,10 @@ type Regex
        Arguments:
        - input: The text to match the pattern described by `self` against.
     match_all : Text -> Vector Match ! Type_Error | Illegal_Argument
-    match_all self input =
-        Helpers.expect_text input <|
-            pattern_is_empty = self.pattern == ''
-            if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
-                builder = Vector.new_builder
+    match_all self (input : Text) =
+        pattern_is_empty = self.pattern == ''
+        if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
+            Vector.build builder->
                 it = Match_Iterator.new self input
                 go it = case it.next of
                     Match_Iterator_Value.Next _ match next_it ->
@@ -126,9 +129,9 @@ type Regex
                         @Tail_Call go next_it
                     Match_Iterator_Value.Last _ -> Nothing
                 go it
-                builder.to_vector
 
     ## GROUP Selections
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Text` containing the matched text, or `Nothing` if the match
@@ -137,11 +140,11 @@ type Regex
        Arguments:
        - input: The text to match the pattern described by `self` against.
     find : Text -> Text | Nothing | Type_Error
-    find self input =
-        Helpers.expect_text input <|
-           match_to_group_maybe <| self.match input
+    find self (input : Text) =
+       match_to_group_maybe <| self.match input
 
     ## GROUP Selections
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Vector Text`, each containing the matched text.
@@ -150,11 +153,11 @@ type Regex
        Arguments:
        - input: The text to match the pattern described by `self` against.
     find_all : Text -> Vector Text ! Type_Error
-    find_all self input =
-        Helpers.expect_text input <|
-           self.match_all input . map match_to_group_maybe
+    find_all self (input : Text) =
+       self.match_all input . map match_to_group_maybe
 
     ## GROUP Conversions
+       ICON split
        Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
@@ -185,9 +188,8 @@ type Regex
              texts = pattern.split input
              texts . should_equal ["abcdefghij"]
     split : Text -> Boolean -> Vector Text | Type_Error
-    split self input only_first=False =
-        Helpers.expect_text input <|
-            builder = Vector.new_builder
+    split self (input : Text) (only_first : Boolean = False) =
+        Vector.build builder->
             it = Match_Iterator.new self input
             go next = case next of
                 Match_Iterator_Value.Next filler _ next_it ->
@@ -197,9 +199,9 @@ type Regex
                 Match_Iterator_Value.Last filler ->
                     builder.append filler.text
             go it.next
-            builder.to_vector
 
     ## GROUP Conversions
+       ICON split
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned. Non-participating
@@ -228,6 +230,7 @@ type Regex
         self.match_all input . map (build_tokenization_output_from_match self _)
 
     ## GROUP Text
+       ICON text
        Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
 
@@ -284,23 +287,22 @@ type Regex
              pattern = Regex.compile "([a-z]+)"
              pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
     replace : Text -> Text -> Boolean -> Text | Type_Error
-    replace self input replacement only_first=False =
-        Helpers.expect_text input <|
-            it = Match_Iterator.new self input
-            case it of
-                Match_Iterator_Value.Last filler -> filler.text
-                _ ->
-                    replacer = Replacer.new replacement self
+    replace self (input : Text) (replacement : Text) (only_first : Boolean = False) =
+        it = Match_Iterator.new self input
+        case it of
+            Match_Iterator_Value.Last filler -> filler.text
+            _ ->
+                replacer = Replacer.new replacement self
 
-                    replacer.if_not_error <|
-                        go next current = case next of
-                            Match_Iterator_Value.Next filler match next_it ->
-                                new_value = current + filler.text + (replacer.replace match)
-                                next = if only_first then next_it.early_exit else next_it.next
-                                @Tail_Call go next new_value
-                            Match_Iterator_Value.Last filler ->
-                                current + filler.text
-                        go it.next ""
+                replacer.if_not_error <|
+                    go next current = case next of
+                        Match_Iterator_Value.Next filler match next_it ->
+                            new_value = current + filler.text + (replacer.replace match)
+                            next = if only_first then next_it.early_exit else next_it.next
+                            @Tail_Call go next new_value
+                        Match_Iterator_Value.Last filler ->
+                            current + filler.text
+                    go it.next ""
 
     ## PRIVATE
 
@@ -309,7 +311,8 @@ type Regex
        Arguments:
        - id: The name or number of the group that was asked for.
 
-       Returns: a group number.
+       Returns:
+       A group number.
 
        A group number is invalid if it is outside the range of groups
        that were in the original pattern.
@@ -331,7 +334,6 @@ type Regex
        In this case, the group id for "(d)", which is 3, is a valid group id and
        (Regex.lookup_group 3) will return 3. If the caller tries to get group 3,
        Match.group will return Nothing.
-
     lookup_group : Integer | Text -> Integer ! No_Such_Group
     lookup_group self id =
         case id of
@@ -347,6 +349,10 @@ type Regex
                     Nothing -> Error.throw (No_Such_Group.Error name)
                     _ -> read_group_map groups name
                 case n of
+                    _ : Array ->
+                        # This case is reachable after https://github.com/oracle/graal/commit/59bbc050602d5045662bdd91e7b9be19b0839a3b
+                        assert (n.length == 1)
+                        n.at 0
                     _ : Integer -> n
                     Nothing -> Error.throw (No_Such_Group.Error name)
 
@@ -354,30 +360,35 @@ type Regex
 
        Return a lazy iterator over matches against a string.
 
-       Arguments
+       Arguments:
        - text: the string to match against.
     iterator : Text -> Match_Iterator
     iterator self input = Match_Iterator.new self input
 
-    ## Return the number of groups in the underlying RegexObject.
+    ## GROUP Metadata
+       ICON metadata
+       Return the number of groups in the underlying RegexObject.
        Note, the count includes group 0 (the whole match) as well.
     group_count : Integer
     group_count self = self.internal_regex_object.groupCount
 
     ## GROUP Metadata
+       ICON metadata
        Return a vector of all named group names.
     named_groups : Vector Text
     named_groups self =
         map = polyglot_map_to_map self.internal_regex_object.groups
         map.keys
 
-    ## Return a map from group number to group name. Only includes named groups.
+    ## ICON metadata
+       Return a map from group number to group name. Only includes named groups.
     group_nums_to_names : Map Integer Text
     group_nums_to_names self =
         map = polyglot_map_to_map self.internal_regex_object.groups
-        map.transform k-> v-> [v, k]
+        map.transform k-> v-> [v.at 0, k]
 
-    ## Escape the special characters in `expression` such that the result is a
+    ## ICON text
+       Escape the special characters in `expression` such that the result is a
        valid literal pattern for the original string.
 
        Arguments:
@@ -479,3 +490,14 @@ type Regex_Syntax_Error
        Provides a human-readable representation of the `Regex_Syntax_Error`.
     to_display_text : Text
     to_display_text self = "Regex Syntax Error:" + self.message
+
+## ICON text
+   Shorthand to create a regular expression from a Text value.
+
+   If an empty regex is used, throws an Illegal_Argument error.
+
+   Arguments:
+   - expression: The text representing the regular expression that you want to
+     compile. Must be non-empty.
+regex : Text -> Regex ! Regex_Syntax_Error | Illegal_Argument
+regex expression:Text = Regex.compile expression

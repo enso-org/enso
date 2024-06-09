@@ -1,3 +1,7 @@
+/** @file Functions for manipulating Vue reactive objects. */
+
+import { defaultEquality } from '@/util/equals'
+import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
 import {
   callWithErrorHandling,
@@ -5,10 +9,15 @@ import {
   effect,
   effectScope,
   isRef,
-  reactive,
-  ref,
+  queuePostFlushCb,
+  shallowRef,
+  toValue,
+  watch,
+  type ComputedRef,
+  type MaybeRefOrGetter,
   type Ref,
   type WatchSource,
+  type WritableComputedRef,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -32,6 +41,7 @@ export type StopEffect = () => void
 export class LazySyncEffectSet {
   _dirtyRunners = new Set<() => void>()
   _scope = effectScope()
+  _boundFlush = this.flush.bind(this)
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs
@@ -46,8 +56,9 @@ export class LazySyncEffectSet {
         let cleanup: (() => void) | null = null
         const callCleanup = () => {
           if (cleanup != null) {
-            callWithErrorHandling(cleanup, null, 4 /* ErrorCodes.WATCH_CLEANUP */)
+            const tmpCleanup = cleanup
             cleanup = null
+            callWithErrorHandling(tmpCleanup, null, 4 /* ErrorCodes.WATCH_CLEANUP */)
           }
         }
         function onCleanup(fn: () => void) {
@@ -60,7 +71,9 @@ export class LazySyncEffectSet {
             fn(onCleanup)
           },
           {
+            lazy: true,
             scheduler: () => {
+              if (this._dirtyRunners.size === 0) queuePostFlushCb(this._boundFlush)
               this._dirtyRunners.add(runner)
             },
             onStop: () => {
@@ -69,6 +82,7 @@ export class LazySyncEffectSet {
             },
           },
         )
+        runner.effect.scheduler?.()
         return () => runner.effect.stop()
       }) ?? nop
     )
@@ -92,148 +106,76 @@ export class LazySyncEffectSet {
   }
 }
 
-if (import.meta.vitest) {
-  const { test, expect, vi } = import.meta.vitest
+/**
+ * Create a ref that is updated whenever the given function's return value changes. Similar to
+ * `computed`, but differs in significant ways:
+ * - The dependencies of the `getter` will not be propagated to any effects that access the result.
+ * - The `getter` will run even if the ref is not actively observed by any effects (i.e. it is
+ * effectively an **always-active watcher**),
+ * - The `ref` will only be updated only when the derived value actually changed (as determined by
+ *   the `equalFn` equality test).
+ *
+ * This is most useful for derived values that are accessed often and recompute frequently, but the
+ * actual derived result changes very rarely. When in doubt, use `computed` instead.
+ */
+export function cachedGetter<T>(
+  getter: () => T,
+  equalFn: (a: T, b: T) => boolean = defaultEquality,
+): Ref<T> {
+  const valueRef = shallowRef<T>(getter())
+  watch(
+    getter,
+    (newValue) => {
+      const oldValue = valueRef.value
+      if (!equalFn(oldValue, newValue)) valueRef.value = newValue
+    },
+    { flush: 'sync' },
+  )
 
-  test('LazySyncEffectSet', () => {
-    const lazySet = new LazySyncEffectSet()
+  return valueRef
+}
 
-    const key1 = ref(0)
-    const key2 = ref(100)
-    const lazilyUpdatedMap = reactive(new Map<number, string>())
+/**
+ * Same as `cachedGetter`, except that any changes will be not applied immediately, but only after
+ * the timer set for `debounce` milliseconds will expire. If any further update arrives in that
+ * time, the timer is restarted.
+ */
+export function debouncedGetter<T>(
+  getter: WatchSource<T>,
+  debounce: number,
+  equalFn: (a: T, b: T) => boolean = defaultEquality,
+): Ref<T> {
+  const valueRef = shallowRef<T>(toValue(getter))
+  debouncedWatch(
+    getter,
+    (newValue) => {
+      const oldValue = valueRef.value
+      if (!equalFn(oldValue, newValue)) valueRef.value = newValue
+    },
+    { debounce },
+  )
+  return valueRef
+}
 
-    let runCount = 0
-    const stopA = lazySet.lazyEffect((onCleanup) => {
-      const currentValue = key1.value
-      lazilyUpdatedMap.set(currentValue, 'a' + runCount++)
-      onCleanup(() => lazilyUpdatedMap.delete(currentValue))
-    })
+/** Update `target` to have the same entries as `newState`. */
+export function syncSet<T>(target: Set<T>, newState: Set<T>) {
+  for (const oldKey of target) if (!newState.has(oldKey)) target.delete(oldKey)
+  for (const newKey of newState) if (!target.has(newKey)) target.add(newKey)
+}
 
-    lazySet.lazyEffect((onCleanup) => {
-      const currentValue = key2.value
-      lazilyUpdatedMap.set(currentValue, 'b' + runCount++)
-      onCleanup(() => lazilyUpdatedMap.delete(currentValue))
-    })
+/** Type of the parameter of `toValue`. */
+export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
 
-    // Dependant effect, notices when -1 key is inserted into the map by another effect.
-    const cleanupSpy = vi.fn()
-    lazySet.lazyEffect((onCleanup) => {
-      const negOne = lazilyUpdatedMap.get(-1)
-      if (negOne != null) {
-        lazilyUpdatedMap.set(-2, `noticed ${negOne}!`)
-        onCleanup(() => {
-          cleanupSpy()
-          lazilyUpdatedMap.delete(-2)
-        })
-      }
-    })
-
-    expect(lazilyUpdatedMap, 'The effects should run immediately after registration').toEqual(
-      new Map([
-        [0, 'a0'],
-        [100, 'b1'],
-      ]),
-    )
-
-    key1.value = 1
-    expect(lazilyUpdatedMap, 'The effects should not perform any updates until flush').toEqual(
-      new Map([
-        [0, 'a0'],
-        [100, 'b1'],
-      ]),
-    )
-
-    key1.value = 2
-    lazySet.flush()
-    expect(
-      lazilyUpdatedMap,
-      'A cleanup and update should run on flush, but only for the updated key',
-    ).toEqual(
-      new Map([
-        [2, 'a2'],
-        [100, 'b1'],
-      ]),
-    )
-
-    key1.value = 3
-    key2.value = 103
-    stopA()
-    expect(
-      lazilyUpdatedMap,
-      'Stop should immediately trigger cleanup, but only for stopped effect',
-    ).toEqual(new Map([[100, 'b1']]))
-
-    lazySet.flush()
-    expect(
-      lazilyUpdatedMap,
-      'Flush should trigger remaining updates, but not run the stopped effects',
-    ).toEqual(new Map([[103, 'b3']]))
-
-    key1.value = 4
-    key2.value = 104
-    lazySet.lazyEffect((onCleanup) => {
-      const currentValue = key1.value
-      lazilyUpdatedMap.set(currentValue, 'c' + runCount++)
-      onCleanup(() => lazilyUpdatedMap.delete(currentValue))
-    })
-    expect(
-      lazilyUpdatedMap,
-      'Newly registered effect should run immediately, but not flush other effects',
-    ).toEqual(
-      new Map([
-        [4, 'c4'],
-        [103, 'b3'],
-      ]),
-    )
-
-    key1.value = 5
-    key2.value = 105
-    lazySet.flush()
-    expect(
-      lazilyUpdatedMap,
-      'Flush should trigger both effects when their dependencies change',
-    ).toEqual(
-      new Map([
-        [105, 'b5'],
-        [5, 'c6'],
-      ]),
-    )
-
-    lazySet.flush()
-    expect(lazilyUpdatedMap, 'Flush should have no effect when no dependencies changed').toEqual(
-      new Map([
-        [105, 'b5'],
-        [5, 'c6'],
-      ]),
-    )
-
-    key2.value = -1
-    lazySet.flush()
-    expect(
-      lazilyUpdatedMap,
-      'Effects depending on one another should run in the same flush',
-    ).toEqual(
-      new Map([
-        [5, 'c6'],
-        [-1, 'b7'],
-        [-2, 'noticed b7!'],
-      ]),
-    )
-
-    key2.value = 1
-    lazySet.flush()
-    expect(cleanupSpy).toHaveBeenCalledTimes(1)
-    expect(lazilyUpdatedMap, 'Dependant effect is cleaned up.').toEqual(
-      new Map([
-        [1, 'b8'],
-        [5, 'c6'],
-      ]),
-    )
-
-    key2.value = 2
-    lazySet.flush()
-    key2.value = -1
-    lazySet.flush()
-    expect(cleanupSpy, 'Cleanup runs only once.').toHaveBeenCalledTimes(1)
+/**
+ * A writable proxy computed value that reads a fallback value in case the base is `undefined`.
+ * Useful for cases where we have a user-overridable behavior with a computed default.
+ */
+export function computedFallback<T>(
+  base: Ref<T | undefined>,
+  fallback: () => T,
+): WritableComputedRef<T> {
+  return computed({
+    get: () => base.value ?? fallback(),
+    set: (val: T) => (base.value = val),
   })
 }

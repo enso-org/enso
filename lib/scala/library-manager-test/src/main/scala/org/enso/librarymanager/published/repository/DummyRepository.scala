@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published.repository
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
 import org.enso.downloader.archive.TarGzWriter
@@ -181,7 +181,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
         .toAbsolutePath
         .normalize
 
-    // We can ommit installation step on CI because there is a separate step
+    // We can omit installation step on CI because there is a separate step
     // executing `npm install` command before the tests.
     if (!DummyRepository.isCI) {
       val preinstallCommand =
@@ -197,7 +197,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
       if (preinstallExitCode != 0)
         throw new RuntimeException(
           s"Failed to preinstall the Library Repository Server dependencies: " +
-          s"npm exited with code $preinstallCommand."
+          s"npm ($preinstallCommand) exited with code $preinstallExitCode."
         )
     }
 

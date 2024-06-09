@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use crate::env;
 use crate::env::Action;
 use crate::env::Modification;
 use crate::programs::cmd::args::RUN_COMMAND;
@@ -123,16 +122,16 @@ pub async fn compare_env(
                         if path_like {
                             // Check which elements are new and whether they are prepended.
                             // todo!();
-                            env::Action::PrependPaths(std::env::split_paths(&new_value).collect())
+                            Action::PrependPaths(std::env::split_paths(&new_value).collect())
                         } else {
-                            env::Action::Set(new_value)
+                            Action::Set(new_value)
                         }
                     } else {
                         return None;
                     },
                 None if path_like =>
-                    env::Action::PrependPaths(std::env::split_paths(&new_value).collect()),
-                None => env::Action::Set(new_value),
+                    Action::PrependPaths(std::env::split_paths(&new_value).collect()),
+                None => Action::Set(new_value),
             };
             Some(Modification { variable_name, action })
         })
@@ -141,7 +140,7 @@ pub async fn compare_env(
     changes.extend(
         environment_before
             .into_keys()
-            .map(|variable_name| Modification { variable_name, action: env::Action::Remove }),
+            .map(|variable_name| Modification { variable_name, action: Action::Remove }),
     );
 
     Ok(changes)

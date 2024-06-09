@@ -6,10 +6,11 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -33,7 +34,7 @@ public abstract class GetTypeConstructorsNode extends Node {
     var rawResult = new EnsoObject[rawConstructors.size()];
     int at = 0;
     for (var cons : rawConstructors) {
-      var metaCons = factory.newInstance(cons);
+      var metaCons = AtomNewInstanceNode.getUncached().newInstance(factory, cons);
       rawResult[at++] = metaCons;
     }
     return ArrayLikeHelpers.wrapEnsoObjects(rawResult);

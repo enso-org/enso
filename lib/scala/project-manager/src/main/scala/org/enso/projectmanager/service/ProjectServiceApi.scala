@@ -2,7 +2,7 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 import akka.actor.ActorRef
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.projectmanager.data.{
   LanguageServerStatus,
   MissingComponentAction,
@@ -10,6 +10,8 @@ import org.enso.projectmanager.data.{
   RunningLanguageServerInfo
 }
 import org.enso.projectmanager.model.Project
+
+import java.io.File
 
 /** A contract for the Project Service.
   *
@@ -31,7 +33,8 @@ trait ProjectServiceApi[F[+_, +_]] {
     name: String,
     engineVersion: SemVer,
     projectTemplate: Option[String],
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentAction,
+    projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Project]
 
   /** Deletes a user project.
@@ -39,7 +42,10 @@ trait ProjectServiceApi[F[+_, +_]] {
     * @param projectId the project id
     * @return either failure or unit representing success
     */
-  def deleteUserProject(projectId: UUID): F[ProjectServiceFailure, Unit]
+  def deleteUserProject(
+    projectId: UUID,
+    projectsDirectory: Option[File]
+  ): F[ProjectServiceFailure, Unit]
 
   /** Renames a project.
     *
@@ -49,7 +55,8 @@ trait ProjectServiceApi[F[+_, +_]] {
     */
   def renameProject(
     projectId: UUID,
-    name: String
+    name: String,
+    projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Unit]
 
   /** Opens a project. It starts up a Language Server if needed.
@@ -64,7 +71,8 @@ trait ProjectServiceApi[F[+_, +_]] {
     progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentAction,
+    projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo]
 
   /** Retrieve project status.

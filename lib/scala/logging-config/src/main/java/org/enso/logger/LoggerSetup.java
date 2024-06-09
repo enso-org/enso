@@ -61,6 +61,14 @@ public abstract class LoggerSetup {
   public abstract boolean setupConsoleAppender(Level logLevel);
 
   /**
+   * Setup writing logger's log event to a memory.
+   *
+   * @param logLevel the maximal level of logs that will be displayed
+   * @return true if logger was setup correctly, false otherwise
+   */
+  public abstract boolean setupMemoryAppender(Level logLevel);
+
+  /**
    * Setup forwarding logger's log event to a sentry,io service. Requires the presence of the
    * sentry's dependency appropriate to the logging implementation.
    *

@@ -58,4 +58,6 @@ class TestLocalLockManager extends ThreadSafeLockManager {
       case LockType.Shared    => rwLock.readLock()
     }
   }
+
+  override def reset(): Unit = {}
 }

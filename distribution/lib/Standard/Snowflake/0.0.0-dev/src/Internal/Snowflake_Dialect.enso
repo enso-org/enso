@@ -1,0 +1,14 @@
+private
+
+from Standard.Base import all
+
+from Standard.Database.Internal.Postgres.Postgres_Dialect import make_internal_generator_dialect, Postgres_Dialect
+
+import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
+
+## PRIVATE
+   The dialect of Snowflake databases.
+   Based off Postgres for now.
+snowflake : Postgres_Dialect
+snowflake =
+    Postgres_Dialect.Value make_internal_generator_dialect "Snowflake" "Snowflake_Dialect" Snowflake_Type_Mapping

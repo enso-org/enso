@@ -9,7 +9,7 @@ from project.Errors import SQL_Error
 ## Specifies the connection details for the database.
 
    This is an interface that is implemented by particular database types, like
-   `Postgres_Details`, `SQLite_Details` etc.
+   `Postgres_Details`, `SQLite` etc.
 type Connection_Details
 
     ## PRIVATE

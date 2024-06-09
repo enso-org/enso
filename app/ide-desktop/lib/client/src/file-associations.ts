@@ -46,7 +46,6 @@ export const SOURCE_FILE_SUFFIX = fileAssociations.SOURCE_FILE_SUFFIX
  *
  * For example, this happens when the user double-clicks on a file in the file explorer and the
  * application is launched with the file path as an argument.
- *
  * @param clientArgs - A list of arguments passed to the application, stripped from the initial
  * executable name and any electron dev mode arguments.
  * @returns The path to the file to open, or `null` if no file was specified. */
@@ -143,7 +142,6 @@ export function onFileOpened(event: electron.Event, path: string): string | null
 
 /** Set up the `open-file` event handler that might import a project and invoke the given callback,
  * if this IDE instance should load the project. See {@link onFileOpened} for more details.
- *
  * @param setProjectToOpen - A function that will be called with the ID of the project to open. */
 export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) {
     electron.app.on('open-file', (event, path) => {
@@ -158,7 +156,6 @@ export function setOpenFileEventHandler(setProjectToOpen: (id: string) => void) 
  *
  * Imports project if necessary. Returns the ID of the project to open. In case of an error,
  * the error message is displayed and the error is re-thrown.
- *
  * @param openedFile - The path to the file to open.
  * @returns The ID of the project to open.
  * @throws {Error} if the project from the file cannot be opened or imported. */

@@ -15,3 +15,6 @@ enso-prelude = { path = "../../prelude" }
 enso-parser = { path = ".." }
 enso-reflect = { path = "../../reflect", features = ["graphviz"] }
 derivative = { workspace = true }
+
+[lints]
+workspace = true

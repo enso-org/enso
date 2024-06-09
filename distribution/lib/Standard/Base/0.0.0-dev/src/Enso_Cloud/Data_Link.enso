@@ -1,0 +1,159 @@
+import project.Any.Any
+import project.Data.Json.JS_Object
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Enso_Cloud.Errors.Missing_Data_Link_Library
+import project.Error.Error
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Meta
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.System.File.Data_Link_Access.Data_Link_Access
+import project.System.File.File
+import project.System.File.File_Access.File_Access
+import project.System.File.Generic.File_Like.File_Like
+import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File_Format_Metadata.Content_Type_Metadata
+import project.System.File_Format_Metadata.File_Format_Metadata
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Data_Link_Helpers import all
+from project.Enso_Cloud.Public_Utils import get_required_field
+
+polyglot java import org.enso.base.enso_cloud.DataLinkSPI
+polyglot java import org.enso.base.file_format.FileFormatSPI
+
+## Helper methods allowing to manipulate the raw configuration of data links.
+type Data_Link
+    ## PRIVATE
+       ADVANCED
+       Reads the raw configuration data of a data-link.
+    read_config (file : File_Like) -> JS_Object =
+        text = Data_Link.read_raw_config file
+        text.parse_json
+
+    ## PRIVATE
+       ADVANCED
+       Writes a data-link configuration to a file.
+
+       Arguments:
+       - file: The file to write the configuration to.
+       - config: The configuration to write to the file.
+       - replace_existing: A flag specifying if the operation should replace an
+         existing file. By default, the operation will fail if the file already
+         exists.
+       - skip_validation: A flag that allows to skip validation. By default,
+         before writing the config we try to parse it to ensure that it
+         represents a valid data-link. In some cases (e.g. testing), we may want
+         to skip that.
+    write_config (file : File_Like) (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
+        checked = if skip_validation.not then Data_Link.validate_config config
+        checked.if_not_error <|
+            Data_Link.write_raw_config file config.to_json replace_existing
+
+    ## PRIVATE
+       ADVANCED
+       Checks if the config represents a valid data-link.
+
+       If the library providing the data-link is not imported, this function
+       will fail with `Missing_Data_Link_Library`, even if the config would be
+       valid.
+    validate_config (config : JS_Object) -> Nothing ! Missing_Data_Link_Library | Illegal_State =
+        interpret_json_as_data_link config . if_not_error Nothing
+
+    ## ADVANCED
+       Copies the data-link configuration from one place to another.
+
+       The operation does not follow the data links, but copies the
+       configuration between the provided files.
+
+       Arguments:
+       - source: The file to copy the configuration from.
+       - target: The file to copy the configuration to.
+       - replace_existing: A flag specifying if the operation should replace an
+         existing file. By default, the operation will fail if the file already
+         exists.
+    copy (source : File_Like) (target : File_Like) (replace_existing : Boolean = False) -> Any ! File_Error =
+        raw_config = Data_Link.read_raw_config source
+        Data_Link.write_raw_config target raw_config replace_existing
+
+
+    ## ADVANCED
+       Moves the data-link configuration from one place to another.
+
+       The operation does not follow the data links, but copies the
+       configuration between the provided files.
+
+       Arguments:
+       - source: The file to move the configuration from. It will be deleted.
+       - target: The file to move the configuration to.
+       - replace_existing: A flag specifying if the operation should replace an
+         existing file. By default, the operation will fail if the file already
+         exists.
+    move (source : File_Like) (target : File_Like) (replace_existing : Boolean = False) -> Any ! File_Error =
+        is_same_file = case source.underlying of
+            f : File ->
+                target.underlying.is_a File && f.absolute.normalize.path == target.underlying.absolute.normalize.path
+            _ -> source.underlying == target.underlying
+        if is_same_file then Error.throw (Illegal_Argument.Error "Source and target files are the same.") else
+            Data_Link.copy source target replace_existing . if_not_error <|
+                 source.underlying.delete . if_not_error target.underlying
+
+    ## PRIVATE
+       Reads the raw configuration data of a data-link, as plain text.
+
+       This is should mostly be used for testing, `read_config` is preferred for normal use.
+
+       Arguments:
+       - file: The file to read the configuration from.
+    read_raw_config (file : File_Like) -> Text =
+        if Data_Link.is_data_link file . not then
+            Panic.throw (Illegal_Argument.Error " Data_Link should only be used for reading config of Data Links, but "+file.to_display_text+" is not a Data Link.")
+        options = [File_Access.Read, Data_Link_Access.No_Follow]
+        bytes = file.underlying.with_input_stream options input_stream->
+            input_stream.read_all_bytes
+        Text.from_bytes bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
+
+    ## PRIVATE
+       Writes raw data as the data-link configuration.
+
+       This is should mostly be used for testing, `write_config` is preferred for normal use.
+
+       Arguments:
+       - file: The file to write the configuration to.
+       - raw_content: The raw data to write to the file.
+       - replace_existing: A flag specifying if the operation should replace an
+         existing file. By default, the operation will fail if the file already
+         exists.
+    write_raw_config (file : File_Like) (raw_content : Text) (replace_existing : Boolean = False) =
+        if Data_Link.is_data_link file.underlying . not then
+            Panic.throw (Illegal_Argument.Error " Data_Link should only be used for writing config to Data Links, but "+file.to_display_text+" is not a Data Link.")
+        exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
+        options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
+
+        bytes = raw_content.bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
+        r = bytes.if_not_error <| file.underlying.with_output_stream options output_stream->
+            output_stream.write_bytes bytes
+        r.if_not_error file.underlying
+
+    ## PRIVATE
+       Checks if the given file is a data-link.
+    is_data_link (file_metadata : File_Format_Metadata) -> Boolean =
+        content_type_matches = case file_metadata.interpret_content_type of
+            content_type : Content_Type_Metadata ->
+                content_type.base_type == data_link_content_type
+            _ -> False
+
+        # If the content type matches, it is surely a data link.
+        if content_type_matches then True else
+            ## If the content type does not match, we check the extension even if _different content type was provided_.
+               That is because many HTTP servers will not understand data links and may return a data link with
+               a content type like `text/plain` or `application/json`. We still want to treat the file as a data link
+               if its extension is correct.
+            case file_metadata.guess_extension of
+                extension : Text ->
+                    extension == data_link_extension
+                Nothing -> False

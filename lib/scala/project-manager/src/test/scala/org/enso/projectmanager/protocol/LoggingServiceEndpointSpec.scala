@@ -1,13 +1,17 @@
 package org.enso.projectmanager.protocol
 
 import io.circe.literal.JsonStringContext
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.Future
 import java.net.URI
 
-class LoggingServiceEndpointSpec extends BaseServerSpec with FlakySpec {
+class LoggingServiceEndpointSpec
+    extends BaseServerSpec
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   class TestException extends RuntimeException {
     override def toString: String = "test-exception"

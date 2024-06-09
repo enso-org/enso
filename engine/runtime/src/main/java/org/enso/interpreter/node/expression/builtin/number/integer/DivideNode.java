@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Integer", name = "/", description = "Division of numbers.")
 public abstract class DivideNode extends IntegerNode {
   @Override
-  abstract Object execute(Object self, Object that);
+  abstract Object execute(Object own, Object that);
 
   static DivideNode build() {
     return DivideNodeGen.create();

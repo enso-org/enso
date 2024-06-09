@@ -8,3 +8,6 @@ edition = "2021"
 enso-font = { path = "../font" }
 ide-ci = { path = "../../../build/ci_utils" }
 owned_ttf_parser = { workspace = true }
+
+[lints]
+workspace = true

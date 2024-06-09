@@ -2,7 +2,7 @@ package org.enso.launcher.upgrade
 
 import java.nio.file.{Files, Path, StandardCopyOption}
 import io.circe.parser
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.{FileLockManager, LockType}
 import FileSystem.PathSyntax
@@ -64,11 +64,11 @@ class UpgradeSpec
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    prepareLauncherBinary(SemVer(0, 0, 0))
-    prepareLauncherBinary(SemVer(0, 0, 1))
-    prepareLauncherBinary(SemVer(0, 0, 2))
-    prepareLauncherBinary(SemVer(0, 0, 3))
-    prepareLauncherBinary(SemVer(0, 0, 4))
+    prepareLauncherBinary(SemVer.of(0, 0, 0))
+    prepareLauncherBinary(SemVer.of(0, 0, 1))
+    prepareLauncherBinary(SemVer.of(0, 0, 2))
+    prepareLauncherBinary(SemVer.of(0, 0, 3))
+    prepareLauncherBinary(SemVer.of(0, 0, 4))
   }
 
   /** Prepares a launcher distribution in the temporary test location.
@@ -120,7 +120,9 @@ class UpgradeSpec
         1
       )
     }
-    SemVer(version.asObject.value.apply("version").value.asString.value).value
+    SemVer
+      .parse(version.asObject.value.apply("version").value.asString.value)
+      .get
   }
 
   /** Runs the launcher in the temporary distribution.
@@ -165,16 +167,19 @@ class UpgradeSpec
     "upgrade to latest version (excluding broken)" taggedAs Flaky in {
       prepareDistribution(
         portable        = true,
-        launcherVersion = Some(SemVer(0, 0, 2))
+        launcherVersion = Some(SemVer.of(0, 0, 2))
       )
       run(Seq("upgrade")) should returnSuccess
 
-      checkVersion() shouldEqual SemVer(0, 0, 4)
+      checkVersion() shouldEqual SemVer.of(0, 0, 4)
     }
 
     "not downgrade without being explicitly asked to do so" taggedAs Flaky in {
       // precondition for the test to make sense
-      SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
+      SemVer
+        .parse(buildinfo.Info.ensoVersion)
+        .get
+        .isGreaterThan(SemVer.of(0, 0, 4)) shouldBe true
 
       prepareDistribution(
         portable = true
@@ -185,7 +190,10 @@ class UpgradeSpec
     "upgrade/downgrade to a specific version " +
     "(and update necessary files)" taggedAs Flaky in {
       // precondition for the test to make sense
-      SemVer(buildinfo.Info.ensoVersion).value should be > SemVer(0, 0, 4)
+      SemVer
+        .parse(buildinfo.Info.ensoVersion)
+        .get
+        .isGreaterThan(SemVer.of(0, 0, 4)) shouldBe true
 
       prepareDistribution(
         portable = true
@@ -193,7 +201,7 @@ class UpgradeSpec
       val root = launcherPath.getParent.getParent
       FileSystem.writeTextFile(root / "README.md", "Old readme")
       run(Seq("upgrade", "0.0.1")) should returnSuccess
-      checkVersion() shouldEqual SemVer(0, 0, 1)
+      checkVersion() shouldEqual SemVer.of(0, 0, 1)
       TestHelpers.readFileContent(root / "README.md").trim shouldEqual "Content"
       TestHelpers
         .readFileContent(root / "THIRD-PARTY" / "test-license.txt")
@@ -203,11 +211,11 @@ class UpgradeSpec
     "upgrade also in installed mode" taggedAs Flaky in {
       prepareDistribution(
         portable        = false,
-        launcherVersion = Some(SemVer(0, 0, 0))
+        launcherVersion = Some(SemVer.of(0, 0, 0))
       )
       val dataRoot   = getTestDirectory / "data"
       val configRoot = getTestDirectory / "config"
-      checkVersion() shouldEqual SemVer(0, 0, 0)
+      checkVersion() shouldEqual SemVer.of(0, 0, 0)
       val env = Map(
         "ENSO_DATA_DIRECTORY"    -> dataRoot.toString,
         "ENSO_CONFIG_DIRECTORY"  -> configRoot.toString,
@@ -215,7 +223,7 @@ class UpgradeSpec
       )
 
       run(Seq("upgrade", "0.0.1"), extraEnv = env) should returnSuccess
-      checkVersion() shouldEqual SemVer(0, 0, 1)
+      checkVersion() shouldEqual SemVer.of(0, 0, 1)
       TestHelpers
         .readFileContent(dataRoot / "README.md")
         .trim shouldEqual "Content"
@@ -230,15 +238,15 @@ class UpgradeSpec
       // 0.0.0 -> 0.0.1 -> 0.0.2 -> 0.0.3
       prepareDistribution(
         portable        = true,
-        launcherVersion = Some(SemVer(0, 0, 0))
+        launcherVersion = Some(SemVer.of(0, 0, 0))
       )
 
-      checkVersion() shouldEqual SemVer(0, 0, 0)
+      checkVersion() shouldEqual SemVer.of(0, 0, 0)
       val process = startLauncher(Seq("upgrade", "0.0.3"))
       try {
         process.join(timeoutSeconds = 30) should returnSuccess
 
-        checkVersion() shouldEqual SemVer(0, 0, 3)
+        checkVersion() shouldEqual SemVer.of(0, 0, 3)
 
         val launchedVersions = Seq(
           "0.0.0",
@@ -281,7 +289,7 @@ class UpgradeSpec
     "that action with the upgraded launcher" ignore {
       prepareDistribution(
         portable        = true,
-        launcherVersion = Some(SemVer(0, 0, 2))
+        launcherVersion = Some(SemVer.of(0, 0, 2))
       )
       val enginesPath = getTestDirectory / "enso" / "dist"
       Files.createDirectories(enginesPath)
@@ -318,7 +326,7 @@ class UpgradeSpec
     "fail if another upgrade is running in parallel" taggedAs Flaky in {
       prepareDistribution(
         portable        = true,
-        launcherVersion = Some(SemVer(0, 0, 1))
+        launcherVersion = Some(SemVer.of(0, 0, 1))
       )
 
       val syncLocker = new FileLockManager(getTestDirectory / "enso" / "lock")
@@ -364,7 +372,7 @@ class UpgradeSpec
       }
 
       firstSuspended.join(timeoutSeconds = 20) should returnSuccess
-      checkVersion() shouldEqual SemVer(0, 0, 2)
+      checkVersion() shouldEqual SemVer.of(0, 0, 2)
     }
   }
 }

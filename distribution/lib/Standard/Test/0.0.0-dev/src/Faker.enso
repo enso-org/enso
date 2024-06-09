@@ -5,16 +5,20 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Object to generate (deterministic) random value for testing
 type Faker
-    ## Set of upper case letters.
+    ## ICON text
+       Set of upper case letters.
     upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".char_vector
 
-    ## Set of lower case letters.
+    ## ICON text
+       Set of lower case letters.
     lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
 
-    ## Set of numerical digits.
+    ## ICON input_number
+       Set of numerical digits.
     numbers = "0123456789".char_vector
 
-    ## Creates a new Faker which can be used for creating test values.
+    ## ICON random
+       Creates a new Faker which can be used for creating test values.
 
        Arguments:
        - seed: Optional seed value to make the sequence deterministic
@@ -27,13 +31,14 @@ type Faker
     Value generator
 
     ## GROUP Standard.Base.Random
+       ICON random
        Creates a random Text based on a template of character sets.
 
        Arguments:
        - template: Vector of vectors that represent the possible characters for each
          letter, as UTF-16 code units.
 
-       > Examples:
+       > Example
          Creates a fake UK National Insurance number:
 
                 l = "ABCEGHJKLMNOPRSTWXYZ".char_vector
@@ -49,6 +54,7 @@ type Faker
         Text.from_char_vector characters
 
     ## GROUP Standard.Base.Random
+       ICON random
        Generates a Text consisting of lower/upper case characters.
 
        Arguments:
@@ -60,6 +66,7 @@ type Faker
         self.string_value <| 0.up_to length . map _->alphabet
 
     ## GROUP Standard.Base.Random
+       ICON random
        Generates a Text consisting of lower/upper case characters and digits.
 
        Arguments:
@@ -71,6 +78,7 @@ type Faker
         self.string_value <| 0.up_to length . map _->alphabet
 
     ## GROUP Standard.Base.Random
+       ICON random
        Generates a Text for a hexadecimal number
 
        Arguments:
@@ -81,24 +89,40 @@ type Faker
         self.string_value <| 0.up_to length . map _->alphabet
 
     ## GROUP Standard.Base.Random
+       ICON random
        Create a random Boolean value
     boolean : Boolean
     boolean self =
         if self.generator.nextDouble < 0.5 then True else False
 
     ## GROUP Standard.Base.Random
+       ICON random
        Create a random Integer value
     integer : Integer -> Integer -> Integer
     integer self minimum=0 maximum=100 =
         minimum + (self.generator.nextInt (maximum - minimum))
 
     ## GROUP Standard.Base.Random
+       ICON random
        Create a random Float value
-    decimal : Float -> Float -> Float
-    decimal self  minimum=0.0 maximum=1.0 =
+    float : Float -> Float -> Float
+    float self minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
 
     ## GROUP Standard.Base.Random
+       Create a random Float value in full range of allowed values,
+       exponentially distributed (exponents are uniformly distributed).
+    float_full_range_exp : Float
+    float_full_range_exp self =
+        max_mantissa = 2.0 - (2.0 ^ -52)
+        max_exponent = 1023
+        sign = if self.integer 0 2 == 0 then 1 else -1
+        mantissa = self.float 0 max_mantissa
+        exponent = self.integer 0 max_exponent+1
+        sign * mantissa * (2.0 ^ exponent)
+
+    ## GROUP Standard.Base.Random
+       ICON random
        Picks an item at Random from a list
 
        Arguments:
@@ -109,6 +133,7 @@ type Faker
         items.at (self.generator.nextInt items.length)
 
     ## GROUP Standard.Base.Random
+       ICON random
        Randomly converts some values to Nothing
     make_some_nothing : Any -> Float -> Any
     make_some_nothing self value (chance=0.1) =

@@ -1,10 +1,14 @@
 package org.enso.languageserver.libraries
 
 import io.circe.syntax._
+import org.enso.logger.ReportLogsOnFailure
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class LibraryEntrySerializationSpec extends AnyWordSpec with Matchers {
+class LibraryEntrySerializationSpec
+    extends AnyWordSpec
+    with Matchers
+    with ReportLogsOnFailure {
   "LibraryEntry" should {
     "serialize and deserialize to the same thing" in {
       val entry1 =

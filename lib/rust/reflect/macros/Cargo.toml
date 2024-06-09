@@ -11,3 +11,6 @@ proc-macro = true
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn_1 = { workspace = true }
+
+[lints]
+workspace = true

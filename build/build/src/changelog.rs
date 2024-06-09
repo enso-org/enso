@@ -3,7 +3,6 @@ use crate::prelude::*;
 use pulldown_cmark::Event;
 use pulldown_cmark::HeadingLevel;
 use pulldown_cmark::Tag::Heading;
-use std::ops::Range;
 
 
 // ==============
@@ -36,7 +35,7 @@ impl<'a> Changelog<'a> {
     pub fn top_release_notes(&self) -> Result<Entry> {
         let mut headers = self.iterate_headers();
         let first_header = headers.next().context("Failed to find a level one header.")?;
-        let file_end_pos = self.0.len() + 1;
+        let file_end_pos = self.0.len();
         let next_header_start = headers.next().map_or(file_end_pos, |h| h.pos.start);
         let contents = self.0[first_header.pos.end..next_header_start].trim();
         let entry =

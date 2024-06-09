@@ -7,8 +7,6 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   VisualizationId
 }
 
-import java.util.logging.Level
-
 /** A job that detaches a visualization.
   *
   * @param visualizationId an identifier of visualization
@@ -17,26 +15,31 @@ import java.util.logging.Level
   */
 class DetachVisualizationJob(
   visualizationId: VisualizationId,
-  expressionId: ExpressionId,
+  val expressionId: ExpressionId,
   contextId: ContextId
-) extends UniqueJob[Unit](expressionId, List(contextId), false) {
+) extends Job[Unit](List(contextId), false, false)
+    with UniqueJob[Unit] {
+
+  /** @inheritdoc */
+  override def equalsTo(that: UniqueJob[_]): Boolean =
+    that match {
+      case that: DetachVisualizationJob =>
+        this.expressionId == that.expressionId
+      case _ => false
+    }
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    val logger        = ctx.executionService.getLogger
-    val lockTimestamp = ctx.locking.acquireContextLock(contextId)
-    try {
-      ctx.contextManager.removeVisualization(
-        contextId,
-        expressionId,
-        visualizationId
-      )
-    } finally {
-      ctx.locking.releaseContextLock(contextId)
-      logger.log(
-        Level.FINEST,
-        s"Kept context lock [DetachVisualizationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
-      )
-    }
+    ctx.locking.withContextLock(
+      contextId,
+      this.getClass,
+      () => {
+        ctx.contextManager.removeVisualization(
+          contextId,
+          expressionId,
+          visualizationId
+        )
+      }
+    )
   }
 }

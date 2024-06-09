@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager
 
 import buildinfo.Info
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 
 /** Helper object that allows to get the current application version.
   *
@@ -11,12 +11,13 @@ import nl.gn0s1s.bump.SemVer
   */
 object CurrentVersion {
 
-  private var currentVersion: SemVer = SemVer(Info.ensoVersion).getOrElse {
-    throw new IllegalStateException("Cannot parse the built-in version.")
-  }
+  private var currentVersion: SemVer =
+    SemVer.parse(Info.ensoVersion).getOrElse {
+      throw new IllegalStateException("Cannot parse the built-in version.")
+    }
 
   private val defaultDevEnsoVersion: SemVer =
-    SemVer(Info.defaultDevEnsoVersion).getOrElse {
+    SemVer.parse(Info.defaultDevEnsoVersion).getOrElse {
       throw new IllegalStateException("Cannot parse the built-in dev version.")
     }
 
@@ -25,7 +26,9 @@ object CurrentVersion {
 
   /** Check if the current version is the development one. */
   def isDevVersion: Boolean =
-    currentVersion.preRelease == defaultDevEnsoVersion.preRelease
+    currentVersion.preReleaseVersion() != null && (currentVersion
+      .preReleaseVersion() == defaultDevEnsoVersion
+      .preReleaseVersion())
 
   /** Override launcher version with the provided one.
     *

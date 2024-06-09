@@ -57,15 +57,9 @@ public class IntArrayBuilder {
    * <p>After calling this method, the builder is invalidated and cannot be used anymore. Any usage
    * of the builder afterwards will result in a {@code NullPointerException}.
    */
-  public int[] unsafeGetStorageAndInvalidateTheBuilder() {
+  public int[] unsafeGetResultAndInvalidate() {
     int[] tmp = storage;
     this.storage = null;
     return tmp;
-  }
-
-  public int[] build() {
-    int[] result = new int[length];
-    System.arraycopy(storage, 0, result, 0, length);
-    return result;
   }
 }

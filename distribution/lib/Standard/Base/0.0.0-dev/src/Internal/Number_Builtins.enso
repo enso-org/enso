@@ -1,0 +1,52 @@
+private
+
+integer_plus a b = @Builtin_Method "Integer.+"
+integer_minus a b = @Builtin_Method "Integer.-"
+integer_times a b = @Builtin_Method "Integer.*"
+integer_divide a b = @Builtin_Method "Integer./"
+integer_mod a b = @Builtin_Method "Integer.%"
+integer_div a b = @Builtin_Method "Integer.div"
+integer_pow a b = @Builtin_Method "Integer.^"
+
+integer_bit_and a b = @Builtin_Method "Integer.bit_and"
+integer_bit_or a b = @Builtin_Method "Integer.bit_or"
+integer_bit_xor a b = @Builtin_Method "Integer.bit_xor"
+integer_bit_shift a b = @Builtin_Method "Integer.bit_shift"
+integer_bit_shift_r a b = @Builtin_Method "Integer.bit_shift_r"
+
+integer_bit_not a = @Builtin_Method "Integer.bit_not"
+
+integer_abs a = @Builtin_Method "Integer.abs"
+integer_ceil a = @Builtin_Method "Integer.ceil"
+integer_floor a = @Builtin_Method "Integer.floor"
+integer_negate a = @Builtin_Method "Integer.negate"
+integer_to_float a = @Builtin_Method "Integer.to_float"
+
+integer_greater a b = @Builtin_Method "Integer.>"
+integer_greater_equal a b = @Builtin_Method "Integer.>="
+integer_less a b = @Builtin_Method "Integer.<"
+integer_less_equal a b = @Builtin_Method "Integer.<="
+
+round_integer_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
+integer_parse text radix = @Builtin_Method "Integer.parse"
+
+float_plus a b = @Builtin_Method "Float.+"
+float_minus a b = @Builtin_Method "Float.-"
+float_times a b = @Builtin_Method "Float.*"
+float_divide a b = @Builtin_Method "Float./"
+float_mod a b = @Builtin_Method "Float.%"
+float_div a b = @Builtin_Method "Float.div"
+float_pow a b = @Builtin_Method "Float.^"
+
+float_abs a = @Builtin_Method "Float.abs"
+float_ceil a = @Builtin_Method "Float.ceil"
+float_floor a = @Builtin_Method "Float.floor"
+float_negate a = @Builtin_Method "Float.negate"
+
+float_greater a b = @Builtin_Method "Float.>"
+float_greater_equal a b = @Builtin_Method "Float.>="
+float_less a b = @Builtin_Method "Float.<"
+float_less_equal a b = @Builtin_Method "Float.<="
+
+float_truncate_builtin a = @Builtin_Method "Float.truncate_builtin"
+round_float_builtin n decimal_places use_bankers = @Builtin_Method "Float.round"

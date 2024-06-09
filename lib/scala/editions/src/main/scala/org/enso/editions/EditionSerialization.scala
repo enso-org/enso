@@ -3,14 +3,15 @@ package org.enso.editions
 import cats.Show
 import io.circe._
 import io.circe.syntax.EncoderOps
-import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.{Raw, Repository}
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 import org.enso.yaml.YamlHelper
 
 import java.io.FileReader
 import java.nio.file.Path
 import scala.util.{Failure, Try, Using}
+
+import org.enso.semver.SemVer
 
 /** Gathers methods for decoding and encoding of Raw editions. */
 object EditionSerialization {

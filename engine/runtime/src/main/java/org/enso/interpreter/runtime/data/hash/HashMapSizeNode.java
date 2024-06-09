@@ -8,6 +8,8 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Map",
@@ -28,7 +30,7 @@ public abstract class HashMapSizeNode extends Node {
     try {
       return interop.getHashSize(hashMap);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw new PanicException(Text.create(e.getMessage()), this);
     }
   }
 

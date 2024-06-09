@@ -3,11 +3,15 @@ package org.enso.languageserver.websocket.json
 import buildinfo.Info
 import io.circe.literal.JsonStringContext
 import org.enso.languageserver.data.Config
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
 import java.io.{File, FileOutputStream}
 
-class WorkspaceOperationsTest extends BaseServerTest with FlakySpec {
+class WorkspaceOperationsTest
+    extends BaseServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   override def initializeProjectPackage: Boolean = false
 

@@ -6,7 +6,6 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.RunningStatus
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectStatus
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure

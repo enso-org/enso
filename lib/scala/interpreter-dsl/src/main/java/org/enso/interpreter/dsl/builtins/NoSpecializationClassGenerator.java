@@ -2,6 +2,7 @@ package org.enso.interpreter.dsl.builtins;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
+import javax.tools.Diagnostic.Kind;
 
 /** Generator for builtin method class with no specialization. */
 public final class NoSpecializationClassGenerator extends MethodNodeClassGenerator {
@@ -34,8 +35,18 @@ public final class NoSpecializationClassGenerator extends MethodNodeClassGenerat
 
   @Override
   protected MethodGenerator methodsGen() {
+    var asGuestValue = needsGuestValueConversion(origin);
+    if (asGuestValue
+        && TypeWithKind.isTruffleObject(processingEnvironment, origin.getReturnType())) {
+      processingEnvironment
+          .getMessager()
+          .printMessage(
+              Kind.ERROR,
+              "Value is already TruffleObject, don't use @Builtin.ReturningGuestObject",
+              origin);
+    }
     return new ExecuteMethodImplGenerator(
-        processingEnvironment, origin, needsGuestValueConversion(origin), varArgExpansion);
+        processingEnvironment, origin, asGuestValue, varArgExpansion);
   }
 
   @Override

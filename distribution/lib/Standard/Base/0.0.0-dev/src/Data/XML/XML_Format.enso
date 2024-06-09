@@ -1,40 +1,47 @@
 import project.Any.Any
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Data.XML.XML_Document
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
+from project.Metadata.Choice import Option
 
 ## A `File_Format` for reading and writing XML files.
 type XML_Format
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
-    for_file_read : File -> XML_Format | Nothing
-    for_file_read file:File =
-        case file.extension of
-            ".xml" -> XML_Format
-            _ -> Nothing
+    for_read : File_Format_Metadata -> XML_Format | Nothing
+    for_read file:File_Format_Metadata =
+        content_type = file.interpret_content_type
+        from_content_type = content_type.if_not_nothing <|
+            base_type = content_type.base_type
+            case base_type of
+                "text/xml" -> XML_Format
+                "application/xml" -> XML_Format
+                _ -> if content_type.base_type.ends_with "+xml" then XML_Format else Nothing
+        from_content_type.if_nothing <|
+            case file.guess_extension of
+                ".xml" -> XML_Format
+                _ -> Nothing
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> XML_Format | Nothing
-    for_file_write file:File =
+    for_file_write : Writable_File -> XML_Format | Nothing
+    for_file_write file:Writable_File =
         _ = [file]
         Nothing
 
+
     ## PRIVATE
-       If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> URI|Text -> XML_Format | Nothing
-    for_web content_type:Text uri:(URI|Text) =
-        _ = [uri]
-        first = content_type.split ';' . first . trim
-        case first of
-            "application/xml" -> XML_Format
-            "text/xml" -> XML_Format
-            _ -> Nothing
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "XML" (Meta.get_qualified_type_name XML_Format)]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -44,7 +51,8 @@ type XML_Format
         XML_Document.from_file file
 
     ## PRIVATE
-       Implements the `Data.parse` for this `File_Format`
-    read_stream : Input_Stream -> Any
-    read_stream self stream:Input_Stream =
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        _ = metadata
         XML_Document.from_stream stream

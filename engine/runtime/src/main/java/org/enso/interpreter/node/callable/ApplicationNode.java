@@ -75,7 +75,7 @@ public class ApplicationNode extends ExpressionNode {
    * @return the results of evaluating the function arguments
    */
   @ExplodeLoop
-  public Object[] evaluateArguments(VirtualFrame frame) {
+  private Object[] evaluateArguments(VirtualFrame frame) {
     Object[] computedArguments = new Object[this.argExpressions.length];
 
     for (int i = 0; i < this.argExpressions.length; ++i) {
@@ -93,8 +93,9 @@ public class ApplicationNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     State state = Function.ArgumentsHelper.getState(frame.getArguments());
+    Object[] evaluatedArguments = evaluateArguments(frame);
     return this.invokeCallableNode.execute(
-        this.callable.executeGeneric(frame), frame, state, evaluateArguments(frame));
+        this.callable.executeGeneric(frame), frame, state, evaluatedArguments);
   }
 
   /**

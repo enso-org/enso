@@ -2,29 +2,36 @@ package org.enso.projectmanager.infrastructure.repository
 
 /** Base interface for repository failures.
   */
-sealed trait ProjectRepositoryFailure
+sealed trait ProjectRepositoryFailure {
+
+  /** The error message. */
+  def message: String
+}
 
 object ProjectRepositoryFailure {
 
   /** Signals that repository cannot load project index.
-    * @param msg an error message
+    * @param message an error message
     */
-  case class CannotLoadIndex(msg: String) extends ProjectRepositoryFailure
+  case class CannotLoadIndex(message: String) extends ProjectRepositoryFailure
 
   /** Signals problems with underlying storage.
     *
-    * @param msg an error message
+    * @param message an error message
     */
-  case class StorageFailure(msg: String) extends ProjectRepositoryFailure
+  case class StorageFailure(message: String) extends ProjectRepositoryFailure
 
   /** Signals that project is not present in the storage.
     */
-  case object ProjectNotFoundInIndex extends ProjectRepositoryFailure
+  case object ProjectNotFoundInIndex extends ProjectRepositoryFailure {
+    override def message = "Project not foun in index"
+  }
 
   /** Signals that precondition is not met for stored data.
     *
-    * @param msg an error message
+    * @param message an error message
     */
-  case class InconsistentStorage(msg: String) extends ProjectRepositoryFailure
+  case class InconsistentStorage(message: String)
+      extends ProjectRepositoryFailure
 
 }

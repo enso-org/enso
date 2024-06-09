@@ -1,21 +1,12 @@
 //! Java interface to [`enso_parser`].
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
 #![allow(dead_code)]
 #![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 use enso_prelude::*;
@@ -31,6 +22,9 @@ use jni::JNIEnv;
 // === Java Interface ===
 // ======================
 
+static DIRECT_ALLOCATED: &str = "Internal Error: ByteBuffer must be direct-allocated.";
+static FAILED_SERIALIZE_AST: &str = "Failed to serialize AST to binary format.";
+
 /// Parse the input. Returns a serialized representation of the parse tree. The caller is
 /// responsible for freeing the memory associated with the returned buffer.
 ///
@@ -42,15 +36,14 @@ use jni::JNIEnv;
 /// a call to `freeState`.
 #[allow(unsafe_code)]
 #[no_mangle]
-pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseTree(
     env: JNIEnv,
     _class: JClass,
     state: u64,
     input: JByteBuffer,
 ) -> jobject {
     let state = unsafe { &mut *(state as usize as *mut State) };
-    let direct_allocated = "Internal Error: ByteBuffer must be direct-allocated.";
-    let input = env.get_direct_buffer_address(input).expect(direct_allocated);
+    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
     let input = if cfg!(debug_assertions) {
         std::str::from_utf8(input).unwrap()
     } else {
@@ -61,7 +54,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     if let Some((meta_, code_)) = enso_parser::metadata::parse(input) {
         match meta_ {
             Ok(meta_) => meta = Some(meta_),
-            Err(e) => error!("Ignoring invalid metadata: {e}."),
+            Err(e) => eprintln!("Ignoring invalid metadata: {e}."),
         }
         code = code_;
     }
@@ -79,6 +72,68 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     state.metadata = meta;
     let result = env.new_direct_byte_buffer(&mut state.output);
     result.unwrap().into_inner()
+}
+
+/// Parse the input. Returns a serialize format compatible with a lazy deserialization strategy. The
+/// caller is responsible for freeing the memory associated with the returned buffer.
+///
+/// # Safety
+///
+/// The state MUST be a value returned by `allocState` that has not been passed to `freeState`.
+/// The input buffer contents MUST be valid UTF-8.
+/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
+/// a call to `freeState`.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseTreeLazy(
+    env: JNIEnv,
+    _class: JClass,
+    state: u64,
+    input: JByteBuffer,
+) -> jobject {
+    let state = unsafe { &mut *(state as usize as *mut State) };
+    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
+    let input = if cfg!(debug_assertions) {
+        std::str::from_utf8(input).unwrap()
+    } else {
+        unsafe { std::str::from_utf8_unchecked(input) }
+    };
+
+    let tree = enso_parser::Parser::new().run(input);
+    state.output = enso_parser::format::serialize(&tree).expect(FAILED_SERIALIZE_AST);
+
+    let result = env.new_direct_byte_buffer(&mut state.output);
+    result.unwrap().into_inner()
+}
+
+/// Determine the token variant of the provided input.
+#[allow(unsafe_code)]
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_isIdentOrOperator(
+    env: JNIEnv,
+    _class: JClass,
+    input: JByteBuffer,
+) -> u64 {
+    let input = env.get_direct_buffer_address(input).expect(DIRECT_ALLOCATED);
+    let input = if cfg!(debug_assertions) {
+        std::str::from_utf8(input).unwrap()
+    } else {
+        unsafe { std::str::from_utf8_unchecked(input) }
+    };
+
+    let parsed = enso_parser::lexer::run(input);
+    if parsed.internal_error.is_some() {
+        return 0;
+    }
+    let token = match &parsed.value[..] {
+        [token] => token,
+        _ => return 0,
+    };
+    match &token.variant {
+        enso_parser::syntax::token::Variant::Ident(_) => 1,
+        enso_parser::syntax::token::Variant::Operator(_) => 2,
+        _ => 0,
+    }
 }
 
 /// Return the `base` parameter to pass to the `Message` class along with the other output of the

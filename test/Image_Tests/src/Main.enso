@@ -1,12 +1,15 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
+from Standard.Test import all
 
 import project.Image_Read_Write_Spec
 import project.Data.Image_Spec
 import project.Data.Matrix_Spec
 
-main = Test_Suite.run_main <|
-    Image_Read_Write_Spec.spec
-    Matrix_Spec.spec
-    Image_Spec.spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        Image_Read_Write_Spec.add_specs suite_builder
+        Matrix_Spec.add_specs suite_builder
+        Image_Spec.add_specs suite_builder
+    suite.run_with_filter filter
+

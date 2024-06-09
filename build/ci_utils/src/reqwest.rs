@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 use reqwest::header::HeaderValue;
 use reqwest::header::InvalidHeaderValue;
-use std::fmt::Formatter;
 use std::ops::RangeInclusive;
 
 

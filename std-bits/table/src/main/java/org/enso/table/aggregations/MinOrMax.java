@@ -6,6 +6,8 @@ import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -32,7 +34,9 @@ public class MinOrMax extends Aggregator {
   }
 
   @Override
-  public Object aggregate(List<Integer> indexes) {
+  public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
+    ColumnAggregatedProblemAggregator innerAggregator =
+        new ColumnAggregatedProblemAggregator(problemAggregator);
     Context context = Context.getCurrent();
     Object current = null;
     for (int row : indexes) {
@@ -44,7 +48,7 @@ public class MinOrMax extends Aggregator {
             current = value;
           }
         } catch (CompareException e) {
-          this.addProblem(
+          innerAggregator.reportColumnAggregatedProblem(
               new InvalidAggregation(
                   this.getName(),
                   row,

@@ -1,3 +1,0 @@
-import project.Sub.C
-
-from project.Sub.C export all

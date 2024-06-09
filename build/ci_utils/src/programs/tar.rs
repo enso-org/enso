@@ -268,7 +268,6 @@ pub mod tests {
     use super::*;
     use crate::archive::compress_directory_contents;
     use crate::archive::extract_to;
-    use crate::log::setup_logging;
 
     #[test]
     fn deduce_format_from_extension() {
@@ -284,7 +283,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_directory_packing() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let archive_temp = tempfile::tempdir()?;
         let archive_path = archive_temp.path().join("archive.tar.gz");
 

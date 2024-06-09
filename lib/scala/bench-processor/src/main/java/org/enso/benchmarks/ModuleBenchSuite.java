@@ -3,9 +3,7 @@ package org.enso.benchmarks;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * A {@link BenchSuite} with a qualified name of the module it is defined in.
- */
+/** A {@link BenchSuite} with a qualified name of the module it is defined in. */
 public final class ModuleBenchSuite {
   private final BenchSuite suite;
   private final String moduleQualifiedName;
@@ -24,23 +22,17 @@ public final class ModuleBenchSuite {
   }
 
   public BenchGroup findGroupByName(String groupName) {
-    return suite
-        .groups()
-        .stream()
+    return suite.groups().stream()
         .filter(grp -> grp.name().equals(groupName))
         .findFirst()
         .orElse(null);
   }
 
   public BenchSpec findSpecByName(String groupName, String specName) {
-    Optional<BenchGroup> group = suite
-        .groups()
-        .stream()
-        .filter(grp -> grp.name().equals(groupName))
-        .findFirst();
+    Optional<BenchGroup> group =
+        suite.groups().stream().filter(grp -> grp.name().equals(groupName)).findFirst();
     if (group.isPresent()) {
-      return group.get().specs()
-          .stream()
+      return group.get().specs().stream()
           .filter(spec -> spec.name().equals(specName))
           .findFirst()
           .orElseGet(() -> null);

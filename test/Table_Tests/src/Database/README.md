@@ -29,6 +29,16 @@ If the database server is remote, `ENSO_DATABASE_TEST_HOST` may be set to tell
 the test suite where to connect. If that variable is not set, the test suite
 will attempt to connect to a local server.
 
+### Setup via Docker
+
+The following commands will download the latest Postgres Docker image and run it
+with the default configuration with password "pwd":
+
+```sh
+docker pull postgres:latest
+docker run -it -e POSTGRES_PASSWORD=pwd -p 5432:5432 postgres
+```
+
 ### Testing SSL connectivity
 
 The SSL connection by providing a root certificate file. The path to this is

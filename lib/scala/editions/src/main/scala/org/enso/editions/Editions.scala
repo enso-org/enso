@@ -1,6 +1,6 @@
 package org.enso.editions
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 
 /** Defines the general edition structure.
   *

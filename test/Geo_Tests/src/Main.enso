@@ -1,8 +1,11 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
+from Standard.Test import all
 
 import project.Geo_Spec
 
-main = Test_Suite.run_main <|
-    Geo_Spec.spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        Geo_Spec.add_specs suite_builder
+    suite.run_with_filter filter
+

@@ -9,7 +9,8 @@ import java.time.ZonedDateTime;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.UnquotedCharactersInOutput;
 import org.enso.table.formatting.DataFormatter;
-import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.read.DelimitedReader;
 
 public class DelimitedWriter {
@@ -31,7 +32,7 @@ public class DelimitedWriter {
   private final String emptyValue;
   private final WriteQuoteBehavior writeQuoteBehavior;
   private final boolean writeHeaders;
-  private final AggregatedProblems warnings = new AggregatedProblems();
+  private final ColumnAggregatedProblemAggregator problemAggregator;
 
   public DelimitedWriter(
       Writer output,
@@ -42,7 +43,9 @@ public class DelimitedWriter {
       String quoteEscape,
       String comment,
       WriteQuoteBehavior writeQuoteBehavior,
-      boolean writeHeaders) {
+      boolean writeHeaders,
+      ProblemAggregator problemAggregator) {
+    this.problemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     this.newline = newline;
     this.output = output;
     this.columnFormatters = columnFormatters;
@@ -76,7 +79,8 @@ public class DelimitedWriter {
     if (quoteEscape != null) {
       if (quoteEscape.isEmpty()) {
         throw new IllegalArgumentException(
-            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping quotes.");
+            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping"
+                + " quotes.");
       }
       if (quoteEscape.length() > 1) {
         throw new IllegalArgumentException(
@@ -148,10 +152,6 @@ public class DelimitedWriter {
     output.flush();
   }
 
-  public AggregatedProblems getReportedWarnings() {
-    return warnings;
-  }
-
   private boolean wantsQuotesInAlwaysMode(Object value) {
     return !isNonTextPrimitive(value);
   }
@@ -207,7 +207,7 @@ public class DelimitedWriter {
        * TODO This should be checking if commenting is enabled, but currently
        * due to limitations of the reader library it is always enabled, just
        * sometimes the comment char is set to `\0`. See the documentation of
-       * {@link DelimitedReader#UNUSED_CHARACTER}.
+       * {@link DelimitedReader#COMMENT_CHARACTER}.
        *
        * See issue https://github.com/enso-org/enso/issues/5655
        */
@@ -221,7 +221,8 @@ public class DelimitedWriter {
 
     if (!quotingEnabled()) {
       if (containsCharactersThatNeedQuoting) {
-        warnings.add(new UnquotedCharactersInOutput(columnName, row));
+        problemAggregator.reportColumnAggregatedProblem(
+            new UnquotedCharactersInOutput(columnName, row));
       }
 
       return value;

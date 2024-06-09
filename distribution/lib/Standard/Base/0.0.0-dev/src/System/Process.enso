@@ -8,6 +8,7 @@ from project.Data.Boolean import Boolean, False, True
 
 ## ALIAS run a command
    GROUP Input
+   ICON system
 
    Call a command with a list of arguments.
 

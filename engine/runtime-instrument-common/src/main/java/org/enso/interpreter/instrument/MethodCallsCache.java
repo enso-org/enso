@@ -22,7 +22,9 @@ public final class MethodCallsCache {
     callsExecuted.add(call);
   }
 
-  /** @return the set of executed calls. */
+  /**
+   * @return the set of executed calls.
+   */
   public Set<UUID> getCallsExecuted() {
     return callsExecuted;
   }

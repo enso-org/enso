@@ -121,7 +121,15 @@ pub async fn stream_to_file(
 ) -> Result {
     debug!("Streaming download to file {}. ", output_path.as_ref().display());
     create_parent_dir_if_missing(&output_path).await?;
-    let output = tokio::fs::OpenOptions::new().write(true).create(true).open(&output_path).await?;
+    let output = tokio::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&output_path)
+        .await
+        .with_context(|| {
+            format!("Failed to open file for writing: {}", output_path.as_ref().display())
+        })?;
     stream
         .map_err(anyhow::Error::from)
         // We must use fold (rather than foreach) to properly keep `output` alive long enough.

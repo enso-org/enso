@@ -1,9 +1,0 @@
-# Export some "public" stuff from this library
-from project.Pub_Mod import Pub_Mod_Type
-from project.Pub_Mod export Pub_Mod_Type
-
-# Can import and use private modules in the same project
-from project.Priv_Mod import Type_In_Priv_Mod
-
-main =
-    Type_In_Priv_Mod.Value 42 . data

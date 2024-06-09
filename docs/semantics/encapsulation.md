@@ -58,11 +58,11 @@ methods and constructors.
 Modules can be specified as private. Private modules cannot be imported from
 other projects. Private modules can be imported from the same project.
 
-A hierarchy of submodules cannot mix public and private modules. In other words,
-if a module is public, its whole subtree must be public as well. For example,
-having a public module `A` and private submodule `A.B` is forbidden and shall be
-reported as an error during compilation. But having a private module `A` as well
-as private module `A.B` is OK.
+A hierarchy of submodules can mix public and private modules. By _hierarchy_, we
+mean a parent-child relationship between modules. It does not make sense to
+create a public submodule of a private module and export it, but it is allowed.
+Note that this is because of current limitations of the implementation, this
+might be more strict in the future.
 
 ### Types
 
@@ -74,9 +74,18 @@ public and private constructors in a single type is a compilation error. A type
 with all constructors public is called an _open_ type and a type with all
 constructors private is called a _closed_ type.
 
+### Methods
+
 Methods on types (or on modules) can be specified private. To check whether a
 private method is accessed only from within the same project, a runtime check
 must be performed, as this cannot be checked during the compilation.
+
+Conversion and foreign methods cannot be specified as private.
+
+### Polyglot access
+
+No polyglot foreign code can access private entities. For all the foreign code,
+private entities are not visible.
 
 ## Example
 
@@ -87,8 +96,6 @@ type Pub_Type
   Constructor field
   private priv_method self = ...
   pub_method self = self.field.to_text
-
-private type Priv_Type
 ```
 
 Lib/src/Methods.enso:
@@ -104,8 +111,6 @@ Lib/src/Internal/Helpers.enso:
 # Mark the whole module as private
 private
 
-# OK to import private types in the same project
-import project.Pub_Type.Priv_Type
 ```
 
 Lib/src/Main.enso:
@@ -113,17 +118,14 @@ Lib/src/Main.enso:
 ```
 import project.Pub_Type.Pub_Type
 export project.Pub_Type.Pub_Type
-
-import project.Pub_Type.Priv_Type # OK - we can import private types in the same project.
-export project.Pub_Type.Priv_Type # Failes at compile time - re-exporting private types is forbidden.
 ```
 
 tmp.enso:
 
 ```
 from Lib import Pub_Type
-import Lib.Pub_Type.Priv_Type # Fails during compilation
 import Lib.Methods
+import Lib.Internal.Helpers # Fails during compilation - cannot import private module from different project
 
 main =
   # This constructor is not private, we can use it here.
@@ -132,8 +134,6 @@ main =
   obj.priv_method # Runtime failure - priv_method is private
   Pub_Type.priv_method self=obj # Runtime failure
   obj.pub_method # OK
-
-  Lib.Pub_Type.Priv_Type # Fails at runtime - accessing private types via FQN is forbidden
 
   Methods.pub_stat_method 1 2 # OK
   Methods.priv_stat_method # Fails at runtime
@@ -173,6 +173,4 @@ during compilation and method resolution.
 ## Other notes
 
 - A private module implies that all the entities defined within are private
-- A private type implies that all the constructors, methods and fields defined
-  within are private
 - A private constructor implies private fields defined in that constructor.

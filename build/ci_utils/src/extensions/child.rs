@@ -22,7 +22,7 @@ impl ChildExt for tokio::process::Child {
 
     fn kill_subtree(&self) {
         let Some(pid) = self.id().map(Pid::from_u32) else {
-            // Not necessarily that bad, as the process might have already exited. 
+            // Not necessarily that bad, as the process might have already exited.
             // Still, we don't know about its descendants, so we cannot kill them.
             warn!("Failed to get PID of the process.");
             return;

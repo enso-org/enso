@@ -158,7 +158,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
-  - [`search/completion`](#searchcompletion)
 - [Input/Output Operations](#inputoutput-operations)
   - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstandardoutput)
@@ -185,6 +184,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`library/preinstall`](#librarypreinstall)
 - [Runtime Operations](#runtime-operations)
   - [`runtime/getComponentGroups`](#runtimegetcomponentgroups)
+- [Profiling Operations](#profiling-operations)
+  - [`profiling/start`](#profilingstart)
+  - [`profiling/stop`](#profilingstop)
+- [AI Operations](#ai-operations)
+  - [`ai/completion_v2`](#aicompletionv2)
+  - [`ai/completionProgress`](#aicompletionprogres)
 - [Errors](#errors-75)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
@@ -448,7 +453,7 @@ interface SuggestionEntryArgument {
   /** The argument name. */
   name: string;
   /** The argument type. String 'Any' is used to specify generic types. */
-  type: string;
+  reprType: string;
   /** Indicates whether the argument is lazy. */
   isSuspended: boolean;
   /** Indicates whether the argument has default value. */
@@ -497,8 +502,14 @@ interface Module {
   /** The documentation string. */
   documentation?: string;
 
-  /** The fully qualified module name re-exporting this module. */
+  /** The fully qualified module name re-exporting this module.
+   *
+   * @deprecated use reexports field instead
+   */
   reexport?: string;
+
+  /** The list of fully qualified module names re-exporting this module. */
+  reexports: string[];
 }
 
 interface Type {
@@ -517,8 +528,14 @@ interface Type {
   /** Qualified name of the parent type. */
   parentType?: string;
 
-  /** The fully qualified module name re-exporting this type. */
+  /** The fully qualified module name re-exporting this type.
+   *
+   * @deprecated use reexports field instead
+   */
   reexport?: string;
+
+  /** The list of fully qualified module names re-exporting this type. */
+  reexports: string[];
 
   /** The documentation string. */
   documentation?: string;
@@ -540,8 +557,14 @@ interface Constructor {
   /** The type of the constructor. */
   returnType: string;
 
-  /** The fully qualified module name re-exporting this constructor. */
+  /** The fully qualified module name re-exporting this constructor.
+   *
+   * @deprecated use reexports field instead
+   */
   reexport?: string;
+
+  /** The list of fully qualified module names re-exporting this constructor. */
+  reexports: string[];
 
   /** The documentation string. */
   documentation?: string;
@@ -572,8 +595,14 @@ interface Method {
   /** The flag indicating whether this method is static or instance. */
   isStatic: boolean;
 
-  /** The fully qualified module name re-exporting this method. */
+  /** The fully qualified module name re-exporting this method.
+   *
+   * @deprecated use reexports field instead
+   */
   reexport?: string;
+
+  /** The list of fully qualified module names re-exporting this method. */
+  reexports: string[];
 
   /** The documentation string. */
   documentation?: string;
@@ -2347,6 +2376,7 @@ of the (possibly multiple) content roots.
 interface FileEventNotification {
   path: Path;
   kind: FileEventKind;
+  attributes?: FileAttributes;
 }
 ```
 
@@ -3788,11 +3818,33 @@ interface ExecutionContextExecutionStatusNotification {
 
 ### `executionContext/executeExpression`
 
-This message allows the client to execute an arbitrary expression on a given
-node. It behaves like oneshot
+This message allows the client to execute an arbitrary expression in a context
+of a given node. It behaves like putting a breakpoint after the expression with
+`expressionId` and executing the provided `expression`. All the local and global
+symbols that are available for the `expressionId` will be available when
+executing the `expression`. The result of the evaluation will be delivered as a
+visualization result on a binary connection. You can think of it as a oneshot
 [`executionContext/attachVisualization`](#executioncontextattachvisualization)
-visualization request, meaning that the visualization expression will be
-executed only once.
+visualization request, meaning that the expression will be executed once.
+
+For example, given the current code:
+
+```python
+main =
+    operator1 = 42
+    operator2 = operator1 + 1
+
+fun1 x = x.to_text
+```
+
+- You can execute an expression in the context of a function body. In this case,
+  the `expressionId` should point to the body of a function. E.g. in the context
+  of `main` available symbols are `operator1`, `operator2` and `fun1`.
+- Execute expression in the context of a local binding. E.g. in the context of
+  `operator2 = operator1 + 1` available symbols are `operator1`, `operator2` and
+  `fun1`.
+- Execute expression in the context of arbitrary expression. E.g. in the context
+  of `operator1 + 1` available symbols are `operator1` and `fun1`.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -3803,9 +3855,10 @@ executed only once.
 
 ```typescript
 interface ExecutionContextExecuteExpressionParameters {
+  executionContextId: UUID;
   visualizationId: UUID;
   expressionId: UUID;
-  visualizationConfig: VisualizationConfiguration;
+  expression: string;
 }
 ```
 
@@ -3821,11 +3874,8 @@ type ExecutionContextExecuteExpressionResult = null;
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
-- [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-  the visualization cannot be found.
 - [`VisualizationExpressionError`](#visualizationexpressionerror) to signal that
-  the expression specified in the `VisualizationConfiguration` cannot be
-  evaluated.
+  the provided expression cannot be evaluated.
 
 ### `executionContext/attachVisualization`
 
@@ -4249,7 +4299,7 @@ interface SearchGetSuggestionsDatabaseVersionResult {
 
 ### `search/suggestionsDatabaseUpdate`
 
-Sent from server to the client to inform abouth the change in the suggestions
+Sent from server to the client to inform about the change in the suggestions
 database.
 
 - **Type:** Notification
@@ -4268,7 +4318,7 @@ interface SearchSuggestionsDatabaseUpdateNotification {
 
 ### `search/suggestionsOrderDatabaseUpdate`
 
-Sent from server to the client to inform abouth the change in the suggestions
+Sent from server to the client to inform about the change in the suggestions
 order database.
 
 - **Type:** Notification
@@ -5071,6 +5121,152 @@ interface RuntimeGetComponentGroupsResult {
 
 None
 
+## Profiling Operations
+
+### `profiling/start`
+
+Sent from the client to the server to initiate gathering the profiling data.
+This command should be followed by the [`profiling/stop`](#profilingstop)
+request to store the gathered data. After the profiling is started, subsequent
+`profiling/start` commands will do nothing.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProfilingStartParameters {
+  /** Also take a memory snapshot when the profiling is stopped. */
+  memorySnapshot?: boolean;
+}
+```
+
+#### Result
+
+```typescript
+interface ProfilingStartResult {}
+```
+
+#### Errors
+
+None
+
+### `profiling/stop`
+
+Sent from the client to the server to finish gathering the profiling data. The
+collected data is stored in the `ENSO_DATA_DIRECTORY/profiling` directory. After
+the profiling is stopped, subsequent `profiling/stop` commands will do nothing.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProfilingStopParameters {}
+```
+
+#### Result
+
+```typescript
+interface ProfilingStopResult {}
+```
+
+#### Errors
+
+None
+
+## AI Operations
+
+### `ai/completion_v2`
+
+Sent from the client to the server to ask the AI model the code suggestion.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface AiCompletionParameters {
+  /** The execution context id to use for executing expressions. */
+  contextId: UUID;
+  /**
+   * The expression providing the execution scope. The same as `expressionId`
+   * parameter of `executionContext/executeExpression` method.
+   */
+  expressionId: UUID;
+  /** The user prompt. */
+  prompt: string;
+  /** The system prompt describing the AI role. */
+  systemPrompt?: string;
+  /** The AI model to use. */
+  model?: string;
+}
+```
+
+#### Result
+
+```typescript
+type AiCompletionResult = AiCompletionResultSuccess | AiCompletionResultFailure;
+
+interface AiCompletionResultSuccess {
+  /** The code of the function producing the desired result. */
+  fn: string;
+
+  /** The code of how to call the suggested function. */
+  fnCall: string;
+}
+
+interface AiCompletionResultFailure {
+  /**
+   * The explanation given by the AI model for why it was unable to provide the
+   * answer.
+   */
+  reason: string;
+}
+```
+
+#### Errors
+
+- [`AiHttpError`](#aihttperror) Signals about an error during the processing of
+  AI http respnse.
+- [`AiEvaluationError`](#aievaluationerror) Signals about an error during the
+  evaluation of expression requested by AI.
+
+### `ai/completionProgress`
+
+Sent from server to the client to inform about the progress of the
+[`ai/completion`](#aicompletion) request.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Notification
+
+```typescript
+interface AiCompletionProgressNotification {
+  /** Code snippte that AI model requested to evaluate. */
+  code: string;
+  /** Explanation given by the AI model why it needs an extra information. */
+  reason: string;
+  /**
+   * The id of the visualization being executed. When evaluated, the
+   * visualization update will contain the result of the executed expression.
+   */
+  visualizationId: UUID;
+}
+```
+
 ## Errors
 
 The language server component also has its own set of errors. This section is
@@ -5654,5 +5850,36 @@ Signals that the refactoring of the given expression is not supported.
 "error" : {
   "code" : 9003,
   "message" : "Refactoring not supported for expression [<expression-id>]"
+}
+```
+
+### `AiHttpError`
+
+Signals about an error during the processing of AI http respnse.
+
+```typescript
+"error" : {
+  "code" : 10001,
+  "message" : "Failed to process HTTP response",
+  "payload" : {
+    "reason" : "<Failure reason>",
+    "request" : "<HTTP request sent>",
+    "response" : "<HTTP response received>"
+  }
+}
+```
+
+### `AiEvaluationError`
+
+Signals about an error during the evaluation of expression requested by AI.
+
+```typescript
+"error" : {
+  "code" : 10002,
+  "message" : "Failed to execute expression",
+  "payload" : {
+    "expression" : "<Evaluated expression>",
+    "error" : "<The evaluation error message>"
+  }
 }
 ```

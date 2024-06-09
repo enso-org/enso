@@ -19,17 +19,23 @@ public class Number {
     ensoFloat = builtins.getBuiltinType(Float.class);
   }
 
-  /** @return the Integer atom constructor */
+  /**
+   * @return the Integer atom constructor
+   */
   public Type getInteger() {
     return integer.getType();
   }
 
-  /** @return the Number atom constructor */
+  /**
+   * @return the Number atom constructor
+   */
   public Type getNumber() {
     return number.getType();
   }
 
-  /** @return the Decimal atom constructor */
+  /**
+   * @return the Decimal atom constructor
+   */
   public Type getFloat() {
     return ensoFloat.getType();
   }

@@ -19,13 +19,13 @@ object Report {
     *
     * @param description description of the distribution
     * @param summary reviewed summary of findings
-    * @param warnings sequence of warnings
+    * @param diagnostics sequence of diagnostics
     * @param destination location of the generated HTML file
     */
   def writeHTML(
     description: DistributionDescription,
     summary: ReviewedSummary,
-    warnings: Seq[String],
+    diagnostics: Seq[Diagnostic],
     destination: File
   ): Unit = {
     IO.createDirectory(destination.getParentFile)
@@ -40,21 +40,35 @@ object Report {
         s"${description.rootComponentsNames.mkString(", ")}."
       )
 
-      if (warnings.isEmpty) {
-        writer.writeParagraph("There are no warnings.", Style.Green)
+      val (warnings: Seq[Diagnostic.Warning], errors: Seq[Diagnostic.Error]) =
+        Diagnostic.partition(diagnostics)
+
+      if (warnings.nonEmpty) {
+        writer.writeSubHeading("Warnings")
+        writer.writeList(warnings.map { notice => () =>
+          writer.writeText(notice.message)
+        })
+      }
+
+      if (errors.nonEmpty) {
+        writer.writeSubHeading(
+          f"There are ${errors.size} fatal-errors found in the review."
+        )
+        writer.writeList(errors.map { error => () =>
+          writer.writeParagraph(
+            error.message,
+            error.metadata,
+            styles = Seq(Style.Red, Style.DisplayInline)
+          )
+        })
       } else {
         writer.writeParagraph(
-          s"There are ${warnings.size} warnings!",
-          Style.Bold,
-          Style.Red
+          "No fatal-errors found in the review.",
+          Style.Green
         )
       }
 
       writeDependencySummary(writer, summary)
-
-      writer.writeList(warnings.map { warning => () =>
-        writer.writeText(writer.escape(warning))
-      })
 
       writer.writeCollapsible("NOTICE header", summary.noticeHeader)
       if (summary.additionalFiles.nonEmpty) {
@@ -122,9 +136,14 @@ object Report {
     writer: HTMLWriter,
     summary: ReviewedSummary
   ): Unit = {
-    val sorted = summary.dependencies.sortBy(dep =>
-      (dep.information.moduleInfo.organization, dep.information.moduleInfo.name)
-    )
+    // We sort the dependencies first by the amount of things that need review, then among those by artifact id
+    val sorted = summary.dependencies.sortBy { dep =>
+      (
+        -dep.problemsCount,
+        dep.information.moduleInfo.organization,
+        dep.information.moduleInfo.name
+      )
+    }
 
     writer.writeSubHeading("Summary of all compile dependencies")
     writer.writeTable(
@@ -167,6 +186,10 @@ object Report {
                     s"Not reviewed, filename: <pre>$name</pre>",
                     Style.Red
                   )
+                  writer.writeInjectionHandler(
+                    "license-not-reviewed",
+                    "name" -> name
+                  )
                 case LicenseReview.Default(path, allowAdditional) =>
                   val additional =
                     if (allowAdditional) " and additional included files."
@@ -203,24 +226,28 @@ object Report {
             rowWriter.addColumn {
               if (files.isEmpty) writer.writeText("No attached files.")
               else
-                writer.writeList(files.map { case (file, status) =>
-                  () =>
-                    val injection = writer.makeInjectionHandler(
-                      "file-ui",
-                      "package"  -> dep.information.packageName,
-                      "filename" -> file.path.toString,
-                      "status"   -> status.toString
-                    )
-                    val origin = file.origin
-                      .map(origin => s" (Found at $origin)")
-                      .getOrElse("")
-                    writer.writeCollapsible(
-                      s"${file.fileName} (${renderStatus(status)})$origin " +
-                      s"${renderSimilarity(defaultLicense, file, status)}",
-                      injection +
-                      writer.escape(file.content)
-                    )
-                })
+                writer.writeList(
+                  files.map { case (file, status) =>
+                    () =>
+                      val injection = writer.makeInjectionHandler(
+                        "file-ui",
+                        "package"  -> dep.information.packageName,
+                        "filename" -> file.path.toString,
+                        "status"   -> status.toString
+                      )
+                      val origin = file.origin
+                        .map(origin => s" (Found at $origin)")
+                        .getOrElse("")
+                      writer.writeCollapsible(
+                        s"${file.path} (${renderStatus(status)})$origin " +
+                        s"${renderSimilarity(defaultLicense, file, status)}",
+                        injection +
+                        writer.escape(file.content)
+                      )
+                  },
+                  // Bullets are not needed because jQuery CSS will handle this better
+                  addBullets = false
+                )
             }
             rowWriter.addColumn {
               if (copyrights.isEmpty) {
@@ -228,46 +255,55 @@ object Report {
                 if (bothEmpty) {
                   writer.writeText(
                     "No notices or copyright information found, " +
-                    "this may be a problem.",
+                    "this is a problem - add the information manually " +
+                    "using `copyright-add` or `files-add`.",
                     Style.Red
                   )
                 } else {
                   writer.writeText("No copyright information found.")
                 }
               } else
-                writer.writeList(copyrights.sortBy(_._1.content).map {
-                  case (mention, status) =>
-                    () =>
-                      val foundAt = mention.origins match {
-                        case Seq()    => ""
-                        case Seq(one) => s"Found at $one"
-                        case Seq(first, rest @ _*) =>
-                          s"Found at $first and ${rest.size} other files."
-                      }
+                writer.writeList(
+                  copyrights.sortBy(_._1.content).map {
+                    case (mention, status) =>
+                      () =>
+                        val foundAt = mention.origins match {
+                          case Seq()    => ""
+                          case Seq(one) => s"Found at $one"
+                          case Seq(first, rest @ _*) =>
+                            s"Found at $first and ${rest.size} other files."
+                        }
 
-                      val contexts = if (mention.contexts.nonEmpty) {
-                        mention.contexts
-                          .map(c => "\n" + writer.escape(c) + "\n")
-                          .mkString("<hr>")
-                      } else ""
+                        val contexts = if (mention.contexts.nonEmpty) {
+                          mention.contexts
+                            .map(c => "\n" + writer.escape(c) + "\n")
+                            .mkString("<hr>")
+                        } else ""
 
-                      val injection = writer.makeInjectionHandler(
-                        "copyright-ui",
-                        "package" -> dep.information.packageName,
-                        "content" -> Base64.getEncoder.encodeToString(
-                          mention.content.getBytes(StandardCharsets.UTF_8)
-                        ),
-                        "contexts" -> mention.contexts.length.toString,
-                        "status"   -> status.toString
-                      )
+                        val injection = writer.makeInjectionHandler(
+                          "copyright-ui",
+                          "package" -> dep.information.packageName,
+                          "content" -> Base64.getEncoder.encodeToString(
+                            mention.content.getBytes(StandardCharsets.UTF_8)
+                          ),
+                          "contexts" -> mention.contexts.length.toString,
+                          "status"   -> status.toString
+                        )
 
-                      val content  = writer.escape(mention.content)
-                      val moreInfo = injection + foundAt + contexts
-                      writer.writeCollapsible(
-                        s"$content (${renderStatus(status)})",
-                        moreInfo
-                      )
-                })
+                        val content  = writer.escape(mention.content)
+                        val moreInfo = injection + foundAt + contexts
+                        writer.writeCollapsible(
+                          s"$content (${renderStatus(status)})",
+                          moreInfo
+                        )
+                  }, // Bullets are not needed because jQuery CSS will handle this better
+                  addBullets = false
+                )
+
+              writer.writeInjectionHandler(
+                "add-custom-copyright-notice",
+                "package" -> dep.information.packageName
+              )
             }
       }
     )

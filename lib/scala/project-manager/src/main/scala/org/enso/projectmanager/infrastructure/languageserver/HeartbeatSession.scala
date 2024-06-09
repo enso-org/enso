@@ -63,6 +63,10 @@ class HeartbeatSession(
     logger.debug("Heartbeat connection initialized [{}].", socket)
   }
 
+  override def postStop(): Unit = {
+    connection.close()
+  }
+
   override def receive: Receive = pingStage
 
   private def pingStage: Receive = {

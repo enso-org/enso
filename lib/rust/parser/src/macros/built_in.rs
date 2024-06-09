@@ -82,7 +82,10 @@ fn import_body<'s>(
         let field = match header.code.as_ref() {
             "polyglot" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut polyglot
             }
@@ -91,7 +94,7 @@ fn import_body<'s>(
                     precedence
                         .resolve(tokens)
                         .map(expect_qualified)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut from
             }
@@ -112,14 +115,17 @@ fn import_body<'s>(
             }
             "as" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
                     sequence_tree(precedence, tokens, expect_ident)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
             }
@@ -175,7 +181,7 @@ fn export_body<'s>(
                     precedence
                         .resolve(tokens)
                         .map(expect_qualified)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut from
             }
@@ -196,14 +202,17 @@ fn export_body<'s>(
             }
             "as" => {
                 body = Some(
-                    precedence.resolve(tokens).map(expect_ident).unwrap_or_else(expected_nonempty),
+                    precedence
+                        .resolve(tokens)
+                        .map(expect_ident)
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut as_
             }
             "hiding" => {
                 body = Some(
                     sequence_tree(precedence, tokens, expect_ident)
-                        .unwrap_or_else(expected_nonempty),
+                        .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
                 &mut hiding
             }
@@ -221,7 +230,7 @@ fn export_body<'s>(
 /// If-then-else macro definition.
 pub fn if_then_else<'s>() -> Definition<'s> {
     crate::macro_definition! {
-    ("if", everything(), "then", everything(), "else", everything()) if_body}
+    ("if", everything(), "then", everything(), "else", or(block(), many(not_block()))) if_body}
 }
 
 /// If-then macro definition.
@@ -309,7 +318,8 @@ fn type_def_body<'s>(
     for line in &mut block {
         if let Some(syntax::Item::Token(syntax::Token { variant, .. })) = line.items.first_mut()
             && let syntax::token::Variant::Operator(operator) = variant
-            && !operator.properties.is_annotation() {
+            && !operator.properties.is_annotation()
+        {
             let opr_ident =
                 syntax::token::variant::Ident { is_operator_lexically: true, ..default() };
             *variant = syntax::token::Variant::Ident(opr_ident);
@@ -327,6 +337,36 @@ fn type_def_body<'s>(
 
 fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
+
+    // Unwrap `Private` tree from any `Invalid` added in expression context; it will be revalidated
+    // in the new context.
+    if let Tree {
+        variant:
+            box Variant::Invalid(Invalid {
+                ast: mut inner @ Tree { variant: box Variant::Private(_), .. },
+                ..
+            }),
+        span,
+    } = line_expression
+    {
+        inner.span = span;
+        return to_body_statement(inner);
+    }
+    // Recurse into body of `Private` keyword; validate usage of the keyword in type-body context.
+    if let Tree { variant: box Variant::Private(ref mut private), .. } = &mut line_expression {
+        let body_statement = private.body.take().map(to_body_statement);
+        let error = match body_statement.as_ref().map(|tree| &*tree.variant) {
+            Some(Variant::ConstructorDefinition(_)) => None,
+            Some(Variant::Function(_)) => None,
+            None => Some("Expected declaration after `private` keyword in type definition."),
+            _ => Some("The `private` keyword inside a type definition may only be applied to a constructor definition or a method."),
+        };
+        private.body = body_statement;
+        return match error {
+            Some(error) => line_expression.with_error(error),
+            None => line_expression,
+        };
+    }
     if let Tree { variant: box Variant::Documented(Documented { expression, .. }), .. } =
         &mut line_expression
     {
@@ -376,13 +416,16 @@ fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> 
     };
     let (constructor, mut arguments) = crate::collect_arguments(lhs.clone());
     if let Tree { variant: box Variant::Ident(Ident { token }), span } = constructor
-            && token.is_type {
+        && token.is_type
+    {
         let mut constructor = token;
         constructor.left_offset += left_offset;
         constructor.left_offset += span.left_offset;
         if let Some((equals, expression)) = last_argument_default
-                && let Some(ArgumentDefinition { open: None, default, close: None, .. })
-                = arguments.last_mut() && default.is_none() {
+            && let Some(ArgumentDefinition { open: None, default, close: None, .. }) =
+                arguments.last_mut()
+            && default.is_none()
+        {
             *default = Some(ArgumentDefault { equals, expression });
         }
         let block = default();
@@ -438,10 +481,9 @@ fn case_body<'s>(
             _ => initial_case.push(item),
         }
     }
-    if let Some(_first) = initial_case.first() {
-        // FIXME: Create 0-length span at offset preceding `_first`.
-        let newline =
-            syntax::token::newline(Code::empty_without_offset(), Code::empty_without_offset());
+    if !initial_case.is_empty() {
+        let location = of_.code.position_after();
+        let newline = syntax::token::newline(location.clone(), location);
         case_builder.push(syntax::item::Line { newline, items: initial_case });
     }
     block.into_iter().for_each(|line| case_builder.push(line));
@@ -473,12 +515,18 @@ impl<'s> CaseBuilder<'s> {
         let syntax::item::Line { newline, items } = line;
         self.case_lines.push(syntax::tree::CaseLine { newline: newline.into(), ..default() });
         for token in items {
-            if self.arrow.is_none() &&
-                    let syntax::Item::Token(syntax::Token { left_offset, code, variant: syntax::token::Variant::Operator(op) }) = &token
-                    && op.properties.is_arrow()
-                    && !left_offset.is_empty() {
+            if self.arrow.is_none()
+                && let syntax::Item::Token(syntax::Token {
+                    left_offset,
+                    code,
+                    variant: syntax::token::Variant::Operator(op),
+                }) = &token
+                && op.properties.is_arrow()
+                && !left_offset.is_empty()
+            {
                 self.resolver.extend(self.tokens.drain(..));
-                self.arrow = Some(syntax::token::operator(left_offset.clone(), code.clone(), op.properties));
+                self.arrow =
+                    Some(syntax::token::operator(left_offset.clone(), code.clone(), op.properties));
                 self.pattern = self.resolver.finish().map(crate::expression_to_pattern);
                 continue;
             }
@@ -493,9 +541,18 @@ impl<'s> CaseBuilder<'s> {
     fn finish_line(&mut self) {
         if self.arrow.is_none() && !self.spaces {
             for (i, token) in self.tokens.iter().enumerate() {
-                if let syntax::Item::Token(syntax::Token { left_offset, code, variant: syntax::token::Variant::Operator(op) }) = &token
-                    && op.properties.is_arrow() {
-                    self.arrow = Some(syntax::token::operator(left_offset.clone(), code.clone(), op.properties));
+                if let syntax::Item::Token(syntax::Token {
+                    left_offset,
+                    code,
+                    variant: syntax::token::Variant::Operator(op),
+                }) = &token
+                    && op.properties.is_arrow()
+                {
+                    self.arrow = Some(syntax::token::operator(
+                        left_offset.clone(),
+                        code.clone(),
+                        op.properties,
+                    ));
                     let including_arrow = self.tokens.drain(..=i);
                     self.resolver.extend(including_arrow.take(i));
                     self.pattern = self.resolver.finish().map(crate::expression_to_pattern);
@@ -520,7 +577,7 @@ impl<'s> CaseBuilder<'s> {
                 if self.case_lines.is_empty() {
                     self.case_lines.push(default());
                 }
-                let mut case = self.case_lines.last_mut().unwrap().case.get_or_insert_default();
+                let case = self.case_lines.last_mut().unwrap().case.get_or_insert_default();
                 case.documentation = documentation.into();
                 return;
             }
@@ -545,7 +602,7 @@ impl<'s> CaseBuilder<'s> {
         if self.case_lines.is_empty() {
             self.case_lines.push(default());
         }
-        let mut case = &mut self.case_lines.last_mut().unwrap().case.get_or_insert_default();
+        let case = &mut self.case_lines.last_mut().unwrap().case.get_or_insert_default();
         case.pattern = pattern;
         case.arrow = arrow;
         case.expression = expression;
@@ -688,14 +745,33 @@ fn freeze<'s>() -> Definition<'s> {
     crate::macro_definition! {("FREEZE", everything()) capture_expressions}
 }
 
+/// private can be either specified as the very first statement in the module, marking the
+/// whole module as private. Or it can be prepended to some definitions. For example it can
+/// be prepended to atom constructor definition and a method.
 fn private_keyword<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
     precedence: &mut operator::Precedence<'s>,
 ) -> syntax::Tree<'s> {
+    use syntax::tree::*;
     let segment = segments.pop().0;
     let keyword = into_private(segment.header);
-    let body = precedence.resolve(segment.result.tokens());
-    syntax::Tree::private(keyword, body)
+    let body_opt = precedence.resolve(segment.result.tokens());
+    match body_opt {
+        Some(body) => {
+            let statement = crate::expression_to_statement(body);
+            match statement.variant {
+                box Variant::ConstructorDefinition(_) => Tree::private(keyword, Some(statement)),
+                box Variant::Function(_) => Tree::private(keyword, Some(statement)),
+                _ => Tree::private(keyword, Some(statement))
+                    .with_error("The 'private' keyword cannot be applied to this expression"),
+            }
+        }
+        None => {
+            // Just a private keyword without a body. This is valid as the first statement in the
+            // module, to declare the module as private.
+            Tree::private(keyword, None)
+        }
+    }
 }
 
 /// Macro body builder that just parses the tokens of each segment as expressions, and places them
@@ -744,9 +820,13 @@ fn try_foreign_body<'s>(
     let expected_name = "Expected an identifier specifying foreign function's name.";
     let function = precedence.resolve(tokens).ok_or(expected_name)?;
     let expected_function = "Expected a function definition after foreign declaration.";
-    let box syntax::tree::Variant::OprApp(
-            syntax::tree::OprApp { lhs: Some(lhs), opr: Ok(equals), rhs: Some(body) }) = function.variant else {
-        return Err(expected_function)
+    let box syntax::tree::Variant::OprApp(syntax::tree::OprApp {
+        lhs: Some(lhs),
+        opr: Ok(equals),
+        rhs: Some(body),
+    }) = function.variant
+    else {
+        return Err(expected_function);
     };
     if !equals.properties.is_assignment() {
         return Err(expected_function);
@@ -825,10 +905,10 @@ fn expect_qualified(tree: syntax::Tree) -> syntax::Tree {
     }
 }
 
-fn expected_nonempty<'s>() -> syntax::Tree<'s> {
+fn expected_nonempty(location: Code) -> syntax::Tree {
     let empty = syntax::Tree::ident(syntax::token::ident(
-        Code::empty_without_offset(),
-        Code::empty_without_offset(),
+        location.clone(),
+        location,
         false,
         0,
         false,

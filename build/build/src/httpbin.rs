@@ -29,7 +29,7 @@ pub async fn get_and_spawn_httpbin(
 ) -> Result<Spawned> {
     let process = sbt
         .command()?
-        .arg(format!("simple-httpbin/run localhost {port}"))
+        .arg(format!("http-test-helper/run localhost {port}"))
         .kill_on_drop(true)
         .spawn()?;
 
@@ -66,7 +66,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn spawn() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         set_current_dir(r"H:\NBO\enso5")?;
         let cache = cache::Cache::new_default().await?;
         cache::goodie::sbt::Sbt.install_if_missing(&cache).await?;

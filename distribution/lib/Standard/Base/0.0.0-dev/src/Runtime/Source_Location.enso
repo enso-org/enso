@@ -1,7 +1,7 @@
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+import project.Nothing.Nothing
 import project.System.File.File
-
 from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
@@ -18,23 +18,32 @@ type Source_Location
     to_text self =
         '(Source_Location ' + self.formatted_coordinates + ')'
 
-    ## Returns the 1-based line index of the start of this code range.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the 1-based line index of the start of this code range.
     start_line : Integer
     start_line self = self.prim_location.getStartLine
 
-    ## Returns the 1-based line index of the end of this code range.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the 1-based line index of the end of this code range.
     end_line : Integer
     end_line self = self.prim_location.getEndLine
 
-    ## Returns the 1-based column index of the start of this code range.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the 1-based column index of the start of this code range.
     start_column : Integer
     start_column self = self.prim_location.getStartColumn
 
-    ## Returns the 1-based column index of the end of this code range.
+    ## GROUP Metadata
+       ICON metadata
+       Returns the 1-based column index of the end of this code range.
     end_column : Integer
     end_column self = self.prim_location.getEndColumn
 
-    ## Returns a pretty-printed location (file and line info).
+    ## ICON text
+       Returns a pretty-printed location (file and line info).
     formatted_coordinates : Text
     formatted_coordinates self =
         start_line = self.start_line
@@ -47,13 +56,23 @@ type Source_Location
                 row + ":" + start + "-" + end
             False ->
                 start_line.to_text + '-' + end_line.to_text
-        cwd = File.current_directory
-        file = self.file.absolute
-        formatted_file = case file.is_child_of cwd of
-            True -> cwd.relativize file . path
-            _ -> file.path
-        formatted_file + ":" + indices
+        if self.file.is_nothing then "? Unknown ?:" + indices else
+            cwd = File.current_directory
+            file = self.file.absolute
+            formatted_file = case file.is_descendant_of cwd of
+                True -> cwd.relativize file . path
+                _ -> file.path
+            formatted_file + ":" + indices
 
-    ## Return the source file corresponding to this location.
-    file : File
-    file self = File.new self.prim_location.getSource.getPath
+    ## GROUP Metadata
+       ICON metadata
+       Return the source file corresponding to this location.
+    file : File | Nothing
+    file self =
+        source = self.prim_location.getSource
+        path = if source.is_nothing then Nothing else source.getPath
+        if path.is_nothing then Nothing else File.new path
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.formatted_coordinates

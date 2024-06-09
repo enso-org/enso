@@ -6,6 +6,7 @@ use crate::source::*;
 use crate::syntax::*;
 
 use crate::lexer;
+use crate::source::code::Location;
 
 
 
@@ -101,13 +102,13 @@ impl<'s> Offset<'s> {
 
     /// Return a 0-length `Span` representing the position after the end of this `Span`.
     pub fn position_after(&self) -> Self {
-        Self { visible: default(), code: self.code.position_before() }
+        Self { visible: default(), code: self.code.position_after() }
     }
 
     /// Return this value with its start position removed (set to 0). This can be used to compare
     /// spans ignoring offsets.
     pub fn without_offset(&self) -> Self {
-        Self { visible: self.visible, code: self.code.without_offset() }
+        Self { visible: self.visible, code: self.code.without_location() }
     }
 }
 
@@ -161,7 +162,7 @@ pub struct Span<'s> {
 impl<'s> Span<'s> {
     /// Constructor.
     pub fn empty_without_offset() -> Self {
-        Self { left_offset: Code::empty_without_offset().into(), code_length: default() }
+        Self { left_offset: Code::empty_without_location().into(), code_length: default() }
     }
 
     /// Check whether the span is empty.
@@ -184,28 +185,41 @@ impl<'s> Span<'s> {
     pub fn add<T: Builder<'s>>(self, elem: &mut T) -> Self {
         Builder::add_to_span(elem, self)
     }
-}
 
-impl<'s> AsRef<Span<'s>> for Span<'s> {
-    fn as_ref(&self) -> &Span<'s> {
-        self
+    /// Return the start and end of the source code for this element.
+    pub fn range(&self) -> Range<Location> {
+        let start = self.left_offset.position_after().code.range().start;
+        let end = start + self.code_length;
+        start..end
     }
-}
 
-impl<'s, 'a, T> PartialSemigroup<T> for Span<'s>
-where
-    T: Into<Ref<'s, 'a>>,
-    's: 'a,
-{
+    /// Return the sum of the whitespace length and the code length.
+    pub fn length_including_whitespace(&self) -> code::Length {
+        self.left_offset.code.length() + self.code_length
+    }
+
     #[inline(always)]
-    fn concat_mut(&mut self, other: T) {
+    fn concat<'a>(mut self, other: impl Into<Ref<'s, 'a>>) -> Self
+    where 's: 'a {
         let other = other.into();
         if self.code_length.is_zero() {
             self.left_offset += other.left_offset;
             self.code_length = other.code_length;
         } else {
-            self.code_length += other.left_offset.code.length() + other.code_length;
+            debug_assert_eq!(
+                self.left_offset.code.position_after().range().end + self.code_length,
+                other.left_offset.code.position_before().range().start
+            );
+            self.code_length += other.left_offset.code.length();
+            self.code_length += other.code_length;
         }
+        self
+    }
+}
+
+impl<'s> AsRef<Span<'s>> for Span<'s> {
+    fn as_ref(&self) -> &Span<'s> {
+        self
     }
 }
 
@@ -382,7 +396,7 @@ where T: Builder<'s>
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        self.iter_mut().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
+        self.as_mut_slice().add_to_span(span)
     }
 }
 

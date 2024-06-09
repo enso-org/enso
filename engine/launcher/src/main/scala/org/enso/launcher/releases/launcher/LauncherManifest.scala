@@ -1,9 +1,9 @@
 package org.enso.launcher.releases.launcher
 
 import io.circe.{yaml, Decoder}
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.runtimeversionmanager.releases.ReleaseProviderException
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 
 import scala.util.{Failure, Try}
 

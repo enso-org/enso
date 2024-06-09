@@ -1,14 +1,19 @@
 from Standard.Base import all
 
-from Standard.Test import Test_Suite
+from Standard.Test import all
 
 import project.Widgets.Database_Widgets_Spec
+import project.Widgets.File_Format_Widgets_Spec
 import project.Widgets.Table_Widgets_Spec
 import project.Widgets.Text_Widgets_Spec
 
-spec =
-    Table_Widgets_Spec.spec
-    Database_Widgets_Spec.spec
-    Text_Widgets_Spec.spec
+add_specs suite_builder =
+    Table_Widgets_Spec.add_specs suite_builder
+    Database_Widgets_Spec.add_specs suite_builder
+    File_Format_Widgets_Spec.add_specs suite_builder
+    Text_Widgets_Spec.add_specs suite_builder
 
-main = Test_Suite.run_main spec
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

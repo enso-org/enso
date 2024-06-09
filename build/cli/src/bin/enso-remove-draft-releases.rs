@@ -1,15 +1,8 @@
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
-
 use enso_build_cli::prelude::*;
 
 use ide_ci::github::setup_octocrab;
 use ide_ci::github::RepoRef;
 use ide_ci::io::web::handle_error_response;
-use ide_ci::log::setup_logging;
 
 
 

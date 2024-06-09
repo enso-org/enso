@@ -1,87 +1,263 @@
 <script setup lang="ts">
+import ColorRing from '@/components/ColorRing.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import SmallPlusButton from '@/components/SmallPlusButton.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { ref } from 'vue'
 
+const nodeColor = defineModel<string | undefined>('nodeColor')
 const props = defineProps<{
-  isAutoEvaluationDisabled: boolean
+  isRecordingEnabledGlobally: boolean
+  isRecordingOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
+  isFullMenuVisible: boolean
+  matchableNodeColors: Set<string>
 }>()
 const emit = defineEmits<{
-  'update:isAutoEvaluationDisabled': [isAutoEvaluationDisabled: boolean]
+  'update:isRecordingOverridden': [isRecordingOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
+  startEditing: []
+  startEditingComment: []
+  openFullMenu: []
+  delete: []
+  createNodes: [options: NodeCreationOptions[]]
 }>()
+
+const showColorPicker = ref(false)
 </script>
 
 <template>
   <div class="CircularMenu">
-    <div class="background"></div>
-    <ToggleIcon
-      icon="no_auto_replay"
-      class="icon-container button no-auto-evaluate-button"
-      :modelValue="props.isAutoEvaluationDisabled"
-      @update:modelValue="emit('update:isAutoEvaluationDisabled', $event)"
-    />
-    <ToggleIcon
-      icon="docs"
-      class="icon-container button docs-button"
-      :modelValue="props.isDocsVisible"
-      @update:modelValue="emit('update:isDocsVisible', $event)"
-    />
-    <ToggleIcon
-      icon="eye"
-      class="icon-container button visualization-button"
-      :modelValue="props.isVisualizationVisible"
-      @update:modelValue="emit('update:isVisualizationVisible', $event)"
+    <div
+      v-if="!showColorPicker"
+      class="circle menu"
+      :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`"
+    >
+      <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
+      <SvgButton
+        v-if="isFullMenuVisible"
+        name="comment"
+        class="slot2"
+        title="Comment"
+        @click.stop="emit('startEditingComment')"
+      />
+      <SvgButton
+        v-if="isFullMenuVisible"
+        name="paint_palette"
+        class="slot3"
+        title="Color"
+        @click.stop="showColorPicker = true"
+      />
+      <SvgButton
+        v-if="isFullMenuVisible"
+        name="trash2"
+        class="slot4"
+        title="Delete"
+        @click.stop="emit('delete')"
+      />
+      <ToggleIcon
+        icon="eye"
+        class="slot5"
+        title="Visualization"
+        :modelValue="props.isVisualizationVisible"
+        @update:modelValue="emit('update:isVisualizationVisible', $event)"
+      />
+      <SvgButton
+        name="edit"
+        class="slot6"
+        title="Code Edit"
+        data-testid="edit-button"
+        @click.stop="emit('startEditing')"
+      />
+      <ToggleIcon
+        icon="record"
+        class="overrideRecordingButton slot7"
+        data-testid="overrideRecordingButton"
+        title="Record"
+        :modelValue="props.isRecordingOverridden"
+        @update:modelValue="emit('update:isRecordingOverridden', $event)"
+      />
+    </div>
+    <div v-if="showColorPicker" class="circle">
+      <ColorRing
+        v-model="nodeColor"
+        :matchableColors="matchableNodeColors"
+        :initialColorAngle="90"
+        @close="showColorPicker = false"
+      />
+    </div>
+    <SmallPlusButton
+      v-if="!isVisualizationVisible"
+      class="below-slot5"
+      @createNodes="emit('createNodes', $event)"
     />
   </div>
 </template>
 
 <style scoped>
 .CircularMenu {
+  position: absolute;
   user-select: none;
-  position: absolute;
+  pointer-events: none;
+  /* This is a variable so that it can be referenced in computations,
+     but currently it can't be changed due to many hard-coded values below. */
+  --outer-diameter: 104px;
+  --full-ring-path: path(
+    evenodd,
+    'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
+  );
+}
+
+.circle {
+  position: relative;
   left: -36px;
-  width: 76px;
-  height: 76px;
+  top: -36px;
+  width: var(--outer-diameter);
+  height: var(--outer-diameter);
 }
 
-.CircularMenu > .background {
+.circle.menu {
+  > * {
+    pointer-events: all;
+  }
+
+  &:before {
+    content: '';
+    position: absolute;
+    backdrop-filter: var(--blur-app-bg);
+    background: var(--color-app-bg);
+    width: 100%;
+    height: 100%;
+    pointer-events: all;
+  }
+
+  &.partial {
+    &:before {
+      top: 36px;
+      clip-path: path(
+        'm0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0'
+      );
+    }
+  }
+  &.full {
+    &:before {
+      clip-path: var(--full-ring-path);
+    }
+  }
+}
+
+.More {
   position: absolute;
-  clip-path: path('m0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0');
-  background: var(--color-app-bg);
+  left: -5.5px;
+  top: 27px;
+  width: 42px;
+  height: 17px;
+  clip-path: path(
+    evenodd,
+    'M7.96503 8C7.96503 3.58172 11.5467 0 15.965 0H26.035C30.4533 0 34.035 3.58172 34.035 8V20 H7.96503V8Z'
+  );
+  transform: scale(0.8);
   backdrop-filter: var(--blur-app-bg);
-  width: 100%;
-  height: 100%;
+  background: var(--color-app-bg);
+  z-index: -2;
+  pointer-events: all;
+
+  &:after {
+    content: '...';
+    font-size: 15px;
+    display: block;
+    text-align: center;
+    z-index: 10000;
+    margin-top: -10px;
+    opacity: 0.3;
+  }
 }
 
-.icon-container {
-  display: inline-flex;
-  background: none;
-  padding: 0;
-  border: none;
-  opacity: 30%;
+:deep(.ColorRing .gradient) {
+  clip-path: var(--full-ring-path);
 }
 
-.toggledOn {
-  opacity: unset;
+.inactive {
+  pointer-events: none;
+  opacity: 10%;
 }
 
-.no-auto-evaluate-button {
+.overrideRecordingButton {
+  &.toggledOn {
+    opacity: 100%;
+    color: red;
+  }
+  &.toggledOff {
+    opacity: unset;
+  }
+}
+
+/**
+  * The following styles are used to position the icons in a circular pattern. The slots are named slot1 to slot8 and
+  * are positioned using absolute positioning. The slots are positioned in a circle with slot1 at the top and the rest
+  * of the slots are positioned in a clockwise direction.
+  * ```
+  *           slot1
+  *      slot8     slot2
+  * slot7               slot3
+  *      slot6     slot4
+  *           slot5
+  * ```
+ */
+.slot1 {
   position: absolute;
-  left: 9px;
+  left: 44px;
   top: 8px;
 }
 
-.docs-button {
+.slot2 {
   position: absolute;
-  left: 18.54px;
-  top: 33.46px;
+  top: 18.54px;
+  left: 69.46px;
 }
 
-.visualization-button {
+.slot3 {
+  position: absolute;
+  top: 44px;
+  left: 80px;
+}
+
+.slot4 {
+  position: absolute;
+  top: 69.46px;
+  left: 69.46px;
+}
+
+.slot5 {
   position: absolute;
   left: 44px;
+  top: 80px;
+}
+
+.below-slot5 {
+  position: absolute;
+  top: calc(var(--outer-diameter) - 32px);
+  pointer-events: all;
+}
+
+.slot6 {
+  position: absolute;
+  top: 69.46px;
+  left: 18.54px;
+}
+
+.slot7 {
+  position: absolute;
   top: 44px;
+  left: 8px;
+}
+
+.slot8 {
+  position: absolute;
+  top: 18.54px;
+  left: 18.54px;
 }
 </style>

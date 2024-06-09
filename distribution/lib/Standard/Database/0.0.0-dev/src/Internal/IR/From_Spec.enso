@@ -40,6 +40,17 @@ type From_Spec
 
     ## PRIVATE
 
+       A query source consisting of a literal VALUES clause.
+
+       Arguments:
+       - column_vectors: the contents of the literal table's columns.
+       - column_names: the names of the literal table's columns,
+       - alias: the name by which the table can be referred to in other parts of
+         the query.
+    Literal_Values (column_vectors : Vector (Vector Any)) (column_names : Vector Text) (alias : Text)
+
+    ## PRIVATE
+
        A query source that performs a join operation on two sources.
 
        Arguments:

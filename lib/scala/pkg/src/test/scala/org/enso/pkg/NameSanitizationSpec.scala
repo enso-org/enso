@@ -12,13 +12,14 @@ class NameSanitizationSpec extends AnyWordSpec with Matchers {
 
     "sanitize the name of the project" in {
       normalizeName("My_Project") shouldEqual "My_Project"
-      normalizeName("My___Project") shouldEqual "My_Project"
-      normalizeName("myProject") shouldEqual "My_Project"
-      normalizeName("myPro??^ject123") shouldEqual "My_Project_123"
-      normalizeName("???%$6543lib") shouldEqual "Project_6543_Lib"
-      normalizeName("MyProject™") shouldEqual "My_Project"
+      normalizeName("My___Project") shouldEqual "My___Project"
+      normalizeName("myProject") shouldEqual "MyProject"
+      normalizeName("myPro??^ject123") shouldEqual "MyProject123"
+      normalizeName("???%$6543lib") shouldEqual "Project_6543lib"
+      normalizeName("MyProject™") shouldEqual "MyProject"
       normalizeName("$$$$") shouldEqual "Project"
       normalizeName("$$42$$") shouldEqual "Project_42"
+      normalizeName("AoC_1") shouldEqual "AoC_1"
       normalizeName("\uD83D\uDE80") shouldEqual "Project"
       normalizeName("\uD83D\uDE80_\uD83D\uDE0A") shouldEqual "Project"
       normalizeName("\uD83D\uDE80_\uD83D\uDE0A__") shouldEqual "Project"
@@ -29,12 +30,8 @@ class NameSanitizationSpec extends AnyWordSpec with Matchers {
       validateName("My") shouldEqual Right("My")
       validateName("My_Project") shouldEqual Right("My_Project")
       validateName("") shouldEqual Left(InvalidNameError.Empty)
-      validateName("My___Project") shouldEqual Left(
-        InvalidNameError.ShouldBeUpperSnakeCase("My_Project")
-      )
-      validateName("FooBar") shouldEqual Left(
-        InvalidNameError.ShouldBeUpperSnakeCase("Foo_Bar")
-      )
+      validateName("My___Project") shouldEqual Right("My___Project")
+      validateName("FooBar") shouldEqual Right("FooBar")
       validateName("myProject") shouldEqual Left(
         InvalidNameError.ShouldStartWithCapitalLetter
       )

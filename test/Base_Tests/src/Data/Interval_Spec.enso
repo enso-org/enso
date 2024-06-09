@@ -1,0 +1,110 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+
+add_specs suite_builder =
+    suite_builder.group "Bound" group_builder->
+        group_builder.specify "should allow constructing inclusive bounds" <|
+            bound = Bound.Inclusive 0
+            bound.n . should_equal 0
+        group_builder.specify "should allow constructing exclusive bounds" <|
+            bound = Bound.Exclusive 0
+            bound.n . should_equal 0
+        group_builder.specify "should be able to be checked for equality" <|
+            inclusive_1 = Bound.Inclusive 10
+            inclusive_2 = Bound.Inclusive 5
+            exclusive_1 = Bound.Exclusive 10
+            exclusive_2 = Bound.Exclusive 5
+            (inclusive_1 == inclusive_1) . should_be_true
+            (inclusive_1 == inclusive_2) . should_be_false
+            (exclusive_1 == exclusive_1) . should_be_true
+            (exclusive_1 == exclusive_2) . should_be_false
+            (inclusive_1 == exclusive_1) . should_be_false
+
+    suite_builder.group "Interval" group_builder->
+        group_builder.specify "should allow constructing exclusive intervals" <|
+            interval = Interval.new 1 5 Interval_Type.Exclusive
+            interval.start . should_equal (Bound.Exclusive 1)
+            interval.end . should_equal (Bound.Exclusive 5)
+        group_builder.specify "should allow constructing start-exclusive intervals" <|
+            interval = Interval.new 1 5 Interval_Type.Start_Exclusive
+            interval.start . should_equal (Bound.Exclusive 1)
+            interval.end . should_equal (Bound.Inclusive 5)
+        group_builder.specify "should allow constructing end-exclusive intervals" <|
+            interval = Interval.new 1 5
+            interval.start . should_equal (Bound.Inclusive 1)
+            interval.end . should_equal (Bound.Exclusive 5)
+        group_builder.specify "should allow constructing inclusive intervals" <|
+            interval = Interval.new 1 5 Interval_Type.Inclusive
+            interval.start . should_equal (Bound.Inclusive 1)
+            interval.end . should_equal (Bound.Inclusive 5)
+        group_builder.specify "should allow checking if an interval contains a value of the contained type" <|
+            interval = Interval.new 1 10
+            interval.contains 0 . should_be_false
+            interval.contains 1 . should_be_true
+            interval.contains 5.5 . should_be_true
+            interval.contains 9 . should_be_true
+            interval.contains 10 . should_be_false
+            interval.contains 10 . should_be_false
+
+            interval_2 = Interval.new 0 0
+            interval_2.contains -1 . should_be_false
+            interval_2.contains 0 . should_be_false
+            interval_2.contains 1 . should_be_false
+
+            interval_3 = Interval.new 0 1
+            interval_3.contains -1 . should_be_false
+            interval_3.contains 0 . should_be_true
+            interval_3.contains 0.5 . should_be_true
+            interval_3.contains 0.99999999 . should_be_true
+            interval_3.contains 1 . should_be_false
+
+            interval_4 = Interval.new 0 0 Interval_Type.Inclusive
+            interval_4.contains -1 . should_be_false
+            interval_4.contains 0 . should_be_true
+            interval_4.contains 0.00001 . should_be_false
+            interval_4.contains 1 . should_be_false
+
+            interval_5 = Interval.new 0 0 Interval_Type.Exclusive
+            interval_5.contains -1 . should_be_false
+            interval_5.contains 0 . should_be_false
+            interval_5.contains 1 . should_be_false
+
+            interval_6 = Interval.new 0 0 Interval_Type.Start_Exclusive
+            interval_6.contains -1 . should_be_false
+            interval_6.contains 0 . should_be_false
+            interval_6.contains 1 . should_be_false
+
+            interval_7 = Interval.new 0.123 0.124 Interval_Type.Start_Exclusive
+            interval_7.contains 0.123 . should_be_false
+            interval_7.contains 0.1235 . should_be_true
+            interval_7.contains 0.124 . should_be_true
+            interval_7.contains 1 . should_be_false
+
+            (Interval.new 0.1 1 Interval_Type.Inclusive) . contains 0.33 . should_be_true
+        group_builder.specify "can be checked for emptiness" <|
+            Interval.new 0 0 Interval_Type.Exclusive . is_empty . should_be_true
+            Interval.new 1 10 Interval_Type.Exclusive . is_empty . should_be_false
+            Interval.new 0 0 Interval_Type.Start_Exclusive . is_empty . should_be_true
+            Interval.new 1 1.1 Interval_Type.Start_Exclusive . is_empty . should_be_false
+            Interval.new 0 0 Interval_Type.End_Exclusive . is_empty . should_be_true
+            Interval.new 1 10 Interval_Type.End_Exclusive . is_empty . should_be_false
+            Interval.new 0 0 Interval_Type.Inclusive . is_empty . should_be_false
+            Interval.new 0.1 0 Interval_Type.Inclusive . is_empty . should_be_true
+        group_builder.specify "can be checked for non-emptiness" <|
+            Interval.new 0 0 Interval_Type.Exclusive . not_empty . should_be_false
+            Interval.new 0 0.001 Interval_Type.Inclusive . not_empty . should_be_true
+            Interval.new 1 10 Interval_Type.Exclusive . not_empty . should_be_true
+            Interval.new 0 0 Interval_Type.Start_Exclusive . not_empty . should_be_false
+            Interval.new 1 1.1 Interval_Type.Start_Exclusive . not_empty . should_be_true
+            Interval.new 0 0 Interval_Type.End_Exclusive . not_empty . should_be_false
+            Interval.new 1 10 Interval_Type.End_Exclusive . not_empty . should_be_true
+            Interval.new 0 0 Interval_Type.Inclusive . not_empty . should_be_true
+            Interval.new 10 0 Interval_Type.Inclusive . not_empty . should_be_false
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

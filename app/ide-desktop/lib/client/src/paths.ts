@@ -20,7 +20,7 @@ export const APP_PATH = electron.app.getAppPath()
 
 /** The path of the directory in which the log files of IDE are stored.
  *
- * This is based on the Electron `logs` directory, see {@link Electron.App.getPath}. */
+ * This is based on the Electron `logs` directory, see {@link electron.app.getPath}. */
 export const LOGS_DIRECTORY = electron.app.getPath('logs')
 
 /** The application assets, all files bundled with it. */
@@ -39,5 +39,7 @@ export const PROJECT_MANAGER_PATH = path.join(
     PROJECT_MANAGER_IN_BUNDLE_PATH
 )
 
-/** Relative path of Enso Project PM metadata relative to project's root. */
+/** Relative path of Enso Project package metadata relative to the project root. */
+export const PACKAGE_METADATA_RELATIVE = 'package.yaml'
+/** Relative path of Enso Project PM metadata relative to the project root. */
 export const PROJECT_METADATA_RELATIVE = path.join('.enso', 'project.json')

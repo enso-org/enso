@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 
+use ide_ci::io::retry;
 use ide_ci::programs::Npm;
 
 
@@ -18,19 +19,32 @@ static ONCE_INSTALL: tokio::sync::OnceCell<Result> = tokio::sync::OnceCell::cons
 /// shares its result.
 ///
 /// This method relies on the internal global state. It must not be called multiple times
-/// with different `repo_root` arguments.
+/// with different `repo_root` arguments. Also, `npm install` must not be invoked directly.
 ///
 /// It is useful, because otherwise the build script might end up invoking `npm install` multiple
 /// times, sometimes even in parallel. Unfortunately, in such cases, `npm` might fail with errors.
+///
+/// If the operation fails, which is possible due to network issues or other problems, the
+/// installation will be retried up a few times.
 pub fn install(repo_root: impl AsRef<Path>) -> BoxFuture<'static, Result> {
-    let root_path = repo_root.as_ref().to_owned();
-    async move {
-        let ret = ONCE_INSTALL
-            .get_or_init(async || Npm.cmd()?.with_current_dir(&root_path).install().run_ok().await)
-            .await;
-        ret.as_ref().copied().map_err(|e| anyhow!("Failed to install NPM dependencies: {e}"))
-    }
-    .boxed()
+    let repo_root = repo_root.as_ref().to_owned();
+    ONCE_INSTALL
+        .get_or_init(move || retry(move || install_internal_run(&repo_root)))
+        .map(|fut_res_ref| {
+            fut_res_ref
+                .as_ref()
+                .map_err(|e| anyhow!("Failed to install NPM dependencies: {e:?}"))
+                .copied()
+        })
+        .boxed()
+}
+
+/// Run `npm install` in the given directory.
+fn install_internal_run(path: &Path) -> impl Future<Output = Result> + 'static {
+    Npm.cmd().and_then_async(move |cmd| {
+        let err = format!("Failed to install NPM dependencies in {}.", path.display());
+        cmd.with_current_dir(path).install().run_ok().context(err)
+    })
 }
 
 /// Mark the root repository's NPM as installed.

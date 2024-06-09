@@ -7,7 +7,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import org.apache.tika.detect.DefaultEncodingDetector;
 import org.apache.tika.detect.EncodingDetector;
-import org.enso.polyglot.LanguageInfo;
+import org.enso.common.LanguageInfo;
 
 /** A detector for finding a {@link TruffleFile file's} MIME type and encoding. */
 public final class FileDetector implements TruffleFile.FileTypeDetector {

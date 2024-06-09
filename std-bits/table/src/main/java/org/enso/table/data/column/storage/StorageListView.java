@@ -1,12 +1,11 @@
 package org.enso.table.data.column.storage;
 
-import org.graalvm.polyglot.Context;
-
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+import org.graalvm.polyglot.Context;
 
 /**
  * Wraps a storage in a list. Used for exposing a polyglot array interface back to Enso. This list

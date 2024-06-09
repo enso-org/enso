@@ -183,7 +183,11 @@ object FileManagerApi {
 
   case object EventFile extends Method("file/event") {
 
-    case class Params(path: Path, kind: FileEventKind)
+    case class Params(
+      path: Path,
+      kind: FileEventKind,
+      attributes: Option[FileAttributes]
+    )
 
     implicit val hasParams: HasParams.Aux[this.type, EventFile.Params] =
       new HasParams[this.type] {

@@ -6,7 +6,7 @@ import org.enso.languageserver.boot.resource.{
   AsyncResourcesInitialization,
   DirectoriesInitialization,
   InitializationComponent,
-  JsonRpcInitializationComponent,
+  JsonRpcInitialization,
   RepoInitialization,
   SequentialResourcesInitialization,
   TruffleContextInitialization,
@@ -14,10 +14,10 @@ import org.enso.languageserver.boot.resource.{
 }
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.effect
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.graalvm.polyglot.Context
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContextExecutor
 
 /** Helper object for the initialization of the Language Server resources.
   * Creates the directories, initializes the databases, and the Truffle context.
@@ -30,7 +30,6 @@ object ResourcesInitialization {
     * @param directoriesConfig configuration of directories that should be created
     * @param protocolFactory the JSON-RPC protocol factory
     * @param suggestionsRepo the suggestions repo
-    * @param sqlDatabase the sql database
     * @param truffleContext the runtime context
     * @param runtime the runtime to run effects
     * @return the initialization component
@@ -39,23 +38,23 @@ object ResourcesInitialization {
     eventStream: EventStream,
     directoriesConfig: ProjectDirectoriesConfig,
     protocolFactory: ProtocolFactory,
-    sqlDatabase: SqlDatabase,
-    suggestionsRepo: SqlSuggestionsRepo,
+    suggestionsRepo: InMemorySuggestionsRepo,
     truffleContext: Context,
     runtime: effect.Runtime
-  )(implicit ec: ExecutionContext): InitializationComponent = {
-    SequentialResourcesInitialization(
-      new DirectoriesInitialization(directoriesConfig),
-      AsyncResourcesInitialization(
-        new JsonRpcInitializationComponent(protocolFactory),
-        new ZioRuntimeInitialization(runtime, eventStream),
+  )(implicit ec: ExecutionContextExecutor): InitializationComponent = {
+    new SequentialResourcesInitialization(
+      ec,
+      new DirectoriesInitialization(ec, directoriesConfig),
+      new AsyncResourcesInitialization(
+        new JsonRpcInitialization(ec, protocolFactory),
+        new ZioRuntimeInitialization(ec, runtime, eventStream),
         new RepoInitialization(
+          ec,
           directoriesConfig,
           eventStream,
-          sqlDatabase,
           suggestionsRepo
         ),
-        new TruffleContextInitialization(eventStream, truffleContext)
+        new TruffleContextInitialization(ec, truffleContext, eventStream)
       )
     )
   }
