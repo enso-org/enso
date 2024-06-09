@@ -96,6 +96,7 @@ Global / onLoad := {
 
 ThisBuild / organization := "org.enso"
 ThisBuild / scalaVersion := scalacVersion
+ThisBuild / publish / skip := true
 
 /* Tag limiting the concurrent access to tools/simple-library-server in tests.
  */
@@ -1304,13 +1305,18 @@ lazy val `ydoc-server` = project
   .dependsOn(`logging-service-logback`)
   .dependsOn(`profiling-utils`)
 
+lazy val persistanceVersion = "0.2-SNAPSHOT"
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
-    version := "0.1",
+    version := persistanceVersion,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     annotationProcSetting,
+    javadocSettings,
+    publish / skip := false,
+    autoScalaLibrary := false,
+    crossPaths := false,
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
@@ -1323,9 +1329,13 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
 
 lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
   .settings(
-    version := "0.1",
+    version := persistanceVersion,
     frgaalJavaCompilerSetting,
-    Compile / javacOptions := ((Compile / javacOptions).value ++
+    publish / skip := false,
+    autoScalaLibrary := false,
+    crossPaths := false,
+    javadocSettings,
+    Compile / compile / javacOptions := ((Compile / compile / javacOptions).value ++
     // Only run ServiceProvider processor and ignore those defined in META-INF, thus
     // fixing incremental compilation setup
     Seq(
@@ -1651,9 +1661,9 @@ lazy val truffleDslSuppressWarnsSetting = Seq(
   * `(Compile/sourceManaged)` directory, usually pointing to `target/classes/src_managed`.
   */
 lazy val annotationProcSetting = Seq(
-  Compile / javacOptions ++= Seq(
+  Compile / compile / javacOptions ++= Seq(
     "-s",
-    (Compile / sourceManaged).value.getAbsolutePath,
+    (Compile / compile / sourceManaged).value.getAbsolutePath,
     "-Xlint:unchecked"
   ),
   Compile / compile := (Compile / compile)
@@ -1668,6 +1678,19 @@ lazy val annotationProcSetting = Seq(
       "Could not determine source for class ",
       Level.Warn
     )
+)
+
+lazy val javadocSettings = Seq(
+  Compile / doc / javacOptions --= Seq(
+    "-deprecation",
+    "-g",
+    "-Xlint:unchecked",
+    "-proc:full"
+  ),
+  Compile / doc / javacOptions ++= Seq(
+    "--snippet-path",
+    (Test / javaSource).value.getAbsolutePath
+  )
 )
 
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
