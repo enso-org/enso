@@ -25,6 +25,11 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
 
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+
       - name: Publish to Maven Repository
         run: sbt publishM2
 
