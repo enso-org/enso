@@ -6,7 +6,6 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
-import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -265,14 +264,20 @@ class TypeSignaturesTest extends CompilerTest {
 
     "associate the signature with the typed expression" in {
       ir shouldBe an[Application.Prefix]
-      ir.getMetadata(TypeSignatures) shouldBe defined
+      val outerSignature = ir.getMetadata(TypeSignatures)
+      outerSignature shouldBe defined
+      outerSignature.get.signature.showCode() shouldEqual "Double"
     }
 
     "work recursively" in {
       val arg2Value = ir.asInstanceOf[Application.Prefix].arguments(1).value
-      arg2Value shouldBe an[Application.Prefix]
-      val snd = arg2Value.asInstanceOf[Application.Prefix]
-      snd.arguments(0).value shouldBe an[Literal.Number]
+      val arg2Signature = arg2Value.getMetadata(TypeSignatures)
+      arg2Signature shouldBe defined
+      arg2Signature.get.signature.showCode() shouldEqual "Int"
+
+      // But arg1 has no signature:
+      val arg1Signature = ir.asInstanceOf[Application.Prefix].arguments(0).value.getMetadata(TypeSignatures)
+      arg1Signature shouldBe empty
     }
   }
 }
