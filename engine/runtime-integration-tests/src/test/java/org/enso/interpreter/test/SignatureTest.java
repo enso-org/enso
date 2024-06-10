@@ -1318,7 +1318,7 @@ public class SignatureTest {
       var res = foo.execute(vec);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected the result of `foo` to be Integer | Text, but got Array", e.getMessage());
+      assertContains("expected the result of `foo` to be Integer | Text, but got Vector", e.getMessage());
     }
   }
 
@@ -1350,7 +1350,7 @@ public class SignatureTest {
       var res = foo.execute(".");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected the result of `foo` to be Clazz, but got Text", e.getMessage());
+      assertContains("expected the result of `foo` to be (Integer | Text) & Clazz, but got Text", e.getMessage());
     }
   }
 
