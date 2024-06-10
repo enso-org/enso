@@ -756,7 +756,9 @@ object BindingsMap {
     hasDefaultValue: Boolean,
     typReference: Reference[Expression]
   ) {
-    def typ(): Option[Expression] = Option(typReference.get(classOf[Expression]))
+    def typ(): Option[Expression] = Option(
+      typReference.get(classOf[Expression])
+    )
   }
 
   /** A representation of a sum type
