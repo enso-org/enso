@@ -79,5 +79,5 @@ export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAsset
     [displayItems, filter]
   )
 
-  return visibleItems.map(item => <AssetRows {...props} item={item} />)
+  return visibleItems.map(item => <AssetRows key={item.id} {...props} item={item} />)
 }
