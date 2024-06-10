@@ -1,12 +1,7 @@
-;
 /** @file Configuration for Tailwind. */
-import animate from 'tailwindcss-animate';
-import reactAriaComponents from 'tailwindcss-react-aria-components';
-import plugin from 'tailwindcss/plugin.js';
-
-
-
-
+import animate from 'tailwindcss-animate'
+import reactAriaComponents from 'tailwindcss-react-aria-components'
+import plugin from 'tailwindcss/plugin.js'
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
