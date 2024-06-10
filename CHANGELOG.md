@@ -4,8 +4,11 @@
 
 - [Arrows navigation][10179] selected nodes may be moved around, or entire scene
   if no node is selected.
+- [Added a limit for dropdown width][10198], implemented ellipsis and scrolling
+  for long labels when hovered.
 
 [10179]: https://github.com/enso-org/enso/pull/10179
+[10198]: https://github.com/enso-org/enso/pull/10198
 
 #### Enso Standard Library
 
