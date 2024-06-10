@@ -27,6 +27,7 @@ export interface ButtonProps {
   readonly isDisabled?: boolean
   readonly image: string
   readonly alt?: string
+  readonly tooltipPlacement?: aria.Placement
   /** A title that is only shown when `disabled` is `true`. */
   readonly error?: string | null
   /** Class names for the icon itself. */
@@ -48,6 +49,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     alt,
     className,
     buttonClassName,
+    tooltipPlacement,
     ...buttonProps
   } = props
   const { isDisabled = false } = buttonProps
@@ -90,7 +92,11 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   ) : (
     <ariaComponents.TooltipTrigger>
       {button}
-      <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
+      <ariaComponents.Tooltip
+        {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
+      >
+        {tooltipElement}
+      </ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
   )
 }

@@ -140,11 +140,12 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
+            rounded="none"
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y selectable',
+              'h-text flex-1 rounded-l-full py-permission-mini-button-y selectable',
               (!isDisabled || !input) && 'active',
               permissions.PERMISSION_CLASS_NAME[permission.type]
             )}
@@ -155,10 +156,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
+            rounded="none"
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'relative h-text grow px-permission-mini-button-x py-permission-mini-button-y selectable after:absolute after:inset',
+              'h-text flex-1 py-permission-mini-button-y selectable',
               permission.docs && (!isDisabled || !input) && 'active',
               permissions.DOCS_CLASS_NAME
             )}
@@ -177,10 +179,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
+            rounded="none"
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'relative h-text grow rounded-r-full px-permission-mini-button-x py-permission-mini-button-y selectable after:absolute after:inset',
+              'h-text flex-1 rounded-r-full py-permission-mini-button-y selectable',
               permission.execute && (!isDisabled || !input) && 'active',
               permissions.EXEC_CLASS_NAME
             )}

@@ -263,9 +263,11 @@ export const Button = React.forwardRef(function Button(
 
   const Tag = isLink ? aria.Link : aria.Button
 
-  const goodDefaults = isLink
-    ? { rel: 'noopener noreferrer', 'data-testid': testId ?? 'link' }
-    : { type: 'button', 'data-testid': testId ?? 'button' }
+  const goodDefaults = {
+    ...(isLink ? { rel: 'noopener noreferrer' } : {}),
+    ...(isLink ? {} : { type: 'button' as const }),
+    'data-testid': testId ?? (isLink ? 'link' : 'button'),
+  }
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
   const shouldShowTooltip = isIconOnly && tooltip !== false
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
@@ -355,17 +357,21 @@ export const Button = React.forwardRef(function Button(
 
   const button = (
     <Tag
-      // @ts-expect-error eventhough typescript is complaining about the type of ariaProps, it is actually correct
-      {...aria.mergeProps()(goodDefaults, ariaProps, focusChildProps, {
-        ref,
-        isDisabled,
-        // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
-        // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-        onPressEnd: handlePress,
-      })}
-      // @ts-expect-error eventhough typescript is complaining about the type of className, it is actually correct
-      className={aria.composeRenderProps(className, (classNames, states) =>
-        base({ className: classNames, ...states })
+      {...aria.mergeProps<aria.ButtonProps | aria.LinkProps>()(
+        goodDefaults,
+        ariaProps,
+        focusChildProps,
+        {
+          // eslint-disable-next-line no-restricted-syntax
+          ...{ ref: ref as never },
+          isDisabled,
+          // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
+          // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
+          onPressEnd: handlePress,
+          className: aria.composeRenderProps(className, (classNames, states) =>
+            base({ className: classNames, ...states })
+          ),
+        }
       )}
     >
       <span className={wrapper()}>

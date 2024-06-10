@@ -166,14 +166,20 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
             <aria.DialogTrigger>
-              <ariaComponents.Button variant="tertiary" className="h-row px-2.5" onPress={() => {}}>
+              <ariaComponents.Button
+                size="medium"
+                variant="tertiary"
+                className="px-2.5"
+                onPress={() => {}}
+              >
                 {getText('startWithATemplate')}
               </ariaComponents.Button>
               <StartModal createProject={doCreateProject} />
             </aria.DialogTrigger>
             <ariaComponents.Button
+              size="medium"
               variant="bar"
-              className="h-row px-2.5"
+              className="px-2.5"
               onPress={() => {
                 doCreateProject()
               }}
