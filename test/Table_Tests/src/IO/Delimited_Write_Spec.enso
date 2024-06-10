@@ -582,7 +582,7 @@ add_specs suite_builder =
                 initial_bytes.write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
 
                 r = (Table.new [["A", [5, 6]], ["B", ["æ", "💯"]]]).write f on_existing_file=Existing_File_Behavior.Append
-                # Should report problem wriitng the 💯 character, because selected Windows-1252 encoding does not support it
+                # Should report problem writing the 💯 character, because selected Windows-1252 encoding does not support it
                 Problems.expect_only_warning Encoding_Error r
 
                 # Now we read in auto mode, the part appended to the table should have been correctly written in Windows-1252
