@@ -1318,6 +1318,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     frgaalJavaCompilerSetting,
     annotationProcSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
+    inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
@@ -1581,6 +1582,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
           "runtime-compiler"
         ) / Compile / productDirectories).value ++
         (LocalProject("runtime-parser") / Compile / productDirectories).value ++
+        (LocalProject("persistance") / Compile / productDirectories).value ++
         (LocalProject(
           "interpreter-dsl"
         ) / Compile / productDirectories).value ++
