@@ -4,8 +4,12 @@
 
 - [Arrows navigation][10179] selected nodes may be moved around, or entire scene
   if no node is selected.
+- The documentation editor has [formatting toolbars][10064].
+- The documentation editor supports [rendering images][10205].
 
+[10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
+[10205]: https://github.com/enso-org/enso/pull/10205
 
 #### Enso Standard Library
 
