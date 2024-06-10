@@ -113,7 +113,7 @@
     "@volar/vue-typescript": "^1.6.5",
     "@vue/eslint-config-prettier": "^9.0.0",
     "@vue/eslint-config-typescript": "^12.0.0",
-    "@vue/test-utils": "^2.4.4",
+    "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.5.1",
     "change-case": "^4.1.2",
     "cross-env": "^7.0.3",
