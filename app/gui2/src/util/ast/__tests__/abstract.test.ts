@@ -902,6 +902,12 @@ test.each([
     substitution: 'ShouldNotWork',
     expected: 'node1.node2.node3',
   },
+  {
+    original: '.node1',
+    pattern: 'node1',
+    substitution: 'ShouldNotWork',
+    expected: '.node1',
+  },
 ])(
   'Substitute identifier $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {

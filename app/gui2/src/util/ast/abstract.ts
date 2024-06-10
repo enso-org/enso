@@ -176,9 +176,10 @@ export function substituteIdentifier(
 ) {
   if (expr instanceof MutableIdent && expr.code() === pattern) {
     expr.setToken(to)
-  } else if (expr instanceof MutablePropertyAccess && expr.lhs != null) {
+  } else if (expr instanceof MutablePropertyAccess) {
     // Substitute only the first item in the property access chain.
-    substituteIdentifier(expr.lhs, pattern, to)
+    if (expr.lhs != null)
+      substituteIdentifier(expr.lhs, pattern, to)
   } else {
     for (const child of expr.children()) {
       if (child instanceof Token) {
