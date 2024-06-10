@@ -1444,14 +1444,13 @@ lazy val `polyglot-api` = project
         "runtime-fat-jar"
       ) / Compile / fullClasspath).value,
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"        % "polyglot-tck"     % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion % "provided",
-      "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
-      "io.circe"              %% "circe-core"       % circeVersion,
-      "org.scalatest"         %% "scalatest"        % scalatestVersion          % Test,
-      "org.scalacheck"        %% "scalacheck"       % scalacheckVersion         % Test
+      "org.graalvm.sdk"                        % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion           % "provided",
+      "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
+      "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
+      "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
     ),
-    libraryDependencies ++= jackson,
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
@@ -1479,6 +1478,7 @@ lazy val `polyglot-api-serde` = project
     commands += WithDebugCommand.withDebug,
     libraryDependencies ++= Seq(
       "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion,
+      "io.circe"                              %% "circe-yaml"          % circeYamlVersion  % "provided", // as required by `pkg` and `editions`
       "org.scalatest"                         %% "scalatest"           % scalatestVersion  % Test,
       "org.scalacheck"                        %% "scalacheck"          % scalacheckVersion % Test
     )
