@@ -768,6 +768,12 @@ class IrToTruffle(
         comment,
         context.getTopScope().getBuiltins().function()
       )
+    case typeWithError: Tpe.Error =>
+      // When checking a `a ! b` type, we ignore the error part as it is only used for documentation purposes and is not checked.
+      extractAscribedType(comment, typeWithError.typed)
+    case typeInContext: Tpe.Context =>
+      // Type contexts aren't currently really used. But we should still check the base type.
+      extractAscribedType(comment, typeInContext.typed)
     case t => {
       t.getMetadata(TypeNames) match {
         case Some(
