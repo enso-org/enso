@@ -70,8 +70,7 @@ export interface DropdownEntry {
         class="item clickable"
         @click.stop="emit('clickEntry', entry, $event.altKey)"
       >
-        <div v-if="entry.selected"><span v-text="entry.value"></span></div>
-        <span v-else v-text="entry.value"></span>
+        <div class="itemContent" v-text="entry.value"></div>
       </li>
     </ul>
     <div v-if="enableSortButton" class="sort">
@@ -134,7 +133,7 @@ li {
   color: white;
 }
 
-.list span {
+.list .itemContent {
   display: inline-block;
   vertical-align: middle;
   margin: 3px 0;
