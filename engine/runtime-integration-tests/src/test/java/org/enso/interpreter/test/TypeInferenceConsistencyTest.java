@@ -19,9 +19,9 @@ import org.junit.Test;
  * Tests that verify that if type inference issues a warning about an error, that error actually
  * occurs in the runtime.
  */
-public class TypeInferenceConsistencyTest extends TestBase {
+public class TypeInferenceConsistencyTest {
   private static Context ctx;
-  private static ByteArrayOutputStream output = new ByteArrayOutputStream();
+  private static final ByteArrayOutputStream output = new ByteArrayOutputStream();
 
   @BeforeClass
   public static void prepareCtx() {
