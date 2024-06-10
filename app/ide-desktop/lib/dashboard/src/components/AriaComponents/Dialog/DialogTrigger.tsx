@@ -9,8 +9,13 @@ import type * as types from './types'
 
 const PLACEHOLDER = <div />
 
+/**
+ * Props for a {@link DialogTrigger}.
+ */
+export interface DialogTriggerProps extends types.DialogTriggerProps {}
+
 /** A DialogTrigger opens a dialog when a trigger element is pressed. */
-export function DialogTrigger(props: types.DialogTriggerProps) {
+export function DialogTrigger(props: DialogTriggerProps) {
   const { children, onOpenChange, ...triggerProps } = props
 
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -31,6 +36,8 @@ export function DialogTrigger(props: types.DialogTriggerProps) {
   )
 
   return (
-    <aria.DialogTrigger children={children} onOpenChange={onOpenChangeInternal} {...triggerProps} />
+    <aria.DialogTrigger onOpenChange={onOpenChangeInternal} {...triggerProps}>
+      {children}
+    </aria.DialogTrigger>
   )
 }

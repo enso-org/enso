@@ -35,7 +35,6 @@ export function SetOrganizationNameModal() {
   const userId = session && 'user' in session && session.user?.userId ? session.user.userId : null
   const userPlan =
     session && 'user' in session && session.user?.plan != null ? session.user.plan : null
-  const queryClient = reactQuery.useQueryClient()
   const { data: organizationName } = reactQuery.useSuspenseQuery({
     queryKey: ['organization', userId],
     queryFn: () => {
@@ -48,13 +47,14 @@ export function SetOrganizationNameModal() {
     staleTime: Infinity,
     select: data => data?.name ?? '',
   })
+  const shouldShowModal =
+    userPlan != null && PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
+
   const updateOrganizationMutation = backendHooks.useBackendMutation(
     backend,
     'updateOrganization',
-    { onSuccess: () => queryClient.invalidateQueries({ queryKey: ['getOrganization', userId] }) }
+    { meta: { invalidates: [['organization', userId]], awaitInvalidates: true } }
   )
-  const shouldShowModal =
-    userPlan != null && PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
 
   return (
     <>

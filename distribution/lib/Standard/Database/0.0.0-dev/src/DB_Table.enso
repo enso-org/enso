@@ -18,6 +18,7 @@ from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_delimiter_selector, make_format_chooser
 
 import Standard.Table.Column_Operation.Column_Operation
+import Standard.Table.Columns_To_Add.Columns_To_Add
 import Standard.Table.Columns_To_Keep.Columns_To_Keep
 import Standard.Table.Expression.Expression
 import Standard.Table.Expression.Expression_Error
@@ -39,6 +40,7 @@ import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Row.Row
 import Standard.Table.Rows_To_Read.Rows_To_Read
+import Standard.Table.Value_Type.By_Type
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
@@ -206,8 +208,10 @@ type DB_Table
        dropped from the output.
 
        Arguments:
-       - columns: Specifies columns by a single instance or Vector of names,
-         indexes or regular expressions to match names.
+       - columns: Specifies columns by a single instance or Vector of names;
+         indexes or regular expressions to match names; or a `By_Type` selector
+         to choose columns by type. Note: specifying columns by type ignores
+         size and precision.
        - reorder: By default, or if set to `False`, columns in the output will
          be in the same order as in the input table. If `True`, the order in the
          output table will match the order in the columns list. If a column is
@@ -249,13 +253,19 @@ type DB_Table
          Select the first two columns and the last column, moving the last one to front.
 
              table.select_columns [-1, 0, 1] reorder=True
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
-    select_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
-    select_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
-        self.updated_columns new_columns
 
-    ## ALIAS select fields by type
+       > Example
+         Select integer columns.
+
+             table.select_columns [..By_Type ..Integer]
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    select_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
+    select_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
+        new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
+        self.updated_columns (new_columns.map _.as_internal)
+
+    ## PRIVATE
+       ALIAS select fields by type
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtered by the type
@@ -269,9 +279,9 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     select_columns_by_type : Vector Value_Type -> Boolean -> Table
     select_columns_by_type self types:Vector strict:Boolean=False =
-        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
-        new_columns = helper.select_by_type types strict
-        self.updated_columns (new_columns.map _.as_internal)
+        new_columns = self.columns_helper.select_by_type types strict
+        result = self.updated_columns (new_columns.map _.as_internal)
+        Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
 
     ## ALIAS drop fields, drop_columns, remove fields, select columns, select fields
        GROUP Standard.Base.Selections
@@ -282,10 +292,10 @@ type DB_Table
        input.
 
        Arguments:
-       - columns: Specifies columns by a name, index or regular expression to
-         match names, or a Vector of these.
-       - case_sensitivity: Controls whether to be case sensitive when matching
-         column names.
+       - columns: Specifies columns by a single instance or Vector of names;
+         indexes or regular expressions to match names; or a `By_Type` selector
+         to choose columns by type. Note: specifying columns by type ignores
+         size and precision.
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `False`.
@@ -321,13 +331,19 @@ type DB_Table
          Remove the first two columns and the last column.
 
              table.remove_columns [-1, 0, 1]
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
-    remove_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
-    remove_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
-        new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
-        self.updated_columns new_columns
 
-    ## ALIAS remove fields by type, select columns by type, select fields by type
+       > Example
+         Remove integer columns.
+
+             table.remove_columns [..By_Type ..Integer]
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    remove_columns :  Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
+    remove_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
+        new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        self.updated_columns (new_columns.map _.as_internal)
+
+    ## PRIVATE
+       ALIAS remove fields by type, select columns by type, select fields by type
        GROUP Standard.Base.Selections
        ICON select_column
        Returns a new table with the chosen set of columns filtering out based
@@ -341,9 +357,9 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     remove_columns_by_type : Vector Value_Type -> Boolean -> Table
     remove_columns_by_type self types:Vector strict:Boolean=False =
-        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
-        new_columns = helper.remove_by_type types strict
-        self.updated_columns (new_columns.map _.as_internal)
+        new_columns = self.columns_helper.remove_by_type types strict
+        result = self.updated_columns (new_columns.map _.as_internal)
+        Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "remove_columns_by_type" "Deprecated: use `remove_columns` with a `By_Type` instead.") result
 
     ## ALIAS select_blank_fields, select_missing_columns, select_na
        GROUP Standard.Base.Selections
@@ -403,7 +419,7 @@ type DB_Table
        either the start or the end in the specified order.
 
        Arguments:
-       - columns: Specifies columns by a name, index or regular expression to
+       - columns: Specifies columns by a name, type, index or regular expression to
          match names, or a Vector of these.
        - position: Specifies how to place the selected columns in relation to
          the remaining columns which were not matched by `columns` (if any).
@@ -446,11 +462,11 @@ type DB_Table
          Move the first column to back.
 
              table.reorder_columns [0] position=Position.After_Other_Columns
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
-    reorder_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns
-    reorder_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (position:Position=Position.Before_Other_Columns) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    reorder_columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns
+    reorder_columns self (columns : (Vector | Text | Integer | Regex | By_Type) = [self.columns.first.name]) (position:Position=Position.Before_Other_Columns) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
-        self.updated_columns new_columns
+        self.updated_columns (new_columns.map _.as_internal)
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -819,8 +835,7 @@ type DB_Table
     add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
-        grouping_columns.each internal_column->
-            column = self.make_column internal_column
+        grouping_columns.each column->
             if column.value_type.is_floating_point then
                 problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
         ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
@@ -833,7 +848,7 @@ type DB_Table
                 True -> case self.default_ordering of
                     Nothing -> Error.throw (Illegal_Argument.Error "No `order_by` is specified and the table has no existing ordering (e.g. from an `order_by` operation or a primary key). Some ordering is required for `add_row_number` in Database tables.")
                     descriptors -> descriptors
-            grouping_expressions = grouping_columns.map .expression
+            grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
             # The SQL row_number() counts from 1, so we adjust the offset.
             offset = from - step
@@ -1652,11 +1667,11 @@ type DB_Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @from_column Widget.Text_Input
     @to_column Widget.Text_Input
-    replace : (DB_Table | Map) -> (Text | Integer | Vector (Text | Integer)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:(DB_Table | Map) columns:(Text | Integer | Vector (Text | Integer)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    replace : (DB_Table | Map) -> Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(DB_Table | Map) columns:(Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
@@ -2257,11 +2272,11 @@ type DB_Table
          Format all columns in the table using the default formatter.
 
              table.format
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @locale Locale.default_widget
     @format (make_format_chooser include_number=True)
-    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | DB_Column -> Locale -> Boolean -> Problem_Behavior -> DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument
-    format self columns format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
+    format : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Text | Date_Time_Formatter | DB_Column -> Locale -> Boolean -> Problem_Behavior -> DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument
+    format self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type) format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
         _ = [columns, format, locale, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.format is not implemented yet for the Database backends.")
 
@@ -2276,7 +2291,7 @@ type DB_Table
        - column: The name or index of the column to split the text of.
        - delimiter: The term or terms used to split the text.
        - column_count: The number of columns to split to.
-         If `Nothing` then columns will be added to fit all data.
+         If `All_Columns` then columns will be added to fit all data.
        - on_problems: Specifies the behavior when a problem occurs.
 
        ! Error Conditions
@@ -2284,9 +2299,10 @@ type DB_Table
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
-    split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> DB_Table
-    split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
-        _ = [column, delimiter, column_count, on_problems]
+    @column_count Columns_To_Add.default_widget
+    split_to_columns : Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> DB_Table
+    split_to_columns self column delimiter="," (column_count : Columns_To_Add = ..All_Columns) on_problems=Report_Warning =
+        _ = [column, delimiter, column_count.columns_to_split, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
@@ -2327,8 +2343,8 @@ type DB_Table
          If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
-    tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> DB_Table
-    tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
+    tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> DB_Table
+    tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive (column_count : Columns_To_Add = ..All_Columns) (on_problems : Problem_Behavior = Report_Warning) =
         _ = [column, pattern, case_sensitivity, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
@@ -2494,9 +2510,9 @@ type DB_Table
          The `parse` method should be used to convert text values into other
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
-    cast : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type -> Boolean -> Problem_Behavior -> DB_Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
-    cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    cast : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Value_Type -> Boolean -> Problem_Behavior -> DB_Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
+    cast self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_cast->
             new_column = column_to_cast.cast value_type on_problems
@@ -2508,9 +2524,9 @@ type DB_Table
        their contents.
 
        This operation is currently not available in the Database backend.
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
-    auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
-    auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    auto_value_types : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
+    auto_value_types self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         _ = [columns, shrink_types, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.auto_value_types is not supported in the Database backends.")
 
@@ -2641,7 +2657,7 @@ type DB_Table
     ## PRIVATE
     columns_helper : Table_Column_Helper
     columns_helper self =
-        Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
+        Table_Helpers.Table_Column_Helper.Value self.columns self.internal_columns self.make_column self .read
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
@@ -2807,10 +2823,10 @@ type DB_Table
          Fill missing values in two columns with the value 20.5.
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
-    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
-    fill_nothing self (columns : Vector | Text | Integer | Regex) default =
+    fill_nothing : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
+    fill_nothing self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
         transformer col = col.fill_nothing resolved_default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
@@ -2835,10 +2851,10 @@ type DB_Table
          Fill empty values in two columns with the value "hello".
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
-    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
-    fill_empty self (columns : Vector | Text | Integer | Regex) default =
+    fill_empty : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> DB_Column | Column_Ref | Expression | Previous_Value | Any -> DB_Table
+    fill_empty self (columns : Vector | Text | Integer | Regex | By_Type) default =
         resolved_default = (self:Table_Ref).resolve default
         transformer col = col.fill_empty resolved_default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
@@ -2875,11 +2891,11 @@ type DB_Table
          Replace texts in quotes with parentheses.
 
              table.text_replace ["Input"] '"(.*?)"'.to_regex '($1)'
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | DB_Column | Column_Ref | Expression | Regex -> Text | DB_Column | Column_Ref | Expression -> Case_Sensitivity -> Boolean -> DB_Column
-    text_replace self columns (term : Text | DB_Column | Column_Ref | Expression | Regex = "") (new_text : Text | DB_Column | Column_Ref | Expression = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type -> Text | DB_Column | Column_Ref | Expression | Regex -> Text | DB_Column | Column_Ref | Expression -> Case_Sensitivity -> Boolean -> DB_Column
+    text_replace self columns:(Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type) (term : Text | DB_Column | Column_Ref | Expression | Regex = "") (new_text : Text | DB_Column | Column_Ref | Expression = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
@@ -2913,9 +2929,9 @@ type DB_Table
 
              table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
-    @from (Widget_Helpers.make_column_name_multi_selector add_regex=True)
-    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex) -> DB_Table
-    text_cleanse self remove from =
+    @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex | By_Type) -> DB_Table
+    text_cleanse self remove from:(Vector (Integer | Text | Regex | By_Type)) =
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer
 

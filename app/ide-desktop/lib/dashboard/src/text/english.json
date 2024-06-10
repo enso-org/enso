@@ -468,7 +468,7 @@
 
   "licenseAgreementTitle": "Enso Terms of Service",
   "licenseAgreementCheckbox": "I agree to the Enso Terms of Service",
-  "licenseAgreementCheckboxError": "You must agree to the Enso Terms of Service",
+  "licenseAgreementCheckboxError": "Please agree to the Enso Terms of Service",
   "viewLicenseAgreement": "View Terms of Service",
 
   "metaModifier": "Meta",
@@ -615,7 +615,7 @@
 
   "tryAgain": "Try again",
 
-  "arbitraryFieldRequired": "This field is required",
+  "arbitraryFieldRequired": "Please fill out this field",
   "arbitraryFieldInvalid": "This field is invalid",
   "arbitraryFieldTooShort": "This field is too short",
   "arbitraryFieldTooLong": "This field is too long",
@@ -638,5 +638,14 @@
   "contactSalesDescription": "Contact our sales team to learn more about our Enterprise plan.",
   "ContactSalesButtonLabel": "Contact Us",
 
-  "setOrgNameTitle": "Set your organization name"
+  "setOrgNameTitle": "Set your organization name",
+
+  "free": "Free",
+  "freePlan": "Free Plan",
+  "solo": "Solo",
+  "soloPlan": "Solo Plan",
+  "team": "Team",
+  "teamPlan": "Team Plan",
+  "enterprise": "Organization",
+  "enterprisePlan": "Organization"
 }

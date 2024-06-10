@@ -29,8 +29,8 @@ export const SEPARATOR_STYLES = twv.tv({
       vertical: 'border-l',
     },
     variant: {
-      primary: 'border-primary',
-      secondary: 'border-gray-500',
+      primary: 'border-primary/30',
+      inverted: 'border-white/30',
     },
   },
 })

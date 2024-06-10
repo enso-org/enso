@@ -88,7 +88,6 @@ import * as object from '#/utilities/object'
 import * as authServiceModule from '#/authentication/service'
 
 import type * as types from '../../types/types'
-import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
 // === Global configuration ===
@@ -173,12 +172,6 @@ export default function App(props: AppProps) {
     },
   })
 
-  const routerFuture: Partial<router.FutureConfig> = {
-    /* we want to use startTransition to enable concurrent rendering */
-    /* eslint-disable-next-line @typescript-eslint/naming-convention */
-    v7_startTransition: true,
-  }
-
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
@@ -193,15 +186,13 @@ export default function App(props: AppProps) {
         transition={toastify.Zoom}
         limit={3}
       />
-      <router.BrowserRouter basename={getMainPageUrl().pathname} future={routerFuture}>
+      <router.BrowserRouter basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
           </ModalProvider>
         </LocalStorageProvider>
       </router.BrowserRouter>
-
-      <reactQueryDevtools.ReactQueryDevtools />
     </>
   )
 }

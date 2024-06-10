@@ -671,6 +671,26 @@ type Loss_Of_Integer_Precision
     to_text self =
         "(Loss_Of_Integer_Precision.Warning (affected_rows_count = " + self.affected_rows_count.to_text + ") (example_value = " + self.example_value.to_text + ") (example_value_converted = " + self.example_value_converted.to_text + "))"
 
+type Loss_Of_Decimal_Precision
+    ## PRIVATE
+       Indicates that an automatic conversion of a Decimal column to a Float
+       column is losing precision because some of the values cannot be exactly
+       represented by the floating-point type.
+
+       Currently, this error is only reported in-memory.
+    Warning (affected_rows_count : Integer) (example_value : Decimal) (example_value_converted : Float)
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        self.affected_rows_count.to_text+" rows contained Decimals that cannot be represented exactly as a floating-point number. Some loss of precision will occur. For example, the number "+self.example_value.to_text+" gets converted to "+self.example_value_converted.to_text+"."
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Loss_Of_Decimal_Precision.Warning (affected_rows_count = " + self.affected_rows_count.to_text + ") (example_value = " + self.example_value.to_text + ") (example_value_converted = " + self.example_value_converted.to_text + "))"
+
 type Arithmetic_Overflow
     ## PRIVATE
        Indicates that the result of an arithmetic operation is too large to fit the target type.

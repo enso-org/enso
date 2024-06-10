@@ -50,7 +50,9 @@ export function CopyButton(props: CopyButtonProps) {
 
   return (
     <button.Button
-      {...buttonProps}
+      /* This is safe because we are passing all props to the button */
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
+      {...(buttonProps as any)}
       variant={variant}
       aria-label={props['aria-label'] ?? getText('copyShortcut')}
       onPress={() => copyQuery.mutateAsync()}

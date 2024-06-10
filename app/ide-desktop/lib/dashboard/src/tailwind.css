@@ -552,7 +552,14 @@ body[data-debug] [data-navigator2d-neighbor] {
   @apply text-amber-500;
 }
 
-:where([popover]) {
+/** The default styles for the popover. */
+:where(
+    :is(
+        .enso-dashboard [popover],
+        .enso-chat [popover],
+        .enso-portal-root [popover]
+      )
+  ) {
   inset: unset;
   margin: unset;
   width: unset;

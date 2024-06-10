@@ -1,47 +1,71 @@
-/** @file Form error component. */
-import * as React from 'react'
+/**
+ * @file
+ *
+ * Form error component.
+ */
 
-import * as reactHookForm from 'react-hook-form'
+import * as React from 'react'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import * as reactAriaComponents from '#/components/AriaComponents'
-import type * as types from '#/components/AriaComponents/Form/types'
 
-// =================
-// === FormError ===
-// =================
+import type * as types from './types'
+import * as formContext from './useFormContext'
 
-/** Props for a {@link FormError}. */
-export interface FormErrorProps<
-  TFieldValues extends types.FieldValues<never>,
-  TTransformedFieldValues extends types.FieldValues<never>,
-> extends Omit<reactAriaComponents.AlertProps, 'children'> {
-  readonly form?: reactHookForm.UseFormReturn<TFieldValues, unknown, TTransformedFieldValues>
+/**
+ * Props for the FormError component.
+ */
+export interface FormErrorProps extends Omit<reactAriaComponents.AlertProps, 'children'> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly form?: types.FormInstance<any, any>
 }
 
-/** Form error component. */
-export function FormError<
-  TFieldValues extends types.FieldValues<never>,
-  TTransformedFieldValues extends types.FieldValues<never>,
->(props: FormErrorProps<TFieldValues, TTransformedFieldValues>) {
+/**
+ * Form error component.
+ */
+export function FormError(props: FormErrorProps) {
   const {
-    form = reactHookForm.useFormContext(),
-    size = 'medium',
+    form = formContext.useFormContext(),
+    size = 'large',
     variant = 'error',
+    rounded = 'large',
     ...alertProps
   } = props
+
   const { formState } = form
   const { errors } = formState
   const { getText } = textProvider.useText()
-  const errorMessage = errors.root?.submit
-    ? errors.root.submit.message ??
-      getText('arbitraryErrorTitle') + '. ' + getText('arbitraryErrorSubtitle')
-    : null
 
-  return errorMessage == null ? null : (
-    <reactAriaComponents.Alert size={size} variant={variant} {...alertProps}>
-      {errorMessage}
+  /**
+   * Get the error message.
+   */
+  const getSubmitError = (): string | null => {
+    const formErrors = errors.root
+
+    if (formErrors) {
+      const submitError = formErrors.submit
+
+      if (submitError) {
+        return (
+          submitError.message ??
+          getText('arbitraryErrorTitle') + '. ' + getText('arbitraryErrorSubtitle')
+        )
+      } else {
+        return null
+      }
+    } else {
+      return null
+    }
+  }
+
+  const errorMessage = getSubmitError()
+
+  return errorMessage != null ? (
+    <reactAriaComponents.Alert size={size} variant={variant} rounded={rounded} {...alertProps}>
+      <reactAriaComponents.Text variant="body" truncate="3" color="primary">
+        {errorMessage}
+      </reactAriaComponents.Text>
     </reactAriaComponents.Alert>
-  )
+  ) : null
 }

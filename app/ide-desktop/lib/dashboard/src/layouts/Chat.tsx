@@ -703,8 +703,8 @@ export default function Chat(props: ChatProps) {
     return reactDom.createPortal(
       <div
         className={tailwindMerge.twMerge(
-          'fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary backdrop-blur-default transition-transform',
-          isOpen ? 'shadow-soft' : 'translate-x-full'
+          'fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-[transform,opacity]',
+          isOpen ? 'opacity-1' : 'translate-x-full opacity-0'
         )}
         {...focusWithinProps}
       >

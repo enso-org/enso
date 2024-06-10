@@ -1,26 +1,29 @@
-/** @file A resizable input field. */
+/**
+ * @file A resizable input field.
+ */
 import * as React from 'react'
 
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as aria from '#/components/aria'
-import * as varants from '#/components/AriaComponents/Inputs/ResizableInput/variants'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
-// ======================
-// === ResizableInput ===
-// ======================
+import * as varants from './variants'
 
-/** Props for a {@link ResizableInput}. */
+/**
+ * Props for a {@link ResizableInput}.
+ */
 export interface ResizableInputProps extends aria.TextFieldProps {
   readonly placeholder?: string
   readonly description?: React.ReactNode
   readonly errorMessage?: string | null
 }
 
-/** A resizable input field. */
-function ResizableInputInternal(
+/**
+ * A resizable input field.
+ */
+export const ResizableInput = React.forwardRef(function ResizableInput(
   props: ResizableInputProps,
   ref: React.ForwardedRef<HTMLTextAreaElement>
 ) {
@@ -95,7 +98,4 @@ function ResizableInputInternal(
       )}
     </aria.TextField>
   )
-}
-
-/** A resizable input field. */
-export const ResizableInput = React.forwardRef(ResizableInputInternal)
+})
