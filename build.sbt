@@ -47,6 +47,7 @@ val currentEdition = sys.env.getOrElse(
 // Note [Stdlib Version]
 val stdLibVersion       = defaultDevEnsoVersion
 val targetStdlibVersion = ensoVersion
+val persistanceVersion  = "0.2-SNAPSHOT"
 
 // Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
 lazy val startupStateTransition: State => State = { s: State =>
@@ -1305,7 +1306,6 @@ lazy val `ydoc-server` = project
   .dependsOn(`logging-service-logback`)
   .dependsOn(`profiling-utils`)
 
-lazy val persistanceVersion = "0.2-SNAPSHOT"
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
     version := persistanceVersion,
