@@ -1738,12 +1738,12 @@ class IrToTruffle(
         nodeForResolution(resolvedName)
 
       override protected def resolveFromConversion(): RuntimeExpression =
-        ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
+        ConstantObjectNode.build(UnresolvedConversion.build(scopeBuilder.asModuleScope()))
 
       override protected def resolveUnresolvedSymbol(
         symbolName: String
       ): RuntimeExpression =
-        DynamicSymbolNode.build(UnresolvedSymbol.build(symbolName, moduleScope))
+        DynamicSymbolNode.build(UnresolvedSymbol.build(symbolName, scopeBuilder.asModuleScope()))
     }
 
     private def nodeForResolution(
