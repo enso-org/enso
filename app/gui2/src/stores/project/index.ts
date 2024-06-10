@@ -342,7 +342,12 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
     })
 
     function renameProject(newDisplayedName: string) {
-      renameProjectBackend(newDisplayedName)
+      try {
+        renameProjectBackend(newDisplayedName)
+        return Ok()
+      } catch (err) {
+        return Err(err)
+      }
     }
     lsRpcConnection.on(
       'refactoring/projectRenamed',

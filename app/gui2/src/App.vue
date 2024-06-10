@@ -16,7 +16,6 @@ import { useEventListener } from '@vueuse/core'
 import { computed, toRef, watch } from 'vue'
 import TooltipDisplayer from './components/TooltipDisplayer.vue'
 import { provideTooltipRegistry } from './providers/tooltipState'
-import { provideProjectStore } from './stores/project'
 import { initializePrefixes } from './util/ast/node'
 import { urlParams } from './util/urlParams'
 
@@ -45,7 +44,6 @@ watch(
 )
 
 useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed'))
-provideProjectStore(props.renameProject)
 
 const appConfig = computed(() => {
   const unrecognizedOptions: string[] = []
@@ -74,7 +72,13 @@ registerAutoBlurHandler()
     :unrecognizedOptions="appConfig.unrecognizedOptions"
     :config="appConfig.config"
   />
-  <ProjectView v-else v-show="!props.hidden" class="App" :class="[...classSet.keys()]" />
+  <ProjectView
+    v-else
+    v-show="!props.hidden"
+    class="App"
+    :class="[...classSet.keys()]"
+    :renameProject="renameProject"
+  />
   <Teleport to="body">
     <TooltipDisplayer :registry="appTooltips" />
   </Teleport>
