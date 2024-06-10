@@ -2748,14 +2748,16 @@ lazy val `benchmarks-common` =
     .settings(
       frgaalJavaCompilerSetting,
       libraryDependencies ++= GraalVM.modules ++ Seq(
-        "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion,
-        "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion,
-        "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion,
-        "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion,
-        "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
+        "org.openjdk.jmh"            % "jmh-core"                 % jmhVersion,
+        "org.openjdk.jmh"            % "jmh-generator-annprocess" % jmhVersion,
+        "jakarta.xml.bind"           % "jakarta.xml.bind-api"     % jaxbVersion,
+        "com.sun.xml.bind"           % "jaxb-impl"                % jaxbVersion,
+        "com.fasterxml.jackson.core" % "jackson-databind"         % jacksonVersion,
+        "com.networknt"              % "json-schema-validator"    % "1.4.0"
       )
     )
     .dependsOn(`polyglot-api`)
+    .dependsOn(`version-output`)
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(

@@ -5,6 +5,7 @@ import org.openjdk.jmh.runner.RunnerException;
 
 public class RuntimeBenchmarksRunner {
   public static void main(String[] args) throws RunnerException {
-    BenchmarksRunner.run(args);
+    var benchRunner = new BenchmarksRunner();
+    benchRunner.run(args);
   }
 }
