@@ -2,7 +2,6 @@
  * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
 import * as twv from 'tailwind-variants'
 
 import * as aria from '#/components/aria'
