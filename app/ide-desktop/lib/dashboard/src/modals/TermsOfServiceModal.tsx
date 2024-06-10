@@ -125,7 +125,7 @@ export function TermsOfServiceModal() {
                         <aria.Input
                           type="checkbox"
                           className={tailwindMerge.twMerge(
-                            `flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2`,
+                            'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
                             isInvalid && 'border-red-700 text-red-500 outline-red-500'
                           )}
                           id={checkboxId}
