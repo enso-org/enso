@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "Version 2.0",
+  "title": "Benchmark results",
+  "description": "Aggregated data from all the JMH benchmark runs",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "description": "Path to the schema specification"
+    },
+    "results": {
+      "type": "array",
+      "items": true,
+      "description": "List of benchmark results",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Benchmark label - name of the benchmark"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "score": {
+          "type": "number",
+          "description": "Benchmark score - average number of iterations per millisecond. The higher the better."
+        },
+        "scoreError": {
+          "type": "number"
+        },
+        "samples": {
+          "type": "number",
+          "description": "Number of measurement iterations (samples taken)"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "mean": {
+          "type": "number"
+        },
+        "stddev": {
+          "type": "number"
+        },
+        "warmupIterations": {
+          "type": "integer",
+          "description": "The number of warmup iterations"
+        },
+        "warmupMillis": {
+          "type": "integer",
+          "description": "The number of milliseconds per warmup iteration"
+        },
+        "measureIterations": {
+          "type": "integer",
+          "description": "The number of measurement iterations. Usually is the same as number of samples."
+        },
+        "measureMillis": {
+          "type": "integer",
+          "description": "The number of milliseconds per measurement iteration"
+        },
+        "commitId": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch name (the current Git reference)"
+        },
+        "configuration": {
+          "type": "object",
+          "description": "Benchmark configuration",
+          "properties": {
+            "osName": {
+              "type": "string",
+              "description": "Operating system name, as reported by the `os.name` system property"
+            },
+            "osArch": {
+              "type": "string",
+              "description": "Operating system architecture, as reported by the `os.arch` system property"
+            },
+            "osVersion": {
+              "type": "number"
+            },
+            "vmName": {
+              "type": "string",
+              "description": "`java.vm.name` system property"
+            },
+            "vmVersion": {
+              "type": "string",
+              "description": "`java.vm.version` system property"
+            },
+            "vmVendor": {
+              "type": "string",
+              "description": "`java.vm.vendor` system property"
+            },
+            "jdkVersion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "osName",
+            "osArch",
+            "vmName",
+            "vmVersion",
+            "vmVendor",
+            "jdkVersion"
+          ]
+        }
+      },
+      "required": [
+        "label",
+        "timestamp",
+        "score",
+        "samples",
+        "min",
+        "max",
+        "mean",
+        "stddev",
+        "warmupIterations",
+        "warmupMillis",
+        "measureMillis",
+        "commitId",
+        "branch",
+        "configuration"
+      ]
+    }
+  },
+  "required": [
+    "schema",
+    "results"
+  ]
+}
