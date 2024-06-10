@@ -51,17 +51,30 @@ type Int
     identity self = self
 
 
+type Int_Comparator
+    compare a:Int b:Int = Ordering.compare a.v b.v
+    hash i:Int = 3721 + Default_Comparator.hash_builtin i.v
+
+Comparable.from(_:Int) = Int_Comparator
+
+
 # The Benchmarks ==============================================================
 
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 4) . set_measure (Bench.phase_conf 1 3)
+options = Bench.options . set_warmup (Bench.phase_conf 3 4) . set_measure (Bench.phase_conf 3 1)
 
 
 type Data
-    Value ~sorted_vec ~partially_sorted_vec ~random_vec ~random_vec_wrapped
+    Value ~sorted_vec ~partially_sorted_vec ~random_vec ~random_vec_wrapped ~rational_vec ~integer_vec
 
     create vec_size =
-        Data.Value (Data.make_sorted_vec vec_size) (make_partially_sorted_vec vec_size) (Data.make_random_vec vec_size) ((Data.make_random_vec vec_size).map (v -> Int.Value v))
+        f1 s =  Data.make_sorted_vec s
+        f2 s = make_partially_sorted_vec s
+        f3 s = Data.make_random_vec s
+        f4 s = (Data.make_random_vec s).map (v -> Int.Value v)
+        f5 s = Utils.make_random_rational_vec s
+        f6 s = f5 s . map (x-> x.to_float . floor + 2)
+        Data.Value (f1 vec_size) (f2 vec_size) (f3 vec_size) (f4 vec_size) (f5 vec_size) (f6 vec_size)
 
     make_sorted_vec vec_size =
         make_sorted_ascending_vec vec_size
@@ -89,13 +102,13 @@ collect_benches = Bench.build builder->
         group_builder.specify "Sorted_Runs_Descending" <|
             data.partially_sorted_vec.sort Sort_Direction.Descending
 
-        group_builder.specify "Random_Elements_Ascending" <|
+        group_builder.specify "Random_Elements_Ascending_v2" <|
             data.random_vec.sort
 
-        group_builder.specify "Random_Elements_Descending" <|
+        group_builder.specify "Random_Elements_Descending_v2" <|
             data.random_vec.sort Sort_Direction.Descending
 
-        group_builder.specify "Sorting_with_a_Custom_Projection" <|
+        group_builder.specify "Sorting_with_a_Custom_Projection_v2" <|
             data.random_vec.sort on=projection
 
         group_builder.specify "Sorting_with_an_identity_function" <|
@@ -104,8 +117,34 @@ collect_benches = Bench.build builder->
         group_builder.specify "Sorting_with_an_unresolved_identity_function" <|
             data.random_vec_wrapped.sort on=(.identity)
 
-        group_builder.specify "Sorting_with_the_Default_Ordered_Comparator" <|
+        group_builder.specify "Sorting_with_the_Default_Ordered_Comparator_v2" <|
             data.random_vec.sort by=comparator
 
+        group_builder.specify "Sorting_Prime_Numbers_First" <|
+            is_prime p -> Boolean =
+                test n = if n*n > p then True else
+                    if p % n == 0 then False else
+                        @Tail_Call test n+1
 
-main = collect_benches . run_main
+                test 2
+
+            prime_first a:Integer b:Integer -> Ordering =
+                prime_a = is_prime a
+                prime_b = is_prime b
+
+                if prime_a == prime_b then Ordering.compare a b else
+                    if prime_a then Ordering.Less else
+                        Ordering.Greater
+
+            data.integer_vec.sort by=prime_first
+
+        group_builder.specify "Sort_Rational_Vector" <|
+            data.rational_vec.sort
+
+        group_builder.specify "Sort_Rational_Vector_by_comparator" <|
+            data.rational_vec.sort by=(a-> b-> b.compare a)
+
+        group_builder.specify "Sort_Rational_Vector_by_converting_to_float" <|
+            data.rational_vec.sort on=(.to_float)
+
+main filter=Nothing = collect_benches . run_main filter

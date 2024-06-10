@@ -360,7 +360,7 @@ class Compiler(
 
     runErrorHandling(requiredModules)
 
-    requiredModules.foreach { module =>
+    val requiredModulesWithScope = requiredModules.map { module =>
       if (
         !context
           .getCompilationStage(module)
@@ -368,16 +368,21 @@ class Compiler(
             CompilationStage.AFTER_RUNTIME_STUBS
           )
       ) {
-        context.runStubsGenerator(module)
+        val moduleScopeBuilder = module.getScopeBuilder()
+        context.runStubsGenerator(module, moduleScopeBuilder)
         context.updateModule(
           module,
           { u =>
             u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
           }
         )
+        (module, moduleScopeBuilder)
+      } else {
+        (module, module.getScopeBuilder)
       }
     }
-    requiredModules.foreach { module =>
+
+    requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
       if (
         !context
           .getCompilationStage(module)
@@ -393,7 +398,7 @@ class Compiler(
             context.getModuleName(module)
           )
 
-          context.truffleRunCodegen(module, config)
+          context.truffleRunCodegen(module, moduleScopeBuilder, config)
         }
         context.updateModule(
           module,

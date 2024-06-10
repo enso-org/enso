@@ -66,6 +66,12 @@ export type AssetId = IdType[keyof IdType]
 export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
 export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
 
+/**
+ * Unique identifier for a subscription.
+ */
+export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
+export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
+
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
 export const LabelName = newtype.newtypeConstructor<LabelName>()
@@ -440,6 +446,16 @@ export interface ResourceUsage {
   readonly storage: number
 }
 
+/**
+ * Metadata for a subscription.
+ */
+export interface Subscription {
+  readonly id?: SubscriptionId
+  readonly plan?: Plan
+  readonly trialStart?: dateTime.Rfc3339DateTime | null
+  readonly trialEnd?: dateTime.Rfc3339DateTime | null
+}
+
 /** Metadata for an organization. */
 export interface OrganizationInfo {
   readonly id: OrganizationId
@@ -448,6 +464,7 @@ export interface OrganizationInfo {
   readonly website: HttpsUrl | null
   readonly address: string | null
   readonly picture: HttpsUrl | null
+  readonly subscription: Subscription
 }
 
 /** A user group and its associated metadata. */

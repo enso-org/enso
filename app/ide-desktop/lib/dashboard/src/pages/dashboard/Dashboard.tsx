@@ -317,7 +317,7 @@ export default function Dashboard(props: DashboardProps) {
   }, [page, setPage])
 
   return (
-    <Page hideInfoBar>
+    <Page hideInfoBar hideChat>
       <div
         className={tailwindMerge.twMerge(
           'flex text-xs text-primary',

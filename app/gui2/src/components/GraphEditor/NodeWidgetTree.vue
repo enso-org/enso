@@ -99,7 +99,6 @@ provideWidgetTree(
 </script>
 <script lang="ts">
 export const GRAB_HANDLE_X_MARGIN = 4
-const GRAB_HANDLE_X_MARGIN_PX = `${GRAB_HANDLE_X_MARGIN}px`
 export const ICON_WIDTH = 16
 </script>
 
@@ -109,6 +108,7 @@ export const ICON_WIDTH = 16
     <SvgIcon
       v-if="!props.connectedSelfArgumentId"
       class="icon grab-handle nodeCategoryIcon"
+      :style="{ margin: `0 ${GRAB_HANDLE_X_MARGIN}px` }"
       :name="props.icon"
       @click.right.stop.prevent="emit('openFullMenu')"
     />
@@ -144,6 +144,5 @@ export const ICON_WIDTH = 16
 
 .grab-handle {
   color: white;
-  margin: 0 v-bind('GRAB_HANDLE_X_MARGIN_PX');
 }
 </style>

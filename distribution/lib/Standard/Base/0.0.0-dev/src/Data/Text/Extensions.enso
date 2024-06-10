@@ -9,9 +9,9 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Named_Pattern.Named_Pattern
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
-import project.Data.Text.Regex.Named_Pattern.Named_Pattern
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
@@ -44,12 +44,13 @@ from project.Widget_Helpers import make_data_cleanse_vector_selector, make_date_
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
-polyglot java import org.enso.base.Encoding_Utils
-polyglot java import org.enso.base.Regex_Utils
-polyglot java import org.enso.base.text.GraphemeSpan
+polyglot java import org.enso.base.encoding.Encoding_Utils
 polyglot java import org.enso.base.text.ResultWithWarnings
-polyglot java import org.enso.base.text.Utf16Span
 polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.WithProblems
+polyglot java import org.enso.base.text.GraphemeSpan
+polyglot java import org.enso.base.text.Utf16Span
 
 ## GROUP Text
    ICON text
@@ -739,8 +740,8 @@ Text.is_whitespace self =
          "Hello".bytes (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
-Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
-    result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
+Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    result = Encoding_Utils.get_bytes self encoding.to_java_charset : ResultWithWarnings
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
         on_problems.attach_problems_after vector [Encoding_Error.Error result.warnings]
@@ -756,15 +757,17 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
      function. By default, a dataflow error is raised.
 
    > Example
-     Get the ASCII bytes of the text "Hello".
+     Decode a sequence of ASCII bytes into Text.
 
-         "Hello".bytes (Encoding.ascii)
+         Text.from_bytes [72, 101, 108, 108, 111] (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
-Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
-    result = Encoding_Utils.from_bytes bytes (encoding . to_java_charset) : ResultWithWarnings
-    if result.warnings.is_nothing then result.result else
-        on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
+Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
+    result = Encoding_Utils.from_bytes bytes encoding.to_java_charset_or_null : WithProblems
+    if result.problems.is_empty then result.result else
+        problems = result.problems.map decoding_problem->
+            Encoding_Error.Error decoding_problem.message
+        on_problems.attach_problems_after result.result problems
 
 ## ICON convert
    Returns a vector containing bytes representing the UTF-8 encoding of the
@@ -785,7 +788,7 @@ Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
 
          "Hello".utf_8
 Text.utf_8 : Problem_Behavior -> Vector Integer
-Text.utf_8 self on_problems=Problem_Behavior.Report_Warning =
+Text.utf_8 self (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
     self.bytes Encoding.utf_8 on_problems
 
 ## ICON convert
@@ -804,7 +807,7 @@ Text.utf_8 self on_problems=Problem_Behavior.Report_Warning =
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
-Text.from_utf_8 bytes on_problems=Problem_Behavior.Report_Error =
+Text.from_utf_8 bytes (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
 ## ICON convert

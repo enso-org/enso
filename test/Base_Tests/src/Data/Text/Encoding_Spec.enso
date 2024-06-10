@@ -10,15 +10,15 @@ polyglot java import java.lang.String as Java_String
 add_specs suite_builder =
     suite_builder.group "Encoding object" group_builder->
         group_builder.specify "Can get standard UTF encodings" <|
-            Encoding.utf_8 . should_equal (Encoding.Value "UTF-8")
-            Encoding.utf_16_le . should_equal (Encoding.Value "UTF-16LE")
-            Encoding.utf_16_be . should_equal (Encoding.Value "UTF-16BE")
-            Encoding.utf_32_le . should_equal (Encoding.Value "UTF-32LE")
-            Encoding.utf_32_be . should_equal (Encoding.Value "UTF-32BE")
+            Encoding.utf_8.character_set_name . should_equal "UTF-8"
+            Encoding.utf_16_le.character_set_name . should_equal "UTF-16LE"
+            Encoding.utf_16_be.character_set_name . should_equal "UTF-16BE"
+            Encoding.utf_32_le.character_set_name . should_equal "UTF-32LE"
+            Encoding.utf_32_be.character_set_name . should_equal "UTF-32BE"
 
         group_builder.specify "Catches invalid character sets" <|
-            invalid = Encoding.Value "NotAValidCharacterSet"
-            invalid.to_java_charset . should_fail_with Illegal_Argument
+            invalid = Encoding.from_name "NotAValidCharacterSet"
+            invalid.should_fail_with Illegal_Argument
 
         group_builder.specify "Can get full set of character sets" <|
             character_sets = Encoding.all_character_sets
@@ -51,12 +51,12 @@ add_specs suite_builder =
         group_builder.specify "Invalid ASCII should raise a problem when decoding (error by default)" <|
             action = Text.from_bytes invalid_ascii Encoding.ascii on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Encoding issues at 12."]
+            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 12)."]
             Problems.test_problem_handling action problems tester
 
             default_error = Text.from_bytes invalid_ascii Encoding.ascii
             default_error.should_fail_with Encoding_Error
-            default_error.catch.message . should_equal "Encoding issues at 12."
+            default_error.catch.message . should_equal "Failed to decode 1 code units (at positions: 12)."
 
         group_builder.specify "Invalid ASCII should raise a problem when encoding (warning by default)" <|
             action = invalid.bytes Encoding.ascii on_problems=_
@@ -67,6 +67,114 @@ add_specs suite_builder =
             default_warning = invalid.bytes Encoding.ascii
             default_warning.should_equal invalid_ascii_out
             Problems.get_attached_warnings default_warning . should_contain_the_same_elements_as problems
+
+    suite_builder.group "Default Encoding" group_builder->
+        pending_fallback = "Fallback to Windows-1252 is not implemented yet."
+        group_builder.specify "should try reading as UTF-8 by default" <|
+            bytes = [65, -60, -123, -60, -103]
+            #        A   ą          ę
+            Text.from_bytes bytes Encoding.default . should_equal "Aąę"
+
+        group_builder.specify "does not keep the UTF-8 BOM within the decoded contents" <|
+            bytes = [-17, -69, -65] + [65, -60, -123, -60, -103]
+            #       BOM                A   ą          ę
+            txt = Text.from_bytes bytes Encoding.default
+            txt.should_equal "Aąę"
+            # The BOM is lost:
+            txt.utf_8 . should_equal [65, -60, -123, -60, -103]
+
+        group_builder.specify "keeps the \ufeff BOM (UTF-8 variant) character if it appeared later on in the stream" <|
+            bytes = [-17, -69, -65] + [-17, -69, -65]
+            txt = Text.from_bytes bytes Encoding.default
+            # First BOM is stripped, the second one is kept as ZERO WIDTH NO-BREAK SPACE
+            txt.should_equal '\ufeff'
+            txt.length . should_equal 1
+
+        group_builder.specify "switches to UTF-16 if BOM is detected" <|
+            bytes_le = [-1, -2] + [65, 0, 5, 1, 25, 1]
+            #           BOM        A      ą     ę
+            Text.from_bytes bytes_le Encoding.default . should_equal "Aąę"
+
+            bytes_be = [-2, -1] + [0, 65, 1, 5, 1, 25]
+            #           BOM        A      ą     ę
+            Text.from_bytes bytes_be Encoding.default . should_equal "Aąę"
+
+            # If there is no BOM the bytes are interpreted as UTF-8 and the result is no longer the expected text:
+            bytes_without_bom = [65, 0, 5, 1, 25, 1]
+            bad_text = Text.from_bytes bytes_without_bom Encoding.default
+            bad_text.should_start_with 'A'
+            bad_text.length . should_equal 6
+
+        group_builder.specify "keeps the \ufeff BOM (UTF-16 variant) character if it appeared later on in the stream" <|
+            bytes = [-1, -2] + [-1, -2] + [65, 0] + [-1, -2]
+            txt = Text.from_bytes bytes Encoding.default
+            # First BOM is stripped, the second one is kept as ZERO WIDTH NO-BREAK SPACE
+            txt.should_equal '\ufeffA\ufeff'
+            bytes.length . should_equal 4*2
+            txt.length . should_equal 3
+
+        group_builder.specify "falls back to Windows-1252 if invalid Unicode is detected and no BOM" pending=pending_fallback <|
+            # These are not valid bytes for UTF-8
+            bytes = [-30, -55, -1]
+            Text.from_bytes bytes Encoding.utf_8 . should_fail_with Encoding_Error
+
+            # But our default encoding will just fall back to Windows-1252 and return something:
+            Text.from_bytes bytes Encoding.default . should_equal 'âÉÿ'
+
+        group_builder.specify "reports failed characters if invalid Unicode but a BOM was present" <|
+            ## Without a BOM this would fallback, but as we see the BOM it seems most likely this is a Unicode stream,
+               but it contains some errors.
+               This is based on assumption that it is very unlikely for a valid Windows-1252 encoded file to start with
+               characters `ï»¿` or `ÿþ` (the Win-1252 representations of UTF-8 and UTF-16 BOMs).
+            bytes1 = [-17, -69, -65] + [-30, -55, -1]
+            r1 = Text.from_bytes bytes1 Encoding.default Problem_Behavior.Report_Warning
+            r1.should_equal "���"
+            # We've got 3 characters that failed to decode. The BOM is stripped, so it is not counted.
+            r1.length . should_equal 3
+            # TODO maybe some other type instead of Encoding_Error should be used for these?
+            w1 = Problems.expect_only_warning Encoding_Error r1
+            w1.to_display_text . should_contain "BOM"
+
+            bytes2 = [-2, -1] + [0, 65, -1]
+            r2 = Text.from_bytes bytes2 Encoding.default Problem_Behavior.Report_Warning
+            r2.should_equal "A�"
+            # We have 1 correct character (A), one invalid character (odd number of bytes). The BOM is not counted.
+            r2.length . should_equal 2
+            w2 = Problems.expect_only_warning Encoding_Error r2
+            w2.to_display_text . should_contain "BOM"
+
+        group_builder.specify "should work on 0 or 1 byte input" <|
+            empty = Text.from_bytes [] Encoding.default
+            empty.should_equal ""
+            Problems.assume_no_problems empty
+
+        group_builder.specify "should work on 0 or 1 byte input (TODO merge with above)" pending=pending_fallback <|
+            txt = Text.from_bytes [-1] Encoding.default Problem_Behavior.Report_Warning
+            txt.should_equal 'ÿ'
+            # No problems, as falling back to Windows-1252.
+            Problems.assume_no_problems txt
+
+        group_builder.specify "Default Encoding heuristics also work in File.read" <|
+            f = File.create_temporary_file "utf-heuristics" ".txt"
+
+            # UTF-8 BOM
+            ([-17, -69, -65] + [65, -60, -123, -60, -103]).write_bytes f Existing_File_Behavior.Overwrite . should_succeed
+            # The Encoding.default does not have to be provided, as it should be the default
+            f.read . should_equal "Aąę"
+
+            # UTF-16 LE BOM
+            ([-1, -2] + [65, 0, 5, 1, 25, 1]).write_bytes f Existing_File_Behavior.Overwrite . should_succeed
+            f.read . should_equal "Aąę"
+
+        group_builder.specify "Default Encoding heuristics also work in File.read (TODO merge with above)" pending=pending_fallback <|
+            f = File.create_temporary_file "utf-heuristics" ".txt"
+            # Fallback to Windows-1252
+            ([-30, -55, -1]).write_bytes f Existing_File_Behavior.Overwrite . should_succeed
+            f.read . should_equal "âÉÿ"
+
+        group_builder.specify "should not be used in Write operations" <|
+            r = "foo".write (enso_project.data / "transient" / "my-file.txt") Encoding.default
+            Problems.expect_only_warning Illegal_Argument r
 
     suite_builder.group "UTF_8" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
@@ -110,18 +218,51 @@ add_specs suite_builder =
         group_builder.specify "Invalid UTF-8 should raise a problem when decoding via encoding" <|
             action = Text.from_bytes invalid_utf_8 Encoding.utf_8 on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Encoding issues at 19."]
+            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 19)."]
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "Invalid UTF-8 should raise a problem when decoding (error by default)" <|
             action = Text.from_utf_8 invalid_utf_8 on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Encoding issues at 19."]
+            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 19)."]
             Problems.test_problem_handling action problems tester
 
             default_error = Text.from_utf_8 invalid_utf_8
             default_error.should_fail_with Encoding_Error
-            default_error.catch.message . should_equal "Encoding issues at 19."
+            default_error.catch.message . should_equal "Failed to decode 1 code units (at positions: 19)."
+
+        group_builder.specify "should strip the initial BOM, but not subsequent repetitions of it" <|
+            bytes = [-17, -69, -65] + [-17, -69, -65] + [65] + [-17, -69, -65]
+            txt = Text.from_bytes bytes Encoding.utf_8
+            txt.should_equal '\ufeffA\ufeff'
+            Problems.assume_no_problems txt
+
+        ## A UTF-16 BOM representation does not make sense in UTF-8, so we can detect that situation and report it.
+        group_builder.specify "should report a clearer error when UTF-16 BOM is encountered" <|
+            bytes = [-2, -1] + [0, 65, 1, 5, 1, 25]
+            as_utf = Text.from_bytes bytes Encoding.utf_8 Problem_Behavior.Report_Warning
+
+            warnings = Problems.get_attached_warnings as_utf . map .to_display_text
+            warnings.find (t-> t.contains "BOM") . should_succeed
+
+        group_builder.specify "should work on 0 or 1 byte input" <|
+            empty = Text.from_bytes [] Encoding.utf_8
+            empty.should_equal ""
+            Problems.assume_no_problems empty
+
+            txt = Text.from_bytes [-1] Encoding.utf_8 Problem_Behavior.Report_Warning
+            txt.should_equal '\ufffd'
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
+
+        group_builder.specify "should report only a few example positions if many errors are encountered" <|
+            bytes = Vector.fill 10000 -1
+            txt = Text.from_bytes bytes Encoding.utf_8 Problem_Behavior.Report_Warning
+            txt.length . should_equal 10000
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_contain "Failed to decode 10000 code units"
+            w.to_display_text . should_contain "..."
+            (w.to_display_text.length < 300).should_be_true
 
     suite_builder.group "UTF_16 BigEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
@@ -137,6 +278,27 @@ add_specs suite_builder =
             Test.assert_no_problems result
             result . should_equal kshi
 
+        group_builder.specify "should strip the initial BOM, but not subsequent repetitions of it" <|
+            bytes = [-2, -1, -2, -1, 0, 65, -2, -1]
+            txt = Text.from_bytes bytes Encoding.utf_16_be
+            txt.should_equal '\ufeffA\ufeff'
+
+        group_builder.specify "should warn if an inverted BOM is encountered" <|
+            bytes = [-1, -2] + [0, 65, 1, 5, 1, 25]
+            txt = Text.from_bytes bytes Encoding.utf_16_be Problem_Behavior.Report_Warning
+            txt.should_equal "￾Aąę"
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_contain "BOM"
+
+        group_builder.specify "should work on 0 or 1 byte input" <|
+            empty = Text.from_bytes [] Encoding.utf_16_be
+            empty.should_equal ""
+            Problems.assume_no_problems empty
+
+            txt = Text.from_bytes [-1] Encoding.utf_16_be Problem_Behavior.Report_Warning
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
+
     suite_builder.group "UTF_16 LittleEndian" group_builder->
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_16 = [21, 9, 77, 9, 55, 9, 63, 9]
@@ -150,6 +312,28 @@ add_specs suite_builder =
             result = Text.from_bytes kshi_utf_16 Encoding.utf_16_le
             Test.assert_no_problems result
             result . should_equal kshi
+
+        group_builder.specify "should strip the initial BOM, but not subsequent repetitions of it" <|
+            bytes = [-1, -2, -1, -2, 65, 0, -1, -2]
+            txt = Text.from_bytes bytes Encoding.utf_16_le
+            txt.should_equal '\ufeffA\ufeff'
+
+        # We cannot warn on UTF-8 BOM because it actually represents valid text: [-17, -69, -65] + [65] decoded as UTF-16 LE is "믯䆿".
+        group_builder.specify "should warn if an inverted BOM is encountered" <|
+            bytes = [-2, -1] + [0, 65, 1, 5, 1, 25]
+            txt = Text.from_bytes bytes Encoding.utf_16_le Problem_Behavior.Report_Warning
+            txt.should_equal "￾䄀ԁᤁ"
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_contain "BOM"
+
+        group_builder.specify "should work on 0 or 1 byte input" <|
+            empty = Text.from_bytes [] Encoding.utf_16_le
+            empty.should_equal ""
+            Problems.assume_no_problems empty
+
+            txt = Text.from_bytes [-1] Encoding.utf_16_le Problem_Behavior.Report_Warning
+            w = Problems.expect_only_warning Encoding_Error txt
+            w.to_display_text . should_contain "Failed to decode 1 code units (at positions: 0)."
 
     suite_builder.group "codepoints" group_builder->
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
@@ -182,7 +366,7 @@ add_specs suite_builder =
         group_builder.specify "Invalid Windows-1252 should raise a problem when decoding" <|
             action = Text.from_bytes invalid_windows Encoding.windows_1252 on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error.Error "Encoding issues at 16."]
+            problems = [Encoding_Error.Error "Failed to decode 1 code units (at positions: 16)."]
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "Invalid Windows-1252 should raise a problem when encoding" <|
@@ -195,4 +379,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

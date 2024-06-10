@@ -3,6 +3,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconName'
 
 import Breadcrumb from '@/components/DocumentationPanel/DocsBreadcrumb.vue'
+import SvgButton from '../SvgButton.vue'
 
 export interface Item {
   label: string
@@ -29,22 +30,16 @@ function shrinkFactor(index: number): number {
 <template>
   <div class="Breadcrumbs" :style="{ 'background-color': color }">
     <div class="breadcrumbs-controls">
-      <SvgIcon
+      <SvgButton
         name="arrow_left"
-        draggable="false"
-        :class="['icon', 'button', 'arrow', { inactive: !props.canGoBackward }]"
+        :disabled="!props.canGoBackward"
         @click.stop="emit('backward')"
       />
-      <SvgIcon
-        name="arrow_right"
-        draggable="false"
-        :class="['icon', 'button', 'arrow', { inactive: !props.canGoForward }]"
-        @click.stop="emit('forward')"
-      />
+      <SvgButton name="arrow_right" :disabled="!props.canGoForward" @click.stop="emit('forward')" />
     </div>
     <TransitionGroup name="breadcrumbs">
       <template v-for="(breadcrumb, index) in props.breadcrumbs" :key="[index, breadcrumb.label]">
-        <SvgIcon v-if="index > 0" name="arrow_right_head_only" class="arrow" />
+        <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
         <Breadcrumb
           :text="breadcrumb.label"
           :icon="index === props.breadcrumbs.length - 1 ? props.icon : undefined"
@@ -66,19 +61,11 @@ function shrinkFactor(index: number): number {
   border-radius: 16px;
   transition: background-color 0.5s;
   max-width: 100%;
+  color: white;
 }
 
 .breadcrumbs-controls {
   display: flex;
-}
-
-.inactive {
-  opacity: 0.3;
-}
-
-.arrow {
-  color: white;
-  transition: opacity 0.5s;
 }
 
 .breadcrumbs-move,

@@ -38,7 +38,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
         if (isLossy) {
           // Save it raw for recovery.
           newBuilder.setRaw(i, currentIntegerValue);
-          newBuilder.precisionLossAggregator.reportPrecisionLoss(
+          newBuilder.precisionLossAggregator.reportIntegerPrecisionLoss(
               currentIntegerValue, convertedFloatValue);
           // Unmark the long that did not fit:
           newBuilder.isLongCompactedAsDouble.set(i, false);
@@ -133,7 +133,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
     boolean isLossy = integer != (long) convertedFloatValue;
     if (isLossy) {
       setRaw(currentSize, integer);
-      precisionLossAggregator.reportPrecisionLoss(integer, convertedFloatValue);
+      precisionLossAggregator.reportIntegerPrecisionLoss(integer, convertedFloatValue);
     } else {
       isLongCompactedAsDouble.set(currentSize, true);
     }

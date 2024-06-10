@@ -1,7 +1,11 @@
-/** @file Card component. */
+/**
+ * @file
+ *
+ * Card component
+ */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
+import * as tw from 'tailwind-merge'
 
 import Check from 'enso-assets/check_mark.svg'
 
@@ -12,14 +16,21 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
 
-// ============
-// === Card ===
-// ============
-
-/** Props for a {@link Card}. */
+/**
+ * Card props
+ */
 export interface CardProps extends React.PropsWithChildren {
+  /**
+   * Card title
+   */
   readonly title: text.TextId
+  /**
+   * Card subtitle
+   */
   readonly subtitle: text.TextId
+  /**
+   * Card features
+   */
   readonly features: string[]
   readonly pricing?: text.TextId
   readonly submitButton?: React.ReactNode
@@ -27,22 +38,29 @@ export interface CardProps extends React.PropsWithChildren {
   readonly className?: string
 }
 
-/** Card component. */
+/**
+ * Card component
+ */
 export function Card(props: CardProps) {
   const { children, features, submitButton, title, subtitle, pricing, learnMore, className } = props
+
   const { getText } = textProvider.useText()
 
   return (
-    <div className={tailwindMerge.twMerge('rounded-xl border border-primary/10 p-4', className)}>
+    <div className={tw.twMerge('rounded-xl border border-primary/10 p-4', className)}>
       <aria.Heading className="text-3xl leading-10" level={2}>
         {getText(title)}
       </aria.Heading>
       <aria.Text elementType="p" className="text-[16px] leading-6">
         {getText(subtitle)}
       </aria.Text>
+
       {pricing && <aria.Text className="mt-1 flex text-lg">{getText(pricing)}</aria.Text>}
+
       {submitButton != null ? <div className="my-4">{submitButton}</div> : null}
+
       <div className="-mx-4 w-auto border-[0.5px] border-primary/10" />
+
       {features.length > 0 && (
         <div className="mt-4 text-sm">
           <ul className="flex flex-col gap-2">
@@ -57,7 +75,9 @@ export function Card(props: CardProps) {
           </ul>
         </div>
       )}
+
       {learnMore != null && <div className="mt-4">{learnMore}</div>}
+
       {children}
     </div>
   )

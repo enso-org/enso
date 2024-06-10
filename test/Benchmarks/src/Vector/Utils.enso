@@ -5,4 +5,47 @@ polyglot java import java.util.Random as Java_Random
 make_random_vec : Integer -> Vector
 make_random_vec n =
     random_gen = Java_Random.new n
-    Vector.fill n random_gen.nextDouble
+    Vector.new n (_-> random_gen.nextDouble)
+
+make_random_rational_vec n =
+    random_gen = Java_Random.new n
+    Vector.new n _->
+        p = random_gen.nextInt 100
+        q = 1 + random_gen.nextInt 99
+        Rational.new p q
+
+type Rational
+    private Fraction p:Integer q:Integer
+
+    new p:Integer q:Integer=1 =
+        if q == 0 then Error.throw "Denominator cannot be zero" else
+            Rational.Fraction p q
+
+    compare self that:Rational -> Ordering = Ordering.compare self.p*that.q that.p*self.q
+
+    normalize self = if self.p == 0 then Rational.new 0 1 else
+        gcd a b = case Ordering.compare a b of
+            Ordering.Greater -> @Tail_Call gcd (a.rem b) b
+            Ordering.Less -> @Tail_Call gcd a (b.rem a)
+            Ordering.Equal -> a
+
+        d = gcd self.p self.q
+
+        Rational.new self.p/d self.q/d
+
+    to_float self = self.p / self.q
+
+    to_text self = self.p.to_text+"/"+self.q.to_text
+
+Float.from (that : Rational) = that.to_float
+
+type Rational_Comparator
+    compare (a:Rational) (b:Rational) = Ordering.compare a.p*b.q b.p*a.q
+    hash (v:Rational) =
+        n = v.normalize
+        n.p*37 + n.q*51
+
+
+Comparable.from (_ : Rational) = Rational_Comparator
+
+main = Standard.Base.Runtime.Debug.breakpoint

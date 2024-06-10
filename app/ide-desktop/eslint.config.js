@@ -223,14 +223,6 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `Button` or `UnstyledButton` instead of `button`',
     },
     {
-        selector: 'JSXOpeningElement[name.name=label] > JSXIdentifier',
-        message: 'Use `aria.Label` instead of `label`',
-    },
-    {
-        selector: 'JSXOpeningElement[name.name=input] > JSXIdentifier',
-        message: 'Use `aria.Input` instead of `input`',
-    },
-    {
         selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
         message: 'Use `aria.Heading` instead of `h1`-`h6`',
     },
@@ -464,11 +456,6 @@ export default [
                 {
                     selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
-                },
-                {
-                    selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
-                    message:
-                        'Use `export default` on the declaration, instead of as a separate statement',
                 },
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.

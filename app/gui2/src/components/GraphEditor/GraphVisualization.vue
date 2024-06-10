@@ -381,3 +381,10 @@ watch(
     </Suspense>
   </div>
 </template>
+
+<style scoped>
+.GraphVisualization {
+  /** Prevent drawing on top of other UI elements (e.g. dropdown widgets). */
+  isolation: isolate;
+}
+</style>
