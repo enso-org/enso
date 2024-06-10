@@ -1265,6 +1265,67 @@ public class SignatureTest {
     assertContains("Illegal_Argument.Error 'foo: 10'", result.toString());
   }
 
+  @Test
+  public void returnTypeCheckSum() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Text
+    foo a -> Integer | Text =
+        a+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(20, foo.execute(10).asInt());
+    assertEquals("..", foo.execute(".").asString());
+
+    try {
+      Object vec = new Integer[] {1,2,3};
+      var res = foo.execute(vec);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `foo` to be Integer | Text, but got Array", e.getMessage());
+    }
+  }
+
+
+  @Test
+  public void returnTypeCheckProduct() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Text
+    type Clazz
+        Value a
+    Clazz.from (that : Integer) = Clazz.Value that
+    
+    foo a -> (Integer | Text) & Clazz =
+        a+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(20, foo.execute(10).asInt());
+
+    try {
+      var res = foo.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `foo` to be Clazz, but got Text", e.getMessage());
+    }
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     assertEquals(
         "Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".",
