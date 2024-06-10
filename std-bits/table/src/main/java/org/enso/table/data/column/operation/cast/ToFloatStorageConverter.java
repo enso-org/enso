@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.cast;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.DoubleBuilder;
@@ -7,6 +8,7 @@ import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
+import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -32,6 +34,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
       return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
+    } else if (storage instanceof BigDecimalStorage bigDecimalStorage) {
+      return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType) {
       return castFromMixed(storage, problemAggregator);
     } else {
@@ -59,6 +63,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         builder.appendDouble(x);
       } else if (o instanceof BigInteger bigInteger) {
         builder.appendBigInteger(bigInteger);
+      } else if (o instanceof BigDecimal bigDecimal) {
+        builder.appendBigDecimal(bigDecimal);
       } else {
         problemAggregator.reportConversionFailure(o);
         builder.appendNulls(1);
@@ -72,6 +78,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
 
   private Storage<Double> convertLongStorage(
       AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
     int n = longStorage.size();
     DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -81,6 +88,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         long value = longStorage.getItem(i);
         builder.appendLong(value);
       }
+
+      context.safepoint();
     }
 
     return builder.seal();
@@ -88,6 +97,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
 
   private Storage<Double> convertBoolStorage(
       BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+    Context context = Context.getCurrent();
     int n = boolStorage.size();
     DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
@@ -97,6 +107,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         boolean value = boolStorage.getItem(i);
         builder.appendDouble(booleanAsDouble(value));
       }
+
+      context.safepoint();
     }
 
     return builder.seal();
@@ -117,6 +129,25 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         builder.appendNulls(1);
       } else {
         builder.appendBigInteger(value);
+      }
+
+      context.safepoint();
+    }
+
+    return builder.seal();
+  }
+
+  private Storage<Double> convertBigDecimalStorage(
+      Storage<BigDecimal> storage, CastProblemAggregator problemAggregator) {
+    int n = storage.size();
+    DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < n; i++) {
+      BigDecimal value = storage.getItemBoxed(i);
+      if (value == null) {
+        builder.appendNulls(1);
+      } else {
+        builder.appendBigDecimal(value);
       }
 
       context.safepoint();

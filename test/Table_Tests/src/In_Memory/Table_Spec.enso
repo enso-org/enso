@@ -573,6 +573,30 @@ add_specs suite_builder =
             actual = t.fill_empty ["col0", "col1"] defaults
             actual.at "col0" . to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
             actual.at "col1" . to_vector . should_equal ["1", "200", "10", "400", "500", "30"]
+        
+        group_builder.specify "fill_empty should allow selection by regex" <|
+            col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
+            col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
+            col1 = Column.from_vector "col1" [Nothing, "200", Nothing, "400", "500", Nothing]
+            t = Table.new [col0, col_between, col1]
+            default = "1000"
+            actual = t.fill_empty [regex ("col\d")] default
+            actual.at "col0" . to_vector . should_equal ["0", "1000", "4", "5", "1000", "1000"]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal ["1000", "200", "1000", "400", "500", "1000"]
+            actual.column_names . should_equal ["col0", "col_between", "col1"]
+
+        group_builder.specify "fill_empty should allow selection by type" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
+            col1 = Column.from_vector "col1" [Nothing, "200", Nothing, "400", "500", Nothing]
+            t = Table.new [col0, col_between, col1]
+            default = "1000"
+            actual = t.fill_empty [..By_Type ..Char] default
+            actual.at "col0" . to_vector . should_equal [0, Nothing, 4, 5, Nothing, Nothing]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal ["1000", "200", "1000", "400", "500", "1000"]
+            actual.column_names . should_equal ["col0", "col_between", "col1"]
 
         group_builder.specify "fill_nothing should leave other columns alone" <|
             col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
