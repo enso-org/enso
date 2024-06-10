@@ -10,10 +10,8 @@ import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import SvgMask from '#/components/SvgMask'
 
 // ============
 // === Page ===
@@ -126,6 +124,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                 <ariaComponents.Button
                   size="custom"
                   variant="custom"
+                  icon={pageData.icon}
                   className={tailwindMerge.twMerge(
                     'flex h-full items-center gap-3 selectable',
                     active && 'disabled active'
@@ -134,8 +133,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                     setPage(pageData.page)
                   }}
                 >
-                  <SvgMask src={pageData.icon} />
-                  <aria.Text className="text">{getText(pageData.nameId)}</aria.Text>
+                  {getText(pageData.nameId)}
                 </ariaComponents.Button>
               </div>
             )
