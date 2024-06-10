@@ -32,6 +32,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
@@ -257,6 +258,8 @@ public final class UnresolvedConstructor implements EnsoObject {
       var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
       var r = callNode.call(helper);
       if (r instanceof Atom) {
+        return r;
+      } else if (r instanceof DataflowError) {
         return r;
       } else {
         var ctx = EnsoContext.get(this);

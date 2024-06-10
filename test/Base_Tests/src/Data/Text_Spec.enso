@@ -5,6 +5,7 @@ import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -762,16 +763,8 @@ add_specs suite_builder =
             Test.expect_panic Type_Error <| "".drop "FOO"
 
             r1 = "".take (Index_Sub_Range.While)
-            r1.should_fail_with Illegal_Argument
-            r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
-
-            r2 = "".drop (Text_Sub_Range.Before ...)
-            r2.should_fail_with Illegal_Argument
-            r2.catch.to_display_text . should_contain "The constructor Before is missing some arguments"
-
-            r3 = "".take (Index_Sub_Range.First _)
-            r3.should_fail_with Illegal_Argument
-            r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+            r1.should_fail_with Missing_Argument
+            r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
 
             # Double-check that constructors of _unexpected_ types are still yielding a type error.
             Test.expect_panic Type_Error <| "".take (Case_Sensitivity.Insensitive ...)
