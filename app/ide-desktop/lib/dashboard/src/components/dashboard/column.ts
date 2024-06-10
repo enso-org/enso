@@ -22,8 +22,6 @@ export interface AssetColumnProps {
   readonly item: backendModule.AnyAsset
   readonly depth: number
   readonly state: assetsTable.AssetsTableState
-  readonly rowState: assetsTable.AssetRowState
-  readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
   readonly isEditable: boolean
 }
 

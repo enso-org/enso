@@ -24,7 +24,6 @@ import * as backendModule from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
 // =====================
@@ -38,12 +37,16 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, depth, state, rowState, setRowState, isEditable } = props
+  const { item, depth, state, isEditable } = props
   const { backend } = state
   const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const isEditingName = store.useStore(
+    storeState => storeState.getAssetState(backend.type, item.id).isEditingName
+  )
+  const setIsAssetEditingName = store.useStore(storeState => storeState.setIsAssetEditingName)
   if (item.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display folders.')
@@ -55,9 +58,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   const updateDirectoryMutation = backendHooks.useBackendMutation(backend, 'updateDirectory')
 
-  const setIsEditing = (isEditingName: boolean) => {
+  const setIsEditing = (editing: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setIsAssetEditingName(backend.type, item.id, editing)
     }
   }
 
@@ -85,7 +88,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         indent.indentClass(depth)
       )}
       onKeyDown={event => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
@@ -115,10 +118,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditingName}
         className={tailwindMerge.twMerge(
           'text grow cursor-pointer bg-transparent',
-          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+          isEditingName ? 'cursor-text' : 'cursor-pointer'
         )}
         checkSubmittable={newTitle =>
           newTitle !== item.title &&

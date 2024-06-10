@@ -40,7 +40,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.ProjectAsset}.
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const { item, depth, rowState, setRowState, state } = props
+  const { item, depth, state } = props
   const { isEditable } = props
   const { backend, doOpenEditor, doCloseEditor } = state
   const queryClient = reactQuery.useQueryClient()
@@ -48,6 +48,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { session } = sessionProvider.useSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const isEditingName = store.useStore(
+    storeState => storeState.getAssetState(backend.type, item.id).isEditingName
+  )
+  const setIsAssetEditingName = store.useStore(storeState => storeState.setIsAssetEditingName)
   if (item.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display projects.')
@@ -75,9 +79,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
   const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
 
-  const setIsEditing = (isEditingName: boolean) => {
+  const setIsEditing = (editing: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setIsAssetEditingName(backend.type, item.id, editing)
     }
   }
 
@@ -113,12 +117,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         indent.indentClass(depth)
       )}
       onKeyDown={event => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
       onClick={event => {
-        if (rowState.isEditingName || isOtherUserUsingProject) {
+        if (isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
         } else if (handleClick(event)) {
           // Already handled.
@@ -147,11 +151,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       )}
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditingName}
         className={tailwindMerge.twMerge(
           'text grow bg-transparent',
           canExecute && !isOtherUserUsingProject && 'cursor-pointer',
-          rowState.isEditingName && 'cursor-text'
+          isEditingName && 'cursor-text'
         )}
         checkSubmittable={newTitle =>
           newTitle !== item.title &&

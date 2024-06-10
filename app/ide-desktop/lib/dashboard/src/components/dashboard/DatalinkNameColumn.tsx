@@ -16,11 +16,10 @@ import * as backendModule from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
 
-// ====================
-// === DatalinkName ===
-// ====================
+// ==========================
+// === DatalinkNameColumn ===
+// ==========================
 
 /** Props for a {@link DatalinkNameColumn}. */
 export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
@@ -29,17 +28,21 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DatalinkAsset}.
  * This should never happen. */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, depth, state, rowState, setRowState, isEditable } = props
-  const { setIsAssetPanelTemporarilyVisible } = state
+  const { item, depth, state, isEditable } = props
+  const { backend, setIsAssetPanelTemporarilyVisible } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const isEditingName = store.useStore(
+    storeState => storeState.getAssetState(backend.type, item.id).isEditingName
+  )
+  const setIsAssetEditingName = store.useStore(storeState => storeState.setIsAssetEditingName)
   if (item.type !== backendModule.AssetType.datalink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DatalinkNameColumn` can only display Datalinks.')
   }
 
-  const setIsEditing = (isEditingName: boolean) => {
+  const setIsEditing = (editing: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setIsAssetEditingName(backend.type, item.id, editing)
     }
   }
 
@@ -67,7 +70,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         indent.indentClass(depth)
       )}
       onKeyDown={event => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}

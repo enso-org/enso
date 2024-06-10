@@ -24,7 +24,6 @@ import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
-import AssetRow from '#/components/dashboard/AssetRow'
 import AssetRows from '#/components/dashboard/AssetRows'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import * as columnHeading from '#/components/dashboard/columnHeading'
@@ -111,13 +110,6 @@ export interface AssetsTableState {
   readonly doOpenEditor: (switchPage: boolean) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
   readonly doPaste: (newParentId: backendModule.DirectoryId) => void
-}
-
-/** Data associated with a {@link AssetRow}, used for rendering. */
-export interface AssetRowState {
-  readonly isEditingName: boolean
-  readonly temporarilyAddedLabels: ReadonlySet<backendModule.LabelName>
-  readonly temporarilyRemovedLabels: ReadonlySet<backendModule.LabelName>
 }
 
 /** Props for a {@link AssetsTable}. */

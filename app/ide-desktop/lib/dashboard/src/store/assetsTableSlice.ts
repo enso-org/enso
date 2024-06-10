@@ -12,6 +12,7 @@ import * as setModule from '#/utilities/set'
 
 /** The default {@link AssetState} for a {@link backendModule.AnyAsset}. */
 const DEFAULT_ASSET_STATE: AssetState = {
+  isEditingName: false,
   isVisible: true,
   isDeleted: false,
   isOpen: false,
@@ -75,6 +76,7 @@ interface PasteData {
 
 /** State for a specific {@link backendModule.AnyAsset}. */
 export interface AssetState {
+  readonly isEditingName: boolean
   readonly isVisible: boolean
   // FIXME: Actually set this variable by listening in on mutations
   /** Whether this {@link backendModule.AnyAsset} is in the process of being deleted. */
@@ -110,6 +112,11 @@ export interface AssetsTableSlice {
   readonly temporaryLabelData: TemporaryLabelData | null
   readonly clearAllAssetsState: () => void
   readonly getAssetState: (backendType: BackendType, assetId: backendModule.AssetId) => AssetState
+  readonly setIsAssetEditingName: (
+    backendType: BackendType,
+    assetId: backendModule.AssetId,
+    isEditingName: boolean
+  ) => void
   readonly setIsAssetOpen: (
     backendType: BackendType,
     assetId: backendModule.AssetId,
@@ -153,6 +160,27 @@ export const createAssetsTableSlice = defineSlice.defineSlice<AssetsTableSlice>(
   },
   getAssetState: (backendType, assetId) => {
     return get().backends[backendType].assets[assetId] ?? DEFAULT_ASSET_STATE
+  },
+  setIsAssetEditingName: (backendType, assetId, isEditingName) => {
+    const backends = get().backends
+    const backend = backends[backendType]
+    const assets = backend.assets
+    const assetInfo = assets[assetId] ?? DEFAULT_ASSET_STATE
+    const currentIsEditingName = assetInfo.isEditingName
+    if (currentIsEditingName !== isEditingName) {
+      set({
+        backends: {
+          ...backends,
+          ...object.singleKeyObject(backendType, {
+            ...backend,
+            assets: {
+              ...assets,
+              ...object.singleKeyObject(assetId, { ...assetInfo, isEditingName }),
+            },
+          }),
+        },
+      })
+    }
   },
   setIsAssetOpen: (backendType, assetId, isOpen) => {
     const backends = get().backends

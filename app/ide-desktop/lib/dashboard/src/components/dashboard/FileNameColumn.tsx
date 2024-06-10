@@ -20,7 +20,6 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
 
 // ================
@@ -34,11 +33,15 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.FileAsset}.
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, depth, state, rowState, setRowState, isEditable } = props
+  const { item, depth, state, isEditable } = props
   const { backend } = state
   const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const isEditingName = store.useStore(
+    storeState => storeState.getAssetState(backend.type, item.id).isEditingName
+  )
+  const setIsAssetEditingName = store.useStore(storeState => storeState.setIsAssetEditingName)
   if (item.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`FileNameColumn` can only display files.')
@@ -47,9 +50,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
   const updateFileMutation = backendHooks.useBackendMutation(backend, 'updateFile')
 
-  const setIsEditing = (isEditingName: boolean) => {
+  const setIsEditing = (editing: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setIsAssetEditingName(backend.type, item.id, editing)
     }
   }
 
@@ -77,7 +80,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         indent.indentClass(depth)
       )}
       onKeyDown={event => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
@@ -97,7 +100,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       <SvgMask src={fileIcon.fileIcon()} className="m-name-column-icon size-icon" />
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditingName}
         className="text grow bg-transparent"
         checkSubmittable={newTitle =>
           newTitle !== item.title &&

@@ -17,7 +17,6 @@ import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import Category from '#/layouts/CategorySwitcher/Category'
 
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import NameColumn from '#/components/dashboard/column/NameColumn'
@@ -30,8 +29,6 @@ import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
 import * as mergeRefs from '#/utilities/mergeRefs'
-import * as object from '#/utilities/object'
-import * as set from '#/utilities/set'
 
 // =================
 // === Constants ===
@@ -51,8 +48,6 @@ const DRAG_EXPAND_DELAY_MS = 500
 export interface AssetRowInnerProps {
   readonly item: backendModule.AnyAsset
   readonly state: assetsTable.AssetsTableState
-  readonly rowState: assetsTable.AssetRowState
-  readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
 }
 
 /** Props for an {@link AssetRow}. */
@@ -80,15 +75,15 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
   )
   const getSelectedAssetIds = store.useStore(storeState => storeState.getSelectedAssetIds)
   const setSelectedAssetIds = store.useStore(storeState => storeState.setSelectedAssetIds)
+  const isEditingName = store.useStore(
+    storeState => storeState.getAssetState(backend.type, item.id).isEditingName
+  )
   const isSelected = store.useStore(storeState => storeState.getIsAssetSelected(item.id))
   const isSoleSelected = store.useStore(storeState => storeState.getIsAssetSoleSelected(item.id))
   const isNothingSelected = store.useStore(storeState => storeState.selectedAssetIds.size === 0)
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(
-    assetRowUtils.INITIAL_ROW_STATE
-  )
   const allowContextMenu = isNothingSelected || !isSelected || isSoleSelected
 
   const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
@@ -97,11 +92,6 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
 
   const clearDragState = () => {
     setIsDraggedOver(false)
-    setRowState(oldRowState =>
-      oldRowState.temporarilyAddedLabels === set.EMPTY
-        ? oldRowState
-        : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY })
-    )
   }
 
   const onKeyDown = (event: React.KeyboardEvent<Element>) => {
@@ -138,7 +128,7 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
     if (
       item.type === backendModule.AssetType.directory &&
       eventModule.isDoubleClick(event) &&
-      !rowState.isEditingName
+      !isEditingName
     ) {
       // This must be processed on the next tick, otherwise it will be overridden
       // by the default click handler.
@@ -150,7 +140,7 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
   }
 
   const onDragStart = (event: React.DragEvent<Element>) => {
-    if (rowState.isEditingName) {
+    if (isEditingName) {
       event.preventDefault()
     } else {
       let newSelectedKeys = getSelectedAssetIds()
@@ -182,9 +172,7 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
               state={state}
               // Default states.
               depth={0}
-              rowState={assetRowUtils.INITIAL_ROW_STATE}
               // The drag placeholder cannot be interacted with.
-              setRowState={() => {}}
               isEditable={false}
             />
           ))}
@@ -292,7 +280,7 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
     case backendModule.AssetType.file:
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
-      const innerProps: AssetRowInnerProps = { item, state, rowState, setRowState }
+      const innerProps: AssetRowInnerProps = { item, state }
       return (
         <>
           <FocusRing>
@@ -380,8 +368,6 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
                       item={item}
                       depth={depth}
                       state={state}
-                      rowState={rowState}
-                      setRowState={setRowState}
                       isEditable={state.category !== Category.trash}
                     />
                   </td>
@@ -395,12 +381,7 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
             // the entire context menu (once for the keyboard actions, once for the JSX).
             <AssetContextMenu
               hidden
-              innerProps={{
-                item,
-                state,
-                rowState,
-                setRowState,
-              }}
+              innerProps={{ item, state }}
               rootDirectoryId={rootDirectoryId}
               event={{ pageX: 0, pageY: 0 }}
               eventTarget={null}

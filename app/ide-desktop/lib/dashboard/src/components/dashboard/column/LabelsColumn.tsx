@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -32,13 +34,16 @@ import * as uniqueString from '#/utilities/uniqueString'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
-  const { item, state, rowState } = props
+  const { item, state } = props
   const { backend, category, setQuery } = state
-  const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const labels = backendHooks.useBackendListTags(backend)
+  const temporaryLabelData = store.useStore(storeState => {
+    const data = storeState.temporaryLabelData
+    return data != null && data.ids.has(item.id) ? data : null
+  })
   const labelsByName = React.useMemo(() => {
     return new Map(labels?.map(label => [label.value, label]))
   }, [labels])
@@ -50,6 +55,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
+  const temporarilyAddedLabels = temporaryLabelData?.type === 'add' ? temporaryLabelData.labels : []
 
   const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
 
@@ -57,49 +63,53 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     <div className="group flex items-center gap-column-items">
       {(item.labels ?? [])
         .filter(label => labelsByName.has(label))
-        .map(label => (
-          <Label
-            key={label}
-            data-testid="asset-label"
-            title={getText('rightClickToRemoveLabel')}
-            color={labelsByName.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
-            active={!temporarilyRemovedLabels.has(label)}
-            isDisabled={temporarilyRemovedLabels.has(label)}
-            negated={temporarilyRemovedLabels.has(label)}
-            className={
-              temporarilyRemovedLabels.has(label)
-                ? 'relative before:absolute before:inset before:h-full before:w-full before:rounded-full before:border-2 before:border-delete'
-                : ''
-            }
-            onContextMenu={event => {
-              event.preventDefault()
-              event.stopPropagation()
-              const doDelete = () => {
-                unsetModal()
-                const newLabels = item.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                associateTagMutation.mutate([item.id, newLabels])
+        .map(label => {
+          const isRemoved =
+            temporaryLabelData?.type === 'remove' && !temporaryLabelData.labels.includes(label)
+          return (
+            <Label
+              key={label}
+              data-testid="asset-label"
+              title={getText('rightClickToRemoveLabel')}
+              color={labelsByName.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
+              active={!isRemoved}
+              isDisabled={isRemoved}
+              negated={isRemoved}
+              className={
+                isRemoved
+                  ? 'relative before:absolute before:inset before:h-full before:w-full before:rounded-full before:border-2 before:border-delete'
+                  : ''
               }
-              setModal(
-                <ContextMenus key={`label-${label}`} event={event}>
-                  <ContextMenu aria-label={getText('labelContextMenuLabel')}>
-                    <MenuEntry
-                      action="delete"
-                      label={getText('deleteLabelShortcut')}
-                      doAction={doDelete}
-                    />
-                  </ContextMenu>
-                </ContextMenus>
-              )
-            }}
-            onPress={event => {
-              setQuery(oldQuery =>
-                oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey)
-              )
-            }}
-          >
-            {label}
-          </Label>
-        ))}
+              onContextMenu={event => {
+                event.preventDefault()
+                event.stopPropagation()
+                const doDelete = () => {
+                  unsetModal()
+                  const newLabels = item.labels?.filter(oldLabel => oldLabel !== label) ?? []
+                  associateTagMutation.mutate([item.id, newLabels])
+                }
+                setModal(
+                  <ContextMenus key={`label-${label}`} event={event}>
+                    <ContextMenu aria-label={getText('labelContextMenuLabel')}>
+                      <MenuEntry
+                        action="delete"
+                        label={getText('deleteLabelShortcut')}
+                        doAction={doDelete}
+                      />
+                    </ContextMenu>
+                  </ContextMenus>
+                )
+              }}
+              onPress={event => {
+                setQuery(oldQuery =>
+                  oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey)
+                )
+              }}
+            >
+              {label}
+            </Label>
+          )
+        })}
       {...[...temporarilyAddedLabels]
         .filter(label => item.labels?.includes(label) !== true)
         .map(label => (
