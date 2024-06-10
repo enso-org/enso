@@ -25,7 +25,6 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 import type * as spinner from '#/components/Spinner'
@@ -330,27 +329,29 @@ export default function Drive(props: DriveProps) {
         <result.Result
           status="error"
           title={getText('notEnabledTitle')}
-          qa="not-enabled-stub"
+          testId="not-enabled-stub"
           subtitle={`${getText('notEnabledSubtitle')}${!supportsLocalBackend ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
-          {!supportsLocalBackend && (
-            <ariaComponents.Button
-              variant="primary"
-              size="medium"
-              rounded="full"
-              data-testid="download-free-edition"
-              onPress={async () => {
-                const downloadUrl = await github.getDownloadUrl()
-                if (downloadUrl == null) {
-                  toastAndLog('noAppDownloadError')
-                } else {
-                  download.download(downloadUrl)
-                }
-              }}
-            >
-              {getText('downloadFreeEdition')}
-            </ariaComponents.Button>
-          )}
+          <ariaComponents.ButtonGroup align="center">
+            {!supportsLocalBackend && (
+              <ariaComponents.Button
+                variant="primary"
+                size="medium"
+                rounded="full"
+                data-testid="download-free-edition"
+                onPress={async () => {
+                  const downloadUrl = await github.getDownloadUrl()
+                  if (downloadUrl == null) {
+                    toastAndLog('noAppDownloadError')
+                  } else {
+                    download.download(downloadUrl)
+                  }
+                }}
+              >
+                {getText('downloadFreeEdition')}
+              </ariaComponents.Button>
+            )}
+          </ariaComponents.ButtonGroup>
         </result.Result>
       )
     }
@@ -363,12 +364,9 @@ export default function Drive(props: DriveProps) {
           }`}
         >
           <div className="flex flex-col items-start gap-icons self-start">
-            <aria.Heading
-              level={1}
-              className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug"
-            >
+            <ariaComponents.Text.Heading>
               {isCloud ? getText('cloudDrive') : getText('localDrive')}
-            </aria.Heading>
+            </ariaComponents.Text.Heading>
             <DriveBar
               category={category}
               canDownload={canDownload}

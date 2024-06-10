@@ -14,6 +14,8 @@ import {
 import ProjectView from '@/views/ProjectView.vue'
 import { useEventListener } from '@vueuse/core'
 import { computed, toRef, watch } from 'vue'
+import TooltipDisplayer from './components/TooltipDisplayer.vue'
+import { provideTooltipRegistry } from './providers/tooltipState'
 import { initializePrefixes } from './util/ast/node'
 import { urlParams } from './util/urlParams'
 
@@ -26,6 +28,7 @@ const props = defineProps<{
 }>()
 
 const classSet = provideAppClassSet()
+const appTooltips = provideTooltipRegistry()
 
 initializePrefixes()
 
@@ -69,6 +72,9 @@ registerAutoBlurHandler()
     :config="appConfig.config"
   />
   <ProjectView v-else v-show="!props.hidden" class="App" :class="[...classSet.keys()]" />
+  <Teleport to="body">
+    <TooltipDisplayer :registry="appTooltips" />
+  </Teleport>
 </template>
 
 <style scoped>

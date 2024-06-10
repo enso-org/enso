@@ -1,5 +1,5 @@
 /** @file Diff view comparing `Main.enso` of two versions for a specific project. */
-import * as react from '@monaco-editor/react'
+import * as monacoReact from '@monaco-editor/react'
 
 import * as textProvider from '#/providers/TextProvider'
 
@@ -50,7 +50,7 @@ export function AssetDiffView(props: AssetDiffViewProps) {
     return loader
   } else {
     return (
-      <react.DiffEditor
+      <monacoReact.DiffEditor
         beforeMount={monaco => {
           monaco.editor.defineTheme('myTheme', {
             base: 'vs',

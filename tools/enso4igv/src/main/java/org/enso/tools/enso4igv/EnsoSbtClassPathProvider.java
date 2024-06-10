@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
@@ -42,6 +41,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     private static final String BOOT = "classpath/boot";
     private static final String SOURCE = "classpath/source";
     private static final String COMPILE = "classpath/compile";
+    private static final String MODULES_COMPILE = "modules/compile";
     private final EnsoSbtProject project;
     private final SourceGroup[] sources;
 
@@ -52,11 +52,18 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
 
     @Override
     public ClassPath findClassPath(FileObject file, String type) {
+        var res = findClassPathImpl(file, type);
+        LOG.log(Level.FINE, "findClassPath{0} for {1}  yields {2}", new Object[]{type, file, res});
+        return res;
+    }
+
+    private ClassPath findClassPathImpl(FileObject file, String type) {
         for (var g : sources) {
             if (g instanceof EnsoSources i && i.controlsSource(file)) {
                 var cp = switch (type) {
                     case SOURCE -> i.srcCp;
                     case COMPILE -> i.cp;
+                    case MODULES_COMPILE -> i.moduleCp;
                     case BOOT -> i.platform.getBootstrapLibraries();
                     default -> null;
                 };
@@ -89,7 +96,8 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     private static SourceGroup[] computeSbtClassPath(EnsoSbtProject prj) {
         var sources = new ArrayList<SourceGroup>();
         var platform = JavaPlatform.getDefault();
-        var roots = new LinkedHashSet<>();
+        var roots = new LinkedHashSet<FileObject>();
+        var modulePath = new LinkedHashSet<FileObject>();
         var generatedSources = new LinkedHashSet<FileObject>();
         var source = "21";
         var options = new ArrayList<String>();
@@ -130,6 +138,22 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                                 } else {
                                     var jarRoot = FileUtil.getArchiveRoot(fo);
                                     roots.add(jarRoot);
+                                }
+                            }
+                        }
+                        i++;
+                        continue;
+                    }
+                    if ("--module-path".equals(prop) && next != null) {
+                        var paths = next.split(File.pathSeparator);
+                        for (var element : paths) {
+                            FileObject fo = findProjectFileObject(prj, element);
+                            if (fo != null) {
+                                if (fo.isFolder()) {
+                                    modulePath.add(fo);
+                                } else {
+                                    var jarRoot = FileUtil.getArchiveRoot(fo);
+                                    modulePath.add(jarRoot);
                                 }
                             }
                         }
@@ -193,8 +217,9 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                 }
 
                 var cp = ClassPathSupport.createClassPath(roots.toArray(new FileObject[0]));
+                var moduleCp = ClassPathSupport.createClassPath(modulePath.toArray(new FileObject[0]));
                 var srcCp = ClassPathSupport.createClassPath(srcRoots.toArray(new FileObject[0]));
-                var s = new EnsoSources(cp, srcCp, platform, outputDir, source, options);
+                var s = new EnsoSources(cp, moduleCp, srcCp, platform, outputDir, source, options);
                 if ("main".equals(s.getName())) {
                   sources.add(0, s);
                 } else {
@@ -363,7 +388,9 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     }
 
     record EnsoSources(
-        ClassPath cp, ClassPath srcCp,
+        ClassPath cp,
+        ClassPath moduleCp,
+        ClassPath srcCp,
         JavaPlatform platform,
         FileObject output,
         String source, List<String> options

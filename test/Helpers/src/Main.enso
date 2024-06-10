@@ -13,3 +13,5 @@ type Priv_Type
         result = action
         result
 
+    private priv_method self = self.data
+

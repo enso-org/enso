@@ -78,12 +78,12 @@ class RenameProjectCmd(
           val context = ctx.executionService.getContext
           context.renameProject(
             request.namespace,
-            request.oldName,
-            request.newName
+            oldConfig.moduleName,
+            newConfig.moduleName
           )
 
           ctx.contextManager.getAllContexts.values.foreach { stack =>
-            updateMethodPointers(request.newName, stack)
+            updateMethodPointers(newConfig.moduleName, stack)
             clearCache(stack)
           }
 

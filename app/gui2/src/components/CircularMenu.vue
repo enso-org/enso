@@ -239,7 +239,7 @@ const showColorPicker = ref(false)
 
 .below-slot5 {
   position: absolute;
-  top: calc(var(--outer-diameter) - 24px);
+  top: calc(var(--outer-diameter) - 32px);
   pointer-events: all;
 }
 

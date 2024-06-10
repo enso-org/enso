@@ -25,10 +25,11 @@ import { Rect } from '@/util/data/rect'
 import { Err, Ok, mapOk, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { normalizeQualifiedName, tryQualifiedName } from '@/util/qualifiedName'
+import { computedAsync } from '@vueuse/core'
 import { map, set } from 'lib0'
 import { iteratorFilter } from 'lib0/iterator'
 import { SourceDocument } from 'shared/ast/sourceDocument'
-import type { ExpressionUpdate, MethodPointer } from 'shared/languageServerTypes'
+import type { ExpressionUpdate, Path as LsPath, MethodPointer } from 'shared/languageServerTypes'
 import { reachable } from 'shared/util/data/graph'
 import type {
   LocalUserActionOrigin,
@@ -46,6 +47,7 @@ import {
   shallowReactive,
   toRef,
   watch,
+  type Ref,
   type ShallowRef,
 } from 'vue'
 
@@ -84,6 +86,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     )
 
     const nodeRects = reactive(new Map<NodeId, Rect>())
+    const nodeHoverAnimations = reactive(new Map<NodeId, number>())
     const vizRects = reactive(new Map<NodeId, Rect>())
     // The currently visible nodes' areas (including visualization).
     const visibleNodeAreas = computed(() => {
@@ -246,22 +249,23 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       () => new Set(filterDefined([cbEditedEdge.value, mouseEditedEdge.value])),
     )
 
-    const disconnectedEdgeTargets = computed(() => {
-      const targets = new Set<PortId>()
+    const disconnectedEdgePorts = computed(() => {
+      const ports = new Set<PortId>()
       for (const edge of unconnectedEdges.value) {
-        if (edge.disconnectedEdgeTarget) targets.add(edge.disconnectedEdgeTarget)
+        if (edge.disconnectedEdgeTarget) ports.add(edge.disconnectedEdgeTarget)
+        if (edge.source) ports.add(edge.source)
       }
       if (editedNodeInfo.value) {
         const primarySubject = db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
-        if (primarySubject) targets.add(primarySubject)
+        if (primarySubject) ports.add(primarySubject)
       }
-      return targets
+      return ports
     })
 
     const connectedEdges = computed(() => {
       const edges = new Array<ConnectedEdge>()
       for (const [target, sources] of db.connections.allReverse()) {
-        if (!disconnectedEdgeTargets.value.has(target)) {
+        if (!disconnectedEdgePorts.value.has(target)) {
           for (const source of sources) {
             edges.push({ source, target })
           }
@@ -354,6 +358,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
             const outerExpr = edit.getVersion(node.outerExpr)
             if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
             nodeRects.delete(id)
+            nodeHoverAnimations.delete(id)
           }
         },
         true,
@@ -462,6 +467,10 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       if (rect.pos.equals(Vec2.Zero)) {
         nodesToPlace.push(nodeId)
       }
+    }
+
+    function updateNodeHoverAnim(nodeId: NodeId, progress: number) {
+      nodeHoverAnimations.set(nodeId, progress)
     }
 
     const nodesToPlace = reactive<NodeId[]>([])
@@ -719,6 +728,12 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return db.connections.reverseLookup(portId as AstId).size > 0
     }
 
+    const modulePath: Ref<LsPath | undefined> = computedAsync(async () => {
+      const rootId = await proj.projectRootId
+      const segments = ['src', 'Main.enso']
+      return rootId ? { rootId, segments } : undefined
+    })
+
     return proxyRefs({
       transact,
       db: markRaw(db),
@@ -726,10 +741,11 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       editedNodeInfo,
       mouseEditedEdge,
       cbEditedEdge,
-      disconnectedEdgeTargets,
+      disconnectedEdgePorts,
       connectedEdges,
       moduleSource,
       nodeRects,
+      nodeHoverAnimations,
       vizRects,
       visibleNodeAreas,
       visibleArea,
@@ -752,6 +768,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       undoManager,
       topLevel,
       updateNodeRect,
+      updateNodeHoverAnim,
       updateVizRect,
       addPortInstance,
       removePortInstance,
@@ -773,6 +790,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
         if (currentMethod.type === 'ExplicitCall') return currentMethod.methodPointer
         return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
       },
+      modulePath,
     })
   },
 )

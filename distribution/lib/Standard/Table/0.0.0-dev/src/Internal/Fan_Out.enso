@@ -3,6 +3,7 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Column.Column
+import project.Columns_To_Add.Columns_To_Add
 import project.Conversions.Convertible_To_Rows.Key_Value
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Table.Table
@@ -22,11 +23,13 @@ polyglot java import org.enso.table.data.mask.OrderMask
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
-fan_out_to_columns table input_column_id function column_count=Nothing column_builder=make_string_builder on_problems=Report_Error =
+   - column_count: The number of columns to split to.
+     If `All_Columns` then columns will be added to fit all data.  
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Columns_To_Add -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
+fan_out_to_columns table input_column_id function column_count column_builder=make_string_builder on_problems=Report_Error =
     input_column = table.get input_column_id
     problem_builder = Problem_Builder.new
-    new_columns_unrenamed = map_columns_to_multiple input_column function column_count column_builder=column_builder problem_builder=problem_builder
+    new_columns_unrenamed = map_columns_to_multiple input_column function column_count=column_count.columns_to_split column_builder=column_builder problem_builder=problem_builder
     new_columns = rename_new_columns table input_column.name new_columns_unrenamed problem_builder
     new_table = replace_column_with_columns table input_column new_columns
     problem_builder.attach_problems_after on_problems new_table

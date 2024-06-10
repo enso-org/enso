@@ -10,6 +10,7 @@
   "updateProjectError": "Could not update project",
   "findProjectError": "Could not find project '$0'",
   "openProjectError": "Could not open project '$0'",
+  "restoreProjectError": "Could not restore project '$0'",
   "copyAssetError": "Could not copy '$0'",
   "moveAssetError": "Could not move '$0'",
   "deleteAssetError": "Could not delete '$0'",
@@ -100,6 +101,8 @@
   "copyAssetBackendError": "Could not copy '$0' to '$1'.",
   "listProjectsBackendError": "Could not list projects.",
   "createProjectBackendError": "Could not create project with name '$0'",
+  "restoreProjectBackendError": "Could not restore project '$0'",
+  "duplicateProjectBackendError": "Could not duplicate project as '$0'",
   "closeProjectBackendError": "Could not close project '$0'.",
   "getProjectDetailsBackendError": "Could not get details of project '$0'.",
   "openProjectBackendError": "Could not open project '$0'.",
@@ -462,7 +465,7 @@
 
   "licenseAgreementTitle": "Enso Terms of Service",
   "licenseAgreementCheckbox": "I agree to the Enso Terms of Service",
-  "licenseAgreementCheckboxError": "You must agree to the Enso Terms of Service",
+  "licenseAgreementCheckboxError": "Please agree to the Enso Terms of Service",
   "viewLicenseAgreement": "View Terms of Service",
 
   "metaModifier": "Meta",
@@ -601,10 +604,27 @@
   "userGroupContextMenuLabel": "User Group context menu",
   "userGroupUserContextMenuLabel": "User Group User context menu",
 
+  "restoreThisVersion": "Restore this version",
+  "duplicateThisVersion": "Duplicate this version",
+
   "appNameDesktopEdition": "Enso Desktop Edition",
   "appNameCloudEdition": "Enso Cloud Edition",
 
   "tryAgain": "Try again",
+
+  "arbitraryFieldRequired": "Please fill out this field",
+  "arbitraryFieldInvalid": "This field is invalid",
+  "arbitraryFieldTooShort": "This field is too short",
+  "arbitraryFieldTooLong": "This field is too long",
+  "arbitraryFieldTooSmall": "This field is too small",
+  "arbitraryFieldTooLarge": "This field is too large",
+  "arbitraryFieldNotEqual": "This field is not equal to another field",
+  "arbitraryFieldNotMatch": "This field does not match the pattern",
+  "arbitraryFieldNotMatchAny": "This field does not match any of the patterns",
+  "arbitraryFieldNotMatchAll": "This field does not match all of the patterns",
+  "arbitraryFieldNotContain": "This field does not contain another field",
+  "arbitraryFieldNotContainAny": "This field does not contain any of the fields",
+
   "arbitraryErrorTitle": "An error occurred",
   "arbitraryErrorSubtitle": "Please try again or contact the administrators.",
   "arbitraryFormErrorMessage": "Something went wrong while submitting the form. Please try again or contact the administrators.",
@@ -615,5 +635,14 @@
   "contactSalesDescription": "Contact our sales team to learn more about our Enterprise plan.",
   "ContactSalesButtonLabel": "Contact Us",
 
-  "setOrgNameTitle": "Set your organization name"
+  "setOrgNameTitle": "Set your organization name",
+
+  "free": "Free",
+  "freePlan": "Free Plan",
+  "solo": "Solo",
+  "soloPlan": "Solo Plan",
+  "team": "Team",
+  "teamPlan": "Team Plan",
+  "enterprise": "Organization",
+  "enterprisePlan": "Organization"
 }

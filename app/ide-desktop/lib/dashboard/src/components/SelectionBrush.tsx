@@ -16,6 +16,7 @@ import type * as geometry from '#/utilities/geometry'
 
 /** Props for a {@link SelectionBrush}. */
 export interface SelectionBrushProps {
+  readonly targetRef: React.RefObject<HTMLElement>
   readonly onDrag: (rectangle: geometry.DetailedRectangle, event: MouseEvent) => void
   readonly onDragEnd: (event: MouseEvent) => void
   readonly onDragCancel: () => void
@@ -23,7 +24,7 @@ export interface SelectionBrushProps {
 
 /** A selection brush to indicate the area being selected by the mouse drag action. */
 export default function SelectionBrush(props: SelectionBrushProps) {
-  const { onDrag, onDragEnd, onDragCancel } = props
+  const { onDrag, onDragEnd, onDragCancel, targetRef } = props
   const { modalRef } = modalProvider.useModalRef()
   const isMouseDownRef = React.useRef(false)
   const didMoveWhileDraggingRef = React.useRef(false)
@@ -61,70 +62,77 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   }, [anchorAnimFactor, anchor])
 
   React.useEffect(() => {
-    const onMouseDown = (event: MouseEvent) => {
-      if (
-        modalRef.current == null &&
-        !eventModule.isElementTextInput(event.target) &&
-        !(event.target instanceof HTMLButtonElement) &&
-        !(event.target instanceof HTMLAnchorElement)
-      ) {
-        isMouseDownRef.current = true
-        didMoveWhileDraggingRef.current = false
-        lastMouseEvent.current = event
-        const newAnchor = { left: event.pageX, top: event.pageY }
-        setAnchor(newAnchor)
-        setLastSetAnchor(newAnchor)
-        setPosition(newAnchor)
+    if (targetRef.current != null) {
+      const target = targetRef.current
+      const onMouseDown = (event: MouseEvent) => {
+        if (
+          modalRef.current == null &&
+          !eventModule.isElementTextInput(event.target) &&
+          !(event.target instanceof HTMLButtonElement) &&
+          !(event.target instanceof HTMLAnchorElement)
+        ) {
+          isMouseDownRef.current = true
+          didMoveWhileDraggingRef.current = false
+          lastMouseEvent.current = event
+          const newAnchor = { left: event.pageX, top: event.pageY }
+          setAnchor(newAnchor)
+          setLastSetAnchor(newAnchor)
+          setPosition(newAnchor)
+        }
       }
-    }
-    const onMouseUp = (event: MouseEvent) => {
-      if (didMoveWhileDraggingRef.current) {
-        onDragEndRef.current(event)
-      }
-      // The `setTimeout` is required, otherwise the values are changed before the `onClick` handler
-      // is executed.
-      window.setTimeout(() => {
-        isMouseDownRef.current = false
-        didMoveWhileDraggingRef.current = false
-      })
-      setAnchor(null)
-    }
-    const onMouseMove = (event: MouseEvent) => {
-      if (!(event.buttons & 1)) {
-        isMouseDownRef.current = false
-      }
-      if (isMouseDownRef.current) {
-        // Left click is being held.
-        didMoveWhileDraggingRef.current = true
-        lastMouseEvent.current = event
-        setPosition({ left: event.pageX, top: event.pageY })
-      }
-    }
-    const onClick = (event: MouseEvent) => {
-      if (isMouseDownRef.current && didMoveWhileDraggingRef.current) {
-        event.stopImmediatePropagation()
-      }
-    }
-    const onDragStart = () => {
-      if (isMouseDownRef.current) {
-        isMouseDownRef.current = false
-        onDragCancelRef.current()
+      const onMouseUp = (event: MouseEvent) => {
+        if (didMoveWhileDraggingRef.current) {
+          onDragEndRef.current(event)
+        }
+        // The `setTimeout` is required, otherwise the values are changed before the `onClick` handler
+        // is executed.
+        window.setTimeout(() => {
+          isMouseDownRef.current = false
+          didMoveWhileDraggingRef.current = false
+        })
         setAnchor(null)
       }
+      const onMouseMove = (event: MouseEvent) => {
+        if (!(event.buttons & 1)) {
+          isMouseDownRef.current = false
+        }
+        if (isMouseDownRef.current) {
+          // Left click is being held.
+          didMoveWhileDraggingRef.current = true
+          lastMouseEvent.current = event
+          setPosition({ left: event.pageX, top: event.pageY })
+        }
+      }
+      const onClick = (event: MouseEvent) => {
+        if (isMouseDownRef.current && didMoveWhileDraggingRef.current) {
+          event.stopImmediatePropagation()
+        }
+      }
+      const onDragStart = () => {
+        if (isMouseDownRef.current) {
+          isMouseDownRef.current = false
+          onDragCancelRef.current()
+          setAnchor(null)
+        }
+      }
+
+      target.addEventListener('mousedown', onMouseDown)
+      document.addEventListener('mouseup', onMouseUp)
+      document.addEventListener('dragstart', onDragStart, { capture: true })
+      document.addEventListener('mousemove', onMouseMove)
+      document.addEventListener('click', onClick, { capture: true })
+
+      return () => {
+        target.removeEventListener('mousedown', onMouseDown)
+        document.removeEventListener('mouseup', onMouseUp)
+        document.removeEventListener('dragstart', onDragStart, { capture: true })
+        document.removeEventListener('mousemove', onMouseMove)
+        document.removeEventListener('click', onClick, { capture: true })
+      }
+    } else {
+      return () => {}
     }
-    document.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('mouseup', onMouseUp)
-    document.addEventListener('dragstart', onDragStart, { capture: true })
-    document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('click', onClick, { capture: true })
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('mouseup', onMouseUp)
-      document.removeEventListener('dragstart', onDragStart, { capture: true })
-      document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('click', onClick, { capture: true })
-    }
-  }, [/* should never change */ modalRef])
+  }, [/* should never change */ modalRef, targetRef])
 
   const rectangle = React.useMemo(() => {
     if (position != null && lastSetAnchor != null) {

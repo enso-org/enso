@@ -3,6 +3,7 @@
 import { defaultEquality } from '@/util/equals'
 import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
+import type { ComputedRef, MaybeRefOrGetter, Ref, WatchSource, WritableComputedRef } from 'vue'
 import {
   callWithErrorHandling,
   computed,
@@ -11,12 +12,8 @@ import {
   isRef,
   queuePostFlushCb,
   shallowRef,
+  toValue,
   watch,
-  type ComputedRef,
-  type MaybeRefOrGetter,
-  type Ref,
-  type WatchSource,
-  type WritableComputedRef,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -140,11 +137,11 @@ export function cachedGetter<T>(
  * time, the timer is restarted.
  */
 export function debouncedGetter<T>(
-  getter: () => T,
+  getter: WatchSource<T>,
   debounce: number,
   equalFn: (a: T, b: T) => boolean = defaultEquality,
 ): Ref<T> {
-  const valueRef = shallowRef<T>(getter())
+  const valueRef = shallowRef<T>(toValue(getter))
   debouncedWatch(
     getter,
     (newValue) => {
@@ -176,5 +173,31 @@ export function computedFallback<T>(
   return computed({
     get: () => base.value ?? fallback(),
     set: (val: T) => (base.value = val),
+  })
+}
+
+/** Given a "raw" getter and setter, returns a writable-computed that buffers `set` operations.
+ *
+ * When the setter of the returned ref is invoked, the raw setter will be called during the next callback flush if and
+ * only if the most recently set value does not compare strictly-equal to the current value (read from the raw getter).
+ *
+ * The getter of the returned ref immediately reflects the value of any pending write.
+ */
+export function useBufferedWritable<T>(raw: {
+  get: ToValue<T>
+  set: (value: T) => void
+}): WritableComputedRef<T> {
+  const pendingWrite = shallowRef<{ pending: T }>()
+  watch(pendingWrite, () => {
+    if (pendingWrite.value) {
+      if (pendingWrite.value.pending !== toValue(raw.get)) {
+        raw.set(pendingWrite.value.pending)
+      }
+      pendingWrite.value = undefined
+    }
+  })
+  return computed({
+    get: () => (pendingWrite.value ? pendingWrite.value.pending : toValue(raw.get)),
+    set: (value: T) => (pendingWrite.value = { pending: value }),
   })
 }

@@ -15,6 +15,7 @@ import project.Position.Position
 import project.Set_Mode.Set_Mode
 import project.Sort_Column.Sort_Column
 import project.Table.Table
+import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, No_Such_Column, Too_Many_Column_Names_Provided
 
@@ -25,13 +26,14 @@ type Table_Column_Helper
        Helps managing table columns.
 
        Arguments:
-       - internal_columns: A list of all columns in a table.
+       - columns: A list of columns in the table.
+       - internal_columns: A list of all columns in a table. (In_DB this is different from columns)
        - make_column: A function which takes the internal column and creates a
          fully fledged column from it.
        - table: A reference to the table.
        - materialize: A function which takes a table and materializes it to
          in-memory.
-    Value internal_columns make_column table materialize
+    Value columns internal_columns make_column table materialize
 
     ## PRIVATE
        A helper function encapsulating shared code for `select_columns`
@@ -64,8 +66,8 @@ type Table_Column_Helper
          If set to `Ignore`, the operation proceeds without errors or warnings.
        - error_on_empty: Specifies if the operation should fail if no columns
          are selected.
-    select_columns : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Boolean -> Vector
-    select_columns self (selectors:(Text | Integer | Regex | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) (error_on_empty:Boolean=True) =
+    select_columns : Text | Integer | Regex | By_Type | Vector (Integer | Text | Regex | By_Type) -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Boolean -> Vector
+    select_columns self (selectors:(Text | Integer | Regex | By_Type | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) (error_on_empty:Boolean=True) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         result = self.select_columns_helper selectors case_sensitivity reorder problem_builder
         problem_builder.attach_problems_before on_problems <|
@@ -81,10 +83,10 @@ type Table_Column_Helper
          specified types will also be selected (i.e. ignore size, precision).
     select_by_type : Vector Value_Type -> Boolean -> Vector
     select_by_type self types:Vector strict:Boolean=False =
-        columns = if strict then self.internal_columns.filter c-> types.contains c.value_type else
-            self.internal_columns.filter c-> types.any t-> c.value_type.is_same_type t
-        if columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
-            columns
+        selected_columns = if strict then self.columns.filter c-> types.contains c.value_type else
+            self.columns.filter c-> types.any t-> c.value_type.is_same_type t
+        if selected_columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
+            selected_columns
 
     ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
@@ -111,7 +113,7 @@ type Table_Column_Helper
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selectors case_sensitivity False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
-        result = self.internal_columns.filter column->
+        result = self.columns.filter column->
             should_be_removed = selected_names.get column.name False
             should_be_removed.not
         if result.is_empty then Error.throw No_Output_Columns.Error else
@@ -128,10 +130,8 @@ type Table_Column_Helper
          specified types will also be selected (i.e. ignore size, precision).
     remove_by_type : Vector Value_Type -> Boolean -> Vector
     remove_by_type self types:Vector strict:Boolean=False =
-        columns = if strict then self.internal_columns.filter (c->(types.contains c.value_type).not) else
-            self.internal_columns.filter c->(types.all (t->(c.value_type.is_same_type t . not)))
-        if columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
-            columns
+        if strict then self.columns.filter (c->(types.contains c.value_type).not) else
+            self.columns.filter c->(types.all (t->(c.value_type.is_same_type t . not)))
 
     ## PRIVATE
        A helper function encapsulating shared code for `reorder_columns`
@@ -161,7 +161,7 @@ type Table_Column_Helper
         selection = self.select_columns_helper selectors case_sensitivity True problem_builder
         problem_builder.attach_problems_before on_problems <|
             selected_names = Map.from_vector (selection.map column-> [column.name, True])
-            other_columns = self.internal_columns.filter column->
+            other_columns = self.columns.filter column->
                 is_selected = selected_names.get column.name False
                 is_selected.not
             result = case position of
@@ -185,15 +185,16 @@ type Table_Column_Helper
          If a single criterion matches more than one column, their order is the
          same as in the input table.
        - problem_builder: Encapsulates the aggregation of encountered problems.
-    select_columns_helper : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Boolean -> Problem_Builder -> Vector
-    select_columns_helper self (selectors:(Text | Integer | Regex | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (problem_builder:Problem_Builder) =
-        resolve_selector selector =
+    select_columns_helper : Text | Integer | Regex | By_Type | Vector (Integer | Text | Regex | By_Type) -> Case_Sensitivity -> Boolean -> Problem_Builder -> Vector
+    select_columns_helper self (selectors:(Text | Integer | Regex | By_Type | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (problem_builder:Problem_Builder) =
+        resolve_selector selector:(Text | Integer | Regex | By_Type) =
             case selector of
-                ix : Integer -> if is_index_valid self.internal_columns.length ix then [self.internal_columns.at ix] else
+                ix : Integer -> if is_index_valid self.columns.length ix then [self.columns.at ix] else
                     problem_builder.report_oob_indices [ix]
                     []
+                _ : By_Type -> self.columns.filter column-> column.value_type.is_same_type selector.type
                 _ ->
-                    matches = match_columns selector case_sensitivity self.internal_columns
+                    matches = match_columns selector case_sensitivity self.columns
                     if matches.is_empty then problem_builder.report_missing_input_columns [selector]
                     matches
 
@@ -203,7 +204,7 @@ type Table_Column_Helper
         selected_columns = vector.map resolve_selector . flatten
         if reorder then selected_columns.distinct on=_.name else
             map = Map.from_vector (selected_columns.map column-> [column.name, True]) error_on_duplicates=False
-            self.internal_columns.filter column-> map.contains_key column.name
+            self.columns.filter column-> map.contains_key column.name
 
     ## PRIVATE
        A helper function which selects a single column from the table.
@@ -485,9 +486,7 @@ prepare_order_by internal_columns column_selectors problem_builder =
    containing the original selector and the selected column.
 resolve_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) -> Problem_Builder -> Vector Column_Transform_Element
 resolve_order_by internal_columns column_selectors problem_builder =
-    resolve_selector selector = case selector of
-        name : Text -> resolve_selector (Sort_Column.Name name)
-        ix : Integer -> resolve_selector (Sort_Column.Index ix)
+    resolve_selector selector:Sort_Column = case selector of
         Sort_Column.Name name direction ->
             resolve_selector (Sort_Column.Select_By_Name name direction Case_Sensitivity.Sensitive)
         Sort_Column.Index ix _ ->
@@ -498,10 +497,7 @@ resolve_order_by internal_columns column_selectors problem_builder =
             matches = match_columns name case_sensitivity internal_columns
             if matches.is_empty then problem_builder.report_missing_input_columns [name]
             matches.map c-> Column_Transform_Element.Value c selector
-    selectors_vec = case column_selectors of
-        _ : Vector -> column_selectors
-        _ -> [column_selectors]
-    selectors_vec.flat_map resolve_selector
+    Vector.unify_vector_or_element column_selectors . flat_map resolve_selector
 
 ## PRIVATE
    A helper method gathering the common logic for constructing expressions that

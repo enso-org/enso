@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse.alias
 
 import org.enso.compiler.core.{CompilerError, ExternalID, Identifier}
-import org.enso.syntax.text.Debug
+import org.enso.compiler.debug.Debug
 import org.enso.compiler.pass.analyse.alias.Graph.{Occurrence, Scope}
 
 import java.util.UUID
