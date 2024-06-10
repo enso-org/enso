@@ -1209,6 +1209,62 @@ public class SignatureTest {
     }
   }
 
+  @Test
+  public void returnTypeCheckErrorSignature() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    import Standard.Base.Errors.Illegal_State.Illegal_State
+    foo a -> Integer ! Illegal_State =
+        a+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(20, foo.execute(10).asInt());
+    try {
+      var res = foo.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `foo` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+
+  /**
+   * The `!` part in the type signature is currently only for documentation purposes - it is not checked. Other kinds of dataflow errors may be returned as well and this is not an error. In particular, we don't distinguish errors raised by the function from errors propagate from its inputs.
+   */
+  @Test
+  public void returnTypeCheckErrorSignatureAllowsAllErrors() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+    import Standard.Base.Errors.Illegal_State.Illegal_State
+    
+    foo a -> Integer ! Illegal_State =
+        Error.throw (Illegal_Argument.Error "foo: "+a.to_text)
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    var result = foo.execute(10);
+    assertTrue(result.isException());
+    assertContains("Illegal_Argument.Error 'foo: 10'", result.toString());
+  }
+
   static void assertTypeError(String expArg, String expType, String realType, String msg) {
     assertEquals(
         "Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".",
