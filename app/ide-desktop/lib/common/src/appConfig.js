@@ -121,7 +121,7 @@ export function getDefines() {
             process.env.ENSO_CLOUD_DASHBOARD_COMMIT_HASH
         ),
         'process.env.ENSO_CLOUD_ENSO_HOST': stringify(
-            process.env.ENSO_CLOUD_ENSO_HOST ?? 'https://enso.org'
+            process.env.ENSO_CLOUD_ENSO_HOST ?? 'https://ensoanalytics.com'
         ),
         /* eslint-enable @typescript-eslint/naming-convention */
     }

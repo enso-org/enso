@@ -27,13 +27,13 @@ import scala.collection.immutable.Seq;
 public class IrPersistanceTest {
   @Before
   public void resetDebris() {
-    LazySeq.forbidden = false;
+    LazyString.forbidden = false;
   }
 
   @Test
   public void locationTest() throws Exception {
     var l = new Location(12, 33);
-    var n = serde(Location.class, l, 16);
+    var n = serde(Location.class, l, 20);
 
     assertEquals(12, n.start());
     assertEquals(33, n.end());
@@ -43,14 +43,14 @@ public class IrPersistanceTest {
   @Test
   public void identifiedLocation() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), null);
-    var in = serde(IdentifiedLocation.class, il, 20);
+    var in = serde(IdentifiedLocation.class, il, 24);
     assertEquals(il, in);
   }
 
   @Test
   public void identifiedLocationWithUUID() throws Exception {
     var il = new IdentifiedLocation(new Location(5, 19), UUID.randomUUID());
-    var in = serde(IdentifiedLocation.class, il, 41);
+    var in = serde(IdentifiedLocation.class, il, 45);
     assertEquals("UUIDs are serialized at the moment", il, in);
   }
 
@@ -63,7 +63,7 @@ public class IrPersistanceTest {
               case UUID any -> null;
               default -> obj;
             };
-    var in = serde(IdentifiedLocation.class, il, 20, fn);
+    var in = serde(IdentifiedLocation.class, il, 24, fn);
     var withoutUUID = new IdentifiedLocation(il.location());
     assertEquals("UUIDs are no longer serialized", withoutUUID, in);
   }
@@ -81,7 +81,7 @@ public class IrPersistanceTest {
     var id = UUID.randomUUID();
     var il = new RefHolder(id);
     var two = join(il, join(il, nil()));
-    ;
+
     var in = serde(List.class, two, -1, null);
     assertEquals("Two elements", 2, in.size());
 
@@ -107,7 +107,7 @@ public class IrPersistanceTest {
               case UUID any -> null;
               default -> obj;
             };
-    var in = serde(IdHolder.class, il, 9, fn);
+    var in = serde(IdHolder.class, il, 13, fn);
     var withoutUUID = new IdHolder(null);
     assertEquals("UUIDs are no longer serialized", withoutUUID, in);
   }
@@ -118,7 +118,7 @@ public class IrPersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = scala.collection.immutable.Map$.MODULE$.empty().$plus(new Tuple2("Hi", idLoc1));
 
-    var out = serde(scala.collection.immutable.Map.class, in, 44);
+    var out = serde(scala.collection.immutable.Map.class, in, 48);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -127,8 +127,8 @@ public class IrPersistanceTest {
   @Test
   @SuppressWarnings("unchecked")
   public void scalaImmutableMapIsLazy() throws Exception {
-    var s1 = new LazySeq("Hello");
-    var s2 = new LazySeq("World");
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
     var in =
         (scala.collection.immutable.Map)
             scala.collection.immutable.Map$.MODULE$
@@ -136,14 +136,14 @@ public class IrPersistanceTest {
                 .$plus(new Tuple2("Hello", s1))
                 .$plus(new Tuple2("World", s2));
 
-    LazySeq.forbidden = true;
-    var out = (scala.collection.immutable.Map) serde(scala.collection.immutable.Map.class, in, 72);
+    LazyString.forbidden = true;
+    var out = (scala.collection.immutable.Map) serde(scala.collection.immutable.Map.class, in, 76);
 
     assertEquals("Two pairs element", 2, out.size());
     assertEquals("Two keys", 2, out.keySet().size());
     assertTrue(out.keySet().contains("Hello"));
     assertTrue(out.keySet().contains("World"));
-    LazySeq.forbidden = false;
+    LazyString.forbidden = false;
 
     assertEquals(s1, out.get("Hello").get());
     assertEquals(s2, out.get("World").get());
@@ -159,7 +159,7 @@ public class IrPersistanceTest {
         (scala.collection.mutable.HashMap)
             scala.collection.mutable.HashMap$.MODULE$.apply(immutable);
 
-    var out = serde(scala.collection.mutable.Map.class, in, 44);
+    var out = serde(scala.collection.mutable.Map.class, in, 48);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -171,7 +171,7 @@ public class IrPersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = scala.collection.immutable.Set$.MODULE$.empty().$plus(idLoc1);
 
-    var out = serde(scala.collection.immutable.Set.class, in, 32);
+    var out = serde(scala.collection.immutable.Set.class, in, 36);
 
     assertEquals("One element", 1, out.size());
     assertEquals(in, out);
@@ -183,7 +183,7 @@ public class IrPersistanceTest {
     var idLoc2 = new IdentifiedLocation(new Location(2, 4), UUID.randomUUID());
     var in = join(idLoc2, join(idLoc1, nil()));
 
-    var out = serde(List.class, in, 73);
+    List out = serde(List.class, in, 77);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("UUIDs are serialized at the moment", idLoc2, out.head());
@@ -195,7 +195,7 @@ public class IrPersistanceTest {
     var idLoc1 = new IdentifiedLocation(new Location(1, 5));
     var in = join(idLoc1, join(idLoc1, nil()));
 
-    var out = serde(List.class, in, 40);
+    List out = serde(List.class, in, 44);
 
     assertEquals("Two elements", 2, out.size());
     assertEquals("Head is equal to original", idLoc1, out.head());
@@ -223,14 +223,36 @@ public class IrPersistanceTest {
   }
 
   @Test
-  public void lazyScalaSequence() throws Exception {
-    var s1 = new LazySeq("Hello");
-    var s2 = new LazySeq("World");
+  public void lazyJavaList() throws Exception {
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
+
+    var in = java.util.List.of(s1, s2);
+    assertEquals("Seq with two elements created", 2, in.size());
+
+    LazyString.forbidden = true;
+    var out = serde(java.util.List.class, in, -1);
+    assertEquals("Two elements", 2, out.size());
+    LazyString.forbidden = false;
+
+    assertEquals("Lazily deserialized s1", s1, out.get(0));
+    assertNotSame("Lazily deserialized s1", s1, out.get(0));
+    assertEquals("Lazily deserialized s2", s2, out.get(1));
+    assertNotSame("Lazily deserialized s2", s2, out.get(1));
+  }
+
+  /**
+   * The Scala sequence is not lazy because it is actually written (and thus also read) as a List.
+   */
+  @Test
+  public void notLazyScalaSequence() throws Exception {
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
 
     var second = new boolean[1];
     @SuppressWarnings("unchecked")
     var in =
-        (Seq<String>)
+        (Seq<CharSequence>)
             Seq.fill(
                 2,
                 () -> {
@@ -242,17 +264,23 @@ public class IrPersistanceTest {
                 });
     assertEquals("Seq with two elements created", 2, in.length());
 
-    LazySeq.forbidden = true;
+    LazyString.forbidden = true;
+    try {
+      serde(Seq.class, in, -1);
+      fail("This should have failed with IllegalStateException");
+    } catch (IllegalStateException e) {
+      assertEquals("Cannot create LazyString right now!", e.getMessage());
+    }
+
+    // But will work once enabled:
+    LazyString.forbidden = false;
     var out = serde(Seq.class, in, -1);
 
     assertEquals("Two elements", 2, out.size());
-
-    LazySeq.forbidden = false;
-
-    assertEquals("Lazily deserialized s2", s2, out.head());
-    assertNotSame("Lazily deserialized s2", s2, out.head());
-    assertEquals("Lazily deserialized s1", s1, out.last());
-    assertNotSame("Lazily deserialized s1", s1, out.head());
+    assertEquals("deserialized s2", in.head(), out.head());
+    assertNotSame("deserialized s2", in.head(), out.head());
+    assertEquals("deserialized s1", in.last(), out.last());
+    assertNotSame("deserialized s1", in.last(), out.last());
   }
 
   @Test
@@ -281,24 +309,37 @@ public class IrPersistanceTest {
   @Test
   @SuppressWarnings("unchecked")
   public void hashMapIsLazy() throws Exception {
-    var s1 = new LazySeq("Hello");
-    var s2 = new LazySeq("World");
-    var in = new HashMap<String, LazySeq>();
+    var s1 = new LazyString("Hello");
+    var s2 = new LazyString("World");
+    var in = new HashMap<String, LazyString>();
     in.put("Hello", s1);
     in.put("World", s2);
 
-    LazySeq.forbidden = true;
-    var out = serde(java.util.Map.class, in, 72);
+    LazyString.forbidden = true;
+    var out = serde(java.util.Map.class, in, 76);
 
     assertEquals("Two pairs element", 2, out.size());
     assertEquals("Two keys", 2, out.keySet().size());
     assertTrue(out.keySet().contains("Hello"));
     assertTrue(out.keySet().contains("World"));
-    LazySeq.forbidden = false;
+    LazyString.forbidden = false;
 
     assertEquals(s1, out.get("Hello"));
     assertEquals(s2, out.get("World"));
     assertEquals(in, out);
+  }
+
+  @Test
+  public void inlineReferenceIsLazy() throws Exception {
+    var s1 = new LazyString("Hello");
+    var in = new InlineReferenceHolder(Persistance.Reference.of(s1, false));
+
+    LazyString.forbidden = true;
+    InlineReferenceHolder out = serde(InlineReferenceHolder.class, in, -1);
+    Persistance.Reference<CharSequence> ref = out.ref();
+    LazyString.forbidden = false;
+
+    assertEquals(s1, ref.get(Object.class));
   }
 
   @Test
@@ -396,27 +437,31 @@ public class IrPersistanceTest {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  private static class LazySeq implements CharSequence {
+  private static class LazyString implements CharSequence {
 
     private static boolean forbidden;
 
     private final String value;
 
-    public LazySeq(String value) {
+    public LazyString(String value) {
+      Objects.requireNonNull(value);
       if (forbidden) {
-        throw new IllegalStateException("Cannot create LazySeq right now!");
+        throw new IllegalStateException("Cannot create LazyString right now!");
       }
       this.value = value;
     }
 
+    @Override
     public char charAt(int index) {
       return value.charAt(index);
     }
 
+    @Override
     public int length() {
       return value.length();
     }
 
+    @Override
     public CharSequence subSequence(int beginIndex, int endIndex) {
       return value.subSequence(beginIndex, endIndex);
     }
@@ -439,27 +484,32 @@ public class IrPersistanceTest {
       if (getClass() != obj.getClass()) {
         return false;
       }
-      final LazySeq other = (LazySeq) obj;
+      final LazyString other = (LazyString) obj;
       return Objects.equals(this.value, other.value);
+    }
+
+    @Override
+    public String toString() {
+      return value;
     }
   }
 
   @ServiceProvider(service = Persistance.class)
-  public static final class PersistLazySeq extends Persistance<LazySeq> {
+  public static final class PersistLazyString extends Persistance<LazyString> {
 
-    public PersistLazySeq() {
-      super(LazySeq.class, false, 432432);
+    public PersistLazyString() {
+      super(LazyString.class, false, 432432);
     }
 
     @Override
-    protected void writeObject(LazySeq obj, Output out) throws IOException {
+    protected void writeObject(LazyString obj, Output out) throws IOException {
       out.writeUTF(obj.value);
     }
 
     @Override
-    protected LazySeq readObject(Input in) throws IOException, ClassNotFoundException {
+    protected LazyString readObject(Input in) throws IOException, ClassNotFoundException {
       var s = in.readUTF();
-      return new LazySeq(s);
+      return new LazyString(s);
     }
   }
 
@@ -508,4 +558,7 @@ public class IrPersistanceTest {
       this(Persistance.Reference.of(id));
     }
   }
+
+  @Persistable(clazz = InlineReferenceHolder.class, id = 432437)
+  public record InlineReferenceHolder(Persistance.Reference<CharSequence> ref) {}
 }

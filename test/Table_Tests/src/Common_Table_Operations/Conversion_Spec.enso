@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Value_Type, Bits
-from Standard.Table.Errors import Missing_Input_Columns, Conversion_Failure
+from Standard.Table.Errors import Loss_Of_Decimal_Precision, Loss_Of_Integer_Precision, Missing_Input_Columns, Conversion_Failure
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
@@ -59,6 +59,14 @@ add_specs suite_builder setup =
             t2.at "Y" . to_vector . map (_.to_case Case.Lower) . should_equal ["true", "false", "true"]
             t2.at "Z" . to_vector . should_equal ["1.5", "0.125", "-2.5"]
             t2.at "W" . to_vector . should_equal ["a", "DEF", "a slightly longer text"]
+
+        group_builder.specify "should allow to cast columns selecting columns by type" <|
+            t = table_builder [["X", [1, 2, 3000]], ["Y", [True, False, True]], ["Z", [1.5, 0.125, -2.5]], ["W", ["a", "DEF", "a slightly longer text"]]]
+            t2 = t.cast [..By_Type ..Integer] Value_Type.Char
+            t2.at "X" . value_type . is_text . should_be_true
+            t2.at "Y" . value_type . is_text . should_be_false
+            t2.at "Z" . value_type . is_text . should_be_false
+            t2.at "W" . value_type . is_text . should_be_true
 
         if supports_dates then
             group_builder.specify "should allow to cast date/time columns to text" <|
@@ -234,6 +242,74 @@ add_specs suite_builder setup =
             c2 = t2.at "X" . cast Value_Type.Integer
             v2 = c2.to_vector
             [[1, 4], [1, 5]] . should_contain v2
+
+        if setup.is_database.not then
+            group_builder.specify "Can cast to Decimal" <|
+                t = table_builder [["ints", [1, 2, 4]], ["floats", [1.0001, 2.25, 4.0]], ["bools", [True, False, True]], ["decimals", [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]]]
+                td = t.cast ["ints", "floats", "bools", "decimals"] Value_Type.Decimal
+                td.at "ints" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "floats" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "bools" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "decimals" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "ints" . to_vector . should_equal [Decimal.new 1, Decimal.new 2, Decimal.new 4]
+                td.at "floats" . to_vector . should_equal [Decimal.new "1.0001", Decimal.new "2.25", Decimal.new "4.0"]
+                td.at "bools" . to_vector . should_equal [Decimal.new "1", Decimal.new "0", Decimal.new "1"]
+                td.at "decimals" . to_vector . should_equal [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
+
+            group_builder.specify "Can cast from Decimal" <|
+                t = table_builder [["ints", [Decimal.new 1, Decimal.new 2, Decimal.new 4]], ["floats", [Decimal.new "1.0001", Decimal.new "2.25", Decimal.new "4.0"]], ["decimals", [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]]]
+                td = t.cast ["ints"] Value_Type.Integer . cast ["floats"] Value_Type.Float . cast ["decimals"] Value_Type.Decimal
+                td.at "ints" . value_type . should_equal Value_Type.Integer
+                td.at "floats" . value_type . should_equal Value_Type.Float
+                td.at "decimals" . value_type . should_equal Value_Type.Decimal
+                td.at "ints" . to_vector . should_equal [1, 2, 4]
+                td.at "floats" . to_vector . should_equal [1.0001, 2.25, 4.0]
+                td.at "decimals" . to_vector . should_equal [Decimal.new "9223372036854775807001", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
+
+            group_builder.specify "Can cast to Decimal from mixed column" <|
+                t = table_builder [["ints", [1, 2.0, 4]], ["floats", [1.0001, 2, 4.0]], ["bools", [True, 2, True]], ["decimals", [3, Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]]]
+                td = t.cast ["ints", "floats", "bools", "decimals"] Value_Type.Decimal
+                td.at "ints" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "floats" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "bools" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "decimals" . value_type . should_equal (Value_Type.Decimal Nothing Nothing)
+                td.at "ints" . to_vector . should_equal [Decimal.new 1, Decimal.new 2, Decimal.new 4]
+                td.at "floats" . to_vector . should_equal [Decimal.new "1.0001", Decimal.new "2", Decimal.new "4.0"]
+                td.at "bools" . to_vector . should_equal [Decimal.new "1", Decimal.new "2", Decimal.new "1"]
+                td.at "decimals" . to_vector . should_equal [Decimal.new "3", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
+
+            group_builder.specify "Can cast from Decimal in mixed column" <|
+                t = table_builder [["ints", [Decimal.new 1, Decimal.new 2, 4]], ["floats", [1.0001, Decimal.new "2.25", Decimal.new "4.0"]], ["decimals", [3, Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]]]
+                td = t.cast ["ints"] Value_Type.Integer . cast ["floats"] Value_Type.Float . cast ["decimals"] Value_Type.Decimal
+                td.at "ints" . value_type . should_equal Value_Type.Integer
+                td.at "floats" . value_type . should_equal Value_Type.Float
+                td.at "decimals" . value_type . should_equal Value_Type.Decimal
+                td.at "ints" . to_vector . should_equal [1, 2, 4]
+                td.at "floats" . to_vector . should_equal [1.0001, 2.25, 4.0]
+                td.at "decimals" . to_vector . should_equal [Decimal.new "3", Decimal.new "9223372036854775807002.3", Decimal.new "9223372036854775807003"]
+
+            group_builder.specify "Attaches warning on conversion failure" <|
+                t16 = table_builder [["x", [Decimal.new "65539"]]] . cast ["x"] (Value_Type.Integer Bits.Bits_16)
+                Problems.expect_only_warning Conversion_Failure t16
+                t32 = table_builder [["x", [Decimal.new "4294967298"]]] . cast ["x"] (Value_Type.Integer Bits.Bits_32)
+                Problems.expect_only_warning Conversion_Failure t32
+                t64 = table_builder [["x", [Decimal.new "9223372036854775809"]]] . cast ["x"] (Value_Type.Integer Bits.Bits_64)
+                Problems.expect_only_warning Conversion_Failure t64
+
+            group_builder.specify "Does not attache warning on loss of low-bits precision for explicit cast" <|
+                t0 = table_builder [["x", [Decimal.new "0.1"]]] . cast ["x"] Value_Type.Float
+                Warning.get_all t0 . should_equal []
+
+            group_builder.specify "Attaches warning on loss of precision" <|
+                t1 = table_builder [["x", [Decimal.new "1E310"]]] . cast ["x"] Value_Type.Float
+                Problems.expect_only_warning Loss_Of_Decimal_Precision t1
+                t2 = table_builder [["x", [Decimal.new "9223372036854775807000"]]] . cast ["x"] Value_Type.Float
+                Problems.expect_only_warning Loss_Of_Decimal_Precision t2
+
+            group_builder.specify "Attaches warning on loss of precision for a mixed column" <|
+                t = table_builder [["x", [Decimal.new "1E310", 9223372036854775807000]]] . cast ["x"] Value_Type.Float
+                Problems.expect_warning Loss_Of_Decimal_Precision t
+                Problems.expect_warning Loss_Of_Integer_Precision t
 
         if setup.is_database.not then
             group_builder.specify "should report Conversion_Failure if converting a huge float to an integer overflows it" <|
@@ -689,6 +765,15 @@ add_specs suite_builder setup =
             t4.at "strs" . value_type . should_equal Value_Type.Mixed
             t4.at "ints" . value_type . should_equal Value_Type.Integer
             t4.at "floats" . value_type . should_equal Value_Type.Float
+
+        group_builder.specify "will only modify selected columns by type" <|
+            mixer = My_Type.Value 1
+            t0 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [mixer, 2.5, 3.0]]]
+            t1 = t0.drop 1
+
+            t2 = t1.auto_value_types [..By_Type ..Float]
+            t2.at "X" . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+            t2.at "Y" . value_type . should_equal Value_Type.Mixed
 
         group_builder.specify "will convert a Float column to Integer if all values can be represented as long" <|
             t1 = table_builder [["X", [1.0, 2.0, 3.0]], ["Y", [1.0, 2.5, 3.0]], ["Z", [1.0, 2.0, (2.0^100)]]]

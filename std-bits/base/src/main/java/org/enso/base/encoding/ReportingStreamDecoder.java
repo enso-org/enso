@@ -2,8 +2,8 @@ package org.enso.base.encoding;
 
 import static org.enso.base.encoding.Encoding_Utils.INVALID_CHARACTER;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -30,7 +30,7 @@ public class ReportingStreamDecoder extends Reader {
     return decoder.averageCharsPerByte();
   }
 
-  private final BufferedInputStream bufferedInputStream;
+  private final InputStream inputStream;
   private final CharsetDecoder decoder;
   private final Charset charset;
 
@@ -39,11 +39,11 @@ public class ReportingStreamDecoder extends Reader {
   }
 
   public ReportingStreamDecoder(
-      BufferedInputStream stream,
+      InputStream stream,
       Charset charset,
       DecodingProblemAggregator problemAggregator,
       boolean pollSafepoints) {
-    bufferedInputStream = stream;
+    inputStream = stream;
     this.charset = charset;
     this.decoder =
         charset
@@ -53,6 +53,23 @@ public class ReportingStreamDecoder extends Reader {
             .reset();
     this.problemAggregator = problemAggregator;
     this.pollSafepoints = pollSafepoints;
+  }
+
+  /** Decodes the entire input stream into a String. */
+  public String readAllIntoMemory() throws IOException {
+    int initialCapacity = Math.max((int) (inputStream.available() * averageCharsPerByte()), 16);
+    CharBuffer out = CharBuffer.allocate(initialCapacity);
+    int n;
+    do {
+      if (!out.hasRemaining()) {
+        out = Encoding_Utils.resize(out, CharBuffer::allocate, CharBuffer::put);
+      }
+      // read is already polling safepoints so we don't have to
+      n = this.read(out);
+    } while (n >= 0);
+
+    out.flip();
+    return out.toString();
   }
 
   /**
@@ -245,7 +262,7 @@ public class ReportingStreamDecoder extends Reader {
     int bytesToRead = Math.max(expectedInputSize - bufferedInput, 1);
 
     ensureWorkArraySize(bytesToRead);
-    int bytesActuallyRead = bufferedInputStream.read(workArray, 0, bytesToRead);
+    int bytesActuallyRead = inputStream.read(workArray, 0, bytesToRead);
     if (bytesActuallyRead == -1) {
       eof = true;
     }
@@ -383,6 +400,9 @@ public class ReportingStreamDecoder extends Reader {
 
   @Override
   public void close() throws IOException {
-    bufferedInputStream.close();
+    inputStream.close();
+    inputBuffer = null;
+    outputBuffer = null;
+    workArray = null;
   }
 }

@@ -33,6 +33,7 @@ import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.System.Internal.Reporting_Stream_Decoder_Helper
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
@@ -763,11 +764,7 @@ Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Be
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
-    result = Encoding_Utils.from_bytes bytes encoding.to_java_charset_or_null : WithProblems
-    if result.problems.is_empty then result.result else
-        problems = result.problems.map decoding_problem->
-            Encoding_Error.Error decoding_problem.message
-        on_problems.attach_problems_after result.result problems
+    Reporting_Stream_Decoder_Helper.decode_bytes_to_text bytes encoding on_problems
 
 ## ICON convert
    Returns a vector containing bytes representing the UTF-8 encoding of the
