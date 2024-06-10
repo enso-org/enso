@@ -171,7 +171,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { children, projectManagerUrl, projectManagerRootDirectory } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
-  const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
+  const { session, onSessionError } = sessionProvider.useSession()
   const { setBackendWithoutSavingType } = backendProvider.useStrictSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -628,7 +628,6 @@ export default function AuthProvider(props: AuthProviderProps) {
       gtagEvent('cloud_sign_out')
       cognito.saveAccessToken(null)
       localStorage.clearUserSpecificEntries()
-      deinitializeSession()
       setInitialized(false)
       sentry.setUser(null)
       setUserSession(null)

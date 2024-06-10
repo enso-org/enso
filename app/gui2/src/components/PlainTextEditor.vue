@@ -3,8 +3,7 @@ import { useLexical, type LexicalPlugin } from '@/components/lexical'
 import LexicalContent from '@/components/lexical/LexicalContent.vue'
 import { useLexicalStringSync } from '@/components/lexical/sync'
 import { registerPlainText } from '@lexical/plain-text'
-import { syncRef } from '@vueuse/core'
-import { ref, type ComponentInstance } from 'vue'
+import { ref, watch, type ComponentInstance } from 'vue'
 
 const text = defineModel<string>({ required: true })
 
@@ -17,8 +16,8 @@ const plainText: LexicalPlugin = {
 const textSync: LexicalPlugin = {
   register: (editor) => {
     const { content } = useLexicalStringSync(editor)
-    content.value = text.value
-    syncRef(text, content, { immediate: false })
+    watch(text, (newContent) => content.set(newContent), { immediate: true })
+    watch(content.state, (newContent) => (text.value = newContent))
   },
 }
 
