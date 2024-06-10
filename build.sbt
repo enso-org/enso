@@ -47,6 +47,7 @@ val currentEdition = sys.env.getOrElse(
 // Note [Stdlib Version]
 val stdLibVersion       = defaultDevEnsoVersion
 val targetStdlibVersion = ensoVersion
+val persistanceVersion  = "0.2-SNAPSHOT"
 
 // Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
 lazy val startupStateTransition: State => State = { s: State =>
@@ -96,6 +97,7 @@ Global / onLoad := {
 
 ThisBuild / organization := "org.enso"
 ThisBuild / scalaVersion := scalacVersion
+ThisBuild / publish / skip := true
 
 /* Tag limiting the concurrent access to tools/simple-library-server in tests.
  */
@@ -1312,11 +1314,15 @@ lazy val `ydoc-server` = project
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
-    version := "0.1",
+    version := persistanceVersion,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     annotationProcSetting,
+    javadocSettings,
+    publish / skip := false,
+    autoScalaLibrary := false,
+    crossPaths := false,
     Compile / javacOptions := ((Compile / javacOptions).value),
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
@@ -1330,9 +1336,13 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
 
 lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
   .settings(
-    version := "0.1",
+    version := persistanceVersion,
     frgaalJavaCompilerSetting,
-    Compile / javacOptions := ((Compile / javacOptions).value ++
+    publish / skip := false,
+    autoScalaLibrary := false,
+    crossPaths := false,
+    javadocSettings,
+    Compile / compile / javacOptions := ((Compile / compile / javacOptions).value ++
     // Only run ServiceProvider processor and ignore those defined in META-INF, thus
     // fixing incremental compilation setup
     Seq(
@@ -1677,9 +1687,9 @@ lazy val truffleDslSuppressWarnsSetting = Seq(
   * `(Compile/sourceManaged)` directory, usually pointing to `target/classes/src_managed`.
   */
 lazy val annotationProcSetting = Seq(
-  Compile / javacOptions ++= Seq(
+  Compile / compile / javacOptions ++= Seq(
     "-s",
-    (Compile / sourceManaged).value.getAbsolutePath,
+    (Compile / compile / sourceManaged).value.getAbsolutePath,
     "-Xlint:unchecked"
   ),
   Compile / compile := (Compile / compile)
@@ -1694,6 +1704,19 @@ lazy val annotationProcSetting = Seq(
       "Could not determine source for class ",
       Level.Warn
     )
+)
+
+lazy val javadocSettings = Seq(
+  Compile / doc / javacOptions --= Seq(
+    "-deprecation",
+    "-g",
+    "-Xlint:unchecked",
+    "-proc:full"
+  ),
+  Compile / doc / javacOptions ++= Seq(
+    "--snippet-path",
+    (Test / javaSource).value.getAbsolutePath
+  )
 )
 
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
