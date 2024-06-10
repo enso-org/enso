@@ -1,10 +1,16 @@
 /** @file A toolbar containing chat and the user menu. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
+
+import * as store from '#/store'
+
+import * as backendHooks from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -36,17 +42,29 @@ export interface UserBarProps {
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  readonly projectAsset: backendModule.ProjectAsset | null
   readonly onSignOut: () => void
 }
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { backend, invisible = false, page, setPage, setIsHelpChatOpen, projectAsset } = props
+  const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
   const { onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const queryClient = reactQuery.useQueryClient()
+  const projectAsset = store.useStore(storeState => {
+    const projectId = storeState.projectStartupInfo?.project.projectId
+    if (projectId == null || backend == null) {
+      return null
+    } else {
+      const allAssets = Object.values(
+        backendHooks.getBackendAllKnownDirectories(queryClient, user, backend)
+      ).flat()
+      const allAssetsMap = new Map(allAssets.map(asset => [asset.id, asset]))
+      return allAssetsMap.get(projectId) ?? null
+    }
+  })
   const self =
     user != null
       ? projectAsset?.permissions?.find(

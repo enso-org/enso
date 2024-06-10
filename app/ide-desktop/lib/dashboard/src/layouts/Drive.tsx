@@ -5,6 +5,8 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import * as appUtils from '#/appUtils'
 
+import * as store from '#/store'
+
 import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -25,7 +27,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 
 import type AssetQuery from '#/utilities/AssetQuery'
@@ -61,27 +62,23 @@ export interface DriveProps {
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
-  readonly doOpenEditor: (
-    backend: Backend,
-    project: backendModule.ProjectAsset,
-    switchPage: boolean
-  ) => void
+  readonly doOpenEditor: (switchPage: boolean) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { hidden, query, setQuery, projectStartupInfo, setProjectStartupInfo } = props
+  const { hidden, query, setQuery } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
   const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
+  const projectStartupInfo = store.useStore(storeState => storeState.projectStartupInfo)
+  const setProjectStartupInfo = store.useStore(storeState => storeState.setProjectStartupInfo)
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
   const { localStorage } = localStorageProvider.useLocalStorage()

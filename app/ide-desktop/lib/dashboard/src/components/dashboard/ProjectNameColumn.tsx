@@ -42,7 +42,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, depth, rowState, setRowState, state } = props
   const { isEditable } = props
-  const { backend, setProjectStartupInfo, doOpenEditor, doCloseEditor } = state
+  const { backend, doOpenEditor, doCloseEditor } = state
   const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const { session } = sessionProvider.useSession()
@@ -139,10 +139,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(item, { projectState })}
-          setProjectStartupInfo={setProjectStartupInfo}
-          doOpenEditor={switchPage => {
-            doOpenEditor(item, switchPage)
-          }}
+          doOpenEditor={doOpenEditor}
           doCloseEditor={() => {
             doCloseEditor(item)
           }}

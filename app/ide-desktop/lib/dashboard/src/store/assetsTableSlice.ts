@@ -100,6 +100,8 @@ interface BackendState {
 /** State and actions for this slice. */
 export interface AssetsTableSlice {
   readonly backends: Readonly<Record<BackendType, BackendState>>
+  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+  readonly setProjectStartupInfo: (info: backendModule.ProjectStartupInfo | null) => void
   // These values are put in global state not to avoid prop drilling, but instead for the
   // fine-grained updates - zustand can subscribe to the results of arbitrary functions, rather
   // than an explicit list of dependencies.
@@ -135,6 +137,10 @@ export interface AssetsTableSlice {
 /** A store for data used for rendering the assets table. */
 export const createAssetsTableSlice = defineSlice.defineSlice<AssetsTableSlice>()((set, get) => ({
   backends: INITIAL_BACKENDS_STATE,
+  projectStartupInfo: null,
+  setProjectStartupInfo: info => {
+    set({ projectStartupInfo: info })
+  },
   selectedAssetIds: setModule.EMPTY,
   assetPasteData: null,
   temporaryLabelData: null,

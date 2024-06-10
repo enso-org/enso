@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -22,6 +24,7 @@ import * as permissions from '#/utilities/permissions'
 export function useObserveBackend(backend: Backend | null) {
   const queryClient = reactQuery.useQueryClient()
   const [seen] = React.useState(new WeakSet())
+  const setProjectStartupInfo = store.useStore(storeState => storeState.setProjectStartupInfo)
   const session = authProvider.useUserSession()
   const user = session != null && 'user' in session ? session.user : null
   const useObserveMutations = <Method extends keyof Backend>(
@@ -143,6 +146,21 @@ export function useObserveBackend(backend: Backend | null) {
     if (state.variables != null) {
       const [tagId] = state.variables
       setQueryData('listTags', tags => tags.filter(tag => tag.id !== tagId))
+    }
+  })
+
+  // === Projects ===
+
+  useObserveMutations('waitUntilProjectIsReady', state => {
+    if (state.data != null && state.variables != null && backend != null) {
+      const project = state.data
+      const [, parentId] = state.variables
+      setProjectStartupInfo({
+        project,
+        parentId: parentId ?? backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
+        backendType: backend.type,
+        accessToken: session?.accessToken ?? null,
+      })
     }
   })
 
@@ -378,7 +396,7 @@ export function useObserveBackend(backend: Backend | null) {
         } else {
           // `ensureQueryData` is NOT an option here, because if the mutation is finished
           // then the asset is no longer in its original directory.
-          void invalidateBackendQuery(queryClient, backend, 'listDirectory', [
+          void backendHooks.invalidateBackendQuery(queryClient, backend, 'listDirectory', [
             {
               parentId: body.parentId,
               filterBy: backendModule.FilterBy.trashed,

@@ -105,11 +105,10 @@ export interface AssetsTableState {
   readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly hideColumn: (column: columnUtils.Column) => void
-  readonly doOpenEditor: (project: backendModule.ProjectAsset, switchPage: boolean) => void
+  readonly doOpenEditor: (switchPage: boolean) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
   readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
@@ -132,11 +131,7 @@ export interface AssetsTableProps {
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
-  readonly doOpenEditor: (
-    backend: Backend,
-    project: backendModule.ProjectAsset,
-    switchPage: boolean
-  ) => void
+  readonly doOpenEditor: (switchPage: boolean) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
 }
 
@@ -228,15 +223,15 @@ export default function AssetsTable(props: AssetsTableProps) {
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
 
   const doOpenEditor = React.useCallback(
-    (project: backendModule.ProjectAsset, switchPage: boolean) => {
-      doOpenEditorRaw(backend, project, switchPage)
+    (switchPage: boolean) => {
+      doOpenEditorRaw(switchPage)
     },
-    [backend, doOpenEditorRaw]
+    [doOpenEditorRaw]
   )
 
   const doCloseEditor = React.useCallback(
     (project: backendModule.ProjectAsset) => {
-      if (project.id === projectStartupInfo?.projectAsset.id) {
+      if (project.id === projectStartupInfo?.project.projectId) {
         doCloseEditorRaw(project)
       }
     },

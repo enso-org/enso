@@ -3,12 +3,12 @@ import * as React from 'react'
 
 import * as appUtils from '#/appUtils'
 
+import * as store from '#/store'
+
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-
-import type * as backendModule from '#/services/Backend'
 
 import type * as types from '../../../types/types'
 
@@ -27,14 +27,14 @@ const TOP_BAR_X_OFFSET_PX = 96
 export interface EditorProps {
   readonly hidden: boolean
   readonly ydocUrl: string | null
-  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly appRunner: types.EditorRunner | null
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-  const { hidden, ydocUrl, projectStartupInfo, appRunner: AppRunner } = props
+  const { hidden, ydocUrl, appRunner: AppRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const projectStartupInfo = store.useStore(storeState => storeState.projectStartupInfo)
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
   gtagEventRef.current = gtagEvent
@@ -61,7 +61,7 @@ export default function Editor(props: EditorProps) {
     // eslint-disable-next-line no-restricted-syntax
     if (projectStartupInfo == null) return null
     const { project } = projectStartupInfo
-    const projectId = projectStartupInfo.projectAsset.id
+    const { projectId } = project
     const jsonAddress = project.jsonAddress
     const binaryAddress = project.binaryAddress
     const ydocAddress = ydocUrl ?? ''

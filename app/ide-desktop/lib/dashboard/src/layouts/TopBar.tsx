@@ -11,7 +11,6 @@ import UserBar from '#/layouts/UserBar'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
-import type * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
@@ -26,8 +25,6 @@ export interface TopBarProps {
   readonly isCloud: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
-  readonly projectAsset: backendModule.ProjectAsset | null
-  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly isEditorDisabled: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly query: AssetQuery
@@ -41,7 +38,7 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { backend, isCloud, page, setPage, projectAsset } = props
+  const { backend, isCloud, page, setPage } = props
   const { isEditorDisabled, setIsHelpChatOpen, query, setQuery, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, onSignOut } = props
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -78,7 +75,6 @@ export default function TopBar(props: TopBarProps) {
             page={page}
             setPage={setPage}
             setIsHelpChatOpen={setIsHelpChatOpen}
-            projectAsset={projectAsset}
             onSignOut={onSignOut}
           />
         </div>
@@ -103,7 +99,6 @@ export default function TopBar(props: TopBarProps) {
             page={page}
             setPage={setPage}
             setIsHelpChatOpen={setIsHelpChatOpen}
-            projectAsset={projectAsset}
             onSignOut={onSignOut}
           />
         </div>

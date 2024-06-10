@@ -63,14 +63,13 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
 export interface ProjectIconProps {
   readonly backend: Backend
   readonly item: backendModule.ProjectAsset
-  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly doCloseEditor: () => void
   readonly doOpenEditor: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, setProjectStartupInfo } = props
+  const { backend, item } = props
   const { doCloseEditor, doOpenEditor } = props
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
@@ -99,17 +98,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
       if (!isRunningInBackground) {
         toast.toast.loading(LOADING_MESSAGE, { toastId })
       }
-      const project = await waitUntilProjectIsReadyMutation.mutateAsync([
+      await waitUntilProjectIsReadyMutation.mutateAsync([
         itemRef.current.id,
         itemRef.current.parentId,
         abortController,
       ])
-      setProjectStartupInfo({
-        project,
-        projectAsset: item,
-        backendType: backend.type,
-        accessToken: session?.accessToken ?? null,
-      })
       if (!abortController.signal.aborted) {
         toast.toast.dismiss(toastId)
       }

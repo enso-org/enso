@@ -6,6 +6,8 @@ import * as tailwindMerge from 'tailwind-merge'
 
 import * as detect from 'enso-common/src/detect'
 
+import * as store from '#/store'
+
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -16,7 +18,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import AssetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -29,7 +30,6 @@ import TopBar from '#/layouts/TopBar'
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 import type * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
@@ -81,7 +81,9 @@ LocalStorage.registerKey('projectStartupInfo', {
       return null
     } else if (!('backendType' in value) || !array.includes(BACKEND_TYPES, value.backendType)) {
       return null
-    } else if (!('project' in value) || !('projectAsset' in value)) {
+    } else if (!('project' in value)) {
+      return null
+    } else if (!('parentId' in value) || typeof value.parentId !== 'string') {
       return null
     } else {
       return {
@@ -89,8 +91,7 @@ LocalStorage.registerKey('projectStartupInfo', {
         // would be very complicated.
         // eslint-disable-next-line no-restricted-syntax
         project: value.project as backendModule.Project,
-        // eslint-disable-next-line no-restricted-syntax
-        projectAsset: value.projectAsset as backendModule.ProjectAsset,
+        parentId: backendModule.DirectoryId(value.parentId),
         backendType: value.backendType,
         accessToken: value.accessToken ?? null,
       }
@@ -135,8 +136,8 @@ export default function Dashboard(props: DashboardProps) {
       array.includes(Object.values(pageSwitcher.Page), value)
   )
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const [projectStartupInfo, setProjectStartupInfo] =
-    React.useState<backendModule.ProjectStartupInfo | null>(null)
+  const projectStartupInfo = store.useStore(storeState => storeState.projectStartupInfo)
+  const setProjectStartupInfo = store.useStore(storeState => storeState.setProjectStartupInfo)
   const [assetPanelProps, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
   const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
@@ -178,14 +179,14 @@ export default function Dashboard(props: DashboardProps) {
           void (async () => {
             try {
               const oldProject = await remoteBackend.getProjectDetails(
-                savedProjectStartupInfo.projectAsset.id,
-                savedProjectStartupInfo.projectAsset.parentId
+                savedProjectStartupInfo.project.projectId,
+                savedProjectStartupInfo.parentId
               )
               if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
                 // FIXME: Re-add AbortController
                 const project = await remoteBackend.waitUntilProjectIsReady(
-                  savedProjectStartupInfo.projectAsset.id,
-                  savedProjectStartupInfo.projectAsset.parentId
+                  savedProjectStartupInfo.project.projectId,
+                  savedProjectStartupInfo.parentId
                 )
                 setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
                 if (page === pageSwitcher.Page.editor) {
@@ -200,13 +201,13 @@ export default function Dashboard(props: DashboardProps) {
       } else if (projectManagerUrl != null && projectManagerRootDirectory != null) {
         if (localBackend != null) {
           void (async () => {
-            await localBackend.openProject(savedProjectStartupInfo.projectAsset.id, {
+            await localBackend.openProject(savedProjectStartupInfo.project.projectId, {
               executeAsync: false,
               cognitoCredentials: null,
             })
             const project = await localBackend.getProjectDetails(
-              savedProjectStartupInfo.projectAsset.id,
-              savedProjectStartupInfo.projectAsset.parentId
+              savedProjectStartupInfo.project.projectId,
+              savedProjectStartupInfo.parentId
             )
             setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
             if (page === pageSwitcher.Page.editor) {
@@ -287,34 +288,29 @@ export default function Dashboard(props: DashboardProps) {
   }, [inputBindings])
 
   const doOpenEditor = React.useCallback(
-    async (backend: Backend, newProject: backendModule.ProjectAsset, switchPage: boolean) => {
+    (switchPage: boolean) => {
       if (switchPage) {
         setPage(pageSwitcher.Page.editor)
       }
-      if (projectStartupInfo?.project.projectId !== newProject.id) {
-        setProjectStartupInfo({
-          project: await backend.getProjectDetails(newProject.id, newProject.parentId),
-          projectAsset: newProject,
-          backendType: backend.type,
-          accessToken: session.accessToken,
-        })
-      }
     },
-    [projectStartupInfo?.project.projectId, session.accessToken, setPage]
+    [setPage]
   )
 
-  const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
-    setProjectStartupInfo(oldInfo =>
-      oldInfo?.projectAsset.id === closingProject.id ? null : oldInfo
-    )
-  }, [])
+  const doCloseEditor = React.useCallback(
+    (closingProject: backendModule.ProjectAsset) => {
+      setProjectStartupInfo(
+        projectStartupInfo?.project.projectId === closingProject.id ? null : projectStartupInfo
+      )
+    },
+    [projectStartupInfo, setProjectStartupInfo]
+  )
 
   const onSignOut = React.useCallback(() => {
     if (page === pageSwitcher.Page.editor) {
       setPage(pageSwitcher.Page.drive)
     }
     setProjectStartupInfo(null)
-  }, [page, setPage])
+  }, [page, setPage, setProjectStartupInfo])
 
   return (
     <Page hideInfoBar hideChat>
@@ -334,8 +330,6 @@ export default function Dashboard(props: DashboardProps) {
           <TopBar
             backend={remoteBackend}
             isCloud={isCloud}
-            projectAsset={projectStartupInfo?.projectAsset ?? null}
-            setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}
             setPage={setPage}
             isEditorDisabled={projectStartupInfo == null}
@@ -353,8 +347,6 @@ export default function Dashboard(props: DashboardProps) {
             hidden={page !== pageSwitcher.Page.drive}
             query={query}
             setQuery={setQuery}
-            projectStartupInfo={projectStartupInfo}
-            setProjectStartupInfo={setProjectStartupInfo}
             setAssetPanelProps={setAssetPanelProps}
             setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
             doOpenEditor={doOpenEditor}
@@ -363,7 +355,6 @@ export default function Dashboard(props: DashboardProps) {
           <Editor
             hidden={page !== pageSwitcher.Page.editor}
             ydocUrl={ydocUrl}
-            projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
           {page === pageSwitcher.Page.settings && <Settings backend={remoteBackend} />}
