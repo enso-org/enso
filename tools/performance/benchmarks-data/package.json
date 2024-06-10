@@ -12,12 +12,14 @@
     "url": "git@github.com:enso-org/enso.git"
   },
   "main": "src/index.ts",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "commander": "^12.1.0",
     "octokit": "^4.0.2",
     "tsx": "^4.15.1"
   },
