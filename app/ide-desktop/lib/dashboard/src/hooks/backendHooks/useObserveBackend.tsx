@@ -22,7 +22,8 @@ import * as permissions from '#/utilities/permissions'
 export function useObserveBackend(backend: Backend | null) {
   const queryClient = reactQuery.useQueryClient()
   const [seen] = React.useState(new WeakSet())
-  const { user } = authProvider.useNonPartialUserSession()
+  const session = authProvider.useUserSession()
+  const user = session != null && 'user' in session ? session.user : null
   const useObserveMutations = <Method extends keyof Backend>(
     method: Method,
     onSuccess: (
