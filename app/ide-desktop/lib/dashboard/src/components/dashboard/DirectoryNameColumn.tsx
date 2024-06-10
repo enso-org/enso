@@ -104,17 +104,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <Button
-        image={FolderArrowIcon}
-        alt={isOpen ? getText('collapse') : getText('expand')}
-        className={tailwindMerge.twMerge(
-          'm-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block',
-          isOpen && 'rotate-90'
-        )}
-        onPress={() => {
-          toggleIsAssetOpen(backend.type, item.id)
-        }}
-      />
+      <div className="m-name-column-icon hidden group-hover:inline-block">
+        <Button
+          image={FolderArrowIcon}
+          alt={isOpen ? getText('collapse') : getText('expand')}
+          tooltipPlacement="left"
+          className={tailwindMerge.twMerge(
+            'size-icon cursor-pointer transition-transform duration-arrow',
+            isOpen && 'rotate-90'
+          )}
+          onPress={() => {
+            toggleIsAssetOpen(backend.type, item.id)
+          }}
+        />
+      </div>
       <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
       <EditableSpan
         data-testid="asset-row-name"

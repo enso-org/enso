@@ -74,13 +74,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
-  const itemRef = React.useRef(item)
-  itemRef.current = item
   const state = item.projectState.type
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const isRunningInBackground = item.projectState.executeAsync ?? false
   const toastId: toast.Id = React.useId()
-  const isOpening = backendModule.IS_OPENING[item.projectState.type]
+  const isOpening =
+    backendModule.IS_OPENING[item.projectState.type] &&
+    item.projectState.type !== backendModule.ProjectState.placeholder
   const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
@@ -98,11 +98,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       if (!isRunningInBackground) {
         toast.toast.loading(LOADING_MESSAGE, { toastId })
       }
-      await waitUntilProjectIsReadyMutation.mutateAsync([
-        itemRef.current.id,
-        itemRef.current.parentId,
-        abortController,
-      ])
+      await waitUntilProjectIsReadyMutation.mutateAsync([item.id, item.parentId, abortController])
       if (!abortController.signal.aborted) {
         toast.toast.dismiss(toastId)
       }

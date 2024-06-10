@@ -119,7 +119,8 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
                   </FocusRing>
                   <Button
                     image={isShowingValue ? EyeIcon : EyeCrossedIcon}
-                    className="absolute right-2 top-1 cursor-pointer rounded-full"
+                    className="cursor-pointer rounded-full"
+                    buttonClassName="absolute right-2 top-1"
                     onPress={() => {
                       setIsShowingValue(show => !show)
                     }}

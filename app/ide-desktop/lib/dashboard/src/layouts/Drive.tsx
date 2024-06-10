@@ -185,7 +185,7 @@ export default function Drive(props: DriveProps) {
         <div
           data-testid="drive-view"
           className={tailwindMerge.twMerge(
-            'flex flex-1 flex-col gap-drive-heading overflow-hidden px-page-x',
+            'flex flex-1 flex-col gap-drive-heading overflow-visible px-page-x',
             hidden && 'hidden'
           )}
         >
