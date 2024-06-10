@@ -67,7 +67,7 @@ closest_storage_type value_type = case value_type of
     Value_Type.Time -> TimeOfDayType.INSTANCE
     Value_Type.Mixed -> AnyObjectType.INSTANCE
     Value_Type.Decimal _ scale ->
-        is_integer = scale.is_nothing || scale <= 0
+        is_integer = scale.is_nothing.not && scale <= 0
         if is_integer then BigIntegerType.INSTANCE else BigDecimalType.INSTANCE
     _ ->
         Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")

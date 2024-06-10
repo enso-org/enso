@@ -30,8 +30,7 @@ public interface StorageConverter<T> {
       case TextType textType -> new ToTextStorageConverter(textType);
       case TimeOfDayType timeOfDayType -> new ToTimeOfDayStorageConverter();
       case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
-      case BigDecimalType bigDecimalType -> throw new UnsupportedOperationException(
-          "Conversion to BigDecimal is not yet supported.");
+      case BigDecimalType bigDecimalType -> new ToBigDecimalConverter();
     };
   }
 }

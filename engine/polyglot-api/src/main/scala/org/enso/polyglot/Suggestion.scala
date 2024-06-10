@@ -4,10 +4,10 @@ import com.github.plokhotnyuk.jsoniter_scala.macros.named
 import org.enso.logger.masking.ToLogString
 
 import java.util.UUID
+
 import scala.collection.immutable.ListSet
 
 /** A search suggestion. */
-@SerialVersionUID(9650L)
 sealed trait Suggestion extends ToLogString {
 
   def externalId:    Option[Suggestion.ExternalID]

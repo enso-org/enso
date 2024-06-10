@@ -222,7 +222,13 @@ export default function projectManagerShimMiddleware(
                                         const entries: FileSystemEntry[] = []
                                         for (const entryName of entryNames) {
                                             const entryPath = path.join(directoryPath, entryName)
-                                            if (isHiddenFile.isHiddenFile(entryPath)) continue
+                                            try {
+                                                if (isHiddenFile.isHiddenFile(entryPath)) continue
+                                            } catch {
+                                                // Ignore errors from this library, it occasionally
+                                                // fails on windows due to native library loading
+                                                // issues.
+                                            }
                                             const stat = await fs.stat(entryPath)
                                             const attributes: Attributes = {
                                                 byteSize: stat.size,

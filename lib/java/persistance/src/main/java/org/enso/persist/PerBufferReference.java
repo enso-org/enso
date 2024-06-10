@@ -24,6 +24,7 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
 
   private PerBufferReference(
       Persistance<T> p, PerInputImpl.InputCache buffer, int offset, boolean allowCaching) {
+    assert p != null;
     this.p = p;
     this.cache = buffer;
     this.offset = offset;
@@ -35,13 +36,14 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
     if (cached != this && clazz.isInstance(cached)) {
       return clazz.cast(cached);
     }
-    if (p != null) {
-      if (clazz.isAssignableFrom(p.clazz)) {
-        clazz = (Class) p.clazz;
-      } else {
-        throw new ClassCastException();
-      }
+
+    if (clazz.isAssignableFrom(p.clazz)) {
+      clazz = (Class<T>) p.clazz;
+    } else {
+      throw new ClassCastException(
+          "Expecting " + clazz.getName() + " but found " + p.clazz.getName());
     }
+
     var in = new PerInputImpl(cache, offset);
     T obj = in.readInline(clazz);
     if (cached != this) {
@@ -50,8 +52,9 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
     return obj;
   }
 
-  static <V> Reference<V> from(InputCache buffer, int offset) {
-    return from(null, buffer, offset);
+  @Override
+  boolean isDeferredWrite() {
+    return true;
   }
 
   static <V> Reference<V> from(Persistance<V> p, InputCache buffer, int offset) {

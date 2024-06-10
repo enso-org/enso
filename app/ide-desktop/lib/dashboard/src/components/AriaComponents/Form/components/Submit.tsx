@@ -53,9 +53,10 @@ export function Submit(props: SubmitProps): React.JSX.Element {
     variant = 'submit',
     size = 'medium',
     testId = 'form-submit-button',
-    formnovalidate,
+    formnovalidate = false,
     loading = false,
     children,
+    rounded = 'large',
     ...buttonProps
   } = props
 
@@ -63,18 +64,22 @@ export function Submit(props: SubmitProps): React.JSX.Element {
   const dialogContext = ariaComponents.useDialogContext()
   const { formState } = form
 
+  const isLoading = loading || formState.isSubmitting
+  const type = formnovalidate || isLoading ? 'button' : 'submit'
+
   return (
     <ariaComponents.Button
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}
-      type={formnovalidate === true ? 'button' : 'submit'}
+      rounded={rounded}
+      type={type}
       variant={variant}
       size={size}
-      loading={loading || formState.isSubmitting}
+      loading={isLoading}
       testId={testId}
       onPress={() => {
-        if (formnovalidate === true) {
+        if (formnovalidate) {
           dialogContext?.close()
         }
       }}
