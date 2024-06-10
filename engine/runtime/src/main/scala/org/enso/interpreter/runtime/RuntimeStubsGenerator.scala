@@ -52,6 +52,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           if (tp.members.nonEmpty || tp.builtinType) {
             Type.create(
               tp.name,
+              builtins.getModule(),
               scope,
               builtins.any(),
               builtins.any(),
@@ -61,7 +62,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
           } else {
             Type.createSingleton(
               tp.name,
-              scope,
+              builtins.getModule(),
               builtins.any(),
               false,
               isTypeProjectPrivate

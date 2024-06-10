@@ -264,12 +264,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           var mod = newInlineContext.getModule();
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =
-              new IrToTruffle(
-                  context,
-                  request.getSource(),
-                  m.getScopeBuilder(),
-                  redirectConfigWithStrictErrors);
-          exprNode = toTruffle.runInline(ir, sco, "<inline_source>");
+              new IrToTruffle(context, request.getSource(), m, redirectConfigWithStrictErrors);
+          exprNode = toTruffle.runInline(m.getScope(), ir, sco, "<inline_source>");
         } else {
           exprNode = null;
         }

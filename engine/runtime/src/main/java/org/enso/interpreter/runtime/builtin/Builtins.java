@@ -129,7 +129,9 @@ public final class Builtins {
     module.compileScope(context); // Dummy compilation for an empty module
     ModuleScope.Builder scopeBuilder = module.newScopeBuilder(false);
 
-    builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scopeBuilder);
+    builtins =
+        initializeBuiltinTypes(
+            loadedBuiltinConstructors, language, scopeBuilder, null /* as no scope */);
     builtinsByName =
         builtins.values().stream()
             .collect(
@@ -239,7 +241,7 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.asModuleScope().getType(builtinMethodOwner, true))
+          Optional.ofNullable(scope.getType(builtinMethodOwner, true))
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
@@ -375,11 +377,12 @@ public final class Builtins {
         .collect(Collectors.toList());
   }
 
-  /** Initialize builting types in the context of the given language and module scope */
+  /** Initialize builting types in the context of the given language and module builder */
   private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
       List<Constructor<? extends Builtin>> constrs,
       EnsoLanguage language,
-      ModuleScope.Builder scope) {
+      ModuleScope.Builder builder,
+      ModuleScope scope) {
     Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
 
     for (var constr : constrs) {
@@ -391,7 +394,7 @@ public final class Builtins {
       }
     }
     for (var b : builtins.values()) {
-      b.initialize(language, scope, builtins);
+      b.initialize(language, getModule(), builder, scope, builtins);
     }
     return builtins;
   }
@@ -400,11 +403,11 @@ public final class Builtins {
    * Returns a map of Builtin methods associated with their owner.
    *
    * @param classes a map of (already loaded) builtin methods
-   * @param scope Builtins scope
+   * @param builder Builtins builder
    * @return A map of builtin method nodes per builtin type name
    */
   private Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> readBuiltinMethodsMetadata(
-      Map<String, LoadedBuiltinMethod> classes, ModuleScope.Builder scope) {
+      Map<String, LoadedBuiltinMethod> classes, ModuleScope.Builder builder) {
 
     Map<String, Map<String, Supplier<LoadedBuiltinMethod>>> methodNodes = new HashMap<>();
     classes.forEach(
@@ -415,7 +418,7 @@ public final class Builtins {
           }
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
-          Optional.ofNullable(scope.asModuleScope().getType(builtinMethodOwner, true))
+          Optional.ofNullable(builder.getType(builtinMethodOwner, true))
               .ifPresentOrElse(
                   constr -> {
                     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =

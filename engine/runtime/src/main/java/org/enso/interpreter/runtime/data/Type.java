@@ -16,6 +16,7 @@ import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -30,7 +31,7 @@ import org.enso.pkg.QualifiedName;
 public final class Type implements EnsoObject {
 
   private final String name;
-  private @CompilerDirectives.CompilationFinal ModuleScope.Builder definitionScope;
+  private final Module definingModule;
   private final boolean builtin;
   private final Type supertype;
   private final Type eigentype;
@@ -41,13 +42,13 @@ public final class Type implements EnsoObject {
 
   private Type(
       String name,
-      ModuleScope.Builder definitionScope,
+      Module definingModule,
       Type supertype,
       Type eigentype,
       boolean builtin,
       boolean isProjectPrivate) {
     this.name = name;
-    this.definitionScope = definitionScope;
+    this.definingModule = definingModule;
     this.supertype = supertype;
     this.builtin = builtin;
     this.isProjectPrivate = isProjectPrivate;
@@ -57,23 +58,24 @@ public final class Type implements EnsoObject {
 
   public static Type createSingleton(
       String name,
-      ModuleScope.Builder definitionScope,
+      Module definingModule,
       Type supertype,
       boolean builtin,
       boolean isProjectPrivate) {
-    return new Type(name, definitionScope, supertype, null, builtin, isProjectPrivate);
+    return new Type(name, definingModule, supertype, null, builtin, isProjectPrivate);
   }
 
   public static Type create(
       String name,
-      ModuleScope.Builder definitionScope,
+      Module definingModule,
+      ModuleScope.Builder builder,
       Type supertype,
       Type any,
       boolean builtin,
       boolean isProjectPrivate) {
-    var eigentype = new Type(name + ".type", definitionScope, any, null, builtin, isProjectPrivate);
-    var result = new Type(name, definitionScope, supertype, eigentype, builtin, isProjectPrivate);
-    result.generateQualifiedAccessor();
+    var eigentype = new Type(name + ".type", definingModule, any, null, builtin, isProjectPrivate);
+    var result = new Type(name, definingModule, supertype, eigentype, builtin, isProjectPrivate);
+    result.generateQualifiedAccessor(builder);
     return result;
   }
 
@@ -81,7 +83,7 @@ public final class Type implements EnsoObject {
     return new Type("null", null, null, null, false, false);
   }
 
-  private void generateQualifiedAccessor() {
+  private void generateQualifiedAccessor(ModuleScope.Builder builder) {
     var node = new ConstantNode(null, this);
     var schemaBldr =
         FunctionSchema.newBuilder()
@@ -92,29 +94,27 @@ public final class Type implements EnsoObject {
       schemaBldr.projectPrivate();
     }
     var function = new Function(node.getCallTarget(), null, schemaBldr.build());
-    definitionScope.registerMethod(
-        definitionScope.asModuleScope().getAssociatedType(), this.name, function);
+    builder.registerMethod(null /*  as builder.getAssociatedType() */, this.name, function);
   }
 
   public QualifiedName getQualifiedName() {
     if (this == this.getDefinitionScope().getAssociatedType()) {
-      return definitionScope.getModule().getName();
+      return definingModule.getName();
     } else {
-      return definitionScope.getModule().getName().createChild(getName());
+      return definingModule.getName().createChild(getName());
     }
   }
 
-  public void setShadowDefinitions(ModuleScope.Builder scope, boolean generateAccessorsInTarget) {
+  public void setShadowDefinitions(ModuleScope.Builder builder, boolean generateAccessorsInTarget) {
     if (builtin) {
-      // Ensure that synthetic methods, such as getters for fields are in the scope.
+      // Ensure that synthetic methods, such as getters for fields are in the builder.
       CompilerAsserts.neverPartOfCompilation();
-      this.definitionScope.registerAllMethodsOfTypeToScope(this, scope);
-      this.definitionScope = scope;
+      this.definingModule.getScope().registerAllMethodsOfTypeToScope(this, builder);
       if (generateAccessorsInTarget) {
-        generateQualifiedAccessor();
+        generateQualifiedAccessor(builder);
       }
       if (getEigentype() != this) {
-        getEigentype().setShadowDefinitions(scope, false);
+        getEigentype().setShadowDefinitions(builder, false);
       }
     } else {
       throw new RuntimeException(
@@ -127,7 +127,7 @@ public final class Type implements EnsoObject {
   }
 
   public ModuleScope getDefinitionScope() {
-    return definitionScope.asModuleScope();
+    return definingModule.getScope();
   }
 
   public boolean isBuiltin() {
@@ -174,7 +174,7 @@ public final class Type implements EnsoObject {
     return allTypes;
   }
 
-  public void generateGetters(EnsoLanguage language) {
+  public void generateGetters(ModuleScope.Builder builder, EnsoLanguage language) {
     if (gettersGenerated) return;
     gettersGenerated = true;
     var roots = AtomConstructor.collectFieldAccessors(language, this);
@@ -194,7 +194,7 @@ public final class Type implements EnsoObject {
           }
           var funcSchema = schemaBldr.build();
           var f = new Function(node.getCallTarget(), null, funcSchema);
-          definitionScope.registerMethod(this, name, f);
+          builder.registerMethod(this, name, f);
         });
   }
 

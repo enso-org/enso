@@ -146,7 +146,7 @@ final class TruffleCompilerContext implements CompilerContext {
     var s =
         org.enso.interpreter.runtime.scope.ModuleScope.Builder.fromCompilerModuleScopeBuilder(
             scopeBuilder);
-    new IrToTruffle(context, m.getSource(), s, config).run(module.getIr());
+    new IrToTruffle(context, m.getSource(), m, config).run(module.getIr());
   }
 
   // module related
@@ -823,7 +823,7 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public CompilerContext.ModuleScopeBuilder getScopeBuilder() {
       return new org.enso.interpreter.runtime.scope.TruffleCompilerModuleScopeBuilder(
-          module.getScopeBuilder());
+          module.newScopeBuilder(true));
     }
 
     @Override

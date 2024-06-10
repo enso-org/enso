@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
@@ -18,8 +19,10 @@ public abstract class Builtin {
       this(name, Arrays.asList(params));
     }
 
-    private AtomConstructor build(EnsoLanguage language, ModuleScope.Builder scope, Type type) {
-      var res = new AtomConstructor(name, scope.getModule(), type, true);
+    private AtomConstructor build(
+        EnsoLanguage language, ModuleScope.Builder builder, ModuleScope scope, Type type) {
+      var res = new AtomConstructor(name, builder.getModule(), type, true);
+      res.initializeBuilder(language, builder);
       res.initializeFields(
           language,
           scope,
@@ -52,30 +55,33 @@ public abstract class Builtin {
 
   public final void initialize(
       EnsoLanguage language,
-      ModuleScope.Builder scope,
+      Module module,
+      ModuleScope.Builder builder,
+      ModuleScope scope,
       Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;
       if (getSuperType() != null) {
         var s = builtins.get(getSuperType());
-        s.initialize(language, scope, builtins);
+        s.initialize(language, module, builder, scope, builtins);
         supertype = s.getType();
       }
       type =
           containsValues()
-              ? Type.create(name, scope, supertype, builtins.get(Any.class).getType(), true, false)
-              : Type.createSingleton(name, scope, supertype, true, false);
+              ? Type.create(
+                  name, module, builder, supertype, builtins.get(Any.class).getType(), true, false)
+              : Type.createSingleton(name, module, supertype, true, false);
     }
     if (constructors == null) {
       var conses = getDeclaredConstructors();
       constructors = new AtomConstructor[conses.size()];
       for (int i = 0; i < constructors.length; i++) {
-        var cons = conses.get(i).build(language, scope, type);
+        var cons = conses.get(i).build(language, builder, scope, type);
         constructors[i] = cons;
         type.registerConstructor(cons);
       }
     }
-    type.generateGetters(language);
+    type.generateGetters(builder, language);
     postInitialize();
   }
 

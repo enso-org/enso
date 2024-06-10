@@ -55,7 +55,7 @@ import org.enso.text.buffer.Rope;
 public final class Module implements EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
-  private ModuleScope.Builder scopeBuilder;
+  private ModuleScope moduleScope;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
@@ -87,7 +87,7 @@ public final class Module implements EnsoObject {
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.moduleScope = new ModuleScope.Builder(this).build();
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -105,7 +105,7 @@ public final class Module implements EnsoObject {
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.moduleScope = new ModuleScope.Builder(this).build();
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -124,7 +124,7 @@ public final class Module implements EnsoObject {
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.moduleScope = new ModuleScope.Builder(this).build();
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -144,14 +144,13 @@ public final class Module implements EnsoObject {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    this.moduleScope = new ModuleScope.Builder(this).build();
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = synthetic;
     if (synthetic) {
       this.compilationStage = CompilationStage.INITIAL;
-      scopeBuilder.build();
     } else {
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
     }
@@ -328,7 +327,7 @@ public final class Module implements EnsoObject {
       } catch (IOException ignored) {
       }
     }
-    return scopeBuilder.build();
+    return moduleScope;
   }
 
   /**
@@ -386,7 +385,7 @@ public final class Module implements EnsoObject {
   private void compile(EnsoContext context) throws IOException {
     Source source = getSource();
     if (source == null) return;
-    scopeBuilder = newScopeBuilder(false);
+    moduleScope = newScopeBuilder(false).build();
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(asCompilerModule());
   }
@@ -456,20 +455,14 @@ public final class Module implements EnsoObject {
    * @return the runtime scope of this module.
    */
   public ModuleScope getScope() {
-    return scopeBuilder.asModuleScope();
-  }
-
-  public ModuleScope.Builder getScopeBuilder() {
-    return scopeBuilder;
+    return moduleScope;
   }
 
   public ModuleScope.Builder newScopeBuilder(boolean inheritTypes) {
-    if (inheritTypes) {
-      this.scopeBuilder = this.scopeBuilder.newBuilderInheritingTypes();
-    } else {
-      this.scopeBuilder = new ModuleScope.Builder(this);
-    }
-    return this.scopeBuilder;
+    var builder = // inheritTypes ?
+        // this.scopeBuilder.newBuilderInheritingTypes();
+        new ModuleScope.Builder(this);
+    return builder;
   }
 
   /**

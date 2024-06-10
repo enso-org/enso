@@ -104,7 +104,7 @@ public final class AtomConstructor implements EnsoObject {
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(
-      EnsoLanguage language, ModuleScope.Builder scopeBuilder, ArgumentDefinition... args) {
+      EnsoLanguage language, ModuleScope scope, ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {
       reads[i] = ReadArgumentNode.build(i, null, null);
@@ -113,11 +113,23 @@ public final class AtomConstructor implements EnsoObject {
         language,
         null,
         LocalScope.root(),
-        scopeBuilder,
+        scope,
         new ExpressionNode[0],
         reads,
         new Annotation[0],
         args);
+  }
+
+  /**
+   * Sets the fields of this {@link AtomConstructor} and generates a constructor function.
+   *
+   * @param scopeBuilder the module scope's builder where the accessor should be registered at
+   * @return {@code this}, for convenience
+   */
+  public AtomConstructor initializeBuilder(
+      EnsoLanguage language, ModuleScope.Builder scopeBuilder) {
+    this.accessor = generateQualifiedAccessor(language, scopeBuilder);
+    return this;
   }
 
   /**
@@ -133,7 +145,7 @@ public final class AtomConstructor implements EnsoObject {
       EnsoLanguage language,
       SourceSection section,
       LocalScope localScope,
-      ModuleScope.Builder scopeBuilder,
+      ModuleScope scope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
@@ -148,8 +160,7 @@ public final class AtomConstructor implements EnsoObject {
     boxedLayout = Layout.createBoxed(args);
     this.constructorFunction =
         buildConstructorFunction(
-            language, section, localScope, scopeBuilder, assignments, varReads, annotations, args);
-    this.accessor = generateQualifiedAccessor(language, scopeBuilder);
+            language, section, localScope, scope, assignments, varReads, annotations, args);
     return this;
   }
 
@@ -170,7 +181,7 @@ public final class AtomConstructor implements EnsoObject {
       EnsoLanguage language,
       SourceSection section,
       LocalScope localScope,
-      ModuleScope.Builder scopeBuilder,
+      ModuleScope scope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
@@ -182,7 +193,7 @@ public final class AtomConstructor implements EnsoObject {
     BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
         MethodRootNode.buildConstructor(
-            language, localScope, scopeBuilder.asModuleScope(), instantiateBlock, section, this);
+            language, localScope, scope, instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
     var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
     if (type.isProjectPrivate()) {

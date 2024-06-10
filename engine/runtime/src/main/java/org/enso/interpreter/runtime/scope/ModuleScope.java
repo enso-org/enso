@@ -255,6 +255,21 @@ public final class ModuleScope implements EnsoObject {
     return "Scope" + module;
   }
 
+  /**
+   * Registers all methods of a type in the provided scope.
+   *
+   * @param tpe the methods of which type should be registered
+   * @param scope target scope where methods should be registered to
+   */
+  public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope.Builder scope) {
+    // FIXME: because of Builtins can't enable 'assert moduleScope == null;'
+    Type tpeKey = tpe == null ? noTypeKey : tpe;
+    var allTypeMethods = methods.get(tpeKey);
+    if (allTypeMethods != null) {
+      allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
+    }
+  }
+
   public static class Builder {
 
     @CompilerDirectives.CompilationFinal private ModuleScope moduleScope = null;
@@ -275,7 +290,8 @@ public final class ModuleScope implements EnsoObject {
       this.conversions = new LinkedHashMap<>();
       this.imports = new LinkedHashSet<>();
       this.exports = new LinkedHashSet<>();
-      this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
+      this.associatedType =
+          Type.createSingleton(module.getName().item(), module, null, false, false);
     }
 
     public Builder(Module module, Map<String, Type> types) {
@@ -286,7 +302,8 @@ public final class ModuleScope implements EnsoObject {
       this.conversions = new LinkedHashMap<>();
       this.imports = new LinkedHashSet<>();
       this.exports = new LinkedHashSet<>();
-      this.associatedType = Type.createSingleton(module.getName().item(), this, null, false, false);
+      this.associatedType =
+          Type.createSingleton(module.getName().item(), module, null, false, false);
     }
 
     public Builder(
@@ -312,6 +329,20 @@ public final class ModuleScope implements EnsoObject {
       assert moduleScope == null;
       Type current = types.putIfAbsent(type.getName(), type);
       return current == null ? type : current;
+    }
+
+    /**
+     * Get a type registered in this builder.
+     *
+     * @param name name of the type
+     * @param ignoreAssociatedType ignore associated type or not?
+     * @return type or {@code null}
+     */
+    public Type getType(String name, boolean ignoreAssociatedType) {
+      if (!ignoreAssociatedType && associatedType.getName().equals(name)) {
+        return associatedType;
+      }
+      return types.get(name);
     }
 
     /**
@@ -354,6 +385,9 @@ public final class ModuleScope implements EnsoObject {
      */
     public void registerMethod(Type type, String method, Supplier<Function> supply) {
       assert moduleScope == null;
+      if (type == null) {
+        type = this.associatedType;
+      }
       Map<String, Supplier<Function>> methodMap = ensureMethodMapFor(type);
 
       // Builtin types will have double definition because of
@@ -391,21 +425,6 @@ public final class ModuleScope implements EnsoObject {
     public void registerPolyglotSymbol(String name, Object sym) {
       assert moduleScope == null;
       polyglotSymbols.put(name, sym);
-    }
-
-    /**
-     * Registers all methods of a type in the provided scope.
-     *
-     * @param tpe the methods of which type should be registered
-     * @param scope target scope where methods should be registered to
-     */
-    public void registerAllMethodsOfTypeToScope(Type tpe, ModuleScope.Builder scope) {
-      // FIXME: because of Builtins can't enable 'assert moduleScope == null;'
-      Type tpeKey = tpe == null ? noTypeKey : tpe;
-      var allTypeMethods = methods.get(tpeKey);
-      if (allTypeMethods != null) {
-        allTypeMethods.forEach((name, fun) -> scope.registerMethod(tpeKey, name, fun));
-      }
     }
 
     /**
@@ -450,7 +469,7 @@ public final class ModuleScope implements EnsoObject {
      */
     public ModuleScope build() {
       if (moduleScope == null) {
-        moduleScope =
+        return moduleScope =
             new ModuleScope(
                 module,
                 associatedType,
@@ -460,33 +479,14 @@ public final class ModuleScope implements EnsoObject {
                 Collections.unmodifiableMap(conversions),
                 Collections.unmodifiableSet(imports),
                 Collections.unmodifiableSet(exports));
+      } else {
+        throw new AssertionError("Already built");
       }
-      return moduleScope;
     }
 
     public static ModuleScope.Builder fromCompilerModuleScopeBuilder(
         CompilerContext.ModuleScopeBuilder scopeBuilder) {
       return ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
-    }
-
-    /**
-     * Return a view on `this` as a ModuleScope, rather than its builder.
-     *
-     * @return ModuleScope, if the builder has already been `built`, a proxy instance with the
-     *     currently registered entities
-     */
-    public ModuleScope asModuleScope() {
-      if (moduleScope != null) return moduleScope;
-      else
-        return new ModuleScope(
-            module,
-            associatedType,
-            Collections.unmodifiableMap(polyglotSymbols),
-            Collections.unmodifiableMap(types),
-            Collections.unmodifiableMap(methods),
-            Collections.unmodifiableMap(conversions),
-            Collections.unmodifiableSet(imports),
-            Collections.unmodifiableSet(exports));
     }
 
     @Override
