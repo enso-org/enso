@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import org.enso.common.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -25,7 +26,7 @@ public class TypeInferenceConsistencyTest extends TestBase {
   @BeforeClass
   public static void prepareCtx() {
     ctx =
-        defaultContextBuilder()
+        ContextUtils.defaultContextBuilder()
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
             .out(output)
@@ -266,5 +267,11 @@ public class TypeInferenceConsistencyTest extends TestBase {
 
   private void assertNotInvokableRuntimeError(String got, PolyglotException exception) {
     assertContains("Type error: expected a function, but got " + got, exception.getMessage());
+  }
+
+  private static void assertContains(String exp, String msg) {
+    if (!msg.contains(exp)) {
+      fail("Expecting " + msg + " to contain " + exp);
+    }
   }
 }

@@ -1214,4 +1214,10 @@ public class SignatureTest {
         "Type error: expected " + expArg + " to be " + expType + ", but got " + realType + ".",
         msg);
   }
+
+  private static void assertContains(String exp, String msg) {
+    if (!msg.contains(exp)) {
+      fail("Expecting " + msg + " to contain " + exp);
+    }
+  }
 }
