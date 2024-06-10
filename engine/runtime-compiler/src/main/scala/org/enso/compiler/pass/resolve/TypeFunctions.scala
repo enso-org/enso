@@ -107,7 +107,6 @@ case object TypeFunctions extends IRPass {
     */
   def resolveExpression(expr: Expression): Expression = {
     expr.transformExpressions {
-      case asc: Type.Ascription => asc
       case app: Application =>
         val result = resolveApplication(app)
         app
