@@ -97,3 +97,14 @@ export function qnSlice(
 export function qnIsTopElement(name: QualifiedName): boolean {
   return !/[.].*?[.].*?[.]/.test(name)
 }
+
+export function qnReplaceProjectName(
+  qn: QualifiedName,
+  oldProject: string,
+  newProject: Identifier,
+): QualifiedName {
+  return qn.replaceAll(
+    new RegExp(`^${identifierRegexPart}\\.${oldProject}`),
+    newProject,
+  ) as QualifiedName
+}
