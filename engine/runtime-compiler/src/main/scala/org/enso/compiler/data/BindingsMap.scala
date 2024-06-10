@@ -785,7 +785,7 @@ object BindingsMap {
             m.arguments.map { arg =>
               val ascribedType: Reference[Expression] =
                 arg.ascribedType match {
-                  case Some(value) => Reference.of(value)
+                  case Some(value) => Reference.of(value, true)
                   case None        => Reference.none()
                 }
               BindingsMap.Argument(
