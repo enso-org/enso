@@ -1,0 +1,130 @@
+private
+
+import project.Any.Any
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Errors.Encoding_Error.Encoding_Error
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Nothing.Nothing
+import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.Input_Stream.Input_Stream
+from project.Data.Boolean import Boolean, False, True
+from project.Runtime import assert
+
+polyglot java import org.enso.base.encoding.DecodingProblemAggregator
+polyglot java import org.enso.base.encoding.Encoding_Utils
+polyglot java import org.enso.base.encoding.ReportingStreamDecoder
+
+## PRIVATE
+   Builds the `ReportingStreamDecoder`, consuming the `Input_Stream`.
+   It will do any necessary encoding detection, as determined by the `Encoding`
+run (input_stream : Input_Stream) (encoding : Encoding) (on_problems : Problem_Behavior) (allow_usage_in_background_threads : Boolean) (continuation : ReportingStreamDecoder -> Any) =
+    # We always ensure the stream is peekable, as that also implies buffering which is supposedly more efficient e.g. when working with files.
+    buffered_input_stream = input_stream.as_peekable_stream
+    problem_aggregator = DecodingProblemAggregator.new
+    result = resolve_encoding encoding buffered_input_stream problem_aggregator effective_encoding-> amended_input_stream->
+        amended_input_stream.with_java_stream java_stream->
+            # We can only poll safepoints if the decoder is guaranteed to be used in the main thread only.
+            poll_safepoints = allow_usage_in_background_threads.not
+            decoder = ReportingStreamDecoder.new java_stream effective_encoding.to_java_charset problem_aggregator poll_safepoints
+            continuation decoder
+    problems = Vector.from_polyglot_array problem_aggregator.summarize . map decoding_problem->
+        Encoding_Error.Error decoding_problem.message
+    on_problems.attach_problems_after result problems
+
+## PRIVATE
+decode_bytes_to_text bytes (encoding : Encoding) (on_problems : Problem_Behavior) -> Text =
+    Managed_Resource.bracket (Input_Stream.from_bytes bytes) (.close) input_stream->
+        run input_stream encoding on_problems allow_usage_in_background_threads=False decoder->
+            decoder.readAllIntoMemory
+
+## PRIVATE
+resolve_encoding (encoding : Encoding) (buffered_input_stream : Input_Stream) (problem_aggregator : DecodingProblemAggregator) (continuation : Encoding -> Input_Stream -> Any) -> Any =
+    case encoding of
+        Encoding.Default ->
+            detect_default_encoding buffered_input_stream problem_aggregator continuation
+        Encoding.Value "UTF-8" ->
+            verify_unicode_encoding encoding Unicode_BOM.UTF_8 buffered_input_stream problem_aggregator continuation
+        Encoding.Value "UTF-16LE" ->
+            verify_unicode_encoding encoding Unicode_BOM.UTF_16_LE buffered_input_stream problem_aggregator continuation
+        Encoding.Value "UTF-16BE" ->
+            verify_unicode_encoding encoding Unicode_BOM.UTF_16_BE buffered_input_stream problem_aggregator continuation
+
+        # Any other encoding just continues without any additional processing.
+        _ -> continuation encoding buffered_input_stream
+
+## PRIVATE
+detect_default_encoding (buffered_input_stream : Input_Stream) (problem_aggregator : DecodingProblemAggregator) (continuation : Encoding -> Input_Stream -> Any) -> Any =
+    case detect_bom buffered_input_stream of
+        # We rely on the detected BOM for the encoding, even if there are errors down the line.
+        detected_bom : Unicode_BOM ->
+            encoding_name = detected_bom.corresponding_encoding.to_display_text
+            context_message = "An " + encoding_name + " BOM was detected, so " + encoding_name + " encoding has been assumed, but some characters seem invalid: "
+            problem_aggregator.setInvalidCharacterErrorPrefix context_message
+            # Skip the BOM to avoid including it in the decoded data.
+            buffered_input_stream.skip_n_bytes detected_bom.as_bytes.length . if_not_error <|
+                continuation detected_bom.corresponding_encoding buffered_input_stream
+
+        # If no BOM was detected, we do a pass to try UTF-8 encoding and if it fails, we restart and fallback to Windows-1252.
+        Nothing ->
+            # We don't need to extend the lifetime of the stream, as it will not be kept longer than the lifetime of the `buffered_input_stream`.
+            restartable_stream = buffered_input_stream.as_restartable_stream extend_lifetime=False
+            is_valid_utf_8 = restartable_stream.with_fresh_stream checking_stream->
+                checking_stream.with_java_stream java_checking_stream->
+                    Encoding_Utils.canDecodeWithoutErrors java_checking_stream Encoding.utf_8.to_java_charset
+            effective_encoding = if is_valid_utf_8 then Encoding.utf_8 else Encoding.windows_1252
+            restartable_stream.with_fresh_stream input_stream->
+                continuation effective_encoding input_stream
+
+## PRIVATE
+verify_unicode_encoding (encoding : Encoding) (expected_bom : Unicode_BOM) (buffered_input_stream : Input_Stream) (problem_aggregator : DecodingProblemAggregator) (continuation : Encoding -> Input_Stream -> Any) -> Any =
+    case detect_bom buffered_input_stream of
+         Nothing ->
+            # No BOM detected, so we just proceed.
+            continuation encoding buffered_input_stream
+        detected_bom : Unicode_BOM ->
+            case detected_bom == expected_bom of
+                True ->
+                    # We found the expected BOM. We skip it to avoid including it in decoded data.
+                    buffered_input_stream.skip_n_bytes expected_bom.as_bytes.length . if_not_error <|
+                        continuation encoding buffered_input_stream
+                False ->
+                    # Report BOM mismatch
+                    message = detected_bom.corresponding_encoding.to_display_text + " BOM has been found when decoding as " + encoding.to_display_text + "."
+                    problem_aggregator.reportOtherProblem message
+                    continuation encoding buffered_input_stream
+
+## PRIVATE
+type Unicode_BOM
+    ## PRIVATE
+    UTF_8
+
+    ## PRIVATE
+    UTF_16_LE
+
+    ## PRIVATE
+    UTF_16_BE
+
+    ## PRIVATE
+    as_bytes self -> Vector = case self of
+        Unicode_BOM.UTF_8 -> [-17, -69, -65]
+        Unicode_BOM.UTF_16_LE -> [-1, -2]
+        Unicode_BOM.UTF_16_BE -> [-2, -1]
+
+    corresponding_encoding self -> Encoding = case self of
+        Unicode_BOM.UTF_8 -> Encoding.utf_8
+        Unicode_BOM.UTF_16_LE -> Encoding.utf_16_le
+        Unicode_BOM.UTF_16_BE -> Encoding.utf_16_be
+
+    ## PRIVATE
+    all = [Unicode_BOM.UTF_8, Unicode_BOM.UTF_16_LE, Unicode_BOM.UTF_16_BE]
+
+## PRIVATE
+detect_bom (input_stream : Input_Stream) -> Unicode_BOM | Nothing =
+    assert input_stream.is_peekable
+    beginning = input_stream.peek_bytes 3
+    matching_bom = Unicode_BOM.all.find if_missing=Nothing bom->
+        expected_bytes = bom.as_bytes
+        expected_bytes == (beginning.take expected_bytes.length)
+    matching_bom

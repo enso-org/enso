@@ -173,7 +173,8 @@ add_specs suite_builder =
             utf8_bytes = [97, 44, 98, 44, 99, 10, -60, -123, 44, -17, -65, -65, 44, -61, 40, -61, 40, 10]
             utf8_bytes.write_bytes utf8_file
             action_1 on_problems =
-                utf8_file.read (Delimited_Format.Delimited "," headers=True) on_problems
+                # We need to set the encoding explicitly, as otherwise we'd just fallback to Windows-1252 and have no errors
+                utf8_file.read (Delimited_Format.Delimited "," headers=True encoding=Encoding.utf_8) on_problems
             tester_1 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 table.at 'a' . to_vector . should_equal ['ą']
@@ -521,6 +522,18 @@ add_specs suite_builder =
             r.column_names . should_equal ["Column 1"]
             r.first_column.to_vector . should_equal ['\uFFFD']
             Problems.expect_only_warning Encoding_Error r
+
+        group_builder.specify "should fall back to Windows-1252 encoding if invalid UTF-8 characters are encountered in Default encoding" <|
+            f = File.create_temporary_file "delimited-invalid-utf-8" ".csv"
+            # On the simple characters all three encodings (ASCII, UTF-8 and Win-1252) agree, so we can use ASCII bytes.
+            bytes = ('A,B\n1,y'.bytes Encoding.ascii) + [-1] + ('z\n2,-'.bytes Encoding.ascii)
+            bytes.write_bytes f . should_succeed
+            r = f.read
+            r.should_be_a Table
+            r.column_names.should_equal ["A", "B"]
+            r.at "A" . to_vector . should_equal [1, 2]
+            # We fallback to Win-1252 where byte -1 means ÿ
+            r.at "B" . to_vector . should_equal ["yÿz", "-"]
 
 main filter=Nothing =
     suite = Test.build suite_builder->
