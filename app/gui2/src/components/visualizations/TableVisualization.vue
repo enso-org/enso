@@ -1,4 +1,5 @@
 <script lang="ts">
+import icons from '@/assets/icons.svg'
 import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
@@ -289,7 +290,7 @@ function toField(name: string, valType?: string): ColDef {
     case 'Mixed':
       icon = 'mixed'
   }
-  const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="src/assets/icons.svg#${icon}"/> </svg>`
+  const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
   const template =
     icon ?
       `<div style="display:flex; flex-direction:row; justify-content:space-between; width:inherit;"> ${name} ${svgTemplate}</div>`
