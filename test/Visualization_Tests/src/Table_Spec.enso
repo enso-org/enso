@@ -38,7 +38,7 @@ type Foo
 
 
 add_specs suite_builder =
-    make_json header data all_rows ixes_header ixes value_type=
+    make_json header data all_rows ixes_header ixes value_type =
         p_header      = ["header", header]
         p_data        = ["data",   data]
         p_all_rows    = ["all_rows_count", all_rows]
