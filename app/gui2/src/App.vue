@@ -16,6 +16,7 @@ import { useEventListener } from '@vueuse/core'
 import { computed, toRef, watch } from 'vue'
 import TooltipDisplayer from './components/TooltipDisplayer.vue'
 import { provideTooltipRegistry } from './providers/tooltipState'
+import { provideProjectStore } from './stores/project'
 import { initializePrefixes } from './util/ast/node'
 import { urlParams } from './util/urlParams'
 
@@ -25,6 +26,7 @@ const props = defineProps<{
   logEvent: LogEvent
   hidden: boolean
   ignoreParamsRegex?: RegExp
+  renameProject: (newName: string) => void
 }>()
 
 const classSet = provideAppClassSet()
@@ -43,6 +45,7 @@ watch(
 )
 
 useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed'))
+provideProjectStore(props.renameProject)
 
 const appConfig = computed(() => {
   const unrecognizedOptions: string[] = []

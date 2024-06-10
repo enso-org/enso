@@ -100,7 +100,7 @@ export type ProjectStore = ReturnType<typeof useProjectStore>
  */
 export const { provideFn: provideProjectStore, injectFn: useProjectStore } = createContextStore(
   'project',
-  () => {
+  (renameProjectBackend: (newName: string) => void) => {
     const abort = useAbortScope()
 
     const observedFileName = ref<string>()
@@ -342,11 +342,7 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
     })
 
     function renameProject(newDisplayedName: string) {
-      return lsRpcConnection.renameProject(
-        namespace.value,
-        projectDisplayName.value,
-        newDisplayedName,
-      )
+      renameProjectBackend(newDisplayedName)
     }
     lsRpcConnection.on(
       'refactoring/projectRenamed',

@@ -6,6 +6,7 @@ import * as appUtils from '#/appUtils'
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import * as backendProvider from '#/providers/BackendProvider'
 import * as remoteBackendProvider from '#/providers/RemoteBackendProvider'
 
 import type * as backendModule from '#/services/Backend'
@@ -38,6 +39,7 @@ export default function Editor(props: EditorProps) {
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
   const remoteBackend = remoteBackendProvider.useRemoteBackend()
+  const { backend } = backendProvider.useStrictBackend()
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {
@@ -62,7 +64,7 @@ export default function Editor(props: EditorProps) {
     // eslint-disable-next-line no-restricted-syntax
     if (projectStartupInfo == null) return null
     const { project } = projectStartupInfo
-    const projectId = projectStartupInfo.projectAsset.id
+    const { id: projectId, parentId, title } = projectStartupInfo.projectAsset
     const jsonAddress = project.jsonAddress
     const binaryAddress = project.binaryAddress
     const ydocAddress = ydocUrl ?? ''
@@ -92,6 +94,13 @@ export default function Editor(props: EditorProps) {
         hidden,
         ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
         logEvent,
+        renameProject: newName => {
+          backend.updateProject(
+            projectId,
+            { projectName: newName, ami: null, ideVersion: null, parentId },
+            title
+          )
+        },
       }
     }
   }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl])
