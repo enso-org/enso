@@ -6,9 +6,13 @@
   if no node is selected.
 - [Added a limit for dropdown width][10198], implemented ellipsis and scrolling
   for long labels when hovered.
+- The documentation editor has [formatting toolbars][10064].
+- The documentation editor supports [rendering images][10205].
 
+[10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
 [10198]: https://github.com/enso-org/enso/pull/10198
+[10205]: https://github.com/enso-org/enso/pull/10205
 
 #### Enso Standard Library
 
