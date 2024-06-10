@@ -674,10 +674,10 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     function pickInCodeOrder(ids: Set<NodeId>): NodeId[] {
       assert(syncModule.value != null)
       const func = unwrap(getExecutedMethodAst(syncModule.value))
-      const lines = func.body instanceof Ast.BodyBlock ? func.body.lines : []
+      const body = func.bodyExpressions()
       const result: NodeId[] = []
-      for (const line of lines) {
-        const id = line.expression?.node.id
+      for (const expr of body) {
+        const id = expr?.id
         const nodeId = db.getOuterExpressionNodeId(id)
         if (nodeId && ids.has(nodeId)) result.push(nodeId)
       }
