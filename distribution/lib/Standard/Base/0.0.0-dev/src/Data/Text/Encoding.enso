@@ -97,7 +97,7 @@ type Encoding
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset or null if it is the Default encoding.
        This method should only be used in places where a null Charset is expected - i.e. places aware of the Default encoding.
-    to_java_charset_or_null self -> Charset ! Illegal_Argument = case self of
+    to_java_charset_or_null self -> (Charset | Nothing) ! Illegal_Argument = case self of
         Encoding.Value charset_name ->
             Panic.catch UnsupportedCharsetException (Charset.forName charset_name) _->
                 Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + charset_name))
