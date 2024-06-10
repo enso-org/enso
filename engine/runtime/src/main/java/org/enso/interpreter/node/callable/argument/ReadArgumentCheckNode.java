@@ -98,7 +98,8 @@ public abstract class ReadArgumentCheckNode extends Node {
         builder.append(separatorWithSpace);
       }
 
-      // If the part contains a space, it means it is not a single type but already a more complex expression with a separator.
+      // If the part contains a space, it means it is not a single type but already a more complex
+      // expression with a separator.
       // So to ensure we don't mess up the expression layers, we need to add parentheses around it.
       boolean needsParentheses = part.contains(" ");
       if (needsParentheses) {
@@ -226,9 +227,10 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Override
     String expectedTypeMessage() {
-      var parts = Arrays.stream(checks)
-          .map(ReadArgumentCheckNode::expectedTypeMessage)
-          .collect(Collectors.toList());
+      var parts =
+          Arrays.stream(checks)
+              .map(ReadArgumentCheckNode::expectedTypeMessage)
+              .collect(Collectors.toList());
       return joinTypeParts(parts, "&");
     }
   }
@@ -271,9 +273,10 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Override
     String expectedTypeMessage() {
-      var parts = Arrays.stream(checks)
-          .map(ReadArgumentCheckNode::expectedTypeMessage)
-          .collect(Collectors.toList());
+      var parts =
+          Arrays.stream(checks)
+              .map(ReadArgumentCheckNode::expectedTypeMessage)
+              .collect(Collectors.toList());
       return joinTypeParts(parts, "|");
     }
   }

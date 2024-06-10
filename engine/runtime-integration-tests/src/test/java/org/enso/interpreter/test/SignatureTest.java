@@ -924,7 +924,6 @@ public class SignatureTest {
     }
   }
 
-
   @Test
   public void unresolvedReturnTypeSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
@@ -1264,9 +1263,11 @@ public class SignatureTest {
     }
   }
 
-
   /**
-   * The `!` part in the type signature is currently only for documentation purposes - it is not checked. Other kinds of dataflow errors may be returned as well and this is not an error. In particular, we don't distinguish errors raised by the function from errors propagate from its inputs.
+   * The `!` part in the type signature is currently only for documentation purposes - it is not
+   * checked. Other kinds of dataflow errors may be returned as well and this is not an error. In
+   * particular, we don't distinguish errors raised by the function from errors propagate from its
+   * inputs.
    */
   @Test
   public void returnTypeCheckErrorSignatureAllowsAllErrors() throws Exception {
@@ -1278,7 +1279,7 @@ public class SignatureTest {
     from Standard.Base import Integer, Error
     import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     import Standard.Base.Errors.Illegal_State.Illegal_State
-    
+
     foo a -> Integer ! Illegal_State =
         Error.throw (Illegal_Argument.Error "foo: "+a.to_text)
     """,
@@ -1314,14 +1315,14 @@ public class SignatureTest {
     assertEquals("..", foo.execute(".").asString());
 
     try {
-      Object vec = new Integer[] {1,2,3};
+      Object vec = new Integer[] {1, 2, 3};
       var res = foo.execute(vec);
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected the result of `foo` to be Integer | Text, but got Vector", e.getMessage());
+      assertContains(
+          "expected the result of `foo` to be Integer | Text, but got Vector", e.getMessage());
     }
   }
-
 
   @Test
   public void returnTypeCheckProduct() throws Exception {
@@ -1334,7 +1335,7 @@ public class SignatureTest {
     type Clazz
         Value a
     Clazz.from (that : Integer) = Clazz.Value that
-    
+
     foo a -> (Integer | Text) & Clazz =
         a+a
     """,
@@ -1350,7 +1351,9 @@ public class SignatureTest {
       var res = foo.execute(".");
       fail("Expecting an exception, not: " + res);
     } catch (PolyglotException e) {
-      assertContains("expected the result of `foo` to be (Integer | Text) & Clazz, but got Text", e.getMessage());
+      assertContains(
+          "expected the result of `foo` to be (Integer | Text) & Clazz, but got Text",
+          e.getMessage());
     }
   }
 
