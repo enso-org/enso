@@ -139,7 +139,7 @@ function portGroupStyle(port: PortData) {
   --horizontal-line: calc(var(--node-width) - var(--node-border-radius) * 2);
   --vertical-line: calc(var(--node-height) - var(--node-border-radius) * 2);
   --radius-arclength: calc(
-    (var(--node-border-radius) + var(--output-port-width) * 0.5) * 2 * var(--pi)
+    (var(--node-border-radius) + var(--output-port-width) * 0.5) * 2 * calc(pi)
   );
 
   stroke-dasharray: calc(var(--horizontal-line) + var(--radius-arclength) * 0.5) 10000%;

@@ -57,11 +57,6 @@
   --right-dock-default-width: 40%;
 }
 
-/* Constants */
-:root {
-  --pi: 3.141592653589793;
-}
-
 *,
 *::before,
 *::after {
