@@ -1,6 +1,7 @@
 /** @file Form component. */
 import * as React from 'react'
 
+import * as sentry from '@sentry/react'
 import * as reactQuery from '@tanstack/react-query'
 import * as reactHookForm from 'react-hook-form'
 
@@ -8,6 +9,9 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 
+import * as errorUtils from '#/utilities/error'
+
+import * as dialog from '../Dialog'
 import * as components from './components'
 import * as styles from './styles'
 import type * as types from './types'
@@ -46,6 +50,7 @@ export const Form = React.forwardRef(function Form<
     schema,
     defaultValues,
     gap,
+    method,
     ...formProps
   } = props
 
@@ -63,19 +68,39 @@ export const Form = React.forwardRef(function Form<
     }
   )
 
+  const dialogContext = dialog.useDialogContext()
+
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
 
   const formMutation = reactQuery.useMutation({
-    mutationKey: ['FormSubmit', testId, id],
+    // We use template literals to make the mutation key more readable in the devtools
+    // This mutation exists only for debug purposes - React Query dev tools record the mutation,
+    // the result, and the variables(form fields).
+    // In general, prefer using object literals for the mutation key.
+    mutationKey: ['Form submission', `testId: ${testId}`, `id: ${id}`],
     mutationFn: async (fieldValues: TFieldValues) => {
       try {
         await onSubmit(fieldValues, innerForm)
+
+        if (method === 'dialog') {
+          dialogContext?.close()
+        }
       } catch (error) {
-        innerForm.setError('root.submit', {
-          message: error instanceof Error ? error.message : getText('arbitraryFormErrorMessage'),
-        })
-        // TODO: Should we throw the error here?
-        // Or should we just log it?
+        const isJSError = errorUtils.isJSError(error)
+
+        if (isJSError) {
+          sentry.captureException(error, {
+            contexts: { form: { values: fieldValues } },
+          })
+        }
+
+        const message = isJSError
+          ? getText('arbitraryFormErrorMessage')
+          : errorUtils.tryGetMessage(error, getText('arbitraryFormErrorMessage'))
+
+        innerForm.setError('root.submit', { message })
+
+        // We need to throw the error to make the mutation fail
         // eslint-disable-next-line no-restricted-syntax
         throw error
       }
@@ -99,39 +124,53 @@ export const Form = React.forwardRef(function Form<
     unregister,
     setFocus,
     reset,
+    control,
   } = innerForm
 
-  const formStateRenderProps: types.FormStateRenderProps<Schema, TFieldValues> = {
-    formState,
-    register: (name, options) => {
-      const registered = register(name, options)
+  const formStateRenderProps: types.FormStateRenderProps<Schema, TFieldValues, TTransformedValues> =
+    {
+      formState,
+      register: (name, options) => {
+        const registered = register(name, options)
 
-      const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = value => {
-        if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
-          return registered.onChange(value)
-        } else {
-          return registered.onChange({ target: { event: value } })
+        /**
+         * Maps the value to the event object.
+         */
+        function mapValueOnEvent(value: unknown) {
+          if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
+            return value
+          } else {
+            return { target: { value } }
+          }
         }
-      }
 
-      const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
-        ...registered,
-        ...(registered.disabled != null ? { isDisabled: registered.disabled } : {}),
-        ...(registered.required != null ? { isRequired: registered.required } : {}),
-        isInvalid: !!formState.errors[name],
-        onChange,
-      }
+        const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = value =>
+          registered.onChange(mapValueOnEvent(value))
 
-      return result
-    },
-    unregister,
-    setError,
-    clearErrors,
-    getValues,
-    setValue,
-    setFocus,
-    reset,
-  }
+        const onBlur: types.UseFormRegisterReturn<Schema, TFieldValues>['onBlur'] = value =>
+          registered.onBlur(mapValueOnEvent(value))
+
+        const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
+          ...registered,
+          ...(registered.disabled != null ? { isDisabled: registered.disabled } : {}),
+          ...(registered.required != null ? { isRequired: registered.required } : {}),
+          isInvalid: !!formState.errors[name],
+          onChange,
+          onBlur,
+        }
+
+        return result
+      },
+      unregister,
+      setError,
+      clearErrors,
+      getValues,
+      setValue,
+      setFocus,
+      reset,
+      control,
+      form: innerForm,
+    }
 
   const base = styles.FORM_STYLES({
     className: typeof className === 'function' ? className(formStateRenderProps) : className,
@@ -177,8 +216,10 @@ export const Form = React.forwardRef(function Form<
   /* eslint-disable @typescript-eslint/naming-convention */
   schema: typeof components.schema
   useForm: typeof components.useForm
+  useField: typeof components.useField
   Submit: typeof components.Submit
   Reset: typeof components.Reset
+  Field: typeof components.Field
   FormError: typeof components.FormError
   useFormSchema: typeof components.useFormSchema
   /* eslint-enable @typescript-eslint/naming-convention */
@@ -186,7 +227,9 @@ export const Form = React.forwardRef(function Form<
 
 Form.schema = components.schema
 Form.useForm = components.useForm
+Form.useField = components.useField
+Form.useFormSchema = components.useFormSchema
 Form.Submit = components.Submit
 Form.Reset = components.Reset
 Form.FormError = components.FormError
-Form.useFormSchema = components.useFormSchema
+Form.Field = components.Field

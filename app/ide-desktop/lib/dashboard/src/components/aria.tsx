@@ -7,6 +7,7 @@ export * from 'react-aria'
 export * from 'react-aria-components'
 // @ts-expect-error The conflicting exports are props types ONLY.
 export * from '@react-stately/overlays'
+export * from '@react-stately/tooltip'
 
 // ==================
 // === mergeProps ===

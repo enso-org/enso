@@ -1040,11 +1040,14 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Log an event that will be visible in the organization audit log. */
-  async logEvent(
-    message: string,
-    projectId?: string | null,
-    metadata?: object | null
-  ): Promise<void> {
+  async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
+    // Prevent events from being logged in dev mode, since we are often using production environment
+    // and are polluting real logs.
+    if (detect.IS_DEV_MODE && process.env.ENSO_CLOUD_ENVIRONMENT === 'production') {
+      // eslint-disable-next-line no-restricted-syntax
+      return
+    }
+
     const path = remoteBackendPaths.POST_LOG_EVENT_PATH
     const response = await this.post(
       path,

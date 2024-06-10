@@ -97,7 +97,6 @@ export default function UserBar(props: UserBarProps) {
           </ariaComponents.Button>
           {shouldShowShareButton && (
             <ariaComponents.Button
-              rounded="full"
               size="xsmall"
               variant="tertiary"
               className="h-row"

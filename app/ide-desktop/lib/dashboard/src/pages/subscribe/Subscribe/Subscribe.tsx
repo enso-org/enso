@@ -1,13 +1,10 @@
 /** @file A page in which the currently active payment plan can be changed. */
 import * as React from 'react'
 
-import * as stripeReact from '@stripe/react-stripe-js'
-import * as stripe from '@stripe/stripe-js/pure'
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 
 import Back from 'enso-assets/arrow_left.svg'
-import * as load from 'enso-common/src/load'
 
 import * as appUtils from '#/appUtils'
 
@@ -16,17 +13,20 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as components from '#/pages/subscribe/Subscribe/components'
-import * as componentForPlan from '#/pages/subscribe/Subscribe/getComponentForPlan'
-
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
 
-// =================
-// === Subscribe ===
-// =================
+import * as components from './components'
+import * as componentForPlan from './getComponentForPlan'
+
+/**
+ * The mutation data for the `onCompleteMutation` mutation.
+ */
+interface CreateCheckoutSessionMutation {
+  readonly plan: backendModule.Plan
+  readonly paymentMethodId: string
+}
 
 /** A page in which the currently active payment plan can be changed.
  *
@@ -44,39 +44,18 @@ import * as backendModule from '#/services/Backend'
 export function Subscribe() {
   const navigate = navigateHooks.useNavigate()
   const { getText } = textProvider.useText()
+
   const [searchParams] = router.useSearchParams()
   const backend = backendProvider.useRemoteBackendStrict()
+
   const plan = searchParams.get('plan')
 
-  const { data: stripeInstance } = reactQuery.useSuspenseQuery({
-    queryKey: ['stripe', process.env.ENSO_CLOUD_STRIPE_KEY],
-    staleTime: Infinity,
-    queryFn: async () => {
-      const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
-      if (stripeKey == null) {
-        throw new Error('Stripe key not found')
-      } else {
-        return load
-          .loadScript('https://js.stripe.com/v3/')
-          .then(script =>
-            stripe.loadStripe(stripeKey).finally(() => {
-              script.remove()
-            })
-          )
-          .then(maybeStripeInstance => {
-            if (maybeStripeInstance == null) {
-              throw new Error('Stripe instance not found')
-            } else {
-              return maybeStripeInstance
-            }
-          })
-      }
-    },
-  })
-
   const onCompleteMutation = reactQuery.useMutation({
-    mutationFn: async (data: backendModule.CreateCheckoutSessionRequestParams) => {
-      const { id } = await backend.createCheckoutSession(data)
+    mutationFn: async (mutationData: CreateCheckoutSessionMutation) => {
+      const { id } = await backend.createCheckoutSession({
+        plan: mutationData.plan,
+        paymentMethodId: mutationData.paymentMethodId,
+      })
       return backend.getCheckoutSession(id)
     },
     onSuccess: (data, mutationData) => {
@@ -93,67 +72,58 @@ export function Subscribe() {
 
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto bg-hover-bg text-xs text-primary">
-      <stripeReact.Elements stripe={stripeInstance}>
-        <stripeReact.ElementsConsumer>
-          {({ elements }) => {
-            if (elements == null) {
-              return null
-            } else {
+      <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
+        <div className="flex flex-col items-start">
+          <ariaComponents.Button
+            variant="icon"
+            icon={Back}
+            href={appUtils.DASHBOARD_PATH}
+            className="-ml-2"
+          >
+            {getText('returnToDashboard')}
+          </ariaComponents.Button>
+
+          <ariaComponents.Text.Heading
+            level={1}
+            variant="custom"
+            className="mb-5 self-start text-start text-4xl"
+          >
+            {getText('subscribeTitle')}
+          </ariaComponents.Text.Heading>
+        </div>
+
+        <div className="w-full rounded-default bg-selected-frame p-8">
+          <div className="flex gap-6 overflow-auto scroll-hidden">
+            {backendModule.PLANS.map(newPlan => {
+              const planProps = componentForPlan.getComponentPerPlan(newPlan, getText)
+
               return (
-                <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
-                  <div className="flex flex-col items-start">
-                    <ariaComponents.Button
-                      variant="icon"
-                      icon={Back}
-                      href={appUtils.DASHBOARD_PATH}
-                      className="-ml-2"
-                    >
-                      {getText('returnToDashboard')}
-                    </ariaComponents.Button>
-                    <aria.Heading level={1} className="mb-5 self-start text-start text-4xl">
-                      {getText('subscribeTitle')}
-                    </aria.Heading>
-                  </div>
-
-                  <div className="w-full rounded-default bg-selected-frame p-8">
-                    <div className="flex gap-6 overflow-auto scroll-hidden">
-                      {backendModule.PLANS.map(newPlan => {
-                        const planProps = componentForPlan.getComponentForPlan(newPlan, getText)
-
-                        return (
-                          <components.Card
-                            key={newPlan}
-                            className="min-w-64 flex-1"
-                            features={planProps.features}
-                            subtitle={planProps.subtitle}
-                            title={planProps.title}
-                            submitButton={
-                              <planProps.submitButton
-                                onSubmit={async paymentMethodId => {
-                                  await onCompleteMutation.mutateAsync({
-                                    plan: newPlan,
-                                    paymentMethodId,
-                                  })
-                                }}
-                                elements={elements}
-                                stripe={stripeInstance}
-                                plan={newPlan}
-                                defaultOpen={newPlan === plan}
-                              />
-                            }
-                            learnMore={<planProps.learnMore />}
-                            pricing={planProps.pricing}
-                          />
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
+                <components.Card
+                  key={newPlan}
+                  className="min-w-64 flex-1"
+                  features={planProps.features}
+                  subtitle={planProps.subtitle}
+                  title={planProps.title}
+                  submitButton={
+                    <planProps.submitButton
+                      onSubmit={async paymentMethodId => {
+                        await onCompleteMutation.mutateAsync({
+                          plan: newPlan,
+                          paymentMethodId,
+                        })
+                      }}
+                      plan={newPlan}
+                      defaultOpen={newPlan === plan}
+                    />
+                  }
+                  learnMore={<planProps.learnMore />}
+                  pricing={planProps.pricing}
+                />
               )
-            }
-          }}
-        </stripeReact.ElementsConsumer>
-      </stripeReact.Elements>
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

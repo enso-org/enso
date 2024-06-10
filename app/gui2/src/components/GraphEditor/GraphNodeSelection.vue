@@ -21,19 +21,22 @@ const visible = computed(() => props.selected || props.externalHovered || hovere
 
 watchEffect(() => emit('visible', visible.value))
 
-const transform = computed(() => {
+const rootStyle = computed(() => {
   const { x, y } = props.nodePosition
-  return `translate(${x}px, ${y}px)`
+  return {
+    transform: `translate(${x}px, ${y}px)`,
+    '--node-size-x': `${props.nodeSize.x}px`,
+    '--node-size-y': `${props.nodeSize.y}px`,
+    '--selection-color': props.color,
+  }
 })
-const nodeWidthPx = computed(() => `${props.nodeSize.x}px`)
-const nodeHeightPx = computed(() => `${props.nodeSize.y}px`)
 </script>
 
 <template>
   <div
     class="GraphNodeSelection"
     :class="{ visible, selected: props.selected }"
-    :style="{ transform }"
+    :style="rootStyle"
     :data-node-id="props.nodeId"
     @pointerenter="hovered = true"
     @pointerleave="hovered = false"
@@ -44,8 +47,9 @@ const nodeHeightPx = computed(() => `${props.nodeSize.y}px`)
 .GraphNodeSelection {
   position: absolute;
   inset: calc(0px - var(--selected-node-border-width));
-  width: calc(var(--selected-node-border-width) * 2 + v-bind('nodeWidthPx'));
-  height: calc(var(--selected-node-border-width) * 2 + v-bind('nodeHeightPx'));
+  width: calc(var(--selected-node-border-width) * 2 + var(--node-size-x));
+  height: calc(var(--selected-node-border-width) * 2 + var(--node-size-y));
+  border-radius: calc(var(--node-border-radius) + var(--selected-node-border-width));
 
   &:before {
     position: absolute;
@@ -53,7 +57,7 @@ const nodeHeightPx = computed(() => `${props.nodeSize.y}px`)
     opacity: 0.2;
     display: block;
     inset: var(--selected-node-border-width);
-    box-shadow: 0 0 0 calc(0px - var(--node-border-radius)) v-bind('props.color');
+    box-shadow: 0 0 0 calc(0px - var(--node-border-radius)) var(--selection-color);
     border-radius: var(--node-border-radius);
 
     transition:
@@ -63,7 +67,7 @@ const nodeHeightPx = computed(() => `${props.nodeSize.y}px`)
 }
 
 .GraphNodeSelection.visible::before {
-  box-shadow: 0 0 0 var(--selected-node-border-width) v-bind('props.color');
+  box-shadow: 0 0 0 var(--selected-node-border-width) var(--selection-color);
 }
 
 .GraphNodeSelection:not(.selected):hover::before {

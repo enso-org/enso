@@ -42,6 +42,7 @@ public abstract class EnsoRootNode extends RootNode {
     super(language, buildFrameDescriptor(localScope));
     Objects.requireNonNull(language);
     Objects.requireNonNull(localScope);
+    Objects.requireNonNull(moduleScope);
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;

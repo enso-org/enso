@@ -26,7 +26,7 @@ export interface SvgMaskProps {
 
 /** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
 export default function SvgMask(props: SvgMaskProps) {
-  const { invert = false, alt, src, style, color, className } = props
+  const { invert = false, alt = '', src, style, color, className } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
 

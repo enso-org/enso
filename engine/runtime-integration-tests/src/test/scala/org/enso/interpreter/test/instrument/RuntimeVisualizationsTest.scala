@@ -2211,7 +2211,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 None,
                 Vector(
                   Api.StackTraceElement(
-                    "<anonymous>",
+                    "<inline_source>.Enso_Test.Test.Main",
                     None,
                     Some(
                       model.Range(model.Position(0, 5), model.Position(0, 19))

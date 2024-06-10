@@ -45,7 +45,6 @@ import scala.collection.immutable.ListSet
     )
   )
 )
-@SerialVersionUID(9650L)
 sealed trait Suggestion extends ToLogString {
 
   def externalId:    Option[Suggestion.ExternalID]
