@@ -53,6 +53,11 @@ const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
 const CONTENT_PADDING_RIGHT_PX = `${CONTENT_PADDING_RIGHT}px`
 const MENU_CLOSE_TIMEOUT_MS = 300
 
+const contentNodeStyle = {
+  padding: CONTENT_PADDING_PX,
+  paddingRight: CONTENT_PADDING_RIGHT_PX,
+}
+
 const props = defineProps<{
   node: Node
   edited: boolean
@@ -577,6 +582,7 @@ watchEffect(() => {
     <div
       ref="contentNode"
       :class="{ content: true, dragged: isDragged }"
+      :style="contentNodeStyle"
       v-on="dragPointer.events"
       @click="handleNodeClick"
     >
@@ -751,8 +757,6 @@ watchEffect(() => {
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  padding: v-bind('CONTENT_PADDING_PX');
-  padding-right: v-bind('CONTENT_PADDING_RIGHT_PX');
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;

@@ -7,6 +7,7 @@ import * as settingsData from '#/layouts/Settings/settingsData'
 import type SettingsTabType from '#/layouts/Settings/SettingsTabType'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
 
@@ -52,19 +53,21 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                 >
                   {name}
                 </aria.Header>
-                {section.tabs.map(tab => (
-                  <SidebarTabButton
-                    key={tab.settingsTab}
-                    isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
-                    id={tab.settingsTab}
-                    icon={tab.icon}
-                    label={getText(tab.nameId)}
-                    active={tab.settingsTab === settingsTab}
-                    onPress={() => {
-                      setSettingsTab(tab.settingsTab)
-                    }}
-                  />
-                ))}
+                <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
+                  {section.tabs.map(tab => (
+                    <SidebarTabButton
+                      key={tab.settingsTab}
+                      isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
+                      id={tab.settingsTab}
+                      icon={tab.icon}
+                      label={getText(tab.nameId)}
+                      active={tab.settingsTab === settingsTab}
+                      onPress={() => {
+                        setSettingsTab(tab.settingsTab)
+                      }}
+                    />
+                  ))}
+                </ariaComponents.ButtonGroup>
               </div>
             )
           })}

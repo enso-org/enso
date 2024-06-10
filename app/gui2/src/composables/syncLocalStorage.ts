@@ -119,17 +119,12 @@ export function useSyncLocalStorage<StoredState extends Object>(
 
   async function restoreState(storageKey: string) {
     abortLastRestore()
-    assert(restoreIdInProgress.value == null)
 
     const thisRestoreId = nextRestoreId++
     restoreIdInProgress.value = thisRestoreId
     const restored = storageMap.value.get(storageKey)
 
     restoreAbort = abortScope.child()
-    restoreAbort.onAbort(() => {
-      if (restoreIdInProgress.value === thisRestoreId) restoreIdInProgress.value = undefined
-    })
-
     try {
       await restoreStateInCtx(restored, restoreAbort.signal)
     } catch (e) {

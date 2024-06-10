@@ -374,7 +374,7 @@ type Array
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -382,7 +382,7 @@ type Array
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -413,7 +413,7 @@ type Array
        - on_problems: Specifies how to handle any problems that arise in
          `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -421,7 +421,7 @@ type Array
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -660,7 +660,7 @@ type Array
        The function is called with both the element index as well as the
        element itself.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -668,7 +668,7 @@ type Array
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.
@@ -883,7 +883,7 @@ type Array
        The result of this function is a `Vector` of length being the shorter of
        `self` and `that`, containing results of calling `function`.
 
-       ? Problem Handling
+       ! Error Conditions
 
          The result of Errors thrown when executing the function depend on
          `on_problems`:
@@ -891,7 +891,7 @@ type Array
            `Map_Error`.
          - No_Wrap: The first error is thrown, and is not wrapped in
            `Map_Error`.
-         - Report_Warning: The result for that element is `Nothing`, 
+         - Report_Warning: The result for that element is `Nothing`,
            the error is attached as a warning. Currently unimplemented.
          - Ignore: The result is `Nothing`, and the error is
            ignored.

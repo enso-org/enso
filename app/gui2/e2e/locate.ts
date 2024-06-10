@@ -45,21 +45,21 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 }
 
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByTitle('Visualization')
+  return page.getByLabel('Visualization')
 }
 
 export function toggleVisualizationSelectorButton(page: Locator | Page) {
-  return page.getByTitle('Visualization Selector')
+  return page.getByLabel('Visualization Selector')
 }
 
 // === Fullscreen ===
 
 export function enterFullscreenButton(page: Locator | Page) {
-  return page.getByTitle('Fullscreen')
+  return page.getByLabel('Fullscreen')
 }
 
 export function exitFullscreenButton(page: Locator | Page) {
-  return page.getByTitle('Exit Fullscreen')
+  return page.getByLabel('Exit Fullscreen')
 }
 
 export const toggleFullscreenButton = or(enterFullscreenButton, exitFullscreenButton)
@@ -104,6 +104,7 @@ export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
 export const nodeOutputPort = componentLocator('outputPortHoverArea')
 export const smallPlusButton = componentLocator('SmallPlusButton')
+export const lexicalContent = componentLocator('LexicalContent')
 
 export function componentBrowserEntry(
   page: Locator | Page,
@@ -125,6 +126,10 @@ export function componentBrowserSelectedEntry(
 
 export function componentBrowserEntryByLabel(page: Locator | Page, label: string) {
   return componentBrowserEntry(page).filter({ has: page.getByText(label) })
+}
+
+export function rightDock(page: Page) {
+  return page.getByTestId('rightDock')
 }
 
 export const navBreadcrumb = componentLocator('NavBreadcrumb')

@@ -335,24 +335,26 @@ export default function Drive(props: DriveProps) {
           testId="not-enabled-stub"
           subtitle={`${getText('notEnabledSubtitle')}${!supportsLocalBackend ? ' ' + getText('downloadFreeEditionMessage') : ''}`}
         >
-          {!supportsLocalBackend && (
-            <ariaComponents.Button
-              variant="primary"
-              size="medium"
-              rounded="full"
-              data-testid="download-free-edition"
-              onPress={async () => {
-                const downloadUrl = await github.getDownloadUrl()
-                if (downloadUrl == null) {
-                  toastAndLog('noAppDownloadError')
-                } else {
-                  download.download(downloadUrl)
-                }
-              }}
-            >
-              {getText('downloadFreeEdition')}
-            </ariaComponents.Button>
-          )}
+          <ariaComponents.ButtonGroup align="center">
+            {!supportsLocalBackend && (
+              <ariaComponents.Button
+                variant="primary"
+                size="medium"
+                rounded="full"
+                data-testid="download-free-edition"
+                onPress={async () => {
+                  const downloadUrl = await github.getDownloadUrl()
+                  if (downloadUrl == null) {
+                    toastAndLog('noAppDownloadError')
+                  } else {
+                    download.download(downloadUrl)
+                  }
+                }}
+              >
+                {getText('downloadFreeEdition')}
+              </ariaComponents.Button>
+            )}
+          </ariaComponents.ButtonGroup>
         </result.Result>
       )
     }

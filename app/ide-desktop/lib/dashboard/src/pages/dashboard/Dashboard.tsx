@@ -463,7 +463,7 @@ export default function Dashboard(props: DashboardProps) {
   }, [page, setPage])
 
   return (
-    <Page hideInfoBar>
+    <Page hideInfoBar hideChat>
       <div
         className={`flex text-xs text-primary ${
           page === pageSwitcher.Page.editor ? 'pointer-events-none cursor-none' : ''
@@ -555,6 +555,7 @@ export default function Dashboard(props: DashboardProps) {
               category={Category.home}
               labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
+              dispatchAssetListEvent={dispatchAssetListEvent}
               isReadonly={category === Category.trash}
             />
           )}

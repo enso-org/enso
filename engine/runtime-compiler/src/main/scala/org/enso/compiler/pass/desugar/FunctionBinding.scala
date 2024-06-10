@@ -99,6 +99,7 @@ case object FunctionBinding extends IRPass {
             name,
             args,
             body,
+            _,
             location,
             canBeTCO,
             passData,
@@ -141,9 +142,23 @@ case object FunctionBinding extends IRPass {
           "Conversion method nodes should not exist during function binding " +
           "desugaring."
         )
+
+      // Conversion methods cannot be specified as private
+      case meth @ definition.Method.Binding(
+            methRef,
+            _,
+            isPrivate,
+            _,
+            _,
+            _,
+            _
+          ) if isPrivate && methRef.methodName.name == conversionMethodName =>
+        errors.Conversion(meth, errors.Conversion.DeclaredAsPrivate)
+
       case meth @ definition.Method.Binding(
             methRef,
             args,
+            isPrivate,
             body,
             loc,
             passData,
@@ -161,6 +176,7 @@ case object FunctionBinding extends IRPass {
           new definition.Method.Explicit(
             methRef,
             newBody,
+            isPrivate,
             loc,
             passData,
             diagnostics
@@ -174,6 +190,7 @@ case object FunctionBinding extends IRPass {
               errors.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
+            assert(!isPrivate, "Should be handled by previous match")
             val firstArg :: restArgs = args
             val firstArgumentType    = firstArg.ascribedType.get
             val firstArgumentName    = firstArg.name

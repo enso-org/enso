@@ -166,6 +166,7 @@ trait CompilerRunner {
           None
         ),
         ir,
+        false,
         None
       )
     }

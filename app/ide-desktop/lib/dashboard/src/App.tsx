@@ -89,7 +89,6 @@ import * as object from '#/utilities/object'
 import * as authServiceModule from '#/authentication/service'
 
 import type * as types from '../../types/types'
-import * as reactQueryDevtools from './ReactQueryDevtools'
 
 // ============================
 // === Global configuration ===
@@ -150,6 +149,7 @@ export interface AppProps {
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
   readonly appRunner: types.EditorRunner | null
+  readonly portalRoot: Element
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -173,12 +173,6 @@ export default function App(props: AppProps) {
     },
   })
 
-  const routerFuture: Partial<router.FutureConfig> = {
-    /* we want to use startTransition to enable concurrent rendering */
-    /* eslint-disable-next-line @typescript-eslint/naming-convention */
-    v7_startTransition: true,
-  }
-
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
@@ -193,15 +187,13 @@ export default function App(props: AppProps) {
         transition={toastify.Zoom}
         limit={3}
       />
-      <router.BrowserRouter basename={getMainPageUrl().pathname} future={routerFuture}>
+      <router.BrowserRouter basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
           </ModalProvider>
         </LocalStorageProvider>
       </router.BrowserRouter>
-
-      <reactQueryDevtools.ReactQueryDevtools />
     </>
   )
 }
@@ -223,6 +215,7 @@ export interface AppRouterProps extends AppProps {
 function AppRouter(props: AppRouterProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
+  const { portalRoot } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
   // eslint-disable-next-line no-restricted-properties
@@ -235,9 +228,6 @@ function AppRouter(props: AppRouterProps) {
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
-  const [root] = React.useState<React.RefObject<HTMLElement>>(() => ({
-    current: document.getElementById('enso-dashboard'),
-  }))
 
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
@@ -489,7 +479,7 @@ function AppRouter(props: AppRouterProps) {
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
   result = (
-    <rootComponent.Root rootRef={root} navigate={navigate}>
+    <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
       {result}
     </rootComponent.Root>
   )

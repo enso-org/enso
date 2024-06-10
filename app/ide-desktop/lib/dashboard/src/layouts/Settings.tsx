@@ -49,6 +49,7 @@ export default function Settings() {
   const root = portal.useStrictPortalContext()
   const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
+
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
     id: user?.organizationId ?? backendModule.OrganizationId(''),
     name: null,
@@ -56,6 +57,7 @@ export default function Settings() {
     website: null,
     address: null,
     picture: null,
+    subscription: {},
   }))
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
@@ -154,7 +156,7 @@ export default function Settings() {
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
-          <aria.Popover UNSTABLE_portalContainer={root.current}>
+          <aria.Popover UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu
               isUserInOrganization={isUserInOrganization}
