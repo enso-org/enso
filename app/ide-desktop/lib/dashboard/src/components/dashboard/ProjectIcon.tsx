@@ -86,8 +86,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const itemRef = React.useRef(item)
-  itemRef.current = item
   const state = item.projectState.type
   const setState = React.useCallback(
     (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -120,7 +118,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
   const toastId: toast.Id = React.useId()
-  const isOpening = backendModule.IS_OPENING[item.projectState.type]
+  const isOpening =
+    backendModule.IS_OPENING[item.projectState.type] &&
+    item.projectState.type !== backendModule.ProjectState.placeholder
   const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
     isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
@@ -178,9 +178,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         toast.toast.loading(LOADING_MESSAGE, { toastId })
       }
       const project = await waitUntilProjectIsReadyMutation.mutateAsync([
-        itemRef.current.id,
-        itemRef.current.parentId,
-        itemRef.current.title,
+        item.id,
+        item.parentId,
+        item.title,
         abortController,
       ])
       setProjectStartupInfo({

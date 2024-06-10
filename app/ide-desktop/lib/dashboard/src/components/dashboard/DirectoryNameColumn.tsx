@@ -166,17 +166,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <Button
-        image={FolderArrowIcon}
-        alt={item.children == null ? getText('expand') : getText('collapse')}
-        className={tailwindMerge.twMerge(
-          'm-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block',
-          item.children != null && 'rotate-90'
-        )}
-        onPress={() => {
-          doToggleDirectoryExpansion(asset.id, item.key, asset.title)
-        }}
-      />
+      <div className="m-name-column-icon hidden group-hover:inline-block">
+        <Button
+          image={FolderArrowIcon}
+          alt={item.children == null ? getText('expand') : getText('collapse')}
+          tooltipPlacement="left"
+          className={tailwindMerge.twMerge(
+            'size-icon cursor-pointer transition-transform duration-arrow',
+            item.children != null && 'rotate-90'
+          )}
+          onPress={() => {
+            doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+          }}
+        />
+      </div>
       <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
       <EditableSpan
         data-testid="asset-row-name"

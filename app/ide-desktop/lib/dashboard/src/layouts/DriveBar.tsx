@@ -117,27 +117,23 @@ export default function DriveBar(props: DriveBarProps) {
           <HorizontalMenuBar>
             <aria.DialogTrigger>
               <ariaComponents.Button
-                size="custom"
-                variant="custom"
-                className="relative flex h-row items-center rounded-full px-new-project-button-x text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90"
+                size="medium"
+                variant="tertiary"
+                className="px-2.5"
                 onPress={() => {}}
               >
-                <aria.Text className="text relative whitespace-nowrap font-bold">
-                  {getText('startWithATemplate')}
-                </aria.Text>
+                {getText('startWithATemplate')}
               </ariaComponents.Button>
               <StartModal createProject={doCreateProject} />
             </aria.DialogTrigger>
             <ariaComponents.Button
-              size="custom"
+              size="medium"
               variant="bar"
               onPress={() => {
                 doCreateProject()
               }}
             >
-              <aria.Text className="text whitespace-nowrap font-bold">
-                {getText('newEmptyProject')}
-              </aria.Text>
+              {getText('newEmptyProject')}
             </ariaComponents.Button>
             <div className="flex h-row items-center gap-icons rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
               <Button

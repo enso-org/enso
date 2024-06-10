@@ -112,7 +112,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 variant="custom"
                 key={data.type}
                 className={tailwindMerge.twMerge(
-                  'flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5',
+                  'flex h-row items-start justify-stretch gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5',
                   type === data.type && 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent'
                 )}
                 onPress={() => {
@@ -121,7 +121,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
               >
                 <div
                   className={tailwindMerge.twMerge(
-                    'h-full w-permission-type rounded-full py-permission-type-y',
+                    'h-text w-permission-type rounded-full py-permission-type-y',
                     permissions.PERMISSION_CLASS_NAME[data.type]
                   )}
                 >
@@ -135,7 +135,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                   <>
                     <div
                       className={tailwindMerge.twMerge(
-                        'h-full w-permission-type rounded-full py-permission-type-y text-center',
+                        'h-text w-permission-type rounded-full py-permission-type-y text-center',
                         permissions.PERMISSION_CLASS_NAME[data.previous]
                       )}
                     >
