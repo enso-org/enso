@@ -6,13 +6,8 @@ import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
-import org.enso.compiler.core.ir.{
-  expression,
-  Diagnostic,
-  IdentifiedLocation,
-  Warning
-}
-import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir
+import org.enso.compiler.core.ir.{expression, IdentifiedLocation}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -34,6 +29,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
+import org.enso.text.editing.model.{IdMap, Span}
 
 import java.io.File
 import java.util.UUID
@@ -114,7 +110,7 @@ final class EnsureCompiledJob(
       case _ =>
     }
     applyEdits(new File(module.getPath)).map { changeset =>
-      compile(module)
+      compile(module, changeset.idMap)
         .map { _ =>
           // Side-effect: ensures that module's source is correctly initialized.
           module.getSource()
@@ -181,8 +177,7 @@ final class EnsureCompiledJob(
             (
               modules
                 .addAll(
-                  compilerResult.compiledModules
-                    .map(Module.fromCompilerModule(_))
+                  compilerResult.compiledModules.map(Module.fromCompilerModule)
                 )
                 .addOne(module),
               statuses += status
@@ -230,7 +225,7 @@ final class EnsureCompiledJob(
       )
       .diagnostics
     val diagnostics = pass.collect {
-      case warn: Warning =>
+      case warn: ir.Warning =>
         createDiagnostic(Api.DiagnosticType.Warning, module, warn)
       case error: Error =>
         createDiagnostic(Api.DiagnosticType.Error, module, error)
@@ -249,11 +244,11 @@ final class EnsureCompiledJob(
   private def createDiagnostic(
     kind: Api.DiagnosticType,
     module: Module,
-    diagnostic: Diagnostic
+    diagnostic: ir.Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
     val source = module.getSource
 
-    def fileLocationFromSection(loc: IdentifiedLocation) = {
+    def fileLocationFromSection(loc: ir.IdentifiedLocation) = {
       val section =
         source.createSection(loc.location().start(), loc.location().length());
       val locStr = "" + section.getStartLine() + ":" + section
@@ -280,19 +275,32 @@ final class EnsureCompiledJob(
   /** Compile the module.
     *
     * @param module the module to compile.
+    * @param idMapOpt the external identifiers
     * @param ctx the runtime context
     * @return the compiled module
     */
   private def compile(
-    module: Module
+    module: Module,
+    idMapOpt: Option[IdMap] = None
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
     try {
       val compilationStage = module.getCompilationStage
-      if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
+      if (
+        !compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)
+        || idMapOpt.isDefined
+      ) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
-        val result = ctx.executionService.getContext.getCompiler
-          .run(module.asCompilerModule())
+        val compiler = ctx.executionService.getContext.getCompiler
+        val result   = compiler.run(module.asCompilerModule())
+
+        idMapOpt.foreach { idMap =>
+          compiler.context.updateModule(
+            module.asCompilerModule(),
+            _.ir(updateIds(module, idMap))
+          )
+        }
+
         Right(
           result.copy(compiledModules =
             result.compiledModules.filter(_.getName != module.getName)
@@ -305,6 +313,21 @@ final class EnsureCompiledJob(
       case e: Throwable =>
         Left(e)
     }
+
+  private def updateIds(module: Module, idMap: IdMap): ir.Module = {
+    module.getIr.mapExpressions { expr =>
+      val newLocation = expr
+        .location()
+        .map { location =>
+          idMap.asMap
+            .get(Span(location.start(), location.end()))
+            .fold(location)(externalId =>
+              new IdentifiedLocation(location.location(), externalId)
+            )
+        }
+      expr.setLocation(newLocation)
+    }
+  }
 
   /** Apply pending edits to the file.
     *

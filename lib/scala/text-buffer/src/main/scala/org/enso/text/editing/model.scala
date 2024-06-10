@@ -1,5 +1,7 @@
 package org.enso.text.editing
 
+import java.util.UUID
+
 object model {
 
   /** A representation of a position in a text file.
@@ -57,5 +59,13 @@ object model {
     * @param text a change to a text file
     */
   case class TextEdit(range: Range, text: String)
+
+  case class Span(start: Int, end: Int) {
+    def length: Int = end - start
+  }
+
+  case class IdMap(values: Vector[(Span, UUID)]) {
+    val asMap: Map[Span, UUID] = values.toMap
+  }
 
 }
