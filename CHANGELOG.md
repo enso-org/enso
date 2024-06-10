@@ -16,12 +16,15 @@
   BOM][10130]
 - [Added `Decimal` column to the in-memory database, with some arithmetic
   operations.][9950]
+- [Implemented `.cast` to and from `Decimal` columns for the in-memory
+  database.][10206]
 
 [debug-shortcuts]:
 
 [9950]: https://github.com/enso-org/enso/pull/9950
 [10122]: https://github.com/enso-org/enso/pull/10122
 [10130]: https://github.com/enso-org/enso/pull/10130
+[10206]: https://github.com/enso-org/enso/pull/10206
 
 <br/>![Release Notes](/docs/assets/tags/release_notes.svg)
 
