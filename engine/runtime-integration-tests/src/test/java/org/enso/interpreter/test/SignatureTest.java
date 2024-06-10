@@ -898,6 +898,34 @@ public class SignatureTest {
   }
 
   @Test
+  public void unionInArgument() throws Exception {
+    var uri = new URI("memory://binary.enso");
+    var src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import all
+    foo (arg : Integer | Text) = arg
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+    var module = ctx.eval(src);
+
+    var ok1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 42");
+    assertEquals(42, ok1.asInt());
+    var ok2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 'Hi'");
+    assertEquals("Hi", ok2.asString());
+    try {
+      var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo []");
+      fail("Expecting an error, not " + v);
+    } catch (PolyglotException ex) {
+      assertTypeError("`arg`", "Integer | Text", "Vector", ex.getMessage());
+    }
+  }
+
+
+  @Test
   public void unresolvedReturnTypeSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
     final Source src =
