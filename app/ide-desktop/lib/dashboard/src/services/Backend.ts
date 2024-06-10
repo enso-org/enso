@@ -676,11 +676,6 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /** A special {@link AssetType} representing the unknown items of a directory, before the
-   * request to retrieve the items completes. */
-  specialLoading = 'specialLoading',
-  /** A special {@link AssetType} representing the sole child of an empty directory. */
-  specialEmpty = 'specialEmpty',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -690,8 +685,6 @@ export interface IdType {
   readonly [AssetType.datalink]: DatalinkId
   readonly [AssetType.secret]: SecretId
   readonly [AssetType.directory]: DirectoryId
-  readonly [AssetType.specialLoading]: LoadingAssetId
-  readonly [AssetType.specialEmpty]: EmptyAssetId
 }
 
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -705,8 +698,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.file]: 2,
   [AssetType.datalink]: 3,
   [AssetType.secret]: 4,
-  [AssetType.specialLoading]: 999,
-  [AssetType.specialEmpty]: 1000,
   /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
@@ -750,12 +741,6 @@ export interface DatalinkAsset extends Asset<AssetType.datalink> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export interface SecretAsset extends Asset<AssetType.secret> {}
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
-export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
-export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
 
 /** Creates a {@link DirectoryAsset} representing the root directory for the organization,
  * with all irrelevant fields initialized to default values. */
@@ -818,38 +803,6 @@ export function createPlaceholderProjectAsset(
   }
 }
 
-/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
- * values. */
-export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
-  return {
-    type: AssetType.specialLoading,
-    title: '',
-    id: LoadingAssetId(uniqueString.uniqueString()),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    labels: [],
-    description: null,
-  }
-}
-
-/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
- * values. */
-export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
-  return {
-    type: AssetType.specialEmpty,
-    title: '',
-    id: EmptyAssetId(uniqueString.uniqueString()),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    labels: [],
-    description: null,
-  }
-}
-
 /** Any object with a `type` field matching the given `AssetType`. */
 interface HasType<Type extends AssetType> {
   readonly type: Type
@@ -857,13 +810,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  | DatalinkAsset
-  | DirectoryAsset
-  | FileAsset
-  | ProjectAsset
-  | SecretAsset
-  | SpecialEmptyAsset
-  | SpecialLoadingAsset,
+  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset,
   HasType<Type>
 >
 
@@ -900,14 +847,6 @@ export function createPlaceholderAssetId<Type extends AssetType>(
     }
     case AssetType.secret: {
       result = SecretId(id)
-      break
-    }
-    case AssetType.specialLoading: {
-      result = LoadingAssetId(id)
-      break
-    }
-    case AssetType.specialEmpty: {
-      result = EmptyAssetId(id)
       break
     }
   }

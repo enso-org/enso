@@ -4,8 +4,6 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as tailwindMerge from 'tailwind-merge'
 
-import BlankIcon from 'enso-assets/blank.svg'
-
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as store from '#/store'
@@ -14,18 +12,15 @@ import * as backendHooks from '#/hooks/backendHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
 
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import Category from '#/layouts/CategorySwitcher/Category'
 
-import * as aria from '#/components/aria'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import NameColumn from '#/components/dashboard/column/NameColumn'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import FocusRing from '#/components/styled/FocusRing'
 
 import DragModal from '#/modals/DragModal'
@@ -34,7 +29,6 @@ import * as backendModule from '#/services/Backend'
 
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as object from '#/utilities/object'
 import * as set from '#/utilities/set'
@@ -78,7 +72,6 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
   const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
   const setIsAssetOpen = store.useStore(storeState => storeState.setIsAssetOpen)
   const toggleIsAssetOpen = store.useStore(storeState => storeState.toggleIsAssetOpen)
   const setIsAssetSelected = store.useStore(storeState => storeState.setIsAssetSelected)
@@ -415,41 +408,6 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
             />
           )}
         </>
-      )
-    }
-    case backendModule.AssetType.specialLoading: {
-      return (
-        <tr>
-          <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twMerge(
-                'flex h-row w-container justify-center rounded-full rounded-rows-child',
-                indent.indentClass(depth)
-              )}
-            >
-              <StatelessSpinner size={24} state={statelessSpinner.SpinnerState.loadingMedium} />
-            </div>
-          </td>
-        </tr>
-      )
-    }
-    case backendModule.AssetType.specialEmpty: {
-      return (
-        <tr>
-          <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twMerge(
-                'flex h-row items-center rounded-full rounded-rows-child',
-                indent.indentClass(depth)
-              )}
-            >
-              <img src={BlankIcon} />
-              <aria.Text className="px-name-column-x placeholder">
-                {getText('thisFolderIsEmpty')}
-              </aria.Text>
-            </div>
-          </td>
-        </tr>
       )
     }
   }

@@ -1,7 +1,6 @@
 /** @file Displays a non-interactable icon for an asset based on its type and name. */
 import * as React from 'react'
 
-import BlankIcon from 'enso-assets/blank.svg'
 import DatalinkIcon from 'enso-assets/datalink.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 import KeyIcon from 'enso-assets/key.svg'
@@ -37,11 +36,6 @@ export default function AssetIcon(props: AssetIconProps) {
     }
     case backend.AssetType.secret: {
       return <SvgMask src={KeyIcon} className={className} />
-    }
-    case backend.AssetType.specialLoading:
-    case backend.AssetType.specialEmpty: {
-      // It should not be possible for these to be displayed, but return something anyway.
-      return <SvgMask src={BlankIcon} className={className} />
     }
   }
 }

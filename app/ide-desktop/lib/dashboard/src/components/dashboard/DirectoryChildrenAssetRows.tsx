@@ -1,16 +1,25 @@
 /** @file Rows for each of a directory's children. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
+import BlankIcon from 'enso-assets/blank.svg'
+
 import * as backendHooks from '#/hooks/backendHooks'
+
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetsTable from '#/layouts/AssetsTable'
 
+import * as aria from '#/components/aria'
 import AssetRows from '#/components/dashboard/AssetRows'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import type * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
+import * as indent from '#/utilities/indent'
 import * as sorting from '#/utilities/sorting'
 
 // ==================================
@@ -32,7 +41,8 @@ export interface DirectoryChildrenAssetRowsProps {
 
 /** Rows for each of a directory's children. */
 export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAssetRowsProps) {
-  const { backend, directory, filterBy, sortInfo, filter } = props
+  const { backend, depth, directory, filterBy, sortInfo, columns, filter } = props
+  const { getText } = textProvider.useText()
   const children = backendHooks.useBackendListDirectory(
     backend,
     directory.id,
@@ -79,5 +89,36 @@ export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAsset
     [displayItems, filter]
   )
 
-  return visibleItems.map(item => <AssetRows key={item.id} {...props} item={item} />)
+  return children == null ? (
+    <tr>
+      <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
+        <div
+          className={tailwindMerge.twMerge(
+            'flex h-row w-container justify-center rounded-full rounded-rows-child',
+            indent.indentClass(depth)
+          )}
+        >
+          <StatelessSpinner size={24} state={statelessSpinner.SpinnerState.loadingMedium} />
+        </div>
+      </td>
+    </tr>
+  ) : children.length === 0 ? (
+    <tr>
+      <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
+        <div
+          className={tailwindMerge.twMerge(
+            'flex h-row items-center rounded-full rounded-rows-child',
+            indent.indentClass(depth)
+          )}
+        >
+          <img src={BlankIcon} />
+          <aria.Text className="px-name-column-x placeholder">
+            {getText('thisFolderIsEmpty')}
+          </aria.Text>
+        </div>
+      </td>
+    </tr>
+  ) : (
+    visibleItems.map(item => <AssetRows key={item.id} {...props} item={item} />)
+  )
 }

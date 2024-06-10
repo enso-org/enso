@@ -503,14 +503,6 @@ export default class AssetQuery {
   /** Whether the given node matches this {@link AssetQuery}. */
   isMatch(node: backend.AnyAsset) {
     const globCache: Record<string, RegExp> = {}
-    if (
-      node.type === backend.AssetType.specialEmpty ||
-      node.type === backend.AssetType.specialLoading
-    ) {
-      // This is FINE, as these assets have no meaning info to match with.
-      // eslint-disable-next-line no-restricted-syntax
-      return false
-    }
     const assetType =
       node.type === backend.AssetType.directory
         ? 'folder'

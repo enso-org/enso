@@ -132,16 +132,10 @@ export function getSuggestions(
   labels: readonly backendModule.Label[]
 ) {
   const isCloud = backend.type === backendModule.BackendType.remote
-  // FIXME: Switch to React Query to fetch all known nodes
   const allAssetsMatchingQuery = () =>
     Object.values(backendHooks.getBackendAllKnownDirectories(queryClient, user, backend))
       .flat()
-      .filter(
-        asset =>
-          asset.type !== backendModule.AssetType.specialEmpty &&
-          asset.type !== backendModule.AssetType.specialLoading &&
-          query.isMatch(asset)
-      )
+      .filter(asset => query.isMatch(asset))
   const suggestAllTitles = (negative = false) =>
     allAssetsMatchingQuery().map(asset =>
       assetToSuggestion(asset, negative ? 'negativeNames' : 'names')

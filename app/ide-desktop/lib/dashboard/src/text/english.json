@@ -79,8 +79,6 @@
   "fileAssetType": "file",
   "datalinkAssetType": "Datalink",
   "secretAssetType": "secret",
-  "specialLoadingAssetType": "special loading asset",
-  "specialEmptyAssetType": "special empty asset",
 
   "couldNotConnectToPM": "Could not connect to the Project Manager. Please try restarting Enso, or manually launching the Project Manager.",
   "upgradeToUseCloud": "Upgrade your plan to use Enso Cloud.",

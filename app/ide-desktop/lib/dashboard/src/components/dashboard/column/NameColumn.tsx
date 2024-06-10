@@ -36,10 +36,5 @@ export default function NameColumn(props: NameColumnProps) {
     case backendModule.AssetType.secret: {
       return <SecretNameColumn {...props} />
     }
-    case backendModule.AssetType.specialLoading:
-    case backendModule.AssetType.specialEmpty: {
-      // Special rows do not display columns at all.
-      return <></>
-    }
   }
 }
