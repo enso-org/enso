@@ -38,15 +38,6 @@ object StringMeasure {
           y.endsInNewLine
         )
     }
-  def empty(): StringMeasure = StringMeasure(0, 0, 0, false)
-
-  def combine(x: StringMeasure, y: StringMeasure): StringMeasure =
-    StringMeasure(
-      x.utf16Size + y.utf16Size,
-      x.utf32Size + y.utf32Size,
-      x.fullLines + y.fullLines,
-      y.endsInNewLine
-    )
 }
 
 /** Represents a string using a tree.
