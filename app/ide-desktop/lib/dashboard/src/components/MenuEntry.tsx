@@ -21,7 +21,12 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 // === Constants ===
 // =================
 
-const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text.TextId>> = {
+export const ACTION_TO_TEXT_ID: Readonly<
+  Record<
+    inputBindings.DashboardBindingKey,
+    Extract<text.TextId, `${inputBindings.DashboardBindingKey}Shortcut`>
+  >
+> = {
   settings: 'settingsShortcut',
   open: 'openShortcut',
   run: 'runShortcut',

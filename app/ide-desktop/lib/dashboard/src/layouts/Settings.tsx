@@ -66,8 +66,9 @@ export default function Settings() {
       organization,
       setOrganization,
       toastAndLog,
+      getText,
     }),
-    [accessToken, backend, organization, setUser, toastAndLog, user]
+    [accessToken, backend, organization, setUser, toastAndLog, user, getText]
   )
 
   React.useEffect(() => {
@@ -105,31 +106,45 @@ export default function Settings() {
     })()
   }, [sessionType, backend])
 
-  const data = ((): settingsData.SettingsTabData => {
+  const isMatch = React.useMemo(() => {
+    const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
+    return (name: string) => regex.test(name)
+  }, [query])
+
+  const doesEntryMatchQuery = React.useCallback(
+    (entry: settingsData.SettingsEntryData) => {
+      switch (entry.type) {
+        case settingsData.SettingsEntryType.input: {
+          return isMatch(getText(entry.nameId))
+        }
+        case settingsData.SettingsEntryType.custom: {
+          const doesAliasesIdMatch =
+            entry.aliasesId == null ? false : getText(entry.aliasesId).split('\n').some(isMatch)
+          if (doesAliasesIdMatch) {
+            return true
+          } else {
+            return entry.getExtraAliases == null
+              ? false
+              : entry.getExtraAliases(context).some(isMatch)
+          }
+        }
+      }
+    },
+    [context, getText, isMatch]
+  )
+
+  const data = React.useMemo<settingsData.SettingsTabData>(() => {
     const tabData = settingsData.SETTINGS_TAB_DATA[tab]
     if (!/\S/.test(query)) {
       return tabData
     } else {
-      const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
-      const isMatch = (name: string) => regex.test(name)
       if (isMatch(tabData.nameId)) {
         return tabData
       } else {
         const sections = tabData.sections.flatMap(section => {
           const matchingEntries = isMatch(getText(section.nameId))
             ? section.entries
-            : section.entries.filter(entry => {
-                switch (entry.type) {
-                  case settingsData.SettingsEntryType.input: {
-                    return isMatch(getText(entry.nameId))
-                  }
-                  case settingsData.SettingsEntryType.custom: {
-                    return entry.aliasesId == null
-                      ? false
-                      : getText(entry.aliasesId).split('\n').some(isMatch)
-                  }
-                }
-              })
+            : section.entries.filter(doesEntryMatchQuery)
           if (matchingEntries.length === 0) {
             return []
           } else {
@@ -139,14 +154,12 @@ export default function Settings() {
         return { ...tabData, sections }
       }
     }
-  })()
+  }, [doesEntryMatchQuery, getText, isMatch, query, tab])
 
-  const tabsToShow = ((): readonly SettingsTabType[] => {
+  const tabsToShow = React.useMemo<readonly SettingsTabType[]>(() => {
     if (!/\S/.test(query)) {
       return settingsData.ALL_SETTINGS_TABS
     } else {
-      const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
-      const isMatch = (name: string) => regex.test(name)
       return settingsData.SETTINGS_DATA.flatMap(tabSection =>
         tabSection.tabs
           .filter(tabData =>
@@ -155,24 +168,13 @@ export default function Settings() {
               : tabData.sections.some(section =>
                   isMatch(getText(section.nameId))
                     ? true
-                    : section.entries.some(entry => {
-                        switch (entry.type) {
-                          case settingsData.SettingsEntryType.input: {
-                            return isMatch(getText(entry.nameId))
-                          }
-                          case settingsData.SettingsEntryType.custom: {
-                            return entry.aliasesId == null
-                              ? false
-                              : getText(entry.aliasesId).split('\n').some(isMatch)
-                          }
-                        }
-                      })
+                    : section.entries.some(doesEntryMatchQuery)
                 )
           )
           .map(tabData => tabData.settingsTab)
       )
     }
-  })()
+  }, [doesEntryMatchQuery, getText, isMatch, query])
 
   return (
     <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">

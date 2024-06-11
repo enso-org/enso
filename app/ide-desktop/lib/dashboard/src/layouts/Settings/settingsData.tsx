@@ -7,7 +7,11 @@ import SettingsIcon from 'enso-assets/settings.svg'
 
 import type * as text from '#/text'
 
+import * as inputBindings from '#/configurations/inputBindings'
+
 import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import type * as textProvider from '#/providers/TextProvider'
 
 import ActivityLogSettingsSection from '#/layouts/Settings/ActivityLogSettingsSection'
 import ChangePasswordForm from '#/layouts/Settings/ChangePasswordForm'
@@ -19,6 +23,8 @@ import OrganizationProfilePictureInput from '#/layouts/Settings/OrganizationProf
 import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
+
+import * as menuEntry from '#/components/MenuEntry'
 
 import * as backend from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -310,6 +316,19 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'keyboardShortcutsSettingsCustomEntryAliases',
+            getExtraAliases: context => {
+              const rebindableBindings = object
+                .unsafeEntries(inputBindings.BINDINGS)
+                .flatMap(kv => {
+                  const [k, v] = kv
+                  if (v.rebindable === false) {
+                    return []
+                  } else {
+                    return menuEntry.ACTION_TO_TEXT_ID[k]
+                  }
+                })
+              return rebindableBindings.map(binding => context.getText(binding))
+            },
             render: KeyboardShortcutsSettingsSection,
           },
         ],
@@ -377,6 +396,7 @@ export interface SettingsContext {
   readonly setOrganization: React.Dispatch<React.SetStateAction<backend.OrganizationInfo>>
   readonly backend: Backend
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
+  readonly getText: textProvider.GetText
 }
 
 // ==============================
@@ -400,6 +420,7 @@ export interface SettingsInputEntryData {
 export interface SettingsCustomEntryData {
   readonly type: SettingsEntryType.custom
   readonly aliasesId?: text.TextId & `${string}SettingsCustomEntryAliases`
+  readonly getExtraAliases?: (context: SettingsContext) => readonly string[]
   readonly render: (context: SettingsContext) => JSX.Element
   readonly getVisible?: (context: SettingsContext) => boolean
 }
