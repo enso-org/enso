@@ -1,14 +1,16 @@
 {
-  "include": ["src/**/*"],
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"],
   "compilerOptions": {
     "module": "Node16",
-    "target": "ES2017",
+    "target": "es2017",
+    "outDir": "target",
+    "sourceMap": true,
     "strict": true,
-    "allowJs": true,
-    "checkJs": true,
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
-    "noEmit": true,
     "types": ["node"]
   }
 }
