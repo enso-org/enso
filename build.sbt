@@ -620,7 +620,6 @@ lazy val `text-buffer` = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.typelevel"  %% "cats-core"  % catsVersion,
       "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
     )
@@ -924,8 +923,7 @@ lazy val cli = project
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test,
-      "org.typelevel"              %% "cats-core"     % catsVersion
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     Test / parallelExecution := false
   )
@@ -2518,7 +2516,6 @@ lazy val `engine-runner` = project
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
       "com.monovore"           %% "decline"                 % declineVersion,
       "org.jline"               % "jline"                   % jlineVersion,
-      "org.typelevel"          %% "cats-core"               % catsVersion,
       "junit"                   % "junit"                   % junitVersion              % Test,
       "com.github.sbt"          % "junit-interface"         % junitIfVersion            % Test,
       "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
@@ -2668,7 +2665,6 @@ lazy val launcher = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
-      "org.typelevel"              %% "cats-core"        % catsVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaSLF4J
@@ -3093,7 +3089,6 @@ lazy val `runtime-version-manager` = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
-      "org.typelevel"              %% "cats-core"        % catsVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaHttp

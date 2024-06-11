@@ -9,8 +9,8 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.protocol.json.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.util.CollectionConversions._
 import org.enso.polyglot.runtime.Runtime.Api
-import cats.implicits._
 import org.enso.polyglot.runtime.Runtime.Api.{DiagnosticType, ExecutionResult}
 
 import java.io.File
@@ -40,7 +40,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
       case Api.ModuleNotFound(moduleName) =>
         Future.successful(ContextRegistryProtocol.ModuleNotFound(moduleName))
       case Api.VisualizationExpressionFailed(ctx, message, result) =>
-        for (diagnostic <- result.map(toProtocolDiagnostic).sequence)
+        for (diagnostic <- liftOptionOfFuture(result.map(toProtocolDiagnostic)))
           yield ContextRegistryProtocol.VisualizationExpressionFailed(
             ContextRegistryProtocol.VisualizationContext(
               ctx.visualizationId,
@@ -104,7 +104,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   ): Future[ContextRegistryProtocol.ExecutionDiagnostic] =
     for {
       path  <- findRelativePath(diagnostic.file)
-      stack <- diagnostic.stack.map(toStackTraceElement).sequence
+      stack <- liftSeqOfFutures(diagnostic.stack.map(toStackTraceElement))
     } yield ContextRegistryProtocol.ExecutionDiagnostic(
       toDiagnosticType(diagnostic.kind),
       diagnostic.message,

@@ -1,6 +1,5 @@
 package org.enso.interpreter.instrument.job
 
-import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument._
 import org.enso.interpreter.instrument.execution.{
@@ -255,14 +254,13 @@ object ProgramExecutionSupport {
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
     val executionResult: Either[Option[Api.ExecutionResult], Unit] = for {
-      stackItem <- Either.fromOption(
-        explicitCallOpt,
-        Some(Api.ExecutionResult.Failure("Execution stack is empty.", None))
-      )
+      stackItem <-
+        explicitCallOpt.toRight(
+          Some(Api.ExecutionResult.Failure("Execution stack is empty.", None))
+        )
       _ <-
-        Either
-          .catchNonFatal(executeProgram(contextId, stackItem, localCalls))
-          .leftMap(onExecutionError(stackItem.item, _))
+        Try(executeProgram(contextId, stackItem, localCalls)).toEither.left
+          .map(onExecutionError(stackItem.item, _))
     } yield ()
     logger.log(Level.FINEST, s"Execution finished: $executionResult")
     executionResult.fold(identity, _ => None)
@@ -406,10 +404,9 @@ object ProgramExecutionSupport {
               val warningsCount = warnings.length
               val warning =
                 if (warningsCount > 0) {
-                  Either
-                    .catchNonFatal(
-                      WarningPreview.execute(warnings(0).getValue)
-                    )
+                  Try(
+                    WarningPreview.execute(warnings(0).getValue)
+                  ).toEither
                     .fold(
                       error => {
                         ctx.executionService.getLogger.log(
@@ -533,49 +530,48 @@ object ProgramExecutionSupport {
     expressionId: UUID,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Either[Throwable, AnyRef] =
-    Either
-      .catchNonFatal {
-        val logger = ctx.executionService.getLogger
-        logger.log(
-          Level.FINEST,
-          "Executing visualization [{0}] on expression [{1}] of [{2}]...",
-          Array[Object](
-            visualization.id,
-            expressionId,
-            Try(TypeOfNode.getUncached.execute(expressionValue))
-              .getOrElse(expressionValue.getClass)
-          )
+    Try {
+      val logger = ctx.executionService.getLogger
+      logger.log(
+        Level.FINEST,
+        "Executing visualization [{0}] on expression [{1}] of [{2}]...",
+        Array[Object](
+          visualization.id,
+          expressionId,
+          Try(TypeOfNode.getUncached.execute(expressionValue))
+            .getOrElse(expressionValue.getClass)
         )
-        val holder = ctx.contextManager.getVisualizationHolder(contextId)
+      )
+      val holder = ctx.contextManager.getVisualizationHolder(contextId)
 
-        def makeCall(): AnyRef =
-          ctx.executionService.callFunctionWithInstrument(
-            holder,
-            visualization.cache,
-            runtimeCache,
-            visualization.module,
-            visualization.callback,
-            expressionValue +: visualization.arguments: _*
+      def makeCall(): AnyRef =
+        ctx.executionService.callFunctionWithInstrument(
+          holder,
+          visualization.cache,
+          runtimeCache,
+          visualization.module,
+          visualization.callback,
+          expressionValue +: visualization.arguments: _*
+        )
+
+      if (runtimeCache != null) {
+        def processUUID(id: UUID): Unit = {
+          logger.log(
+            Level.WARNING,
+            "Associating visualization [{0}] with additional ID [{1}]",
+            Array[Object](
+              visualization.id,
+              id
+            )
           )
 
-        if (runtimeCache != null) {
-          def processUUID(id: UUID): Unit = {
-            logger.log(
-              Level.WARNING,
-              "Associating visualization [{0}] with additional ID [{1}]",
-              Array[Object](
-                visualization.id,
-                id
-              )
-            )
-
-            holder.upsert(visualization, id)
-          }
-          runtimeCache.runQuery(processUUID, () => makeCall())
-        } else {
-          makeCall()
+          holder.upsert(visualization, id)
         }
+        runtimeCache.runQuery(processUUID, () => makeCall())
+      } else {
+        makeCall()
       }
+    }.toEither
 
   /** Compute the visualization of the expression value and send an update.
     *
