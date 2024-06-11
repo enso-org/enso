@@ -271,7 +271,7 @@ function isMatrix(data: object): data is LegacyMatrix {
   return json.every((d) => d.length === firstLen)
 }
 
-function toField(name: string, valType?: string | undefined | null): ColDef {
+function toField(name: string, valType?: string | undefined | null, displayValue?: any): ColDef {
   let icon
   switch (valType) {
     case 'Char':
@@ -282,10 +282,16 @@ function toField(name: string, valType?: string | undefined | null): ColDef {
       break
     case 'Integer':
     case 'Float':
+    case 'Decimal':
+    case 'Byte':
       icon = 'math'
       break
     case 'Date':
+    case 'Date_Time':
       icon = 'calendar'
+      break
+    case 'Time':
+      icon = 'time'
       break
     case 'Mixed':
       icon = 'mixed'
@@ -293,13 +299,14 @@ function toField(name: string, valType?: string | undefined | null): ColDef {
   const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
   const template =
     icon ?
-      `<div style="display:flex; flex-direction:row; justify-content:space-between; width:inherit;"> ${name} ${svgTemplate}</div>`
+      `<div style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${svgTemplate}</div>`
     : `<div>${name}</div>`
   return {
     field: name,
     headerComponentParams: {
       template,
     },
+    headerTooltip: displayValue ? displayValue : '',
   }
 }
 
@@ -390,7 +397,9 @@ watchEffect(() => {
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const constructor = data_.value_type?.[i]?.constructor
         const valueType = constructor ? `${constructor}` : null
-        return toField(v, valueType)
+        const displayVal = data_.value_type?.[i]?.display_type
+        const displayValue = displayVal ? `${displayVal}` : null
+        return toField(v, valueType, displayValue)
       }) ?? []
 
     columnDefs = [...indicesHeader, ...dataHeader]
