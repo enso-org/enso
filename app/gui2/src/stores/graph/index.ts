@@ -12,6 +12,7 @@ import {
   type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
+import { useUnconnectedEdges, type UnconnectedEdge } from '@/stores/graph/unconnectedEdges'
 import { type ProjectStore } from '@/stores/project'
 import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
@@ -20,7 +21,6 @@ import type { AstId } from '@/util/ast/abstract'
 import { MutableModule, isIdentifier, type Identifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
-import { filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, mapOk, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
@@ -106,9 +106,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
     const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
     const editedNodeInfo = ref<NodeEditInfo>()
     const methodAst = ref<Result<Ast.Function>>(Err('AST not yet initialized'))
-
-    const mouseEditedEdge = ref<UnconnectedEdge & MouseEditedEdge>()
-    const cbEditedEdge = ref<UnconnectedTarget>()
 
     const moduleSource = reactive(SourceDocument.Empty())
     const moduleRoot = ref<Ast.Ast>()
@@ -252,60 +249,27 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       }
     }
 
-    const unconnectedEdges = computed(
-      () => new Set(filterDefined([cbEditedEdge.value, mouseEditedEdge.value])),
-    )
+    const unconnectedEdges = useUnconnectedEdges()
 
-    const disconnectedEdgePorts = computed(() => {
-      const ports = new Set<PortId>()
-      for (const edge of unconnectedEdges.value) {
-        if (edge.disconnectedEdgeTarget) ports.add(edge.disconnectedEdgeTarget)
-        if (edge.source) ports.add(edge.source)
-      }
-      if (editedNodeInfo.value) {
-        const primarySubject = db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
-        if (primarySubject) ports.add(primarySubject)
-      }
-      return ports
-    })
+    const editedNodeDisconnectedTarget = computed(() =>
+      editedNodeInfo.value ?
+        db.nodeIdToNode.get(editedNodeInfo.value.id)?.primarySubject
+      : undefined,
+    )
 
     const connectedEdges = computed(() => {
       const edges = new Array<ConnectedEdge>()
       for (const [target, sources] of db.connections.allReverse()) {
-        if (!disconnectedEdgePorts.value.has(target)) {
-          for (const source of sources) {
-            edges.push({ source, target })
+        if (target === editedNodeDisconnectedTarget.value) continue
+        for (const source of sources) {
+          const edge = { source, target }
+          if (!unconnectedEdges.isDisconnected(edge)) {
+            edges.push(edge)
           }
         }
       }
       return edges
     })
-
-    function createEdgeFromOutput(source: Ast.AstId, event: PointerEvent | undefined) {
-      mouseEditedEdge.value = { source, target: undefined, event, anchor: { type: 'mouse' } }
-    }
-
-    function disconnectSource(edge: Edge, event: PointerEvent | undefined) {
-      if (!edge.target) return
-      mouseEditedEdge.value = {
-        source: undefined,
-        target: edge.target,
-        disconnectedEdgeTarget: edge.target,
-        event,
-        anchor: { type: 'mouse' },
-      }
-    }
-
-    function disconnectTarget(edge: Edge, event: PointerEvent | undefined) {
-      if (!edge.source || !edge.target) return
-      mouseEditedEdge.value = {
-        source: edge.source,
-        target: undefined,
-        disconnectedEdgeTarget: edge.target,
-        event,
-        anchor: { type: 'mouse' },
-      }
-    }
 
     /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
     function addMissingImports(
@@ -760,10 +724,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       db: markRaw(db),
       mockExpressionUpdate,
       editedNodeInfo,
-      mouseEditedEdge,
-      cbEditedEdge,
-      disconnectedEdgePorts,
-      connectedEdges,
       moduleSource,
       nodeRects,
       nodeHoverAnimations,
@@ -774,9 +734,6 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       methodAst,
       getMethodAst,
       generateLocallyUniqueIdent,
-      createEdgeFromOutput,
-      disconnectSource,
-      disconnectTarget,
       moduleRoot,
       deleteNodes,
       pickInCodeOrder,
@@ -813,57 +770,20 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
         return db.getExpressionInfo(currentMethod.expressionId)?.methodCall?.methodPointer
       },
       modulePath,
+      connectedEdges,
+      ...unconnectedEdges,
     })
   },
 )
 
-interface AnyEdge {
-  source: AstId | undefined
-  target: PortId | undefined
-}
-
 /** An edge, which may be connected or unconnected. */
 export type Edge = ConnectedEdge | UnconnectedEdge
 
-export interface ConnectedEdge extends AnyEdge {
+export interface ConnectedEdge {
   source: AstId
   target: PortId
 }
 
 export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
-}
-
-type UnconnectedEdgeAnchor =
-  | {
-      type: 'mouse'
-    }
-  | {
-      type: 'fixed'
-      scenePos: Vec2
-    }
-
-interface AnyUnconnectedEdge extends AnyEdge {
-  /** If this edge represents an in-progress edit of a connected edge, it is identified by its target expression. */
-  disconnectedEdgeTarget?: PortId
-  /** Identifies what the disconnected end should be attached to. */
-  anchor: UnconnectedEdgeAnchor
-  /** CSS value; if provided, overrides any color calculation. */
-  color?: string
-}
-interface UnconnectedSource extends AnyUnconnectedEdge {
-  source: undefined
-  target: PortId
-}
-interface UnconnectedTarget extends AnyUnconnectedEdge {
-  source: AstId
-  target: undefined
-  /** If true, the target end should be drawn as with a self-argument arrow. */
-  targetIsSelfArgument?: boolean
-}
-export type UnconnectedEdge = UnconnectedSource | UnconnectedTarget
-
-interface MouseEditedEdge {
-  /** A pointer event which caused the unconnected edge */
-  event: PointerEvent | undefined
 }
