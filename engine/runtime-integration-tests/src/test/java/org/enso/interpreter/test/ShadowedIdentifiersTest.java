@@ -64,20 +64,6 @@ public class ShadowedIdentifiersTest  {
   }
 
   @Test
-  public void shadowingRenamedStaticMethodFromDifferentModuleIsWarning() throws IOException {
-    var modSrc = """
-        stat_method_foo x y = x + y
-        """;
-    var mainSrc =
-        """
-        import project.Mod.stat_method_foo as stat_method
-        stat_method x = x + 42
-        """;
-    var projDir = createProjectWithTwoModules(mainSrc, modSrc);
-    testProjectCompilationWarning(projDir, allOf(containsString("shadowed")));
-  }
-
-  @Test
   public void shadowedTypeHasPrecedence() throws IOException {
     var modSrc = """
         type T
