@@ -1,12 +1,12 @@
 import { unrefElement, type MaybeElement } from '@vueuse/core'
-import {
-  createEditor,
-  type EditorThemeClasses,
-  type KlassConstructor,
-  type LexicalEditor,
-  type LexicalNode,
-  type LexicalNodeReplacement,
+import type {
+  EditorThemeClasses,
+  KlassConstructor,
+  LexicalEditor,
+  LexicalNode,
+  LexicalNodeReplacement,
 } from 'lexical'
+import { createEditor } from 'lexical'
 import { assertDefined } from 'shared/util/assert'
 import { markRaw, onMounted, type Ref } from 'vue'
 
