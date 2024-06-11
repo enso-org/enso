@@ -276,7 +276,9 @@ function isMatrix(data: object): data is LegacyMatrix {
   return json.every((d) => d.length === firstLen)
 }
 
-function toField(name: string, valType?: string | undefined | null, displayValue?: any): ColDef {
+function toField(name: string, valueType?: ValueType | null | undefined): ColDef {
+  const valType = valueType ? valueType.constructor : null
+  const displayValue = valueType ? valueType.display_text : null
   let icon
   switch (valType) {
     case 'Char':
@@ -400,10 +402,8 @@ watchEffect(() => {
     )
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
-        const constructor = data_.value_type?.[i]?.constructor
-        const valueType = constructor ? `${constructor}` : null
-        const displayValue = data_.value_type?.[i]?.display_text
-        return toField(v, valueType, displayValue)
+        const valueType = data_.value_type ? data_.value_type[i] : null
+        return toField(v, valueType)
       }) ?? []
 
     columnDefs = [...indicesHeader, ...dataHeader]
