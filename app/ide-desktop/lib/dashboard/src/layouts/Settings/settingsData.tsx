@@ -360,6 +360,10 @@ export const SETTINGS_DATA: SettingsData = [
   },
 ]
 
+export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap(section =>
+  section.tabs.map(tab => tab.settingsTab)
+)
+
 // =======================
 // === SettingsContext ===
 // =======================

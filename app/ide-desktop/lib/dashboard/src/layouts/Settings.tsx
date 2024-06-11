@@ -1,7 +1,6 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
-import BlankIcon from 'enso-assets/blank.svg'
 import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
 
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
@@ -33,12 +32,11 @@ import * as string from '#/utilities/string'
 
 /** Settings screen. */
 export default function Settings() {
-  const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
+  const [tab, setTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
     array.includesPredicate(Object.values(SettingsTabType))
   )
-
   const { type: sessionType, user, accessToken } = authProvider.useNonPartialUserSession()
   const { setUser } = authProvider.useAuth()
   const { backend } = backendProvider.useStrictBackend()
@@ -108,46 +106,71 @@ export default function Settings() {
   }, [sessionType, backend])
 
   const data = ((): settingsData.SettingsTabData => {
+    const tabData = settingsData.SETTINGS_TAB_DATA[tab]
     if (!/\S/.test(query)) {
-      return settingsData.SETTINGS_TAB_DATA[settingsTab]
+      return tabData
     } else {
       const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
       const isMatch = (name: string) => regex.test(name)
-      const sections = settingsData.SETTINGS_DATA.flatMap(tabSection =>
-        tabSection.tabs.flatMap(tab =>
-          isMatch(getText(tab.nameId)) || isMatch(getText(tabSection.nameId))
-            ? tab.sections
-            : tab.sections.flatMap(section => {
-                const matchingEntries = isMatch(getText(section.nameId))
-                  ? section.entries
-                  : section.entries.filter(entry => {
-                      switch (entry.type) {
-                        case settingsData.SettingsEntryType.input: {
-                          return isMatch(getText(entry.nameId))
-                        }
-                        case settingsData.SettingsEntryType.custom: {
-                          return entry.aliasesId == null
-                            ? false
-                            : getText(entry.aliasesId).split('\n').some(isMatch)
-                        }
-                      }
-                    })
-                if (matchingEntries.length === 0) {
-                  return []
-                } else {
-                  return [{ ...section, entries: matchingEntries }]
+      if (isMatch(tabData.nameId)) {
+        return tabData
+      } else {
+        const sections = tabData.sections.flatMap(section => {
+          const matchingEntries = isMatch(getText(section.nameId))
+            ? section.entries
+            : section.entries.filter(entry => {
+                switch (entry.type) {
+                  case settingsData.SettingsEntryType.input: {
+                    return isMatch(getText(entry.nameId))
+                  }
+                  case settingsData.SettingsEntryType.custom: {
+                    return entry.aliasesId == null
+                      ? false
+                      : getText(entry.aliasesId).split('\n').some(isMatch)
+                  }
                 }
               })
-        )
-      )
-      return {
-        // These values does not matter.
-        settingsTab: SettingsTabType.account,
-        nameId: 'accountSettingsTab',
-        icon: BlankIcon,
-        // Only the list of sections matters.
-        sections,
+          if (matchingEntries.length === 0) {
+            return []
+          } else {
+            return [{ ...section, entries: matchingEntries }]
+          }
+        })
+        return { ...tabData, sections }
       }
+    }
+  })()
+
+  const tabsToShow = ((): readonly SettingsTabType[] => {
+    if (!/\S/.test(query)) {
+      return settingsData.ALL_SETTINGS_TABS
+    } else {
+      const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
+      const isMatch = (name: string) => regex.test(name)
+      return settingsData.SETTINGS_DATA.flatMap(tabSection =>
+        tabSection.tabs
+          .filter(tabData =>
+            isMatch(getText(tabData.nameId)) || isMatch(getText(tabSection.nameId))
+              ? true
+              : tabData.sections.some(section =>
+                  isMatch(getText(section.nameId))
+                    ? true
+                    : section.entries.some(entry => {
+                        switch (entry.type) {
+                          case settingsData.SettingsEntryType.input: {
+                            return isMatch(getText(entry.nameId))
+                          }
+                          case settingsData.SettingsEntryType.custom: {
+                            return entry.aliasesId == null
+                              ? false
+                              : getText(entry.aliasesId).split('\n').some(isMatch)
+                          }
+                        }
+                      })
+                )
+          )
+          .map(tabData => tabData.settingsTab)
+      )
     }
   })()
 
@@ -159,9 +182,10 @@ export default function Settings() {
           <aria.Popover UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu
+              tabsToShow={tabsToShow}
               isUserInOrganization={isUserInOrganization}
-              settingsTab={settingsTab}
-              setSettingsTab={setSettingsTab}
+              tab={tab}
+              setTab={setTab}
               onClickCapture={() => {
                 setIsSidebarPopoverOpen(false)
               }}
@@ -179,9 +203,10 @@ export default function Settings() {
       </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar
+          tabsToShow={tabsToShow}
           isUserInOrganization={isUserInOrganization}
-          settingsTab={settingsTab}
-          setSettingsTab={setSettingsTab}
+          tab={tab}
+          setTab={setTab}
         />
         <SettingsTab context={context} data={data} />
       </div>

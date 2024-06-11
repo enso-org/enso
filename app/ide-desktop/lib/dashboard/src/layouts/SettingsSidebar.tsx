@@ -17,16 +17,17 @@ import SidebarTabButton from '#/components/styled/SidebarTabButton'
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
+  readonly tabsToShow: readonly SettingsTabType[]
   readonly isMenu?: true
   readonly isUserInOrganization: boolean
-  readonly settingsTab: SettingsTabType
-  readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTabType>>
+  readonly tab: SettingsTabType
+  readonly setTab: React.Dispatch<React.SetStateAction<SettingsTabType>>
   readonly onClickCapture?: () => void
 }
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { isMenu = false, isUserInOrganization, settingsTab, setSettingsTab } = props
+  const { tabsToShow, isMenu = false, isUserInOrganization, tab, setTab } = props
   const { onClickCapture } = props
   const { getText } = textProvider.useText()
 
@@ -45,7 +46,10 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
         >
           {settingsData.SETTINGS_DATA.map(section => {
             const name = getText(section.nameId)
-            return (
+            const visibleTabData = section.tabs.filter(tabData =>
+              tabsToShow.includes(tabData.settingsTab)
+            )
+            return visibleTabData.length === 0 ? null : (
               <div key={name} className="flex flex-col items-start">
                 <aria.Header
                   id={`${name}_header`}
@@ -54,16 +58,16 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                   {name}
                 </aria.Header>
                 <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
-                  {section.tabs.map(tab => (
+                  {visibleTabData.map(tabData => (
                     <SidebarTabButton
-                      key={tab.settingsTab}
-                      isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
-                      id={tab.settingsTab}
-                      icon={tab.icon}
-                      label={getText(tab.nameId)}
-                      active={tab.settingsTab === settingsTab}
+                      key={tabData.settingsTab}
+                      isDisabled={(tabData.organizationOnly ?? false) && !isUserInOrganization}
+                      id={tabData.settingsTab}
+                      icon={tabData.icon}
+                      label={getText(tabData.nameId)}
+                      active={tabData.settingsTab === tab}
                       onPress={() => {
-                        setSettingsTab(tab.settingsTab)
+                        setTab(tabData.settingsTab)
                       }}
                     />
                   ))}
