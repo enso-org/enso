@@ -25,7 +25,7 @@ public class ExportCycleDetectionTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
-  public void detectSimpleCycle() throws IOException {
+  public void detectCycleInTwoModules() throws IOException {
     var aMod =
         new SourceModule(
             QualifiedName.fromString("A_Module"),
@@ -54,6 +54,47 @@ public class ExportCycleDetectionTest {
         allOf(
             containsString("Export statements form a cycle"),
             containsString("local.Proj.B_Module exports local.Proj.A_Module"),
+            containsString("which exports local.Proj.B_Module")));
+  }
+
+  @Test
+  public void detectCycleInThreeModules() throws IOException {
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("A_Module"),
+            """
+        from project.B_Module export C_Type
+        type A_Type
+        """);
+    var bMod =
+        new SourceModule(
+            QualifiedName.fromString("B_Module"),
+            """
+        from project.C_Module export C_Type
+        """);
+    var cMod =
+        new SourceModule(
+            QualifiedName.fromString("C_Module"),
+            """
+        from project.A_Module export A_Type
+        type C_Type
+        """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+                import project.A_Module
+                import project.B_Module
+                import project.C_Module
+                """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(aMod, bMod, cMod, mainMod), projDir);
+    expectProjectCompilationError(
+        projDir,
+        allOf(
+            containsString("Export statements form a cycle"),
+            containsString("local.Proj.B_Module exports local.Proj.C_Module"),
+            containsString("which exports local.Proj.A_Module"),
             containsString("which exports local.Proj.B_Module")));
   }
 
