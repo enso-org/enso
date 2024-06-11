@@ -13,6 +13,8 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
 
+from Standard.Snowflake import all
+
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
@@ -519,7 +521,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             do_round data 231 . should_be_a Float
             do_round data 231 -1 . should_be_a Float
 
-add_postgres_specs suite_builder create_connection_fn db_name =
+add_snowflake_specs suite_builder create_connection_fn db_name =
     prefix = "[Snowflake] "
     name_counter = Ref.new 0
 
@@ -563,49 +565,12 @@ supported_replace_params =
     Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
 add_table_specs suite_builder =
-    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
-    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
-    db_host = db_host_port.at 0
-    db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
-    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
-    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
-    ca_cert_file = Environment.get "ENSO_DATABASE_TEST_CA_CERT_FILE"
-
-    ssl_pending = if ca_cert_file.is_nothing then "PostgreSQL SSL test not configured." else Nothing
-
-    suite_builder.group "[Snowflake] SSL connectivity tests" pending=ssl_pending group_builder->
-        group_builder.specify "should connect without ssl parameter" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)) . should_succeed
-
-        group_builder.specify "should connect, requiring SSL" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=SSL_Mode.Require) . should_succeed
-
-        group_builder.specify "should connect be able to verify the certificate" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Verify_CA ca_cert_file)) . should_succeed
-
-            ## Default certificate should not accept the self signed certificate.
-            ca_fail = Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=SSL_Mode.Verify_CA)
-            ca_fail.is_error . should_equal True
-            ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
-
-        group_builder.specify "should connect be able to verify the host name against the certificate" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file)) . should_succeed
-
-        alternate_host = Environment.get "ENSO_DATABASE_TEST_ALTERNATE_HOST" . if_nothing <|
-            if db_host == "127.0.0.1" then "localhost" else Nothing
-        pending_alternate = if alternate_host.is_nothing then "Alternative host name not configured." else Nothing
-        group_builder.specify "should fail to connect with alternate host name not valid in certificate" pending=pending_alternate <|
-            ca_fail = Database.connect (Postgres alternate_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file))
-            ca_fail.is_error . should_equal True
-            ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
-
     case create_connection_builder of
         Nothing ->
-            message = "PostgreSQL test database is not configured. See README.md for instructions."
+            message = "Snowflake test connection is not configured. See README.md for instructions."
             suite_builder.group "[Snowflake] Database tests" pending=message (_-> Nothing)
         connection_builder ->
-            add_postgres_specs suite_builder connection_builder db_name
-
+            add_snowflake_specs suite_builder connection_builder db_name
             Transaction_Spec.add_specs suite_builder connection_builder "[Snowflake] "
             Upload_Spec.add_specs suite_builder connection_builder "[Snowflake] "
 
@@ -614,18 +579,13 @@ add_table_specs suite_builder =
                 group_builder.specify "should allow to set up a connection with the password passed as a secret" pending=cloud_setup.pending <|
                     cloud_setup.with_prepared_environment <|
                         with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
-                            my_secret_name = "Enso Test: My Secret App NAME " + (Random.uuid.take 5)
-                            with_secret "my_postgres_app_name" my_secret_name app_name_secret-> Test.with_retries <|
-                                details = Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password username_secret password_secret)
-                                # We set the ApplicationName option, so that we can see that secrets can be used in custom properties.
-                                options = Connection_Options.Value [["ApplicationName", app_name_secret]]
-                                connection = Database.connect details options
-                                connection.should_succeed
-                                Panic.with_finalizer connection.close <|
-                                    connection.tables . should_be_a Table
-                                    table = connection.read "SELECT application_name FROM pg_stat_activity"
-                                    application_names = table.at 0 . to_vector
-                                    application_names.should_contain my_secret_name
+                            base_details = get_configured_connection_details
+                            secret_credentials = Credentials.Username_And_Password username_secret password_secret
+                            details = Snowflake_Details.Snowflake base_details.account_name secret_credentials base_details.database base_details.schema base_details.warehouse
+                            connection = Database.connect details options
+                            connection.should_succeed
+                            Panic.with_finalizer connection.close <|
+                                connection.tables . should_be_a Table
 
 with_secret name value callback =
     secret = Enso_Secret.create name+Random.uuid value
@@ -633,14 +593,17 @@ with_secret name value callback =
     Panic.with_finalizer secret.delete (callback secret)
 
 get_configured_connection_details =
-    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
-    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
-    db_host = db_host_port.at 0
-    db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
-    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
-    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
-    if db_name.is_nothing then Nothing  else
-        Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)
+    account_name = Environment.get "ENSO_SNOWFLAKE_ACCOUNT"
+    if account_name.is_nothing then Nothing else
+        get_var name =
+            Environment.get name if_missing=(Panic.throw (Illegal_State.Error "ENSO_SNOWFLAKE_ACCOUNT is set, but "+name+" is not. Please set all required environment variables."))
+        user = get_var "ENSO_SNOWFLAKE_USER"
+        password = get_var "ENSO_SNOWFLAKE_PASSWORD"
+        database = get_var "ENSO_SNOWFLAKE_DATABASE"
+        schema = Environment.get "ENSO_SNOWFLAKE_SCHEMA" if_missing="PUBLIC"
+        warehouse = Environment.get "ENSO_SNOWFLAKE_WAREHOUSE" if_missing=""
+        credentials = Credentials.Username_And_Password user password
+        Snowflake_Details.Snowflake account_name credentials database schema warehouse
 
 ## Returns a function that takes anything and returns a new connection.
    The function creates a _new_ connection on each invocation
