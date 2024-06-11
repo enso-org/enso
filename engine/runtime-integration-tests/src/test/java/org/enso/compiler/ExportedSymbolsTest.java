@@ -66,9 +66,7 @@ public class ExportedSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        import project.A_Module.A_Type
         export project.A_Module.A_Type
-
         type B_Type
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainSrcMod), projDir);
