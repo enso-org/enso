@@ -481,6 +481,8 @@ const handler = componentBrowserBindings.handler({
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
+    @keydown.arrow-left.stop
+    @keydown.arrow-right.stop
   >
     <div class="panels">
       <div class="panel components">
