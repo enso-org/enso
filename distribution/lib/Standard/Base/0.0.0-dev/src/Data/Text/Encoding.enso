@@ -89,7 +89,8 @@ type Encoding
        Convert an Encoding to it's corresponding Java Charset, if applicable.
        This method should be used in places not aware of special logic for the
        Default encoding. In such places, usage of Default encoding will be forbidden.
-    to_java_charset self -> Charset ! Illegal_Argument =
+    to_java_charset : Charset ! Illegal_Argument
+    to_java_charset self =
         self.to_java_charset_or_null.if_nothing <|
             warning = Illegal_Argument.Error "The Default encoding has been used in an unexpected place (e.g. Write operation). It will be replaced with UTF-8. Please specify the desired encoding explicitly)"
             Warning.attach warning (Encoding.utf_8.to_java_charset)
@@ -97,7 +98,8 @@ type Encoding
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset or null if it is the Default encoding.
        This method should only be used in places where a null Charset is expected - i.e. places aware of the Default encoding.
-    to_java_charset_or_null self -> (Charset | Nothing) ! Illegal_Argument = case self of
+    to_java_charset_or_null : Charset | Nothing ! Illegal_Argument
+    to_java_charset_or_null self = case self of
         Encoding.Value charset_name ->
             Panic.catch UnsupportedCharsetException (Charset.forName charset_name) _->
                 Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + charset_name))
