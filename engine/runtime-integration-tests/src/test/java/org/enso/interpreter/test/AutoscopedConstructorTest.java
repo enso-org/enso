@@ -267,4 +267,44 @@ public class AutoscopedConstructorTest {
           e.getMessage().contains("Type_Error"));
     }
   }
+
+  @Test
+  public void simpleAnyCheck() {
+    var code =
+        """
+    import Standard.Base.Any.Any
+
+    type A
+        Typed x:Any
+
+    t = ..Typed ..My_Other
+    materialize v:A = v
+
+    create = materialize t
+    """;
+
+    var create = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+
+    assertEquals("A", create.getMetaObject().getMetaSimpleName());
+  }
+
+  @Test
+  public void simpleAnyOrACheck() {
+    var code =
+        """
+    import Standard.Base.Any.Any
+
+    type A
+        Typed (x:Any|A)
+
+    t = ..Typed ..My_Other
+    materialize v:A = v
+
+    create = materialize t
+    """;
+
+    var create = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+
+    assertEquals("A", create.getMetaObject().getMetaSimpleName());
+  }
 }

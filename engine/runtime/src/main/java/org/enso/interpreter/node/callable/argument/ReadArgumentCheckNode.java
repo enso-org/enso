@@ -125,7 +125,8 @@ public abstract class ReadArgumentCheckNode extends Node {
     };
   }
 
-  public static ReadArgumentCheckNode build(String comment, Type expectedType) {
+  public static ReadArgumentCheckNode build(EnsoContext ctx, String comment, Type expectedType) {
+    assert ctx.getBuiltins().any() != expectedType : "Don't check for Any: " + expectedType;
     return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(comment, expectedType);
   }
 
