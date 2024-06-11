@@ -402,8 +402,7 @@ watchEffect(() => {
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const constructor = data_.value_type?.[i]?.constructor
         const valueType = constructor ? `${constructor}` : null
-        const displayVal = data_.value_type?.[i]?.display_text as string
-        const displayValue = displayVal ? `${displayVal}` : null
+        const displayValue = data_.value_type?.[i]?.display_text
         return toField(v, valueType, displayValue)
       }) ?? []
 
