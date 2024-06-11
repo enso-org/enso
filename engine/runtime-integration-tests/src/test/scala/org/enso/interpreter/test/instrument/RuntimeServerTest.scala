@@ -3072,7 +3072,8 @@ class RuntimeServerTest
               "5"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -3189,7 +3190,8 @@ class RuntimeServerTest
               "5"
             )
           ),
-          execute = false
+          execute = false,
+          idMap   = None
         )
       )
     )
@@ -3206,7 +3208,8 @@ class RuntimeServerTest
               "6"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -3373,7 +3376,8 @@ class RuntimeServerTest
               "\"Hi\""
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -3485,7 +3489,8 @@ class RuntimeServerTest
               "1234.x 4"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -3520,7 +3525,8 @@ class RuntimeServerTest
               "1000.x 5"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -3557,7 +3563,8 @@ class RuntimeServerTest
               "Main.pie"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -3594,7 +3601,8 @@ class RuntimeServerTest
               "Main.uwu"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -3631,7 +3639,8 @@ class RuntimeServerTest
               "Main.hie"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -3666,7 +3675,8 @@ class RuntimeServerTest
               "\"Hello!\""
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -4126,7 +4136,8 @@ class RuntimeServerTest
               "modified"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -4221,7 +4232,8 @@ class RuntimeServerTest
               "modified"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -4288,7 +4300,8 @@ class RuntimeServerTest
               "main = 42"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -4458,7 +4471,8 @@ class RuntimeServerTest
               s"Number.lucky = 42$newline$newline"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -4550,7 +4564,8 @@ class RuntimeServerTest
               code2
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -6856,7 +6871,8 @@ class RuntimeServerTest
               "2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -7098,4 +7114,79 @@ class RuntimeServerTest
     )
   }
 
+  it should "support file edit notification with IdMap" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val xId = new UUID(0, 1)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = 0
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Create a new file
+    val mainFile = context.writeMain(code)
+
+    // Set sources for the module
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(moduleName, moduleName, "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("0")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 8), model.Position(3, 9)),
+              "\"Hello World!\""
+            )
+          ),
+          execute = true,
+          idMap   = Some(model.IdMap(Vector(model.Span(46, 60) -> xId)))
+        )
+      )
+    )
+    context.receiveN(3, 10) shouldEqual Seq(
+      TestMessages.pending(contextId, xId),
+      TestMessages.update(contextId, xId, ConstantsGen.TEXT),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+  }
 }

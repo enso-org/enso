@@ -227,7 +227,7 @@ final class EnsureCompiledJob(
     val diagnostics = pass.collect {
       case warn: ir.Warning =>
         createDiagnostic(Api.DiagnosticType.Warning, module, warn)
-      case error: Error =>
+      case error: expression.Error =>
         createDiagnostic(Api.DiagnosticType.Error, module, error)
     }
     sendDiagnosticUpdates(diagnostics)
@@ -321,9 +321,9 @@ final class EnsureCompiledJob(
         .map { location =>
           idMap.asMap
             .get(Span(location.start(), location.end()))
-            .fold(location)(externalId =>
+            .fold(location)(externalId => {
               new IdentifiedLocation(location.location(), externalId)
-            )
+            })
         }
       expr.setLocation(newLocation)
     }
