@@ -17,7 +17,7 @@ import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier } from '@/util/ast/abstract'
+import { MutableModule, isIdentifier, type Identifier } from '@/util/ast/abstract'
 import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
 import { filterDefined } from '@/util/data/iterable'
@@ -234,14 +234,21 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       return Ok(method)
     }
 
-    function generateLocallyUniqueIdent(prefix?: string | undefined) {
+    /** Generate unique identifier from `prefix` and some numeric suffix.
+     * @param prefix - of the identifier
+     * @param ignore - a list of identifiers to consider as unavailable. Useful when creating multiple identifiers in a batch.
+     * */
+    function generateLocallyUniqueIdent(
+      prefix?: string | undefined,
+      ignore: Set<Identifier> = new Set(),
+    ): Identifier {
       // FIXME: This implementation is not robust in the context of a synchronized document,
       // as the same name can likely be assigned by multiple clients.
       // Consider implementing a mechanism to repair the document in case of name clashes.
       for (let i = 1; ; i++) {
         const ident = (prefix ?? FALLBACK_BINDING_PREFIX) + i
         assert(isIdentifier(ident))
-        if (!db.identifierUsed(ident)) return ident
+        if (!db.identifierUsed(ident) && !ignore.has(ident)) return ident
       }
     }
 
@@ -387,7 +394,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
           for (const _conflict of conflicts) {
             // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
             // https://github.com/enso-org/enso/issues/9356
-            // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+            // substituteQualifiedName(wholeAssignment, conflict.pattern, conflict.fullyQualified)
           }
         }
       })
@@ -665,6 +672,20 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       proj.computedValueRegistry.processUpdates([update_])
     }
 
+    /** Iterate over code lines, return node IDs from `ids` set in the order of code positions. */
+    function pickInCodeOrder(ids: Set<NodeId>): NodeId[] {
+      assert(syncModule.value != null)
+      const func = unwrap(getExecutedMethodAst(syncModule.value))
+      const body = func.bodyExpressions()
+      const result: NodeId[] = []
+      for (const expr of body) {
+        const id = expr?.id
+        const nodeId = db.getOuterExpressionNodeId(id)
+        if (nodeId && ids.has(nodeId)) result.push(nodeId)
+      }
+      return result
+    }
+
     /**
      * Reorders nodes so the `targetNodeId` node is placed after `sourceNodeId`. Does nothing if the
      * relative order is already correct.
@@ -758,6 +779,7 @@ export const { injectFn: useGraphStore, provideFn: provideGraphStore } = createC
       disconnectTarget,
       moduleRoot,
       deleteNodes,
+      pickInCodeOrder,
       ensureCorrectNodeOrder,
       batchEdits,
       overrideNodeColor,
