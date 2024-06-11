@@ -102,10 +102,10 @@ test.each([
 test.each([
   ['local.Project.Main', 'Project', 'NewProject', 'local.NewProject.Main'],
   ['local.Project.Main', 'Project2', 'NewProject', 'local.Project.Main'],
-  ['local.Project', 'Project', 'NewProject', 'local.NewPoject'],
+  ['local.Project', 'Project', 'NewProject', 'local.NewProject'],
   ['Project', 'Project', 'NewProject', 'Project'],
   ['local.Project2.Project', 'Project', 'NewProject', 'local.Project2.Project'],
-])('Replacing project name in $1 from $2 to $3', (qname, oldName, newName, expected) => {
+])('Replacing project name in %s from %s to %s', (qname, oldName, newName, expected) => {
   const qn = unwrap(tryQualifiedName(qname))
   const newIdent = unwrap(tryIdentifier(newName))
   expect(qnReplaceProjectName(qn, oldName, newIdent)).toBe(expected)
