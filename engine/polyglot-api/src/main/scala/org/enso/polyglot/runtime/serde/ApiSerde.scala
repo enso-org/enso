@@ -17,7 +17,7 @@ object ApiSerde {
 
   import SerdeConfig._
 
-  private implicit val apiEnvelopeCodec: JsonValueCodec[ApiEnvelope] =
+  implicit private val apiEnvelopeCodec: JsonValueCodec[ApiEnvelope] =
     JsonCodecMaker.make[ApiEnvelope](config)
 
   /** Serializes an ApiEnvelope into a byte buffer.

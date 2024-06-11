@@ -1,16 +1,21 @@
 package org.enso.polyglot.macros
 
 import com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig
-import com.github.plokhotnyuk.jsoniter_scala.core.{JsonValueCodec, JsonReader, JsonWriter}
+import com.github.plokhotnyuk.jsoniter_scala.core.{
+  JsonReader,
+  JsonValueCodec,
+  JsonWriter
+}
 
 import java.io.File
 object SerdeConfig {
 
-  /**
-    * Custom configuration for generating jsoniter's codecs.
+  /** Custom configuration for generating jsoniter's codecs.
     *
     * API data structures are recursive and have to be allowed explicitly.
     * `skipNestedOptionValues` has to be enabled to workaround an apparent
+    * problem with nested option values present next to a single level option
+    * values (reported under https://github.com/plokhotnyuk/jsoniter-scala/issues/1146).
     */
   val config = CodecMakerConfig
     .withAllowRecursiveTypes(allowRecursiveTypes = true)
