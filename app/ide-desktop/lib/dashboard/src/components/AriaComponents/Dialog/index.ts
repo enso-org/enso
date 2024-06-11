@@ -7,6 +7,7 @@ export * from './Dialog'
 export * from './DialogTrigger'
 export * from './Popover'
 export * from './Close'
+export * from './variants'
 // eslint-disable-next-line no-restricted-syntax
 export { useDialogContext, type DialogContextValue } from './DialogProvider'
 export {

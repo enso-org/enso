@@ -63,7 +63,20 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
 }
 
 export const BUTTON_STYLES = twv.tv({
-  base: 'group flex h-[max-content] whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out select-none text-center items-center justify-center appearance-none',
+  base: [
+    'group',
+    // we need to set the height to max-content to prevent the button from growing in flex containers
+    'h-[max-content]',
+    // buttons always have borders
+    // so keep them in mind when setting paddings
+    'border border-transparent',
+    // button reset styles
+    'whitespace-nowrap cursor-pointer select-none appearance-none',
+    // Align the content by the center
+    'text-center items-center justify-center',
+    // animations
+    'transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out',
+  ],
   variants: {
     isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
     isFocused: {
@@ -75,54 +88,57 @@ export const BUTTON_STYLES = twv.tv({
       custom: { base: '', extraClickZone: 'after:inset-[-12px]', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
-        base: 'px-[11px] py-[5px]',
-        content: 'gap-2',
-        text: text.TEXT_STYLE({
+        base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'bold',
+          className: 'flex px-[11px] py-[5px]',
         }),
+        content: 'gap-2',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
-        base: 'px-[9px] py-[3px]',
-        text: text.TEXT_STYLE({
+        base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
           weight: 'bold',
+          className: 'flex px-[9px] py-[3px]',
         }),
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },
       small: {
-        base: 'px-[7px] py-[1px]',
-        content: 'gap-1',
-        text: text.TEXT_STYLE({
+        base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          className: 'flex px-[7px] py-[1px]',
         }),
+        content: 'gap-1',
         extraClickZone: 'after:inset-[-10px]',
       },
       xsmall: {
-        base: 'px-[5px] py-[1px]',
-        content: 'gap-1',
-        text: text.TEXT_STYLE({
+        base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          className: 'flex px-[5px] py-[1px]',
         }),
+        content: 'gap-1',
         extraClickZone: 'after:inset-[-12px]',
       },
       xxsmall: {
-        base: 'px-[3px] py-[0px]',
-        content: 'gap-0.5',
-        text: text.TEXT_STYLE({
+        base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          className: 'flex px-[3px] py-[0px]',
+          // we need to disable line height compensation for this size
+          // because otherwise the text will be too high in the button
+          disableLineHeightCompensation: true,
         }),
+        content: 'gap-0.5',
         extraClickZone: 'after:inset-[-12px]',
       },
     },
-    iconOnly: { true: { base: '' } },
+    iconOnly: { true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }) } },
     rounded: {
       full: 'rounded-full',
       large: 'rounded-lg',
@@ -145,13 +161,13 @@ export const BUTTON_STYLES = twv.tv({
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100',
+        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',
       },
       ghost:
-        'opacity-80 hover:opacity-100 hover:bg-white focus-visible:opacity-100 focus-visible:bg-white',
+        'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
     },
@@ -189,28 +205,28 @@ export const BUTTON_STYLES = twv.tv({
     },
     {
       size: 'xxsmall',
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.25cap] -mt-[0.1cap]' },
       iconOnly: true,
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.25cap] -mt-[0.1cap]' },
     },
     {
       size: 'xsmall',
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.45cap] -mt-[0.1cap]' },
       iconOnly: true,
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.45cap] -mt-[0.1cap]' },
     },
     {
       size: 'small',
-      class: { base: 'p-0 rounded-full', icon: 'h-[1.65cap] -mt-[0.1cap]' },
       iconOnly: true,
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.65cap] -mt-[0.1cap]' },
     },
     {
       size: 'medium',
-      class: { base: 'p-0 rounded-full', icon: 'h-[2cap] -mt-[0.1cap]' },
       iconOnly: true,
+      class: { base: 'p-0 rounded-full', icon: 'h-[2cap] -mt-[0.1cap]' },
     },
     {
       size: 'large',
-      class: { base: 'p-0 rounded-full', icon: 'h-[2.25cap] -mt-[0.1cap]' },
       iconOnly: true,
+      class: { base: 'p-0 rounded-full', icon: 'h-[2.25cap] -mt-[0.1cap]' },
     },
     {
       size: 'hero',
