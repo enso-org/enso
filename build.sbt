@@ -481,11 +481,6 @@ val helidon = Seq(
 // === Jackson ================================================================
 
 val jacksonVersion = "2.15.2"
-val jackson = Seq(
-  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
-  "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
-  "com.fasterxml.jackson.module"    %% "jackson-module-scala"    % jacksonVersion
-)
 
 // === JAXB ================================================================
 
