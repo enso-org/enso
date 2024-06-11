@@ -25,6 +25,7 @@ export interface AssetRowsProps extends assetRow.AssetRowProps {
   readonly filterBy: backendModule.FilterBy | null
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
   readonly filter: (asset: backendModule.AnyAsset) => boolean
+  readonly onChildRendered: () => void
 }
 
 /** An {@link AssetRow} for an asset, and its children (if present). */
@@ -36,6 +37,7 @@ export default function AssetRows(props: AssetRowsProps) {
     filterBy,
     sortInfo,
     filter,
+    onChildRendered,
     ...assetRowProps
   } = props
   const { item, depth, columns, state } = assetRowProps
@@ -43,27 +45,50 @@ export default function AssetRows(props: AssetRowsProps) {
   const isOpen = store.useStore(
     storeState => storeState.getAssetState(backend.type, item.id).isOpen
   )
+  const [areChildrenVisible, setAreChildrenVisible] = React.useState(false)
+  const isVisible = React.useMemo(() => !hideRoot && filter(item), [hideRoot, filter, item])
 
-  const row = !hideRoot && <AssetRow parentRef={parentRef} ref={rootRef} {...assetRowProps} />
+  React.useEffect(() => {
+    setAreChildrenVisible(false)
+  }, [filter])
 
-  return item.type !== backendModule.AssetType.directory ? (
-    row
-  ) : (
-    <>
-      {row}
-      {isOpen && (
-        <DirectoryChildrenAssetRows
-          parentRef={rootRef}
-          backend={backend}
-          depth={depth + 1}
-          directory={item}
-          filterBy={filterBy}
-          sortInfo={sortInfo}
-          filter={filter}
-          columns={columns}
-          state={state}
-        />
-      )}
-    </>
-  )
+  const row = () => {
+    setTimeout(() => {
+      onChildRendered()
+    })
+    return (
+      <AssetRow isDisabled={!isVisible} parentRef={parentRef} ref={rootRef} {...assetRowProps} />
+    )
+  }
+
+  if (item.type !== backendModule.AssetType.directory || !isOpen) {
+    return isVisible && row()
+  } else {
+    const children = (
+      <DirectoryChildrenAssetRows
+        parentRef={rootRef}
+        backend={backend}
+        depth={depth + 1}
+        directory={item}
+        filterBy={filterBy}
+        sortInfo={sortInfo}
+        filter={filter}
+        columns={columns}
+        state={state}
+        onChildRendered={() => {
+          // Skip the unnecessary extra re-render if the row is already visible.
+          if (isVisible) {
+            setAreChildrenVisible(true)
+          }
+        }}
+      />
+    )
+    // By this point, `didRowRenderRef` will have been set by the children already.
+    return (
+      <>
+        {!hideRoot && (isVisible || areChildrenVisible) && row()}
+        {children}
+      </>
+    )
+  }
 }

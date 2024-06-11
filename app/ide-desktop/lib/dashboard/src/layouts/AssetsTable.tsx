@@ -438,6 +438,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 state={state}
                 filter={filter}
                 filterBy={CATEGORY_TO_FILTER_BY[category]}
+                onChildRendered={() => {}}
               />
               <tr className="hidden h-row first:table-row">
                 <td colSpan={columns.length} className="bg-transparent">

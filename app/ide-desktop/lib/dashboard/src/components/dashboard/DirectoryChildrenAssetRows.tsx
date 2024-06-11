@@ -37,22 +37,23 @@ export interface DirectoryChildrenAssetRowsProps {
   readonly columns: readonly columnUtils.Column[]
   readonly state: assetsTable.AssetsTableState
   readonly filter: (asset: backendModule.AnyAsset) => boolean
+  readonly onChildRendered: () => void
 }
 
 /** Rows for each of a directory's children. */
 export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAssetRowsProps) {
-  const { backend, depth, directory, filterBy, sortInfo, columns, filter } = props
+  const { backend, depth, directory, filterBy, sortInfo, columns } = props
   const { getText } = textProvider.useText()
-  const children = backendHooks.useBackendListDirectory(
+  const childAssets = backendHooks.useBackendListDirectory(
     backend,
     directory.id,
     ...(filterBy == null ? [] : [filterBy])
   )
-  const displayItems = React.useMemo(() => {
-    if (children == null) {
+  const displayAssets = React.useMemo(() => {
+    if (childAssets == null) {
       return null
     } else if (sortInfo == null) {
-      return children
+      return childAssets
     } else {
       const multiplier = sortInfo.direction === sorting.SortDirection.ascending ? 1 : -1
       let compare: (a: backendModule.AnyAsset, b: backendModule.AnyAsset) => number
@@ -80,16 +81,11 @@ export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAsset
           break
         }
       }
-      return [...children].sort(compare)
+      return [...childAssets].sort(compare)
     }
-  }, [children, sortInfo])
-  // FIXME: Show assets again when one of their children are present in search results.
-  const visibleItems = React.useMemo(
-    () => displayItems?.filter(filter) ?? [],
-    [displayItems, filter]
-  )
+  }, [childAssets, sortInfo])
 
-  return children == null ? (
+  return childAssets == null ? (
     <tr>
       <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
         <div
@@ -102,7 +98,7 @@ export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAsset
         </div>
       </td>
     </tr>
-  ) : children.length === 0 ? (
+  ) : childAssets.length === 0 ? (
     <tr>
       <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
         <div
@@ -119,6 +115,6 @@ export default function DirectoryChildrenAssetRows(props: DirectoryChildrenAsset
       </td>
     </tr>
   ) : (
-    visibleItems.map(item => <AssetRows key={item.id} {...props} item={item} />)
+    (displayAssets ?? []).map(item => <AssetRows key={item.id} {...props} item={item} />)
   )
 }

@@ -52,6 +52,7 @@ export interface AssetRowInnerProps {
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
+  readonly isDisabled?: boolean
   readonly parentRef: React.RefObject<HTMLTableRowElement> | null
   readonly item: backendHooks.WithPlaceholder<backendModule.AnyAsset>
   readonly depth: number
@@ -61,7 +62,7 @@ export interface AssetRowProps {
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElement>) {
-  const { parentRef, item, depth, state, columns } = props
+  const { isDisabled = false, parentRef, item, depth, state, columns } = props
   const { backend, scrollContainerRef, rootDirectoryId, doPaste } = state
 
   const queryClient = reactQuery.useQueryClient()
@@ -305,6 +306,7 @@ function AssetRow(props: AssetRowProps, ref: React.ForwardedRef<HTMLTableRowElem
               className={tailwindMerge.twMerge(
                 'h-row rounded-full transition-all ease-in-out rounded-rows-child',
                 item.isPlaceholder && 'placeholder',
+                isDisabled && 'opacity-50',
                 (isDraggedOver || isSelected) && 'selected'
               )}
               onKeyDown={onKeyDown}
