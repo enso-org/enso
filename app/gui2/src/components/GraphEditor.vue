@@ -10,6 +10,8 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
+import DockPanel from '@/components/DockPanel.vue'
+import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
@@ -18,20 +20,12 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
-import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PlusButton from '@/components/PlusButton.vue'
-import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
-import SvgButton from '@/components/SvgButton.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
-import {
-  keyboardBusy,
-  keyboardBusyExceptIn,
-  useEvent,
-  useResizeObserver,
-} from '@/composables/events'
+import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
@@ -62,7 +56,17 @@ import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
 import { isDevMode } from 'shared/util/detect'
-import { computed, onMounted, onUnmounted, ref, shallowRef, toRaw, toRef, watch } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  shallowRef,
+  toRaw,
+  toRef,
+  watch,
+  type ComponentInstance,
+} from 'vue'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -374,25 +378,18 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 // === Documentation Editor ===
 
-const documentationEditorArea = ref<HTMLElement>()
+const rightDock = shallowRef<ComponentInstance<typeof DockPanel>>()
+const documentationEditorArea = computed(() => unrefElement(rightDock))
 const showDocumentationEditor = computedFallback(
   storedShowDocumentationEditor,
-  // Show documenation editor when documentation exists on first graph visit.
-  () => !!documentation.value,
+  // Show documentation editor when documentation exists on first graph visit.
+  () => !!documentation.state.value,
 )
 
 const documentationEditorHandler = documentationEditorBindings.handler({
   toggle() {
     showDocumentationEditor.value = !showDocumentationEditor.value
   },
-})
-
-const rightDockComputedSize = useResizeObserver(documentationEditorArea)
-const rightDockComputedBounds = computed(() => new Rect(Vec2.Zero, rightDockComputedSize.value))
-const rightDockStyle = computed(() => {
-  return {
-    width: rightDockWidth.value != null ? `${rightDockWidth.value}px` : undefined,
-  }
 })
 
 const { documentation } = useAstDocumentation(graphStore, () =>
@@ -595,6 +592,11 @@ async function handleFileDrop(event: DragEvent) {
   const MULTIPLE_FILES_GAP = 50
 
   if (!event.dataTransfer?.items) return
+  const projectRootId = await projectStore.projectRootId
+  if (projectRootId == null) {
+    toasts.userActionFailed.show(`Unable to upload file(s): Could not identify project root.`)
+    return
+  }
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
     if (item.kind === 'file') {
       const file = item.getAsFile()
@@ -602,10 +604,10 @@ async function handleFileDrop(event: DragEvent) {
       const clientPos = new Vec2(event.clientX, event.clientY)
       const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
       const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
-      const uploader = await Uploader.Create(
+      const uploader = Uploader.Create(
         projectStore.lsRpcConnection,
         projectStore.dataConnection,
-        projectStore.contentRoots,
+        projectRootId,
         projectStore.awareness,
         file,
         pos,
@@ -676,29 +678,17 @@ const groupColors = computed(() => {
       :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
     />
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
-    <Transition name="rightDock">
-      <div
-        v-if="showDocumentationEditor"
-        ref="documentationEditorArea"
-        class="rightDock"
-        :style="rightDockStyle"
-        data-testid="rightDock"
-      >
-        <div class="scrollArea">
-          <MarkdownEditor v-model="documentation" />
-        </div>
-        <SvgButton
-          name="close"
-          class="closeButton button"
-          @click.stop="showDocumentationEditor = false"
-        />
-        <ResizeHandles
-          left
-          :modelValue="rightDockComputedBounds"
-          @update:modelValue="rightDockWidth = $event.width"
-        />
-      </div>
-    </Transition>
+    <DockPanel
+      ref="rightDock"
+      v-model:show="showDocumentationEditor"
+      v-model:size="rightDockWidth"
+      data-testid="rightDock"
+    >
+      <DocumentationEditor
+        :modelValue="documentation.state.value"
+        @update:modelValue="documentation.set"
+      />
+    </DockPanel>
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
@@ -737,46 +727,6 @@ const groupColors = computed(() => {
 </template>
 
 <style scoped>
-.rightDock {
-  position: absolute;
-  top: 46px;
-  bottom: 0;
-  width: var(--right-dock-default-width);
-  right: 0;
-  border-radius: 7px 0 0;
-  background-color: rgba(255, 255, 255, 0.35);
-  backdrop-filter: var(--blur-app-bg);
-  padding: 4px 12px 0 0;
-}
-.rightDock-enter-active,
-.rightDock-leave-active {
-  transition: left 0.25s ease;
-  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
-  overflow-x: clip;
-}
-.rightDock-enter-from,
-.rightDock-leave-to {
-  width: 0;
-}
-.rightDock .scrollArea {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  padding-left: 6px;
-}
-
-.rightDock .closeButton {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  color: red;
-  opacity: 0.3;
-
-  &:hover {
-    opacity: 0.6;
-  }
-}
-
 .GraphEditor {
   position: relative;
   contain: layout;

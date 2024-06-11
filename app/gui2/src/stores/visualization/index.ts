@@ -88,9 +88,7 @@ export const { provideFn: provideVisualizationStore, injectFn: useVisualizationS
      * file delete events can remove the cached visualization. */
     const currentProjectVisualizationsByPath = new Map<string, string>()
     const metadata = new VisualizationMetadataDb()
-    const projectRoot = proj.contentRoots.then(
-      (roots) => roots.find((root) => root.type === 'Project')?.id,
-    )
+    const projectRoot = proj.projectRootId
 
     for (const { name, inputType, icon } of builtinVisualizations) {
       metadata.set(toVisualizationId({ module: { kind: 'Builtin' }, name }), {

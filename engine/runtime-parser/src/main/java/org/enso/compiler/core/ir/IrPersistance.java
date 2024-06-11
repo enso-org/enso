@@ -1,6 +1,8 @@
 package org.enso.compiler.core.ir;
 
 import java.io.IOException;
+import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -192,33 +194,89 @@ public final class IrPersistance {
     }
   }
 
+  /**
+   * The persistance for Scala List is needed, because some places expect the more general List type
+   * instead of Seq.
+   *
+   * <p>Because List is a subtype of Seq and can be deserialized using any of the two persistance
+   * implementations, we want to ensure that the format of both is compatible. Seq is generally
+   * preferred as it can be lazy.
+   */
   @ServiceProvider(service = Persistance.class)
   public static final class PersistScalaList extends Persistance<List> {
     public PersistScalaList() {
       super(List.class, true, 4432);
     }
 
+    private final PersistScalaSeq underlying = new PersistScalaSeq();
+
     @Override
     protected void writeObject(List list, Output out) throws IOException {
-      var size = list.size();
-      out.writeInt(size);
-      var l = list.reverse();
-      for (var i = 0; i < size; i++) {
-        out.writeObject(l.head());
-        l = (List) l.tail();
-      }
+      underlying.writeObject(list, out);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     protected List readObject(Input in) throws IOException, ClassNotFoundException {
+      // Algorithm that is aligned with `underlying`, but is not lazy.
+      var builder = List.newBuilder();
       var size = in.readInt();
-      List list = scala.collection.immutable.Nil$.MODULE$;
       for (var i = 0; i < size; i++) {
         var elem = in.readObject();
-        list = scala.collection.immutable.$colon$colon$.MODULE$.apply(elem, list);
+        builder.addOne(elem);
       }
-      return list;
+      return builder.result();
+    }
+  }
+
+  /**
+   * Persistance for Java List.
+   *
+   * <p>When reading back, the deserialization is done lazily.
+   */
+  @ServiceProvider(service = Persistance.class)
+  public static final class PersistJavaListLazy extends Persistance<java.util.List> {
+    public PersistJavaListLazy() {
+      super(java.util.List.class, true, 34011);
+    }
+
+    @Override
+    protected void writeObject(java.util.List list, Output out) throws IOException {
+      var size = list.size();
+      out.writeInt(size);
+      for (var i = 0; i < size; i++) {
+        out.writeObject(list.get(i));
+      }
+    }
+
+    @Override
+    protected java.util.List readObject(Input in) throws IOException, ClassNotFoundException {
+      var size = in.readInt();
+      var references = new ArrayList<Reference<Object>>(size);
+      for (var i = 0; i < size; i++) {
+        var elem = in.readReference(Object.class);
+        references.add(elem);
+      }
+
+      return new ListOfReferences(references);
+    }
+
+    private static class ListOfReferences extends AbstractList<Object> {
+      private final java.util.List<Reference<Object>> references;
+
+      public ListOfReferences(java.util.List<Reference<Object>> references) {
+        this.references = references;
+      }
+
+      @Override
+      public Object get(int index) {
+        return references.get(index).get(Object.class);
+      }
+
+      @Override
+      public int size() {
+        return references.size();
+      }
     }
   }
 
@@ -351,11 +409,12 @@ public final class IrPersistance {
     }
 
     @Override
-    protected void writeObject(Seq list, Output out) throws IOException {
-      var size = list.size();
+    protected void writeObject(Seq seq, Output out) throws IOException {
+      var size = seq.size();
       out.writeInt(size);
-      for (var i = 0; i < size; i++) {
-        out.writeObject(list.apply(i));
+      var it = seq.iterator();
+      while (it.hasNext()) {
+        out.writeObject(it.next());
       }
     }
 

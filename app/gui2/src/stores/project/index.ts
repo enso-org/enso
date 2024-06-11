@@ -17,9 +17,9 @@ import { DataServer } from '@/util/net/dataServer'
 import { tryQualifiedName } from '@/util/qualifiedName'
 import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
-import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
+import { Error as DataError, OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
 import { LanguageServer } from 'shared/languageServer'
-import type { Diagnostic, ExpressionId, MethodPointer } from 'shared/languageServerTypes'
+import type { Diagnostic, ExpressionId, MethodPointer, Path } from 'shared/languageServerTypes'
 import { type AbortScope } from 'shared/util/net'
 import {
   DistributedProject,
@@ -359,6 +359,22 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       },
     )
 
+    const projectRootId = contentRoots.then(
+      (roots) => roots.find((root) => root.type === 'Project')?.id,
+    )
+
+    async function readFileBinary(path: Path): Promise<Result<Blob>> {
+      const result = await dataConnection.readFile(path)
+      if (result instanceof DataError) {
+        return Err(result.message() ?? 'Failed to read file.')
+      }
+      const contents = result.contentsArray()
+      if (contents == null) {
+        return Err('No file contents received.')
+      }
+      return Ok(new Blob([contents]))
+    }
+
     return proxyRefs({
       setObservedFileName(name: string) {
         observedFileName.value = name
@@ -376,11 +392,12 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
       modulePath,
       entryPoint,
       projectModel,
-      contentRoots,
+      projectRootId,
       awareness: markRaw(awareness),
       computedValueRegistry: markRaw(computedValueRegistry),
       lsRpcConnection: markRaw(lsRpcConnection),
       dataConnection: markRaw(dataConnection),
+      readFileBinary,
       useVisualizationData,
       isRecordingEnabled,
       stopCapturingUndo,
