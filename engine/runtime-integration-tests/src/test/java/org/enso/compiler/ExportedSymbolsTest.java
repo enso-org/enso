@@ -67,9 +67,7 @@ public class ExportedSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        import project.A_Module.A_Type
         export project.A_Module.A_Type
-
         type B_Type
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainSrcMod), projDir);
@@ -93,7 +91,6 @@ public class ExportedSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_Module import all
         from project.A_Module export all hiding B_Type
         """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
