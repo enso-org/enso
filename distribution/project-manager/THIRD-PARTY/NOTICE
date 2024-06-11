@@ -52,11 +52,13 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 
 'jsoniter-scala-core_2.13', licensed under the MIT License, is distributed with the project-manager.
-The license file can be found at `licenses/MIT`.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.plokhotnyuk.jsoniter-scala.jsoniter-scala-core_2.13-2.28.5`.
 
 
 'jsoniter-scala-macros_2.13', licensed under the MIT License, is distributed with the project-manager.
-The license file can be found at `licenses/MIT`.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.plokhotnyuk.jsoniter-scala.jsoniter-scala-macros_2.13-2.28.5`.
 
 
 'pureconfig-core_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
