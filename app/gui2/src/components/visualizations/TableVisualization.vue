@@ -397,7 +397,7 @@ watchEffect(() => {
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const constructor = data_.value_type?.[i]?.constructor
         const valueType = constructor ? `${constructor}` : null
-        const displayVal = data_.value_type?.[i]?.display_type
+        const displayVal = data_.value_type?.[i]?.display_text
         const displayValue = displayVal ? `${displayVal}` : null
         return toField(v, valueType, displayValue)
       }) ?? []
