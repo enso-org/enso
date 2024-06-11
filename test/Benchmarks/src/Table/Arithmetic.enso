@@ -36,6 +36,20 @@ create_table num_rows =
     Runtime.assert ((t.at "Z" . value_type) == Value_Type.Integer)
     t
 
+create_arrow_columns num_rows =
+    column_to_arrow v:Vector -> Array =
+        builder = int64_new.new v.length
+        v.map e-> builder.append e
+        builder.build
+
+    v = create_vectors num_rows
+
+    x = column_to_arrow (v.at 0)
+    y = column_to_arrow (v.at 1)
+    u = column_to_arrow (v.at 2)
+    z = column_to_arrow (v.at 3)
+    [int64_plus, x, y, u, z]
+
 foreign arrow int64_new = """
     new[Int64]
 
@@ -51,20 +65,7 @@ type Data
     arrow_u self = self.arrow.at 3
     arrow_z self = self.arrow.at 4
 
-    create num_rows = Data.Value (create_table num_rows) <|
-        column_to_arrow v:Vector -> Array =
-            builder = int64_new.new v.length
-            v.map e-> builder.append e
-            builder.build
-
-        v = create_vectors num_rows
-
-        x = column_to_arrow (v.at 0)
-        y = column_to_arrow (v.at 1)
-        u = column_to_arrow (v.at 2)
-        z = column_to_arrow (v.at 3)
-        [int64_plus, x, y, u, z]
-
+    create num_rows = Data.Value (create_table num_rows) (create_arrow_columns num_rows)
 
 collect_benches = Bench.build builder->
     column_arithmetic_plus_fitting d =
