@@ -80,7 +80,11 @@ export const Form = React.forwardRef(function Form<
   React.useImperativeHandle(formRef, () => innerForm, [innerForm])
 
   const formMutation = reactQuery.useMutation({
-    mutationKey: ['FormSubmit', testId, id],
+    // We use template literals to make the mutation key more readable in the devtools
+    // This mutation exists only for debug purposes - React Query dev tools record the mutation,
+    // the result, and the variables(form fields).
+    // In general, prefer using object literals for the mutation key.
+    mutationKey: ['Form submission', `testId: ${testId}`, `id: ${id}`],
     mutationFn: async (fieldValues: TFieldValues) => {
       try {
         await onSubmit(fieldValues, innerForm)
@@ -102,6 +106,10 @@ export const Form = React.forwardRef(function Form<
           : errorUtils.tryGetMessage(error, getText('arbitraryFormErrorMessage'))
 
         innerForm.setError('root.submit', { message })
+
+        // We need to throw the error to make the mutation fail
+        // eslint-disable-next-line no-restricted-syntax
+        throw error
       }
     },
     onError: onSubmitFailed,
@@ -132,13 +140,22 @@ export const Form = React.forwardRef(function Form<
       register: (name, options) => {
         const registered = register(name, options)
 
-        const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = value => {
+        /**
+         * Maps the value to the event object.
+         */
+        function mapValueOnEvent(value: unknown) {
           if (typeof value === 'object' && value != null && 'target' in value && 'type' in value) {
-            return registered.onChange(value)
+            return value
           } else {
-            return registered.onChange({ target: { event: value } })
+            return { target: { value } }
           }
         }
+
+        const onChange: types.UseFormRegisterReturn<Schema, TFieldValues>['onChange'] = value =>
+          registered.onChange(mapValueOnEvent(value))
+
+        const onBlur: types.UseFormRegisterReturn<Schema, TFieldValues>['onBlur'] = value =>
+          registered.onBlur(mapValueOnEvent(value))
 
         const result: types.UseFormRegisterReturn<Schema, TFieldValues, typeof name> = {
           ...registered,
@@ -146,6 +163,7 @@ export const Form = React.forwardRef(function Form<
           ...(registered.required != null ? { isRequired: registered.required } : {}),
           isInvalid: !!formState.errors[name],
           onChange,
+          onBlur,
         }
 
         return result

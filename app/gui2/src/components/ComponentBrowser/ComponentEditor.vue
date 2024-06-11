@@ -20,8 +20,6 @@ const inputField = ref<HTMLInputElement>()
 const fieldText = ref<string>('')
 const fieldSelection = ref<Range>()
 
-const cssEdgeWidth = computed(() => `${4 * props.navigator.scale}px`)
-
 watch(content, ({ text: newText, selection: newPos }) => {
   fieldText.value = newText
   if (inputField.value == null) return
@@ -69,10 +67,17 @@ defineExpose({
   blur: () => inputField.value?.blur(),
   focus: () => inputField.value?.focus(),
 })
+
+const rootStyle = computed(() => {
+  return {
+    '--node-color-primary': props.nodeColor,
+    '--port-edge-width': `${4 * props.navigator.scale}px`,
+  }
+})
 </script>
 
 <template>
-  <div class="ComponentEditor">
+  <div class="ComponentEditor" :style="rootStyle">
     <div v-if="props.icon" class="iconPort">
       <SvgIcon :name="props.icon" class="nodeIcon" />
     </div>
@@ -90,7 +95,7 @@ defineExpose({
 
 <style scoped>
 .ComponentEditor {
-  --node-color-port: color-mix(in oklab, v-bind('props.nodeColor') 85%, white 15%);
+  --node-color-port: color-mix(in oklab, var(--node-color-primary) 85%, white 15%);
   --port-padding: 6px;
   --icon-height: 16px;
   --icon-text-gap: 6px;
@@ -127,7 +132,7 @@ defineExpose({
   content: '';
   position: absolute;
   top: calc(var(--port-padding) - var(--component-editor-padding));
-  width: v-bind('cssEdgeWidth');
+  width: var(--port-edge-width);
   height: calc(var(--component-editor-padding) - var(--port-padding) + var(--icon-height) / 2);
   transform: translate(-50%, 0);
   background-color: var(--node-color-port);

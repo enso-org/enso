@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
 
 import project.Sort_Column.Sort_Column
 
@@ -10,7 +11,7 @@ type Aggregate_Column
        Arguments:
        - column: the column (either name, expression or index) to group by.
        - as: name of new column.
-    Group_By (column:Text|Integer|Any) (as:Text="") # Any needed because of 6866
+    Group_By (column:Text|Integer|Any=(Missing_Argument.throw "column")) (as:Text="") # Any needed because of 6866
 
     ## Creates a new column with the row count of each group. If no rows,
        evaluates to 0.

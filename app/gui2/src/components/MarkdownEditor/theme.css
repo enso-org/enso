@@ -27,13 +27,14 @@ using `_` to separate levels. See the `lexicalTheme` function in `lexical/format
 .text_italic {
   font-style: italic;
 }
-.text_quote {
+.text_bold {
+  font-weight: bold;
+}
+
+.quote {
   margin-left: 0.2em;
   border-left: 0.3em solid #ccc;
   padding-left: 1.6em;
-}
-.text_bold {
-  font-weight: bold;
 }
 
 .paragraph {
@@ -49,4 +50,9 @@ using `_` to separate levels. See the `lexicalTheme` function in `lexical/format
   list-style-type: disc;
   list-style-position: outside;
   padding-left: 1.6em;
+}
+
+.image > img {
+  display: inline;
+  margin: 0 0.1em;
 }

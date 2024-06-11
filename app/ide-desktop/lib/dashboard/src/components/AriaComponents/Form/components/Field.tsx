@@ -44,9 +44,7 @@ export const FIELD_STYLES = twv.tv({
   base: 'flex flex-col gap-0.5 items-start',
   variants: {
     fullWidth: { true: 'w-full' },
-    isInvalid: {
-      true: { label: 'text-danger' },
-    },
+    isInvalid: { true: { label: 'text-danger' } },
   },
   slots: {
     labelContainer: 'contents',
@@ -55,6 +53,7 @@ export const FIELD_STYLES = twv.tv({
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
     error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
   },
+  defaultVariants: { fullWidth: true },
 })
 
 /**

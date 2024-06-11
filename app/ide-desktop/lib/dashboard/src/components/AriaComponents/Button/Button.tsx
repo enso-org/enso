@@ -10,14 +10,16 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinnerModule from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
+import * as text from '../Text'
+
 // ==============
 // === Button ===
 // ==============
 
 /** Props for a {@link Button}. */
 export type ButtonProps =
-  | (BaseButtonProps & Omit<aria.ButtonProps, 'onPress' | 'type'> & PropsWithoutHref)
-  | (BaseButtonProps & Omit<aria.LinkProps, 'onPress' | 'type'> & PropsWithHref)
+  | (BaseButtonProps & Omit<aria.ButtonProps, 'children' | 'onPress' | 'type'> & PropsWithoutHref)
+  | (BaseButtonProps & Omit<aria.LinkProps, 'children' | 'onPress' | 'type'> & PropsWithHref)
 
 /**
  * Props for a button with an href.
@@ -54,31 +56,73 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
-
+  readonly children?: React.ReactNode
   readonly testId?: string
 
   readonly formnovalidate?: boolean
 }
 
 export const BUTTON_STYLES = twv.tv({
-  base: 'group flex whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out select-none text-center items-center justify-center appearance-none',
+  base: 'group flex h-[max-content] whitespace-nowrap cursor-pointer border border-transparent transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out select-none text-center items-center justify-center appearance-none',
   variants: {
     isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
     isFocused: {
-      true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary',
+      true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
     },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     size: {
-      custom: '',
-      hero: 'px-8 py-4 text-lg font-bold',
-      large: 'px-6 py-3 text-base font-bold',
-      medium: 'px-4 py-2 text-sm font-bold',
-      small: 'px-3 pt-1 pb-[5px] text-xs font-medium',
-      xsmall: 'px-2 pt-1 pb-[5px] text-xs font-medium',
-      xxsmall: 'px-1.5 pt-1 pb-[5px] text-xs font-medium',
+      custom: { base: '', extraClickZone: 'after:inset-[-12px]', icon: 'h-full' },
+      hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
+      large: {
+        base: 'px-[11px] py-[5px]',
+        content: 'gap-2',
+        text: text.TEXT_STYLE({
+          variant: 'body',
+          color: 'custom',
+          weight: 'bold',
+        }),
+        extraClickZone: 'after:inset-[-6px]',
+      },
+      medium: {
+        base: 'px-[9px] py-[3px]',
+        text: text.TEXT_STYLE({
+          variant: 'body',
+          color: 'custom',
+          weight: 'bold',
+        }),
+        content: 'gap-2',
+        extraClickZone: 'after:inset-[-8px]',
+      },
+      small: {
+        base: 'px-[7px] py-[1px]',
+        content: 'gap-1',
+        text: text.TEXT_STYLE({
+          variant: 'body',
+          color: 'custom',
+        }),
+        extraClickZone: 'after:inset-[-10px]',
+      },
+      xsmall: {
+        base: 'px-[5px] py-[1px]',
+        content: 'gap-1',
+        text: text.TEXT_STYLE({
+          variant: 'body',
+          color: 'custom',
+        }),
+        extraClickZone: 'after:inset-[-12px]',
+      },
+      xxsmall: {
+        base: 'px-[3px] py-[0px]',
+        content: 'gap-0.5',
+        text: text.TEXT_STYLE({
+          variant: 'body',
+          color: 'custom',
+        }),
+        extraClickZone: 'after:inset-[-12px]',
+      },
     },
-    iconOnly: { true: '' },
+    iconOnly: { true: { base: '' } },
     rounded: {
       full: 'rounded-full',
       large: 'rounded-lg',
@@ -91,17 +135,23 @@ export const BUTTON_STYLES = twv.tv({
     },
     variant: {
       custom: 'focus-visible:outline-offset-2',
-      link: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary focus-visible:outline-offset-0',
-      primary: 'bg-primary text-white hover:bg-primary/70 focus-visible:outline-offset-2',
-      tertiary: 'bg-share text-white hover:bg-share/90 focus-visible:outline-offset-2',
-      cancel: 'bg-selected-frame opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      delete: 'bg-delete text-white focus-visible:outline-offset-2',
+      link: {
+        base: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
+        icon: 'h-[1.25cap] mt-[0.25cap]',
+      },
+      primary: 'bg-primary text-white hover:bg-primary/70',
+      tertiary: 'bg-share text-white hover:bg-share/90',
+      cancel: 'bg-white/50 hover:bg-white',
+      delete:
+        'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'opacity-70 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-offset-0',
+        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
-        icon: 'w-fit h-fit',
+        extraClickZone: 'w-full h-full',
       },
+      ghost:
+        'opacity-80 hover:opacity-100 hover:bg-white focus-visible:opacity-100 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
     },
@@ -114,11 +164,12 @@ export const BUTTON_STYLES = twv.tv({
     },
   },
   slots: {
-    extraClickZone: 'flex relative after:inset-[-12px] after:absolute',
+    extraClickZone: 'flex relative after:absolute after:cursor-pointer',
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
-    icon: 'h-[1.5em] flex-none',
+    text: '',
+    icon: 'h-[2cap] flex-none aspect-square',
   },
   defaultVariants: {
     loading: false,
@@ -130,12 +181,42 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: false,
   },
   compoundVariants: [
-    { variant: 'icon', size: 'xxsmall', class: 'p-0.5 rounded-full', iconOnly: true },
-    { variant: 'icon', size: 'xsmall', class: 'p-1 rounded-full', iconOnly: true },
-    { variant: 'icon', size: 'small', class: 'p-1 rounded-full', iconOnly: true },
-    { variant: 'icon', size: 'medium', class: 'p-2 rounded-full', iconOnly: true },
-    { variant: 'icon', size: 'large', class: 'p-3 rounded-full', iconOnly: true },
-    { variant: 'icon', size: 'hero', class: 'p-4 rounded-full', iconOnly: true },
+    { isFocused: true, iconOnly: true, class: 'focus-visible:outline-offset-3' },
+    {
+      variant: 'link',
+      isFocused: true,
+      class: 'focus-visible:outline-offset-1',
+    },
+    {
+      size: 'xxsmall',
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.25cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
+    {
+      size: 'xsmall',
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.45cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
+    {
+      size: 'small',
+      class: { base: 'p-0 rounded-full', icon: 'h-[1.65cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
+    {
+      size: 'medium',
+      class: { base: 'p-0 rounded-full', icon: 'h-[2cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
+    {
+      size: 'large',
+      class: { base: 'p-0 rounded-full', icon: 'h-[2.25cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
+    {
+      size: 'hero',
+      class: { base: 'p-0 rounded-full', icon: 'h-[2.5cap] -mt-[0.1cap]' },
+      iconOnly: true,
+    },
     { variant: 'link', size: 'xxsmall', class: 'font-medium' },
     { variant: 'link', size: 'xsmall', class: 'font-medium' },
     { variant: 'link', size: 'small', class: 'font-medium' },
@@ -230,6 +311,7 @@ export const Button = React.forwardRef(function Button(
     loader,
     extraClickZone,
     icon: iconClasses,
+    text: textClasses,
   } = BUTTON_STYLES({
     isDisabled,
     loading: isLoading,
@@ -260,7 +342,7 @@ export const Button = React.forwardRef(function Button(
       return (
         <>
           {iconComponent}
-          <>{children}</>
+          <span className={textClasses()}>{children}</span>
         </>
       )
     }

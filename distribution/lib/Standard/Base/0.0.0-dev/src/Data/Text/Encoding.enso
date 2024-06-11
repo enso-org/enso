@@ -62,7 +62,10 @@ type Encoding
        encoding. Otherwise, the input is decoded using UTF-8 unless it contains
        invalid UTF-8 sequences, in which case Windows-1252 is used as a fallback.
 
-       When used for encoding, it will always encode using UTF-8.
+       When used for encoding, it will either use the same encoding detection
+       heuristics as in read in case of Append mode. When writing a new file,
+       it will always use UTF-8.
+
        This encoding cannot be passed to some functions that require a Java
        Charset.
     default -> Encoding =
