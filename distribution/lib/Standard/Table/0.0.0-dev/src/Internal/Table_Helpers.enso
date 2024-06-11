@@ -486,9 +486,7 @@ prepare_order_by internal_columns column_selectors problem_builder =
    containing the original selector and the selected column.
 resolve_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) -> Problem_Builder -> Vector Column_Transform_Element
 resolve_order_by internal_columns column_selectors problem_builder =
-    resolve_selector selector = case selector of
-        name : Text -> resolve_selector (Sort_Column.Name name)
-        ix : Integer -> resolve_selector (Sort_Column.Index ix)
+    resolve_selector selector:Sort_Column = case selector of
         Sort_Column.Name name direction ->
             resolve_selector (Sort_Column.Select_By_Name name direction Case_Sensitivity.Sensitive)
         Sort_Column.Index ix _ ->
@@ -499,10 +497,7 @@ resolve_order_by internal_columns column_selectors problem_builder =
             matches = match_columns name case_sensitivity internal_columns
             if matches.is_empty then problem_builder.report_missing_input_columns [name]
             matches.map c-> Column_Transform_Element.Value c selector
-    selectors_vec = case column_selectors of
-        _ : Vector -> column_selectors
-        _ -> [column_selectors]
-    selectors_vec.flat_map resolve_selector
+    Vector.unify_vector_or_element column_selectors . flat_map resolve_selector
 
 ## PRIVATE
    A helper method gathering the common logic for constructing expressions that

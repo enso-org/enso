@@ -1,6 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, Sample, Every
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -232,16 +233,8 @@ add_specs suite_builder setup =
             Test.expect_panic Type_Error <| t.drop "FOO"
 
             r1 = t.take (Index_Sub_Range.While)
-            r1.should_fail_with Illegal_Argument
-            r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
-
-            r2 = t.drop (Index_Sub_Range.Every ...)
-            r2.should_fail_with Illegal_Argument
-            r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
-
-            r3 = t.take (Index_Sub_Range.First _)
-            r3.should_fail_with Illegal_Argument
-            r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+            r1.should_fail_with Missing_Argument
+            r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
 
         group_builder.specify "unordered table" <|
             unordered_table =
@@ -436,16 +429,8 @@ add_specs suite_builder setup =
             Test.expect_panic Type_Error <| c.drop "FOO"
 
             r1 = c.take (Index_Sub_Range.While)
-            r1.should_fail_with Illegal_Argument
-            r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
-
-            r2 = c.drop (Index_Sub_Range.Every ...)
-            r2.should_fail_with Illegal_Argument
-            r2.catch.to_display_text . should_contain "The constructor Every is missing some arguments"
-
-            r3 = c.take (Index_Sub_Range.First _)
-            r3.should_fail_with Illegal_Argument
-            r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
+            r1.should_fail_with Missing_Argument
+            r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
 
         group_builder.specify "unordered table" <|
             unordered_table =
