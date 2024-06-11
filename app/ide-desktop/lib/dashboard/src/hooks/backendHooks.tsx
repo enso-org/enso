@@ -6,6 +6,7 @@ import invariant from 'tiny-invariant'
 
 import * as store from '#/store'
 
+import * as backendMutationListeners from '#/hooks/backendHooks/backendMutationListeners'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -23,8 +24,6 @@ import * as download from '#/utilities/download'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
-
-export * from '#/hooks/backendHooks/useObserveBackend'
 
 // FIXME: Listeners and optimistic state for duplicateProjectMutation, copyAssetMutation,
 // updateAssetMutation (e.g. move), and associateTagMutation
@@ -45,7 +44,7 @@ type DefineBackendMethods<T extends keyof Backend> = T
 // =======================
 
 /** Names of methods corresponding to mutations. */
-type MutationMethodInternal = DefineBackendMethods<
+export type MutationMethodInternal = DefineBackendMethods<
   | 'associateTag'
   | 'changeUserGroup'
   | 'closeProject'
@@ -90,17 +89,17 @@ type MutationMethodInternal = DefineBackendMethods<
  * Some methods have been omitted:
  * - `uploadFile` - use `useBackendUploadFiles` instead
  * - `createProject` - use `useBackendCreateProject` instead */
-type MutationMethod = Exclude<
+export type MutationMethod = Exclude<
   MutationMethodInternal,
   DefineBackendMethods<'createProject' | 'uploadFile'>
 >
 
-// ====================
-// === QueryMethods ===
-// ====================
+// ===================
+// === QueryMethod ===
+// ===================
 
 /** Names of methods corresponding to queries. */
-type QueryMethod = DefineBackendMethods<
+export type QueryMethod = DefineBackendMethods<
   | 'checkResources'
   | 'getCheckoutSession'
   | 'getDatalink'
@@ -350,6 +349,8 @@ export function useBackendMutationInternal<Method extends MutationMethodInternal
     'mutationFn'
   >
 ) {
+  const queryClient = reactQuery.useQueryClient()
+  const session = authProvider.useNonPartialUserSession()
   return reactQuery.useMutation<
     Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
     Error,
@@ -360,6 +361,30 @@ export function useBackendMutationInternal<Method extends MutationMethodInternal
     mutationKey: [backend, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: args => (backend[method] as any)(...args),
+    onSuccess: (data, variables, context) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax
+      const listener = backendMutationListeners.BACKEND_MUTATION_LISTENERS[
+        // eslint-disable-next-line no-restricted-syntax
+        method as keyof typeof backendMutationListeners.BACKEND_MUTATION_LISTENERS
+      ] as backendMutationListeners.MutationListener<Method> | null
+      listener?.(
+        data,
+        variables,
+        (queryMethod, key, updater) => {
+          queryClient.setQueryData<
+            Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>
+            // @ts-expect-error This code is correct - it is just too dynamic for TypeScript to
+            // typecheck.
+          >([backend, queryMethod, ...key], queryData =>
+            // eslint-disable-next-line no-restricted-syntax
+            queryData == null ? queryData : updater(queryData as never)
+          )
+        },
+        backend,
+        session
+      )
+      options?.onSuccess?.(data, variables, context)
+    },
   })
 }
 

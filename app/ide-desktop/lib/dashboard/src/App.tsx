@@ -47,8 +47,6 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import * as store from '#/store'
 
-import * as backendHooks from '#/hooks/backendHooks'
-
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider, * as backendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -429,8 +427,6 @@ function AppRouter(props: AppRouterProps) {
   const { shouldShowDashboard } = props
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
-  backendHooks.useObserveBackend(remoteBackend)
-  backendHooks.useObserveBackend(localBackend)
 
   React.useEffect(() => {
     return () => {
