@@ -104,7 +104,7 @@ type Suite
         succ_tests = all_results.filter (r-> r.is_success) . length
         failed_tests = all_results.filter (r-> r.is_fail)
         failed_tests_number = failed_tests.length
-        failed_tests_names = failed_tests.map (t-> t.spec_name) . distinct . fold "" (a -> b -> a+b+"|") . trim ..End "|"
+        failed_tests_names = failed_tests.map (t-> t.spec_name) . distinct . take 10 . join "|"
         skipped_tests = all_results.filter (r-> r.is_pending) . length
         pending_groups = matching_specs.filter (p-> p.first.is_pending) . length
         case should_exit of
@@ -116,6 +116,7 @@ type Suite
                 IO.println <| pending_groups.to_text + " groups skipped."
                 IO.println ""
                 IO.println <| "Failed tests: '" + failed_tests_names + "'"
+                if failed_tests_number > 10 then IO.println "(Displaying only first 10 failed tests)"
                 IO.println ""
                 exit_code = if failed_tests_number > 0 then 1 else 0
                 System.exit exit_code
