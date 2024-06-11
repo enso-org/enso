@@ -740,6 +740,7 @@ export default class RemoteBackend extends Backend {
     )
   }
 
+  // FIXME: Replace `openProject` with `waitUntilProjectIsReady`.
   /** Return a {@link Promise} that resolves only when a project is ready to open. */
   override async waitUntilProjectIsReady(
     projectId: backend.ProjectId,

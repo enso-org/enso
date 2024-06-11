@@ -2,13 +2,16 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as detect from 'enso-common/src/detect'
 
 import * as store from '#/store'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -119,6 +122,8 @@ export default function Dashboard(props: DashboardProps) {
   const { appRunner, initialProjectName } = props
   const { ydocUrl, projectManagerUrl, projectManagerRootDirectory } = props
   const session = authProvider.useNonPartialUserSession()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const queryClient = reactQuery.useQueryClient()
   const remoteBackend = backendProvider.useRemoteBackend()
   const localBackend = backendProvider.useLocalBackend()
   const { modalRef } = modalProvider.useModalRef()
@@ -151,10 +156,16 @@ export default function Dashboard(props: DashboardProps) {
       remoteBackend == null ? Category.local : localStorage.get('driveCategory') ?? defaultCategory,
     (value): value is Category => array.includes(Object.values(Category), value)
   )
-
+  const backend = backendProvider.useBackend(category)
   const isCloud = categoryModule.isCloud(category)
   const isAssetPanelVisible =
     page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
+
+  const waitUntilProjectIsReadyMutation = backendHooks.useBackendMutation(
+    backend,
+    'waitUntilProjectIsReady'
+  )
+  const waitUntilProjectIsReadyMutate = waitUntilProjectIsReadyMutation.mutateAsync
 
   React.useEffect(() => {
     setInitialized(true)
@@ -165,6 +176,29 @@ export default function Dashboard(props: DashboardProps) {
       setPage(pageSwitcher.Page.drive)
     }
   }, [query, setPage])
+
+  React.useEffect(() => {
+    const abortController = new AbortController()
+    const rootDirectoryId = backend.rootDirectoryId(session.user)
+    if (initialProjectName != null && rootDirectoryId != null) {
+      void (async () => {
+        const siblings = await backendHooks.ensureBackendListDirectory(
+          queryClient,
+          session.user,
+          backend,
+          rootDirectoryId
+        )
+        const project = siblings
+          .filter(backendModule.assetIsProject)
+          .find(sibling => sibling.title.toLowerCase().includes(initialProjectName.toLowerCase()))
+        if (project != null) {
+          await waitUntilProjectIsReadyMutate([project.id, project.parentId, abortController])
+        } else {
+          toastAndLog('openProjectError', null, initialProjectName)
+        }
+      })()
+    }
+  }, [backend, initialProjectName, queryClient, session.user, toastAndLog, waitUntilProjectIsReadyMutate])
 
   React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')

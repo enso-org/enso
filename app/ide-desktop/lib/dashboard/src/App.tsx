@@ -431,11 +431,13 @@ function AppRouter(props: AppRouterProps) {
   const localBackend = backendProvider.useLocalBackend()
   backendHooks.useObserveBackend(remoteBackend)
   backendHooks.useObserveBackend(localBackend)
+
   React.useEffect(() => {
     return () => {
       store.useStore.getState().resetBackendState('remote')
     }
   }, [remoteBackend])
+
   React.useEffect(() => {
     return () => {
       store.useStore.getState().resetBackendState('local')

@@ -96,7 +96,7 @@ const ELECTRON_ARGS = [
     path.join(IDE_DIR_PATH, 'index.cjs'),
     ...ELECTRON_FLAGS,
     '--',
-    ...process.argv.slice(2),
+    ...process.argv.slice(2).map(segment => `'${segment}'`),
 ]
 
 process.on('SIGINT', () => {

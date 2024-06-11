@@ -27,7 +27,7 @@ export function useObserveBackend(backend: Backend | null) {
   const setProjectStartupInfo = store.useStore(storeState => storeState.setProjectStartupInfo)
   const session = authProvider.useUserSession()
   const user = session != null && 'user' in session ? session.user : null
-  const useObserveMutations = <Method extends keyof Backend>(
+  const processMutations = <Method extends keyof Backend>(
     method: Method,
     onSuccess: (
       state: reactQuery.MutationState<
@@ -78,7 +78,7 @@ export function useObserveBackend(backend: Backend | null) {
 
   // === Users ===
 
-  useObserveMutations('updateUser', state => {
+  processMutations('updateUser', state => {
     if (state.variables != null) {
       const [body] = state.variables
       setQueryData('usersMe', currentUser =>
@@ -86,7 +86,7 @@ export function useObserveBackend(backend: Backend | null) {
       )
     }
   })
-  useObserveMutations('uploadUserPicture', state => {
+  processMutations('uploadUserPicture', state => {
     if (state.data != null) {
       backendHooks.revokeUserPictureUrl(backend)
       const data = state.data
@@ -96,13 +96,13 @@ export function useObserveBackend(backend: Backend | null) {
 
   // === Organizations ===
 
-  useObserveMutations('updateOrganization', state => {
+  processMutations('updateOrganization', state => {
     if (state.data != null) {
       const data = state.data
       setQueryData('getOrganization', () => data)
     }
   })
-  useObserveMutations('uploadOrganizationPicture', state => {
+  processMutations('uploadOrganizationPicture', state => {
     if (state.data != null) {
       backendHooks.revokeOrganizationPictureUrl(backend)
       const data = state.data
@@ -112,18 +112,18 @@ export function useObserveBackend(backend: Backend | null) {
 
   // === User groups ===
 
-  useObserveMutations('createUserGroup', state => {
+  processMutations('createUserGroup', state => {
     if (state.data != null) {
       const data = state.data
       setQueryData('listUserGroups', userGroups => [data, ...userGroups])
     }
   })
-  useObserveMutations('deleteUserGroup', state => {
+  processMutations('deleteUserGroup', state => {
     setQueryData('listUserGroups', userGroups =>
       userGroups.filter(userGroup => userGroup.id !== state.variables?.[0])
     )
   })
-  useObserveMutations('changeUserGroup', state => {
+  processMutations('changeUserGroup', state => {
     if (state.variables != null) {
       const [userId, body] = state.variables
       setQueryData('listUsers', users =>
@@ -136,13 +136,13 @@ export function useObserveBackend(backend: Backend | null) {
 
   // === Tags ===
 
-  useObserveMutations('createTag', state => {
+  processMutations('createTag', state => {
     if (state.data != null) {
       const data = state.data
       setQueryData('listTags', tags => [...tags, data])
     }
   })
-  useObserveMutations('deleteTag', state => {
+  processMutations('deleteTag', state => {
     if (state.variables != null) {
       const [tagId] = state.variables
       setQueryData('listTags', tags => tags.filter(tag => tag.id !== tagId))
@@ -151,7 +151,7 @@ export function useObserveBackend(backend: Backend | null) {
 
   // === Projects ===
 
-  useObserveMutations('waitUntilProjectIsReady', state => {
+  processMutations('waitUntilProjectIsReady', state => {
     if (state.data != null && state.variables != null && backend != null) {
       const project = state.data
       const [, parentId] = state.variables
@@ -175,7 +175,7 @@ export function useObserveBackend(backend: Backend | null) {
     ...rest,
   })
 
-  useObserveMutations('createDirectory', state => {
+  processMutations('createDirectory', state => {
     if (state.variables != null && state.data != null) {
       const [body] = state.variables
       const data = state.data
@@ -201,7 +201,7 @@ export function useObserveBackend(backend: Backend | null) {
       )
     }
   })
-  useObserveMutations('createProject', state => {
+  processMutations('createProject', state => {
     if (state.variables != null && state.data != null) {
       const [body] = state.variables
       const data = state.data
@@ -231,7 +231,7 @@ export function useObserveBackend(backend: Backend | null) {
       }
     }
   })
-  useObserveMutations('createDatalink', state => {
+  processMutations('createDatalink', state => {
     if (state.variables != null && state.data != null) {
       const [body] = state.variables
       const data = state.data
@@ -260,7 +260,7 @@ export function useObserveBackend(backend: Backend | null) {
       }
     }
   })
-  useObserveMutations('createSecret', state => {
+  processMutations('createSecret', state => {
     if (state.variables != null && state.data != null) {
       const [body] = state.variables
       const id = state.data
@@ -292,7 +292,7 @@ export function useObserveBackend(backend: Backend | null) {
 
   // === Update assets ===
 
-  useObserveMutations('uploadFile', state => {
+  processMutations('uploadFile', state => {
     if (state.data != null && state.variables != null) {
       const [body] = state.variables
       const data = state.data
@@ -329,7 +329,7 @@ export function useObserveBackend(backend: Backend | null) {
       }
     }
   })
-  useObserveMutations('updateAsset', state => {
+  processMutations('updateAsset', state => {
     if (state.data != null && state.variables != null) {
       const [id, body] = state.variables
       setQueryDataWithKey(
@@ -352,7 +352,7 @@ export function useObserveBackend(backend: Backend | null) {
 
   // === Delete assets ===
 
-  useObserveMutations('deleteAsset', state => {
+  processMutations('deleteAsset', state => {
     if (state.variables != null) {
       const [id, body] = state.variables
       // This IIFE is required so that TypeScript does not eagerly narrow the type of this
@@ -408,7 +408,7 @@ export function useObserveBackend(backend: Backend | null) {
       }
     }
   })
-  useObserveMutations('undoDeleteAsset', state => {
+  processMutations('undoDeleteAsset', state => {
     if (state.variables != null) {
       const [id] = state.variables
       // This IIFE is required so that TypeScript does not eagerly narrow the type of this

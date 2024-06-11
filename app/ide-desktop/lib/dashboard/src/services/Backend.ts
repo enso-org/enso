@@ -812,7 +812,8 @@ export type AnyAsset<Type extends AssetType = AssetType> = Extract<
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
-  return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
+  // Use `T extends AnyAsset` to also support narrowing types derived from `AnyAsset`.
+  return <T extends AnyAsset>(asset: T): asset is Extract<T, Asset<Type>> => asset.type === type
 }
 
 /** Creates a new placeholder asset id for the given asset type. */
