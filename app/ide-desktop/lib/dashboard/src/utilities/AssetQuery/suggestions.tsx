@@ -122,7 +122,6 @@ function assetToSuggestion(
 // === getSuggestions ===
 // ======================
 
-// FIXME: use in AssetSearchBar
 /** Get all suggestions matching the specified query. */
 export function getSuggestions(
   queryClient: reactQuery.QueryClient,

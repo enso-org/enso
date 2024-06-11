@@ -69,11 +69,12 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item } = props
+  const { backend, item: itemRaw } = props
   const { doCloseEditor, doOpenEditor } = props
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
+  const item = backendHooks.useBackendGetAsset(backend, itemRaw.id, itemRaw.parentId) ?? itemRaw
   const state = item.projectState.type
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const isRunningInBackground = item.projectState.executeAsync ?? false
@@ -149,7 +150,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
           variant="custom"
           className="size-project-icon rounded-full"
           onPress={() =>
-            // FIXME: This component should listen on the state updates caused by this mutation.
             openProjectMutation.mutateAsync([
               item.id,
               { executeAsync: false, cognitoCredentials: session },

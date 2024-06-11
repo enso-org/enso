@@ -710,9 +710,6 @@ export function useBackendListDirectory(
       queryKey: [directoryId, filterBy],
     }
   )
-  // FIXME: Create a query storing all the results in a map keyed by parent directory
-  // to avoid filtering the entire list for every single component listing the directory.
-  // Also create a query for each individual asset.
   const createDirectoryVariables = useBackendMutationVariables(backend, 'createDirectory')
   const createProjectVariables = useBackendMutationVariables(backend, 'createProject')
   const createDatalinkVariables = useBackendMutationVariables(backend, 'createDatalink')
@@ -1103,9 +1100,6 @@ export function getBackendAllKnownDirectories(
       )
     },
   })
-  // FIXME: This is very inefficient as it gets the mutations once per directory and filters them
-  // to only the ones applicable for each directory. It would be much more efficient to list
-  // mutations once and apply them to the corresponding directory as appropriate.
   return object.fromEntries(
     queries.flatMap(kv => {
       const [queryKey] = kv
@@ -1126,6 +1120,25 @@ export function getBackendAllKnownDirectories(
       }
     })
   )
+}
+
+// ==========================
+// === useBackendGetAsset ===
+// ==========================
+
+/** An arbitrary asset, taking into account optimistic state. */
+export function useBackendGetAsset<Id extends backendModule.AssetId>(
+  backend: Backend,
+  id: Id,
+  parentId: backendModule.DirectoryId,
+  filterBy?: backendModule.FilterBy
+) {
+  const siblings = useBackendListDirectory(backend, parentId, filterBy)
+  // This is SAFE, as the id must be the correct newtype based on the `.find`.
+  // eslint-disable-next-line no-restricted-syntax
+  return (siblings?.find(sibling => sibling.id === id) ?? null) as WithPlaceholder<
+    Extract<backendModule.AnyAsset, Record<'id', Id>>
+  > | null
 }
 
 // =========================================
@@ -1235,8 +1248,6 @@ export function useBackendUploadFilesMutation(backend: Backend) {
         }
         for (const project of projects) {
           const basename = backendModule.stripProjectExtension(project.name)
-          // FIXME: Project path is `localBackend?.joinPath(parentId, basename) ?? null`.
-          // This is required for the Local Backend.
           uploadFileMutation.mutate([
             { fileId: null, fileName: basename, parentDirectoryId: parentId },
             project,
@@ -1298,8 +1309,6 @@ export function useBackendUploadFilesMutation(backend: Backend) {
               )
               for (const project of nonConflictingProjects) {
                 const basename = backendModule.stripProjectExtension(project.name)
-                // FIXME: Project path is `localBackend?.joinPath(parentId, basename) ?? null`.
-                // This is required for the Local Backend.
                 uploadFileMutation.mutate([
                   { fileId: null, fileName: basename, parentDirectoryId: parentId },
                   project,

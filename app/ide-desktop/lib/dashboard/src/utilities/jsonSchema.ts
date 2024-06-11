@@ -144,7 +144,6 @@ const PARTIAL_CONSTANT_VALUE = new WeakMap<
 const SINGLETON_NULL = Object.freeze([null] as const)
 const EMPTY_ARRAY = Object.freeze([] as const)
 
-// FIXME: Adjust to allow `type` and `anyOf` and `allOf` and `$ref` to all be present
 /** The value of the schema, if it can only have one possible value. */
 function constantValueHelper(
   defs: Record<string, object>,
