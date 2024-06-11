@@ -16,9 +16,9 @@ import * as ariaComponents from '#/components/AriaComponents'
 /**
  * Props for {@link PaywallButton}.
  */
-export type PaywallButtonProps = Omit<ariaComponents.ButtonProps, 'variant'> & {
+// eslint-disable-next-line no-restricted-syntax
+export type PaywallButtonProps = ariaComponents.ButtonProps & {
   readonly feature: billingHooks.PaywallFeatureName
-  readonly variant?: ariaComponents.ButtonProps['variant']
   readonly iconOnly?: boolean
   readonly showIcon?: boolean
 }
@@ -43,10 +43,12 @@ export function PaywallButton(props: PaywallButtonProps) {
     <ariaComponents.Button
       variant="primary"
       size="medium"
-      icon={showIcon === true ? PaywallBlocked : null}
+      icon={showIcon ? PaywallBlocked : null}
       iconPosition="end"
       tooltip={getText('paywallScreenDescription', levelLabel)}
-      {...buttonProps}
+      /* This is safe because we are passing all props to the button */
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
+      {...(buttonProps as any)}
     >
       {showChildren && childrenContent}
     </ariaComponents.Button>

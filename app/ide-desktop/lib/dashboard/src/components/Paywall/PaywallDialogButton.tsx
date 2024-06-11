@@ -14,7 +14,8 @@ import * as paywallDialog from './PaywallDialog'
 /**
  * Props for a {@link PaywallDialogButton}.
  */
-export interface PaywallDialogButtonProps extends components.PaywallButtonProps {
+// eslint-disable-next-line no-restricted-syntax
+export type PaywallDialogButtonProps = components.PaywallButtonProps & {
   readonly dialogProps?: paywallDialog.PaywallDialogProps
   readonly dialogTriggerProps?: ariaComponents.DialogTriggerProps
 }

@@ -230,11 +230,11 @@ export const BUTTON_STYLES = twv.tv({
     {
       size: 'large',
       iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[2.25cap] -mt-[0.1cap]' },
+      class: { base: 'p-0 rounded-full', icon: 'h-[3.65cap]' },
     },
     {
       size: 'hero',
-      class: { base: 'p-0 rounded-full', icon: 'h-[2.5cap] -mt-[0.1cap]' },
+      class: { base: 'p-0 rounded-full', icon: 'h-[5.5cap]' },
       iconOnly: true,
     },
     { variant: 'link', size: 'xxsmall', class: 'font-medium' },

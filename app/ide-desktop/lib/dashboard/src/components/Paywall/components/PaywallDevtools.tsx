@@ -22,6 +22,7 @@ export interface PaywallDevtoolsFeatureConfiguration {
   readonly isForceEnabled: boolean | null
 }
 
+// eslint-disable-next-line no-restricted-syntax
 const PaywallDevtoolsContext = React.createContext<{
   features: Record<billing.PaywallFeatureName, PaywallDevtoolsFeatureConfiguration>
 }>({
@@ -79,15 +80,17 @@ export function PaywallDevtools(props: PaywallDevtoolsProps) {
             aria-label={getText('paywallDevtoolsButtonLabel')}
             variant="icon"
             rounded="full"
-            size="large"
-            className="fixed bottom-16 right-4 z-50"
+            size="hero"
+            className="fixed bottom-16 right-3 z-50"
             data-ignore-click-outside
           />
 
           <ariaComponents.Popover>
-            <ariaComponents.Text.Heading>
+            <ariaComponents.Text.Heading disableLineHeightCompensation>
               {getText('paywallDevtoolsPopoverHeading')}
             </ariaComponents.Text.Heading>
+
+            <ariaComponents.Separator orientation="horizontal" className="my-3" />
 
             <div className="flex flex-col gap-1">
               {Object.entries(features).map(([feature, configuration]) => {
@@ -105,12 +108,13 @@ export function PaywallDevtools(props: PaywallDevtoolsProps) {
                         })
                       }}
                     >
-                      <div className="box-border flex h-[14px] w-[22px] shrink-0 cursor-default rounded-full border border-solid border-white/30 bg-yellow-600 bg-clip-padding p-[2px] shadow-inner outline-none ring-black transition duration-200 ease-in-out group-focus-visible:ring-2 group-pressed:bg-yellow-700 group-selected:bg-amber-800 group-selected:group-pressed:bg-amber-900">
-                        <span className="h-2 w-2 translate-x-0 transform rounded-full bg-white shadow transition duration-200 ease-in-out group-selected:translate-x-[100%]" />
+                      <div className="box-border flex h-4 w-[28px] shrink-0 cursor-default items-center rounded-full bg-primary/30 bg-clip-padding p-0.5 shadow-inner outline-none ring-black transition duration-200 ease-in-out group-focus-visible:ring-2 group-pressed:bg-primary/60 group-selected:bg-primary group-selected:group-pressed:bg-primary/50">
+                        <span className="aspect-square h-full flex-none translate-x-0 transform rounded-full bg-white transition duration-200 ease-in-out group-selected:translate-x-[100%]" />
                       </div>
 
                       <ariaComponents.Text className="flex-1">{getText(label)}</ariaComponents.Text>
                     </aria.Switch>
+
                     <ariaComponents.Text variant="body" color="disabled">
                       {getText(descriptionTextId)}
                     </ariaComponents.Text>
