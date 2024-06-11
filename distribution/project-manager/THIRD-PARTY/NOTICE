@@ -51,6 +51,14 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.15.2`.
 
 
+'jsoniter-scala-core_2.13', licensed under the MIT License, is distributed with the project-manager.
+The license file can be found at `licenses/MIT`.
+
+
+'jsoniter-scala-macros_2.13', licensed under the MIT License, is distributed with the project-manager.
+The license file can be found at `licenses/MIT`.
+
+
 'pureconfig-core_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-core_2.13-0.17.4`.
