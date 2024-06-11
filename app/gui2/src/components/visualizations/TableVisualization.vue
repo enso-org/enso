@@ -282,7 +282,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   let icon
   switch (valType) {
     case 'Char':
-      icon = 'text'
+      icon = 'text3'
       break
     case 'Boolean':
       icon = 'check'
