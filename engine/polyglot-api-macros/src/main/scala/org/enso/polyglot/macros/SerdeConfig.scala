@@ -18,7 +18,7 @@ object SerdeConfig {
     .withTransientEmpty(false)
     .withSkipNestedOptionValues(true)
 
-  implicit lazy val fileCodec: JsonValueCodec[File] = new JsonValueCodec[File] {
+  implicit val fileCodec: JsonValueCodec[File] = new JsonValueCodec[File] {
     override def decodeValue(in: JsonReader, default: File): File = {
       val t = in.nextToken()
 

@@ -285,7 +285,7 @@ lazy val enso = (project in file("."))
     `json-rpc-server`,
     `language-server`,
     `polyglot-api`,
-    `polyglot-api-serde`,
+    `polyglot-api-macros`,
     `project-manager`,
     `syntax-rust-definition`,
     `text-buffer`,
@@ -1464,7 +1464,9 @@ lazy val `polyglot-api` = project
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"                        % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion % "provided",
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion           % "provided",
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
+      "io.circe"                              %% "circe-yaml"            % circeYamlVersion          % "provided", // as required by `pkg` and `editions`
       "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
       "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
       "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
@@ -1477,32 +1479,17 @@ lazy val `polyglot-api` = project
   .dependsOn(`text-buffer`)
   .dependsOn(`logging-utils`)
   .dependsOn(testkit % Test)
+  .dependsOn(`polyglot-api-macros`)
 
 lazy val `polyglot-api-macros` = project
   .in(file("engine/polyglot-api-macros"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion % "provided",
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "provided"
     )
   )
-
-lazy val `polyglot-api-serde` = project
-  .in(file("engine/polyglot-api-serde"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    Test / fork := true,
-    commands += WithDebugCommand.withDebug,
-    libraryDependencies ++= Seq(
-      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion,
-      "io.circe"                              %% "circe-yaml"          % circeYamlVersion  % "provided", // as required by `pkg` and `editions`
-      "org.scalatest"                         %% "scalatest"           % scalatestVersion  % Test,
-      "org.scalacheck"                        %% "scalacheck"          % scalacheckVersion % Test
-    )
-  )
-  .dependsOn(`polyglot-api`)
-  .dependsOn(`polyglot-api-macros`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .enablePlugins(JPMSPlugin)
@@ -1666,7 +1653,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`polyglot-api-serde`)
   .dependsOn(`searcher`)
   .dependsOn(`text-buffer`)
   .dependsOn(`version-output`)
@@ -1942,7 +1928,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`library-manager`)
   .dependsOn(`logging-truffle-connector`)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`polyglot-api-serde`)
   .dependsOn(`text-buffer`)
   .dependsOn(`runtime-compiler`)
   .dependsOn(`runtime-suggestions`)
@@ -2677,7 +2662,6 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`polyglot-api-serde`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
