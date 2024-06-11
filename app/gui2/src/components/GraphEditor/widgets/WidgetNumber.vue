@@ -7,10 +7,9 @@ import { computed, ref, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
-const value = computed({
+const value = computed<string>({
   get() {
-    const valueStr = WidgetInput.valueRepr(props.input)
-    return valueStr ? parseFloat(valueStr) : 0
+    return WidgetInput.valueRepr(props.input) ?? ''
   },
   set(value) {
     props.onUpdate({

@@ -14,16 +14,28 @@ const emit = defineEmits<{
   input: [content: string]
 }>()
 
-const inputFieldActive = ref(false)
-// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
-const editedValue = ref(`${props.modelValue}`)
+const DEFAULT_PLACEHOLDER = ''
+const SLIDER_INPUT_THRESHOLD = 4.0
+const MIN_CONTENT_WIDTH = 56
+
+const initialValue = ref('')
+const placeholder = ref('')
 watch(
   () => props.modelValue,
   (newValue) => {
-    editedValue.value = `${newValue}`
+    const newNumber = typeof newValue === 'number' ? newValue : parseFloat(newValue)
+    if (!Number.isNaN(newNumber)) {
+      initialValue.value = `${newValue}`
+    } else {
+      placeholder.value = `${newValue}`
+    }
   },
+  { immediate: true },
 )
-const SLIDER_INPUT_THRESHOLD = 4.0
+// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
+const editedValue = ref('')
+watch(initialValue, (newValue) => (editedValue.value = newValue), { immediate: true })
+const inputFieldActive = ref(false)
 
 const dragPointer = usePointer(
   (position, event, eventType) => {
@@ -58,10 +70,9 @@ const sliderWidth = computed(() => {
 })
 
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
-const MIN_CONTENT_WIDTH = 56
 
 const inputStyle = computed<StyleValue>(() => {
-  const value = `${editedValue.value}`
+  const value = editedValue.value
   const dotIdx = value.indexOf('.')
   let indent = 0
   if (dotIdx >= 0 && inputComponent.value != null) {
@@ -82,7 +93,7 @@ const inputStyle = computed<StyleValue>(() => {
 })
 
 function emitUpdate() {
-  if (`${props.modelValue}` !== editedValue.value) {
+  if (initialValue.value !== editedValue.value) {
     emit('update:modelValue', editedValue.value)
   }
 }
@@ -100,7 +111,7 @@ function focused() {
 
 defineExpose({
   cancel: () => {
-    editedValue.value = `${props.modelValue}`
+    editedValue.value = initialValue.value
     inputComponent.value?.blur()
   },
   blur: () => inputComponent.value?.blur(),
@@ -115,6 +126,7 @@ defineExpose({
       ref="inputComponent"
       v-model="editedValue"
       autoSelect
+      :placeholder="placeholder ?? DEFAULT_PLACEHOLDER"
       :style="inputStyle"
       v-on="dragPointer.events"
       @click.stop
