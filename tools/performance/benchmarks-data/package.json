@@ -11,15 +11,18 @@
     "type": "git",
     "url": "git@github.com:enso-org/enso.git"
   },
-  "main": "src/index.ts",
+  "main": "target/index.js",
   "type": "module",
   "scripts": {
+    "start": "tsc && node target/index.js",
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "commander": "^12.1.0",
+    "jszip": "^3.10.1",
     "octokit": "^4.0.2",
     "tsx": "^4.15.1"
   },
