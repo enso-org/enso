@@ -35,12 +35,17 @@ interface Error {
   all_rows_count?: undefined
 }
 
+interface ValueType {
+  constructor: string
+  display_text: string
+}
+
 interface Matrix {
   type: 'Matrix'
   column_count: number
   all_rows_count: number
   json: unknown[][]
-  value_type: object[]
+  value_type: ValueType[]
 }
 
 interface ObjectMatrix {
@@ -48,7 +53,7 @@ interface ObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
-  value_type: object[]
+  value_type: ValueType[]
 }
 
 interface LegacyMatrix {
@@ -56,7 +61,7 @@ interface LegacyMatrix {
   column_count: number
   all_rows_count: number
   json: unknown[][]
-  value_type: object[]
+  value_type: ValueType[]
 }
 
 interface LegacyObjectMatrix {
@@ -64,7 +69,7 @@ interface LegacyObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
-  value_type: object[]
+  value_type: ValueType[]
 }
 
 interface UnknownTable {
@@ -78,7 +83,7 @@ interface UnknownTable {
   indices_header?: string[]
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
-  value_type: object[]
+  value_type: ValueType[]
 }
 
 declare module 'ag-grid-enterprise' {
@@ -397,7 +402,7 @@ watchEffect(() => {
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const constructor = data_.value_type?.[i]?.constructor
         const valueType = constructor ? `${constructor}` : null
-        const displayVal = data_.value_type?.[i]?.display_text
+        const displayVal = data_.value_type?.[i]?.display_text as string
         const displayValue = displayVal ? `${displayVal}` : null
         return toField(v, valueType, displayValue)
       }) ?? []
