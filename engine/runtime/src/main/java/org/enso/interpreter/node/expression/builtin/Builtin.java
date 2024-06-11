@@ -1,12 +1,15 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
@@ -20,18 +23,20 @@ public abstract class Builtin {
     }
 
     private AtomConstructor build(
-        EnsoLanguage language, ModuleScope.Builder builder, ModuleScope scope, Type type) {
+        EnsoLanguage language, ModuleScope.Builder builder, Type type) {
       var res = new AtomConstructor(name, builder.getModule(), type, true);
-      res.initializeBuilder(language, builder);
-      res.initializeFields(
-          language,
-          scope,
-          IntStream.range(0, params.size())
-              .mapToObj(
-                  i ->
-                      new ArgumentDefinition(
-                          i, params.get(i), null, null, ArgumentDefinition.ExecutionMode.EXECUTE))
-              .toArray(ArgumentDefinition[]::new));
+      var args = IntStream.range(0, params.size())
+                .mapToObj(
+                    i ->
+                        new ArgumentDefinition(
+                            i, params.get(i), null, null, ArgumentDefinition.ExecutionMode.EXECUTE))
+                .toArray(ArgumentDefinition[]::new);
+      res.initializeBuilder(language, builder, new Annotation[0],args);
+      builder.onScope(scope -> {
+        res.initializeFields(
+            language,
+            scope);
+      });
       return res;
     }
   }
@@ -57,14 +62,13 @@ public abstract class Builtin {
       EnsoLanguage language,
       Module module,
       ModuleScope.Builder builder,
-      ModuleScope scope,
       Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;
       if (getSuperType() != null) {
         var s = builtins.get(getSuperType());
-        s.initialize(language, module, builder, scope, builtins);
         supertype = s.getType();
+        s.initialize(language, module, builder, builtins);
       }
       type =
           containsValues()
@@ -76,7 +80,7 @@ public abstract class Builtin {
       var conses = getDeclaredConstructors();
       constructors = new AtomConstructor[conses.size()];
       for (int i = 0; i < constructors.length; i++) {
-        var cons = conses.get(i).build(language, builder, scope, type);
+        var cons = conses.get(i).build(language, builder, type);
         constructors[i] = cons;
         type.registerConstructor(cons);
       }

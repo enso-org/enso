@@ -247,13 +247,18 @@ class IrToTruffle(
       val asType   = scopeBuilder.getType(tpDef.name.name, true)
       val atomConstructors =
         atomDefs.map(cons => asType.getConstructors.get(cons.name.name))
-      atomConstructors
+      val trippleStream = atomConstructors
         .zip(atomDefs)
-        .foreach { case (atomCons, _) =>
+        .foreach { case (atomCons, atomDefn) =>
+          val argDefs =
+            new Array[ArgumentDefinition](atomDefn.arguments.size)
+
           atomCons.initializeBuilder(
             language,
-            scopeBuilder
+            scopeBuilder,
+            argDefs
           )
+          (atomCons, atomDefn, argDefs)
         }
       asType.generateGetters(scopeBuilder, language)
     }
@@ -364,7 +369,7 @@ class IrToTruffle(
               assignments.toArray,
               reads.toArray,
               annotations.toArray,
-              argDefs: _*
+              argDefs
             )
           }
         }

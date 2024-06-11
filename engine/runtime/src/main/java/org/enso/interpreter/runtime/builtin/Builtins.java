@@ -131,7 +131,7 @@ public final class Builtins {
 
     builtins =
         initializeBuiltinTypes(
-            loadedBuiltinConstructors, language, scopeBuilder, null /* as no scope */);
+            loadedBuiltinConstructors, language, scopeBuilder);
     builtinsByName =
         builtins.values().stream()
             .collect(
@@ -381,8 +381,7 @@ public final class Builtins {
   private Map<Class<? extends Builtin>, Builtin> initializeBuiltinTypes(
       List<Constructor<? extends Builtin>> constrs,
       EnsoLanguage language,
-      ModuleScope.Builder builder,
-      ModuleScope scope) {
+      ModuleScope.Builder builder) {
     Map<Class<? extends Builtin>, Builtin> builtins = new HashMap<>();
 
     for (var constr : constrs) {
@@ -394,7 +393,7 @@ public final class Builtins {
       }
     }
     for (var b : builtins.values()) {
-      b.initialize(language, getModule(), builder, scope, builtins);
+      b.initialize(language, getModule(), builder, builtins);
     }
     return builtins;
   }

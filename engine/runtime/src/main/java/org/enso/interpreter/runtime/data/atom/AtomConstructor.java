@@ -55,6 +55,7 @@ public final class AtomConstructor implements EnsoObject {
   private Layout[] unboxingLayouts = new Layout[0];
 
   private final Type type;
+    private FunctionSchema schema;
 
   /**
    * Creates a new Atom constructor for a given name.The constructor is not valid until {@link
@@ -115,20 +116,36 @@ public final class AtomConstructor implements EnsoObject {
         LocalScope.root(),
         scope,
         new ExpressionNode[0],
-        reads,
-        new Annotation[0],
-        args);
+        reads);
   }
 
   /**
    * Sets the fields of this {@link AtomConstructor} and generates a constructor function.
    *
    * @param scopeBuilder the module scope's builder where the accessor should be registered at
+     * @param args
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeBuilder(
-      EnsoLanguage language, ModuleScope.Builder scopeBuilder) {
+      EnsoLanguage language, ModuleScope.Builder scopeBuilder, ArgumentDefinition[] args) {
+    assert boxedLayout == null : "Don't initialize twice: " + this.name;
     this.accessor = generateQualifiedAccessor(language, scopeBuilder);
+    var schemaBldr =
+        FunctionSchema.newBuilder()
+            .argumentDefinitions(
+                new ArgumentDefinition(
+                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
+    if (type.isProjectPrivate()) {
+      schemaBldr.projectPrivate();
+    }
+    this.schema = schemaBldr.build();
+    if (args.length == 0) {
+      cachedInstance = BoxingAtom.singleton(this);
+    } else {
+      cachedInstance = null;
+    }
+    this.boxedLayout = Layout.createBoxed(args);
+
     return this;
   }
 
@@ -147,20 +164,11 @@ public final class AtomConstructor implements EnsoObject {
       LocalScope localScope,
       ModuleScope scope,
       ExpressionNode[] assignments,
-      ExpressionNode[] varReads,
-      Annotation[] annotations,
-      ArgumentDefinition... args) {
+      ExpressionNode[] varReads) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
-    assert boxedLayout == null : "Don't initialize twice: " + this.name;
-    if (args.length == 0) {
-      cachedInstance = BoxingAtom.singleton(this);
-    } else {
-      cachedInstance = null;
-    }
-    boxedLayout = Layout.createBoxed(args);
     this.constructorFunction =
         buildConstructorFunction(
-            language, section, localScope, scope, assignments, varReads, annotations, args);
+            language, section, localScope, scope, assignments, varReads);
     return this;
   }
 
@@ -183,9 +191,8 @@ public final class AtomConstructor implements EnsoObject {
       LocalScope localScope,
       ModuleScope scope,
       ExpressionNode[] assignments,
-      ExpressionNode[] varReads,
-      Annotation[] annotations,
-      ArgumentDefinition[] args) {
+      ExpressionNode[] varReads
+  ) {
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
     if (section != null) {
       instantiateNode.setSourceLocation(section.getCharIndex(), section.getCharLength());
@@ -195,25 +202,13 @@ public final class AtomConstructor implements EnsoObject {
         MethodRootNode.buildConstructor(
             language, localScope, scope, instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
-    var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
-    if (type.isProjectPrivate()) {
-      schemaBldr.projectPrivate();
-    }
-    return new Function(callTarget, null, schemaBldr.build());
+    return new Function(callTarget, null, schema);
   }
 
   private Function generateQualifiedAccessor(EnsoLanguage lang, ModuleScope.Builder scopeBuilder) {
     var node = new QualifiedAccessorNode(lang, this, getDefinitionScope());
     var callTarget = node.getCallTarget();
-    var schemaBldr =
-        FunctionSchema.newBuilder()
-            .argumentDefinitions(
-                new ArgumentDefinition(
-                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
-    if (type.isProjectPrivate()) {
-      schemaBldr.projectPrivate();
-    }
-    var function = new Function(callTarget, null, schemaBldr.build());
+    var function = new Function(callTarget, null, schema);
     scopeBuilder.registerMethod(type.getEigentype(), this.name, function);
     return function;
   }

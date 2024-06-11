@@ -3,9 +3,12 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import org.enso.compiler.context.CompilerContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -281,6 +284,7 @@ public final class ModuleScope implements EnsoObject {
     private final Map<Type, Map<Type, Function>> conversions;
     private final Set<ImportExportScope> imports;
     private final Set<ImportExportScope> exports;
+    private final List<Consumer<ModuleScope>> onScope = new ArrayList<>();
 
     public Builder(Module module) {
       this.module = module;
@@ -461,6 +465,15 @@ public final class ModuleScope implements EnsoObject {
       return new Builder(this.module, new LinkedHashMap<>(this.types));
     }
 
+    /** Registers a callback to be notified when {@link #build()} is called
+       * @param callback the callback to notify
+       * @return this builder
+     */
+    public Builder onScope(Consumer<ModuleScope> callback) {
+      onScope.add(callback);
+      return this;
+    }
+
     /**
      * Materializes the builder and ensures that no further modifications to ModuleScope are
      * possible. Action is idempotent.
@@ -469,7 +482,7 @@ public final class ModuleScope implements EnsoObject {
      */
     public ModuleScope build() {
       if (moduleScope == null) {
-        return moduleScope =
+        moduleScope =
             new ModuleScope(
                 module,
                 associatedType,
@@ -479,6 +492,11 @@ public final class ModuleScope implements EnsoObject {
                 Collections.unmodifiableMap(conversions),
                 Collections.unmodifiableSet(imports),
                 Collections.unmodifiableSet(exports));
+          for (var c : onScope) {
+            c.accept(moduleScope);
+          }
+          onScope.clear();
+          return moduleScope;
       } else {
         throw new AssertionError("Already built");
       }
