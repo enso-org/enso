@@ -44,7 +44,7 @@ export default function InfoMenu(props: InfoMenuProps) {
         {...(!hidden ? { 'data-testid': 'info-menu' } : {})}
         className={tailwindMerge.twMerge(
           'right-top-bar-margin top-top-bar-margin absolute flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
-          initialized ? 'w-user-menu p-user-menu' : 'p-profile-picture size-row-h'
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
         )}
         onClick={event => {
           event.stopPropagation()
@@ -56,8 +56,8 @@ export default function InfoMenu(props: InfoMenuProps) {
             initialized && 'px-menu-entry'
           )}
         >
-          <div className="size-profile-picture flex shrink-0 items-center overflow-clip rounded-full">
-            <img src={LogoIcon} className="size-profile-picture pointer-events-none" />
+          <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
+            <img src={LogoIcon} className="pointer-events-none size-row-h" />
           </div>
           <aria.Text className="text">{common.PRODUCT_NAME}</aria.Text>
         </div>

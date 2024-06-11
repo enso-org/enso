@@ -70,7 +70,7 @@ export default function UserMenu(props: UserMenuProps) {
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
         className={tailwindMerge.twMerge(
           'absolute right-2 top-2 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
-          initialized ? 'w-user-menu p-user-menu' : 'p-profile-picture size-row-h'
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
         )}
         onClick={event => {
           event.stopPropagation()
@@ -84,10 +84,10 @@ export default function UserMenu(props: UserMenuProps) {
                 initialized && 'px-menu-entry'
               )}
             >
-              <div className="size-profile-picture flex shrink-0 items-center overflow-clip rounded-full">
+              <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
-                  className="size-row pointer-events-none"
+                  className="pointer-events-none size-row-h"
                 />
               </div>
               <aria.Text className="text">{user.name}</aria.Text>
@@ -144,7 +144,7 @@ export default function UserMenu(props: UserMenuProps) {
           </>
         ) : (
           <>
-            <div className="h-profile-picture flex items-center">
+            <div className="flex h-row items-center">
               <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
             </div>
             <div className="flex flex-col">

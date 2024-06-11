@@ -34,12 +34,11 @@ export default function InfoBar(props: InfoBarProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className="px-profile-picture pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default"
+          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame backdrop-blur-default"
           {...innerProps}
         >
           {/* FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/1227
-           * Make help chat work even when signed out.
-           * Note that the original class for the `div` above is `pr-profile-picture px-icons-x`. */}
+           * Make help chat work even when signed out. */}
           {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
           {false && (
             <Button
@@ -53,7 +52,7 @@ export default function InfoBar(props: InfoBarProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
-            className="size-profile-picture flex select-none items-center overflow-clip rounded-full"
+            className="flex size-row-h select-none items-center overflow-clip rounded-full"
             onPress={() => {
               updateModal(oldModal => (oldModal?.type === InfoMenu ? null : <InfoMenu />))
             }}

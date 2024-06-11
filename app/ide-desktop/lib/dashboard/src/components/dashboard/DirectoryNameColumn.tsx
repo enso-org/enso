@@ -145,7 +145,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'h-table-row group flex min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        'group flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
         indent.indentClass(item.depth)
       )}
       onKeyDown={event => {
@@ -183,7 +183,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
         className={tailwindMerge.twMerge(
-          'font-naming text grow cursor-pointer bg-transparent',
+          'text grow cursor-pointer bg-transparent font-naming',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         )}
         checkSubmittable={newTitle =>

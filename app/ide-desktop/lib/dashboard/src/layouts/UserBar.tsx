@@ -120,7 +120,7 @@ export default function UserBar(props: UserBarProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
-            className="size-row flex select-none items-center overflow-clip rounded-full transition-colors hover:bg-black/10"
+            className="flex size-row-h select-none items-center overflow-clip rounded-full transition-colors hover:bg-black/10"
             aria-label={getText('userMenuAltText')}
             onPress={() => {
               updateModal(oldModal =>
