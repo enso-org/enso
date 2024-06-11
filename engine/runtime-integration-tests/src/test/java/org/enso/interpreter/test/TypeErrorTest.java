@@ -8,11 +8,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.io.IOException;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
+import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class TypeErrorTest extends TestBase {
+public class TypeErrorTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
@@ -38,14 +40,14 @@ public class TypeErrorTest extends TestBase {
             p = Panic.catch Any handler=(_.payload) <| method t
             p.to_text
         """;
-    var projDir =
-        createProject(
-            "Proj",
-            Set.of(
-                new SourceModule(QualifiedName.fromString("Main"), mainSrc),
-                new SourceModule(QualifiedName.fromString("Data.Mod"), modSrc)),
-            tempFolder);
-    testProjectRun(
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(QualifiedName.fromString("Main"), mainSrc),
+            new SourceModule(QualifiedName.fromString("Data.Mod"), modSrc)),
+        projDir);
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(res.isString(), is(true));

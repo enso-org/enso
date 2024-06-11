@@ -12,12 +12,15 @@ import java.util.Set;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
 import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class ShadowedIdentifiersTest extends TestBase {
+public class ShadowedIdentifiersTest  {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
@@ -89,7 +92,7 @@ public class ShadowedIdentifiersTest extends TestBase {
             T.foo
         """;
     var projDir = createProjectWithTwoModules(mainSrc, modSrc);
-    testProjectRun(
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(res.isString(), is(true));
@@ -120,7 +123,7 @@ public class ShadowedIdentifiersTest extends TestBase {
             bar t
         """;
     var projDir = createProjectWithTwoModules(mainSrc, modSrc);
-    testProjectRun(
+    ProjectUtils.testProjectRun(
         projDir,
         res -> {
           assertThat(res.isString(), is(true));
@@ -129,18 +132,20 @@ public class ShadowedIdentifiersTest extends TestBase {
   }
 
   private Path createProjectWithTwoModules(String mainSrc, String modSrc) throws IOException {
-    return createProject(
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject(
         "Proj",
         Set.of(
             new SourceModule(QualifiedName.fromString("Main"), mainSrc),
             new SourceModule(QualifiedName.fromString("Mod"), modSrc)),
-        tempFolder);
+        projDir);
+    return projDir;
   }
 
   private void testProjectCompilationWarning(Path mainProjDir, Matcher<String> warnMessageMatcher) {
     var out = new ByteArrayOutputStream();
     try (var ctx =
-        defaultContextBuilder()
+        ContextUtils.defaultContextBuilder()
             .option(RuntimeOptions.PROJECT_ROOT, mainProjDir.toAbsolutePath().toString())
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
