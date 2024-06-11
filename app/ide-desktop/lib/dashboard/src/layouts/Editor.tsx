@@ -95,15 +95,17 @@ export default function Editor(props: EditorProps) {
         ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
         logEvent,
         renameProject: newName => {
-          backend.updateProject(
-            projectId,
-            { projectName: newName, ami: null, ideVersion: null, parentId },
-            title
-          )
+          backend
+            .updateProject(
+              projectId,
+              { projectName: newName, ami: null, ideVersion: null, parentId },
+              title
+            )
+            .catch(e => toastAndLog('renameProjectError', e))
         },
       }
     }
-  }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl])
+  }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl, backend])
 
   if (projectStartupInfo == null || AppRunner == null || appProps == null) {
     return <></>

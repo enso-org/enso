@@ -3,7 +3,7 @@ import { ref, watch, type ComponentInstance } from 'vue'
 import AutoSizedInput from './widgets/AutoSizedInput.vue'
 
 const model = defineModel<string>({ required: true })
-const props = defineProps<{ active: boolean; editing: boolean }>()
+const _props = defineProps<{ active: boolean; editing: boolean }>()
 const emit = defineEmits<{ renamed: [newName: string] }>()
 
 const input = ref<ComponentInstance<typeof AutoSizedInput>>()

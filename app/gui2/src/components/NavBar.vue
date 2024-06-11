@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import NavBreadcrumbs, { type BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
+import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { injectStackNavigator } from '@/providers/graphStackNavigator'
 import SvgButton from './SvgButton.vue'

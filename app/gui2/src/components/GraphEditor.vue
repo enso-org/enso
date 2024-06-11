@@ -34,7 +34,6 @@ import {
 } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { useStackNavigator } from '@/composables/stackNavigator'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
