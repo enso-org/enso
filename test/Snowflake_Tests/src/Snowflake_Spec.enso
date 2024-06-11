@@ -570,19 +570,20 @@ add_table_specs suite_builder =
             message = "Snowflake test connection is not configured. See README.md for instructions."
             suite_builder.group "[Snowflake] Database tests" pending=message (_-> Nothing)
         connection_builder ->
+            db_name = get_configured_connection_details.database
             add_snowflake_specs suite_builder connection_builder db_name
             Transaction_Spec.add_specs suite_builder connection_builder "[Snowflake] "
             Upload_Spec.add_specs suite_builder connection_builder "[Snowflake] "
 
             suite_builder.group "[Snowflake] Secrets in connection settings" group_builder->
                 cloud_setup = Cloud_Tests_Setup.prepare
+                base_details = get_configured_connection_details
                 group_builder.specify "should allow to set up a connection with the password passed as a secret" pending=cloud_setup.pending <|
                     cloud_setup.with_prepared_environment <|
-                        with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
-                            base_details = get_configured_connection_details
+                        with_secret "my_postgres_username" base_details.credentials.username username_secret-> with_secret "my_postgres_password" base_details.credentials.password password_secret->
                             secret_credentials = Credentials.Username_And_Password username_secret password_secret
                             details = Snowflake_Details.Snowflake base_details.account_name secret_credentials base_details.database base_details.schema base_details.warehouse
-                            connection = Database.connect details options
+                            connection = Database.connect details
                             connection.should_succeed
                             Panic.with_finalizer connection.close <|
                                 connection.tables . should_be_a Table
