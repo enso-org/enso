@@ -2,10 +2,14 @@ package org.enso.polyglot.runtime.serde
 
 import org.enso.polyglot.runtime.Runtime.ApiEnvelope
 import java.nio.ByteBuffer
-import com.github.plokhotnyuk.jsoniter_scala.core._
+import com.github.plokhotnyuk.jsoniter_scala.core.{
+  readFromByteBuffer,
+  writeToArray,
+  JsonValueCodec
+}
 
 import org.enso.polyglot.macros.SerdeConfig
-import com.github.plokhotnyuk.jsoniter_scala.macros._
+import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 
 import scala.util.Try
 
