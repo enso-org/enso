@@ -4,8 +4,10 @@
 
 - [Arrows navigation][10179] selected nodes may be moved around, or entire scene
   if no node is selected.
+- [Project may be renamed in Project View][10243]
 
 [10179]: https://github.com/enso-org/enso/pull/10179
+[10243]: https://github.com/enso-org/enso/pull/10243
 
 #### Enso Standard Library
 
