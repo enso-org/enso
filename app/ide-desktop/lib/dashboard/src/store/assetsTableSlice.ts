@@ -111,6 +111,7 @@ export interface AssetsTableSlice {
   readonly assetPasteData: PasteData | null
   readonly temporaryLabelData: TemporaryLabelData | null
   readonly clearAllAssetsState: () => void
+  readonly resetBackendState: (type: BackendType) => void
   readonly getAssetState: (backendType: BackendType, assetId: backendModule.AssetId) => AssetState
   readonly setIsAssetEditingName: (
     backendType: BackendType,
@@ -152,11 +153,17 @@ export const createAssetsTableSlice = defineSlice.defineSlice<AssetsTableSlice>(
   assetPasteData: null,
   temporaryLabelData: null,
   clearAllAssetsState: () => {
+    // `projectStartupInfo` is not reset as it is not UI state for the Assets Table -
+    // it is state for the Graph Editor.
     set({
       backends: INITIAL_BACKENDS_STATE,
       selectedAssetIds: setModule.EMPTY,
       assetPasteData: null,
+      temporaryLabelData: null,
     })
+  },
+  resetBackendState: (type: BackendType) => {
+    set({ backends: { ...get().backends, ...object.singleKeyObject(type, INITIAL_BACKEND_STATE) } })
   },
   getAssetState: (backendType, assetId) => {
     return get().backends[backendType].assets[assetId] ?? DEFAULT_ASSET_STATE

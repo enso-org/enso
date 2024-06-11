@@ -45,6 +45,8 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
+import * as store from '#/store'
+
 import * as backendHooks from '#/hooks/backendHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
@@ -429,6 +431,16 @@ function AppRouter(props: AppRouterProps) {
   const localBackend = backendProvider.useLocalBackend()
   backendHooks.useObserveBackend(remoteBackend)
   backendHooks.useObserveBackend(localBackend)
+  React.useEffect(() => {
+    return () => {
+      store.useStore.getState().resetBackendState('remote')
+    }
+  }, [remoteBackend])
+  React.useEffect(() => {
+    return () => {
+      store.useStore.getState().resetBackendState('local')
+    }
+  }, [localBackend])
 
   return (
     <router.Routes>
