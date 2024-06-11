@@ -126,7 +126,7 @@ lift_binary_op name function =
 lift_binary_sql_function : Text -> Text -> Pair Text (Vector SQL_Builder -> SQL_Builder)
 lift_binary_sql_function name:Text sql_function:Text =
     function first second =
-        res = SQL_Builder.code (name + "(") ++ first ++ "," ++ second ++ ")"
+        res = SQL_Builder.code (sql_function + "(") ++ first ++ "," ++ second ++ ")"
         res.paren
     lift_binary_op name function
 

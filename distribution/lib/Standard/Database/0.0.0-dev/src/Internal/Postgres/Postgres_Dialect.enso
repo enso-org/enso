@@ -56,7 +56,7 @@ type Postgres_Dialect
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name self = "PostgreSQL"
+    name self = postgres_dialect_name
 
     ## PRIVATE
     to_text : Text
@@ -242,7 +242,7 @@ type Postgres_Dialect
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported self.name
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported postgres_dialect_name
 
     ## PRIVATE
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
@@ -584,7 +584,7 @@ replace args metadata =
                     _ ->
                         SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> Nothing
-    expression.if_nothing (replace_params.throw_unsupported self.name)
+    expression.if_nothing (replace_params.throw_unsupported postgres_dialect_name)
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name=enso_name =
@@ -740,3 +740,6 @@ make_runtime_error_op arguments =
     variable_to_defer = arguments.at 1
 
     SQL_Builder.code "CAST('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL') AS BOOLEAN)"
+
+## PRIVATE
+postgres_dialect_name = "PostgreSQL"
