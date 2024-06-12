@@ -26,11 +26,47 @@ jobs:
           RUSTFLAGS="-C target-feature=-crt-static" cargo build -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir lib/linux/amd64/
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: linux_parser
           path: |
             lib/linux/amd64/libenso_parser.so
+
+  build_mac_parser:
+    runs-on: macos-12
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build Enso Parser
+        working-directory: .
+        run: |
+          RUSTFLAGS="-C target-feature=-crt-static" cargo build -p enso-parser-jni -Z unstable-options --out-dir lib/mac/amd64/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac_parser
+          path: |
+            lib/**
+
+  build_windows_parser:
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build Enso Parser
+        working-directory: .
+        run: |
+          RUSTFLAGS="-C target-feature=-crt-static" cargo build -p enso-parser-jni -Z unstable-options --out-dir lib/windows/amd64/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac_parser
+          path: |
+            lib/**
 
   build_java:
     runs-on: ubuntu-20.04
@@ -81,7 +117,7 @@ jobs:
       - name: Build with Maven
         run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml
       - name: Archive NBM file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Enso IGV Plugin
           path: tools/enso4igv/target/*.nbm
@@ -96,7 +132,7 @@ jobs:
         run: mvn -B -Pvsix npm:run@vsix --file tools/enso4igv/pom.xml
 
       - name: Archive VSCode extension
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: VSCode Extension
           path: tools/enso4igv/*.vsix
