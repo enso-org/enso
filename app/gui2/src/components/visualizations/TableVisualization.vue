@@ -64,10 +64,9 @@ interface UnknownTable {
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
-  indices_header?: string[]
   data: unknown[][] | undefined
-  indices: unknown[][] | undefined
   value_type: ValueType[]
+  has_index_col: boolean
 }
 
 declare module 'ag-grid-enterprise' {
@@ -278,9 +277,9 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         all_rows_count: 1,
         data: undefined,
-        indices: undefined,
         // eslint-disable-next-line camelcase
         value_type: undefined,
+        has_index_col: false,
       }
   const options = agGridOptions.value
   if (options.api == null) {
@@ -334,7 +333,7 @@ watchEffect(() => {
         return toField(v, valueType)
       }) ?? []
 
-    columnDefs = [indexField(), ...dataHeader]
+    const columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : [...dataHeader]
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       return Object.fromEntries(
@@ -343,7 +342,6 @@ watchEffect(() => {
         }),
       )
     })
-    console.log({ rowData })
     isTruncated.value = data_.all_rows_count !== rowData.length
   }
 
