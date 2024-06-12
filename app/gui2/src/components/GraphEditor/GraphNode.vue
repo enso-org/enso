@@ -759,10 +759,9 @@ watchEffect(() => {
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  z-index: 2;
+  z-index: 24;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
-  z-index: 24;
 }
 
 .binding {

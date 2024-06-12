@@ -59,14 +59,13 @@ const { floatingStyles } = useFloating(widgetRoot, dropdownElement, {
         elementContext: 'reference',
         apply({ elements, rects, availableWidth }) {
           const PORT_PADDING_X = 8
-          const overflowing = Math.max(
+          const screenOverflow = Math.max(
             (rects.floating.width - availableWidth) / 2 + PORT_PADDING_X,
             0,
           )
-          console.log('availableWidth', availableWidth)
           const portWidth = rects.reference.width + PORT_PADDING_X * 2
 
-          const minWidth = `${Math.max(portWidth - overflowing, 0)}px`
+          const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
           const maxWidth = `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px`
 
           Object.assign(elements.floating.style, { minWidth, maxWidth })
