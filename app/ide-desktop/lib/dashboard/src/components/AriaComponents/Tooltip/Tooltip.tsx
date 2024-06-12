@@ -4,6 +4,8 @@ import * as twv from 'tailwind-variants'
 import * as aria from '#/components/aria'
 import * as portal from '#/components/Portal'
 
+import * as text from '../Text'
+
 // =================
 // === Constants ===
 // =================
@@ -18,11 +20,14 @@ export const TOOLTIP_STYLES = twv.tv({
     },
     size: {
       custom: '',
-      medium: 'text-xs leading-[25px] px-2 py-1',
+      medium: text.TEXT_STYLE({ className: 'px-2 py-1', color: 'custom', balance: true }),
     },
     rounded: {
       custom: '',
       full: 'rounded-full',
+      xxxlarge: 'rounded-3xl',
+      xxlarge: 'rounded-2xl',
+      xlarge: 'rounded-xl',
       large: 'rounded-lg',
       medium: 'rounded-md',
       small: 'rounded-sm',
@@ -47,7 +52,7 @@ export const TOOLTIP_STYLES = twv.tv({
     variant: 'primary',
     size: 'medium',
     maxWidth: 'xsmall',
-    rounded: 'full',
+    rounded: 'xxxlarge',
   },
 })
 
@@ -60,7 +65,8 @@ const DEFAULT_OFFSET = 9
 
 /** Props for a {@link Tooltip}. */
 export interface TooltipProps
-  extends Omit<Readonly<aria.TooltipProps>, 'offset' | 'UNSTABLE_portalContainer'> {}
+  extends Omit<Readonly<aria.TooltipProps>, 'offset' | 'UNSTABLE_portalContainer'>,
+    Omit<twv.VariantProps<typeof TOOLTIP_STYLES>, 'isEntering' | 'isExiting'> {}
 
 /** Displays the description of an element on hover or focus. */
 export function Tooltip(props: TooltipProps) {
@@ -71,10 +77,11 @@ export function Tooltip(props: TooltipProps) {
     <aria.Tooltip
       offset={DEFAULT_OFFSET}
       containerPadding={containerPadding}
-      UNSTABLE_portalContainer={root.current}
+      UNSTABLE_portalContainer={root}
       className={aria.composeRenderProps(className, (classNames, values) =>
         TOOLTIP_STYLES({ className: classNames, ...values })
       )}
+      data-ignore-click-outside
       {...ariaTooltipProps}
     />
   )

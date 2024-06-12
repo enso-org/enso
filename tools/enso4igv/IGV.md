@@ -5,9 +5,9 @@
 [Enso language](http://enso.org) runtime engine is built on top of
 [GraalVM](http://graalvm.org) and its _Truffle framework_. Enso, as a good
 citizen of the GraalVM ecosystem, benefits from polyglot capabilities of GraalVM
-as well as its rich tooling offering. One of such tools is _IGV_ - the _Ideal
-Graph Visualizer_ - an excellent tool to get insights into behavior of Graal
-compiler.
+as well as its rich tooling offering. One of such tools is
+[IGV - the _Ideal Graph Visualizer_](https://www.graalvm.org/jdk22/tools/igv/) -
+an excellent tool to get insights into behavior of Graal compiler.
 
 This document shows how to use _IGV_ with the _Enso language_. The command line
 instructions format is Unix oriented. Use instructions appropriate for your
@@ -17,13 +17,14 @@ major operating systems.
 
 ## Installation
 
-Visit [GraalVM.org](http://graalvm.org) download page and continue towards
-_enterprise edition_ option. There is an _Ideal Graph Visualizer_ option. After
-clicking through the confirmation dialogs you should get a ZIP - I've just got
-`idealgraphvisualizer-22.1.0.zip` and then:
+Visit [GraalVM's IGV page](https://www.graalvm.org/jdk22/tools/igv/) to read and
+download _IGV_. Or follow
+[this link](https://lafo.ssw.uni-linz.ac.at/pub/idealgraphvisualizer/idealgraphvisualizer-0.31-cb98bbf5fef-all.zip)
+to get ZIP with the most up to date version of _Ideal Graph Visualizer_ (as of
+June 2024). Then:
 
 ```bash
-$ unzip idealgraphvisualizer-22.1.0.zip
+$ unzip idealgraphvisualizer-*.zip
 $ ./idealgraphvisualizer/bin/idealgraphvisualizer --userdir /tmp/emptyuserdir
 ```
 

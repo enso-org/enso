@@ -481,6 +481,8 @@ const handler = componentBrowserBindings.handler({
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
+    @keydown.arrow-left.stop
+    @keydown.arrow-right.stop
   >
     <div class="panels">
       <div class="panel components">
@@ -589,6 +591,7 @@ const handler = componentBrowserBindings.handler({
         :icon="selectedSuggestionIcon"
         :nodeColor="nodeColor"
         class="component-editor"
+        :style="{ '--component-editor-padding': cssComponentEditorPadding }"
       />
     </div>
   </div>
@@ -721,7 +724,6 @@ const handler = componentBrowserBindings.handler({
 
 .component-editor {
   position: absolute;
-  --component-editor-padding: v-bind('cssComponentEditorPadding');
 }
 
 .visualization-preview {
