@@ -78,7 +78,7 @@ function Tags(props: InternalTagsProps) {
   return (
     <div
       data-testid="asset-search-tag-names"
-      className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
+      className="pointer-events-auto flex flex-wrap gap-2 whitespace-nowrap px-search-suggestions"
     >
       {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
         const [key, tag] = entry
@@ -306,7 +306,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 {isCloud && labels.length !== 0 && (
                   <div
                     data-testid="asset-search-labels"
-                    className="pointer-events-auto flex gap-buttons p-search-suggestions"
+                    className="pointer-events-auto flex gap-2 p-search-suggestions"
                   >
                     {labels
                       .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))

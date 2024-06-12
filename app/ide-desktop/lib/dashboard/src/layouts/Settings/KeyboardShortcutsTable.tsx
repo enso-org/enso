@@ -103,7 +103,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                             {/* I don't know why this padding is needed,
                              * given that this is a flex container. */}
                             {/* eslint-disable-next-line no-restricted-syntax */}
-                            <div className="flex gap-buttons pr-4">
+                            <div className="flex gap-2 pr-4">
                               {info.bindings.map((binding, j) => (
                                 <div
                                   key={j}

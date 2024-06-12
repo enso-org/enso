@@ -199,7 +199,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       gap: {
         modal: 'var(--modal-gap)',
         subheading: 'var(--subheading-gap)',
-        buttons: 'var(--buttons-gap)',
         icons: 'var(--icons-gap)',
         colors: 'var(--colors-gap)',
         'samples-icon-with-text': 'var(--samples-icon-with-text-gap)',

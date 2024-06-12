@@ -93,7 +93,7 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
 
         {error && <div className="relative text-sm text-red-500">{error.message}</div>}
 
-        <div className="relative flex gap-buttons">
+        <div className="relative flex gap-2">
           <ariaComponents.Button variant="submit" type="submit" loading={isPending}>
             {actionButtonLabel}
           </ariaComponents.Button>

@@ -121,7 +121,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         event.stopPropagation()
       }}
     >
-      <div className="flex gap-buttons">
+      <div className="flex gap-2">
         {item != null &&
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
