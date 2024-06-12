@@ -26,6 +26,7 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
 
 // =====================
@@ -179,6 +180,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }`}
         checkSubmittable={newTitle =>
           newTitle !== item.item.title &&
+          validation.DIRECTORY_NAME_REGEX.test(newTitle) &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(child => {
             const isSelf = child.key === item.key
             const hasSameType = child.item.type === item.type
