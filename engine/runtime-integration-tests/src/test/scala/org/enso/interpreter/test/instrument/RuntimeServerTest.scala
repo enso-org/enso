@@ -1307,7 +1307,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of partially applied autoscope constructors" in {
+  it should "send error updates for partially applied autoscope constructors" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1361,7 +1361,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1382,26 +1382,31 @@ class RuntimeServerTest
           )
         )
       ),
-      TestMessages.update(
-        contextId,
-        id_x_1,
-        ConstantsGen.FUNCTION_BUILTIN,
-        methodCall = Some(
-          Api.MethodCall(
-            Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
-            Vector(1)
-          )
-        ),
-        payload = Api.ExpressionUpdate.Payload.Value(
-          functionSchema = Some(
-            Api.FunctionSchema(
-              Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
-              Vector(1)
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Diagnostic.error(
+            "Type_Error.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.test",
+                Some(mainFile),
+                Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(model.Range(model.Position(4, 10), model.Position(4, 18))),
+                None
+              )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -6225,21 +6230,21 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
 
-    // rename Test -> Foo
-    context.pkg.rename("Foo")
+    // rename Test -> My Foo
+    context.pkg.rename("My Foo")
     context.send(
-      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "My Foo"))
     )
     val renameProjectResponses = context.receiveN(6)
     renameProjectResponses should contain allOf (
-      Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
+      Api.Response(requestId, Api.ProjectRenamed("Test", "MyFoo", "My Foo")),
       context.Main.Update.mainX(contextId, typeChanged = false),
       TestMessages.update(
         contextId,
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+          Api.MethodPointer("Enso_Test.MyFoo.Main", ConstantsGen.NUMBER, "foo")
         ),
         fromCache   = false,
         typeChanged = true
@@ -6294,7 +6299,7 @@ class RuntimeServerTest
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+          Api.MethodPointer("Enso_Test.MyFoo.Main", ConstantsGen.NUMBER, "foo")
         ),
         fromCache   = false,
         typeChanged = false
@@ -6342,21 +6347,21 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
 
-    // rename Test -> Foo
-    context.pkg.rename("Foo")
+    // rename Test -> My Foo
+    context.pkg.rename("My Foo")
     context.send(
-      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "My Foo"))
     )
     val renameProjectResponses = context.receiveN(6)
     renameProjectResponses should contain allOf (
-      Api.Response(requestId, Api.ProjectRenamed("Test", "Foo", "Foo")),
+      Api.Response(requestId, Api.ProjectRenamed("Test", "MyFoo", "My Foo")),
       context.Main.Update.mainX(contextId, typeChanged = false),
       TestMessages.update(
         contextId,
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+          Api.MethodPointer("Enso_Test.MyFoo.Main", ConstantsGen.NUMBER, "foo")
         ),
         fromCache   = false,
         typeChanged = true
@@ -6396,7 +6401,7 @@ class RuntimeServerTest
         context.Main.idMainY,
         ConstantsGen.INTEGER,
         Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
+          Api.MethodPointer("Enso_Test.MyFoo.Main", ConstantsGen.NUMBER, "foo")
         ),
         fromCache   = true,
         typeChanged = true
@@ -7045,6 +7050,50 @@ class RuntimeServerTest
         methodCall =
           Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "fac")))
       ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "run main method with empty body" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val code =
+      """main =
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    val mainFile = context.writeMain(code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Set sources for the module
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, code))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
   }

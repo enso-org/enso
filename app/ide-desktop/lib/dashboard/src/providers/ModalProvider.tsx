@@ -7,7 +7,7 @@ import * as React from 'react'
 // =============
 
 /** The type of a modal. */
-export type Modal = JSX.Element
+export type Modal = React.JSX.Element
 
 /** State contained in a `ModalStaticContext`. */
 interface ModalStaticContextType {

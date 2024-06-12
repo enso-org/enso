@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [develop]
     paths:
+      - ".github/workflows/enso4igv.yml"
       - "tools/enso4igv/**/*"
 
 jobs:
@@ -24,13 +25,21 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
 
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "21"
+          distribution: "graalvm-community"
+
+      - name: Publish to Maven Repository
+        run: sbt publishM2
+
       - name: Find out pom & micro versions
         working-directory: tools/enso4igv
         run: |
           # Why do we subtract a number? Read versioning policy!
           # https://github.com/enso-org/enso/pull/7861#discussion_r1333133490
           echo "POM_VERSION=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`" >> "$GITHUB_ENV"
-          echo "MICRO_VERSION=`expr $GITHUB_RUN_NUMBER - 2250`" >> "$GITHUB_ENV"
+          echo "MICRO_VERSION=`expr $GITHUB_RUN_NUMBER - 2930`" >> "$GITHUB_ENV"
 
       - name: Update project version
         working-directory: tools/enso4igv

@@ -7,7 +7,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
 public final class Parser implements AutoCloseable {
-  static {
+  private static void initializeLibraries() {
     String os = System.getProperty("os.name");
     String name;
     if (os.startsWith("Mac")) {
@@ -21,8 +21,18 @@ public final class Parser implements AutoCloseable {
     File parser = null;
     try {
       var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
-      File dir = new File(whereAmI.toURI()).getParentFile();
-      parser = new File(dir, name);
+      var d = new File(whereAmI.toURI()).getParentFile();
+      File path = null;
+      while (d != null) {
+        path = new File(d, name);
+        if (path.exists()) break;
+        d = d.getParentFile();
+      }
+      if (d == null) {
+        throw new LinkageError(
+            "Cannot find parser in " + new File(whereAmI.toURI()).getParentFile());
+      }
+      parser = path;
       System.load(parser.getAbsolutePath());
     } catch (URISyntaxException | LinkageError e) {
       File root = new File(".").getAbsoluteFile();
@@ -77,6 +87,7 @@ public final class Parser implements AutoCloseable {
   static native long getUuidLow(long metadata, long codeOffset, long codeLength);
 
   public static Parser create() {
+    initializeLibraries();
     var state = allocState();
     return new Parser(state);
   }

@@ -10,31 +10,23 @@ import type { Icon } from '@/util/iconName'
 
 const props = defineProps<{
   name: Icon | URLString
-  width?: number
-  height?: number
-  scale?: number
+  title?: string
 }>()
 </script>
 
 <template>
-  <svg
-    :style="{
-      '--width': `${props.width ?? 16}px`,
-      '--height': `${props.height ?? 16}px`,
-      '--scale': props.scale ?? 1,
-    }"
-  >
+  <svg viewBox="0 0 16 16" preserveAspectRatio="xMidYMid slice">
+    <title v-if="title" v-text="title"></title>
     <use :href="props.name.includes(':') ? props.name : `${icons}#${props.name}`"></use>
   </svg>
 </template>
 
 <style scoped>
 svg {
-  width: var(--width);
-  min-width: var(--width);
-  height: var(--height);
-  min-height: var(--height);
-  transform: scale(var(--scale));
-  transform-origin: top left;
+  overflow: visible; /* Prevent slight cutting off icons that are using all available space. */
+  width: var(--icon-width, var(--icon-size, 16px));
+  height: var(--icon-height, var(--icon-size, 16px));
+  transform: var(--icon-transform);
+  transform-origin: var(--icon-transform-origin, center center);
 }
 </style>

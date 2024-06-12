@@ -69,16 +69,8 @@
   height: 16px;
 }
 
-.button {
-  cursor: pointer;
-}
-
 .hidden {
   display: none;
-}
-
-.button.disabled {
-  cursor: default;
 }
 
 /* Scrollbar style definitions for textual visualizations which need support for scrolling.
@@ -120,4 +112,12 @@
 .scrollable::-webkit-scrollbar-button {
   height: 8px;
   width: 8px;
+}
+
+.draggable {
+  cursor: grab;
+}
+
+.clickable {
+  cursor: pointer;
 }

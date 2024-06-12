@@ -1,10 +1,7 @@
-/**
- * @file
- *
- * ReactQueryDevtools component. Shows the React Query Devtools.
- */
+/** @file Show the React Query Devtools. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as reactQueryDevtools from '@tanstack/react-query-devtools'
 
 const ReactQueryDevtoolsProduction = React.lazy(() =>
@@ -13,12 +10,14 @@ const ReactQueryDevtoolsProduction = React.lazy(() =>
   }))
 )
 
-/**
- * ReactQueryDevtools component.
- * Shows the React Query Devtools and provide ability to show them in production.
- */
+/** Show the React Query Devtools and provide the ability to show them in production. */
 export function ReactQueryDevtools() {
   const [showDevtools, setShowDevtools] = React.useState(false)
+  // It is safer to pass the client directly to the devtools
+  // since there might be a chance that we have multiple versions of `react-query`,
+  // in case we forget to update the devtools, npm messes up the versions,
+  // or there are hoisting issues.
+  const client = reactQuery.useQueryClient()
 
   React.useEffect(() => {
     window.toggleDevtools = () => {
@@ -28,11 +27,11 @@ export function ReactQueryDevtools() {
 
   return (
     <>
-      <reactQueryDevtools.ReactQueryDevtools />
+      <reactQueryDevtools.ReactQueryDevtools client={client} />
 
       {showDevtools && (
         <React.Suspense fallback={null}>
-          <ReactQueryDevtoolsProduction />
+          <ReactQueryDevtoolsProduction client={client} />
         </React.Suspense>
       )}
     </>

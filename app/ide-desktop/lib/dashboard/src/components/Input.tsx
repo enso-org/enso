@@ -30,8 +30,7 @@ export default function Input(props: InputProps) {
       {type === 'password' && allowShowingPassword && (
         <SvgIcon
           src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
-          className="cursor-pointer rounded-full"
-          positionClassName="top right"
+          className="right-0 top-0 cursor-pointer rounded-full"
           onClick={() => {
             setIsShowingPassword(show => !show)
           }}

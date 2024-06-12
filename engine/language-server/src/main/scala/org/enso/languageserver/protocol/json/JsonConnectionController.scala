@@ -538,7 +538,7 @@ class JsonConnectionController(
       WriteFile -> file.WriteTextualFileHandler
         .props(requestTimeout, fileManager),
       ReadFile -> file.ReadTextualFileHandler
-        .props(requestTimeout, fileManager),
+        .props(requestTimeout, bufferRegistry, fileManager),
       CreateFile -> file.CreateFileHandler.props(requestTimeout, fileManager),
       DeleteFile -> file.DeleteFileHandler.props(requestTimeout, fileManager),
       CopyFile   -> file.CopyFileHandler.props(requestTimeout, fileManager),

@@ -8,14 +8,13 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import Category from '#/layouts/CategorySwitcher/Category'
+import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
@@ -31,9 +30,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
-import RemoteBackend from '#/services/RemoteBackend'
 
-import HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 
@@ -63,20 +60,18 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false } = props
   const { doTriggerDescriptionEdit, doCopy, doCut, doPaste, doDelete } = props
   const { item, setItem, state, setRowState } = innerProps
-  const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { doCreateLabel } = state
+  const { backend, category, hasPasteData, dispatchAssetEvent, dispatchAssetListEvent } = state
 
-  const logger = loggerProvider.useLogger()
-  const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
   const self = asset.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
-  const isCloud = backend.type === backendModule.BackendType.remote
+  const isCloud = categoryModule.isCloud(category)
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
   const canEditThisAsset =
@@ -85,10 +80,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     asset.type === backendModule.AssetType.project &&
     backendModule.IS_OPENING_OR_OPENED[asset.projectState.type]
   const canExecute =
-    backend.type === backendModule.BackendType.local ||
+    !isCloud ||
     (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
+    isCloud &&
     backendModule.assetIsProject(asset) &&
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user?.email
@@ -129,7 +124,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   ) : (
     <ContextMenus hidden={hidden} key={asset.id} event={event}>
       <ContextMenu aria-label={getText('assetContextMenuLabel')} hidden={hidden}>
-        {asset.type === backendModule.AssetType.dataLink && (
+        {asset.type === backendModule.AssetType.datalink && (
           <ContextMenuEntry
             hidden={hidden}
             action="useInNewProject"
@@ -142,7 +137,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 templateId: null,
                 datalinkId: asset.id,
                 preferredName: asset.title,
-                onSpinnerStateChange: null,
               })
             }}
           />
@@ -202,12 +196,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="uploadToCloud"
             doAction={async () => {
               unsetModal()
-              if (accessToken == null) {
+              if (remoteBackend == null) {
                 toastAndLog('offlineUploadFilesError')
               } else {
                 try {
-                  const client = new HttpClient([['Authorization', `Bearer ${accessToken}`]])
-                  const remoteBackend = new RemoteBackend(client, logger, getText)
                   const projectResponse = await fetch(
                     `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`
                   )
@@ -248,27 +240,29 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {asset.type === backendModule.AssetType.secret && canEditThisAsset && (
-          <ContextMenuEntry
-            hidden={hidden}
-            action="edit"
-            doAction={() => {
-              setModal(
-                <UpsertSecretModal
-                  id={asset.id}
-                  name={asset.title}
-                  doCreate={async (_name, value) => {
-                    try {
-                      await backend.updateSecret(asset.id, { value }, asset.title)
-                    } catch (error) {
-                      toastAndLog(null, error)
-                    }
-                  }}
-                />
-              )
-            }}
-          />
-        )}
+        {asset.type === backendModule.AssetType.secret &&
+          canEditThisAsset &&
+          remoteBackend != null && (
+            <ContextMenuEntry
+              hidden={hidden}
+              action="edit"
+              doAction={() => {
+                setModal(
+                  <UpsertSecretModal
+                    id={asset.id}
+                    name={asset.title}
+                    doCreate={async (_name, value) => {
+                      try {
+                        await remoteBackend.updateSecret(asset.id, { value }, asset.title)
+                      } catch (error) {
+                        toastAndLog(null, error)
+                      }
+                    }}
+                  />
+                )
+              }}
+            />
+          )}
         {isCloud && (
           <ContextMenuEntry
             hidden={hidden}
@@ -293,13 +287,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="delete"
-            label={
-              backend.type === backendModule.BackendType.local
-                ? getText('deleteShortcut')
-                : getText('moveToTrashShortcut')
-            }
+            label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
             doAction={() => {
-              if (backend.type === backendModule.BackendType.remote) {
+              if (isCloud) {
                 unsetModal()
                 doDelete()
               } else {
@@ -321,6 +311,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => {
               setModal(
                 <ManagePermissionsModal
+                  backend={backend}
                   item={asset}
                   setItem={setAsset}
                   self={self}
@@ -343,10 +334,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={() => {
               setModal(
                 <ManageLabelsModal
+                  backend={backend}
                   item={asset}
                   setItem={setAsset}
-                  allLabels={labels}
-                  doCreateLabel={doCreateLabel}
                   eventTarget={eventTarget}
                 />
               )
@@ -377,7 +367,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           isDisabled={
             isCloud &&
             asset.type !== backendModule.AssetType.file &&
-            asset.type !== backendModule.AssetType.dataLink &&
+            asset.type !== backendModule.AssetType.datalink &&
             asset.type !== backendModule.AssetType.project
           }
           action="download"
@@ -403,9 +393,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
       </ContextMenu>
-      {category === Category.home && (
+      {(category === Category.cloud || category === Category.local) && (
         <GlobalContextMenu
           hidden={hidden}
+          backend={backend}
           hasPasteData={hasPasteData}
           rootDirectoryId={rootDirectoryId}
           directoryKey={

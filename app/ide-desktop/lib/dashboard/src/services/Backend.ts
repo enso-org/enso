@@ -51,9 +51,13 @@ export const FileId = newtype.newtypeConstructor<FileId>()
 export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
-/** Unique identifier for a Data Link. */
-export type ConnectorId = newtype.Newtype<string, 'ConnectorId'>
-export const ConnectorId = newtype.newtypeConstructor<ConnectorId>()
+/** Unique identifier for a Datalink. */
+export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
+export const DatalinkId = newtype.newtypeConstructor<DatalinkId>()
+
+/** Unique identifier for a version of an S3 object. */
+export type S3ObjectVersionId = newtype.Newtype<string, 'S3ObjectVersionId'>
+export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
 
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
@@ -61,6 +65,12 @@ export type AssetId = IdType[keyof IdType]
 /** Unique identifier for a payment checkout session. */
 export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
 export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
+
+/**
+ * Unique identifier for a subscription.
+ */
+export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
+export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
 
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
@@ -340,12 +350,12 @@ export interface SecretInfo {
   readonly path: string
 }
 
-/** A Data Link. */
-export type Connector = newtype.Newtype<unknown, 'Connector'>
+/** A Datalink. */
+export type Datalink = newtype.Newtype<unknown, 'Datalink'>
 
-/** Metadata uniquely identifying a Data Link. */
-export interface ConnectorInfo {
-  readonly id: ConnectorId
+/** Metadata uniquely identifying a Datalink. */
+export interface DatalinkInfo {
+  readonly id: DatalinkId
 }
 
 /** A label. */
@@ -438,6 +448,16 @@ export interface ResourceUsage {
   readonly storage: number
 }
 
+/**
+ * Metadata for a subscription.
+ */
+export interface Subscription {
+  readonly id?: SubscriptionId
+  readonly plan?: Plan
+  readonly trialStart?: dateTime.Rfc3339DateTime | null
+  readonly trialEnd?: dateTime.Rfc3339DateTime | null
+}
+
 /** Metadata for an organization. */
 export interface OrganizationInfo {
   readonly id: OrganizationId
@@ -446,6 +466,7 @@ export interface OrganizationInfo {
   readonly website: HttpsUrl | null
   readonly address: string | null
   readonly picture: HttpsUrl | null
+  readonly subscription: Subscription
 }
 
 /** A user group and its associated metadata. */
@@ -655,7 +676,7 @@ export enum AssetType {
   project = 'project',
   file = 'file',
   secret = 'secret',
-  dataLink = 'connector',
+  datalink = 'datalink',
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
@@ -668,7 +689,7 @@ export enum AssetType {
 export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
-  readonly [AssetType.dataLink]: ConnectorId
+  readonly [AssetType.datalink]: DatalinkId
   readonly [AssetType.secret]: SecretId
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
@@ -684,7 +705,7 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.directory]: 0,
   [AssetType.project]: 1,
   [AssetType.file]: 2,
-  [AssetType.dataLink]: 3,
+  [AssetType.datalink]: 3,
   [AssetType.secret]: 4,
   [AssetType.specialLoading]: 999,
   [AssetType.specialEmpty]: 1000,
@@ -726,8 +747,8 @@ export interface ProjectAsset extends Asset<AssetType.project> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
 export interface FileAsset extends Asset<AssetType.file> {}
 
-/** A convenience alias for {@link Asset}<{@link AssetType.dataLink}>. */
-export interface DataLinkAsset extends Asset<AssetType.dataLink> {}
+/** A convenience alias for {@link Asset}<{@link AssetType.datalink}>. */
+export interface DatalinkAsset extends Asset<AssetType.datalink> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export interface SecretAsset extends Asset<AssetType.secret> {}
@@ -838,7 +859,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  | DataLinkAsset
+  | DatalinkAsset
   | DirectoryAsset
   | FileAsset
   | ProjectAsset
@@ -875,8 +896,8 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       result = FileId(id)
       break
     }
-    case AssetType.dataLink: {
-      result = ConnectorId(id)
+    case AssetType.datalink: {
+      result = DatalinkId(id)
       break
     }
     case AssetType.secret: {
@@ -903,8 +924,8 @@ export function createPlaceholderAssetId<Type extends AssetType>(
 export const assetIsProject = assetIsType(AssetType.project)
 /** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
 export const assetIsDirectory = assetIsType(AssetType.directory)
-/** A type guard that returns whether an {@link Asset} is a {@link DataLinkAsset}. */
-export const assetIsDataLink = assetIsType(AssetType.dataLink)
+/** A type guard that returns whether an {@link Asset} is a {@link DatalinkAsset}. */
+export const assetIsDatalink = assetIsType(AssetType.datalink)
 /** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
@@ -913,7 +934,7 @@ export const assetIsFile = assetIsType(AssetType.file)
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
-  readonly versionId: string
+  readonly versionId: S3ObjectVersionId
   readonly lastModified: dateTime.Rfc3339DateTime
   readonly isLatest: boolean
   /** An archive containing the all the project files object in the S3 bucket. */
@@ -991,6 +1012,22 @@ export interface InviteUserRequestBody {
   readonly userEmail: EmailAddress
 }
 
+/**
+ * HTTP request body for the "list invitations" endpoint.
+ */
+export interface InvitationListRequestBody {
+  readonly invitations: Invitation[]
+}
+
+/**
+ * Invitation to join an organization.
+ */
+export interface Invitation {
+  readonly organizationId: OrganizationId
+  readonly userEmail: EmailAddress
+  readonly expireAt: dateTime.Rfc3339DateTime
+}
+
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
   readonly actorsIds: UserPermissionIdentifier[]
@@ -1034,7 +1071,7 @@ export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName?: string
   readonly parentDirectoryId?: DirectoryId
-  readonly datalinkId?: ConnectorId
+  readonly datalinkId?: DatalinkId
 }
 
 /** HTTP request body for the "update project" endpoint.
@@ -1068,12 +1105,12 @@ export interface UpdateSecretRequestBody {
   readonly value: string
 }
 
-/** HTTP request body for the "create connector" endpoint. */
-export interface CreateConnectorRequestBody {
+/** HTTP request body for the "create datalink" endpoint. */
+export interface CreateDatalinkRequestBody {
   readonly name: string
   readonly value: unknown
   readonly parentDirectoryId: DirectoryId | null
-  readonly connectorId: ConnectorId | null
+  readonly datalinkId: DatalinkId | null
 }
 
 /** HTTP request body for the "create tag" endpoint. */
@@ -1236,6 +1273,8 @@ export default abstract class Backend {
   abstract restoreUser(): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
+  /** Delete a user. */
+  abstract removeUser(userId: UserId): Promise<void>
   /** Upload a new profile picture for the current user. */
   abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
   /** Set the list of groups a user is in. */
@@ -1246,6 +1285,12 @@ export default abstract class Backend {
   ): Promise<User>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
+  /** Return a list of invitations to the organization. */
+  abstract listInvitations(): Promise<Invitation[]>
+  /** Delete an invitation. */
+  abstract deleteInvitation(userEmail: EmailAddress): Promise<void>
+  /** Resend an invitation. */
+  abstract resendInvitation(userEmail: EmailAddress): Promise<void>
   /** Get the details of the current organization. */
   abstract getOrganization(): Promise<OrganizationInfo | null>
   /** Change the details of the current organization. */
@@ -1290,6 +1335,18 @@ export default abstract class Backend {
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
+  /** Restore a project from a different version. */
+  abstract restoreProject(
+    projectId: ProjectId,
+    versionId: S3ObjectVersionId,
+    title: string
+  ): Promise<void>
+  /** Duplicate a specific version of a project. */
+  abstract duplicateProject(
+    projectId: ProjectId,
+    versionId: S3ObjectVersionId,
+    title: string
+  ): Promise<CreatedProject>
   /** Return project details. */
   abstract getProjectDetails(
     projectId: ProjectId,
@@ -1320,12 +1377,12 @@ export default abstract class Backend {
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
   /** Return file details. */
   abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
-  /** Create a Data Link. */
-  abstract createConnector(body: CreateConnectorRequestBody): Promise<ConnectorInfo>
-  /** Return a Data Link. */
-  abstract getConnector(connectorId: ConnectorId, title: string | null): Promise<Connector>
-  /** Delete a Data Link. */
-  abstract deleteConnector(connectorId: ConnectorId, title: string | null): Promise<void>
+  /** Create a Datalink. */
+  abstract createDatalink(body: CreateDatalinkRequestBody): Promise<DatalinkInfo>
+  /** Return a Datalink. */
+  abstract getDatalink(datalinkId: DatalinkId, title: string | null): Promise<Datalink>
+  /** Delete a Datalink. */
+  abstract deleteDatalink(datalinkId: DatalinkId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
@@ -1362,4 +1419,17 @@ export default abstract class Backend {
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
   abstract getLogEvents(): Promise<Event[]>
+  /** Log an event that will be visible in the organization audit log. */
+  abstract logEvent(
+    message: string,
+    projectId?: string | null,
+    metadata?: object | null
+  ): Promise<void>
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  abstract waitUntilProjectIsReady(
+    projectId: ProjectId,
+    directory: DirectoryId | null,
+    title: string,
+    abortController?: AbortController
+  ): Promise<Project>
 }

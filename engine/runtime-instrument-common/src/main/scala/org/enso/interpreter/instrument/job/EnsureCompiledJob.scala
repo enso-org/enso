@@ -1,6 +1,5 @@
 package org.enso.interpreter.instrument.job
 
-import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.common.CompilationStage
 import org.enso.compiler.CompilerResult
@@ -60,20 +59,17 @@ final class EnsureCompiledJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
-    val writeLockTimestamp             = ctx.locking.acquireWriteCompilationLock()
-    implicit val logger: TruffleLogger = ctx.executionService.getLogger
-
-    try {
-      val compilationResult = ensureCompiledFiles(files)
-      setCacheWeights()
-      compilationResult
-    } finally {
-      ctx.locking.releaseWriteCompilationLock()
-      logger.log(
-        Level.FINEST,
-        s"Kept write compilation lock [EnsureCompiledJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
-      )
-    }
+    ctx.locking.withWriteCompilationLock(
+      this.getClass,
+      () => {
+        val compilationResult = ensureCompiledFiles(files)(
+          implicitly[RuntimeContext],
+          ctx.executionService.getLogger
+        )
+        setCacheWeights()
+        compilationResult
+      }
+    )
   }
 
   /** Run the scheduled compilation and invalidation logic, and send the
@@ -108,40 +104,48 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[CompilationStatus] = {
-    val result = compile(module)
-    result match {
+    compile(module) match {
       case Left(ex) =>
         logger.log(
           Level.WARNING,
           s"Error while ensureCompiledModule ${module.getName}",
           ex
         )
-        Some(CompilationStatus.Failure)
       case _ =>
-        applyEdits(new File(module.getPath)).map { changeset =>
-          compile(module)
-            .map { _ =>
-              // Side-effect: ensures that module's source is correctly initialized.
-              module.getSource()
-              invalidateCaches(module, changeset)
-              val state =
-                ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
-              if (state.isIndexed) {
-                ctx.jobProcessor.runBackground(
-                  AnalyzeModuleJob(module, state, module.getIr(), changeset)
-                )
-              } else {
-                AnalyzeModuleJob.analyzeModule(
-                  module,
-                  state,
-                  module.getIr(),
-                  changeset
-                )
-              }
-              runCompilationDiagnostics(module)
-            }
-            .getOrElse(CompilationStatus.Failure)
+    }
+    applyEdits(new File(module.getPath)).map { changeset =>
+      compile(module)
+        .map { _ =>
+          // Side-effect: ensures that module's source is correctly initialized.
+          module.getSource()
+          invalidateCaches(module, changeset)
+          val state =
+            ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
+          if (state.isIndexed) {
+            ctx.jobProcessor.runBackground(
+              AnalyzeModuleJob(module, state, module.getIr(), changeset)
+            )
+          } else {
+            AnalyzeModuleJob.analyzeModule(
+              module,
+              state,
+              module.getIr(),
+              changeset
+            )
+          }
+          runCompilationDiagnostics(module)
         }
+        .fold(
+          err => {
+            logger.log(
+              Level.WARNING,
+              s"Error while ensureCompiledModule ${module.getName}",
+              err
+            )
+            CompilationStatus.Failure
+          },
+          identity
+        )
     }
   }
 
@@ -282,19 +286,24 @@ final class EnsureCompiledJob(
   private def compile(
     module: Module
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
-    Either.catchNonFatal {
+    try {
       val compilationStage = module.getCompilationStage
       if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
         val result = ctx.executionService.getContext.getCompiler
           .run(module.asCompilerModule())
-        result.copy(compiledModules =
-          result.compiledModules.filter(_.getName != module.getName)
+        Right(
+          result.copy(compiledModules =
+            result.compiledModules.filter(_.getName != module.getName)
+          )
         )
       } else {
-        CompilerResult.empty
+        Right(CompilerResult.empty)
       }
+    } catch {
+      case e: Throwable =>
+        Left(e)
     }
 
   /** Apply pending edits to the file.
@@ -309,45 +318,35 @@ final class EnsureCompiledJob(
     ctx: RuntimeContext,
     logger: TruffleLogger
   ): Option[Changeset[Rope]] = {
-    val fileLockTimestamp = ctx.locking.acquireFileLock(file)
-    try {
-      val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
-      try {
-        val pendingEdits = ctx.state.pendingEdits.dequeue(file)
-        val edits        = pendingEdits.map(_.edit)
-        val shouldExecute =
-          pendingEdits.isEmpty || pendingEdits.exists(_.execute)
-        val module = ctx.executionService.getContext
-          .getModuleForFile(file)
-          .orElseThrow(() => new ModuleNotFoundForFileException(file))
-        val changesetBuilder = new ChangesetBuilder(
-          module.getLiteralSource,
-          module.getIr
+    ctx.locking.withFileLock(
+      file,
+      this.getClass,
+      () =>
+        ctx.locking.withPendingEditsLock(
+          this.getClass,
+          () => {
+            val pendingEdits = ctx.state.pendingEdits.dequeue(file)
+            val edits        = pendingEdits.map(_.edit)
+            val shouldExecute =
+              pendingEdits.isEmpty || pendingEdits.exists(_.execute)
+            val module = ctx.executionService.getContext
+              .getModuleForFile(file)
+              .orElseThrow(() => new ModuleNotFoundForFileException(file))
+            val changesetBuilder = new ChangesetBuilder(
+              module.getLiteralSource,
+              module.getIr
+            )
+            val changeset = changesetBuilder.build(pendingEdits)
+            ctx.executionService.modifyModuleSources(
+              module,
+              edits,
+              changeset.simpleUpdate.orNull,
+              logger
+            )
+            Option.when(shouldExecute)(changeset)
+          }
         )
-        val changeset = changesetBuilder.build(pendingEdits)
-        ctx.executionService.modifyModuleSources(
-          module,
-          edits,
-          changeset.simpleUpdate.orNull,
-          logger
-        )
-        Option.when(shouldExecute)(changeset)
-      } finally {
-        ctx.locking.releasePendingEditsLock()
-        logger.log(
-          Level.FINEST,
-          "Kept pending edits lock [EnsureCompiledJob] for {} milliseconds",
-          System.currentTimeMillis() - pendingEditsLockTimestamp
-        )
-      }
-    } finally {
-      ctx.locking.releaseFileLock(file)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [EnsureCompiledJob] for {} milliseconds",
-        System.currentTimeMillis() - fileLockTimestamp
-      )
-    }
+    )
   }
 
   /** Create cache invalidation commands after applying the edits.

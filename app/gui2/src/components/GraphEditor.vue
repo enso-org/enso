@@ -10,6 +10,8 @@ import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import { type Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
+import DockPanel from '@/components/DockPanel.vue'
+import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
@@ -18,99 +20,167 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
-import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import PlusButton from '@/components/PlusButton.vue'
-import ResizeHandles from '@/components/ResizeHandles.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useAstDocumentation } from '@/composables/astDocumentation'
 import { useDoubleClick } from '@/composables/doubleClick'
-import {
-  keyboardBusy,
-  keyboardBusyExceptIn,
-  useEvent,
-  useResizeObserver,
-} from '@/composables/events'
-import { useNavigatorStorage } from '@/composables/navigatorStorage'
+import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
+import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { useStackNavigator } from '@/composables/stackNavigator'
-import { provideGraphNavigator } from '@/providers/graphNavigator'
+import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
+import { provideGraphNavigator, type GraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { provideGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
-import { useProjectStore } from '@/stores/project'
-import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { provideProjectStore } from '@/stores/project'
+import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
+import { provideVisualizationStore } from '@/stores/visualization'
 import { bail } from '@/util/assert'
 import type { AstId } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { every, filterDefined } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
+import { unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { computedFallback } from '@/util/reactivity'
+import { until } from '@vueuse/core'
 import { encoding, set } from 'lib0'
 import { encodeMethodPointer } from 'shared/languageServerTypes'
-import { computed, onMounted, ref, shallowRef, toRef, watch, watchEffect } from 'vue'
+import { isDevMode } from 'shared/util/detect'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  shallowRef,
+  toRaw,
+  toRef,
+  watch,
+  type ComponentInstance,
+} from 'vue'
 
 const keyboard = provideKeyboard()
-const graphStore = useGraphStore()
+const projectStore = provideProjectStore()
+const suggestionDb = provideSuggestionDbStore(projectStore)
+const graphStore = provideGraphStore(projectStore, suggestionDb)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
+const _visualizationStore = provideVisualizationStore(projectStore)
+
 widgetRegistry.loadBuiltins()
-const projectStore = useProjectStore()
-const suggestionDb = useSuggestionDbStore()
+
+onMounted(() => {
+  if (isDevMode) {
+    ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
+  }
+})
+onUnmounted(() => {
+  projectStore.disposeYDocsProvider()
+})
 
 // === Navigator ===
 
 const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
-const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
-useNavigatorStorage(
-  graphNavigator,
-  (enc) => {
-    // Navigator viewport needs to be stored separately for:
+const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
+  predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
+})
+
+// === Client saved state ===
+
+const storedShowDocumentationEditor = ref()
+const rightDockWidth = ref<number>()
+
+/**
+ * JSON serializable representation of graph state saved in localStorage. The names of fields here
+ * are kept relatively short, because it will be common to store hundreds of them within one big
+ * JSON object, and serialize it quite often whenever the state is modified. Shorter keys end up
+ * costing less localStorage space and slightly reduce serialization overhead.
+ */
+interface GraphStoredState {
+  /** Navigator position X */
+  x: number
+  /** Navigator position Y */
+  y: number
+  /** Navigator scale */
+  s: number
+  /** Whether or not the documentation panel is open. */
+  doc: boolean
+  /** Width of the right dock. */
+  rwidth: number | null
+}
+
+const visibleAreasReady = computed(() => {
+  const nodesCount = graphStore.db.nodeIdToNode.size
+  const visibleNodeAreas = graphStore.visibleNodeAreas
+  return nodesCount > 0 && visibleNodeAreas.length == nodesCount
+})
+
+useSyncLocalStorage<GraphStoredState>({
+  storageKey: 'enso-graph-state',
+  mapKeyEncoder: (enc) => {
+    // Client graph state needs to be stored separately for:
     // - each project
     // - each function within the project
     encoding.writeVarString(enc, projectStore.name)
     const methodPtr = graphStore.currentMethodPointer()
     if (methodPtr != null) encodeMethodPointer(enc, methodPtr)
   },
-  waitInitializationAndPanToAll,
-)
-
-let stopInitialization: (() => void) | undefined
-function waitInitializationAndPanToAll() {
-  stopInitialization?.()
-  stopInitialization = watchEffect(() => {
-    const nodesCount = graphStore.db.nodeIdToNode.size
-    const visibleNodeAreas = graphStore.visibleNodeAreas
-    if (nodesCount > 0 && visibleNodeAreas.length == nodesCount) {
-      zoomToSelected(true)
-      stopInitialization?.()
-      stopInitialization = undefined
+  debounce: 200,
+  captureState() {
+    return {
+      x: graphNavigator.targetCenter.x,
+      y: graphNavigator.targetCenter.y,
+      s: graphNavigator.targetScale,
+      doc: storedShowDocumentationEditor.value,
+      rwidth: rightDockWidth.value ?? null,
     }
-  })
-}
+  },
+  async restoreState(restored, abort) {
+    if (restored) {
+      const pos = new Vec2(restored.x ?? 0, restored.y ?? 0)
+      const scale = restored.s ?? 1
+      graphNavigator.setCenterAndScale(pos, scale)
+      storedShowDocumentationEditor.value = restored.doc ?? undefined
+      rightDockWidth.value = restored.rwidth ?? undefined
+    } else {
+      await until(visibleAreasReady).toBe(true)
+      if (!abort.aborted) zoomToAll(true)
+    }
+  },
+})
 
-function selectionBounds() {
-  if (!viewportNode.value) return
-  const selected = nodeSelection.selected
-  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+function nodesBounds(nodeIds: Iterable<NodeId>) {
   let bounds = Rect.Bounding()
-  for (const id of nodesToCenter) {
+  for (const id of nodeIds) {
     const rect = graphStore.visibleArea(id)
     if (rect) bounds = Rect.Bounding(bounds, rect)
   }
   if (bounds.isFinite()) return bounds
 }
 
+function selectionBounds() {
+  const selected = nodeSelection.selected
+  const nodesToCenter = selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : selected
+  return nodesBounds(nodesToCenter)
+}
+
 function zoomToSelected(skipAnimation: boolean = false) {
   const bounds = selectionBounds()
+  if (bounds)
+    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
+}
+
+function zoomToAll(skipAnimation: boolean = false) {
+  const bounds = nodesBounds(graphStore.db.nodeIdToNode.keys())
   if (bounds)
     graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
 }
@@ -123,11 +193,11 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = useStackNavigator()
+const stackNavigator = useStackNavigator(projectStore, graphStore)
 
 // === Toasts ===
 
-const toasts = useGraphEditorToasts()
+const toasts = useGraphEditorToasts(projectStore)
 
 // === Selection ===
 
@@ -158,6 +228,7 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
 )
 
 const { createNode, createNodes, placeNode } = provideNodeCreation(
+  graphStore,
   toRef(graphNavigator, 'viewport'),
   toRef(graphNavigator, 'sceneMousePos'),
   (nodes) => {
@@ -170,6 +241,7 @@ const { createNode, createNodes, placeNode } = provideNodeCreation(
 // === Clipboard Copy/Paste ===
 
 const { copySelectionToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(
+  graphStore,
   toRef(nodeSelection, 'selected'),
   createNodes,
 )
@@ -186,8 +258,10 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusyExceptIn(documentationEditorArea.value) && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
-    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event))
+    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
+    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event))
 })
+
 useEvent(
   window,
   'pointerdown',
@@ -304,8 +378,13 @@ const codeEditorHandler = codeEditorBindings.handler({
 
 // === Documentation Editor ===
 
-const documentationEditorArea = ref<HTMLElement>()
-const showDocumentationEditor = ref(false)
+const rightDock = shallowRef<ComponentInstance<typeof DockPanel>>()
+const documentationEditorArea = computed(() => unrefElement(rightDock))
+const showDocumentationEditor = computedFallback(
+  storedShowDocumentationEditor,
+  // Show documentation editor when documentation exists on first graph visit.
+  () => !!documentation.state.value,
+)
 
 const documentationEditorHandler = documentationEditorBindings.handler({
   toggle() {
@@ -313,14 +392,9 @@ const documentationEditorHandler = documentationEditorBindings.handler({
   },
 })
 
-const rightDockComputedSize = useResizeObserver(documentationEditorArea)
-const rightDockComputedBounds = computed(() => new Rect(Vec2.Zero, rightDockComputedSize.value))
-const rightDockWidth = ref<number>()
-const cssRightDockWidth = computed(() =>
-  rightDockWidth.value != null ? `${rightDockWidth.value}px` : 'var(--right-dock-default-width)',
+const { documentation } = useAstDocumentation(graphStore, () =>
+  unwrapOr(graphStore.methodAst, undefined),
 )
-
-const { documentation } = useAstDocumentation(() => graphStore.methodAst)
 
 // === Execution Mode ===
 
@@ -518,6 +592,11 @@ async function handleFileDrop(event: DragEvent) {
   const MULTIPLE_FILES_GAP = 50
 
   if (!event.dataTransfer?.items) return
+  const projectRootId = await projectStore.projectRootId
+  if (projectRootId == null) {
+    toasts.userActionFailed.show(`Unable to upload file(s): Could not identify project root.`)
+    return
+  }
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
     if (item.kind === 'file') {
       const file = item.getAsFile()
@@ -525,10 +604,10 @@ async function handleFileDrop(event: DragEvent) {
       const clientPos = new Vec2(event.clientX, event.clientY)
       const offset = new Vec2(0, index * -MULTIPLE_FILES_GAP)
       const pos = graphNavigator.clientToScenePos(clientPos).add(offset)
-      const uploader = await Uploader.Create(
+      const uploader = Uploader.Create(
         projectStore.lsRpcConnection,
         projectStore.dataConnection,
-        projectStore.contentRoots,
+        projectRootId,
         projectStore.awareness,
         file,
         pos,
@@ -551,13 +630,13 @@ async function handleFileDrop(event: DragEvent) {
 
 // === Color Picker ===
 
-provideNodeColors((variable) =>
+provideNodeColors(graphStore, (variable) =>
   viewportNode.value ? getComputedStyle(viewportNode.value).getPropertyValue(variable) : '',
 )
 
 const showColorPicker = ref(false)
 
-function setSelectedNodesColor(color: string) {
+function setSelectedNodesColor(color: string | undefined) {
   graphStore.transact(() =>
     nodeSelection.selected.forEach((id) => graphStore.overrideNodeColor(id, color)),
   )
@@ -576,9 +655,9 @@ const groupColors = computed(() => {
   <div
     ref="viewportNode"
     class="GraphEditor viewport"
-    :class="{ draggingEdge: graphStore.unconnectedEdge != null }"
+    :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
-    v-on.="graphNavigator.events"
+    v-on.="graphNavigator.pointerEvents"
     v-on..="nodeSelection.events"
     @click="handleClick"
     @dragover.prevent
@@ -599,28 +678,17 @@ const groupColors = computed(() => {
       :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
     />
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
-    <Transition name="rightDock">
-      <div
-        v-if="showDocumentationEditor"
-        ref="documentationEditorArea"
-        class="rightDock"
-        data-testid="rightDock"
-      >
-        <div class="scrollArea">
-          <MarkdownEditor v-model="documentation" />
-        </div>
-        <SvgIcon
-          name="close"
-          class="closeButton button"
-          @click.stop="showDocumentationEditor = false"
-        />
-        <ResizeHandles
-          left
-          :modelValue="rightDockComputedBounds"
-          @update:modelValue="rightDockWidth = $event.width"
-        />
-      </div>
-    </Transition>
+    <DockPanel
+      ref="rightDock"
+      v-model:show="showDocumentationEditor"
+      v-model:size="rightDockWidth"
+      data-testid="rightDock"
+    >
+      <DocumentationEditor
+        :modelValue="documentation.state.value"
+        @update:modelValue="documentation.set"
+      />
+    </DockPanel>
     <ComponentBrowser
       v-if="componentBrowserVisible"
       ref="componentBrowser"
@@ -650,7 +718,7 @@ const groupColors = computed(() => {
       @collapseNodes="collapseNodes"
       @removeNodes="deleteSelected"
     />
-    <PlusButton @click.stop="addNodeAuto()" />
+    <PlusButton title="Add Component" @click.stop="addNodeAuto()" />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
@@ -665,50 +733,13 @@ const groupColors = computed(() => {
 </template>
 
 <style scoped>
-.rightDock {
-  position: absolute;
-  top: 46px;
-  bottom: 0;
-  width: v-bind('cssRightDockWidth');
-  right: 0;
-  border-radius: 7px 0 0;
-  background-color: rgba(255, 255, 255, 0.35);
-  backdrop-filter: var(--blur-app-bg);
-  padding: 4px 12px 0 6px;
-  /* Prevent absolutely-positioned children (such as the close button) from bypassing the show/hide animation. */
-  overflow-x: clip;
-}
-.rightDock-enter-active,
-.rightDock-leave-active {
-  transition: left 0.25s ease;
-}
-.rightDock-enter-from,
-.rightDock-leave-to {
-  width: 0;
-}
-.rightDock .scrollArea {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-}
-
-.rightDock .closeButton {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  color: red;
-  opacity: 0.3;
-
-  &:hover {
-    opacity: 0.6;
-  }
-}
-
 .GraphEditor {
   position: relative;
   contain: layout;
   overflow: clip;
   user-select: none;
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior-x: none;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
 }

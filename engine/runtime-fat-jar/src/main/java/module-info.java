@@ -3,9 +3,20 @@ open module org.enso.runtime {
   requires java.net.http;
   // Because of akka.util.Unsafe
   requires jdk.unsupported;
+  requires org.enso.syntax;
+  // org.enso.profiling and org.enso.doc are not needed for runtime. It is needed for runner.jar,
+  // but we have to include it here so that the forwarding in IsolatedClassLoader
+  // works.
+  requires org.enso.profiling;
+  requires org.enso.ydoc;
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires static org.slf4j;
+  // ydoc-server
+  requires io.helidon.webclient;
+  requires io.helidon.webclient.websocket;
+  requires io.helidon.webserver;
+  requires io.helidon.webserver.websocket;
 
   uses org.slf4j.spi.SLF4JServiceProvider;
   uses org.enso.interpreter.instrument.HandlerFactory;

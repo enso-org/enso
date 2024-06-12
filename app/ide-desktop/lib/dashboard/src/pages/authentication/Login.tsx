@@ -8,6 +8,8 @@ import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
+import * as common from 'enso-common'
+import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
@@ -16,12 +18,12 @@ import * as textProvider from '#/providers/TextProvider'
 
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 import TextLink from '#/components/TextLink'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 
@@ -29,14 +31,8 @@ import * as eventModule from '#/utilities/event'
 // === Login ===
 // =============
 
-/** Props for a {@link Login}. */
-export interface LoginProps {
-  readonly supportsLocalBackend: boolean
-}
-
 /** A form for users to log in. */
-export default function Login(props: LoginProps) {
-  const { supportsLocalBackend } = props
+export default function Login() {
   const location = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
@@ -57,22 +53,22 @@ export default function Login(props: LoginProps) {
       footer={
         <>
           <Link
-            to={appUtils.REGISTRATION_PATH}
+            openInBrowser={detect.isOnElectron()}
+            to={
+              detect.isOnElectron()
+                ? 'https://' + common.CLOUD_DASHBOARD_DOMAIN + appUtils.REGISTRATION_PATH
+                : appUtils.REGISTRATION_PATH
+            }
             icon={CreateAccountIcon}
             text={getText('dontHaveAnAccount')}
           />
-          {supportsLocalBackend && (
-            <Link
-              to={appUtils.ENTER_OFFLINE_MODE_PATH}
-              icon={ArrowRightIcon}
-              text={getText('continueWithoutCreatingAnAccount')}
-            />
-          )}
         </>
       }
     >
       <div className="flex flex-col gap-auth">
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           onPress={() => {
             shouldReportValidityRef.current = false
             void signInWithGoogle()
@@ -81,8 +77,10 @@ export default function Login(props: LoginProps) {
         >
           <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
           {getText('signUpOrLoginWithGoogle')}
-        </UnstyledButton>
-        <UnstyledButton
+        </ariaComponents.Button>
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           onPress={() => {
             shouldReportValidityRef.current = false
             void signInWithGitHub()
@@ -91,7 +89,7 @@ export default function Login(props: LoginProps) {
         >
           <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
           {getText('signUpOrLoginWithGitHub')}
-        </UnstyledButton>
+        </ariaComponents.Button>
       </div>
       <div />
       <form

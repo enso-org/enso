@@ -83,7 +83,7 @@ export function locateSecretValueInput(page: test.Page) {
 /** Find a search bar input (if any) on the current page. */
 export function locateSearchBarInput(page: test.Page) {
   return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, Data Links, users, and more.'
+    'Type to search for projects, Datalinks, users, and more.'
   )
 }
 
@@ -167,9 +167,14 @@ export function locateLabelsPanelLabels(page: test.Page) {
   )
 }
 
-/** Find a "home" button (if any) on the current page. */
-export function locateHomeButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Home' }).getByText('Home')
+/** Find a "cloud" category button (if any) on the current page. */
+export function locateCloudButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Cloud' }).getByText('Cloud')
+}
+
+/** Find a "local" category button (if any) on the current page. */
+export function locateLocalButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Local' }).getByText('Local')
 }
 
 /** Find a "trash" button (if any) on the current page. */
@@ -331,9 +336,16 @@ export function locateUploadFilesButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Upload Files' }).getByText('Upload Files')
 }
 
+/** Find a "start modal" button (if any) on the current page. */
+export function locateStartModalButton(page: test.Locator | test.Page) {
+  return page
+    .getByRole('button', { name: 'Start with a template' })
+    .getByText('Start with a template')
+}
+
 /** Find a "new project" button (if any) on the current page. */
 export function locateNewProjectButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Project' }).getByText('New Project')
+  return page.getByRole('button', { name: 'New Empty Project' }).getByText('New Empty Project')
 }
 
 /** Find a "new folder" button (if any) on the current page. */
@@ -425,11 +437,6 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 // === Page locators ===
 
-/** Find a "home page" icon (if any) on the current page. */
-export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Home') })
-}
-
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
   return page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
@@ -485,10 +492,8 @@ export function locateModalBackground(page: test.Locator | test.Page) {
 
 /** Find an editor container (if any) on the current page. */
 export function locateEditor(page: test.Page) {
-  // This is fine as this element is defined in `index.html`, rather than from React.
-  // Using `data-testid` may be more correct though.
-  // eslint-disable-next-line no-restricted-properties
-  return page.locator('#app')
+  // Test ID of a placeholder editor component used during testing.
+  return page.getByTestId('gui-editor-root')
 }
 
 /** Find an assets table (if any) on the current page. */
@@ -752,6 +757,7 @@ export async function login(
   await locatePasswordInput(page).fill(password)
   await locateLoginButton(page).click()
   await locateToastCloseButton(page).click()
+  await passTermsAndConditionsDialog({ page })
 }
 
 // ================
@@ -787,21 +793,21 @@ async function mockDate({ page }: MockParams) {
     }`)
 }
 
-// ========================
-// === mockIDEContainer ===
-// ========================
-
-/** Make the IDE container have a non-zero size. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
-export async function mockIDEContainer({ page }: MockParams) {
-  await page.evaluate(() => {
-    const ideContainer = document.getElementById('app')
-    if (ideContainer) {
-      ideContainer.style.height = '100vh'
-      ideContainer.style.width = '100vw'
-    }
-  })
+/**
+ * Passes Terms and conditions dialog
+ */
+export async function passTermsAndConditionsDialog({ page }: MockParams) {
+  // wait for terms and conditions dialog to appear
+  // but don't fail if it doesn't appear
+  try {
+    // wait for terms and conditions dialog to appear
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
+    await page.getByRole('checkbox').click()
+    await page.getByRole('button', { name: 'Accept' }).click()
+  } catch (error) {
+    // do nothing
+  }
 }
 
 // ===============
@@ -822,7 +828,6 @@ export const mockApi = apiModule.mockApi
 export async function mockAll({ page }: MockParams) {
   const api = await mockApi({ page })
   await mockDate({ page })
-  await mockIDEContainer({ page })
   return { api }
 }
 
@@ -836,8 +841,6 @@ export async function mockAll({ page }: MockParams) {
 export async function mockAllAndLogin({ page }: MockParams) {
   const mocks = await mockAll({ page })
   await login({ page })
-  // This MUST run after login, otherwise the element's styles are reset when the browser
-  // is navigated to another page.
-  await mockIDEContainer({ page })
+  await passTermsAndConditionsDialog({ page })
   return mocks
 }

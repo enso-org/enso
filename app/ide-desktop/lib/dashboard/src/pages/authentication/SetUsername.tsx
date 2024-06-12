@@ -24,7 +24,7 @@ import * as eventModule from '#/utilities/event'
 export default function SetUsername() {
   const { setUsername: authSetUsername } = authProvider.useAuth()
   const { email } = authProvider.usePartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const { getText } = textProvider.useText()
 
   const [username, setUsername] = React.useState('')

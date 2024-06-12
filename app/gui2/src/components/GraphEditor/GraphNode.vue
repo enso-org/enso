@@ -7,15 +7,16 @@ import GraphNodeMessage, {
   iconForMessageType,
   type MessageType,
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
 import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import NodeWidgetTree, {
-  GRAB_HANDLE_X_MARGIN,
+  GRAB_HANDLE_X_MARGIN_L,
+  GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
@@ -31,10 +32,8 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
-import { setIfUndefined } from 'lib0/map'
 import type { ExternalId, VisualizationIdentifier } from 'shared/yjsModel'
-import type { EffectScope } from 'vue'
-import { computed, effectScope, onScopeDispose, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -43,6 +42,11 @@ const CONTENT_PADDING_RIGHT = 8
 const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
 const CONTENT_PADDING_RIGHT_PX = `${CONTENT_PADDING_RIGHT}px`
 const MENU_CLOSE_TIMEOUT_MS = 300
+
+const contentNodeStyle = {
+  padding: CONTENT_PADDING_PX,
+  paddingRight: CONTENT_PADDING_RIGHT_PX,
+}
 
 const props = defineProps<{
   node: Node
@@ -59,9 +63,10 @@ const emit = defineEmits<{
   outputPortDoubleClick: [event: PointerEvent, portId: AstId]
   doubleClick: []
   createNodes: [options: NodeCreationOptions[]]
-  setNodeColor: [color: string]
+  setNodeColor: [color: string | undefined]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
+  'update:hoverAnim': [progress: number]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationVisible': [visible: boolean]
@@ -74,12 +79,6 @@ const nodeSelection = injectGraphSelection(true)
 const projectStore = useProjectStore()
 const graph = useGraphStore()
 const navigator = injectGraphNavigator(true)
-
-const outputPortsSet = computed(() => {
-  const bindings = graph.db.nodeOutputPorts.lookup(nodeId.value)
-  if (bindings.size === 0) return new Set([nodeId.value])
-  return bindings
-})
 
 const nodeId = computed(() => asNodeId(props.node.rootExpr.id))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
@@ -195,7 +194,8 @@ watchEffect(() => {
   }
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
-    pos.sub(props.node.position).x < CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN * 2
+    pos.sub(props.node.position).x <
+      CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
   const hovered =
     menuHovered.value ||
     inZone(nodeHoverPos.value) ||
@@ -225,18 +225,13 @@ const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
 const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
-watchEffect(() => {
-  const size = nodeSize.value
-  if (!size.isZero()) {
-    emit('update:rect', new Rect(props.node.position, nodeSize.value))
-  }
-})
-
 const bgStyleVariables = computed(() => {
   const { x: width, y: height } = nodeSize.value
+  const visBelowNode = graphSelectionSize.value.y - nodeSize.value.y
   return {
     '--node-width': `${width}px`,
     '--node-height': `${height}px`,
+    '--output-port-transform': `translateY(${visBelowNode}px)`,
   }
 })
 
@@ -246,13 +241,13 @@ const transform = computed(() => {
 })
 
 const startEpochMs = ref(0)
-let significantMove = false
+const significantMove = ref(false)
 
 const dragPointer = usePointer(
   (pos, event, type) => {
     if (type !== 'start') {
       if (
-        !significantMove &&
+        !significantMove.value &&
         (Number(new Date()) - startEpochMs.value >= MAXIMUM_CLICK_LENGTH_MS ||
           pos.relative.lengthSquared() >= MAXIMUM_CLICK_DISTANCE_SQ)
       ) {
@@ -260,7 +255,7 @@ const dragPointer = usePointer(
         // prevent `click` on widgets.
         if (event.currentTarget instanceof Element)
           event.currentTarget.setPointerCapture?.(event.pointerId)
-        significantMove = true
+        significantMove.value = true
       }
       const fullOffset = pos.relative
       emit('dragging', fullOffset)
@@ -268,7 +263,7 @@ const dragPointer = usePointer(
     switch (type) {
       case 'start':
         startEpochMs.value = Number(new Date())
-        significantMove = false
+        significantMove.value = false
         break
       case 'stop': {
         startEpochMs.value = 0
@@ -280,6 +275,7 @@ const dragPointer = usePointer(
   // is not going to be a node drag.
   { pointerCapturedBy: 'target' },
 )
+const isDragged = computed(() => dragPointer.dragging && significantMove.value)
 
 const isRecordingOverridden = computed({
   get() {
@@ -364,104 +360,56 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
   return domOffset
 }
 
-const handlePortClick = useDoubleClick(
-  (event: PointerEvent, portId: AstId) => emit('outputPortClick', event, portId),
-  (event: PointerEvent, portId: AstId) => emit('outputPortDoubleClick', event, portId),
-).handleClick
-
 const handleNodeClick = useDoubleClick(
   (e: MouseEvent) => {
-    if (!significantMove) {
+    if (!significantMove.value) {
       nodeSelection?.handleSelectionOf(e, new Set([nodeId.value]))
       nodeEditHandler(e)
     }
   },
   () => {
-    if (!significantMove) emit('doubleClick')
+    if (!significantMove.value) emit('doubleClick')
   },
 ).handleClick
 
-interface PortData {
-  clipRange: [number, number]
-  label: string | undefined
-  portId: AstId
-}
-
-const outputPorts = computed((): PortData[] => {
-  const ports = outputPortsSet.value
-  const numPorts = ports.size
-  return Array.from(ports, (portId, index): PortData => {
-    return {
-      clipRange: [index / numPorts, (index + 1) / numPorts],
-      label: numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) : undefined,
-      portId,
-    }
-  })
-})
-
-const outputHovered = ref<AstId>()
-const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
-watchEffect(() => {
-  const ports = outputPortsSet.value
-  for (const key of hoverAnimations.keys())
-    if (!ports.has(key)) {
-      hoverAnimations.get(key)?.[1].stop()
-      hoverAnimations.delete(key)
-    }
-  for (const port of outputPortsSet.value) {
-    setIfUndefined(hoverAnimations, port, () => {
-      // Because `useApproach` uses `onScopeDispose` and we are calling it dynamically (i.e. not at
-      // the setup top-level), we need to create a detached scope for each invocation.
-      const scope = effectScope(true)
-      const approach = scope.run(() =>
-        useApproach(
-          () =>
-            (
-              outputHovered.value === port ||
-              graph.unconnectedEdge?.target === port ||
-              selectionVisible.value
-            ) ?
-              1
-            : 0,
-          50,
-          0.01,
-        ),
-      )!
-      return [approach, scope]
-    })
-  }
-})
-
-// Clean up dynamically created detached scopes.
-onScopeDispose(() => hoverAnimations.forEach(([_, scope]) => scope.stop()))
-
-function portGroupStyle(port: PortData) {
-  const [start, end] = port.clipRange
-  return {
-    '--hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
-    '--port-clip-start': start,
-    '--port-clip-end': end,
-  }
+const visRect = shallowRef<Rect>()
+function updateVisualizationRect(rect: Rect | undefined) {
+  visRect.value = rect
+  emit('update:visualizationRect', rect)
 }
 
 const editingComment = ref(false)
 
 const { getNodeColor, getNodeColors } = injectNodeColors()
 const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
+
+const graphSelectionSize = computed(() =>
+  isVisualizationVisible.value && visRect.value ? visRect.value.size : nodeSize.value,
+)
+
+const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
+const nodeOuterRect = computed(() =>
+  isVisualizationVisible.value && visRect.value ? visRect.value : nodeRect.value,
+)
+watchEffect(() => {
+  if (!nodeOuterRect.value.size.isZero()) {
+    emit('update:rect', nodeOuterRect.value)
+  }
+})
 </script>
 
 <template>
   <div
+    v-show="!edited"
     ref="rootNode"
     class="GraphNode"
     :style="{
       transform,
-      minWidth: isVisualizationVisible ? `${visualizationWidth}px` : undefined,
+      minWidth: isVisualizationVisible ? `${visualizationWidth ?? 200}px` : undefined,
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
     }"
     :class="{
-      edited: props.edited,
       selected,
       selectionVisible,
       visualizationVisible: isVisualizationVisible,
@@ -474,12 +422,14 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
   >
     <Teleport :to="graphNodeSelections">
       <GraphNodeSelection
-        v-if="navigator"
+        v-if="navigator && !edited"
         :nodePosition="props.node.position"
-        :nodeSize="nodeSize"
+        :nodeSize="graphSelectionSize"
+        :class="{ draggable: true, dragged: isDragged }"
         :selected
         :nodeId
         :color
+        :externalHovered="nodeHovered"
         @visible="selectionVisible = $event"
         @pointerenter="updateSelectionHover"
         @pointermove="updateSelectionHover"
@@ -491,7 +441,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
     <div class="binding" v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
-      class="overrideRecordButton"
+      class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
       @click="isRecordingOverridden = false"
     >
@@ -529,7 +479,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
       :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
-      @update:rect="emit('update:visualizationRect', $event)"
+      @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
@@ -539,7 +489,13 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
       @createNodes="emit('createNodes', $event)"
     />
     <GraphNodeComment v-model:editing="editingComment" :node="node" class="beforeNode" />
-    <div ref="contentNode" class="content" v-on="dragPointer.events" @click="handleNodeClick">
+    <div
+      ref="contentNode"
+      :class="{ content: true, dragged: isDragged }"
+      :style="contentNodeStyle"
+      v-on="dragPointer.events"
+      @click="handleNodeClick"
+    >
       <NodeWidgetTree
         :ast="props.node.innerExpr"
         :nodeId="nodeId"
@@ -569,20 +525,13 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
     />
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
-      <template v-for="port of outputPorts" :key="port.portId">
-        <g :style="portGroupStyle(port)">
-          <g class="portClip">
-            <rect
-              class="outputPortHoverArea"
-              @pointerenter="outputHovered = port.portId"
-              @pointerleave="outputHovered = undefined"
-              @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
-            />
-            <rect class="outputPort" />
-          </g>
-          <text class="outputPortLabel">{{ port.label }}</text>
-        </g>
-      </template>
+      <GraphNodeOutputPorts
+        :nodeId="nodeId"
+        :forceVisible="selectionVisible"
+        @portClick="(...args) => emit('outputPortClick', ...args)"
+        @portDoubleClick="(...args) => emit('outputPortDoubleClick', ...args)"
+        @update:hoverAnim="emit('update:hoverAnim', $event)"
+      />
     </svg>
   </div>
 </template>
@@ -598,69 +547,9 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
   display: flex;
 
   --output-port-max-width: 4px;
+  --output-port-hovered-extra-width: 2px;
   --output-port-overlap: -8px;
   --output-port-hover-width: 20px;
-}
-
-.outputPort,
-.outputPortHoverArea {
-  x: calc(0px - var(--output-port-width) / 2);
-  width: calc(var(--node-width) + var(--output-port-width));
-  rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
-
-  fill: none;
-  stroke: var(--node-color-port);
-  stroke-width: calc(var(--output-port-width) + var(--output-port-overlap));
-  transition: stroke 0.2s ease;
-  --horizontal-line: calc(var(--node-width) - var(--node-border-radius) * 2);
-  --vertical-line: calc(var(--node-height) - var(--node-border-radius) * 2);
-  --radius-arclength: calc(
-    (var(--node-border-radius) + var(--output-port-width) * 0.5) * 2 * 3.141592653589793
-  );
-
-  stroke-dasharray: calc(var(--horizontal-line) + var(--radius-arclength) * 0.5) 10000%;
-  stroke-dashoffset: calc(
-    0px - var(--horizontal-line) - var(--vertical-line) - var(--radius-arclength) * 0.25
-  );
-  stroke-linecap: round;
-}
-
-.outputPort {
-  --output-port-width: calc(
-    var(--output-port-max-width) * var(--hover-animation) - var(--output-port-overlap)
-  );
-  y: calc(0px - var(--output-port-width) / 2);
-  height: calc(var(--node-height) + var(--output-port-width));
-  pointer-events: none;
-}
-
-.outputPortHoverArea {
-  --output-port-width: var(--output-port-hover-width);
-  y: calc(
-    0px + var(--output-port-hover-width) / 2 + var(--output-port-overlap) / 2 + var(--node-height) /
-      2
-  );
-  height: calc(var(--node-height) / 2 + var(--output-port-hover-width) / 2);
-  stroke: transparent;
-  pointer-events: all;
-  cursor: pointer;
-}
-
-.portClip {
-  clip-path: inset(
-    0 calc((1 - var(--port-clip-end)) * (100% + 1px) - 0.5px) 0
-      calc(var(--port-clip-start) * (100% + 1px) + 0.5px)
-  );
-}
-
-.outputPortLabel {
-  user-select: none;
-  pointer-events: none;
-  z-index: 10;
-  text-anchor: middle;
-  opacity: calc(var(--hover-animation) * var(--hover-animation));
-  fill: var(--node-color-primary);
-  transform: translate(50%, calc(var(--node-height) + var(--output-port-max-width) + 16px));
 }
 
 .bgFill {
@@ -697,10 +586,6 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
   }
 }
 
-.GraphNode.edited {
-  display: none;
-}
-
 .content {
   font-family: var(--font-code);
   position: relative;
@@ -713,9 +598,7 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  padding: v-bind('CONTENT_PADDING_PX');
-  padding-right: v-bind('CONTENT_PADDING_RIGHT_PX');
-  z-index: 2;
+  z-index: 24;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
@@ -737,12 +620,6 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
 
 .selectionVisible .binding {
   opacity: 1;
-}
-
-.container {
-  position: relative;
-  display: flex;
-  gap: 4px;
 }
 
 .CircularMenu {
@@ -790,7 +667,6 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
 
 .overrideRecordButton {
   position: absolute;
-  cursor: pointer;
   display: flex;
   align-items: center;
   backdrop-filter: var(--blur-app-bg);
@@ -801,5 +677,9 @@ const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
   height: 100%;
   right: 100%;
   margin-right: 4px;
+}
+
+.dragged {
+  cursor: grabbing !important;
 }
 </style>

@@ -223,8 +223,8 @@ class App {
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
-                await this.startBackendIfEnabled()
                 await this.startContentServerIfEnabled()
+                await this.startBackendIfEnabled()
                 await this.createWindowIfEnabled(windowSize)
                 this.initIpc()
                 await this.loadWindowContent()
@@ -236,8 +236,10 @@ class App {
                 authentication.initModule(() => this.window!)
             })
         } catch (err) {
-            console.error('Failed to initialize the application, shutting down. Error:', err)
+            logger.error('Failed to initialize the application, shutting down. Error: ', err)
             electron.app.quit()
+        } finally {
+            logger.groupEnd()
         }
     }
 
@@ -283,18 +285,24 @@ class App {
     /** Start the content server, which will serve the application content (HTML) to the window. */
     async startContentServerIfEnabled() {
         await this.runIfEnabled(this.args.options.server, async () => {
-            await logger.asyncGroupMeasured('Starting the content server.', async () => {
-                const serverCfg = new server.Config({
-                    dir: paths.ASSETS_PATH,
-                    port: this.args.groups.server.options.port.value,
-                    externalFunctions: {
-                        uploadProjectBundle: projectManagement.uploadBundle,
-                        runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
-                            projectManager.runCommand(this.args, cliArguments, body),
-                    },
+            await logger
+                .asyncGroupMeasured('Starting the content server.', async () => {
+                    const serverCfg = new server.Config({
+                        dir: paths.ASSETS_PATH,
+                        port: this.args.groups.server.options.port.value,
+                        externalFunctions: {
+                            uploadProjectBundle: projectManagement.uploadBundle,
+                            runProjectManagerCommand: (
+                                cliArguments,
+                                body?: NodeJS.ReadableStream
+                            ) => projectManager.runCommand(this.args, cliArguments, body),
+                        },
+                    })
+                    this.server = await server.Server.create(serverCfg)
                 })
-                this.server = await server.Server.create(serverCfg)
-            })
+                .finally(() => {
+                    logger.groupEnd()
+                })
         })
     }
 
@@ -439,24 +447,42 @@ class App {
         )
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
-            async (_event, kind: 'default' | 'directory' | 'file') => {
-                logger.log('Request for opening browser for ', kind)
-                /** Helper for `showOpenDialog`, which has weird types by default. */
-                type Properties = ('openDirectory' | 'openFile')[]
-                const properties: Properties =
-                    kind === 'file'
-                        ? ['openFile']
-                        : kind === 'directory'
-                          ? ['openDirectory']
-                          : process.platform === 'darwin'
-                            ? ['openFile', 'openDirectory']
-                            : ['openFile']
-                const { canceled, filePaths } = await electron.dialog.showOpenDialog({ properties })
-                if (!canceled) {
-                    return filePaths
+            async (
+                _event,
+                kind: 'default' | 'directory' | 'file' | 'filePath',
+                defaultPath?: string
+            ) => {
+                logger.log('Request for opening browser for ', kind, defaultPath)
+                let retval = null
+                if (kind === 'filePath') {
+                    // "Accept", as the file won't be created immediately.
+                    const { canceled, filePath } = await electron.dialog.showSaveDialog({
+                        buttonLabel: 'Accept',
+                        ...(defaultPath != null ? { defaultPath } : {}),
+                    })
+                    if (!canceled) {
+                        retval = [filePath]
+                    }
                 } else {
-                    return null
+                    /** Helper for `showOpenDialog`, which has weird types by default. */
+                    type Properties = ('openDirectory' | 'openFile')[]
+                    const properties: Properties =
+                        kind === 'file'
+                            ? ['openFile']
+                            : kind === 'directory'
+                              ? ['openDirectory']
+                              : process.platform === 'darwin'
+                                ? ['openFile', 'openDirectory']
+                                : ['openFile']
+                    const { canceled, filePaths } = await electron.dialog.showOpenDialog({
+                        properties,
+                        ...(defaultPath != null ? { defaultPath } : {}),
+                    })
+                    if (!canceled) {
+                        retval = filePaths
+                    }
                 }
+                return retval
             }
         )
 

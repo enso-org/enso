@@ -131,7 +131,7 @@ case object LambdaConsolidate extends IRPass {
     * @return the optimised version of `function`, with any directly chained
     *         lambdas collapsed
     */
-  def collapseFunction(
+  private def collapseFunction(
     function: Function,
     inlineContext: InlineContext,
     freshNameSupply: FreshNameSupply
@@ -209,7 +209,7 @@ case object LambdaConsolidate extends IRPass {
     * @return the list of arguments, some with attached warnings, along with
     *         whether or not they are shadowed
     */
-  def attachShadowingWarnings(
+  private def attachShadowingWarnings(
     argsWithShadowed: List[(DefinitionArgument, Boolean)]
   ): List[(DefinitionArgument, Boolean)] = {
     val args = argsWithShadowed.map(_._1)

@@ -61,8 +61,12 @@ defineExpose({
     v-model="innerModel"
     class="AutoSizedInput"
     :style="inputStyle"
+    @pointerdown.stop
+    @click.stop
     @keydown.backspace.stop
     @keydown.delete.stop
+    @keydown.arrow-left.stop
+    @keydown.arrow-right.stop
     @keydown.enter.stop="onEnterDown"
     @input="emit('input', innerModel)"
     @change="onChange"
@@ -82,7 +86,6 @@ defineExpose({
   height: 24px;
   appearance: textfield;
   -moz-appearance: textfield;
-  cursor: default;
   user-select: all;
   box-sizing: content-box;
   &:focus {

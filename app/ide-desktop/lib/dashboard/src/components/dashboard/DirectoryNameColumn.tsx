@@ -1,14 +1,16 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -40,10 +42,9 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState, isEditable } = props
-  const { selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
+  const { backend, selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   if (item.type !== backendModule.AssetType.directory) {
@@ -52,6 +53,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   }
   const asset = item.item
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+
+  const createDirectoryMutation = backendHooks.useBackendMutation(backend, 'createDirectory')
+  const updateDirectoryMutation = backendHooks.useBackendMutation(backend, 'updateDirectory')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -68,7 +72,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         const oldTitle = asset.title
         setAsset(object.merger({ title: newTitle }))
         try {
-          await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
+          await updateDirectoryMutation.mutateAsync([asset.id, { title: newTitle }, asset.title])
         } catch (error) {
           toastAndLog('renameFolderError', error)
           setAsset(object.merger({ title: oldTitle }))
@@ -83,7 +87,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       switch (event.type) {
         case AssetEventType.newProject:
         case AssetEventType.uploadFiles:
-        case AssetEventType.newDataLink:
+        case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
         case AssetEventType.openProject:
         case AssetEventType.updateFiles:
@@ -112,10 +116,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           if (item.key === event.placeholderId) {
             rowState.setVisibility(Visibility.faded)
             try {
-              const createdDirectory = await backend.createDirectory({
-                parentId: asset.parentId,
-                title: asset.title,
-              })
+              const createdDirectory = await createDirectoryMutation.mutateAsync([
+                {
+                  parentId: asset.parentId,
+                  title: asset.title,
+                },
+              ])
               rowState.setVisibility(Visibility.visible)
               setAsset(object.merge(asset, createdDirectory))
             } catch (error) {
@@ -138,9 +144,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   return (
     <div
-      className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
-        item.depth
-      )}`}
+      className={tailwindMerge.twMerge(
+        'group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        indent.indentClass(item.depth)
+      )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
@@ -159,23 +166,28 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <Button
-        image={FolderArrowIcon}
-        alt={item.children == null ? getText('expand') : getText('collapse')}
-        className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
-          item.children != null ? 'rotate-90' : ''
-        }`}
-        onPress={() => {
-          doToggleDirectoryExpansion(asset.id, item.key, asset.title)
-        }}
-      />
+      <div className="m-name-column-icon hidden group-hover:inline-block">
+        <Button
+          image={FolderArrowIcon}
+          alt={item.children == null ? getText('expand') : getText('collapse')}
+          tooltipPlacement="left"
+          className={tailwindMerge.twMerge(
+            'size-icon cursor-pointer transition-transform duration-arrow',
+            item.children != null && 'rotate-90'
+          )}
+          onPress={() => {
+            doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+          }}
+        />
+      </div>
       <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`text grow cursor-pointer bg-transparent ${
+        className={tailwindMerge.twMerge(
+          'text grow cursor-pointer bg-transparent',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
-        }`}
+        )}
         checkSubmittable={newTitle =>
           newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

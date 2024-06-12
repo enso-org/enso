@@ -187,6 +187,20 @@ export class Rect {
   reflectXY() {
     return new Rect(this.pos.reflectXY(), this.size.reflectXY())
   }
+
+  toDomRect(): DOMRect {
+    return DOMRect.fromRect({
+      x: this.pos.x,
+      y: this.pos.y,
+      width: this.size.x,
+      height: this.size.y,
+    })
+  }
+
+  expand(padding: number): Rect {
+    const padVector = new Vec2(padding, padding)
+    return new Rect(this.pos.sub(padVector), this.size.add(padVector).add(padVector))
+  }
 }
 
 Rect.Zero = new Rect(Vec2.Zero, Vec2.Zero)

@@ -1,8 +1,8 @@
-import type { NodeCreation } from '@/composables/nodeCreation'
-import type { Node, NodeId } from '@/stores/graph'
-import { useGraphStore } from '@/stores/graph'
+import type { NodeCreationOptions } from '@/composables/nodeCreation'
+import type { GraphStore, Node, NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
 import type { NodeMetadataFields } from 'shared/ast'
 import { computed, toValue } from 'vue'
@@ -20,6 +20,7 @@ interface ClipboardData {
 /** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
 interface CopiedNode {
   expression: string
+  binding?: string
   documentation?: string | undefined
   metadata?: NodeMetadataFields
 }
@@ -29,6 +30,7 @@ function nodeStructuredData(node: Node): CopiedNode {
     expression: node.innerExpr.code(),
     documentation: node.documentation,
     metadata: node.rootExpr.serializeMetadata(),
+    ...(node.pattern ? { binding: node.pattern.code() } : {}),
   }
 }
 
@@ -119,15 +121,15 @@ function getClipboard() {
 }
 
 export function useGraphEditorClipboard(
+  graphStore: GraphStore,
   selected: ToValue<Set<NodeId>>,
-  createNodes: NodeCreation['createNodes'],
+  createNodes: (nodesOptions: Iterable<NodeCreationOptions>) => void,
 ) {
-  const graphStore = useGraphStore()
-
   /** Copy the content of the selected node to the clipboard. */
   function copySelectionToClipboard() {
     const nodes = new Array<Node>()
-    for (const id of toValue(selected)) {
+    const ids = graphStore.pickInCodeOrder(toValue(selected))
+    for (const id of ids) {
       const node = graphStore.db.nodeIdToNode.get(id)
       if (!node) continue
       nodes.push(node)
@@ -146,13 +148,20 @@ export function useGraphEditorClipboard(
       console.warn('No valid node in clipboard.')
       return
     }
+    const firstNodePos = clipboardData[0]!.metadata?.position ?? { x: 0, y: 0 }
+    const originPos = new Vec2(firstNodePos.x, firstNodePos.y)
     createNodes(
-      clipboardData.map(({ expression, documentation, metadata }) => ({
-        placement: { type: 'mouse' },
-        expression,
-        metadata,
-        documentation,
-      })),
+      clipboardData.map(({ expression, binding, documentation, metadata }) => {
+        const pos = metadata?.position
+        const relativePos = pos ? new Vec2(pos.x, pos.y).sub(originPos) : new Vec2(0, 0)
+        return {
+          placement: { type: 'mouseRelative', posOffset: relativePos },
+          expression,
+          binding,
+          metadata,
+          documentation,
+        }
+      }),
     )
   }
 

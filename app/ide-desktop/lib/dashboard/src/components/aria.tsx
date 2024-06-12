@@ -5,6 +5,9 @@ export type * from '@react-types/shared'
 export * from 'react-aria'
 // @ts-expect-error The conflicting exports are props types ONLY.
 export * from 'react-aria-components'
+// @ts-expect-error The conflicting exports are props types ONLY.
+export * from '@react-stately/overlays'
+export * from '@react-stately/tooltip'
 
 /** Merges multiple props objects together.
  * Event handlers are chained, classNames are combined, and ids are deduplicated -

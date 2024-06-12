@@ -1,6 +1,6 @@
 package org.enso.polyglot
 
-import com.fasterxml.jackson.annotation.{JsonIgnore, JsonSubTypes, JsonTypeInfo}
+import com.github.plokhotnyuk.jsoniter_scala.macros.named
 import org.enso.logger.masking.ToLogString
 
 import java.util.UUID
@@ -8,44 +8,6 @@ import java.util.UUID
 import scala.collection.immutable.ListSet
 
 /** A search suggestion. */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes(
-  Array(
-    new JsonSubTypes.Type(
-      value = classOf[Suggestion.Module],
-      name  = "suggestionModule"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[Suggestion.Type],
-      name  = "suggestionType"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[Suggestion.Constructor],
-      name  = "suggestionConstructor"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[Suggestion.Getter],
-      name  = "suggestionGetter"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[Suggestion.DefinedMethod],
-      name  = "suggestionDefinedMethod"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[Suggestion.Conversion],
-      name  = "suggestionConversion"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[Suggestion.Function],
-      name  = "suggestionFunction"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[Suggestion.Local],
-      name  = "suggestionLocal"
-    )
-  )
-)
-@SerialVersionUID(9650L)
 sealed trait Suggestion extends ToLogString {
 
   def externalId:    Option[Suggestion.ExternalID]
@@ -244,6 +206,7 @@ object Suggestion {
     * @param documentation the documentation string
     * @param reexports modules re-exporting this module
     */
+  @named("suggestionModule")
   case class Module(
     module: String,
     documentation: Option[String],
@@ -296,6 +259,7 @@ object Suggestion {
     * @param documentation the documentation string
     * @param reexports modules re-exporting this atom
     */
+  @named("suggestionType")
   case class Type(
     externalId: Option[ExternalID],
     module: String,
@@ -356,6 +320,7 @@ object Suggestion {
     * @param annotations the list of annotations
     * @param reexports modules re-exporting this atom
     */
+  @named("suggestionConstructor")
   case class Constructor(
     externalId: Option[ExternalID],
     module: String,
@@ -405,23 +370,6 @@ object Suggestion {
   }
 
   /** Base trait for method suggestions. */
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-  @JsonSubTypes(
-    Array(
-      new JsonSubTypes.Type(
-        value = classOf[Suggestion.Getter],
-        name  = "suggestionMethodGetter"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Suggestion.DefinedMethod],
-        name  = "suggestionMethodDefinedMethod"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Suggestion.Conversion],
-        name  = "suggestionMethodConversion"
-      )
-    )
-  )
   sealed trait Method extends Suggestion {
     def arguments:   Seq[Argument]
     def selfType:    String
@@ -442,6 +390,7 @@ object Suggestion {
     * @param annotations the list of annotations
     * @param reexports modules re-exporting this method
     */
+  @named("suggestionMethodGetter")
   case class Getter(
     externalId: Option[ExternalID],
     module: String,
@@ -456,7 +405,6 @@ object Suggestion {
       with ToLogString {
 
     /** @inheritdoc */
-    @JsonIgnore
     override def isStatic: Boolean = false
 
     override def withReexports(reexports: Set[String]): Suggestion =
@@ -508,6 +456,7 @@ object Suggestion {
     * @param annotations the list of annotations
     * @param reexports modules re-exporting this method
     */
+  @named("suggestionMethodDefinedMethod")
   case class DefinedMethod(
     externalId: Option[ExternalID],
     module: String,
@@ -569,6 +518,7 @@ object Suggestion {
     * @param documentation the documentation string
     * @param reexports modules re-exporting this conversion
     */
+  @named("suggestionMethodConversion")
   case class Conversion(
     externalId: Option[ExternalID],
     module: String,
@@ -580,15 +530,12 @@ object Suggestion {
   ) extends Method {
 
     /** @inheritdoc */
-    @JsonIgnore
     override def isStatic: Boolean = false
 
     /** @inheritdoc */
-    @JsonIgnore
     override def annotations: Seq[String] = Seq()
 
     /** @inheritdoc */
-    @JsonIgnore
     override def name: String =
       Kind.Conversion.From
 
@@ -637,6 +584,7 @@ object Suggestion {
     * @param scope the scope where the function is defined
     * @param documentation the documentation string
     */
+  @named("suggestionFunction")
   case class Function(
     externalId: Option[ExternalID],
     module: String,
@@ -694,6 +642,7 @@ object Suggestion {
     * @param scope the scope where the value is defined
     * @param documentation the documentation string
     */
+  @named("suggestionLocal")
   case class Local(
     externalId: Option[ExternalID],
     module: String,

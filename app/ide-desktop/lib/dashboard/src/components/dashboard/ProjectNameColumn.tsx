@@ -1,14 +1,16 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import NetworkIcon from 'enso-assets/network.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -44,10 +46,9 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state, isEditable } = props
-  const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
+  const { backend, selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { nodeMap, setProjectStartupInfo, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -73,10 +74,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     (backend.type === backendModule.BackendType.local ||
       (ownPermission != null &&
         permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
+  const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
-    projectState.openedBy != null &&
-    projectState.openedBy !== user?.email
+    isCloud && projectState.openedBy != null && projectState.openedBy !== user?.email
+
+  const createProjectMutation = backendHooks.useBackendMutation(backend, 'createProject')
+  const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')
+  const duplicateProjectMutation = backendHooks.useBackendMutation(backend, 'duplicateProject')
+  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
+  const uploadFileMutation = backendHooks.useBackendMutation(backend, 'uploadFile')
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
@@ -93,11 +99,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await backend.updateProject(
+        await updateProjectMutation.mutateAsync([
           asset.id,
           { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
-          asset.title
-        )
+          asset.title,
+        ])
       } catch (error) {
         toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
@@ -110,7 +116,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     async event => {
       switch (event.type) {
         case AssetEventType.newFolder:
-        case AssetEventType.newDataLink:
+        case AssetEventType.newDatalink:
         case AssetEventType.newSecret:
         case AssetEventType.openProject:
         case AssetEventType.closeProject:
@@ -141,12 +147,23 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           if (asset.id === event.placeholderId) {
             rowState.setVisibility(Visibility.faded)
             try {
-              const createdProject = await backend.createProject({
-                parentDirectoryId: asset.parentId,
-                projectName: asset.title,
-                ...(event.templateId == null ? {} : { projectTemplateName: event.templateId }),
-                ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
-              })
+              const createdProject =
+                event.originalId == null || event.versionId == null
+                  ? await createProjectMutation.mutateAsync([
+                      {
+                        parentDirectoryId: asset.parentId,
+                        projectName: asset.title,
+                        ...(event.templateId == null
+                          ? {}
+                          : { projectTemplateName: event.templateId }),
+                        ...(event.datalinkId == null ? {} : { datalinkId: event.datalinkId }),
+                      },
+                    ])
+                  : await duplicateProjectMutation.mutateAsync([
+                      event.originalId,
+                      event.versionId,
+                      asset.title,
+                    ])
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {
@@ -205,18 +222,18 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                   id = await response.text()
                 }
                 const projectId = localBackend.newProjectId(projectManager.UUID(id))
-                const listedProject = await backend.getProjectDetails(
+                const listedProject = await getProjectDetailsMutation.mutateAsync([
                   projectId,
                   asset.parentId,
-                  file.name
-                )
+                  file.name,
+                ])
                 rowState.setVisibility(Visibility.visible)
                 setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
               } else {
-                const createdFile = await backend.uploadFile(
+                const createdFile = await uploadFileMutation.mutateAsync([
                   { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
-                  file
-                )
+                  file,
+                ])
                 const project = createdFile.project
                 if (project == null) {
                   throw new Error('The uploaded file was not a project.')
@@ -277,9 +294,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   return (
     <div
-      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
-        item.depth
-      )}`}
+      className={tailwindMerge.twMerge(
+        'flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        indent.indentClass(item.depth)
+      )}
       onKeyDown={event => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
@@ -304,13 +322,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <SvgMask src={NetworkIcon} className="m-name-column-icon size-icon" />
       ) : (
         <ProjectIcon
-          keyProp={item.key}
+          backend={backend}
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
           item={object.merge(asset, { projectState })}
           setItem={setAsset}
           assetEvents={assetEvents}
-          doOpenManually={doOpenManually}
+          dispatchAssetEvent={dispatchAssetEvent}
+          setProjectStartupInfo={setProjectStartupInfo}
           doOpenEditor={switchPage => {
             doOpenEditor(asset, setAsset, switchPage)
           }}
@@ -322,13 +341,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`text grow bg-transparent ${
-          rowState.isEditingName
-            ? 'cursor-text'
-            : canExecute && !isOtherUserUsingProject
-              ? 'cursor-pointer'
-              : ''
-        }`}
+        className={tailwindMerge.twMerge(
+          'text grow bg-transparent',
+          canExecute && !isOtherUserUsingProject && 'cursor-pointer',
+          rowState.isEditingName && 'cursor-text'
+        )}
         checkSubmittable={newTitle =>
           newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

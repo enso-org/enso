@@ -1,7 +1,9 @@
 /** @file Functions for manipulating Vue reactive objects. */
 
 import { defaultEquality } from '@/util/equals'
+import { debouncedWatch } from '@vueuse/core'
 import { nop } from 'lib0/function'
+import type { ComputedRef, MaybeRefOrGetter, Ref, WatchSource, WritableComputedRef } from 'vue'
 import {
   callWithErrorHandling,
   computed,
@@ -10,11 +12,8 @@ import {
   isRef,
   queuePostFlushCb,
   shallowRef,
+  toValue,
   watch,
-  type ComputedRef,
-  type MaybeRefOrGetter,
-  type Ref,
-  type WatchSource,
 } from 'vue'
 
 /** Cast watch source to an observable ref. */
@@ -134,23 +133,23 @@ export function cachedGetter<T>(
 
 /**
  * Same as `cachedGetter`, except that any changes will be not applied immediately, but only after
- * the timer set for `delayMs` milliseconds will expire. If any further update arrives in that
- * time, the timer is restarted
+ * the timer set for `debounce` milliseconds will expire. If any further update arrives in that
+ * time, the timer is restarted.
  */
 export function debouncedGetter<T>(
-  getter: () => T,
-  delayMs: number,
+  getter: WatchSource<T>,
+  debounce: number,
   equalFn: (a: T, b: T) => boolean = defaultEquality,
 ): Ref<T> {
-  const valueRef = shallowRef<T>(getter())
-  let currentTimer: ReturnType<typeof setTimeout> | undefined
-  watch(getter, (newValue) => {
-    clearTimeout(currentTimer)
-    currentTimer = setTimeout(() => {
+  const valueRef = shallowRef<T>(toValue(getter))
+  debouncedWatch(
+    getter,
+    (newValue) => {
       const oldValue = valueRef.value
       if (!equalFn(oldValue, newValue)) valueRef.value = newValue
-    }, delayMs)
-  })
+    },
+    { debounce },
+  )
   return valueRef
 }
 
@@ -162,3 +161,43 @@ export function syncSet<T>(target: Set<T>, newState: Set<T>) {
 
 /** Type of the parameter of `toValue`. */
 export type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+
+/**
+ * A writable proxy computed value that reads a fallback value in case the base is `undefined`.
+ * Useful for cases where we have a user-overridable behavior with a computed default.
+ */
+export function computedFallback<T>(
+  base: Ref<T | undefined>,
+  fallback: () => T,
+): WritableComputedRef<T> {
+  return computed({
+    get: () => base.value ?? fallback(),
+    set: (val: T) => (base.value = val),
+  })
+}
+
+/** Given a "raw" getter and setter, returns a writable-computed that buffers `set` operations.
+ *
+ * When the setter of the returned ref is invoked, the raw setter will be called during the next callback flush if and
+ * only if the most recently set value does not compare strictly-equal to the current value (read from the raw getter).
+ *
+ * The getter of the returned ref immediately reflects the value of any pending write.
+ */
+export function useBufferedWritable<T>(raw: {
+  get: ToValue<T>
+  set: (value: T) => void
+}): WritableComputedRef<T> {
+  const pendingWrite = shallowRef<{ pending: T }>()
+  watch(pendingWrite, () => {
+    if (pendingWrite.value) {
+      if (pendingWrite.value.pending !== toValue(raw.get)) {
+        raw.set(pendingWrite.value.pending)
+      }
+      pendingWrite.value = undefined
+    }
+  })
+  return computed({
+    get: () => (pendingWrite.value ? pendingWrite.value.pending : toValue(raw.get)),
+    set: (value: T) => (pendingWrite.value = { pending: value }),
+  })
+}

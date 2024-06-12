@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -12,6 +13,7 @@ from Standard.Base.Data.Filter_Condition import sql_like_to_regex
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 
+import project.Columns_To_Keep.Columns_To_Keep
 import project.Excel.Excel_Range.Excel_Range
 import project.Headers.Headers
 import project.Internal.Excel_Reader
@@ -72,13 +74,15 @@ type Excel_Workbook
        Creates an Excel_Workbook connection.
     Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean
 
-    ## ICON metadata
+    ## PRIVATE
+       ICON metadata
        Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
     databases self = Nothing
 
-    ## ICON metadata
-       Returns the name of the current database (or catalog).
+    ## PRIVATE
+       ICON metadata
+       Returns the name of the current file.
     database : Text
     database self = case self.file of
         regular_file : File -> regular_file.path
@@ -86,31 +90,34 @@ type Excel_Workbook
            just an implementation detail - it is coming form a stream so there is no logical file it is associated with.
         _ -> ""
 
-    ## ICON data_input
-       Returns a new Connection with the specified database set as default.
+    ## PRIVATE
+       ICON data_input
+       Returns a new Workbook with the specified file.
 
        Arguments:
-        - database: The name of the database to connect to.
-    @database (Single_Choice display=Display.Always values=[Option 'Nothing'])
-    set_database : Text -> Excel_Workbook ! Illegal_Argument
+        - database: The target file to open as an Excel_Workbook.
+    set_database : Text | File -> Excel_Workbook ! Illegal_Argument
     set_database self database =
         if database == self.database then self else
             file = File.new database
             if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format else
                 Error.throw (Illegal_Argument.Error "The specified file ('"+file.path+"') does not exist.")
 
-    ## ICON metadata
+    ## PRIVATE
+       ICON metadata
        Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector (Text | Nothing)
     schemas self = [Nothing]
 
-    ## ICON metadata
+    ## PRIVATE
+       ICON metadata
        Returns the name of the current schema.
     schema : Text | Nothing
     schema self = Nothing
 
-    ## ICON data_input
-       Returns a new Connection with the specified schema set as default.
+    ## PRIVATE
+       ICON data_input
+       Returns a new Workbook with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
@@ -146,12 +153,14 @@ type Excel_Workbook
     named_ranges self = self.with_java_workbook java_workbook->
         Vector.from_polyglot_array (ExcelReader.readRangeNames java_workbook)
 
-    ## ICON metadata
+    ## PRIVATE
+       ICON metadata
        Gets a list of the table types.
     table_types : Vector Text
     table_types self = ['Worksheet', 'Named Range']
 
-    ## GROUP Standard.Base.Metadata
+    ## PRIVATE
+       GROUP Standard.Base.Metadata
        ICON metadata
        Returns a materialised Table of all the matching views and tables.
 
@@ -181,7 +190,8 @@ type Excel_Workbook
 
         Table.from_rows ['Name', 'Type', 'Database', 'Schema'] filtered
 
-    ## ICON data_input
+    ## PRIVATE
+       ICON data_input
        Read a range into a Table.
 
        Arguments:
@@ -195,7 +205,7 @@ type Excel_Workbook
         _ = [alias]
         self.read query headers=headers
 
-    ## ALIAS range, sheet, worksheet
+    ## ALIAS range, sheet, worksheet, get
        GROUP Standard.Base.Input
        ICON data_input
        Read a range into a Table.
@@ -218,7 +228,8 @@ type Excel_Workbook
                 _ : Text -> ExcelReader.readRangeByName java_workbook query java_headers 0 java_limit java_problem_aggregator
         limit.attach_warning (Table.Value java_table)
 
-    ## GROUP Standard.Base.Input
+    ## PRIVATE
+       GROUP Standard.Base.Input
        ICON data_input
        Read an Excel_Section from the Workbook
 
@@ -250,7 +261,7 @@ type Excel_Workbook
                         _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows java_limit java_problem_aggregator
                 row_limit.attach_warning (Table.Value java_table)
 
-    ## ALIAS get, worksheet
+    ## PRIVATE
        GROUP Standard.Base.Input
        ICON data_input
        Reads a worksheet from the workbook.
@@ -262,7 +273,8 @@ type Excel_Workbook
     @name (self-> Single_Choice display=Display.Always values=(self.sheet_names.map t-> Option t t.pretty))
     sheet : Text | Integer -> Headers -> Table
     sheet self name:(Text | Integer) headers:Headers=Headers.Detect_Headers =
-        self.read_section (Excel_Section.Worksheet name headers 0 Nothing)
+        Warning.attach (Deprecated.Warning "Standard.Table.Excel.Excel_Workbook.Excel_Workbook" "sheet" "Deprecated: use `read` instead.") <|
+            self.read_section (Excel_Section.Worksheet name headers 0 Nothing)
 
     ## PRIVATE
        ADVANCED
@@ -331,7 +343,7 @@ type Excel_Workbook
             tables = sheet_names.map on_problems=on_problems address-> self.read address headers on_problems=on_problems
             case return of
                 Return_As.Table_Of_Tables -> Table.new [["Sheet Name", sheet_names], ["Table", tables]]
-                Return_As.Merged_Table match ->
+                Return_As.Merged_Table columns_to_keep match ->
                     first_tbl = tables.find t-> t != Nothing
                     if first_tbl == Nothing then Error.throw (Illegal_Argument.Error "No valid sheets found.") else
                         unique = first_tbl.column_naming_helper.create_unique_name_strategy
@@ -339,7 +351,7 @@ type Excel_Workbook
                         new_column_name = unique.make_unique "Sheet Name"
 
                         with_names = tables.zip sheet_names tbl->name-> if tbl == Nothing then Nothing else tbl.set name new_column_name . reorder_columns [new_column_name]
-                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) match keep_unmatched_columns=True
+                        result = Table.from_union (with_names.filter Filter_Condition.Not_Nothing) columns_to_keep=columns_to_keep match_columns=match
 
                         problem_builder = Problem_Builder.new
                         problem_builder.report_unique_name_strategy unique
@@ -359,4 +371,4 @@ type Return_As
     Table_Of_Tables
 
     ## All sheets are merged into a single table. A union operation is performed.
-    Merged_Table match:Match_Columns=Match_Columns.By_Name
+    Merged_Table (columns_to_keep : Columns_To_Keep = Columns_To_Keep.In_Any) (match : Match_Columns = Match_Columns.By_Name)

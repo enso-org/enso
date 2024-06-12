@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 
 const props = defineProps<{ recordMode: boolean }>()
@@ -8,17 +8,23 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 
 <template>
   <div class="RecordControl">
-    <div class="control left-end" @click.stop="() => emit('update:recordMode', !props.recordMode)">
+    <div class="control left-end">
       <ToggleIcon
         icon="record"
-        class="button"
-        :alt="`${props.recordMode ? 'Enable' : 'Disable'} record mode`"
+        class="iconButton"
+        title="Record"
         :modelValue="props.recordMode"
         @update:modelValue="emit('update:recordMode', $event)"
       />
     </div>
-    <div class="control right-end" @click.stop="() => emit('recordOnce')">
-      <SvgIcon alt="Record once" class="button" name="record_once" draggable="false" :scale="1.5" />
+    <div class="control right-end">
+      <SvgButton
+        title="Record Once"
+        class="iconButton"
+        name="record_once"
+        draggable="false"
+        @click.stop="() => emit('recordOnce')"
+      />
     </div>
   </div>
 </template>
@@ -34,26 +40,25 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 .control {
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
-  padding: 8px 8px;
+  padding: 4px 4px;
   width: 42px;
-  cursor: pointer;
 }
 
 .left-end {
   border-radius: var(--radius-full) 0 0 var(--radius-full);
 
-  .button {
-    margin: 0 4px 0 auto;
+  .iconButton {
+    margin: 0 0 0 auto;
   }
 }
 
 .right-end {
   border-radius: 0 var(--radius-full) var(--radius-full) 0;
 
-  .button {
+  .iconButton {
     position: relative;
-    top: -4px;
     margin: 0 auto 0 0;
+    --icon-width: 24px;
   }
 }
 
@@ -61,7 +66,7 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
   color: #ba4c40;
 }
 
-.button:active {
+.iconButton:active {
   color: #ba4c40;
 }
 </style>

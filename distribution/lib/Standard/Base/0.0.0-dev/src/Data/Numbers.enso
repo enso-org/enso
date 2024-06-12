@@ -346,7 +346,7 @@ type Number
         (self == that) || ((self - that).abs <= epsilon)
 
     ## GROUP Math
-       ICON sigma
+       ICON transform4
        Returns the smaller value of `self` and `that`.
 
        Arguments:
@@ -365,7 +365,7 @@ type Number
     min self that = if self < that then self else that
 
     ## GROUP Math
-       ICON sigma
+       ICON transform4
        Returns the larger value of `self` and `that`.
 
        Arguments:
@@ -767,7 +767,7 @@ type Float
         Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
             Error.throw (Number_Parse_Error.Error text)
 
-    ## ICON number_input
+    ## ICON input_number
 
        Maximum representable positive value, from the underlying Java double
        type.
@@ -775,7 +775,7 @@ type Float
        The absolute-value-largest representable negative value is `-max_value`.
     max_value = Double.MAX_VALUE
 
-    ## ICON number_input
+    ## ICON input_number
 
        Minimum representable positive value, from the underlying Java double
        type.
@@ -1117,7 +1117,7 @@ type Integer
        Bitwise and computes the logical conjunction of the corresponding pairs
        of bits in the operands.
 
-       ? Example
+       > Example
          Computing the bitwise conjunction of 2_01101101 and 2_11110000.
 
              2_01101101.bit_and 2_11110000
@@ -1129,7 +1129,7 @@ type Integer
 
        The bitwise compliment negates the value of each bit in the operand.
 
-       ? Example
+       > Example
          Bitwise negation of 2_0110.
 
              2_0110.bit_not

@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.job
 
 import cats.implicits._
-import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
@@ -61,12 +60,10 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
-    implicit val logger: TruffleLogger = ctx.executionService.getLogger
-    val lockTimestamp =
-      ctx.locking.acquireContextLock(config.executionContextId)
-    try {
-      val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
-      try {
+    ctx.locking.withContextLock(
+      config.executionContextId,
+      this.getClass,
+      () => {
         val maybeCallable =
           UpsertVisualizationJob.evaluateVisualizationExpression(
             config.visualizationModule,
@@ -100,7 +97,8 @@ class UpsertVisualizationJob(
                 callable,
                 arguments
               )
-            val stack = ctx.contextManager.getStack(config.executionContextId)
+            val stack =
+              ctx.contextManager.getStack(config.executionContextId)
             val runtimeCache = stack.headOption
               .flatMap(frame => Option(frame.cache))
             val cachedValue = runtimeCache
@@ -124,25 +122,8 @@ class UpsertVisualizationJob(
                 Some(Executable(config.executionContextId, stack))
             }
         }
-      } finally {
-        ctx.locking.releaseWriteCompilationLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept write compilation lock [UpsertVisualizationJob] for ${System
-            .currentTimeMillis() - writeLockTimestamp} milliseconds"
-        )
       }
-    } finally {
-      ctx.locking.releaseContextLock(config.executionContextId)
-      logger.log(
-        Level.FINEST,
-        "Kept context lock [{0}] for {1} milliseconds.",
-        Array(
-          getClass.getSimpleName,
-          System.currentTimeMillis() - lockTimestamp
-        )
-      )
-    }
+    )
   }
 
   private def replyWithExpressionFailedError(
@@ -299,7 +280,6 @@ object UpsertVisualizationJob {
   ): Either[EvaluationFailure, AnyRef] = {
     Either
       .catchNonFatal {
-        ctx.locking.assertWriteCompilationLock()
         ctx.executionService.evaluateExpression(module, argumentExpression)
       }
       .leftFlatMap {
@@ -370,7 +350,6 @@ object UpsertVisualizationJob {
       .catchNonFatal {
         expression match {
           case Api.VisualizationExpression.Text(_, expression, _) =>
-            ctx.locking.assertWriteCompilationLock()
             ctx.executionService.evaluateExpression(
               expressionModule,
               expression
@@ -519,7 +498,10 @@ object UpsertVisualizationJob {
         callback,
         arguments
       )
-    invalidateCaches(visualization)
+    ctx.locking.withWriteCompilationLock(
+      this.getClass,
+      () => invalidateCaches(visualization)
+    )
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization

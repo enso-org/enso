@@ -41,8 +41,8 @@ import {
  * - both of toolbars that are always visible (32px + 60px), and
  * - the 4px flex gap between the toolbars. */
 const MIN_WIDTH_PX = 200
-const MIN_HEIGHT_PX = 16
-const DEFAULT_HEIGHT_PX = 150
+const MIN_CONTENT_HEIGHT_PX = 32
+const DEFAULT_CONTENT_HEIGHT_PX = 150
 const TOP_WITH_TOOLBAR_PX = 72
 
 // Used for testing.
@@ -97,7 +97,7 @@ const defaultVisualizationRaw = projectStore.useVisualizationData(
 const defaultVisualizationForCurrentNodeSource = computed<VisualizationIdentifier | undefined>(
   () => {
     const raw = defaultVisualizationRaw.value
-    if (!raw?.ok || !raw.value) return
+    if (!raw?.ok || !raw.value || !raw.value.name) return
     return {
       name: raw.value.name,
       module:
@@ -236,24 +236,22 @@ watchEffect(async () => {
 
 const isBelowToolbar = ref(false)
 
+const toolbarHeight = computed(() => (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : 0))
+
 const rect = computed(
   () =>
     new Rect(
       props.nodePosition,
       new Vec2(
         Math.max(props.width ?? MIN_WIDTH_PX, props.nodeSize.x),
-        Math.max(
-          props.height ?? DEFAULT_HEIGHT_PX,
-          (isBelowToolbar.value ? 0 : TOP_WITH_TOOLBAR_PX) + MIN_HEIGHT_PX,
-        ),
+        Math.max(props.height ?? DEFAULT_CONTENT_HEIGHT_PX, MIN_CONTENT_HEIGHT_PX) +
+          toolbarHeight.value,
       ),
     ),
 )
 
 watchEffect(() => emit('update:rect', rect.value))
-onUnmounted(() => {
-  emit('update:rect', undefined)
-})
+onUnmounted(() => emit('update:rect', undefined))
 
 const allTypes = computed(() => Array.from(visualizationStore.types(props.typename)))
 
@@ -277,7 +275,7 @@ provideVisualizationConfig({
     emit('update:width', value)
   },
   get height() {
-    return rect.value.height
+    return rect.value.height - toolbarHeight.value
   },
   set height(value) {
     emit('update:height', value)
@@ -383,3 +381,10 @@ watch(
     </Suspense>
   </div>
 </template>
+
+<style scoped>
+.GraphVisualization {
+  /** Prevent drawing on top of other UI elements (e.g. dropdown widgets). */
+  isolation: isolate;
+}
+</style>

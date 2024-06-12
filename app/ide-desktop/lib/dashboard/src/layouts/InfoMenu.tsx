@@ -1,6 +1,8 @@
 /** @file A menu containing info about the app. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import LogoIcon from 'enso-assets/enso_logo.svg'
 import * as common from 'enso-common'
 
@@ -40,13 +42,19 @@ export default function InfoMenu(props: InfoMenuProps) {
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
         {...(!hidden ? { 'data-testid': 'info-menu' } : {})}
-        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
+        className={tailwindMerge.twMerge(
+          'absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'
+        )}
         onClick={event => {
           event.stopPropagation()
         }}
       >
         <div
-          className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
+          className={tailwindMerge.twMerge(
+            'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
+            initialized && 'px-menu-entry'
+          )}
         >
           <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
             <img src={LogoIcon} className="pointer-events-none size-profile-picture" />
@@ -54,7 +62,10 @@ export default function InfoMenu(props: InfoMenuProps) {
           <aria.Text className="text">{common.PRODUCT_NAME}</aria.Text>
         </div>
         <div
-          className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
+          className={tailwindMerge.twMerge(
+            'grid transition-all duration-user-menu',
+            initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
+          )}
         >
           <FocusArea direction="vertical">
             {innerProps => (
