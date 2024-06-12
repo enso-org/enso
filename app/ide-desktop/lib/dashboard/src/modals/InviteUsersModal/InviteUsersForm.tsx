@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import isEmail from 'validator/es/lib/isEmail'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -14,43 +15,28 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import type * as backendModule from '#/services/Backend'
 
-import * as parserUserEmails from './parseUserEmails'
+import * as parserUserEmails from '#/utilities/parseUserEmails'
 
-/**
- * Props for the {@link InviteUsersForm} component.
- */
+// =======================
+// === InviteUsersForm ===
+// =======================
+
+/** Props for an {@link InviteUsersForm}. */
 export interface InviteUsersFormProps {
   readonly onSubmitted: (emails: backendModule.EmailAddress[]) => void
   readonly organizationId: backendModule.OrganizationId
 }
 
-/**
- * Parameters for the invite users mutation.
- */
-interface InviteUsersMutationParams {
-  readonly email: backendModule.EmailAddress
-  readonly organizationId: backendModule.OrganizationId
-}
-
-/**
- * A modal with inputs for user email and permission level.
- */
+/** A modal with inputs for user email and permission level. */
 export function InviteUsersForm(props: InviteUsersFormProps) {
   const { onSubmitted, organizationId } = props
   const { getText } = textProvider.useText()
-
   const [inputValue, setInputValue] = React.useState('')
-
-  const { backend } = backendProvider.useStrictBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const inputRef = React.useRef<HTMLDivElement>(null)
   const formRef = React.useRef<HTMLFormElement>(null)
-
   const queryClient = reactQuery.useQueryClient()
-
-  const inviteUserMutation = reactQuery.useMutation({
-    mutationKey: ['inviteUser'],
-    mutationFn: async (params: InviteUsersMutationParams) =>
-      backend.inviteUser({ organizationId: params.organizationId, userEmail: params.email }),
+  const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser', {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['listInvitations'] })
     },
@@ -148,7 +134,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
             .filter((value): value is backendModule.EmailAddress => isEmail(value))
 
           void Promise.all(
-            emails.map(email => inviteUserMutation.mutateAsync({ email, organizationId }))
+            emails.map(userEmail => inviteUserMutation.mutateAsync([{ userEmail, organizationId }]))
           ).then(() => {
             onSubmitted(emails)
             clearForm()

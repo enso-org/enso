@@ -112,6 +112,7 @@ interface PlaceholderOverrides {
   readonly logEventBackendError: [string]
 
   readonly subscribeSuccessSubtitle: [string]
+  readonly assetsDropFilesDescription: [count: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

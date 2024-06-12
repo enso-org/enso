@@ -50,8 +50,7 @@ const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z
 /** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
     {
-        selector:
-            ':matches(ImportDeclaration:has(ImportSpecifier), ExportDeclaration, ExportSpecifier)',
+        selector: ':matches(ImportDeclaration:has(ImportSpecifier))',
         message: 'No {} imports and exports',
     },
     {
@@ -213,6 +212,11 @@ const RESTRICTED_SYNTAXES = [
             )\
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',
+    },
+    {
+        selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
+        message:
+            'Use `tv` from `tailwind-variants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
     },
     {
         selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',

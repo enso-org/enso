@@ -1,6 +1,8 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -14,7 +16,8 @@ import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
-import * as backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
@@ -54,6 +57,7 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
+  readonly backend: Backend | null
   readonly item: assetTreeNode.AnyAssetTreeNode | null
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>> | null
 }
@@ -63,14 +67,13 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isReadonly?: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
-  readonly labels: backend.Label[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, isReadonly = false, setItem, setQuery, category, labels } = props
+  const { backend, item, isReadonly = false, setItem, setQuery, category } = props
   const { dispatchAssetEvent, dispatchAssetListEvent } = props
 
   const { getText } = textProvider.useText()
@@ -79,13 +82,13 @@ export default function AssetPanel(props: AssetPanelProps) {
   const [tab, setTab] = React.useState(() => {
     const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
     if (
-      (item?.item.type === backend.AssetType.secret ||
-        item?.item.type === backend.AssetType.directory) &&
+      (item?.item.type === backendModule.AssetType.secret ||
+        item?.item.type === backendModule.AssetType.directory) &&
       savedTab === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
     } else if (
-      item?.item.type !== backend.AssetType.project &&
+      item?.item.type !== backendModule.AssetType.project &&
       savedTab === AssetPanelTab.projectSessions
     ) {
       return AssetPanelTab.properties
@@ -118,14 +121,15 @@ export default function AssetPanel(props: AssetPanelProps) {
     >
       <div className="flex gap-2">
         {item != null &&
-          item.item.type !== backend.AssetType.secret &&
-          item.item.type !== backend.AssetType.directory && (
+          item.item.type !== backendModule.AssetType.secret &&
+          item.item.type !== backendModule.AssetType.directory && (
             <ariaComponents.Button
-              size="medium"
-              variant="ghost"
-              className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
-                tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
-              }`}
+              size="custom"
+              variant="custom"
+              className={tailwindMerge.twMerge(
+                'button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame',
+                tab === AssetPanelTab.versions && 'bg-selected-frame active'
+              )}
               onPress={() => {
                 setTab(oldTab =>
                   oldTab === AssetPanelTab.versions
@@ -137,13 +141,14 @@ export default function AssetPanel(props: AssetPanelProps) {
               {getText('versions')}
             </ariaComponents.Button>
           )}
-        {item != null && item.item.type === backend.AssetType.project && (
+        {item != null && item.item.type === backendModule.AssetType.project && (
           <ariaComponents.Button
             size="medium"
             variant="ghost"
-            className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
-              tab !== AssetPanelTab.projectSessions ? '' : 'bg-selected-frame active'
-            }`}
+            className={tailwindMerge.twMerge(
+              'button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame',
+              tab === AssetPanelTab.projectSessions && 'bg-selected-frame active'
+            )}
             onPress={() => {
               setTab(oldTab =>
                 oldTab === AssetPanelTab.projectSessions
@@ -158,7 +163,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
       </div>
-      {item == null || setItem == null ? (
+      {item == null || setItem == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}
         </div>
@@ -166,21 +171,24 @@ export default function AssetPanel(props: AssetPanelProps) {
         <>
           {tab === AssetPanelTab.properties && (
             <AssetProperties
+              backend={backend}
               isReadonly={isReadonly}
               item={item}
               setItem={setItem}
               category={category}
-              labels={labels}
               setQuery={setQuery}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}
           {tab === AssetPanelTab.versions && (
-            <AssetVersions item={item} dispatchAssetListEvent={dispatchAssetListEvent} />
+            <AssetVersions
+              backend={backend}
+              item={item}
+              dispatchAssetListEvent={dispatchAssetListEvent}
+            />
           )}
-          {tab === AssetPanelTab.projectSessions && item.type === backend.AssetType.project && (
-            <AssetProjectSessions item={item} />
-          )}
+          {tab === AssetPanelTab.projectSessions &&
+            item.type === backendModule.AssetType.project && <AssetProjectSessions item={item} />}
         </>
       )}
     </div>

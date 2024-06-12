@@ -156,7 +156,8 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary: 'bg-share text-white hover:bg-share/90',
+      tertiary:
+        'relative flex items-center rounded-full text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90',
       cancel: 'bg-white/50 hover:bg-white',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
@@ -170,6 +171,7 @@ export const BUTTON_STYLES = twv.tv({
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
+      bar: 'rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
     },
     iconPosition: {
       start: { content: '' },
@@ -184,7 +186,7 @@ export const BUTTON_STYLES = twv.tv({
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
-    text: '',
+    text: 'inline-flex items-center gap-1',
     icon: 'h-[2cap] flex-none aspect-square',
   },
   defaultVariants: {
@@ -274,9 +276,11 @@ export const Button = React.forwardRef(function Button(
 
   const Tag = isLink ? aria.Link : aria.Button
 
-  const goodDefaults = isLink
-    ? { rel: 'noopener noreferrer', 'data-testid': testId ?? 'link' }
-    : { type: 'button', 'data-testid': testId ?? 'button' }
+  const goodDefaults = {
+    ...(isLink ? { rel: 'noopener noreferrer' } : {}),
+    ...(isLink ? {} : { type: 'button' as const }),
+    'data-testid': testId ?? (isLink ? 'link' : 'button'),
+  }
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
   const shouldShowTooltip = isIconOnly && tooltip !== false
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
@@ -366,17 +370,21 @@ export const Button = React.forwardRef(function Button(
 
   const button = (
     <Tag
-      // @ts-expect-error eventhough typescript is complaining about the type of ariaProps, it is actually correct
-      {...aria.mergeProps()(goodDefaults, ariaProps, focusChildProps, {
-        ref,
-        isDisabled,
-        // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
-        // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-        onPressEnd: handlePress,
-      })}
-      // @ts-expect-error eventhough typescript is complaining about the type of className, it is actually correct
-      className={aria.composeRenderProps(className, (classNames, states) =>
-        base({ className: classNames, ...states })
+      {...aria.mergeProps<aria.ButtonProps | aria.LinkProps>()(
+        goodDefaults,
+        ariaProps,
+        focusChildProps,
+        {
+          // eslint-disable-next-line no-restricted-syntax
+          ...{ ref: ref as never },
+          isDisabled,
+          // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
+          // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
+          onPressEnd: handlePress,
+          className: aria.composeRenderProps(className, (classNames, states) =>
+            base({ className: classNames, ...states })
+          ),
+        }
       )}
     >
       <span className={wrapper()}>

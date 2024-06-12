@@ -2,8 +2,8 @@
 import * as React from 'react'
 
 import type * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 // ====================
 // === SubmitButton ===
@@ -22,13 +22,15 @@ export default function SubmitButton(props: SubmitButtonProps) {
   const { isDisabled = false, text, icon, onPress } = props
 
   return (
-    <UnstyledButton
+    <ariaComponents.Button
+      size="custom"
+      variant="custom"
       isDisabled={isDisabled}
-      className={`flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 py-auth-input-y text-white transition-all duration-auth selectable enabled:active hover:bg-blue-700 focus:bg-blue-700`}
+      className="flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 py-auth-input-y text-white transition-all duration-auth selectable enabled:active hover:bg-blue-700 focus:bg-blue-700"
       onPress={onPress}
     >
       {text}
       <SvgMask src={icon} />
-    </UnstyledButton>
+    </ariaComponents.Button>
   )
 }

@@ -1,6 +1,8 @@
 /** @file A color picker to select from a predetermined list of colors. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as focusClassProvider from '#/providers/FocusClassProvider'
@@ -69,7 +71,7 @@ function ColorPicker(props: ColorPickerProps, ref: React.ForwardedRef<HTMLDivEle
       }}
     >
       {children}
-      <div className={`flex items-center gap-colors ${pickerClassName}`}>
+      <div className={tailwindMerge.twMerge('flex items-center gap-colors', pickerClassName)}>
         {backend.COLORS.map((currentColor, i) => (
           <ColorPickerItem key={i} color={currentColor} />
         ))}

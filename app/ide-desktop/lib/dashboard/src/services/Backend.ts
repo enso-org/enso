@@ -1286,6 +1286,8 @@ export default abstract class Backend {
   abstract restoreUser(): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
+  /** Delete a user. */
+  abstract removeUser(userId: UserId): Promise<void>
   /** Upload a new profile picture for the current user. */
   abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
   /** Set the list of groups a user is in. */
@@ -1437,4 +1439,17 @@ export default abstract class Backend {
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
   abstract getLogEvents(): Promise<Event[]>
+  /** Log an event that will be visible in the organization audit log. */
+  abstract logEvent(
+    message: string,
+    projectId?: string | null,
+    metadata?: object | null
+  ): Promise<void>
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  abstract waitUntilProjectIsReady(
+    projectId: ProjectId,
+    directory: DirectoryId | null,
+    title: string,
+    abortController?: AbortController
+  ): Promise<Project>
 }
