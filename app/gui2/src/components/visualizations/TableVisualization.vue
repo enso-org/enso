@@ -335,9 +335,13 @@ watchEffect(() => {
     columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : [...dataHeader]
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
+      const shift = data_.has_index_col ? 1 : 0
       return Object.fromEntries(
         columnDefs.map((h, j) => {
-          return [h.field, toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - 1]?.[i])]
+          return [
+            h.field,
+            toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
+          ]
         }),
       )
     })
