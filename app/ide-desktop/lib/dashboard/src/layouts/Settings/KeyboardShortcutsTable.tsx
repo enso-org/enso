@@ -16,10 +16,10 @@ import * as textProvider from '#/providers/TextProvider'
 import KeyboardShortcutsSettingsTabBar from '#/layouts/Settings/KeyboardShortcutsSettingsTabBar'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 
@@ -110,49 +110,46 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
                                 >
                                   <KeyboardShortcut shortcut={binding} />
-                                  <UnstyledButton
+                                  <ariaComponents.Button
+                                    size="medium"
+                                    variant="custom"
+                                    icon={CrossIcon}
                                     className="flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg"
                                     onPress={() => {
                                       inputBindings.delete(action, binding)
                                       doRefresh()
                                     }}
-                                  >
-                                    <SvgMask src={CrossIcon} className="size-icon" />
-                                  </UnstyledButton>
+                                  />
                                 </div>
                               ))}
                               <div className="grow" />
                               <div className="flex min-w-max shrink-0 items-center gap-keyboard-shortcuts-button">
-                                <div className="flex rounded-full border border-primary/20">
-                                  <UnstyledButton
-                                    className="focus-default relative my-auto flex rounded-full transition-all selectable after:absolute after:inset-0 after:rounded-inherit after:hover:bg-primary/5"
-                                    onPress={() => {
-                                      setModal(
-                                        <CaptureKeyboardShortcutModal
-                                          description={`'${info.name}'`}
-                                          existingShortcuts={allShortcuts}
-                                          onSubmit={shortcut => {
-                                            inputBindings.add(action, shortcut)
-                                            doRefresh()
-                                          }}
-                                        />
-                                      )
-                                    }}
-                                  >
-                                    <SvgMask className="size-icon" src={Plus2Icon} />
-                                  </UnstyledButton>
-                                </div>
-                                <div className="flex rounded-full border border-primary/20">
-                                  <UnstyledButton
-                                    className="relative my-auto flex rounded-full transition-all selectable after:absolute after:inset-0 after:rounded-inherit after:hover:bg-primary/5"
-                                    onPress={() => {
-                                      inputBindings.reset(action)
-                                      doRefresh()
-                                    }}
-                                  >
-                                    <SvgMask className="size-icon" src={ReloadIcon} />
-                                  </UnstyledButton>
-                                </div>
+                                <ariaComponents.Button
+                                  size="medium"
+                                  variant="outline"
+                                  icon={Plus2Icon}
+                                  onPress={() => {
+                                    setModal(
+                                      <CaptureKeyboardShortcutModal
+                                        description={`'${info.name}'`}
+                                        existingShortcuts={allShortcuts}
+                                        onSubmit={shortcut => {
+                                          inputBindings.add(action, shortcut)
+                                          doRefresh()
+                                        }}
+                                      />
+                                    )
+                                  }}
+                                />
+                                <ariaComponents.Button
+                                  size="medium"
+                                  variant="outline"
+                                  icon={ReloadIcon}
+                                  onPress={() => {
+                                    inputBindings.reset(action)
+                                    doRefresh()
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>

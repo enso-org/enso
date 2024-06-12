@@ -12,14 +12,13 @@ import * as textProvider from '#/providers/TextProvider'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
-import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
@@ -140,8 +139,11 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         ))}
       {managesThisAsset && (
         <div className="relative inline-flex shrink-0 transition-all transparent before:absolute before:inset-0 before:rounded-full before:border before:border-primary/10 before:transition-all before:hover:bg-primary/5 group-hover:opacity-100">
-          <UnstyledButton
+          <ariaComponents.Button
             ref={plusButtonRef}
+            size="medium"
+            variant="outline"
+            icon={Plus2Icon}
             className="relative inline-flex min-w-max rounded-full transition-all selectable focus-visible:opacity-100"
             onPress={() => {
               setModal(
@@ -155,9 +157,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 />
               )
             }}
-          >
-            <SvgMask className="size-icon" src={Plus2Icon} />
-          </UnstyledButton>
+          />
         </div>
       )}
     </div>

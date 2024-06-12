@@ -169,7 +169,8 @@ export const BUTTON_STYLES = twv.tv({
       ghost:
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
-      outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
+      outline:
+        'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2 hover:bg-primary/5',
     },
     iconPosition: {
       start: { content: '' },
@@ -221,7 +222,7 @@ export const BUTTON_STYLES = twv.tv({
     {
       size: 'medium',
       iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[2cap] -mt-[0.1cap]' },
+      class: { base: 'p-0 rounded-full', icon: 'h-4 -mt-[0.1cap]' },
     },
     {
       size: 'large',

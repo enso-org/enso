@@ -10,10 +10,9 @@ import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
-import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
@@ -86,8 +85,11 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
       ))}
       {managesThisAsset && (
         <div className="relative inline-flex shrink-0 transition-all transparent before:absolute before:inset-0 before:rounded-full before:border before:border-primary/10 before:transition-all before:hover:bg-primary/5 group-hover:opacity-100">
-          <UnstyledButton
+          <ariaComponents.Button
             ref={plusButtonRef}
+            size="medium"
+            variant="outline"
+            icon={Plus2Icon}
             className="relative inline-flex min-w-max rounded-full transition-all selectable focus-visible:opacity-100"
             onPress={() => {
               setModal(
@@ -106,9 +108,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                 />
               )
             }}
-          >
-            <SvgMask className="size-icon" src={Plus2Icon} />
-          </UnstyledButton>
+          />
         </div>
       )}
     </div>
