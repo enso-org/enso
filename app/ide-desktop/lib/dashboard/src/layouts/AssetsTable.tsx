@@ -426,6 +426,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const cleanupRootRef = React.useRef(() => {})
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<assetTreeNode.AnyAssetTreeNode>(assetTree)
   const pasteDataRef = React.useRef<pasteDataModule.PasteData<
@@ -1990,6 +1991,11 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [backend.type, enabledColumns.size])
 
+  const updateClipPathObserver = React.useMemo(
+    () => new ResizeObserver(updateClipPath),
+    [updateClipPath]
+  )
+
   React.useEffect(
     () =>
       inputBindings.attach(
@@ -2493,7 +2499,18 @@ export default function AssetsTable(props: AssetsTableProps) {
       {innerProps => (
         <div
           {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-            ref: rootRef,
+            ref: value => {
+              rootRef.current = value
+              cleanupRootRef.current()
+              if (value) {
+                updateClipPathObserver.observe(value)
+                cleanupRootRef.current = () => {
+                  updateClipPathObserver.unobserve(value)
+                }
+              } else {
+                cleanupRootRef.current = () => {}
+              }
+            },
             className: 'flex-1 overflow-auto container-size',
             onKeyDown,
             onScroll: updateClipPath,
