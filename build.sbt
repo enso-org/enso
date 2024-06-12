@@ -47,7 +47,7 @@ val currentEdition = sys.env.getOrElse(
 // Note [Stdlib Version]
 val stdLibVersion       = defaultDevEnsoVersion
 val targetStdlibVersion = ensoVersion
-val persistanceVersion  = "0.2-SNAPSHOT"
+val mavenUploadVersion  = "0.2-SNAPSHOT"
 
 // Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
 lazy val startupStateTransition: State => State = { s: State =>
@@ -733,7 +733,12 @@ lazy val `syntax-rust-definition` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    version := mavenUploadVersion,
     Compile / exportJars := true,
+    javadocSettings,
+    publish / skip := false,
+    autoScalaLibrary := false,
+    crossPaths := false,
     javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
@@ -1311,7 +1316,7 @@ lazy val `ydoc-server` = project
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
-    version := persistanceVersion,
+    version := mavenUploadVersion,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
@@ -1333,7 +1338,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
 
 lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
   .settings(
-    version := persistanceVersion,
+    version := mavenUploadVersion,
     frgaalJavaCompilerSetting,
     publish / skip := false,
     autoScalaLibrary := false,
@@ -2184,6 +2189,10 @@ lazy val `runtime-benchmarks` =
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .settings(
+      version := mavenUploadVersion,
+      javadocSettings,
+      publish / skip := false,
+      crossPaths := false,
       frgaalJavaCompilerSetting,
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,

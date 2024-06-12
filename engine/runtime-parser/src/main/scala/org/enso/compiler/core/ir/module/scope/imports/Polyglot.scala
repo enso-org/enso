@@ -91,7 +91,7 @@ sealed case class Polyglot(
     */
   def getVisibleName: String = rename.getOrElse(entity.getVisibleName)
 
-  /** @inheritdoc */
+  /** String representation. */
   override def toString: String =
     s"""
        |Module.Scope.Import.Polyglot(

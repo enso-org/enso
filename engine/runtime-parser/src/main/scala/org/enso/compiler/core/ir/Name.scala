@@ -131,7 +131,7 @@ object Name {
       copy(location = location)
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.MethodReference(
@@ -341,7 +341,7 @@ object Name {
     override def setLocation(location: Option[IdentifiedLocation]): Blank =
       copy(location = location)
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.Blank(
@@ -512,7 +512,7 @@ object Name {
       fn: java.util.function.Function[Expression, Expression]
     ): Literal = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.Literal(
@@ -617,7 +617,7 @@ object Name {
     ): BuiltinAnnotation =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.BuiltinAnnotation(
@@ -705,7 +705,7 @@ object Name {
     ): GenericAnnotation =
       copy(expression = fn(expression))
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.GenericAnnotation(
@@ -786,7 +786,7 @@ object Name {
       fn: java.util.function.Function[Expression, Expression]
     ): Self = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.Self(
@@ -863,7 +863,7 @@ object Name {
       fn: java.util.function.Function[Expression, Expression]
     ): SelfType = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Name.SelfType(
