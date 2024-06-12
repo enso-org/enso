@@ -2481,7 +2481,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </table>
       <div
         className={tailwindMerge.twMerge(
-          'group sticky left-0 grid max-w-container grow place-items-center',
+          'sticky left-0 grid max-w-container grow place-items-center',
           category !== Category.cloud && category !== Category.local && 'hidden'
         )}
         onDragEnter={onDropzoneDragOver}

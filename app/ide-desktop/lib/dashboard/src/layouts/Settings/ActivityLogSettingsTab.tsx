@@ -155,7 +155,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                   multiple
                   items={backendModule.EVENT_TYPES}
                   selectedIndices={typeIndices}
-                  render={itemProps => <aria.Text>{EVENT_TYPE_NAME[itemProps.item]}</aria.Text>}
+                  render={itemProps => EVENT_TYPE_NAME[itemProps.item]}
                   renderMultiple={itemProps =>
                     itemProps.items.length === 0 ||
                     itemProps.items.length === backendModule.EVENT_TYPES.length
@@ -175,7 +175,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                   multiple
                   items={allEmails}
                   selectedIndices={emailIndices}
-                  render={itemProps => <aria.Text>{itemProps.item}</aria.Text>}
+                  render={itemProps => itemProps.item}
                   renderMultiple={itemProps =>
                     itemProps.items.length === 0 || itemProps.items.length === allEmails.length
                       ? 'All'

@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as tailwindMerge from 'tailwind-merge'
 
-import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
 
@@ -221,9 +220,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                 })
               }}
             >
-              <aria.Text>
-                {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
-              </aria.Text>
+              {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
             </div>
           )}
         </div>
@@ -261,7 +258,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
                   toggleValue(item)
                 }}
               >
-                <aria.Text>{itemToString(item)}</aria.Text>
+                {itemToString(item)}
               </div>
             ))}
           </div>

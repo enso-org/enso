@@ -37,9 +37,9 @@ const PAGE_DATA: PageUIData[] = [
   { page: Page.editor, icon: WorkspaceIcon, nameId: 'editorPageName' },
 ]
 
-//===================
+// ==================
 // === PageUIData ===
-//===================
+// ==================
 
 /** Data describing how to display a button for a page. */
 interface PageUIData {

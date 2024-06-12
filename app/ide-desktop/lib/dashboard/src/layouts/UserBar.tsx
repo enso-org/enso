@@ -97,9 +97,8 @@ export default function UserBar(props: UserBarProps) {
           </ariaComponents.Button>
           {shouldShowShareButton && (
             <ariaComponents.Button
-              size="xsmall"
+              size="medium"
               variant="tertiary"
-              className="h-row"
               aria-label={getText('shareButtonAltText')}
               onPress={() => {
                 setModal(

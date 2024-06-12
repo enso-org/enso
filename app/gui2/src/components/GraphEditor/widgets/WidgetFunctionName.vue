@@ -87,6 +87,8 @@ export const widgetDefinition = defineWidget(
       @pointerdown.stop
       @click.stop
       @keydown.enter.stop
+      @keydown.arrow-left.stop
+      @keydown.arrow-right.stop
     />
   </div>
 </template>
