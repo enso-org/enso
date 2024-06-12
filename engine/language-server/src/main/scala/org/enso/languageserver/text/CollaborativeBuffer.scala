@@ -13,7 +13,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.{
   FileAttributes,
   FileEvent,
-  FileEventKind,
+  FileEventKinds,
   FileManagerProtocol,
   FileNotFound,
   GenericFileSystemFailure,
@@ -406,7 +406,7 @@ class CollaborativeBuffer(
       clients.values.foreach {
         _.rpcController ! TextProtocol.FileEvent(
           path,
-          FileEventKind.Removed,
+          FileEventKinds.Removed,
           None
         )
       }

@@ -311,7 +311,7 @@ class SuggestionsHandlerSpec
                     0,
                     reprType = Some(
                       SearchProtocol
-                        .FieldUpdate(SearchProtocol.FieldAction.Set, Some("A"))
+                        .FieldUpdate(SearchProtocol.FieldActions.Set, Some("A"))
                     )
                   )
               )
@@ -321,7 +321,7 @@ class SuggestionsHandlerSpec
             4L,
             scope = Some(
               SearchProtocol.FieldUpdate(
-                SearchProtocol.FieldAction.Set,
+                SearchProtocol.FieldActions.Set,
                 Some(Suggestions.local.scope)
               )
             )
@@ -917,10 +917,10 @@ class SuggestionsHandlerSpec
   }
 
   private def fieldUpdate(value: String): SearchProtocol.FieldUpdate[String] =
-    SearchProtocol.FieldUpdate(SearchProtocol.FieldAction.Set, Some(value))
+    SearchProtocol.FieldUpdate(SearchProtocol.FieldActions.Set, Some(value))
 
   private def fieldRemove[A]: SearchProtocol.FieldUpdate[A] =
-    SearchProtocol.FieldUpdate(SearchProtocol.FieldAction.Remove, None)
+    SearchProtocol.FieldUpdate(SearchProtocol.FieldActions.Remove, None)
 
   def newSuggestionsHandler(
     config: Config,

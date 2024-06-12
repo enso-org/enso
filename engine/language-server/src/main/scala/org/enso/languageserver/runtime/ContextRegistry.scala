@@ -210,7 +210,7 @@ final class ContextRegistry(
             Api.RecomputeContextRequest(
               contextId,
               invalidatedExpressions,
-              environment.map(ExecutionEnvironment.toApi)
+              environment.map(ExecutionEnvironments.toApi)
             )
           )
         } else {
@@ -230,7 +230,7 @@ final class ContextRegistry(
           handler.forward(
             Api.SetExecutionEnvironmentRequest(
               contextId,
-              ExecutionEnvironment.toApi(environment)
+              ExecutionEnvironments.toApi(environment)
             )
           )
         } else {

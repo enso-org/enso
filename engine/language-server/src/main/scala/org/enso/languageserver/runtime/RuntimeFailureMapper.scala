@@ -122,12 +122,12 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     */
   private def toDiagnosticType(
     kind: Api.DiagnosticType
-  ): ContextRegistryProtocol.ExecutionDiagnosticKind =
+  ): ContextRegistryProtocol.ExecutionDiagnosticKinds.ExecutionDiagnosticKind =
     kind match {
       case Api.DiagnosticType.Error =>
-        ContextRegistryProtocol.ExecutionDiagnosticKind.Error
+        ContextRegistryProtocol.ExecutionDiagnosticKinds.Error
       case Api.DiagnosticType.Warning =>
-        ContextRegistryProtocol.ExecutionDiagnosticKind.Warning
+        ContextRegistryProtocol.ExecutionDiagnosticKinds.Warning
     }
 
   /** Convert the runtime stack trace element to the context registry protocol
