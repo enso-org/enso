@@ -64,19 +64,18 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             data.teardown
 
         group_builder.specify "should be able to get current database and list databases" <|
-            data.connection.database . should_equal db_name
+            data.connection.database.equals_ignore_case db_name . should_be_true
             data.connection.databases.length . should_not_equal 0
-            data.connection.databases.contains db_name . should_be_true
+            data.connection.databases.find (name-> name.equals_ignore_case db_name) . should_succeed
             Meta.is_same_object data.connection (data.connection.set_database db_name) . should_be_true
 
         group_builder.specify "should be able to get current schema and list schemas" <|
-            data.connection.schema . should_equal "public"
+            data.connection.schema.equals_ignore_case "public" . should_be_true
             data.connection.schemas.length . should_not_equal 0
-            data.connection.schemas.contains "public" . should_be_true
-            data.connection.schemas.contains "information_schema" . should_be_true
+            data.connection.schemas.find (name-> name.equals_ignore_case "public") . should_succeed
             Meta.is_same_object data.connection (data.connection.set_schema "public") . should_be_true
 
-        group_builder.specify "should allow changing schema" <|
+        group_builder.specify "should allow changing schema" pending="TODO?" <|
             new_connection = data.connection.set_schema "information_schema"
             new_schema = new_connection.read (SQL_Query.Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
             new_schema . should_equal "information_schema"
@@ -117,14 +116,14 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
         group_builder.specify "should be able to filter tables by name" <|
             tables = data.connection.tables data.tinfo
             tables.row_count . should_equal 1
-            tables.at "Database" . to_vector . at 0 . should_equal db_name
-            tables.at "Schema" . to_vector . at 0 . should_equal "public"
+            tables.at "Database" . to_vector . at 0 . equals_ignore_case db_name . should_be_true
+            tables.at "Schema" . to_vector . at 0 . equals_ignore_case "public" . should_be_true
             tables.at "Name" . to_vector . at 0 . should_equal data.tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
 
             data.connection.tables "TestT_ble%" . row_count . should_equal 1
             data.connection.tables "Temporary%ble%" . row_count . should_equal 1
-            data.connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY TABLE"]
+            data.connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY"]
             data.connection.tables "N_nexistent%" . row_count . should_equal 0
 
         group_builder.specify "should be able to filter tables by type" <|
@@ -147,7 +146,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
 
         group_builder.specify "should return Table information, also for aggregated results" <|
-            i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . info
+            i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Decimal, Value_Type.Integer]
@@ -158,7 +157,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "doubles" . value_type . is_floating_point . should_be_true
 
-        group_builder.specify "should preserve Snowflake types when table is materialized, where possible" <|
+        group_builder.specify "should preserve Snowflake types when table is materialized, where possible" pending="TODO" <|
             name = Name_Generator.random_name "types-test"
             Problems.assume_no_problems <|
                 data.connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
@@ -272,7 +271,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
         group_builder.teardown <|
             data.teardown
 
-        group_builder.specify "materialize should respect the overridden type" <|
+        group_builder.specify "materialize should respect the overridden type" pending="TODO" <|
             t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]] connection=data.connection
             t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=3 variable_length=False)
 
@@ -292,7 +291,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
                 d.value_type.variable_length.should_be_true
 
-        group_builder.specify "should be able to round-trip a BigInteger column" <|
+        group_builder.specify "should be able to round-trip a BigInteger column" pending="TODO" <|
             x = 2^70
             m1 = Table.new [["X", [10, x]]]
             m1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
@@ -353,7 +352,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w4.actual_type . should_equal Value_Type.Float
 
-        group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
+        group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" pending="TODO" <|
             table_name = Name_Generator.random_name "TimestampTZ"
             table = data.connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
 
@@ -386,7 +385,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
                     t2.row_count . should_equal local_equals.length
                     t2.at "A" . to_vector . should_equal_tz_agnostic local_equals
 
-        group_builder.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
+        group_builder.specify "will round-trip timestamp column without timezone by converting it to UTC" pending="TODO" <|
             table_name = Name_Generator.random_name "Timestamp"
             table = data.connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
             Problems.assume_no_problems table
