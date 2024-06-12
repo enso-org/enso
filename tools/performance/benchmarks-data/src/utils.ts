@@ -29,3 +29,23 @@ export function findGHToken(): string {
     }
     return ghToken
 }
+
+export function parseLinesFromJobOutput(lines: string[]): Map<string, number> {
+    const regex = /([\w\.]+)\s+avgt\s+(\d+)\s+(\d+\.\d+)\s+/;
+    const results: Map<string, number> = new Map()
+    for (const line of lines) {
+        // Strip the prefix from the CI
+        const strippedLine = line.substring(98)
+        let match = regex.exec(strippedLine)
+        if (match) {
+            const label = match[1]
+            const iterations = match[2]
+            if (label && match[3]) {
+                const score = parseFloat(match[3])
+                const trimmedLabel = label.trim()
+                results.set(trimmedLabel, score)
+            }
+        }
+    }
+    return results
+}
