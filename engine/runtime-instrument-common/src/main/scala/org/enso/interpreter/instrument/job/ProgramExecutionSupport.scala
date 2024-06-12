@@ -1,7 +1,14 @@
 package org.enso.interpreter.instrument.job
 
 import com.oracle.truffle.api.exception.AbstractTruffleException
-import org.enso.interpreter.instrument._
+import org.enso.interpreter.instrument.{
+  InstrumentFrame,
+  MethodCallsCache,
+  RuntimeCache,
+  UpdatesSynchronizationState,
+  Visualization,
+  WarningPreview
+}
 import org.enso.interpreter.instrument.execution.{
   Completion,
   ErrorResolver,
@@ -26,7 +33,13 @@ import org.enso.interpreter.service.ExecutionService.{
   ExpressionValue,
   FunctionPointer
 }
-import org.enso.interpreter.service.error._
+import org.enso.interpreter.service.error.{
+  MethodNotFoundException,
+  ModuleNotFoundForExpressionIdException,
+  ServiceException,
+  TypeNotFoundException,
+  VisualizationException
+}
 import org.enso.common.LanguageInfo
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
@@ -37,7 +50,7 @@ import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
 
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
 /** Provides support for executing Enso code. Adds convenient methods to
