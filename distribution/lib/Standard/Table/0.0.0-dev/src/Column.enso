@@ -1241,7 +1241,7 @@ type Column
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
     starts_with : Column | Text -> Case_Sensitivity -> Column
     starts_with self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = naming_helper.function_name "STARTS_WITH" [self, other]
+        new_name = naming_helper.function_name "starts_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Text
@@ -1272,7 +1272,7 @@ type Column
              example_ends_with = Examples.text_column_1.ends_with "hell"
     ends_with : Column | Text -> Case_Sensitivity -> Column
     ends_with self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = naming_helper.function_name "ENDS_WITH" [self, other]
+        new_name = naming_helper.function_name "ends_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Text
@@ -1364,7 +1364,7 @@ type Column
              example_contains = Examples.text_column_1.contains "hell"
     contains : Column | Text -> Case_Sensitivity -> Column
     contains self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = naming_helper.function_name "CONTAINS" [self, other]
+        new_name = naming_helper.function_name "contains" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Logical
