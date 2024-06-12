@@ -1,12 +1,13 @@
 /** @file A list of previous versions of an asset. */
 import * as React from 'react'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as reactQuery from '@tanstack/react-query'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
 import AssetProjectSession from '#/layouts/AssetProjectSession'
 
+import * as errorBoundary from '#/components/ErrorBoundary'
 import StatelessSpinner from '#/components/StatelessSpinner'
 import * as statelessSpinnerModule from '#/components/StatelessSpinner'
 
@@ -35,27 +36,33 @@ export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
   const { item } = props
   const { backend } = backendProvider.useStrictBackend()
 
-  const projectSessions = asyncEffectHooks.useAsyncEffect(
-    null,
-    () => backend.listProjectSessions(item.item.id, item.item.title),
-    [backend, item.item.id, item.item.title]
-  )
+  const projectSessionsQuery = reactQuery.useQuery({
+    queryKey: ['getProjectSessions', item.item.id, item.item.title],
+    queryFn: () => backend.listProjectSessions(item.item.id, item.item.title),
+  })
 
   return (
     <div className="pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden">
-      {projectSessions == null ? (
-        <StatelessSpinner
-          state={statelessSpinnerModule.SpinnerState.loadingFast}
-          size={SPINNER_SIZE}
-        />
-      ) : (
-        projectSessions.map(session => (
+      {projectSessionsQuery.isSuccess ? (
+        projectSessionsQuery.data.map(session => (
           <AssetProjectSession
             key={session.projectSessionId}
             project={item.item}
             projectSession={session}
           />
         ))
+      ) : projectSessionsQuery.isLoading || projectSessionsQuery.isPending ? (
+        <StatelessSpinner
+          state={statelessSpinnerModule.SpinnerState.loadingFast}
+          size={SPINNER_SIZE}
+        />
+      ) : (
+        <errorBoundary.ErrorDisplay
+          error={projectSessionsQuery.error}
+          resetErrorBoundary={() => {
+            void projectSessionsQuery.refetch()
+          }}
+        />
       )}
     </div>
   )

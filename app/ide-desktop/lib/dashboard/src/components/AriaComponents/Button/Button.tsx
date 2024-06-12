@@ -191,7 +191,7 @@ export const BUTTON_STYLES = twv.tv({
     loading: false,
     fullWidth: false,
     size: 'xsmall',
-    rounded: 'large',
+    rounded: 'full',
     variant: 'primary',
     iconPosition: 'start',
     showIconOnHover: false,

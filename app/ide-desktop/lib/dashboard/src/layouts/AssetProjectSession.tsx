@@ -1,13 +1,12 @@
 /** @file Displays information describing a specific version of an asset. */
 import LogsIcon from 'enso-assets/logs.svg'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Button from '#/components/styled/Button'
 
-import LogsModal from '#/modals/LogsModal'
+import ProjectLogsModal from '#/modals/ProjectLogsModal'
 
 import type * as backendModule from '#/services/Backend'
 
@@ -26,7 +25,6 @@ export interface AssetProjectSessionProps {
 /** Displays information describing a specific version of an asset. */
 export default function AssetProjectSession(props: AssetProjectSessionProps) {
   const { project, projectSession } = props
-  const { backend } = backendProvider.useStrictBackend()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
@@ -44,10 +42,9 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
           alt={getText('showLogs')}
           onPress={() => {
             setModal(
-              <LogsModal
-                logs={backend
-                  .getProjectSessionLogs(projectSession.projectSessionId, project.title)
-                  .then(logs => logs.join('\n'))}
+              <ProjectLogsModal
+                projectSessionId={projectSession.projectSessionId}
+                projectTitle={project.title}
               />
             )
           }}

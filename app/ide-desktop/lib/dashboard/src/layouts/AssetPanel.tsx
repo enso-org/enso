@@ -12,7 +12,7 @@ import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
-import UnstyledButton from '#/components/UnstyledButton'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backend from '#/services/Backend'
 
@@ -120,7 +120,9 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item != null &&
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
-            <UnstyledButton
+            <ariaComponents.Button
+              size="medium"
+              variant="ghost"
               className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
                 tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
               }`}
@@ -133,10 +135,12 @@ export default function AssetPanel(props: AssetPanelProps) {
               }}
             >
               {getText('versions')}
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
         {item != null && item.item.type === backend.AssetType.project && (
-          <UnstyledButton
+          <ariaComponents.Button
+            size="medium"
+            variant="ghost"
             className={`button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
               tab !== AssetPanelTab.projectSessions ? '' : 'bg-selected-frame active'
             }`}
@@ -149,7 +153,7 @@ export default function AssetPanel(props: AssetPanelProps) {
             }}
           >
             {getText('projectSessions')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />

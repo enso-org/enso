@@ -37,7 +37,7 @@ export interface ErrorBoundaryProps {
  */
 export function ErrorBoundary(props: ErrorBoundaryProps) {
   const {
-    FallbackComponent = DefaultFallbackComponent,
+    FallbackComponent = ErrorDisplay,
     onError = () => {},
     onReset = () => {},
     ...rest
@@ -72,7 +72,7 @@ export interface FallBackProps extends errorBoundary.FallbackProps {
 /**
  * Default fallback component to show when there is an error
  */
-function DefaultFallbackComponent(props: FallBackProps): React.JSX.Element {
+export function ErrorDisplay(props: FallBackProps): React.JSX.Element {
   const { resetErrorBoundary, error } = props
 
   const { getText } = textProvider.useText()
