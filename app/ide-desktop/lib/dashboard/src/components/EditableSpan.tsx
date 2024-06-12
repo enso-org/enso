@@ -10,8 +10,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
-import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
+import * as ariaComponents from '#/components/AriaComponents'
 
 import * as eventModule from '#/utilities/event'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -122,26 +121,32 @@ export default function EditableSpan(props: EditableSpanProps) {
                 },
               })}
         />
-        {isSubmittable && (
-          <UnstyledButton
-            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
-            onPress={eventModule.submitForm}
-          >
-            <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
-          </UnstyledButton>
-        )}
-        <UnstyledButton
-          className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
-          onPress={() => {
-            cancelledRef.current = true
-            onCancel()
-            window.setTimeout(() => {
-              cancelledRef.current = false
-            })
-          }}
-        >
-          <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
-        </UnstyledButton>
+        <ariaComponents.ButtonGroup gap="xsmall" className="grow-0 items-center">
+          {isSubmittable && (
+            <ariaComponents.Button
+              size="medium"
+              variant="outline"
+              isCentered
+              icon={TickIcon}
+              aria-label={getText('confirmEdit')}
+              onPress={eventModule.submitForm}
+            />
+          )}
+          <ariaComponents.Button
+            size="medium"
+            variant="outline"
+            isCentered
+            icon={CrossIcon}
+            aria-label={getText('cancelEdit')}
+            onPress={() => {
+              cancelledRef.current = true
+              onCancel()
+              window.setTimeout(() => {
+                cancelledRef.current = false
+              })
+            }}
+          />
+        </ariaComponents.ButtonGroup>
       </form>
     )
   } else {
