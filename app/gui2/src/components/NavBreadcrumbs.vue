@@ -24,6 +24,7 @@ const emit = defineEmits<{ selected: [index: number] }>()
         :text="breadcrumb.label"
         :active="breadcrumb.active"
         :title="index === 0 ? 'Project Name' : ''"
+        class="clickable"
         @click.stop="emit('selected', index)"
       />
     </template>

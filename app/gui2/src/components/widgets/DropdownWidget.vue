@@ -74,21 +74,21 @@ export interface DropdownEntry {
 <template>
   <div class="DropdownWidget" :style="styleVars">
     <ul class="list scrollable" @wheel.stop>
-      <template v-for="entry in sortedValues" :key="entry.value">
-        <li v-if="entry.selected">
-          <div class="item selected" @click.stop="emit('clickEntry', entry, $event.altKey)">
-            <span v-text="entry.value"></span>
-          </div>
-        </li>
-        <li v-else class="item" @click.stop="emit('clickEntry', entry, $event.altKey)">
-          <span v-text="entry.value"></span>
-        </li>
-      </template>
+      <li
+        v-for="entry in sortedValues"
+        :key="entry.value"
+        :class="{ selected: entry.selected }"
+        class="item clickable"
+        @click.stop="emit('clickEntry', entry, $event.altKey)"
+      >
+        <div class="itemContent" v-text="entry.value"></div>
+      </li>
     </ul>
     <div v-if="enableSortButton" class="sort">
       <div class="sort-background"></div>
       <SvgIcon
         :name="ICON_LOOKUP[sortDirection]"
+        class="clickable"
         @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
       />
     </div>
@@ -145,7 +145,7 @@ li {
   color: white;
 }
 
-.list span {
+.list .itemContent {
   display: inline-block;
   max-width: 100%;
   white-space: nowrap;
@@ -215,10 +215,5 @@ li.item:hover {
   &.selected {
     background-color: var(--color-port-connected);
   }
-}
-
-.item,
-.sort {
-  cursor: pointer;
 }
 </style>
