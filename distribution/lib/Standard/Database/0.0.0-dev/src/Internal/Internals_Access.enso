@@ -9,7 +9,15 @@
    providers of new database dialects.
 
 import project.DB_Column.DB_Column
+import project.DB_Table.DB_Table
+import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
 column_expression (column : DB_Column) -> SQL_Expression = column.expression
+
+## PRIVATE
+get_connection (thing : DB_Column | DB_Table) = thing.connection
+
+## PRIVATE
+get_context (thing : DB_Column | DB_Table) -> Context = thing.context
