@@ -1,9 +1,9 @@
 /** @file Displays information describing a specific version of an asset. */
 import LogsIcon from 'enso-assets/logs.svg'
 
-import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import Button from '#/components/styled/Button'
 
 import ProjectLogsModal from '#/modals/ProjectLogsModal'
@@ -25,7 +25,6 @@ export interface AssetProjectSessionProps {
 /** Displays information describing a specific version of an asset. */
 export default function AssetProjectSession(props: AssetProjectSessionProps) {
   const { project, projectSession } = props
-  const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
   return (
@@ -36,19 +35,13 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
         </time>
       </div>
       <div className="flex items-center gap-1">
-        <Button
-          active
-          image={LogsIcon}
-          alt={getText('showLogs')}
-          onPress={() => {
-            setModal(
-              <ProjectLogsModal
-                projectSessionId={projectSession.projectSessionId}
-                projectTitle={project.title}
-              />
-            )
-          }}
-        />
+        <ariaComponents.DialogTrigger>
+          <Button active image={LogsIcon} alt={getText('showLogs')} onPress={() => {}} />
+          <ProjectLogsModal
+            projectSessionId={projectSession.projectSessionId}
+            projectTitle={project.title}
+          />
+        </ariaComponents.DialogTrigger>
       </div>
     </div>
   )

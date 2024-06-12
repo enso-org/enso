@@ -25,7 +25,9 @@ export default function ProjectLogsModal(props: ProjectLogsModalProps) {
   const { projectSessionId, projectTitle } = props
   const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
+  const [isOpen, setIsOpen] = React.useState(false)
   const logsQuery = reactQuery.useQuery({
+    enabled: isOpen,
     queryKey: ['projectLogs', { projectSessionId, projectTitle }],
     queryFn: async () => {
       const logs = await backend.getProjectSessionLogs(projectSessionId, projectTitle)
@@ -34,7 +36,12 @@ export default function ProjectLogsModal(props: ProjectLogsModalProps) {
   })
 
   return (
-    <ariaComponents.Dialog title={getText('logs')} type="fullscreen" className="bg-dim">
+    <ariaComponents.Dialog
+      onOpenChange={setIsOpen}
+      title={getText('logs')}
+      type="fullscreen"
+      className="bg-dim"
+    >
       <pre className="relative overflow-auto whitespace-pre-wrap">
         <code>{logsQuery.data ?? ''}</code>
       </pre>
