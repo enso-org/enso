@@ -172,15 +172,12 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         className="text grow bg-transparent"
         checkSubmittable={newTitle =>
           newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
-            child =>
-              // All siblings,
-              child.key === item.key ||
-              // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
-              // must have a different name.
-              child.item.title !== newTitle
-          )
+          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(child => {
+            const isSelf = child.key === item.key
+            const hasSameType = child.item.type === item.type
+            const hasSameTitle = child.item.title !== newTitle
+            return !(isSelf && hasSameType && hasSameTitle)
+          })
         }
         onSubmit={doRename}
         onCancel={() => {
