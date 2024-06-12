@@ -123,7 +123,7 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       .sort(inputBindingsModule.compareModifiers)
       .map(inputBindingsModule.toModifierKey)
     return (
-      <aria.Keyboard
+      <aria.Text
         className={`flex h-text items-center ${
           detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
         }`}
@@ -139,7 +139,7 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
         <aria.Text className="text">
           {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}
         </aria.Text>
-      </aria.Keyboard>
+      </aria.Text>
     )
   }
 }
