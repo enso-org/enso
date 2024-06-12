@@ -20,6 +20,7 @@ import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
+import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Context.Context
 import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
@@ -155,8 +156,8 @@ type Snowflake_Dialect
         # Boolean to Numeric casts need special handling:
         transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
             True ->
-                SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
-            False -> column.expression
+                SQL_Expression.Operation "IIF" [Internals_Access.column_expression column, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+            False -> Internals_Access.column_expression column
         target_type_sql_text = mapping.sql_type_to_text target_type
         new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
@@ -396,20 +397,20 @@ make_order_descriptor internal_column sort_direction text_ordering =
         Sort_Direction.Descending -> Nulls_Order.Last
     case text_ordering of
         Nothing ->
-            Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+            Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
         _ ->
             ## In the future we can modify this error to suggest using a custom defined collation.
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Case_Sensitivity.Default ->
-                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+                        Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation=Nothing
                     Case_Sensitivity.Sensitive ->
-                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
+                        Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="ucs_basic"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->
-                            upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
+                            upper = SQL_Expression.Operation "UPPER" [Internals_Access.column_expression internal_column]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
 
