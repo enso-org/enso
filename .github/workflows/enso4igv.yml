@@ -22,8 +22,10 @@ jobs:
 
       - name: Build Enso Parser
         working-directory: .
+        env:
+          RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          RUSTFLAGS="-C target-feature=-crt-static" cargo build -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir target/lib/linux/amd64/
+          cargo build -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir target/lib/linux/amd64/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -40,8 +42,10 @@ jobs:
 
       - name: Build Enso Parser
         working-directory: .
+        env:
+          RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          RUSTFLAGS="-C target-feature=-crt-static" cargo build -p enso-parser-jni -Z unstable-options --out-dir target/lib/mac/amd64/
+          cargo build -p enso-parser-jni -Z unstable-options --out-dir target/lib/mac/amd64/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -66,7 +70,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mac_parser
+          name: windows_parser
           path: |
             target/lib/**
 
