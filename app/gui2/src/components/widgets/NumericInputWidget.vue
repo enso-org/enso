@@ -4,7 +4,8 @@ import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'v
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
-  modelValue: number | string
+  modelValue: number | undefined
+  placeholder?: string | undefined
   limits?: { min: number; max: number } | undefined
 }>()
 const emit = defineEmits<{
@@ -18,23 +19,10 @@ const DEFAULT_PLACEHOLDER = ''
 const SLIDER_INPUT_THRESHOLD = 4.0
 const MIN_CONTENT_WIDTH = 56
 
-const initialValue = ref('')
-const placeholder = ref('')
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    const newNumber = typeof newValue === 'number' ? newValue : parseFloat(newValue)
-    if (!Number.isNaN(newNumber)) {
-      initialValue.value = `${newValue}`
-    } else {
-      placeholder.value = `${newValue}`
-    }
-  },
-  { immediate: true },
-)
 // Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
 const editedValue = ref('')
-watch(initialValue, (newValue) => (editedValue.value = newValue), { immediate: true })
+const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))
+watch(valueString, (newValue) => (editedValue.value = newValue), { immediate: true })
 const inputFieldActive = ref(false)
 
 const dragPointer = usePointer(
@@ -93,7 +81,7 @@ const inputStyle = computed<StyleValue>(() => {
 })
 
 function emitUpdate() {
-  if (initialValue.value !== editedValue.value) {
+  if (valueString.value !== editedValue.value) {
     emit('update:modelValue', editedValue.value)
   }
 }
@@ -111,7 +99,7 @@ function focused() {
 
 defineExpose({
   cancel: () => {
-    editedValue.value = initialValue.value
+    editedValue.value = valueString.value
     inputComponent.value?.blur()
   },
   blur: () => inputComponent.value?.blur(),
