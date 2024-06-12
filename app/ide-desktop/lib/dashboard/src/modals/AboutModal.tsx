@@ -5,14 +5,13 @@ import LogoIcon from 'enso-assets/enso_logo.svg'
 
 import type * as text from '#/text'
 
-import * as supportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ButtonRow from '#/components/styled/ButtonRow'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 // =================
 // === Constants ===
@@ -28,7 +27,7 @@ const CLEAR_COPIED_STATE_TIMEOUT_MS = 2_500
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
-  const supportsLocalBackend = supportsLocalBackendProvider.useSupportsLocalBackend()
+  const localBackend = backendProvider.useLocalBackend()
   const { getText } = textProvider.useText()
   const [isCopied, setIsCopied] = React.useState(false)
   const textContainerRef = React.useRef<HTMLTableSectionElement | null>(null)
@@ -75,7 +74,7 @@ export default function AboutModal() {
           <SvgMask src={LogoIcon} className="size-16 shrink-0" />
           <div className="flex flex-col gap-3">
             <div className="text-base font-semibold">
-              {supportsLocalBackend
+              {localBackend != null
                 ? getText('appNameDesktopEdition')
                 : getText('appNameCloudEdition')}
             </div>
@@ -95,14 +94,16 @@ export default function AboutModal() {
               </tbody>
             </table>
             <ButtonRow>
-              <UnstyledButton
+              <ariaComponents.Button
+                size="custom"
+                variant="custom"
                 className="button relative bg-invite text-inversed active"
                 onPress={doCopy}
               >
                 <aria.Text className="text">
                   {isCopied ? getText('copied') : getText('copy')}
                 </aria.Text>
-              </UnstyledButton>
+              </ariaComponents.Button>
             </ButtonRow>
           </div>
         </div>

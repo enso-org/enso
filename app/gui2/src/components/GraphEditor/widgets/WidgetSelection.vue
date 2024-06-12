@@ -26,7 +26,7 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { autoUpdate, offset, size, useFloating } from '@floating-ui/vue'
+import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import { computed, proxyRefs, ref, type ComponentInstance, type RendererNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -42,6 +42,10 @@ const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
 
+// How much wider a dropdown can be than a port it is attached to, when a long text is present.
+// Any text beyond that limit will receive an ellipsis and sliding animation on hover.
+const MAX_DROPDOWN_OVERSIZE_PX = 150
+
 const { floatingStyles } = useFloating(widgetRoot, dropdownElement, {
   middleware: computed(() => {
     return [
@@ -51,13 +55,26 @@ const { floatingStyles } = useFloating(widgetRoot, dropdownElement, {
           mainAxis: (NODE_HEIGHT - state.rects.reference.height) / 2,
         }
       }),
-      size({
-        apply({ elements, rects }) {
-          Object.assign(elements.floating.style, {
-            minWidth: `${rects.reference.width + 16}px`,
-          })
+      size(() => ({
+        elementContext: 'reference',
+        apply({ elements, rects, availableWidth }) {
+          const PORT_PADDING_X = 8
+          const screenOverflow = Math.max(
+            (rects.floating.width - availableWidth) / 2 + PORT_PADDING_X,
+            0,
+          )
+          const portWidth = rects.reference.width + PORT_PADDING_X * 2
+
+          const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
+          const maxWidth = `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px`
+
+          Object.assign(elements.floating.style, { minWidth, maxWidth })
+          elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
         },
-      }),
+      })),
+      // Try to keep the dropdown within node's bounds.
+      shift(() => (tree.nodeElement ? { boundary: tree.nodeElement } : {})),
+      shift(), // Always keep within screen bounds, overriding node bounds.
     ]
   }),
   whileElementsMounted: autoUpdate,
@@ -185,6 +202,7 @@ const selectedExpressions = computed(() => {
     }
   } else {
     const code = removeSurroundingParens(WidgetInput.valueRepr(props.input))
+    if (code?.includes(' ')) selected.add(code.substring(0, code.indexOf(' ')))
     if (code) selected.add(code)
   }
   return selected

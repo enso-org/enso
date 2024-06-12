@@ -21,10 +21,14 @@ export default function StatelessSpinner(props: StatelessSpinnerProps) {
   const [state, setState] = React.useState(spinner.SpinnerState.initial)
 
   React.useEffect(() => {
-    window.setTimeout(() => {
+    const timeout = window.setTimeout(() => {
       setState(rawState)
     })
-  }, [/* should never change */ rawState])
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [rawState])
 
   return <Spinner state={state} {...(size != null ? { size } : {})} />
 }

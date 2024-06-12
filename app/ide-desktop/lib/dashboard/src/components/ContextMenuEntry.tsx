@@ -14,5 +14,5 @@ export interface ContextMenuEntryProps
 
 /** An item in a menu. */
 export default function ContextMenuEntry(props: ContextMenuEntryProps) {
-  return <MenuEntry isContextMenuEntry {...props} />
+  return <MenuEntry variant="context-menu" {...props} />
 }

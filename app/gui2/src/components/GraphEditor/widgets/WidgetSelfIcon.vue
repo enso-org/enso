@@ -26,14 +26,8 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <SvgIcon
-    class="WidgetSelfIcon icon nodeCategoryIcon draggable"
+    class="WidgetSelfIcon icon nodeCategoryIcon draggable r-24"
     :name="icon"
     @click.right.stop.prevent="tree.emitOpenFullMenu()"
   />
 </template>
-
-<style scoped>
-.icon {
-  margin: 0 4px;
-}
-</style>

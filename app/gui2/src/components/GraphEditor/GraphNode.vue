@@ -12,7 +12,8 @@ import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import NodeWidgetTree, {
-  GRAB_HANDLE_X_MARGIN,
+  GRAB_HANDLE_X_MARGIN_L,
+  GRAB_HANDLE_X_MARGIN_R,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -193,7 +194,8 @@ watchEffect(() => {
   }
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
-    pos.sub(props.node.position).x < CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN * 2
+    pos.sub(props.node.position).x <
+      CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN_L + GRAB_HANDLE_X_MARGIN_R
   const hovered =
     menuHovered.value ||
     inZone(nodeHoverPos.value) ||
@@ -596,7 +598,7 @@ watchEffect(() => {
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  z-index: 2;
+  z-index: 24;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
 }
@@ -618,12 +620,6 @@ watchEffect(() => {
 
 .selectionVisible .binding {
   opacity: 1;
-}
-
-.container {
-  position: relative;
-  display: flex;
-  gap: 4px;
 }
 
 .CircularMenu {
