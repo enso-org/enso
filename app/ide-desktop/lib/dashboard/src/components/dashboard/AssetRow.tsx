@@ -947,7 +947,7 @@ export default function AssetRow(props: AssetRowProps) {
           <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
-                'flex h-row w-container justify-center rounded-full rounded-rows-child',
+                'flex h-table-row w-container items-center justify-center rounded-full rounded-rows-child',
                 indent.indentClass(item.depth)
               )}
             >
@@ -963,7 +963,7 @@ export default function AssetRow(props: AssetRowProps) {
           <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
-                'flex h-row items-center rounded-full rounded-rows-child',
+                'flex h-table-row items-center rounded-full rounded-rows-child',
                 indent.indentClass(item.depth)
               )}
             >
