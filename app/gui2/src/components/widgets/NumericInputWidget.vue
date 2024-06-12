@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
-import { computed, ref, watch, type ComponentInstance, type CSSProperties } from 'vue'
+import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
