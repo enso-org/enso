@@ -66,7 +66,7 @@ interface UnknownTable {
   header: string[] | undefined
   data: unknown[][] | undefined
   value_type: ValueType[]
-  has_index_col: boolean
+  has_index_col: boolean | undefined
 }
 
 declare module 'ag-grid-enterprise' {
@@ -279,6 +279,7 @@ watchEffect(() => {
         data: undefined,
         // eslint-disable-next-line camelcase
         value_type: undefined,
+        // eslint-disable-next-line camelcase
         has_index_col: false,
       }
   const options = agGridOptions.value
