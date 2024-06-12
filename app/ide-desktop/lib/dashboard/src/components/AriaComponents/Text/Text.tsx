@@ -24,7 +24,7 @@ export interface TextProps
 }
 
 export const TEXT_STYLE = twv.tv({
-  base: 'inline-block flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
+  base: '',
   variants: {
     color: {
       custom: '',
@@ -32,7 +32,7 @@ export const TEXT_STYLE = twv.tv({
       danger: 'text-danger',
       success: 'text-share',
       disabled: 'text-primary/30',
-      invert: 'text-white',
+      invert: 'text-white/80',
     },
     // we use custom padding for the text variants to make sure the text is aligned with the grid
     // leading is also adjusted to make sure the text is aligned with the grid
@@ -84,7 +84,11 @@ export const TEXT_STYLE = twv.tv({
       word: 'select-text',
       all: 'select-all',
     },
-    disableLineHeightCompensation: { true: '' },
+    disableLineHeightCompensation: {
+      true: '',
+      false:
+        'inline-block flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
+    },
   },
   defaultVariants: {
     variant: 'body',

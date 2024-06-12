@@ -19,6 +19,8 @@ export interface ButtonProps {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactNode
   readonly autoFocus?: boolean
+  /** When `true`, the button uses a lighter color when it is not active. */
+  readonly light?: boolean
   /** When `true`, the button is not faded out even when not hovered. */
   readonly active?: boolean
   /** When `true`, the button is clickable, but displayed as not clickable.
@@ -28,6 +30,7 @@ export interface ButtonProps {
   readonly isDisabled?: boolean
   readonly image: string
   readonly alt?: string
+  readonly tooltipPlacement?: aria.Placement
   /** A title that is only shown when `disabled` is `true`. */
   readonly error?: string | null
   /** Class names for the icon itself. */
@@ -42,6 +45,7 @@ export interface ButtonProps {
 function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
   const {
     tooltip,
+    light = false,
     active = false,
     softDisabled = false,
     image,
@@ -49,6 +53,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     alt,
     className,
     buttonClassName,
+    tooltipPlacement,
     ...buttonProps
   } = props
   const { isDisabled = false } = buttonProps
@@ -62,13 +67,18 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
         {...aria.mergeProps<aria.ButtonProps>()(buttonProps, focusChildProps, {
           ref,
           className: tailwindMerge.twMerge(
-            'relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring',
+            'relative after:pointer-events-none after:absolute after:inset after:rounded-button-focus-ring transition-colors hover:enabled:bg-primary/10 rounded-button-focus-ring -m-1 p-1',
             buttonClassName
           ),
         })}
       >
         <div
-          className={`group flex selectable ${isDisabled || softDisabled ? 'disabled' : ''} ${active ? 'active' : ''}`}
+          className={tailwindMerge.twMerge(
+            'group flex selectable',
+            light && 'opacity-25',
+            (isDisabled || softDisabled) && 'disabled',
+            active && 'active'
+          )}
         >
           <SvgMask
             src={image}
@@ -86,7 +96,11 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   ) : (
     <ariaComponents.TooltipTrigger>
       {button}
-      <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
+      <ariaComponents.Tooltip
+        {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
+      >
+        {tooltipElement}
+      </ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
   )
 }

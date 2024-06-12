@@ -5,6 +5,7 @@ import org.enso.distribution.locking.ThreadSafeLockManager
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.serde.ApiSerde
 import org.graalvm.polyglot.io.{MessageEndpoint, MessageTransport}
 
 import java.nio.ByteBuffer
@@ -46,13 +47,13 @@ class RuntimeServerEmulator(
   private val connector = system.actorOf(
     TestRuntimeServerConnector.props(
       lockManagerService,
-      { response => endpoint.sendBinary(Api.serialize(response)) }
+      { response => endpoint.sendBinary(ApiSerde.serialize(response)) }
     )
   )
 
   /** Sends a message to the runtime. */
   def sendToRuntime(msg: Api.Request): Unit =
-    endpoint.sendBinary(Api.serialize(msg))
+    endpoint.sendBinary(ApiSerde.serialize(msg))
 
   /** Creates a [[MessageTransport]] that should be provided when building the
     * context.
@@ -64,7 +65,7 @@ class RuntimeServerEmulator(
         override def sendText(text: String): Unit = {}
 
         override def sendBinary(data: ByteBuffer): Unit = {
-          Api.deserializeApiEnvelope(data) match {
+          ApiSerde.deserializeApiEnvelope(data) match {
             case Success(request: Api.Request) =>
               connector ! request
             case Success(response: Api.Response) =>

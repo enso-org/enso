@@ -1,4 +1,5 @@
 <script lang="ts">
+import icons from '@/assets/icons.svg'
 import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
@@ -34,11 +35,17 @@ interface Error {
   all_rows_count?: undefined
 }
 
+interface ValueType {
+  constructor: string
+  display_text: string
+}
+
 interface Matrix {
   type: 'Matrix'
   column_count: number
   all_rows_count: number
   json: unknown[][]
+  value_type: ValueType[]
 }
 
 interface ObjectMatrix {
@@ -46,6 +53,7 @@ interface ObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
+  value_type: ValueType[]
 }
 
 interface LegacyMatrix {
@@ -53,6 +61,7 @@ interface LegacyMatrix {
   column_count: number
   all_rows_count: number
   json: unknown[][]
+  value_type: ValueType[]
 }
 
 interface LegacyObjectMatrix {
@@ -60,6 +69,7 @@ interface LegacyObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
+  value_type: ValueType[]
 }
 
 interface UnknownTable {
@@ -73,6 +83,7 @@ interface UnknownTable {
   indices_header?: string[]
   data: unknown[][] | undefined
   indices: unknown[][] | undefined
+  value_type: ValueType[]
 }
 
 declare module 'ag-grid-enterprise' {
@@ -265,12 +276,49 @@ function isMatrix(data: object): data is LegacyMatrix {
   return json.every((d) => d.length === firstLen)
 }
 
-function toField(name: string): ColDef {
-  return { field: name }
+function toField(name: string, valueType?: ValueType | null | undefined): ColDef {
+  const valType = valueType ? valueType.constructor : null
+  const displayValue = valueType ? valueType.display_text : null
+  let icon
+  switch (valType) {
+    case 'Char':
+      icon = 'text3'
+      break
+    case 'Boolean':
+      icon = 'check'
+      break
+    case 'Integer':
+    case 'Float':
+    case 'Decimal':
+    case 'Byte':
+      icon = 'math'
+      break
+    case 'Date':
+    case 'Date_Time':
+      icon = 'calendar'
+      break
+    case 'Time':
+      icon = 'time'
+      break
+    case 'Mixed':
+      icon = 'mixed'
+  }
+  const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  const template =
+    icon ?
+      `<div style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${svgTemplate}</div>`
+    : `<div>${name}</div>`
+  return {
+    field: name,
+    headerComponentParams: {
+      template,
+    },
+    headerTooltip: displayValue ? displayValue : '',
+  }
 }
 
 function indexField(): ColDef {
-  return toField(INDEX_FIELD_NAME)
+  return { field: INDEX_FIELD_NAME }
 }
 
 /** Return a human-readable representation of an object. */
@@ -290,6 +338,8 @@ watchEffect(() => {
         all_rows_count: 1,
         data: undefined,
         indices: undefined,
+        // eslint-disable-next-line camelcase
+        value_type: undefined,
       }
   const options = agGridOptions.value
   if (options.api == null) {
@@ -336,7 +386,7 @@ watchEffect(() => {
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (isObjectMatrix(data_)) {
     // Kept to allow visualization from older versions of the backend.
-    columnDefs = [INDEX_FIELD_NAME, ...Object.keys(data_.json[0]!)].map(toField)
+    columnDefs = [INDEX_FIELD_NAME, ...Object.keys(data_.json[0]!)].map((v) => toField(v))
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (Array.isArray(data_.json)) {
@@ -347,8 +397,15 @@ watchEffect(() => {
     columnDefs = [toField('Value')]
     rowData = [{ Value: toRender(data_.json) }]
   } else {
-    const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map(toField)
-    const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
+    const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map((v) =>
+      toField(v),
+    )
+    const dataHeader =
+      ('header' in data_ ? data_.header : [])?.map((v, i) => {
+        const valueType = data_.value_type ? data_.value_type[i] : null
+        return toField(v, valueType)
+      }) ?? []
+
     columnDefs = [...indicesHeader, ...dataHeader]
     const rows =
       data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0
