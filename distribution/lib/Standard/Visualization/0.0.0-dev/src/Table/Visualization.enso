@@ -34,13 +34,12 @@ prepare_visualization y max_rows=1000 =
         _ : Table ->
             dataframe = x.take max_rows
             all_rows_count = x.row_count
-            index = Column.from_vector "#" (Vector.new dataframe.row_count i->i)
-            make_json_for_table dataframe [index] all_rows_count
+            make_json_for_table dataframe all_rows_count
         _ : DB_Column -> prepare_visualization x.to_table max_rows
         _ : DB_Table ->
             dataframe = x.read (..First max_rows)
             all_rows_count = x.row_count
-            make_json_for_table dataframe [] all_rows_count
+            make_json_for_table dataframe all_rows_count
         _ : Function ->
             pairs = [['_display_text_', '[Function '+x.to_text+']']]
             value = JS_Object.from_pairs pairs
@@ -145,22 +144,17 @@ make_json_for_js_object js_object max_items =
    Arguments:
    - dataframe: the dataframe containing (possibly just a fragment of) the data
      to display.
-   - indices: a vector of dataframe columns that should be displayed as indices;
-     it can be empty, they should have the same amount of rows as the
-     `dataframe`.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Table -> Vector Column -> Integer -> JS_Object
-make_json_for_table dataframe indices all_rows_count =
+make_json_for_table : Table -> Integer -> JS_Object
+make_json_for_table dataframe all_rows_count =
     get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
     columns     = dataframe.columns
     header      = ["header", columns.map .name]
     value_type  = ["value_type", columns.map .value_type]
     data        = ["data",   columns.map get_vector]
     all_rows    = ["all_rows_count", all_rows_count]
-    ixes        = ["indices", indices.map get_vector]
-    ixes_header = ["indices_header", indices.map .name]
-    pairs       = [header, value_type, data, all_rows, ixes, ixes_header, ["type", "Table"]]
+    pairs       = [header, value_type, data, all_rows, ["type", "Table"]]
     JS_Object.from_pairs pairs
 
 ## PRIVATE

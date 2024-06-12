@@ -27,7 +27,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | LegacyMatrix | LegacyObjectMatrix | UnknownTable
+type Data = Error | Matrix | ObjectMatrix | UnknownTable
 
 interface Error {
   type: undefined
@@ -50,22 +50,6 @@ interface Matrix {
 
 interface ObjectMatrix {
   type: 'Object_Matrix'
-  column_count: number
-  all_rows_count: number
-  json: object[]
-  value_type: ValueType[]
-}
-
-interface LegacyMatrix {
-  type: undefined
-  column_count: number
-  all_rows_count: number
-  json: unknown[][]
-  value_type: ValueType[]
-}
-
-interface LegacyObjectMatrix {
-  type: undefined
   column_count: number
   all_rows_count: number
   json: object[]
@@ -217,13 +201,13 @@ function cellRenderer(params: ICellRendererParams) {
   else if (typeof params.value === 'number') return formatNumber(params)
   else if (Array.isArray(params.value)) {
     const content = params.value
-    if (isMatrix({ json: content })) {
-      return `[Vector ${content.length} rows x ${content[0].length} cols]`
-    } else if (isObjectMatrix({ json: content })) {
-      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
-    } else {
-      return `[Vector ${content.length} items]`
-    }
+    // if (isMatrix({ json: content })) {
+    //   return `[Vector ${content.length} rows x ${content[0].length} cols]`
+    // } else if (isObjectMatrix({ json: content })) {
+    //   return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
+    // } else {
+    return `[Vector ${content.length} items]`
+    // }
   } else if (typeof params.value === 'object') {
     const valueType = params.value?.type
     if (valueType === 'BigInt') return formatNumber(params)
@@ -239,42 +223,42 @@ function addRowIndex(data: object[]): object[] {
   return data.map((row, i) => ({ [INDEX_FIELD_NAME]: i, ...row }))
 }
 
-function hasExactlyKeys(keys: string[], obj: object) {
-  return (
-    Object.keys(obj).length === keys.length &&
-    keys.every((k) => Object.prototype.hasOwnProperty.call(obj, k))
-  )
-}
+// function hasExactlyKeys(keys: string[], obj: object) {
+//   return (
+//     Object.keys(obj).length === keys.length &&
+//     keys.every((k) => Object.prototype.hasOwnProperty.call(obj, k))
+//   )
+// }
 
-function isObjectMatrix(data: object): data is LegacyObjectMatrix {
-  if (!('json' in data)) {
-    return false
-  }
-  const json = data.json
-  const isList = Array.isArray(json) && json[0] != null
-  if (!isList || !(typeof json[0] === 'object')) {
-    return false
-  }
-  const firstKeys = Object.keys(json[0])
-  return json.every((obj) => hasExactlyKeys(firstKeys, obj))
-}
+// function isObjectMatrix(data: object): data is LegacyObjectMatrix {
+//   if (!('json' in data)) {
+//     return false
+//   }
+//   const json = data.json
+//   const isList = Array.isArray(json) && json[0] != null
+//   if (!isList || !(typeof json[0] === 'object')) {
+//     return false
+//   }
+//   const firstKeys = Object.keys(json[0])
+//   return json.every((obj) => hasExactlyKeys(firstKeys, obj))
+// }
 
-function isMatrix(data: object): data is LegacyMatrix {
-  if (!('json' in data)) {
-    return false
-  }
-  const json = data.json
-  const isList = Array.isArray(json) && json[0] != null
-  if (!isList) {
-    return false
-  }
-  const firstIsArray = Array.isArray(json[0])
-  if (!firstIsArray) {
-    return false
-  }
-  const firstLen = json[0].length
-  return json.every((d) => d.length === firstLen)
-}
+// function isMatrix(data: object): data is LegacyMatrix {
+//   if (!('json' in data)) {
+//     return false
+//   }
+//   const json = data.json
+//   const isList = Array.isArray(json) && json[0] != null
+//   if (!isList) {
+//     return false
+//   }
+//   const firstIsArray = Array.isArray(json[0])
+//   if (!firstIsArray) {
+//     return false
+//   }
+//   const firstLen = json[0].length
+//   return json.every((d) => d.length === firstLen)
+// }
 
 function toField(name: string, valueType?: ValueType | null | undefined): ColDef {
   const valType = valueType ? valueType.constructor : null
@@ -379,16 +363,16 @@ watchEffect(() => {
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isMatrix(data_)) {
-    // Kept to allow visualization from older versions of the backend.
-    columnDefs = [indexField(), ...data_.json[0]!.map((_, i) => toField(i.toString()))]
-    rowData = addRowIndex(data_.json)
-    isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isObjectMatrix(data_)) {
-    // Kept to allow visualization from older versions of the backend.
-    columnDefs = [INDEX_FIELD_NAME, ...Object.keys(data_.json[0]!)].map((v) => toField(v))
-    rowData = addRowIndex(data_.json)
-    isTruncated.value = data_.all_rows_count !== data_.json.length
+    // } else if (isMatrix(data_)) {
+    //   // Kept to allow visualization from older versions of the backend.
+    //   columnDefs = [indexField(), ...data_.json[0]!.map((_, i) => toField(i.toString()))]
+    //   rowData = addRowIndex(data_.json)
+    //   isTruncated.value = data_.all_rows_count !== data_.json.length
+    // } else if (isObjectMatrix(data_)) {
+    //   // Kept to allow visualization from older versions of the backend.
+    //   columnDefs = [INDEX_FIELD_NAME, ...Object.keys(data_.json[0]!)].map(toField)
+    //   rowData = addRowIndex(data_.json)
+    //   isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (Array.isArray(data_.json)) {
     columnDefs = [indexField(), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
@@ -397,29 +381,22 @@ watchEffect(() => {
     columnDefs = [toField('Value')]
     rowData = [{ Value: toRender(data_.json) }]
   } else {
-    const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map((v) =>
-      toField(v),
-    )
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
         const valueType = data_.value_type ? data_.value_type[i] : null
         return toField(v, valueType)
       }) ?? []
 
-    columnDefs = [...indicesHeader, ...dataHeader]
-    const rows =
-      data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0
-      : data_.indices && data_.indices.length > 0 ? data_.indices[0]?.length ?? 0
-      : 0
+    columnDefs = [indexField(), ...dataHeader]
+    const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
-      const shift = data_.indices ? data_.indices.length : 0
       return Object.fromEntries(
-        columnDefs.map((h, j) => [
-          h.field,
-          toRender(j < shift ? data_.indices?.[j]?.[i] : data_.data?.[j - shift]?.[i]),
-        ]),
+        columnDefs.map((h, j) => {
+          return [h.field, toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j]?.[i])]
+        }),
       )
     })
+    console.log({ rowData })
     isTruncated.value = data_.all_rows_count !== rowData.length
   }
 
