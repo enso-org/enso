@@ -1254,7 +1254,7 @@ type DB_Column
        on these missing values is vendor specific.
     ends_with : DB_Column | Text -> Case_Sensitivity -> DB_Column
     ends_with self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = self.naming_helper.function_name "ENDS_WITH" [self, other]
+        new_name = self.naming_helper.function_name "ends_with" [self, other]
         make_text_case_op self "ENDS_WITH" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Text
@@ -1334,7 +1334,7 @@ type DB_Column
        on these missing values is vendor specific.
     contains : DB_Column | Text -> Case_Sensitivity -> DB_Column
     contains self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = self.naming_helper.function_name "CONTAINS" [self, other]
+        new_name = self.naming_helper.function_name "contains" [self, other]
         make_text_case_op self "CONTAINS" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Logical
