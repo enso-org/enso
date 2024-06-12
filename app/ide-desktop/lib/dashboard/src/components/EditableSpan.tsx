@@ -75,6 +75,17 @@ export default function EditableSpan(props: EditableSpanProps) {
     return (
       <form
         className="flex grow"
+        onBlur={event => {
+          const currentTarget = event.currentTarget
+          if (!currentTarget.contains(event.relatedTarget)) {
+            // This must run AFTER the cancel button's event handler runs.
+            setTimeout(() => {
+              if (!cancelledRef.current) {
+                currentTarget.requestSubmit()
+              }
+            })
+          }
+        }}
         onSubmit={event => {
           event.preventDefault()
           if (inputRef.current != null) {
@@ -94,15 +105,6 @@ export default function EditableSpan(props: EditableSpanProps) {
           type="text"
           size={1}
           defaultValue={children}
-          onBlur={event => {
-            const currentTarget = event.currentTarget
-            // This must run AFTER the cancel button's event handler runs.
-            setTimeout(() => {
-              if (!cancelledRef.current) {
-                currentTarget.form?.requestSubmit()
-              }
-            })
-          }}
           onContextMenu={event => {
             event.stopPropagation()
           }}
