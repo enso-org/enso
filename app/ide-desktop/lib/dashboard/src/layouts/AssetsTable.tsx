@@ -385,7 +385,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
   const { targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
-  const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useStrictBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -1034,7 +1034,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [category, accessToken, user, backend, setSelectedKeys]
+    [category, backend, setSelectedKeys]
   )
 
   React.useEffect(() => {
