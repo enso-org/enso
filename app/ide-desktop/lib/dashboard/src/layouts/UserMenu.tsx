@@ -1,6 +1,8 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
@@ -9,8 +11,8 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as supportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
@@ -41,8 +43,8 @@ export interface UserMenuProps {
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, setPage, onSignOut } = props
   const [initialized, setInitialized] = React.useState(false)
-  const supportsLocalBackend = supportsLocalBackendProvider.useSupportsLocalBackend()
   const navigate = navigateHooks.useNavigate()
+  const localBackend = backendProvider.useLocalBackend()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -66,7 +68,10 @@ export default function UserMenu(props: UserMenuProps) {
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
+        className={tailwindMerge.twMerge(
+          'absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'
+        )}
         onClick={event => {
           event.stopPropagation()
         }}
@@ -74,7 +79,10 @@ export default function UserMenu(props: UserMenuProps) {
         {user != null ? (
           <>
             <div
-              className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
+              className={tailwindMerge.twMerge(
+                'flex items-center gap-icons overflow-hidden transition-all duration-user-menu',
+                initialized && 'px-menu-entry'
+              )}
             >
               <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
                 <img
@@ -85,7 +93,10 @@ export default function UserMenu(props: UserMenuProps) {
               <aria.Text className="text">{user.name}</aria.Text>
             </div>
             <div
-              className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
+              className={tailwindMerge.twMerge(
+                'grid transition-all duration-user-menu',
+                initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'
+              )}
             >
               <FocusArea direction="vertical">
                 {innerProps => (
@@ -94,7 +105,7 @@ export default function UserMenu(props: UserMenuProps) {
                     className="flex flex-col overflow-hidden"
                     {...innerProps}
                   >
-                    {!supportsLocalBackend && (
+                    {localBackend == null && (
                       <MenuEntry
                         action="downloadApp"
                         doAction={async () => {
@@ -138,6 +149,13 @@ export default function UserMenu(props: UserMenuProps) {
             </div>
             <div className="flex flex-col">
               {aboutThisAppMenuEntry}
+              <MenuEntry
+                action="settings"
+                doAction={() => {
+                  unsetModal()
+                  setPage(pageSwitcher.Page.settings)
+                }}
+              />
               <MenuEntry
                 action="signIn"
                 doAction={() => {

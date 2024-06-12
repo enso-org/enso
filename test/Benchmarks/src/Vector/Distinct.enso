@@ -35,11 +35,11 @@ collect_benches = Bench.build builder->
     data = Data.create
 
     builder.group "Vector_Distinct" options group_builder->
-        group_builder.specify "Random_Integer_Vector_Distinct" <|
+        group_builder.specify "Random_Integer_Vector_Distinct_v2" <|
             data.random_vec.distinct
         group_builder.specify "Uniform_Integer_Vector_Distinct" <|
             data.uniform_vec.distinct
-        group_builder.specify "Random_Text_Vector_Distinct" <|
+        group_builder.specify "Random_Text_Vector_Distinct_v2" <|
             data.random_text_vec.distinct
         group_builder.specify "Uniform_Text_Vector_Distinct" <|
             data.uniform_text_vec.distinct

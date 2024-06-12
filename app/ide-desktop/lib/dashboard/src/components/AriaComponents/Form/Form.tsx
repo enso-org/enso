@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Form component
- */
+/** @file Form component. */
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
@@ -20,14 +16,11 @@ import * as components from './components'
 import * as styles from './styles'
 import type * as types from './types'
 
-/**
- * Form component. It wraps the form and provides the form context.
- * It also handles the form submission.
- * Provides better error handling and form state management.
- * And serves a better UX out of the box.
+/** Form component. It wraps a `form` and provides form context.
+ * It also handles form submission.
+ * Provides better error handling and form state management and better UX out of the box.
  *
- * ## Component is in BETA and will be improved in the future.
- */
+ * ## Component is in BETA and will be improved in the future. */
 // There is no way to avoid type casting here
 // eslint-disable-next-line no-restricted-syntax
 export const Form = React.forwardRef(function Form<

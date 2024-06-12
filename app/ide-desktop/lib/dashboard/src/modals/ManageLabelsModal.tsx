@@ -1,26 +1,36 @@
 /** @file A modal to select labels for an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+
+// =================
+// === Constants ===
+// =================
+
+/** The maximum lightness at which a color is still considered dark. */
+const MAXIMUM_DARK_LIGHTNESS = 50
 
 // =========================
 // === ManageLabelsModal ===
@@ -30,10 +40,9 @@ import * as string from '#/utilities/string'
 export interface ManageLabelsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
+  readonly backend: Backend
   readonly item: Asset
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
-  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
-  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   /** If this is `null`, this modal will be centered. */
   readonly eventTarget: HTMLElement | null
 }
@@ -44,27 +53,29 @@ export interface ManageLabelsModalProps<
 export default function ManageLabelsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManageLabelsModalProps<Asset>) {
-  const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
-  const { backend } = backendProvider.useStrictBackend()
+  const { backend, item, setItem, eventTarget } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const allLabels = backendHooks.useBackendListTags(backend)
   const [labels, setLabelsRaw] = React.useState(item.labels ?? [])
   const [query, setQuery] = React.useState('')
   const [color, setColor] = React.useState<backendModule.LChColor | null>(null)
   const leastUsedColor = React.useMemo(
-    () => backendModule.leastUsedColor(allLabels.values()),
+    () => backendModule.leastUsedColor(allLabels ?? []),
     [allLabels]
   )
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const labelNames = React.useMemo(() => new Set(labels), [labels])
   const regex = React.useMemo(() => new RegExp(string.regexEscape(query), 'i'), [query])
   const canSelectColor = React.useMemo(
-    () =>
-      query !== '' && Array.from(allLabels.keys()).filter(label => regex.test(label)).length === 0,
+    () => query !== '' && (allLabels ?? []).filter(label => regex.test(label.value)).length === 0,
     [allLabels, query, regex]
   )
   const canCreateNewLabel = canSelectColor
+
+  const createTagMutation = backendHooks.useBackendMutation(backend, 'createTag')
+  const associateTagMutation = backendHooks.useBackendMutation(backend, 'associateTag')
 
   const setLabels = React.useCallback(
     (valueOrUpdater: React.SetStateAction<backendModule.LabelName[]>) => {
@@ -89,7 +100,7 @@ export default function ManageLabelsModal<
       : [...labels, name]
     setLabels(newLabels)
     try {
-      await backend.associateTag(item.id, newLabels, item.title)
+      await associateTagMutation.mutateAsync([item.id, newLabels, item.title])
     } catch (error) {
       toastAndLog(null, error)
       setLabels(labels)
@@ -98,11 +109,12 @@ export default function ManageLabelsModal<
 
   const doSubmit = async () => {
     unsetModal()
-    setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
+    const labelName = backendModule.LabelName(query)
+    setLabels(oldLabels => [...oldLabels, labelName])
     try {
-      await doCreateLabel(query, color ?? leastUsedColor)
+      await createTagMutation.mutateAsync([{ value: labelName, color: color ?? leastUsedColor }])
       setLabels(newLabels => {
-        void backend.associateTag(item.id, newLabels, item.title)
+        associateTagMutation.mutate([item.id, newLabels, item.title])
         return newLabels
       })
     } catch (error) {
@@ -155,12 +167,12 @@ export default function ManageLabelsModal<
                 <div className="flex gap-input-with-button" {...innerProps}>
                   <FocusRing within>
                     <div
-                      className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${
-                        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                        canSelectColor && color != null && color.lightness <= 50
+                      className={tailwindMerge.twMerge(
+                        'flex grow items-center rounded-full border border-primary/10 px-input-x',
+                        canSelectColor && color != null && color.lightness <= MAXIMUM_DARK_LIGHTNESS
                           ? 'text-tag-text placeholder-tag-text'
                           : 'text-primary'
-                      }`}
+                      )}
                       style={
                         !canSelectColor || color == null
                           ? {}
@@ -181,7 +193,9 @@ export default function ManageLabelsModal<
                       />
                     </div>
                   </FocusRing>
-                  <UnstyledButton
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={!canCreateNewLabel}
                     className="button bg-invite px-button-x text-tag-text enabled:active"
                     onPress={eventModule.submitForm}
@@ -189,7 +203,7 @@ export default function ManageLabelsModal<
                     <aria.Text className="h-text py-modal-invite-button-text-y">
                       {getText('create')}
                     </aria.Text>
-                  </UnstyledButton>
+                  </ariaComponents.Button>
                 </div>
               )}
             </FocusArea>
@@ -202,7 +216,7 @@ export default function ManageLabelsModal<
           <FocusArea direction="vertical">
             {innerProps => (
               <div className="max-h-manage-labels-list overflow-auto" {...innerProps}>
-                {Array.from(allLabels.values())
+                {(allLabels ?? [])
                   .filter(label => regex.test(label.value))
                   .map(label => (
                     <div key={label.id} className="flex h-row items-center">

@@ -104,6 +104,7 @@ export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
 export const nodeOutputPort = componentLocator('outputPortHoverArea')
 export const smallPlusButton = componentLocator('SmallPlusButton')
+export const lexicalContent = componentLocator('LexicalContent')
 
 export function componentBrowserEntry(
   page: Locator | Page,
@@ -125,6 +126,10 @@ export function componentBrowserSelectedEntry(
 
 export function componentBrowserEntryByLabel(page: Locator | Page, label: string) {
   return componentBrowserEntry(page).filter({ has: page.getByText(label) })
+}
+
+export function rightDock(page: Page) {
+  return page.getByTestId('rightDock')
 }
 
 export const navBreadcrumb = componentLocator('NavBreadcrumb')

@@ -101,7 +101,7 @@ public class PersistableProcessor extends AbstractProcessor {
 
             var diff = eb.getParameters().size() - ea.getParameters().size();
             if (diff == 0) {
-              diff = countSeq(eb.getParameters()) - countSeq(ea.getParameters());
+              diff = countInlineRef(eb.getParameters()) - countInlineRef(ea.getParameters());
             }
             return diff;
           }
@@ -275,12 +275,12 @@ public class PersistableProcessor extends AbstractProcessor {
     return true;
   }
 
-  private int countSeq(List<? extends VariableElement> parameters) {
+  private int countInlineRef(List<? extends VariableElement> parameters) {
     var tu = processingEnv.getTypeUtils();
     var cnt = 0;
     for (var p : parameters) {
       var type = tu.asElement(tu.erasure(p.asType()));
-      if (type != null && type.getSimpleName().toString().equals("Seq")) {
+      if (type != null && type.getSimpleName().toString().equals("Reference")) {
         cnt++;
       }
     }

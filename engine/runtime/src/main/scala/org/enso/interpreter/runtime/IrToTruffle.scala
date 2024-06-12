@@ -752,10 +752,15 @@ class IrToTruffle(
     t: Expression
   ): ReadArgumentCheckNode = t match {
     case u: `type`.Set.Union =>
-      ReadArgumentCheckNode.oneOf(
-        comment,
-        u.operands.map(extractAscribedType(comment, _)).asJava
-      )
+      val oneOf = u.operands.map(extractAscribedType(comment, _))
+      if (oneOf.contains(null)) {
+        null
+      } else {
+        ReadArgumentCheckNode.oneOf(
+          comment,
+          oneOf.asJava
+        )
+      }
     case i: `type`.Set.Intersection =>
       ReadArgumentCheckNode.allOf(
         comment,
@@ -765,19 +770,28 @@ class IrToTruffle(
     case p: Application.Prefix => extractAscribedType(comment, p.function)
     case _: Tpe.Function =>
       ReadArgumentCheckNode.build(
+        context,
         comment,
         context.getTopScope().getBuiltins().function()
       )
+    case typeWithError: Tpe.Error =>
+      // When checking a `a ! b` type, we ignore the error part as it is only used for documentation purposes and is not checked.
+      extractAscribedType(comment, typeWithError.typed)
+    case typeInContext: Tpe.Context =>
+      // Type contexts aren't currently really used. But we should still check the base type.
+      extractAscribedType(comment, typeInContext.typed)
     case t => {
       t.getMetadata(TypeNames) match {
         case Some(
               BindingsMap
                 .Resolution(binding @ BindingsMap.ResolvedType(_, _))
             ) =>
-          ReadArgumentCheckNode.build(
-            comment,
-            asType(binding)
-          )
+          val typeOrAny = asType(binding)
+          if (context.getBuiltins().any() == typeOrAny) {
+            null
+          } else {
+            ReadArgumentCheckNode.build(context, comment, typeOrAny)
+          }
         case Some(
               BindingsMap
                 .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
@@ -2181,10 +2195,13 @@ class IrToTruffle(
             )
             .unsafeAs[AliasInfo.Scope.Child]
 
+          def valueHasSomeTypeCheck() =
+            value.getMetadata(TypeSignatures).isDefined
+
           val shouldCreateClosureRootNode = value match {
-            case _: Name           => false
-            case _: Literal.Text   => false
-            case _: Literal.Number => false
+            case _: Name           => valueHasSomeTypeCheck()
+            case _: Literal.Text   => valueHasSomeTypeCheck()
+            case _: Literal.Number => valueHasSomeTypeCheck()
             case _                 => true
           }
 

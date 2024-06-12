@@ -52,7 +52,7 @@ test('Hover behaviour of edges', async ({ page }) => {
   await expect(edgeElements).toHaveCount(EDGE_PARTS)
 
   const targetEdge = edgeElements.first()
-  await expect(targetEdge).toHaveClass('edge io')
+  await expect(targetEdge).toHaveClass(/\bio\b/)
 
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.hover({

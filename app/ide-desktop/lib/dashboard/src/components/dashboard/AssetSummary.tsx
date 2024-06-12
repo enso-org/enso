@@ -1,6 +1,8 @@
 /** @file Displays a few details of an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import BreadcrumbArrowIcon from 'enso-assets/breadcrumb_arrow.svg'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -11,6 +13,10 @@ import AssetIcon from '#/components/dashboard/AssetIcon'
 import type * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
+
+// ====================
+// === AssetSummary ===
+// ====================
 
 /** Props for an {@link AssetSummary}. */
 export interface AssetSummaryProps {
@@ -27,7 +33,10 @@ export default function AssetSummary(props: AssetSummaryProps) {
   const { getText } = textProvider.useText()
   return (
     <div
-      className={`flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x ${className}`}
+      className={tailwindMerge.twMerge(
+        'flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x',
+        className
+      )}
     >
       <div className="grid size-icon place-items-center">
         <AssetIcon asset={asset} />

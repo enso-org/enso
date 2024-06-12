@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [develop]
     paths:
+      - ".github/workflows/enso4igv.yml"
       - "tools/enso4igv/**/*"
 
 jobs:
@@ -14,6 +15,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Install rustup
+        run: |
+          rustup target add x86_64-unknown-linux-musl
 
       - name: Build Enso Parser
         working-directory: .
@@ -41,6 +46,14 @@ jobs:
           distribution: "zulu"
           java-version: ${{ matrix.java }}
           cache: maven
+
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "21"
+          distribution: "graalvm-community"
+
+      - name: Publish to Maven Repository
+        run: sbt publishM2
 
       - name: Find out pom & micro versions
         working-directory: tools/enso4igv
