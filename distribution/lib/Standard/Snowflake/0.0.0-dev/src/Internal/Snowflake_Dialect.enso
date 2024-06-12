@@ -112,7 +112,7 @@ type Snowflake_Dialect
         table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
-        setup = (Internals_Access.get_context table).as_subquery inner_table_alias [table.internal_columns]
+        setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
         column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
@@ -177,7 +177,7 @@ type Snowflake_Dialect
 
     ## PRIVATE
     supports_float_round_decimal_places : Boolean
-    supports_float_round_decimal_places = True
+    supports_float_round_decimal_places self = True
 
     ## PRIVATE
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
