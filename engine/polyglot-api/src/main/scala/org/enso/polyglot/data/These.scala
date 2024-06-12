@@ -1,54 +1,25 @@
 package org.enso.polyglot.data
-import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+
+import com.github.plokhotnyuk.jsoniter_scala.macros.named
 
 /** An either-or-both data type. */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes(
-  Array(
-    new JsonSubTypes.Type(
-      value = classOf[These.Here[_]],
-      name  = "theseHere"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[These.There[_]],
-      name  = "theseThere"
-    ),
-    new JsonSubTypes.Type(
-      value = classOf[These.Both[_, _]],
-      name  = "theseBoth"
-    )
-  )
-)
 sealed trait These[+A, +B]
 
 object These {
 
+  @named("theseHere")
   case class Here[+A](
-    @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.NAME,
-      include = JsonTypeInfo.As.PROPERTY
-    )
     here: A
   ) extends These[A, Nothing]
 
+  @named("theseThere")
   case class There[+B](
-    @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.NAME,
-      include = JsonTypeInfo.As.PROPERTY
-    )
     there: B
   ) extends These[Nothing, B]
 
+  @named("theseBoth")
   case class Both[+A, +B](
-    @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.NAME,
-      include = JsonTypeInfo.As.PROPERTY
-    )
     here: A,
-    @JsonTypeInfo(
-      use     = JsonTypeInfo.Id.NAME,
-      include = JsonTypeInfo.As.PROPERTY
-    )
     there: B
   ) extends These[A, B]
 }

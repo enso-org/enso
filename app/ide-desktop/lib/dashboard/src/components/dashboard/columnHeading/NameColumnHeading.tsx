@@ -1,19 +1,23 @@
 /** @file A heading for the "Name" column. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Name" column. */
-export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
+export default function NameColumnHeading(
+  props: column.AssetColumnHeadingProps
+): React.JSX.Element {
   const { state } = props
   const { sortInfo, setSortInfo } = state
   const { getText } = textProvider.useText()
@@ -21,7 +25,9 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
   const isDescending = sortInfo?.direction === sorting.SortDirection.descending
 
   return (
-    <UnstyledButton
+    <ariaComponents.Button
+      size="custom"
+      variant="custom"
       aria-label={
         !isSortActive
           ? getText('sortByName')
@@ -29,7 +35,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
             ? getText('stopSortingByName')
             : getText('sortByNameDescending')
       }
-      className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+      className="group flex h-drive-table-heading w-full items-center justify-start gap-icon-with-text px-name-column-x"
       onPress={() => {
         const nextDirection = isSortActive
           ? sorting.nextSortDirection(sortInfo.direction)
@@ -45,10 +51,12 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
       <img
         alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
         src={SortAscendingIcon}
-        className={`transition-all duration-arrow ${
-          isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
-        } ${isDescending ? 'rotate-180' : ''}`}
+        className={tailwindMerge.twMerge(
+          'transition-all duration-arrow',
+          isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
+          isDescending && 'rotate-180'
+        )}
       />
-    </UnstyledButton>
+    </ariaComponents.Button>
   )
 }

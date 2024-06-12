@@ -2,10 +2,14 @@
 import * as React from 'react'
 
 import * as toast from 'react-toastify'
+import * as tailwindMerge from 'tailwind-merge'
+
+import DropFilesImage from 'enso-assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -16,7 +20,6 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import * as searchBarProvider from '#/providers/SearchBarProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -26,10 +29,8 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
-import AssetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 import * as aria from '#/components/aria'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -43,12 +44,15 @@ import SelectionBrush from '#/components/SelectionBrush'
 import Spinner, * as spinner from '#/components/Spinner'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
 
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
 import * as array from '#/utilities/array'
@@ -283,8 +287,9 @@ interface DragSelectionInfo {
 // =============================
 
 const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | null>> = {
+  [Category.cloud]: backendModule.FilterBy.active,
+  [Category.local]: backendModule.FilterBy.active,
   [Category.recent]: null,
-  [Category.home]: backendModule.FilterBy.active,
   [Category.trash]: backendModule.FilterBy.trashed,
 }
 
@@ -294,19 +299,19 @@ const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | 
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
+  readonly backend: Backend
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
   readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   readonly category: Category
-  readonly labels: Map<backendModule.LabelName, backendModule.Label>
-  readonly deletedLabelNames: Set<backendModule.LabelName>
   readonly hasPasteData: boolean
   readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
   readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
   readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -322,15 +327,12 @@ export interface AssetsTableState {
     title?: string | null,
     override?: boolean
   ) => void
-  /** Called when the project is opened via the `ProjectActionButton`. */
-  readonly doOpenManually: (projectId: backendModule.ProjectId) => void
   readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
-  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   readonly doCopy: () => void
   readonly doCut: () => void
   readonly doPaste: (
@@ -350,19 +352,13 @@ export interface AssetRowState {
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
   readonly hidden: boolean
-  readonly hideRows: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
-  readonly page: pageSwitcher.Page
-  readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
   readonly initialProjectName: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly deletedLabelNames: Set<backendModule.LabelName>
-  /** These events will be dispatched the next time the assets list is refreshed, rather than
-   * immediately. */
-  readonly queuedAssetEvents: assetEvent.AssetEvent[]
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
@@ -371,27 +367,26 @@ export interface AssetsTableProps {
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly targetDirectoryNodeRef: React.MutableRefObject<assetTreeNode.AnyAssetTreeNode<backendModule.DirectoryAsset> | null>
   readonly doOpenEditor: (
+    backend: Backend,
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
   readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
-  readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
 }
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, hideRows, query, setQuery, setCanDownload, category, page, allLabels } = props
-  const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
-  const { queuedAssetEvents: rawQueuedAssetEvents } = props
+  const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category } = props
+  const { initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
-  const { targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
+  const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
+  const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
   const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useStrictBackend()
+  const backend = backendProvider.useBackend(category)
+  const labels = backendHooks.useBackendListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { setSearchBar, unsetSearchBar } = searchBarProvider.useSetSearchBar('AssetsTable')
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -400,7 +395,6 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
-  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
@@ -425,6 +419,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       -1
     )
   })
+  const [isDropzoneVisible, setIsDropzoneVisible] = React.useState(false)
+  const [droppedFilesCount, setDroppedFilesCount] = React.useState(0)
   const isCloud = backend.type === backendModule.BackendType.remote
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
@@ -462,7 +458,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             ? null
             : fileInfo.fileExtension(node.item.title).toLowerCase()
         const assetModifiedAt = new Date(node.item.modifiedAt)
-        const labels: string[] = node.item.labels ?? []
+        const nodeLabels: string[] = node.item.labels ?? []
         const lowercaseName = node.item.title.toLowerCase()
         const lowercaseDescription = node.item.description?.toLowerCase() ?? ''
         const owners =
@@ -479,7 +475,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           switch (type) {
             case 'label':
             case 'labels': {
-              return labels.length === 0
+              return nodeLabels.length === 0
             }
             case 'name': {
               // Should never be true, but handle it just in case.
@@ -529,7 +525,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           ) &&
           filterTag(query.names, query.negativeNames, name => globMatch(name, lowercaseName)) &&
           filterTag(query.labels, query.negativeLabels, label =>
-            labels.some(assetLabel => globMatch(label, assetLabel))
+            nodeLabels.some(assetLabel => globMatch(label, assetLabel))
           ) &&
           filterTag(query.types, query.negativeTypes, type => type === assetType) &&
           filterTag(
@@ -610,6 +606,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     [displayItems, visibilities]
   )
 
+  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
+
   React.useEffect(() => {
     if (selectedKeys.size === 0) {
       targetDirectoryNodeRef.current = null
@@ -651,37 +649,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
     }
   }, [targetDirectoryNodeRef, selectedKeys])
-
-  React.useEffect(() => {
-    return () => {
-      unsetSearchBar()
-    }
-  }, [/* should never change */ unsetSearchBar])
-
-  React.useEffect(() => {
-    if (page === pageSwitcher.Page.drive || page === pageSwitcher.Page.home) {
-      setSearchBar(
-        <AssetSearchBar
-          isCloud={isCloud}
-          query={query}
-          setQuery={setQuery}
-          labels={[...allLabels.values()]}
-          suggestions={suggestions}
-        />
-      )
-    } else {
-      unsetSearchBar()
-    }
-  }, [
-    page,
-    isCloud,
-    query,
-    setQuery,
-    allLabels,
-    suggestions,
-    /* should never change */ setSearchBar,
-    /* should never change */ unsetSearchBar,
-  ])
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -831,28 +798,24 @@ export default function AssetsTable(props: AssetsTableProps) {
         case 'label':
         case '-label': {
           setSuggestions(
-            !isCloud
-              ? []
-              : Array.from(
-                  allLabels.values(),
-                  (label): assetSearchBar.Suggestion => ({
-                    render: () => (
-                      <Label active color={label.color} onPress={() => {}}>
-                        {label.value}
-                      </Label>
-                    ),
-                    addToQuery: oldQuery =>
-                      oldQuery.addToLastTerm(
-                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                      ),
-                    deleteFromQuery: oldQuery =>
-                      oldQuery.deleteFromLastTerm(
-                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                      ),
-                  })
-                )
+            (labels ?? []).map(
+              (label): assetSearchBar.Suggestion => ({
+                render: () => (
+                  <Label active color={label.color} onPress={() => {}}>
+                    {label.value}
+                  </Label>
+                ),
+                addToQuery: oldQuery =>
+                  oldQuery.addToLastTerm(
+                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                  ),
+                deleteFromQuery: oldQuery =>
+                  oldQuery.deleteFromLastTerm(
+                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                  ),
+              })
+            )
           )
-
           break
         }
         default: {
@@ -861,13 +824,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [isCloud, assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
-
-  React.useEffect(() => {
-    if (rawQueuedAssetEvents.length !== 0) {
-      setQueuedAssetEvents(oldEvents => [...oldEvents, ...rawQueuedAssetEvents])
-    }
-  }, [rawQueuedAssetEvents])
+  }, [isCloud, assetTree, query, visibilities, labels, /* should never change */ setSuggestions])
 
   React.useEffect(() => {
     setIsLoading(true)
@@ -1282,7 +1239,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     name={item.item.title}
                     doCreate={async (_name, value) => {
                       try {
-                        await backend.updateSecret(id, { value }, item.item.title)
+                        await updateSecretMutation.mutateAsync([id, { value }, item.item.title])
                       } catch (error) {
                         toastAndLog(null, error)
                       }
@@ -1553,7 +1510,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           datalinkId: event.datalinkId,
           originalId: null,
           versionId: null,
-          onSpinnerStateChange: event.onSpinnerStateChange,
         })
         break
       }
@@ -1772,7 +1728,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           datalinkId: null,
           originalId: event.original.id,
           versionId: event.versionId,
-          onSpinnerStateChange: null,
         })
         break
       }
@@ -1841,25 +1796,24 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   })
 
-  const doOpenManually = React.useCallback(
-    (projectId: backendModule.ProjectId) => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: projectId,
-        shouldAutomaticallySwitchPage: true,
-        runInBackground: false,
-      })
+  const doOpenEditor = React.useCallback(
+    (
+      project: backendModule.ProjectAsset,
+      setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
+      switchPage: boolean
+    ) => {
+      doOpenEditorRaw(backend, project, setProject, switchPage)
     },
-    [/* should never change */ dispatchAssetEvent]
+    [backend, doOpenEditorRaw]
   )
 
   const doCloseEditor = React.useCallback(
     (project: backendModule.ProjectAsset) => {
       if (project.id === projectStartupInfo?.projectAsset.id) {
-        rawDoCloseEditor(project)
+        doCloseEditorRaw(project)
       }
     },
-    [projectStartupInfo, rawDoCloseEditor]
+    [projectStartupInfo, doCloseEditorRaw]
   )
 
   const doCopy = React.useCallback(() => {
@@ -1929,6 +1883,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => (
       <AssetsTableContextMenu
         hidden
+        backend={backend}
         category={category}
         pasteData={pasteData}
         selectedKeys={selectedKeys}
@@ -1944,6 +1899,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       />
     ),
     [
+      backend,
       rootDirectoryId,
       category,
       selectedKeys,
@@ -1957,10 +1913,14 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
-  const onDragOver = (event: React.DragEvent<Element>) => {
+  const onDropzoneDragOver = (event: React.DragEvent<Element>) => {
     const payload = drag.ASSET_ROWS.lookup(event)
     const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
-    if ((filtered != null && filtered.length > 0) || event.dataTransfer.types.includes('Files')) {
+    if (filtered != null && filtered.length > 0) {
+      event.preventDefault()
+    } else if (event.dataTransfer.types.includes('Files')) {
+      setIsDropzoneVisible(true)
+      setDroppedFilesCount(event.dataTransfer.items.length)
       event.preventDefault()
     }
   }
@@ -1968,19 +1928,19 @@ export default function AssetsTable(props: AssetsTableProps) {
   const state = React.useMemo<AssetsTableState>(
     // The type MUST be here to trigger excess property errors at typecheck time.
     () => ({
+      backend,
       rootDirectoryId,
       visibilities,
       selectedKeys: selectedKeysRef,
       scrollContainerRef: rootRef,
       category,
-      labels: allLabels,
-      deletedLabelNames,
       hasPasteData: pasteData != null,
       setPasteData,
       sortInfo,
       setSortInfo,
       query,
       setQuery,
+      setProjectStartupInfo,
       assetEvents,
       dispatchAssetEvent,
       dispatchAssetListEvent,
@@ -1989,35 +1949,31 @@ export default function AssetsTable(props: AssetsTableProps) {
       nodeMap: nodeMapRef,
       hideColumn,
       doToggleDirectoryExpansion,
-      doOpenManually,
-      doOpenEditor: doOpenEditor,
-      doCloseEditor: doCloseEditor,
-      doCreateLabel,
+      doOpenEditor,
+      doCloseEditor,
       doCopy,
       doCut,
       doPaste,
     }),
     [
+      backend,
       rootDirectoryId,
       visibilities,
       category,
-      allLabels,
-      deletedLabelNames,
       pasteData,
       sortInfo,
       assetEvents,
       query,
       doToggleDirectoryExpansion,
-      doOpenManually,
       doOpenEditor,
       doCloseEditor,
-      doCreateLabel,
       doCopy,
       doCut,
       doPaste,
       /* should never change */ hideColumn,
       /* should never change */ setAssetPanelProps,
       /* should never change */ setIsAssetPanelTemporarilyVisible,
+      /* should never change */ setProjectStartupInfo,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ dispatchAssetListEvent,
@@ -2286,7 +2242,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           columns={columns}
           item={item}
           state={state}
-          hidden={hideRows || visibilities.get(item.key) === Visibility.hidden}
+          hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
@@ -2377,9 +2333,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               }
               let labelsPresent = 0
               for (const selectedKey of ids) {
-                const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (labels != null) {
-                  for (const label of labels) {
+                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                if (nodeLabels != null) {
+                  for (const label of nodeLabels) {
                     if (payload.has(label)) {
                       labelsPresent += 1
                     }
@@ -2421,9 +2377,9 @@ export default function AssetsTable(props: AssetsTableProps) {
               event.stopPropagation()
               let labelsPresent = 0
               for (const selectedKey of ids) {
-                const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (labels != null) {
-                  for (const label of labels) {
+                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                if (nodeLabels != null) {
+                  for (const label of nodeLabels) {
                     if (payload.has(label)) {
                       labelsPresent += 1
                     }
@@ -2449,6 +2405,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     })
   )
 
+  const dropzoneText = isDropzoneVisible
+    ? droppedFilesCount === 1
+      ? getText('assetsDropFileDescription')
+      : getText('assetsDropFilesDescription', droppedFilesCount)
+    : getText('assetsDropzoneDescription')
+
   const table = (
     <div
       className="flex grow flex-col"
@@ -2457,6 +2419,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         event.stopPropagation()
         setModal(
           <AssetsTableContextMenu
+            backend={backend}
             category={category}
             pasteData={pasteData}
             selectedKeys={selectedKeys}
@@ -2472,6 +2435,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           />
         )
       }}
+      onDragEnter={onDropzoneDragOver}
       onDragLeave={event => {
         const payload = drag.LABELS.lookup(event)
         if (
@@ -2494,15 +2458,17 @@ export default function AssetsTable(props: AssetsTableProps) {
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
               {category === Category.trash ? (
-                query.query !== '' ? (
-                  <aria.Text className="px-cell-x placeholder">
-                    {getText('noFilesMatchTheCurrentFilters')}
-                  </aria.Text>
-                ) : (
-                  <aria.Text className="px-cell-x placeholder">
-                    {getText('yourTrashIsEmpty')}
-                  </aria.Text>
-                )
+                <aria.Text className="px-cell-x placeholder">
+                  {query.query !== ''
+                    ? getText('noFilesMatchTheCurrentFilters')
+                    : getText('yourTrashIsEmpty')}
+                </aria.Text>
+              ) : category === Category.recent ? (
+                <aria.Text className="px-cell-x placeholder">
+                  {query.query !== ''
+                    ? getText('noFilesMatchTheCurrentFilters')
+                    : getText('youHaveNoRecentProjects')}
+                </aria.Text>
               ) : query.query !== '' ? (
                 <aria.Text className="px-cell-x placeholder">
                   {getText('noFilesMatchTheCurrentFilters')}
@@ -2515,13 +2481,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         </tbody>
       </table>
       <div
-        data-testid="root-directory-dropzone"
-        className="grow"
-        onClick={() => {
-          setSelectedKeys(new Set())
-        }}
-        onDragEnter={onDragOver}
-        onDragOver={onDragOver}
+        className={tailwindMerge.twMerge(
+          'sticky left grid max-w-container grow place-items-center',
+          category !== Category.cloud && category !== Category.local && 'hidden'
+        )}
+        onDragEnter={onDropzoneDragOver}
+        onDragOver={onDropzoneDragOver}
         onDrop={event => {
           const payload = drag.ASSET_ROWS.lookup(event)
           const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
@@ -2535,95 +2500,144 @@ export default function AssetsTable(props: AssetsTableProps) {
               newParentId: rootDirectoryId,
               ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
             })
-          } else if (event.dataTransfer.types.includes('Files')) {
-            event.preventDefault()
-            event.stopPropagation()
+          }
+        }}
+        onClick={() => {
+          setSelectedKeys(new Set())
+        }}
+      >
+        <aria.FileTrigger
+          onSelect={event => {
             dispatchAssetListEvent({
               type: AssetListEventType.uploadFiles,
               parentKey: rootDirectoryId,
               parentId: rootDirectoryId,
-              files: Array.from(event.dataTransfer.files),
+              files: Array.from(event ?? []),
             })
-          }
-        }}
-      />
+          }}
+        >
+          <FocusRing>
+            <aria.Button
+              className="my-20 flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
+              onPress={() => {}}
+            >
+              <SvgMask src={DropFilesImage} className="size-[186px]" />
+              {dropzoneText}
+            </aria.Button>
+          </FocusRing>
+        </aria.FileTrigger>
+      </div>
     </div>
   )
 
   return (
-    <FocusArea direction="vertical">
-      {innerProps => (
-        <div
-          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-            ref: rootRef,
-            className: 'flex-1 overflow-auto container-size',
-            onKeyDown,
-            onScroll,
-            onBlur: event => {
-              if (
-                event.relatedTarget instanceof HTMLElement &&
-                !event.currentTarget.contains(event.relatedTarget)
-              ) {
-                setKeyboardSelectedIndex(null)
-              }
-            },
-          })}
-        >
-          {!hidden && hiddenContextMenu}
-          {!hidden && (
-            <SelectionBrush
-              targetRef={rootRef}
-              onDrag={onSelectionDrag}
-              onDragEnd={onSelectionDragEnd}
-              onDragCancel={onSelectionDragCancel}
-            />
-          )}
-          <div className="flex h-max min-h-full w-max min-w-full flex-col">
-            {isCloud && (
-              <div className="flex-0 sticky top flex h flex-col">
-                <div
-                  data-testid="extra-columns"
-                  className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
-                >
-                  <FocusArea direction="horizontal">
-                    {columnsBarProps => (
-                      <div
-                        {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                          className: 'inline-flex gap-icons',
-                          onFocus: () => {
-                            setKeyboardSelectedIndex(null)
-                          },
-                        })}
-                      >
-                        {columnUtils.CLOUD_COLUMNS.filter(
-                          column => !enabledColumns.has(column)
-                        ).map(column => (
-                          <Button
-                            key={column}
-                            active
-                            image={columnUtils.COLUMN_ICONS[column]}
-                            alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
-                            onPress={() => {
-                              const newExtraColumns = new Set(enabledColumns)
-                              if (enabledColumns.has(column)) {
-                                newExtraColumns.delete(column)
-                              } else {
-                                newExtraColumns.add(column)
-                              }
-                              setEnabledColumns(newExtraColumns)
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </FocusArea>
-                </div>
-              </div>
+    <div className="relative grow">
+      <FocusArea direction="vertical">
+        {innerProps => (
+          <div
+            {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
+              ref: rootRef,
+              className: 'flex-1 overflow-auto container-size w-full h-full',
+              onKeyDown,
+              onScroll,
+              onBlur: event => {
+                if (
+                  event.relatedTarget instanceof HTMLElement &&
+                  !event.currentTarget.contains(event.relatedTarget)
+                ) {
+                  setKeyboardSelectedIndex(null)
+                }
+              },
+            })}
+          >
+            {!hidden && hiddenContextMenu}
+            {!hidden && (
+              <SelectionBrush
+                targetRef={rootRef}
+                onDrag={onSelectionDrag}
+                onDragEnd={onSelectionDragEnd}
+                onDragCancel={onSelectionDragCancel}
+              />
             )}
-            <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
+            <div className="flex h-max min-h-full w-max min-w-full flex-col">
+              {isCloud && (
+                <div className="flex-0 sticky top flex h flex-col">
+                  <div
+                    data-testid="extra-columns"
+                    className="px-extra-columns-panel-x py-extra-columns-panel-y sticky right flex self-end"
+                  >
+                    <FocusArea direction="horizontal">
+                      {columnsBarProps => (
+                        <div
+                          {...aria.mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
+                            className: 'inline-flex gap-icons',
+                            onFocus: () => {
+                              setKeyboardSelectedIndex(null)
+                            },
+                          })}
+                        >
+                          {columnUtils.CLOUD_COLUMNS.filter(
+                            column => !enabledColumns.has(column)
+                          ).map(column => (
+                            <Button
+                              key={column}
+                              light
+                              image={columnUtils.COLUMN_ICONS[column]}
+                              alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
+                              onPress={() => {
+                                const newExtraColumns = new Set(enabledColumns)
+                                if (enabledColumns.has(column)) {
+                                  newExtraColumns.delete(column)
+                                } else {
+                                  newExtraColumns.add(column)
+                                }
+                                setEnabledColumns(newExtraColumns)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </FocusArea>
+                  </div>
+                </div>
+              )}
+              <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
+            </div>
           </div>
+        )}
+      </FocusArea>
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          data-testid="root-directory-dropzone"
+          onDragEnter={onDropzoneDragOver}
+          onDragOver={onDropzoneDragOver}
+          onDragLeave={event => {
+            if (event.currentTarget === event.target) {
+              setIsDropzoneVisible(false)
+            }
+          }}
+          onDrop={event => {
+            setIsDropzoneVisible(false)
+            if (event.dataTransfer.types.includes('Files')) {
+              event.preventDefault()
+              event.stopPropagation()
+              dispatchAssetListEvent({
+                type: AssetListEventType.uploadFiles,
+                parentKey: rootDirectoryId,
+                parentId: rootDirectoryId,
+                files: Array.from(event.dataTransfer.files),
+              })
+            }
+          }}
+          className={tailwindMerge.twMerge(
+            'pointer-events-none sticky left-0 top-0 flex h-full w-full flex-col items-center justify-center gap-3 rounded-default bg-selected-frame text-primary/50 opacity-0 backdrop-blur-3xl transition-all',
+            isDropzoneVisible && 'pointer-events-auto opacity-100'
+          )}
+        >
+          <SvgMask src={DropFilesImage} className="size-[186px]" />
+          {dropzoneText}
         </div>
-      )}
-    </FocusArea>
+      </div>
+    </div>
   )
 }

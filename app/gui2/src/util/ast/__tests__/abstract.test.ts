@@ -4,14 +4,13 @@ import {
   MutableModule,
   TextLiteral,
   escapeTextLiteral,
+  substituteIdentifier,
   substituteQualifiedName,
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
-import { tryQualifiedName } from '@/util/qualifiedName'
 import { fc, test } from '@fast-check/vitest'
 import { initializeFFI } from 'shared/ast/ffi'
-import { unwrap } from 'shared/util/data/result'
 import { describe, expect } from 'vitest'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
@@ -853,18 +852,74 @@ test.each([
     substitution: 'ShouldNotWork',
     expected: 'Data.Table.new',
   },
-])('Substitute $pattern insde $original', ({ original, pattern, substitution, expected }) => {
-  const expression = Ast.parse(original)
-  expression.module.replaceRoot(expression)
-  const edit = expression.module.edit()
-  substituteQualifiedName(
-    edit,
-    expression,
-    pattern as Ast.QualifiedName,
-    unwrap(tryQualifiedName(substitution)),
-  )
-  expect(edit.root()?.code()).toEqual(expected)
-})
+])(
+  'Substitute qualified name $pattern inside $original',
+  ({ original, pattern, substitution, expected }) => {
+    const expression = Ast.parse(original)
+    const module = expression.module
+    module.replaceRoot(expression)
+    const edit = expression.module.edit()
+    substituteQualifiedName(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
+    module.applyEdit(edit)
+    expect(module.root()?.code()).toEqual(expected)
+  },
+)
+
+test.each([
+  {
+    original: 'some_name',
+    pattern: 'some_name',
+    substitution: 'other_name',
+    expected: 'other_name',
+  },
+  {
+    original: 'x = Table.from_vec (node1.new 1 2 3)',
+    pattern: 'node1',
+    substitution: 'node2',
+    expected: 'x = Table.from_vec (node2.new 1 2 3)',
+  },
+  {
+    original: 'x = some_func "node1"',
+    pattern: 'node1',
+    substitution: 'node2',
+    expected: 'x = some_func "node1"',
+  },
+  {
+    original: 'x + y',
+    pattern: 'x',
+    substitution: 'z',
+    expected: 'z + y',
+  },
+  {
+    original: 'node1.node2.node3',
+    pattern: 'node2',
+    substitution: 'ShouldNotWork',
+    expected: 'node1.node2.node3',
+  },
+  {
+    original: 'node1.node2.node3',
+    pattern: 'node3',
+    substitution: 'ShouldNotWork',
+    expected: 'node1.node2.node3',
+  },
+  {
+    original: '.node1',
+    pattern: 'node1',
+    substitution: 'ShouldNotWork',
+    expected: '.node1',
+  },
+])(
+  'Substitute identifier $pattern inside $original',
+  ({ original, pattern, substitution, expected }) => {
+    const expression = Ast.parse(original)
+    const module = expression.module
+    module.replaceRoot(expression)
+    const edit = expression.module.edit()
+    substituteIdentifier(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
+    module.applyEdit(edit)
+    expect(module.root()?.code()).toEqual(expected)
+  },
+)
 
 test.each([
   ['', ''],

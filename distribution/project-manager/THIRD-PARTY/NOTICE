@@ -51,14 +51,14 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.15.2`.
 
 
-'jackson-dataformat-cbor', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.dataformat.jackson-dataformat-cbor-2.15.2`.
+'jsoniter-scala-core_2.13', licensed under the MIT License, is distributed with the project-manager.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.plokhotnyuk.jsoniter-scala.jsoniter-scala-core_2.13-2.28.5`.
 
 
-'jackson-module-scala_2.13', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.module.jackson-module-scala_2.13-2.15.2`.
+'jsoniter-scala-macros_2.13', licensed under the MIT License, is distributed with the project-manager.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.plokhotnyuk.jsoniter-scala.jsoniter-scala-macros_2.13-2.28.5`.
 
 
 'pureconfig-core_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
@@ -84,11 +84,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.flatbuffers.flatbuffers-java-24.3.25`.
-
-
-'paranamer', licensed under the BSD, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.thoughtworks.paranamer.paranamer-2.8`.
 
 
 'akka-actor-typed_2.13', licensed under the Apache-2.0, is distributed with the project-manager.

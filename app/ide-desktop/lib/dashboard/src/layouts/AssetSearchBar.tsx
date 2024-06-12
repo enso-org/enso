@@ -1,8 +1,12 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
+
+import * as backendHooks from '#/hooks/backendHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -12,7 +16,7 @@ import Label from '#/components/dashboard/Label'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
-import type * as backend from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -108,16 +112,16 @@ function Tags(props: InternalTagsProps) {
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
+  readonly backend: Backend | null
   readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly labels: backend.Label[]
   readonly suggestions: Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { isCloud, query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { backend, isCloud, query, setQuery, suggestions: rawSuggestions } = props
   const { getText } = textProvider.useText()
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
@@ -133,6 +137,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const querySource = React.useRef(QuerySource.external)
   const rootRef = React.useRef<HTMLLabelElement | null>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
+  const labels = backendHooks.useBackendListTags(backend) ?? []
   areSuggestionsVisibleRef.current = areSuggestionsVisible
 
   React.useEffect(() => {
@@ -308,7 +313,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     data-testid="asset-search-labels"
                     className="pointer-events-auto flex gap-buttons p-search-suggestions"
                   >
-                    {labels
+                    {[...labels]
                       .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
                       .map(label => {
                         const negated = query.negativeLabels.some(term =>
@@ -356,13 +361,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                           el?.focus()
                         }
                       }}
-                      className={`pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame ${
-                        index === selectedIndex
-                          ? 'bg-selected-frame'
-                          : selectedIndices.has(index)
-                            ? 'bg-frame'
-                            : ''
-                      }`}
+                      className={tailwindMerge.twMerge(
+                        'pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame',
+                        selectedIndices.has(index) && 'bg-frame',
+                        index === selectedIndex && 'bg-selected-frame'
+                      )}
                       onPress={event => {
                         querySource.current = QuerySource.internal
                         setQuery(
@@ -393,7 +396,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={getText('assetSearchFieldLabel')}
-              className="relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all"
+              className="relative grow before:text before:absolute before:-inset-x-1 before:my-auto before:rounded-full before:transition-all"
               value={query.query}
               onKeyDown={event => {
                 event.continuePropagation()

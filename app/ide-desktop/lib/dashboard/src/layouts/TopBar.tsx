@@ -1,9 +1,8 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
-import * as searchBarProvider from '#/providers/SearchBarProvider'
+import * as tailwindMerge from 'tailwind-merge'
 
-import BackendSwitcher from '#/layouts/BackendSwitcher'
 import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserBar from '#/layouts/UserBar'
 
@@ -17,14 +16,12 @@ import type * as backendModule from '#/services/Backend'
 
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
-  /** Whether the application may have the local backend running. */
-  readonly supportsLocalBackend: boolean
+  readonly isCloud: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly projectAsset: backendModule.ProjectAsset | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly isEditorDisabled: boolean
-  readonly setBackendType: (backendType: backendModule.BackendType) => void
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
   readonly isAssetPanelVisible: boolean
   readonly isAssetPanelEnabled: boolean
@@ -36,54 +33,53 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
-  const { isEditorDisabled, setBackendType, setIsHelpChatOpen, isAssetPanelEnabled } = props
+  const { isCloud, page, setPage, projectAsset, setProjectAsset } = props
+  const { isEditorDisabled, setIsHelpChatOpen, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
 
-  const searchBar = searchBarProvider.useSearchBar()
-  const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
-    <div
-      className={`relative z-1 m-top-bar flex h-row gap-top-bar ${page === pageSwitcher.Page.home ? 'mb-top-bar' : 'mb'}`}
-    >
+    <div className="m-top-bar relative z-1 mb flex h-row gap-top-bar">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-      {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
-        <BackendSwitcher setBackendType={setBackendType} />
-      )}
-      <div className="flex flex-1 flex-wrap justify-around">{searchBar}</div>
       <div
-        className={`grid transition-all duration-side-panel ${isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'}`}
+        className={tailwindMerge.twMerge(
+          'grid transition-all duration-side-panel',
+          isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'
+        )}
       >
         <div className="invisible flex gap-top-bar-right overflow-hidden pointer-events-none-recursive">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
               invisible
+              hidden={!isCloud}
               isAssetPanelEnabled={isAssetPanelEnabled}
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
-          {supportsCloudBackend && (
-            <UserBar
-              invisible
-              page={page}
-              setPage={setPage}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              projectAsset={projectAsset}
-              setProjectAsset={setProjectAsset}
-              doRemoveSelf={doRemoveSelf}
-              onSignOut={onSignOut}
-            />
-          )}
+          <UserBar
+            invisible
+            page={page}
+            setPage={setPage}
+            setIsHelpChatOpen={setIsHelpChatOpen}
+            projectAsset={projectAsset}
+            setProjectAsset={setProjectAsset}
+            doRemoveSelf={doRemoveSelf}
+            onSignOut={onSignOut}
+          />
         </div>
       </div>
       <div
-        className={`fixed top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''} ${isAssetPanelVisible ? '-right-asset-panel-w' : 'right'}`}
+        className={tailwindMerge.twMerge(
+          'm-top-bar fixed top z-1 text-xs text-primary transition-all duration-side-panel',
+          shouldMakeSpaceForExtendedEditorMenu && 'mr-extended-editor-menu',
+          isAssetPanelVisible ? '-right-asset-panel-w' : 'right-0'
+        )}
       >
         <div className="flex gap-top-bar-right">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
+              hidden={!isCloud}
               isAssetPanelEnabled={isAssetPanelEnabled}
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />

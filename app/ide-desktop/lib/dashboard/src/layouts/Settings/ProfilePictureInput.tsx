@@ -1,28 +1,37 @@
-/** @file The settings input for viewing and changing the user's profile picture. */
+/** @file The input for viewing and changing the user's profile picture. */
 import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
+import type Backend from '#/services/Backend'
+
 // ===========================
 // === ProfilePictureInput ===
 // ===========================
 
-/** The settings input for viewing and changing the user's profile picture. */
-export default function ProfilePictureInput() {
+/** Props for a {@link ProfilePictureInput}. */
+export interface ProfilePictureInputProps {
+  readonly backend: Backend
+}
+
+/** The input for viewing and changing the user's profile picture. */
+export default function ProfilePictureInput(props: ProfilePictureInputProps) {
+  const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useStrictBackend()
-  const { user } = authProvider.useNonPartialUserSession()
+  const user = backendHooks.useBackendUsersMe(backend)
   const { getText } = textProvider.useText()
+
+  const uploadUserPictureMutation = backendHooks.useBackendMutation(backend, 'uploadUserPicture')
 
   const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
@@ -30,7 +39,10 @@ export default function ProfilePictureInput() {
       toastAndLog('noNewProfilePictureError')
     } else {
       try {
-        const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
+        const newUser = await uploadUserPictureMutation.mutateAsync([
+          { fileName: image.name },
+          image,
+        ])
         setUser(newUser)
       } catch (error) {
         toastAndLog(null, error)

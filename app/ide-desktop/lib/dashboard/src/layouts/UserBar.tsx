@@ -17,12 +17,12 @@ import UserMenu from '#/layouts/UserMenu'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // ===============
 // === UserBar ===
@@ -48,8 +48,8 @@ export default function UserBar(props: UserBarProps) {
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
+  const backend = backendProvider.useRemoteBackend()
   const self =
     user != null
       ? projectAsset?.permissions?.find(
@@ -57,19 +57,19 @@ export default function UserBar(props: UserBarProps) {
         ) ?? null
       : null
   const shouldShowShareButton =
-    backend.type === backendModule.BackendType.remote &&
+    backend != null &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
   const shouldShowInviteButton =
-    sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
+    backend != null && sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
       {innerProps => (
         <div
-          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-1 rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
+          className="pr-profile-picture pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-1 rounded-full bg-frame px-icons-x backdrop-blur-default"
           {...innerProps}
         >
           <ariaComponents.Button
@@ -102,12 +102,15 @@ export default function UserBar(props: UserBarProps) {
             {getText('upgrade')}
           </ariaComponents.Button>
           {shouldShowShareButton && (
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
               aria-label={getText('shareButtonAltText')}
               onPress={() => {
                 setModal(
                   <ManagePermissionsModal
+                    backend={backend}
                     item={projectAsset}
                     setItem={setProjectAsset}
                     self={self}
@@ -118,10 +121,12 @@ export default function UserBar(props: UserBarProps) {
               }}
             >
               <aria.Text slot="label">{getText('share')}</aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
-          <UnstyledButton
-            className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            className="size-profile-picture flex select-none items-center overflow-clip rounded-full"
             aria-label={getText('userMenuAltText')}
             onPress={() => {
               updateModal(oldModal =>
@@ -138,7 +143,7 @@ export default function UserBar(props: UserBarProps) {
               height={28}
               width={28}
             />
-          </UnstyledButton>
+          </ariaComponents.Button>
           {/* Required for shortcuts to work. */}
           <div className="hidden">
             <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />

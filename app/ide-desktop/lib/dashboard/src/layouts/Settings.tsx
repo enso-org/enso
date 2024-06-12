@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -21,7 +22,7 @@ import * as aria from '#/components/aria'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
 
-import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import * as string from '#/utilities/string'
@@ -30,45 +31,60 @@ import * as string from '#/utilities/string'
 // === Settings ===
 // ================
 
+/** Props for a {@link Settings}. */
+export interface SettingsProps {
+  readonly backend: Backend | null
+}
+
 /** Settings screen. */
 export default function Settings() {
+  const backend = backendProvider.useRemoteBackend()
   const [tab, setTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTabType.account,
     array.includesPredicate(Object.values(SettingsTabType))
   )
-  const { type: sessionType, user, accessToken } = authProvider.useNonPartialUserSession()
+  const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { setUser } = authProvider.useAuth()
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  // FIXME: Remove searchBarProvider in favor of local search bar.
   const { setSearchBar, unsetSearchBar } = searchBarProvider.useSetSearchBar('Settings')
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
-  const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
+  // const user = backendHooks.useBackendUsersMe(backend)
+  const organization = backendHooks.useBackendGetOrganization(backend)
+  const isUserInOrganization = organization != null
 
-  const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    id: user?.organizationId ?? backendModule.OrganizationId(''),
-    name: null,
-    email: null,
-    website: null,
-    address: null,
-    picture: null,
-    subscription: {},
-  }))
+  const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser')
+  const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
+  const updateUser = updateUserMutation.mutateAsync
+  const updateOrganization = updateOrganizationMutation.mutateAsync
+
   const context = React.useMemo<settingsData.SettingsContext>(
     () => ({
       accessToken,
       user,
       setUser,
+      updateUser,
       backend,
       organization,
-      setOrganization,
+      updateOrganization,
       toastAndLog,
       getText,
     }),
-    [accessToken, backend, organization, setUser, toastAndLog, user, getText]
+    [
+      accessToken,
+      backend,
+      getText,
+      organization,
+      setUser,
+      toastAndLog,
+      updateOrganization,
+      updateUser,
+      user,
+    ]
   )
 
   React.useEffect(() => {
@@ -90,21 +106,6 @@ export default function Settings() {
     /* should never change */ setSearchBar,
     /* should never change */ unsetSearchBar,
   ])
-
-  React.useEffect(() => {
-    void (async () => {
-      if (
-        sessionType === authProvider.UserSessionType.full &&
-        backend.type === backendModule.BackendType.remote
-      ) {
-        const newOrganization = await backend.getOrganization()
-        setIsUserInOrganization(newOrganization != null)
-        if (newOrganization != null) {
-          setOrganization(newOrganization)
-        }
-      }
-    })()
-  }, [sessionType, backend])
 
   const isMatch = React.useMemo(() => {
     const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
@@ -199,7 +200,7 @@ export default function Settings() {
         {/* eslint-disable-next-line no-restricted-syntax */}
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
           {data.organizationOnly === true
-            ? organization.name ?? 'your organization'
+            ? organization?.name ?? 'your organization'
             : user?.name ?? 'your account'}
         </div>
       </aria.Heading>

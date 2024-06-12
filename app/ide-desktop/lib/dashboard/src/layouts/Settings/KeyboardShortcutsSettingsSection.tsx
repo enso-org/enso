@@ -16,11 +16,11 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusArea from '#/components/styled/FocusArea'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -55,8 +55,8 @@ export default function KeyboardShortcutsSettingsSection() {
   return (
     <>
       <HorizontalMenuBar>
-        <UnstyledButton
-          className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+        <ariaComponents.Button
+          variant="bar"
           onPress={() => {
             setModal(
               <ConfirmDeleteModal
@@ -73,10 +73,8 @@ export default function KeyboardShortcutsSettingsSection() {
             )
           }}
         >
-          <aria.Text className="text whitespace-nowrap font-semibold">
-            {getText('resetAll')}
-          </aria.Text>
-        </UnstyledButton>
+          {getText('resetAll')}
+        </ariaComponents.Button>
       </HorizontalMenuBar>
       <FocusArea direction="vertical" focusChildClass="focus-default" focusDefaultClass="">
         {innerProps => (
@@ -99,7 +97,7 @@ export default function KeyboardShortcutsSettingsSection() {
                     {getText('name')}
                   </th>
                   <th className="px-cell-x">{getText('shortcuts')}</th>
-                  <th className="w-full min-w-keyboard-shortcuts-description-column px-cell-x">
+                  <th className="min-w-keyboard-shortcuts-description-column w-full px-cell-x">
                     {getText('description')}
                   </th>
                 </tr>
@@ -133,7 +131,9 @@ export default function KeyboardShortcutsSettingsSection() {
                                     className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
                                   >
                                     <KeyboardShortcut shortcut={binding} />
-                                    <UnstyledButton
+                                    <ariaComponents.Button
+                                      size="custom"
+                                      variant="custom"
                                       className="flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg"
                                       onPress={() => {
                                         inputBindings.delete(action, binding)
@@ -141,11 +141,13 @@ export default function KeyboardShortcutsSettingsSection() {
                                       }}
                                     >
                                       <SvgMask src={CrossIcon} className="size-icon" />
-                                    </UnstyledButton>
+                                    </ariaComponents.Button>
                                   </div>
                                 ))}
                                 <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
-                                  <UnstyledButton
+                                  <ariaComponents.Button
+                                    size="custom"
+                                    variant="custom"
                                     className="focus-default my-auto flex rounded-full"
                                     onPress={() => {
                                       setModal(
@@ -161,8 +163,10 @@ export default function KeyboardShortcutsSettingsSection() {
                                     }}
                                   >
                                     <img className="size-plus-icon" src={Plus2Icon} />
-                                  </UnstyledButton>
-                                  <UnstyledButton
+                                  </ariaComponents.Button>
+                                  <ariaComponents.Button
+                                    size="custom"
+                                    variant="custom"
                                     className="my-auto flex rounded-full"
                                     onPress={() => {
                                       inputBindings.reset(action)
@@ -170,7 +174,7 @@ export default function KeyboardShortcutsSettingsSection() {
                                     }}
                                   >
                                     <img className="size-plus-icon" src={ReloadInCircleIcon} />
-                                  </UnstyledButton>
+                                  </ariaComponents.Button>
                                 </div>
                               </div>
                             </div>

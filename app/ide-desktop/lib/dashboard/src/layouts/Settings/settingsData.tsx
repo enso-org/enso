@@ -1,4 +1,8 @@
 /** @file Metadata for rendering each settings section. */
+import React from 'react'
+
+import * as reactQuery from '@tanstack/react-query'
+
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
 import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
@@ -65,7 +69,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               } else {
                 try {
                   context.setUser(object.merger({ name: newName }))
-                  await context.backend.updateUser({ username: newName })
+                  await context.updateUser([{ username: newName }])
                 } catch (error) {
                   context.setUser(object.merger({ name: oldName }))
                   context.toastAndLog(null, error)
@@ -113,7 +117,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'deleteUserAccountSettingsCustomEntryAliases',
-            render: DeleteUserAccountSettingsSection,
+            render: context =>
+              context.backend && <DeleteUserAccountSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -124,7 +129,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'profilePictureSettingsCustomEntryAliases',
-            render: ProfilePictureInput,
+            render: context => context.backend && <ProfilePictureInput backend={context.backend} />,
           },
         ],
       },
@@ -142,25 +147,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'organizationNameSettingsInput',
-            getValue: context => context.organization.name ?? '',
+            getValue: context => context.organization?.name ?? '',
             setValue: async (context, newName, reset) => {
-              const oldName = context.organization.name ?? null
+              const oldName = context.organization?.name ?? null
               if (oldName !== newName) {
-                try {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  context.setOrganization(object.merger({ name: newName }))
-                  const newOrganization = await context.backend.updateOrganization({
-                    name: newName,
-                  })
-                  if (newOrganization != null) {
-                    context.setOrganization(newOrganization)
-                  }
-                } catch (error) {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  context.setOrganization(object.merger({ name: oldName }))
-                  context.toastAndLog(null, error)
-                  reset()
-                }
+                context.updateOrganization([{ name: newName }]).catch(reset)
               }
             },
             getEditable: () => true,
@@ -168,26 +159,12 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'organizationEmailSettingsInput',
-            getValue: context => context.organization.email ?? '',
+            getValue: context => context.organization?.email ?? '',
             setValue: async (context, newValue, reset) => {
               const newEmail = backend.EmailAddress(newValue)
-              const oldEmail = context.organization.email ?? null
+              const oldEmail = context.organization?.email ?? null
               if (oldEmail !== newEmail) {
-                try {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  context.setOrganization(object.merger({ email: newEmail }))
-                  const newOrganization = await context.backend.updateOrganization({
-                    email: newEmail,
-                  })
-                  if (newOrganization != null) {
-                    context.setOrganization(newOrganization)
-                  }
-                } catch (error) {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  context.setOrganization(object.merger({ email: oldEmail }))
-                  context.toastAndLog(null, error)
-                  reset()
-                }
+                await context.updateOrganization([{ email: newEmail }]).catch(reset)
               }
             },
             getEditable: () => true,
@@ -195,26 +172,12 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'organizationWebsiteSettingsInput',
-            getValue: context => context.organization.website ?? '',
+            getValue: context => context.organization?.website ?? '',
             setValue: async (context, newValue, reset) => {
               const newWebsite = backend.HttpsUrl(newValue)
-              const oldWebsite = context.organization.website ?? null
+              const oldWebsite = context.organization?.website ?? null
               if (oldWebsite !== newWebsite) {
-                try {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  context.setOrganization(object.merger({ website: newWebsite }))
-                  const newOrganization = await context.backend.updateOrganization({
-                    website: newWebsite,
-                  })
-                  if (newOrganization != null) {
-                    context.setOrganization(newOrganization)
-                  }
-                } catch (error) {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  context.setOrganization(object.merger({ website: oldWebsite }))
-                  context.toastAndLog(null, error)
-                  reset()
-                }
+                await context.updateOrganization([{ website: newWebsite }]).catch(reset)
               }
             },
             getEditable: () => true,
@@ -222,25 +185,11 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'organizationLocationSettingsInput',
-            getValue: context => context.organization.address ?? '',
+            getValue: context => context.organization?.address ?? '',
             setValue: async (context, newLocation, reset) => {
-              const oldLocation = context.organization.address ?? null
+              const oldLocation = context.organization?.address ?? null
               if (oldLocation !== newLocation) {
-                try {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  context.setOrganization(object.merger({ address: newLocation }))
-                  const newOrganization = await context.backend.updateOrganization({
-                    address: newLocation,
-                  })
-                  if (newOrganization != null) {
-                    context.setOrganization(newOrganization)
-                  }
-                } catch (error) {
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  context.setOrganization(object.merger({ address: oldLocation }))
-                  context.toastAndLog(null, error)
-                  reset()
-                }
+                await context.updateOrganization([{ address: newLocation }]).catch(reset)
               }
             },
             getEditable: () => true,
@@ -254,7 +203,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'organizationProfilePictureSettingsCustomEntryAliases',
-            render: OrganizationProfilePictureInput,
+            render: context =>
+              context.backend && <OrganizationProfilePictureInput backend={context.backend} />,
           },
         ],
       },
@@ -271,7 +221,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: MembersSettingsSection,
+            render: context =>
+              context.backend && <MembersSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -288,7 +239,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: UserGroupsSettingsSection,
+            render: context =>
+              context.backend && <UserGroupsSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -299,7 +251,10 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: () => <MembersTable draggable populateWithSelf />,
+            render: context =>
+              context.backend && (
+                <MembersTable backend={context.backend} draggable populateWithSelf />
+              ),
           },
         ],
       },
@@ -391,10 +346,21 @@ export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap(section =>
 export interface SettingsContext {
   readonly accessToken: string | null
   readonly user: backend.User | null
+  readonly updateUser: reactQuery.UseMutateAsyncFunction<
+    void,
+    Error,
+    Parameters<Backend['updateUser']>,
+    unknown
+  >
+  readonly backend: Backend | null
   readonly setUser: React.Dispatch<React.SetStateAction<backend.User>>
-  readonly organization: backend.OrganizationInfo
-  readonly setOrganization: React.Dispatch<React.SetStateAction<backend.OrganizationInfo>>
-  readonly backend: Backend
+  readonly organization: backend.OrganizationInfo | null
+  readonly updateOrganization: reactQuery.UseMutateAsyncFunction<
+    backend.OrganizationInfo | null,
+    Error,
+    Parameters<Backend['updateOrganization']>,
+    unknown
+  >
   readonly toastAndLog: toastAndLogHooks.ToastAndLogCallback
   readonly getText: textProvider.GetText
 }
@@ -421,7 +387,7 @@ export interface SettingsCustomEntryData {
   readonly type: SettingsEntryType.custom
   readonly aliasesId?: text.TextId & `${string}SettingsCustomEntryAliases`
   readonly getExtraAliases?: (context: SettingsContext) => readonly string[]
-  readonly render: (context: SettingsContext) => JSX.Element
+  readonly render: (context: SettingsContext) => React.ReactNode
   readonly getVisible?: (context: SettingsContext) => boolean
 }
 

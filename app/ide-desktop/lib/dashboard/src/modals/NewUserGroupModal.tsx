@@ -1,18 +1,20 @@
 /** @file A modal to create a user group. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
-import UnstyledButton from '#/components/UnstyledButton'
 
-import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
@@ -23,23 +25,19 @@ import * as string from '#/utilities/string'
 
 /** Props for a {@link NewUserGroupModal}. */
 export interface NewUserGroupModalProps {
+  readonly backend: Backend
   readonly event?: Pick<React.MouseEvent, 'pageX' | 'pageY'>
-  readonly userGroups: backendModule.UserGroupInfo[] | null
-  readonly onSubmit: (name: string) => void
-  readonly onSuccess: (value: backendModule.UserGroupInfo) => void
-  readonly onFailure: () => void
 }
 
 /** A modal to create a user group. */
 export default function NewUserGroupModal(props: NewUserGroupModalProps) {
-  const { userGroups: userGroupsRaw, onSubmit: onSubmitRaw, onSuccess, onFailure } = props
-  const { event: positionEvent } = props
-  const { backend } = backendProvider.useStrictBackend()
+  const { backend, event: positionEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [name, setName] = React.useState('')
-  const [userGroups, setUserGroups] = React.useState(userGroupsRaw)
+  const listUserGroupsQuery = backendHooks.useBackendQuery(backend, 'listUserGroups', [])
+  const userGroups = listUserGroupsQuery.data ?? null
   const userGroupNames = React.useMemo(
     () =>
       userGroups == null
@@ -51,23 +49,16 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
     userGroupNames != null && userGroupNames.has(string.normalizeName(name))
       ? getText('duplicateUserGroupError')
       : null
+  const createUserGroupMutation = backendHooks.useBackendMutation(backend, 'createUserGroup')
   const canSubmit = nameError == null && name !== '' && userGroupNames != null
-
-  React.useEffect(() => {
-    if (userGroups == null) {
-      void backend.listUserGroups().then(setUserGroups)
-    }
-  }, [backend, userGroups])
 
   const onSubmit = async () => {
     if (canSubmit) {
       unsetModal()
       try {
-        onSubmitRaw(name)
-        onSuccess(await backend.createUserGroup({ name }))
+        await createUserGroupMutation.mutateAsync([{ name }])
       } catch (error) {
         toastAndLog(null, error)
-        onFailure()
       }
     }
   }
@@ -75,12 +66,15 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
   return (
     <Modal
       centered={positionEvent == null}
-      className={`bg-dim ${positionEvent == null ? '' : 'absolute size-full overflow-hidden'}`}
+      className={tailwindMerge.twMerge(
+        'bg-dim',
+        positionEvent != null && 'absolute size-full overflow-hidden'
+      )}
     >
       <form
         data-testid="new-user-group-modal"
         tabIndex={-1}
-        className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pb-3 pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         style={positionEvent == null ? {} : { left: positionEvent.pageX, top: positionEvent.pageY }}
         onKeyDown={event => {
           if (event.key !== 'Escape') {
@@ -116,16 +110,16 @@ export default function NewUserGroupModal(props: NewUserGroupModalProps) {
           <aria.FieldError className="text-red-700/90">{nameError}</aria.FieldError>
         </aria.TextField>
         <ButtonRow>
-          <UnstyledButton
+          <ariaComponents.Button
+            variant="submit"
             isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
             onPress={eventModule.submitForm}
           >
             {getText('create')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         </ButtonRow>
       </form>
     </Modal>

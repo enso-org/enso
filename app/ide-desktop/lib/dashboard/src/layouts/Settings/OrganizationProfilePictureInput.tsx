@@ -1,17 +1,17 @@
-/** @file Settings tab for viewing and editing account information. */
+/** @file The input for viewing and changing the organization's profile picture. */
 import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
-import type * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // =======================================
 // === OrganizationProfilePictureInput ===
@@ -19,18 +19,22 @@ import type * as backendModule from '#/services/Backend'
 
 /** Props for a {@link OrganizationProfilePictureInput}. */
 export interface OrganizationProfilePictureInputProps {
-  readonly organization: backendModule.OrganizationInfo
-  readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
+  readonly backend: Backend
 }
 
-/** Settings tab for viewing and editing organization information. */
+/** The input for viewing and changing the organization's profile picture. */
 export default function OrganizationProfilePictureInput(
   props: OrganizationProfilePictureInputProps
 ) {
-  const { organization, setOrganization } = props
+  const { backend } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
+  const organization = backendHooks.useBackendGetOrganization(backend)
+
+  const uploadOrganizationPictureMutation = backendHooks.useBackendMutation(
+    backend,
+    'uploadOrganizationPicture'
+  )
 
   const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
@@ -38,11 +42,7 @@ export default function OrganizationProfilePictureInput(
       toastAndLog('noNewProfilePictureError')
     } else {
       try {
-        const newOrganization = await backend.uploadOrganizationPicture(
-          { fileName: image.name },
-          image
-        )
-        setOrganization(newOrganization)
+        await uploadOrganizationPictureMutation.mutateAsync([{ fileName: image.name }, image])
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -57,7 +57,7 @@ export default function OrganizationProfilePictureInput(
       <FocusRing within>
         <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <img
-            src={organization.picture ?? DefaultUserIcon}
+            src={organization?.picture ?? DefaultUserIcon}
             width={128}
             height={128}
             className="pointer-events-none"

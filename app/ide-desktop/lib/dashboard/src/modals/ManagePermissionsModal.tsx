@@ -4,23 +4,23 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import Permission from '#/components/dashboard/Permission'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
@@ -41,6 +41,7 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 export interface ManagePermissionsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
+  readonly backend: Backend
   readonly item: Asset
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
   readonly self: backendModule.UserPermission
@@ -57,12 +58,13 @@ export interface ManagePermissionsModalProps<
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
-  const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const { user: user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useStrictBackend()
+  const { backend, item, setItem, self, doRemoveSelf, eventTarget } = props
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
+  const listedUsers = backendHooks.useBackendListUsers(backend)
+  const listedUserGroups = backendHooks.useBackendListUserGroups(backend)
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
   const [usersAndUserGroups, setUserAndUserGroups] = React.useState<
     readonly (backendModule.UserGroupInfo | backendModule.UserInfo)[]
@@ -103,6 +105,9 @@ export default function ManagePermissionsModal<
     [user?.userId, permissions, self.permission]
   )
 
+  const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser')
+  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
+
   React.useEffect(() => {
     // This is SAFE, as the type of asset is not being changed.
     // eslint-disable-next-line no-restricted-syntax
@@ -116,12 +121,6 @@ export default function ManagePermissionsModal<
     // This MUST be an error, otherwise the hooks below are considered as conditionally called.
     throw new Error('Cannot share assets on the local backend.')
   } else {
-    const listedUsers = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [])
-    const listedUserGroups = asyncEffectHooks.useAsyncEffect(
-      null,
-      () => backend.listUserGroups(),
-      []
-    )
     const canAdd = React.useMemo(
       () => [
         ...(listedUsers ?? []).filter(
@@ -166,10 +165,12 @@ export default function ManagePermissionsModal<
           setUserAndUserGroups([])
           setEmail('')
           if (email != null) {
-            await backend.inviteUser({
-              organizationId: user.organizationId,
-              userEmail: backendModule.EmailAddress(email),
-            })
+            await inviteUserMutation.mutateAsync([
+              {
+                organizationId: user.organizationId,
+                userEmail: backendModule.EmailAddress(email),
+              },
+            ])
             toast.toast.success(getText('inviteSuccess', email))
           }
         } catch (error) {
@@ -204,15 +205,17 @@ export default function ManagePermissionsModal<
               backendModule.compareAssetPermissions
             )
           )
-          await backend.createPermission({
-            actorsIds: addedPermissions.map(permission =>
-              backendModule.isUserPermission(permission)
-                ? permission.user.userId
-                : permission.userGroup.id
-            ),
-            resourceId: item.id,
-            action: action,
-          })
+          await createPermissionMutation.mutateAsync([
+            {
+              actorsIds: addedPermissions.map(permission =>
+                backendModule.isUserPermission(permission)
+                  ? permission.user.userId
+                  : permission.userGroup.id
+              ),
+              resourceId: item.id,
+              action: action,
+            },
+          ])
         } catch (error) {
           setPermissions(oldPermissions =>
             [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...oldPermissions].sort(
@@ -237,11 +240,13 @@ export default function ManagePermissionsModal<
               permission => backendModule.getAssetPermissionId(permission) !== permissionId
             )
           )
-          await backend.createPermission({
-            actorsIds: [permissionId],
-            resourceId: item.id,
-            action: null,
-          })
+          await createPermissionMutation.mutateAsync([
+            {
+              actorsIds: [permissionId],
+              resourceId: item.id,
+              action: null,
+            },
+          ])
         } catch (error) {
           if (oldPermission != null) {
             setPermissions(oldPermissions =>
@@ -344,7 +349,9 @@ export default function ManagePermissionsModal<
                       />
                     </div>
                   </div>
-                  <UnstyledButton
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={
                       willInviteNewUser
                         ? email == null || !isEmail(email)
@@ -357,7 +364,7 @@ export default function ManagePermissionsModal<
                     <div className="h-text py-modal-invite-button-text-y">
                       {willInviteNewUser ? getText('invite') : getText('share')}
                     </div>
-                  </UnstyledButton>
+                  </ariaComponents.Button>
                 </form>
               )}
             </FocusArea>
@@ -368,6 +375,7 @@ export default function ManagePermissionsModal<
                   className="flex h-row items-center"
                 >
                   <Permission
+                    backend={backend}
                     asset={item}
                     self={self}
                     isOnlyOwner={isOnlyOwner}

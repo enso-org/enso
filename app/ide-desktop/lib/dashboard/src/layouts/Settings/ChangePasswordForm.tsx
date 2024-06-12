@@ -5,9 +5,9 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import ButtonRow from '#/components/styled/ButtonRow'
 import SettingsInput from '#/components/styled/SettingsInput'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -93,16 +93,16 @@ export default function ChangePasswordForm() {
         />
       </aria.TextField>
       <ButtonRow>
-        <UnstyledButton
+        <ariaComponents.Button
+          variant="submit"
           isDisabled={!canSubmitPassword}
-          className={`settings-value rounded-full bg-invite font-medium text-white selectable enabled:active`}
           onPress={eventModule.submitForm}
         >
           {getText('change')}
-        </UnstyledButton>
-        <UnstyledButton
+        </ariaComponents.Button>
+        <ariaComponents.Button
+          variant="cancel"
           isDisabled={!canCancel}
-          className="settings-value rounded-full bg-selected-frame font-medium selectable enabled:active"
           onPress={() => {
             setKey(uniqueString.uniqueString())
             setCurrentPassword('')
@@ -111,7 +111,7 @@ export default function ChangePasswordForm() {
           }}
         >
           {getText('cancel')}
-        </UnstyledButton>
+        </ariaComponents.Button>
       </ButtonRow>
     </aria.Form>
   )

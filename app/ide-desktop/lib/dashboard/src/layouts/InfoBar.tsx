@@ -9,10 +9,10 @@ import * as textProvider from '#/providers/TextProvider'
 
 import InfoMenu from '#/layouts/InfoMenu'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 // ===============
 // === InfoBar ===
@@ -50,7 +50,9 @@ export default function InfoBar(props: InfoBarProps) {
               }}
             />
           )}
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
             onPress={() => {
               updateModal(oldModal => (oldModal?.type === InfoMenu ? null : <InfoMenu />))
@@ -61,7 +63,7 @@ export default function InfoBar(props: InfoBarProps) {
               alt={getText('openInfoMenu')}
               className="pointer-events-none size-7"
             />
-          </UnstyledButton>
+          </ariaComponents.Button>
           {/* Required for shortcuts to work. */}
           <div className="hidden">
             <InfoMenu hidden />

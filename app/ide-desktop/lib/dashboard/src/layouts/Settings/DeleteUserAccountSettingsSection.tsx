@@ -1,27 +1,39 @@
 /** @file Settings tab for deleting the current user. */
 import * as React from 'react'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
+
+import type Backend from '#/services/Backend'
 
 // ========================================
 // === DeleteUserAccountSettingsSection ===
 // ========================================
 
+/** Props for a {@link DeleteUserAccountSettingsSection}. */
+export interface DeleteUserAccountSettingsSectionProps {
+  readonly backend: Backend
+}
+
 /** Settings tab for deleting the current user. */
-export default function DeleteUserAccountSettingsSection() {
+export default function DeleteUserAccountSettingsSection(
+  props: DeleteUserAccountSettingsSectionProps
+) {
+  const { backend } = props
   const { signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
+
+  const deleteUserMutation = backendHooks.useBackendMutation(backend, 'deleteUser')
 
   return (
     <FocusArea direction="vertical">
@@ -34,13 +46,15 @@ export default function DeleteUserAccountSettingsSection() {
             {getText('dangerZone')}
           </aria.Heading>
           <div className="flex gap-buttons">
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
               onPress={() => {
                 setModal(
                   <ConfirmDeleteUserModal
                     doDelete={async () => {
-                      await backend.deleteUser()
+                      await deleteUserMutation.mutateAsync([])
                       await signOut()
                     }}
                   />
@@ -50,7 +64,7 @@ export default function DeleteUserAccountSettingsSection() {
               <aria.Text className="text inline-block">
                 {getText('deleteUserAccountButtonLabel')}
               </aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
             <aria.Text className="text my-auto">{getText('deleteUserAccountWarning')}</aria.Text>
           </div>
         </div>

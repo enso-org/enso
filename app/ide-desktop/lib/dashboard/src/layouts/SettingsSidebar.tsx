@@ -1,6 +1,8 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as textProvider from '#/providers/TextProvider'
 
 import * as settingsData from '#/layouts/Settings/settingsData'
@@ -36,11 +38,12 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
       {innerProps => (
         <div
           aria-label={getText('settingsSidebarLabel')}
-          className={`w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto ${
+          className={tailwindMerge.twMerge(
+            'w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto',
             !isMenu
               ? 'hidden sm:flex'
               : 'relative rounded-default p-modal text-xs text-primary before:absolute before:inset before:rounded-default before:bg-frame before:backdrop-blur-default sm:hidden'
-          }`}
+          )}
           onClickCapture={onClickCapture}
           {...innerProps}
         >
