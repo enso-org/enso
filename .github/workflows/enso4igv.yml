@@ -9,7 +9,25 @@ on:
       - "tools/enso4igv/**/*"
 
 jobs:
-  build:
+  build_linux_parser:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build Enso Parser
+        working-directory: .
+        run: |
+          RUSTFLAGS="-C target-feature=-crt-static" cargo build -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir lib/linux/amd64/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux_parser
+          path: |
+            lib/linux/amd64/libenso_parser.so
+
+  build_java:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -37,6 +55,15 @@ jobs:
         run: |
           echo "Setting version to $POM_VERSION.$MICRO_VERSION"
           mvn versions:set -DnewVersion="$POM_VERSION.$MICRO_VERSION"
+
+      - name: Download Libraries
+        uses: actions/download-artifact@v2
+
+      - name: List Binaries
+        run: |
+          ls -l
+          find . | grep so$
+          ls -l lib
 
       - name: Build with Maven
         run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml
