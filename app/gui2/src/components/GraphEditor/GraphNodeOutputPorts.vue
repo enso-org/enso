@@ -44,10 +44,13 @@ const outputPorts = computed((): PortData[] => {
 
 // === Interactivity ===
 
-const outputHovered = ref<AstId>()
+const mouseOverOutput = ref<AstId>()
+
+const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
+
 const anyPortDisconnected = computed(() => {
   for (const port of outputPortsSet.value) {
-    if (graph.disconnectedEdgePorts.has(port)) return true
+    if (graph.unconnectedEdgeSources.has(port)) return true
   }
   return false
 })
@@ -104,6 +107,8 @@ function portGroupStyle(port: PortData) {
     transform: 'var(--output-port-transform)',
   }
 }
+
+graph.suggestEdgeFromOutput(outputHovered)
 </script>
 
 <template>
@@ -112,8 +117,8 @@ function portGroupStyle(port: PortData) {
       <g class="portClip">
         <rect
           class="outputPortHoverArea clickable"
-          @pointerenter="outputHovered = port.portId"
-          @pointerleave="outputHovered = undefined"
+          @pointerenter="mouseOverOutput = port.portId"
+          @pointerleave="mouseOverOutput = undefined"
           @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
         />
         <rect class="outputPort" />
