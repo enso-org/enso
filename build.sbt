@@ -2979,7 +2979,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     )
   )
   .dependsOn(cli)
-  .dependsOn(`http-test-helper`)
+  .dependsOn(`http-test-helper` % "test->test")
   .dependsOn(testkit % Test)
 
 lazy val `edition-updater` = project
