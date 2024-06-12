@@ -6,7 +6,7 @@ import * as appUtils from '#/appUtils'
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as remoteBackendProvider from '#/providers/RemoteBackendProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 
 import type * as backendModule from '#/services/Backend'
 
@@ -37,7 +37,8 @@ export default function Editor(props: EditorProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
-  const remoteBackend = remoteBackendProvider.useRemoteBackend()
+  gtagEventRef.current = gtagEvent
+  const remoteBackend = backendProvider.useRemoteBackend()
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {
@@ -47,8 +48,6 @@ export default function Editor(props: EditorProps) {
     },
     [remoteBackend]
   )
-
-  gtagEventRef.current = gtagEvent
 
   React.useEffect(() => {
     if (hidden) {

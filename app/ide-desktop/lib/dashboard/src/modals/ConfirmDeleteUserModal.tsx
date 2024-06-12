@@ -7,9 +7,9 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
-import UnstyledButton from '#/components/UnstyledButton'
 
 // ==============================
 // === ConfirmDeleteUserModal ===
@@ -60,12 +60,14 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           {getText('confirmDeleteUserAccountWarning')}
         </aria.Text>
         <ButtonRow position="center">
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="button relative bg-danger text-inversed active"
             onPress={doSubmit}
           >
             <aria.Text className="text">{getText('confirmDeleteUserAccountButtonLabel')}</aria.Text>
-          </UnstyledButton>
+          </ariaComponents.Button>
         </ButtonRow>
       </form>
     </Modal>

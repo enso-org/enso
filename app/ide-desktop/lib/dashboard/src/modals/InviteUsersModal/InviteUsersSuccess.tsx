@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Success screen for the invite users modal.
- */
+/** @file Success screen for the "invite users" modal. */
 import * as React from 'react'
 
 import * as reactRouterDom from 'react-router-dom'
@@ -14,25 +10,27 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
-/**
- * The number of emails to display in the success message.
- * If the number of emails is greater than this number, the message will be
- * x emails have been invited instead of listing all the emails.
- */
-const MANY_EMAILS = 4
+// =================
+// === Constants ===
+// =================
 
-/**
- * Props for the InviteUsersSuccess component.
- */
+/** The number of emails to display in the success message.
+ * If the number of emails is greater than this number, the message will be
+ * x emails have been invited instead of listing all the emails. */
+const MAX_EMAILS_DISPLAYED = 4
+
+// ==========================
+// === InviteUsersSuccess ===
+// ==========================
+
+/** Props for the {@link InviteUsersSuccess} component. */
 export interface InviteUsersSuccessProps {
   readonly onClose?: () => void
   readonly emails: string[]
   readonly invitationLink: string
 }
 
-/**
- * Success screen for the invite users modal.
- */
+/** Success screen for the invite users modal. */
 export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
   const { onClose, emails, invitationLink } = props
   const { getText, locale } = textProvider.useText()
@@ -56,7 +54,7 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
     <result.Result
       icon={false}
       subtitle={
-        emails.length > MANY_EMAILS
+        emails.length > MAX_EMAILS_DISPLAYED
           ? getText('inviteManyUsersSuccess', emails.length)
           : getText('inviteSuccess', emailListFormatter.format(emails))
       }

@@ -18,6 +18,9 @@ import type * as types from './types'
 import * as utlities from './utilities'
 import * as variants from './variants'
 
+// =================
+// === Constants ===
+// =================
 /**
  * Props for the {@link Dialog} component.
  */
@@ -69,6 +72,7 @@ export function Dialog(props: DialogProps) {
     children,
     title,
     type = 'modal',
+    closeButton = 'none',
     isDismissable = true,
     isKeyboardDismissDisabled = false,
     hideCloseButton = false,
@@ -83,7 +87,6 @@ export function Dialog(props: DialogProps) {
   const dialogId = aria.useId()
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const overlayState = React.useRef<aria.OverlayTriggerState | null>(null)
-
   const root = portal.useStrictPortalContext()
   const shouldRenderTitle = typeof title === 'string'
   const dialogSlots = DIALOG_STYLES({ className, type, rounded, hideCloseButton })
@@ -175,6 +178,11 @@ export function Dialog(props: DialogProps) {
                         </React.Suspense>
                       </errorBoundary.ErrorBoundary>
                     </div>
+                    {closeButton === 'floating' && (
+                      <div className="absolute m-[19px] flex gap-1">
+                        <ariaComponents.CloseButton onPress={opts.close} />
+                      </div>
+                    )}
                   </dialogProvider.DialogProvider>
                 )}
               </aria.Dialog>

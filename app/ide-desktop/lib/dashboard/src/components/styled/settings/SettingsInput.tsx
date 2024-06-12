@@ -93,7 +93,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
               active
               image={isShowingPassword ? EyeIcon : EyeCrossedIcon}
               alt={isShowingPassword ? getText('hidePassword') : getText('showPassword')}
-              buttonClassName="absolute right-2 top-1 cursor-pointer rounded-full size-icon"
+              buttonClassName="absolute right-2 top-1 cursor-pointer rounded-full size-6"
               onPress={() => {
                 setIsShowingPassword(show => !show)
               }}

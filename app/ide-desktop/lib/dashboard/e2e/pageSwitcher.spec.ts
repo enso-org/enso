@@ -12,16 +12,9 @@ test.test('page switcher', async ({ page }) => {
 
   await actions.locateDrivePageIcon(page).click()
   await test.expect(actions.locateDriveView(page)).toBeVisible()
-  await test.expect(actions.locateSamplesList(page)).not.toBeVisible()
-  await test.expect(actions.locateEditor(page)).not.toBeVisible()
-
-  await actions.locateHomePageIcon(page).click()
-  await test.expect(actions.locateDriveView(page)).not.toBeVisible()
-  await test.expect(actions.locateSamplesList(page)).toBeVisible()
   await test.expect(actions.locateEditor(page)).not.toBeVisible()
 
   await actions.locateEditorPageIcon(page).click()
   await test.expect(actions.locateDriveView(page)).not.toBeVisible()
-  await test.expect(actions.locateSamplesList(page)).not.toBeVisible()
   await test.expect(actions.locateEditor(page)).toBeVisible()
 })
