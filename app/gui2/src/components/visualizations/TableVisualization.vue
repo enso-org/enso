@@ -198,10 +198,8 @@ function cellRenderer(params: ICellRendererParams) {
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
   else if (typeof params.value === 'number') return formatNumber(params)
-  else if (Array.isArray(params.value)) {
-    const content = params.value
-    return `[Vector ${content.length} items]`
-  } else if (typeof params.value === 'object') {
+  else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
+  else if (typeof params.value === 'object') {
     const valueType = params.value?.type
     if (valueType === 'BigInt') return formatNumber(params)
     else if (valueType === 'Float')
@@ -334,12 +332,12 @@ watchEffect(() => {
         return toField(v, valueType)
       }) ?? []
 
-    const columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : [...dataHeader]
+    columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : [...dataHeader]
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       return Object.fromEntries(
         columnDefs.map((h, j) => {
-          return [h.field, toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j]?.[i])]
+          return [h.field, toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - 1]?.[i])]
         }),
       )
     })
