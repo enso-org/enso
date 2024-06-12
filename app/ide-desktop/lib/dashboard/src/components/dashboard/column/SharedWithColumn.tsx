@@ -84,32 +84,28 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         </PermissionDisplay>
       ))}
       {managesThisAsset && (
-        <div className="relative inline-flex shrink-0 transition-all transparent before:absolute before:inset-0 before:rounded-full before:border before:border-primary/10 before:transition-all before:hover:bg-primary/5 group-hover:opacity-100">
-          <ariaComponents.Button
-            ref={plusButtonRef}
-            size="medium"
-            variant="outline"
-            icon={Plus2Icon}
-            className="relative inline-flex min-w-max rounded-full transition-all selectable focus-visible:opacity-100"
-            onPress={() => {
-              setModal(
-                <ManagePermissionsModal
-                  key={uniqueString.uniqueString()}
-                  item={asset}
-                  setItem={setAsset}
-                  self={self}
-                  eventTarget={plusButtonRef.current}
-                  doRemoveSelf={() => {
-                    dispatchAssetEvent({
-                      type: AssetEventType.removeSelf,
-                      id: asset.id,
-                    })
-                  }}
-                />
-              )
-            }}
-          />
-        </div>
+        <ariaComponents.Button
+          ref={plusButtonRef}
+          size="medium"
+          variant="outline"
+          isCentered
+          icon={Plus2Icon}
+          className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          onPress={() => {
+            setModal(
+              <ManagePermissionsModal
+                key={uniqueString.uniqueString()}
+                item={asset}
+                setItem={setAsset}
+                self={self}
+                eventTarget={plusButtonRef.current}
+                doRemoveSelf={() => {
+                  dispatchAssetEvent({ type: AssetEventType.removeSelf, id: asset.id })
+                }}
+              />
+            )
+          }}
+        />
       )}
     </div>
   )

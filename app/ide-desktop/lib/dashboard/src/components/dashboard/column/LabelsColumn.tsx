@@ -138,27 +138,26 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           </Label>
         ))}
       {managesThisAsset && (
-        <div className="relative inline-flex shrink-0 transition-all transparent before:absolute before:inset-0 before:rounded-full before:border before:border-primary/10 before:transition-all before:hover:bg-primary/5 group-hover:opacity-100">
-          <ariaComponents.Button
-            ref={plusButtonRef}
-            size="medium"
-            variant="outline"
-            icon={Plus2Icon}
-            className="relative inline-flex min-w-max rounded-full transition-all selectable focus-visible:opacity-100"
-            onPress={() => {
-              setModal(
-                <ManageLabelsModal
-                  key={uniqueString.uniqueString()}
-                  item={asset}
-                  setItem={setAsset}
-                  allLabels={labels}
-                  doCreateLabel={doCreateLabel}
-                  eventTarget={plusButtonRef.current}
-                />
-              )
-            }}
-          />
-        </div>
+        <ariaComponents.Button
+          ref={plusButtonRef}
+          size="medium"
+          variant="outline"
+          isCentered
+          className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          icon={Plus2Icon}
+          onPress={() => {
+            setModal(
+              <ManageLabelsModal
+                key={uniqueString.uniqueString()}
+                item={asset}
+                setItem={setAsset}
+                allLabels={labels}
+                doCreateLabel={doCreateLabel}
+                eventTarget={plusButtonRef.current}
+              />
+            )
+          }}
+        />
       )}
     </div>
   )

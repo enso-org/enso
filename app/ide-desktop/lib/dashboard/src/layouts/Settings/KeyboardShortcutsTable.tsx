@@ -112,9 +112,9 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   <KeyboardShortcut shortcut={binding} />
                                   <ariaComponents.Button
                                     size="medium"
-                                    variant="custom"
+                                    variant="outline"
+                                    isCentered
                                     icon={CrossIcon}
-                                    className="flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg"
                                     onPress={() => {
                                       inputBindings.delete(action, binding)
                                       doRefresh()
@@ -127,6 +127,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                 <ariaComponents.Button
                                   size="medium"
                                   variant="outline"
+                                  isCentered
                                   icon={Plus2Icon}
                                   onPress={() => {
                                     setModal(
@@ -144,6 +145,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                 <ariaComponents.Button
                                   size="medium"
                                   variant="outline"
+                                  isCentered
                                   icon={ReloadIcon}
                                   onPress={() => {
                                     inputBindings.reset(action)
