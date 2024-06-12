@@ -8,7 +8,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
 import { clamp } from '@vueuse/core'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
