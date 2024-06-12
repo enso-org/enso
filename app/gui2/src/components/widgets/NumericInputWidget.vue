@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
-import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'vue'
+import { computed, ref, watch, type ComponentInstance, type CSSProperties } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
@@ -60,7 +60,7 @@ const sliderWidth = computed(() => {
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
 const MIN_CONTENT_WIDTH = 56
 
-const inputStyle = computed<StyleValue>(() => {
+const inputStyle = computed<CSSProperties>(() => {
   const value = `${editedValue.value}`
   const dotIdx = value.indexOf('.')
   let indent = 0
