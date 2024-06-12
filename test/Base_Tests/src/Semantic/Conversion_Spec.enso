@@ -617,6 +617,22 @@ add_specs suite_builder =
             r = [r1, r2]
             r.to_text . should_contain "Foo.Value 4"
 
+        group_builder.specify "Convert and catch" <|
+            fn x = x+2
+
+            convert_and_catch x = case x of
+                _:Function ->Panic.catch Any (x:Baz) err->
+                    [err, x]
+                _ -> x
+
+            r1 = convert_and_catch 10
+            r2 = convert_and_catch (..Value 13)
+            r3 = convert_and_catch fn
+
+            r1 . should_equal 10
+            r2 . should_equal (Baz.Value 13)
+            r3.to_text . should_contain "expected expression to be Baz, but got"
+
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Text | DateTimeFormatter) = case x of

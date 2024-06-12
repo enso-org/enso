@@ -2195,10 +2195,13 @@ class IrToTruffle(
             )
             .unsafeAs[AliasInfo.Scope.Child]
 
+          def valueHasSomeTypeCheck() =
+            value.getMetadata(TypeSignatures).isDefined
+
           val shouldCreateClosureRootNode = value match {
-            case _: Name           => false
-            case _: Literal.Text   => false
-            case _: Literal.Number => false
+            case _: Name           => valueHasSomeTypeCheck()
+            case _: Literal.Text   => valueHasSomeTypeCheck()
+            case _: Literal.Number => valueHasSomeTypeCheck()
             case _                 => true
           }
 
