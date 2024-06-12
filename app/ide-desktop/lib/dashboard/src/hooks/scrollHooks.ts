@@ -1,50 +1,16 @@
 /** @file Execute a function on scroll. */
 import * as React from 'react'
 
-// ===================
-// === useOnScroll ===
-// ===================
-
-/** Execute a function on scroll. */
-export function useOnScroll(callback: () => void, dependencies: React.DependencyList = []) {
-  const callbackRef = React.useRef(callback)
-  callbackRef.current = callback
-  const updateClipPathRef = React.useRef(() => {})
-
-  const onScroll = React.useMemo(() => {
-    let isClipPathUpdateQueued = false
-    const updateClipPath = () => {
-      isClipPathUpdateQueued = false
-      callbackRef.current()
-    }
-    updateClipPathRef.current = updateClipPath
-    updateClipPath()
-    return () => {
-      if (!isClipPathUpdateQueued) {
-        isClipPathUpdateQueued = true
-        requestAnimationFrame(updateClipPath)
-      }
-    }
-  }, [])
-
-  React.useLayoutEffect(() => {
-    updateClipPathRef.current()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, dependencies)
-
-  React.useEffect(() => {
-    window.addEventListener('resize', onScroll)
-    return () => {
-      window.removeEventListener('resize', onScroll)
-    }
-  }, [onScroll])
-
-  return onScroll
-}
+import useOnScroll from '#/hooks/useOnScroll'
 
 // ====================================
 // === useStickyTableHeaderOnScroll ===
 // ====================================
+
+/** Options for the {@link useStickyTableHeaderOnScroll} hook. */
+interface UseStickyTableHeaderOnScrollOptions {
+  readonly trackShadowClass?: boolean
+}
 
 /** Properly clip the table body to avoid the table header on scroll.
  * This is required to prevent the table body from overlapping the table header,
@@ -57,8 +23,9 @@ export function useOnScroll(callback: () => void, dependencies: React.Dependency
 export function useStickyTableHeaderOnScroll(
   rootRef: React.MutableRefObject<HTMLDivElement | null>,
   bodyRef: React.RefObject<HTMLTableSectionElement>,
-  trackShadowClass = false
+  options: UseStickyTableHeaderOnScrollOptions = {}
 ) {
+  const { trackShadowClass = false } = options
   const trackShadowClassRef = React.useRef(trackShadowClass)
   trackShadowClassRef.current = trackShadowClass
   const [shadowClass, setShadowClass] = React.useState('')
@@ -79,6 +46,6 @@ export function useStickyTableHeaderOnScroll(
         setShadowClass(newShadowClass)
       }
     }
-  })
+  }, [bodyRef, rootRef])
   return { onScroll, shadowClass }
 }

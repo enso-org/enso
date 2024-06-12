@@ -295,7 +295,10 @@ export default [
             'react/prop-types': 'off',
             'react/self-closing-comp': 'error',
             'react-hooks/rules-of-hooks': 'error',
-            'react-hooks/exhaustive-deps': 'error',
+            'react-hooks/exhaustive-deps': [
+                'error',
+                { additionalHooks: 'useOnScroll|useStickyTableHeaderOnScroll' },
+            ],
             'react/jsx-pascal-case': ['error', { allowNamespace: true }],
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',

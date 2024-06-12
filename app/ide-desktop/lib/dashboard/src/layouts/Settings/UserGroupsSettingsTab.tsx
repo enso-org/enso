@@ -64,7 +64,7 @@ export default function UserGroupsSettingsTab() {
   }, [users])
 
   const { onScroll: onUserGroupsTableScroll, shadowClass } =
-    scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, true)
+    scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, { trackShadowClass: true })
 
   React.useEffect(() => {
     void backend.listUsers().then(setUsers)

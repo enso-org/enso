@@ -55,7 +55,7 @@ export default function MembersTable(props: MembersTableProps) {
   const { onScroll, shadowClass } = scrollHooks.useStickyTableHeaderOnScroll(
     scrollContainerRef,
     bodyRef,
-    true
+    { trackShadowClass: true }
   )
 
   const { dragAndDropHooks } = aria.useDragAndDrop({

@@ -7,8 +7,8 @@ import * as mimeTypes from '#/data/mimeTypes'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
-import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import useOnScroll from '#/hooks/useOnScroll'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -1973,7 +1973,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.
-  const onScroll = scrollHooks.useOnScroll(() => {
+  const updateClipPath = useOnScroll(() => {
     if (bodyRef.current != null && rootRef.current != null) {
       bodyRef.current.style.clipPath = `inset(${rootRef.current.scrollTop}px 0 0 0)`
     }
@@ -1988,7 +1988,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       const rightOffset = rootRef.current.clientWidth + rootRef.current.scrollLeft - shrinkBy
       headerRowRef.current.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
     }
-  }, [enabledColumns.size])
+  }, [backend.type, enabledColumns.size])
 
   React.useEffect(
     () =>
@@ -2496,7 +2496,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             ref: rootRef,
             className: 'flex-1 overflow-auto container-size',
             onKeyDown,
-            onScroll,
+            onScroll: updateClipPath,
             onBlur: event => {
               if (
                 event.relatedTarget instanceof HTMLElement &&
