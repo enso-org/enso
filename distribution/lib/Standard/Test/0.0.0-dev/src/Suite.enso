@@ -115,9 +115,10 @@ type Suite
                 IO.println <| skipped_tests.to_text + " tests skipped."
                 IO.println <| pending_groups.to_text + " groups skipped."
                 IO.println ""
-                IO.println <| "Failed tests: '" + failed_tests_names + "'"
-                if failed_tests_number > 10 then IO.println "(Displaying only first 10 failed tests)"
-                IO.println ""
+                if failed_tests_number > 0 then
+                    IO.println <| "Failed tests: '" + failed_tests_names + "'"
+                    if failed_tests_number > 10 then IO.println "(Displaying only first 10 failed tests)"
+                    IO.println ""
                 exit_code = if failed_tests_number > 0 then 1 else 0
                 System.exit exit_code
             False ->
