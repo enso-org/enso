@@ -388,6 +388,9 @@ public abstract class ReadArgumentCheckNode extends Node {
       if (v instanceof EnsoMultiValue multi) {
         return multi.allTypes();
       }
+      if (v instanceof UnresolvedConstructor) {
+        return null;
+      }
       if (typeOfNode.execute(v) instanceof Type from) {
         if (previous != null && previous.length == 1 && previous[0] == from) {
           return previous;

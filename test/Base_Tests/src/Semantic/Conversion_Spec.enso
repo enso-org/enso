@@ -592,6 +592,31 @@ add_specs suite_builder =
             Meta.type_of x . should_equal Autoscope_Type
             x.to_text . should_equal "(Raw ..My_Other)"
 
+
+        confused1 filter =
+            materialize f:Foo = f
+
+            case filter of
+                _:Function -> Panic.catch Any (materialize filter) err->
+                    [err, filter]
+                _ -> filter
+
+        group_builder.specify "Order of specializations 1 & 2" <|
+            fn x = x+2
+
+            r1 = confused1 fn
+            r2 = confused1 (..Value 4)
+            r = [r1, r2]
+            r.to_text . should_contain "Foo.Value 4"
+
+        group_builder.specify "Order of specializations 2 & 1" <|
+            fn x = x+2
+
+            r2 = confused1 (..Value 4)
+            r1 = confused1 fn
+            r = [r1, r2]
+            r.to_text . should_contain "Foo.Value 4"
+
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Text | DateTimeFormatter) = case x of
