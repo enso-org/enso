@@ -11,6 +11,9 @@
     "noEmit": false,
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
-    "types": ["node"]
+    "types": [
+      "node",
+      "jest"
+    ]
   }
 }
