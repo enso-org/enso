@@ -752,10 +752,15 @@ class IrToTruffle(
     t: Expression
   ): ReadArgumentCheckNode = t match {
     case u: `type`.Set.Union =>
-      ReadArgumentCheckNode.oneOf(
-        comment,
-        u.operands.map(extractAscribedType(comment, _)).asJava
-      )
+      val oneOf = u.operands.map(extractAscribedType(comment, _))
+      if (oneOf.contains(null)) {
+        null
+      } else {
+        ReadArgumentCheckNode.oneOf(
+          comment,
+          oneOf.asJava
+        )
+      }
     case i: `type`.Set.Intersection =>
       ReadArgumentCheckNode.allOf(
         comment,
@@ -765,6 +770,7 @@ class IrToTruffle(
     case p: Application.Prefix => extractAscribedType(comment, p.function)
     case _: Tpe.Function =>
       ReadArgumentCheckNode.build(
+        context,
         comment,
         context.getTopScope().getBuiltins().function()
       )
@@ -780,10 +786,12 @@ class IrToTruffle(
               BindingsMap
                 .Resolution(binding @ BindingsMap.ResolvedType(_, _))
             ) =>
-          ReadArgumentCheckNode.build(
-            comment,
-            asType(binding)
-          )
+          val typeOrAny = asType(binding)
+          if (context.getBuiltins().any() == typeOrAny) {
+            null
+          } else {
+            ReadArgumentCheckNode.build(context, comment, typeOrAny)
+          }
         case Some(
               BindingsMap
                 .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
