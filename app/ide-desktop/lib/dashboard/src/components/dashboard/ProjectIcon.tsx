@@ -174,7 +174,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const openEditorMutation = reactQuery.useMutation({
     mutationKey: ['openEditor', item.id],
     mutationFn: async (abortController: AbortController) => {
-      if (!isRunningInBackground) {
+      if (!isRunningInBackground && isCloud) {
         toast.toast.loading(LOADING_MESSAGE, { toastId })
       }
       const project = await waitUntilProjectIsReadyMutation.mutateAsync([
