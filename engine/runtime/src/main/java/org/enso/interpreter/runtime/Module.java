@@ -30,6 +30,7 @@ import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.data.IdMap;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
@@ -65,6 +66,7 @@ public final class Module implements EnsoObject {
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
+  private IdMap idMap;
 
   /**
    * This list is filled in case there is a directory with the same name as this module. The
@@ -452,6 +454,10 @@ public final class Module implements EnsoObject {
     this.uuidsMap = null;
   }
 
+  void unsafeSetIdMap(IdMap idMap) {
+    this.idMap = idMap;
+  }
+
   /**
    * @return the runtime scope of this module.
    */
@@ -497,6 +503,13 @@ public final class Module implements EnsoObject {
    */
   public TruffleFile getSourceFile() {
     return sources.file();
+  }
+
+  /**
+   * @return the IdMap of this module.
+   */
+  public IdMap getIdMap() {
+    return idMap;
   }
 
   /**

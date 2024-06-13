@@ -7,7 +7,7 @@ import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir
-import org.enso.compiler.core.ir.{expression, IdentifiedLocation}
+import org.enso.compiler.core.ir.{expression, IdentifiedLocation, Location}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -32,6 +32,7 @@ import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.{IdMap, Span}
 
 import java.io.File
+import java.util
 import java.util.UUID
 import java.util.logging.Level
 
@@ -292,14 +293,21 @@ final class EnsureCompiledJob(
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
         val compiler = ctx.executionService.getContext.getCompiler
-        val result   = compiler.run(module.asCompilerModule())
 
         idMapOpt.foreach { idMap =>
+          val moduleIdMap =
+            idMap.values.foldLeft(new util.HashMap[Location, UUID]()) {
+              case (map, (span, id)) =>
+                map.put(new Location(span.start, span.end), id)
+                map
+            }
           compiler.context.updateModule(
             module.asCompilerModule(),
-            _.ir(updateIds(module, idMap))
+            _.idMap(new org.enso.compiler.data.IdMap(moduleIdMap))
           )
         }
+
+        val result = compiler.run(module.asCompilerModule())
 
         Right(
           result.copy(compiledModules =
@@ -313,21 +321,6 @@ final class EnsureCompiledJob(
       case e: Throwable =>
         Left(e)
     }
-
-  private def updateIds(module: Module, idMap: IdMap): ir.Module = {
-    module.getIr.mapExpressions { expr =>
-      val newLocation = expr
-        .location()
-        .map { location =>
-          idMap.asMap
-            .get(Span(location.start(), location.end()))
-            .fold(location)(externalId => {
-              new IdentifiedLocation(location.location(), externalId)
-            })
-        }
-      expr.setLocation(newLocation)
-    }
-  }
 
   /** Apply pending edits to the file.
     *

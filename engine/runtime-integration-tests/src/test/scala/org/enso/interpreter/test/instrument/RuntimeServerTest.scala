@@ -7182,8 +7182,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3, 10) shouldEqual Seq(
-      TestMessages.pending(contextId, xId),
+    context.receiveN(2) shouldEqual Seq(
       TestMessages.update(contextId, xId, ConstantsGen.TEXT),
       context.executionComplete(contextId)
     )

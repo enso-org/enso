@@ -14,6 +14,7 @@ import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.IdMap;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -25,6 +26,7 @@ import org.enso.pkg.QualifiedName;
  * {@link Compiler} & co. classes separately without any dependency on Truffle API.
  */
 public interface CompilerContext extends CompilerStub {
+
   boolean isIrCachingDisabled();
 
   boolean isPrivateCheckDisabled();
@@ -86,6 +88,8 @@ public interface CompilerContext extends CompilerStub {
 
   CharSequence getCharacters(Module module) throws IOException;
 
+  IdMap getIdMap(Module module);
+
   void updateModule(Module module, Consumer<Updater> callback);
 
   boolean isSynthetic(Module module);
@@ -117,6 +121,8 @@ public interface CompilerContext extends CompilerStub {
   public static interface Updater {
     void bindingsMap(BindingsMap map);
 
+    void idMap(IdMap idMap);
+
     void ir(org.enso.compiler.core.ir.Module ir);
 
     void compilationStage(CompilationStage stage);
@@ -129,6 +135,7 @@ public interface CompilerContext extends CompilerStub {
   }
 
   public abstract static class Module {
+
     public abstract CharSequence getCharacters() throws IOException;
 
     public abstract String getPath();
@@ -138,6 +145,8 @@ public interface CompilerContext extends CompilerStub {
     public abstract QualifiedName getName();
 
     public abstract BindingsMap getBindingsMap();
+
+    public abstract IdMap getIdMap();
 
     public abstract List<QualifiedName> getDirectModulesRefs();
 
