@@ -9,7 +9,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as searchBarProvider from '#/providers/SearchBarProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import SearchBar from '#/layouts/SearchBar'
@@ -48,8 +47,6 @@ export default function Settings() {
   const { setUser } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  // FIXME: Remove searchBarProvider in favor of local search bar.
-  const { setSearchBar, unsetSearchBar } = searchBarProvider.useSetSearchBar('Settings')
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
@@ -86,26 +83,6 @@ export default function Settings() {
       user,
     ]
   )
-
-  React.useEffect(() => {
-    setSearchBar(
-      <SearchBar
-        data-testid="settings-search-bar"
-        query={query}
-        setQuery={setQuery}
-        label={getText('settingsSearchBarLabel')}
-        placeholder={getText('settingsSearchBarPlaceholder')}
-      />
-    )
-    return () => {
-      unsetSearchBar()
-    }
-  }, [
-    query,
-    /* should never change */ getText,
-    /* should never change */ setSearchBar,
-    /* should never change */ unsetSearchBar,
-  ])
 
   const isMatch = React.useMemo(() => {
     const regex = new RegExp(string.regexEscape(query.trim()).replace(/\s+/g, '.+'), 'i')
@@ -178,7 +155,7 @@ export default function Settings() {
   }, [doesEntryMatchQuery, getText, isMatch, query])
 
   return (
-    <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
+    <div className="flex flex-1 flex-col gap-4 overflow-hidden px-page-x">
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
@@ -204,6 +181,13 @@ export default function Settings() {
             : user?.name ?? 'your account'}
         </div>
       </aria.Heading>
+      <SearchBar
+        data-testid="settings-search-bar"
+        query={query}
+        setQuery={setQuery}
+        label={getText('settingsSearchBarLabel')}
+        placeholder={getText('settingsSearchBarPlaceholder')}
+      />
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar
           tabsToShow={tabsToShow}

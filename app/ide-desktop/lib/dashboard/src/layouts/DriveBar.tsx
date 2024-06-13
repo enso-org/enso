@@ -101,14 +101,14 @@ export default function DriveBar(props: DriveBarProps) {
       // in the given directory, to avoid name collisions.
       return (
         <div className="flex h-row py-drive-bar-y">
-          <HorizontalMenuBar>{searchBar}</HorizontalMenuBar>
+          <HorizontalMenuBar grow>{searchBar}</HorizontalMenuBar>
         </div>
       )
     }
     case Category.trash: {
       return (
         <div className="flex h-row py-drive-bar-y">
-          <HorizontalMenuBar>
+          <HorizontalMenuBar grow>
             <ariaComponents.Button
               size="custom"
               variant="custom"
@@ -135,7 +135,7 @@ export default function DriveBar(props: DriveBarProps) {
     case Category.local: {
       return (
         <div className="flex h-row py-drive-bar-y">
-          <HorizontalMenuBar>
+          <HorizontalMenuBar grow>
             <aria.DialogTrigger>
               <ariaComponents.Button
                 size="medium"

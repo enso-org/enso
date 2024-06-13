@@ -32,7 +32,7 @@ export default function SearchBar(props: SearchBarProps) {
           data-testid={props['data-testid']}
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className:
-              'search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide',
+              'group relative flex h-row items-center gap-asset-search-bar rounded-full px-input-x text-primary',
           })}
         >
           <img src={FindIcon} className="relative z-1 placeholder" />
@@ -42,7 +42,7 @@ export default function SearchBar(props: SearchBarProps) {
           <FocusRing placement="before">
             <aria.SearchField
               aria-label={label}
-              className="relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all"
+              className="before:inset-x-button-focus-ring-inset relative grow before:text before:absolute before:my-auto before:rounded-full before:transition-all"
               value={query}
               onKeyDown={event => {
                 event.continuePropagation()
