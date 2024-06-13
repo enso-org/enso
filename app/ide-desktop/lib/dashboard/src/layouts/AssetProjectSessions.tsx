@@ -3,13 +3,9 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 
-import * as backendProvider from '#/providers/BackendProvider'
-
 import AssetProjectSession from '#/layouts/AssetProjectSession'
 
-import * as errorBoundary from '#/components/ErrorBoundary'
-import StatelessSpinner from '#/components/StatelessSpinner'
-import * as statelessSpinnerModule from '#/components/StatelessSpinner'
+import * as loader from '#/components/Loader'
 
 import type * as backendModule from '#/services/Backend'
 import Backend from '#/services/Backend'
@@ -37,35 +33,23 @@ export interface AssetProjectSessionsProps {
 export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
   const { backend, item } = props
 
-  const projectSessionsQuery = reactQuery.useQuery({
+  const projectSessionsQuery = reactQuery.useSuspenseQuery({
     queryKey: ['getProjectSessions', item.item.id, item.item.title],
     queryFn: () => backend.listProjectSessions(item.item.id, item.item.title),
   })
 
   return (
-    <div className="pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden">
-      {projectSessionsQuery.isSuccess ? (
-        projectSessionsQuery.data.map(session => (
+    <React.Suspense fallback={<loader.Loader />}>
+      <div className="pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden">
+        {projectSessionsQuery.data.map(session => (
           <AssetProjectSession
             key={session.projectSessionId}
             backend={backend}
             project={item.item}
             projectSession={session}
           />
-        ))
-      ) : projectSessionsQuery.isLoading || projectSessionsQuery.isPending ? (
-        <StatelessSpinner
-          state={statelessSpinnerModule.SpinnerState.loadingFast}
-          size={SPINNER_SIZE}
-        />
-      ) : (
-        <errorBoundary.ErrorDisplay
-          error={projectSessionsQuery.error}
-          resetErrorBoundary={() => {
-            void projectSessionsQuery.refetch()
-          }}
-        />
-      )}
-    </div>
+        ))}
+      </div>
+    </React.Suspense>
   )
 }
