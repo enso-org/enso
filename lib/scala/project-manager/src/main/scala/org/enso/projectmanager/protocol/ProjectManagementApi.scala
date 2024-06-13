@@ -8,7 +8,7 @@ import org.enso.editions.EnsoVersion
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.projectmanager.data.{
   EngineVersion,
-  MissingComponentAction,
+  MissingComponentActions,
   ProjectMetadata,
   RunningStatus,
   Socket
@@ -26,7 +26,9 @@ object ProjectManagementApi {
       name: String,
       version: Option[EnsoVersion],
       projectTemplate: Option[String],
-      missingComponentAction: Option[MissingComponentAction],
+      missingComponentAction: Option[
+        MissingComponentActions.MissingComponentAction
+      ],
       projectsDirectory: Option[String]
     )
 
@@ -86,7 +88,9 @@ object ProjectManagementApi {
     case class Params(
       projectId: UUID,
       projectsDirectory: Option[String],
-      missingComponentAction: Option[MissingComponentAction]
+      missingComponentAction: Option[
+        MissingComponentActions.MissingComponentAction
+      ]
     )
 
     case class Result(

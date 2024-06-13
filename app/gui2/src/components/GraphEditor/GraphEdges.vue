@@ -120,20 +120,15 @@ function createEdge(source: AstId, target: PortId) {
   <div>
     <svg :viewBox="props.navigator.viewBox" class="overlay behindNodes">
       <GraphEdge v-for="edge in graph.connectedEdges" :key="edge.target" :edge="edge" />
+      <GraphEdge v-if="graph.cbEditedEdge" :edge="graph.cbEditedEdge" />
+      <GraphEdge
+        v-if="graph.outputSuggestedEdge"
+        :edge="graph.outputSuggestedEdge"
+        animateFromSourceHover
+      />
     </svg>
-    <svg
-      v-if="graph.mouseEditedEdge"
-      :viewBox="props.navigator.viewBox"
-      class="overlay nonInteractive aboveNodes"
-    >
+    <svg v-if="graph.mouseEditedEdge" :viewBox="props.navigator.viewBox" class="overlay aboveNodes">
       <GraphEdge :edge="graph.mouseEditedEdge" maskSource />
-    </svg>
-    <svg
-      v-if="graph.cbEditedEdge"
-      :viewBox="props.navigator.viewBox"
-      class="overlay nonInteractive behindNodes"
-    >
-      <GraphEdge :edge="graph.cbEditedEdge" />
     </svg>
   </div>
 </template>

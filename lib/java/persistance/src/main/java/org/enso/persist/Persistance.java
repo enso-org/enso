@@ -167,6 +167,7 @@ public abstract class Persistance<T> implements Cloneable {
 
   /**
    * Read object written down by {@link #write} from an array. <br>
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
    * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
    *
    * @param arr the stored bytes
