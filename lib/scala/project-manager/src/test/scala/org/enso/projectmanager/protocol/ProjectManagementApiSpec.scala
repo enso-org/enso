@@ -76,7 +76,8 @@ class ProjectManagementApiSpec
             }
           """)
       val projectId = getGeneratedUUID
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           {"jsonrpc":"2.0",
           "id":1,
           "result":{
@@ -85,7 +86,9 @@ class ProjectManagementApiSpec
             "projectNormalizedName":$normalizedName
             }
           }
-          """)
+          """,
+        timeout = 10.seconds.dilated
+      )
 
       //teardown
       deleteProject(projectId)
