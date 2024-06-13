@@ -114,7 +114,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] pl-asset-panel-l"
+      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
@@ -126,8 +126,10 @@ export default function AssetPanel(props: AssetPanelProps) {
             <ariaComponents.Button
               size="medium"
               variant="ghost"
-              isDisabled={tab === AssetPanelTab.versions}
-              className="pointer-events-auto disabled:bg-selected-frame"
+              className={tailwindMerge.twMerge(
+                'pointer-events-auto',
+                tab === AssetPanelTab.versions && 'bg-white opacity-100'
+              )}
               onPress={() => {
                 setTab(oldTab =>
                   oldTab === AssetPanelTab.versions
@@ -144,7 +146,10 @@ export default function AssetPanel(props: AssetPanelProps) {
             size="medium"
             variant="ghost"
             isDisabled={tab === AssetPanelTab.projectSessions}
-            className="pointer-events-auto disabled:bg-selected-frame"
+            className={tailwindMerge.twMerge(
+              'pointer-events-auto',
+              tab === AssetPanelTab.projectSessions && 'bg-white opacity-100'
+            )}
             onPress={() => {
               setTab(oldTab =>
                 oldTab === AssetPanelTab.projectSessions
