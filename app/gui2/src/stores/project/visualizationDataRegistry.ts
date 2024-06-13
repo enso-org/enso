@@ -56,7 +56,6 @@ export class VisualizationDataRegistry {
   private visualizationUpdate(update: VisualizationUpdate, uuid: Uuid | null) {
     if (uuid && this.visualizationValues.has(uuid)) {
       const newData = update.dataString()
-      // console.log('VIS UPDATE', uuid, update, newData)
       const current = this.visualizationValues.get(uuid)
       if (newData == null && current != null) {
         this.visualizationValues.set(uuid, null)
