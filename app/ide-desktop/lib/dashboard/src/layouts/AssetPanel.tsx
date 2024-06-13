@@ -14,6 +14,7 @@ import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -110,7 +111,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         event.stopPropagation()
       }}
     >
-      <div className="flex py-2">
+      <HorizontalMenuBar className="mt-4">
         {item != null &&
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
@@ -132,9 +133,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               {getText('versions')}
             </ariaComponents.Button>
           )}
-        {/* Spacing. The top right asset and user bars overlap this area. */}
-        <div className="grow" />
-      </div>
+      </HorizontalMenuBar>
       {item == null || setItem == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}

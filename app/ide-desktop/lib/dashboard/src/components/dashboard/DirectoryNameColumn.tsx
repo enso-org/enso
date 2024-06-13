@@ -169,6 +169,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <Button
         image={FolderArrowIcon}
         alt={item.children == null ? getText('expand') : getText('collapse')}
+        tooltipPlacement="left"
         buttonClassName="m-0 hidden group-hover:inline-block"
         className={tailwindMerge.twMerge(
           'size-icon cursor-pointer transition-transform duration-arrow',

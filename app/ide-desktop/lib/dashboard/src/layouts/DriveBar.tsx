@@ -108,12 +108,7 @@ export default function DriveBar(props: DriveBarProps) {
           !isAssetPanelOpen && 'w-5'
         )}
       />
-      <div
-        className={tailwindMerge.twMerge(
-          'absolute right top z-1 m-[15px] transition-all duration-side-panel',
-          !isAssetPanelOpen && 'mt-[26px]'
-        )}
-      >
+      <div className="absolute right-[15px] top-[25px] z-1 transition-all duration-side-panel">
         <Button
           image={RightPanelIcon}
           active={isAssetPanelOpen}
