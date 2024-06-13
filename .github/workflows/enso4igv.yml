@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install rustup
         run: |
@@ -42,7 +42,7 @@ jobs:
     runs-on: macos-12
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Build Enso Parser
         working-directory: .
@@ -62,7 +62,7 @@ jobs:
     runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Build Enso Parser
         working-directory: .
@@ -82,7 +82,7 @@ jobs:
     needs: [build_linux_parser, build_mac_parser, build_windows_parser]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Download Libraries
         uses: actions/download-artifact@v4
