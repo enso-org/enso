@@ -35,6 +35,9 @@ import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
 import { FunctionName } from './WidgetFunctionName.vue'
 
+const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
+const GET_WIDGETS_METHOD = 'get_widget_json'
+
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const project = useProjectStore()
@@ -116,10 +119,10 @@ const innerInput = computed(() => {
 })
 
 const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
-  const analyzed = interpretCall(props.input.value, true)
+  const analyzed = interpreted.value
   if (analyzed.kind === 'infix') {
     return analyzed.lhs?.externalId
-  } else {
+  } else if (methodCallInfo.value?.suggestion.selfType != null) {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
     const hasSelfArgument = knownArguments?.[0]?.name === 'self'
     const selfArgument =
@@ -128,6 +131,8 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
       : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
 
     return selfArgument?.externalId
+  } else {
+    return null
   }
 })
 
@@ -135,45 +140,61 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
   // the current call and then merge them.
 
-  let m = ArgumentApplication.collectArgumentNamesAndUuids(interpreted.value, methodCallInfo.value)
+  let args = ArgumentApplication.collectArgumentNamesAndUuids(
+    interpreted.value,
+    methodCallInfo.value,
+  )
 
-  const expressionId = selfArgumentExternalId.value
+  const selfArgId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null) return null
   const info = methodCallInfo.value
-  console.log('INFO', info)
   if (!info) return null
-  const args = info.suggestion.annotations
-  if (args.length === 0) return null
+  const annotatedArgs = info.suggestion.annotations
+  if (annotatedArgs.length === 0) return null
   const name = info.suggestion.name
-  if (info.suggestion.kind === SuggestionKind.Constructor && expressionId == null) {
-    return {
-      expressionId: props.input.value.externalId,
-      visualizationModule: 'Standard.Visualization.Widgets',
-      expression: `a -> Standard.Visualization.Widgets.get_widget_json ${info.suggestion.definedIn}`,
-      positionalArgumentsExpressions: [
-        `.${name}`,
-        Ast.Vector.build(args, Ast.TextLiteral.new).code(),
-        Ast.TextLiteral.new(JSON.stringify(m)).code(),
-      ],
+  const positionalArgumentsExpressions = [
+    `.${name}`,
+    Ast.Vector.build(annotatedArgs, Ast.TextLiteral.new).code(),
+    Ast.TextLiteral.new(JSON.stringify(args)).code(),
+  ]
+  if (name == 'Equals_Ignore_Case') {
+    const analyzed = interpretCall(props.input.value, true)
+    if (analyzed.kind === 'infix') {
+      console.log(analyzed.lhs?.code())
+    } else {
+      const knownArguments = methodCallInfo.value?.suggestion?.arguments
+      const hasSelfArgument = knownArguments?.[0]?.name === 'self'
+      const selfArgument =
+        hasSelfArgument && !selfArgumentPreapplied.value ?
+          analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
+        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
+
+      console.log(selfArgument?.code())
     }
-  } else if (expressionId != null) {
+    console.log(selfArgId, interpreted.value, getAccessOprSubject)
+  }
+  if (selfArgId != null) {
     return {
-      expressionId,
-      visualizationModule: 'Standard.Visualization.Widgets',
+      expressionId: selfArgId,
+      visualizationModule: WIDGETS_ENSO_MODULE,
       expression: {
-        module: 'Standard.Visualization.Widgets',
-        definedOnType: 'Standard.Visualization.Widgets',
-        name: 'get_widget_json',
+        module: WIDGETS_ENSO_MODULE,
+        definedOnType: WIDGETS_ENSO_MODULE,
+        name: GET_WIDGETS_METHOD,
       },
-      positionalArgumentsExpressions: [
-        `.${name}`,
-        Ast.Vector.build(args, Ast.TextLiteral.new).code(),
-        Ast.TextLiteral.new(JSON.stringify(m)).code(),
-      ],
+      positionalArgumentsExpressions,
+    }
+  } else {
+    // In the case when no self argument is present (for example in autoscoped constructor),
+    // we assume that this is a static function call.
+    return {
+      expressionId: props.input.value,
+      visualizationModule: WIDGETS_ENSO_MODULE,
+      expression: `a -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.definedIn}`,
+      positionalArgumentsExpressions,
     }
   }
-  return null
 })
 
 const inheritedConfig = computed(() => {

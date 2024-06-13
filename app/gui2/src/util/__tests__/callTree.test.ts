@@ -24,7 +24,7 @@ import { initializeFFI } from 'shared/ast/ffi'
 import type { ExpressionUpdatePayload, MethodCall } from 'shared/languageServerTypes'
 import { assertEqual, assertNotEqual } from 'shared/util/assert'
 import { assert, expect, test } from 'vitest'
-import type { AstId } from '../abstract'
+import type { AstId } from '../ast/abstract'
 
 await initializeFFI()
 
