@@ -8,6 +8,10 @@ on:
     paths:
       - ".github/workflows/enso4igv.yml"
       - "tools/enso4igv/**/*"
+      - "engine/**/*"
+      - "lib/java/**/*"
+      - "lib/scala/**/*"
+      - "build.sbt"
 
 jobs:
   build_linux_parser:
