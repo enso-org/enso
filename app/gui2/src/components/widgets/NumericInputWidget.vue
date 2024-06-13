@@ -43,6 +43,7 @@ const dragPointer = usePointer(
     if (inputFieldActive.value || props.limits == null) return false
 
     if (eventType === 'start') {
+      // Prevent selecting the input's text content.
       event.preventDefault()
       dragState = { thresholdMet: false }
       return
