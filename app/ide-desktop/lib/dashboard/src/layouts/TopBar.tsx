@@ -40,7 +40,7 @@ export default function TopBar(props: TopBarProps) {
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
-    <div className="m-top-bar relative z-1 mb flex h-row gap-top-bar">
+    <div className="relative z-1 m-top-bar mb flex h-row gap-top-bar">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       <div
         className={tailwindMerge.twMerge(
@@ -71,7 +71,7 @@ export default function TopBar(props: TopBarProps) {
       </div>
       <div
         className={tailwindMerge.twMerge(
-          'm-top-bar fixed top z-1 text-xs text-primary transition-all duration-side-panel',
+          'fixed top z-1 m-top-bar text-xs text-primary transition-all duration-side-panel',
           shouldMakeSpaceForExtendedEditorMenu && 'mr-extended-editor-menu',
           isAssetPanelVisible ? '-right-asset-panel-w' : 'right-0'
         )}

@@ -371,7 +371,7 @@ export default function Dashboard(props: DashboardProps) {
         )}
       >
         <div
-          className="gap-top-level relative flex h-screen grow select-none flex-col container-size"
+          className="relative flex h-screen grow select-none flex-col gap-top-level container-size"
           onContextMenu={event => {
             event.preventDefault()
             unsetModal()

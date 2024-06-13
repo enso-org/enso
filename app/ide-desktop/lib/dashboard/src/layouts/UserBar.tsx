@@ -69,7 +69,7 @@ export default function UserBar(props: UserBarProps) {
     <FocusArea active={!invisible} direction="horizontal">
       {innerProps => (
         <div
-          className="pr-profile-picture pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-1 rounded-full bg-frame px-icons-x backdrop-blur-default"
+          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-1 rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
           {...innerProps}
         >
           <ariaComponents.Button
@@ -126,7 +126,7 @@ export default function UserBar(props: UserBarProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
-            className="size-profile-picture flex select-none items-center overflow-clip rounded-full"
+            className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
             aria-label={getText('userMenuAltText')}
             onPress={() => {
               updateModal(oldModal =>
