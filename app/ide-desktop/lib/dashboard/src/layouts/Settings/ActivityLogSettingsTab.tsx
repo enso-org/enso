@@ -142,15 +142,15 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
           {innerProps => (
             <div className="flex gap-activity-log-filters" {...innerProps}>
               <div className="flex items-center gap-activity-log-filter">
-                <aria.Text>{getText('startDate')}</aria.Text>
+                {getText('startDate')}
                 <DateInput date={startDate} onInput={setStartDate} />
               </div>
               <div className="flex items-center gap-activity-log-filter">
-                <aria.Text>{getText('endDate')}</aria.Text>
+                {getText('endDate')}
                 <DateInput date={endDate} onInput={setEndDate} />
               </div>
               <div className="flex items-center gap-activity-log-filter">
-                <aria.Text>{getText('types')}</aria.Text>
+                {getText('types')}
                 <Dropdown
                   multiple
                   items={backendModule.EVENT_TYPES}
@@ -359,15 +359,13 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                     </div>
                   </td>
                   <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                    <aria.Text>{EVENT_TYPE_NAME[log.metadata.type]}</aria.Text>
+                    {EVENT_TYPE_NAME[log.metadata.type]}
                   </td>
                   <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                    <aria.Text>{log.userEmail}</aria.Text>
+                    {log.userEmail}
                   </td>
                   <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                    <aria.Text>
-                      {log.timestamp ? dateTime.formatDateTime(new Date(log.timestamp)) : ''}
-                    </aria.Text>
+                    {log.timestamp ? dateTime.formatDateTime(new Date(log.timestamp)) : ''}
                   </td>
                 </tr>
               ))
