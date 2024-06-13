@@ -116,7 +116,7 @@ export interface AssetSearchBarProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly suggestions: Suggestion[]
+  readonly suggestions: readonly Suggestion[]
 }
 
 /** A search bar containing a text input, and a list of suggestions. */

@@ -15,6 +15,8 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import AssetSearchBar from '#/layouts/AssetSearchBar'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 
@@ -27,6 +29,9 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
+import type Backend from '#/services/Backend'
+
+import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
@@ -35,8 +40,12 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
+  readonly backend: Backend
   readonly category: Category
   readonly canDownload: boolean
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly suggestions: readonly assetSearchBar.Suggestion[]
   readonly doEmptyTrash: () => void
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
@@ -49,8 +58,9 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
+  const { backend, category, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDatalink, doUploadFiles, dispatchAssetEvent } = props
+  const { query, setQuery, suggestions } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -75,13 +85,23 @@ export default function DriveBar(props: DriveBarProps) {
     })
   }, [isCloud, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
+  const searchBar = (
+    <AssetSearchBar
+      backend={backend}
+      isCloud={isCloud}
+      query={query}
+      setQuery={setQuery}
+      suggestions={suggestions}
+    />
+  )
+
   switch (category) {
     case Category.recent: {
       // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
       // in the given directory, to avoid name collisions.
       return (
         <div className="flex h-row py-drive-bar-y">
-          <HorizontalMenuBar />
+          <HorizontalMenuBar>{searchBar}</HorizontalMenuBar>
         </div>
       )
     }
@@ -106,6 +126,7 @@ export default function DriveBar(props: DriveBarProps) {
                 {getText('clearTrash')}
               </aria.Text>
             </ariaComponents.Button>
+            {searchBar}
           </HorizontalMenuBar>
         </div>
       )
@@ -203,6 +224,7 @@ export default function DriveBar(props: DriveBarProps) {
                 }}
               />
             </div>
+            {searchBar}
           </HorizontalMenuBar>
         </div>
       )

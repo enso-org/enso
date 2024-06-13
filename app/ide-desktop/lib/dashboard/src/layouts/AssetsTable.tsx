@@ -354,6 +354,9 @@ export interface AssetsTableProps {
   readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly setSuggestions: React.Dispatch<
+    React.SetStateAction<readonly assetSearchBar.Suggestion[]>
+  >
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
@@ -378,7 +381,7 @@ export interface AssetsTableProps {
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, setProjectStartupInfo, setCanDownload, category } = props
-  const { initialProjectName, projectStartupInfo } = props
+  const { setSuggestions, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
@@ -2564,7 +2567,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 <div className="flex-0 sticky top flex h flex-col">
                   <div
                     data-testid="extra-columns"
-                    className="px-extra-columns-panel-x py-extra-columns-panel-y sticky right flex self-end"
+                    className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
                   >
                     <FocusArea direction="horizontal">
                       {columnsBarProps => (

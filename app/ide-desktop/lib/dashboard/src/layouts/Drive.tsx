@@ -19,6 +19,7 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTable from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
@@ -97,6 +98,7 @@ export default function Drive(props: DriveProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
+  const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const rootDirectoryId = React.useMemo(
@@ -277,12 +279,16 @@ export default function Drive(props: DriveProps) {
         <div
           data-testid="drive-view"
           className={tailwindMerge.twMerge(
-            'gap-drive-heading flex flex-1 flex-col overflow-visible px-page-x',
+            'flex flex-1 flex-col gap-drive-heading overflow-visible px-page-x',
             hidden && 'hidden'
           )}
         >
           <DriveBar
+            backend={backend}
             category={category}
+            query={query}
+            setQuery={setQuery}
+            suggestions={suggestions}
             canDownload={canDownload}
             doEmptyTrash={doEmptyTrash}
             doCreateProject={doCreateProject}
@@ -312,6 +318,7 @@ export default function Drive(props: DriveProps) {
               hidden={hidden}
               query={query}
               setQuery={setQuery}
+              setSuggestions={setSuggestions}
               setCanDownload={setCanDownload}
               setProjectStartupInfo={setProjectStartupInfo}
               category={category}
