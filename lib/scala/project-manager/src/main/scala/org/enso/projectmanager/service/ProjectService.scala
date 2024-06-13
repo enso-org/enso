@@ -13,7 +13,7 @@ import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
 import org.enso.projectmanager.data.{
   LanguageServerStatus,
-  MissingComponentAction,
+  MissingComponentActions,
   ProjectMetadata,
   RunningLanguageServerInfo
 }
@@ -34,7 +34,7 @@ import org.enso.projectmanager.infrastructure.repository.{
 }
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
-import org.enso.projectmanager.model.ProjectKind.UserProject
+import org.enso.projectmanager.model.ProjectKinds.UserProject
 import org.enso.projectmanager.service.ProjectServiceFailure._
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.validation.ProjectNameValidator
@@ -84,7 +84,7 @@ class ProjectService[
     projectName: String,
     engineVersion: SemVer,
     projectTemplate: Option[String],
-    missingComponentAction: MissingComponentAction,
+    missingComponentAction: MissingComponentActions.MissingComponentAction,
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Project] = for {
     projectId <- gen.randomUUID()
@@ -285,7 +285,7 @@ class ProjectService[
     progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
-    missingComponentAction: MissingComponentAction,
+    missingComponentAction: MissingComponentActions.MissingComponentAction,
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     for {
@@ -309,7 +309,7 @@ class ProjectService[
   private def preinstallEngine(
     progressTracker: ActorRef,
     version: SemVer,
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction
   ): F[ProjectServiceFailure, Unit] =
     Sync[F]
       .blockingOp {
@@ -330,7 +330,7 @@ class ProjectService[
     progressTracker: ActorRef,
     clientId: UUID,
     project: Project,
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
     _       <- log.debug("Preparing to start the Language Server for [{}].", project)
     version <- resolveProjectVersion(project)

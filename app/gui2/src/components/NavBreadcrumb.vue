@@ -17,7 +17,6 @@ span {
 
 .NavBreadcrumb {
   user-select: none;
-  cursor: pointer;
   border-radius: var(--radius-full);
 
   > .blur-container {

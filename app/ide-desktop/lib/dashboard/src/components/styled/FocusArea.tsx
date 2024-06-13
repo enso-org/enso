@@ -31,7 +31,7 @@ export interface FocusAreaProps {
   readonly focusDefaultClass?: string
   readonly active?: boolean
   readonly direction: focusDirectionProvider.FocusDirection
-  readonly children: (props: FocusWithinProps) => JSX.Element
+  readonly children: (props: FocusWithinProps) => React.JSX.Element
 }
 
 /** An area that can be focused within. */

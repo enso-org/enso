@@ -77,7 +77,7 @@ const close = () => (menuOpen.value = false)
         @click="close"
       />
       <SvgButton
-        :name="TODO"
+        name="remove-textstyle"
         label="Clear Formatting"
         @click.stop="clearFormatting"
         @click="close"

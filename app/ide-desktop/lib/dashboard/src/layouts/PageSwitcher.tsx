@@ -1,8 +1,9 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import DriveIcon from 'enso-assets/drive.svg'
-import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
 import type * as text from '#/text'
@@ -18,7 +19,6 @@ import FocusArea from '#/components/styled/FocusArea'
 
 /** Main content of the screen. Only one should be visible at a time. */
 export enum Page {
-  home = 'home',
   drive = 'drive',
   editor = 'editor',
   settings = 'settings',
@@ -26,7 +26,6 @@ export enum Page {
 
 /** Error text for each page. */
 const ERRORS = {
-  [Page.home]: null,
   [Page.drive]: null,
   [Page.editor]: 'noProjectIsCurrentlyOpen',
   [Page.settings]: null,
@@ -40,7 +39,6 @@ interface PageUIData {
 }
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.home, icon: HomeIcon, altId: 'homePageAltText' },
   { page: Page.drive, icon: DriveIcon, altId: 'drivePageAltText' },
   {
     page: Page.editor,
@@ -79,9 +77,10 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
-            page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x',
+            page === Page.editor && 'bg-frame backdrop-blur-default'
+          )}
           {...innerProps}
         >
           {PAGE_DATA.map(pageData => {

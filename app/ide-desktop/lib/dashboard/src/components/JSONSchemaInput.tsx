@@ -1,16 +1,18 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
 import Checkbox from '#/components/styled/Checkbox'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
@@ -37,7 +39,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { value: valueRaw, setValue: setValueRaw } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const { backend } = backendProvider.useStrictBackend()
+  const remoteBackend = backendProvider.useRemoteBackend()
   const { getText } = textProvider.useText()
   const [value, setValue] = React.useState(valueRaw)
   const setValueRawRef = React.useRef(setValueRaw)
@@ -61,7 +63,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     // This value cannot change.
     return null
   } else {
-    const children: JSX.Element[] = []
+    const children: React.JSX.Element[] = []
     if ('type' in schema) {
       switch (schema.type) {
         case 'string': {
@@ -70,15 +72,16 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             if (autocompleteItems == null) {
               setAutocompleteItems([])
               void (async () => {
-                const secrets = await backend.listSecrets()
+                const secrets = (await remoteBackend?.listSecrets()) ?? []
                 setAutocompleteItems(secrets.map(secret => secret.path))
               })()
             }
             children.push(
               <div
-                className={`grow rounded-default border ${
+                className={tailwindMerge.twMerge(
+                  'grow rounded-default border',
                   isValid ? 'border-primary/10' : 'border-red-700/60'
-                }`}
+                )}
               >
                 <Autocomplete
                   items={autocompleteItems ?? []}
@@ -105,9 +108,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                       readOnly={readOnly}
                       value={typeof value === 'string' ? value : ''}
                       size={1}
-                      className={`focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                      className={tailwindMerge.twMerge(
+                        'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
                         getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-                      }`}
+                      )}
                       placeholder={getText('enterText')}
                       onChange={event => {
                         const newValue: string = event.currentTarget.value
@@ -132,9 +136,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     readOnly={readOnly}
                     value={typeof value === 'number' ? value : ''}
                     size={1}
-                    className={`focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                    className={tailwindMerge.twMerge(
+                      'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
                       getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-                    }`}
+                    )}
                     placeholder={getText('enterNumber')}
                     onChange={event => {
                       const newValue: number = event.currentTarget.valueAsNumber
@@ -160,9 +165,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     readOnly={readOnly}
                     value={typeof value === 'number' ? value : ''}
                     size={1}
-                    className={`focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
+                    className={tailwindMerge.twMerge(
+                      'focus-child w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only',
                       getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
-                    }`}
+                    )}
                     placeholder={getText('enterInteger')}
                     onChange={event => {
                       const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
@@ -215,11 +221,14 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                     >
                       <FocusArea active={isOptional} direction="horizontal">
                         {innerProps => (
-                          <UnstyledButton
+                          <ariaComponents.Button
+                            size="custom"
+                            variant="custom"
                             isDisabled={!isOptional}
-                            className={`text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
-                              isOptional ? 'hover:bg-hover-bg' : ''
-                            }`}
+                            className={tailwindMerge.twMerge(
+                              'text inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left',
+                              isOptional && 'hover:bg-hover-bg'
+                            )}
                             onPress={() => {
                               if (isOptional) {
                                 setValue(oldValue => {
@@ -244,13 +253,14 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                             {...innerProps}
                           >
                             <aria.Text
-                              className={`selectable ${
-                                value != null && key in value ? 'active' : ''
-                              }`}
+                              className={tailwindMerge.twMerge(
+                                'selectable',
+                                value != null && key in value && 'active'
+                              )}
                             >
                               {'title' in childSchema ? String(childSchema.title) : key}
                             </aria.Text>
-                          </UnstyledButton>
+                          </ariaComponents.Button>
                         )}
                       </FocusArea>
                       {value != null && key in value && (
@@ -339,7 +349,12 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         </FocusArea>
       )
       children.push(
-        <div className={`flex flex-col gap-json-schema ${childValue.length === 0 ? 'w-full' : ''}`}>
+        <div
+          className={tailwindMerge.twMerge(
+            'flex flex-col gap-json-schema',
+            childValue.length === 0 && 'w-full'
+          )}
+        >
           {dropdownTitle != null ? (
             <div className="flex h-row items-center">
               <div className="h-text w-json-schema-dropdown-title">{dropdownTitle}</div>

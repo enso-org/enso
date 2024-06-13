@@ -17,7 +17,6 @@ import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -28,8 +27,6 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
-import type * as projectManager from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
@@ -133,17 +130,11 @@ interface AuthContextType {
    * If the user has not signed in, the session will be `null`. */
   readonly session: UserSession | null
   readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
-  /**
-   * Return `true` if the user is marked for deletion.
-   */
+  /** Return `true` if the user is marked for deletion. */
   readonly isUserMarkedForDeletion: () => boolean
-  /**
-   * Return `true` if the user is deleted completely.
-   */
+  /** Return `true` if the user is deleted completely. */
   readonly isUserDeleted: () => boolean
-  /**
-   * Return `true` if the user is soft deleted.
-   */
+  /** Return `true` if the user is soft deleted. */
   readonly isUserSoftDeleted: () => boolean
 }
 
@@ -156,23 +147,20 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly supportsLocalBackend: boolean
+  readonly setRemoteBackend: (backend: Backend | null) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
-  readonly projectManagerUrl: string | null
-  readonly projectManagerRootDirectory: projectManager.Path | null
 }
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
-  const { shouldStartInOfflineMode, supportsLocalBackend, authService, onAuthenticated } = props
-  const { children, projectManagerUrl, projectManagerRootDirectory } = props
+  const { shouldStartInOfflineMode, setRemoteBackend, authService, onAuthenticated } = props
+  const { children } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, onSessionError } = sessionProvider.useSession()
-  const { setBackendWithoutSavingType } = backendProvider.useStrictSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
@@ -182,7 +170,11 @@ export default function AuthProvider(props: AuthProviderProps) {
   const navigate = router.useNavigate()
   const [forceOfflineMode, setForceOfflineMode] = React.useState(shouldStartInOfflineMode)
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [userSession, setUserSession] = React.useState<UserSession | null>(null)
+  const userSessionRef = React.useRef(userSession)
+  userSessionRef.current = userSession
   const toastId = React.useId()
 
   const setUser = React.useCallback((valueOrUpdater: React.SetStateAction<backendModule.User>) => {
@@ -204,22 +196,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     setInitialized(true)
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
-    if (supportsLocalBackend && projectManagerUrl != null && projectManagerRootDirectory != null) {
-      setBackendWithoutSavingType(new LocalBackend(projectManagerUrl, projectManagerRootDirectory))
-    } else {
-      // Provide dummy headers to avoid errors. This `Backend` will never be called as
-      // the entire UI will be disabled.
-      const client = new HttpClient([['Authorization', '']])
-      setBackendWithoutSavingType(new RemoteBackend(client, logger, getText))
-    }
-  }, [
-    getText,
-    projectManagerUrl,
-    projectManagerRootDirectory,
-    supportsLocalBackend,
-    logger,
-    setBackendWithoutSavingType,
-  ])
+    setRemoteBackend(null)
+  }, [/* should never change */ setRemoteBackend])
 
   const goOffline = React.useCallback(
     (shouldShowToast = true) => {
@@ -254,31 +232,6 @@ export default function AuthProvider(props: AuthProviderProps) {
 
     return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_app', 'close_app')
   }, [])
-
-  // This is a duplication of `RemoteBackendProvider`, but we cannot use it here, as it would
-  // introduce a cyclic dependency between two providers (`BackendProvider` uses `AuthProvider`).
-  // FIXME: Refactor `remoteBackend` dependant things out of the `AuthProvider`.
-  const remoteBackend = React.useMemo(() => {
-    if (session) {
-      const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
-      // eslint-disable-next-line no-restricted-syntax
-      return new RemoteBackend(client, logger, getText)
-    }
-  }, [session, getText, logger])
-
-  React.useEffect(() => {
-    if (remoteBackend) {
-      void remoteBackend.logEvent('open_app')
-      const logCloseEvent = () => void remoteBackend.logEvent('close_app')
-      window.addEventListener('beforeunload', logCloseEvent)
-      return () => {
-        window.removeEventListener('beforeunload', logCloseEvent)
-        logCloseEvent()
-      }
-    } else {
-      return
-    }
-  }, [remoteBackend])
 
   // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
   // circular dependency.
@@ -316,24 +269,30 @@ export default function AuthProvider(props: AuthProviderProps) {
       if (!navigator.onLine || forceOfflineMode) {
         goOfflineInternal()
         setForceOfflineMode(false)
-      } else if (session == null || remoteBackend == null) {
+      } else if (session == null) {
         setInitialized(true)
-        if (!initialized) {
+        if (!initializedRef.current) {
           sentry.setUser(null)
           setUserSession(null)
         }
       } else {
+        const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
+        const backend = new RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
-        if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
-          setBackendWithoutSavingType(remoteBackend)
+        if (
+          !initializedRef.current ||
+          userSessionRef.current == null ||
+          userSessionRef.current.type === UserSessionType.offline
+        ) {
+          setRemoteBackend(backend)
         }
         gtagEvent('cloud_open')
-        void remoteBackend.logEvent('cloud_open')
+        void backend.logEvent('cloud_open')
         let user: backendModule.User | null
         while (true) {
           try {
-            user = await remoteBackend.usersMe()
+            user = await backend.usersMe()
             break
           } catch (error) {
             // The value may have changed after the `await`.
@@ -408,12 +367,18 @@ export default function AuthProvider(props: AuthProviderProps) {
         logger.error(error)
       }
     })
-    // `userSession` MUST NOT be a dependency as `setUserSession` is called every time
-    // by this effect. Because it is an object literal, it will never be equal to the previous
-    // value.
-    // `initialized` MUST NOT be a dependency as it breaks offline mode.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cognito, logger, onAuthenticated, session, goOfflineInternal, setBackendWithoutSavingType])
+  }, [
+    cognito,
+    logger,
+    onAuthenticated,
+    session,
+    goOfflineInternal,
+    forceOfflineMode,
+    getText,
+    gtagEvent,
+    setRemoteBackend,
+    goOffline,
+  ])
 
   /** Wrap a function returning a {@link Promise} to display a loading toast notification
    * until the returned {@link Promise} finishes loading. */
@@ -700,7 +665,6 @@ export default function AuthProvider(props: AuthProviderProps) {
     signOut,
     session: userSession,
     setUser,
-    remoteBackend,
   }
 
   return (
@@ -823,9 +787,7 @@ export function GuestLayout() {
   }
 }
 
-/**
- * A React Router layout route containing routes only accessible by users that are not deleted.
- */
+/** A React Router layout route containing routes only accessible by users that are not deleted. */
 export function NotDeletedUserLayout() {
   const { session, isUserMarkedForDeletion } = useAuth()
   const shouldPreventNavigation = getShouldPreventNavigation()
@@ -841,9 +803,7 @@ export function NotDeletedUserLayout() {
   }
 }
 
-/**
- * A React Router layout route containing routes only accessible by users that are deleted softly
- */
+/** A React Router layout route containing routes only accessible by users that are deleted softly. */
 export function SoftDeletedUserLayout() {
   const { session, isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
   const shouldPreventNavigation = getShouldPreventNavigation()

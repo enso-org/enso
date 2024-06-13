@@ -2,7 +2,6 @@ package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, ActorRef, Props, Status}
 import akka.pattern.pipe
-import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.notifications.ActorProgressNotificationForwarder
 import org.enso.cli.task.{
@@ -144,7 +143,7 @@ class LibraryPreinstallHandler(
     taskProgress.reportProgress(0, total)
 
     val results =
-      dependencies.toList.zipWithIndex.traverse { case (dependency, ix) =>
+      dependencies.toList.zipWithIndex.map { case (dependency, ix) =>
         val result = libraryInstaller.findSpecificLibraryVersion(
           dependency.libraryName,
           dependency.version
@@ -156,7 +155,12 @@ class LibraryPreinstallHandler(
 
     taskProgress.setComplete(Success(()))
 
-    results.map { _ => () }.left.map(InstallerError)
+    results
+      .foldLeft(Right(()): Either[Error, Unit]) { case (elem, acc) =>
+        if (acc.isLeft) acc.map(_ => ()) else elem
+      }
+      .left
+      .map(InstallerError)
   }
 
   private def responseStage(

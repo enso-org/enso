@@ -1,6 +1,8 @@
 /** @file A visual representation of a keyboard shortcut. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CommandKeyIcon from 'enso-assets/command_key.svg'
 import CtrlKeyIcon from 'enso-assets/ctrl_key.svg'
 import OptionKeyIcon from 'enso-assets/option_key.svg'
@@ -124,9 +126,10 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       .map(inputBindingsModule.toModifierKey)
     return (
       <aria.Text
-        className={`flex h-text items-center ${
+        className={tailwindMerge.twMerge(
+          'flex h-text items-center',
           detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
-        }`}
+        )}
       >
         {modifiers.map(
           modifier =>

@@ -28,7 +28,7 @@ export function useStickyTableHeaderOnScroll(
   const { trackShadowClass = false } = options
   const trackShadowClassRef = React.useRef(trackShadowClass)
   trackShadowClassRef.current = trackShadowClass
-  const [shadowClass, setShadowClass] = React.useState('')
+  const [shadowClassName, setShadowClass] = React.useState('')
   const onScroll = useOnScroll(() => {
     if (rootRef.current != null && bodyRef.current != null) {
       bodyRef.current.style.clipPath = `inset(${rootRef.current.scrollTop}px 0 0 0)`
@@ -47,5 +47,5 @@ export function useStickyTableHeaderOnScroll(
       }
     }
   }, [bodyRef, rootRef])
-  return { onScroll, shadowClass }
+  return { onScroll, shadowClassName }
 }

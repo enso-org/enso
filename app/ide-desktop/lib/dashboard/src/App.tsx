@@ -45,6 +45,8 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -53,9 +55,7 @@ import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import RemoteBackendProvider from '#/providers/RemoteBackendProvider'
 import SessionProvider from '#/providers/SessionProvider'
-import SupportsLocalBackendProvider from '#/providers/SupportsLocalBackendProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
@@ -212,7 +212,7 @@ export interface AppRouterProps extends AppProps {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppRouterProps) {
-  const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
+  const { logger, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
   const { portalRoot } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
@@ -222,6 +222,14 @@ function AppRouter(props: AppRouterProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { setModal } = modalProvider.useSetModal()
   const navigator2D = navigator2DProvider.useNavigator2D()
+  const [remoteBackend, setRemoteBackend] = React.useState<Backend | null>(null)
+  const [localBackend] = React.useState(() =>
+    projectManagerUrl != null && projectManagerRootDirectory != null
+      ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+      : null
+  )
+  backendHooks.useObserveBackend(remoteBackend)
+  backendHooks.useObserveBackend(localBackend)
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -245,6 +253,20 @@ function AppRouter(props: AppRouterProps) {
       }
     }
   }, [localStorage, inputBindingsRaw])
+
+  React.useEffect(() => {
+    if (remoteBackend) {
+      void remoteBackend.logEvent('open_app')
+      const logCloseEvent = () => void remoteBackend.logEvent('close_app')
+      window.addEventListener('beforeunload', logCloseEvent)
+      return () => {
+        window.removeEventListener('beforeunload', logCloseEvent)
+        logCloseEvent()
+      }
+    } else {
+      return
+    }
+  }, [remoteBackend])
 
   const inputBindings = React.useMemo(() => {
     const updateLocalStorage = () => {
@@ -305,12 +327,6 @@ function AppRouter(props: AppRouterProps) {
   const refreshUserSession =
     authService?.cognito.refreshUserSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
-  const initialBackend: Backend =
-    isAuthenticationDisabled && projectManagerUrl != null && projectManagerRootDirectory != null
-      ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
-      : // This is SAFE, because the backend is always set by the authentication flow.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        null!
 
   React.useEffect(() => {
     if ('menuApi' in window) {
@@ -439,27 +455,22 @@ function AppRouter(props: AppRouterProps) {
   )
 
   let result = routes
-
-  result = (
-    <SupportsLocalBackendProvider supportsLocalBackend={supportsLocalBackend}>
-      {result}
-    </SupportsLocalBackendProvider>
-  )
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = <RemoteBackendProvider>{result}</RemoteBackendProvider>
+  result = (
+    <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
+      {result}
+    </BackendProvider>
+  )
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}
-      supportsLocalBackend={supportsLocalBackend}
+      setRemoteBackend={setRemoteBackend}
       authService={authService}
       onAuthenticated={onAuthenticated}
-      projectManagerUrl={projectManagerUrl}
-      projectManagerRootDirectory={projectManagerRootDirectory}
     >
       {result}
     </AuthProvider>
   )
-  result = <BackendProvider initialBackend={initialBackend}>{result}</BackendProvider>
   result = (
     <SessionProvider
       mainPageUrl={mainPageUrl}

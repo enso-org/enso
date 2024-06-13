@@ -1,6 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
@@ -74,7 +76,7 @@ export default function DragModal(props: DragModalProps) {
       <div
         {...passthrough}
         style={{ left, top, ...style }}
-        className={`relative w-min ${className ?? ''}`}
+        className={tailwindMerge.twMerge('relative w-min', className)}
       >
         {children}
       </div>

@@ -1,11 +1,12 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as tooltipHooks from '#/hooks/tooltipHooks'
 
 import type * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as permissionsModule from '#/utilities/permissions'
 
@@ -32,18 +33,19 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.edit: {
       return (
         <ariaComponents.TooltipTrigger>
-          <UnstyledButton
-            ref={tooltipTargetRef}
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             isDisabled={!onPress}
-            className={`${
-              permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } inline-block h-text max-w-40 shrink-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y ${
-              className ?? ''
-            }`}
+            className={tailwindMerge.twMerge(
+              'inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y',
+              permissionsModule.PERMISSION_CLASS_NAME[permission.type],
+              className
+            )}
             onPress={onPress ?? (() => {})}
           >
             {children}
-          </UnstyledButton>
+          </ariaComponents.Button>
           {needsTooltip && <ariaComponents.Tooltip>{children}</ariaComponents.Tooltip>}
         </ariaComponents.TooltipTrigger>
       )
@@ -52,9 +54,13 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.view: {
       return (
         <ariaComponents.TooltipTrigger>
-          <UnstyledButton
-            ref={tooltipTargetRef}
-            className={`relative inline-block max-w-40 shrink-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-full ${className ?? ''}`}
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            className={tailwindMerge.twMerge(
+              'relative inline-block whitespace-nowrap rounded-full',
+              className
+            )}
             onPress={onPress ?? (() => {})}
           >
             {permission.docs && (
@@ -64,13 +70,14 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
               <div className="absolute size-full rounded-full border-2 border-permission-exec clip-path-bottom" />
             )}
             <div
-              className={`${
+              className={tailwindMerge.twMerge(
+                'm-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y',
                 permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-              } m-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y`}
+              )}
             >
               {children}
             </div>
-          </UnstyledButton>
+          </ariaComponents.Button>
           {needsTooltip && <ariaComponents.Tooltip>{children}</ariaComponents.Tooltip>}
         </ariaComponents.TooltipTrigger>
       )

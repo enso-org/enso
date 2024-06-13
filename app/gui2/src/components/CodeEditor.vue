@@ -331,6 +331,10 @@ const editorStyle = computed(() => {
     ref="rootElement"
     class="CodeEditor"
     :style="editorStyle"
+    @keydown.arrow-left.stop
+    @keydown.arrow-right.stop
+    @keydown.arrow-up.stop
+    @keydown.arrow-down.stop
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop

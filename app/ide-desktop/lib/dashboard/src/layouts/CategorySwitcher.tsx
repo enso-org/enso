@@ -1,7 +1,10 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
-import Home2Icon from 'enso-assets/home2.svg'
+import * as tailwindMerge from 'tailwind-merge'
+
+import CloudIcon from 'enso-assets/cloud.svg'
+import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
@@ -9,6 +12,7 @@ import type * as text from '#/text'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -19,9 +23,9 @@ import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
 
@@ -42,20 +46,27 @@ interface CategoryMetadata {
 // === Constants ===
 // =================
 
-const CATEGORY_DATA: CategoryMetadata[] = [
+const CATEGORY_DATA: readonly CategoryMetadata[] = [
+  {
+    category: Category.cloud,
+    icon: CloudIcon,
+    textId: 'cloudCategory',
+    buttonTextId: 'cloudCategoryButtonLabel',
+    dropZoneTextId: 'cloudCategoryDropZoneLabel',
+  },
+  {
+    category: Category.local,
+    icon: NotCloudIcon,
+    textId: 'localCategory',
+    buttonTextId: 'localCategoryButtonLabel',
+    dropZoneTextId: 'localCategoryDropZoneLabel',
+  },
   {
     category: Category.recent,
     icon: RecentIcon,
     textId: 'recentCategory',
     buttonTextId: 'recentCategoryButtonLabel',
     dropZoneTextId: 'recentCategoryDropZoneLabel',
-  },
-  {
-    category: Category.home,
-    icon: Home2Icon,
-    textId: 'homeCategory',
-    buttonTextId: 'homeCategoryButtonLabel',
-    dropZoneTextId: 'homeCategoryDropZoneLabel',
   },
   {
     category: Category.trash,
@@ -95,16 +106,19 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       className="group relative flex items-center rounded-full drop-target-after"
       onDrop={onDrop}
     >
-      <UnstyledButton
+      <ariaComponents.Button
+        size="custom"
+        variant="custom"
         tooltip={false}
-        className={`rounded-inherit ${isCurrent ? 'focus-default' : ''}`}
+        className={tailwindMerge.twMerge('rounded-full', isCurrent && 'focus-default')}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
       >
         <div
-          className={`selectable ${
-            isCurrent ? 'disabled bg-selected-frame active' : ''
-          } group flex h-row items-center gap-icon-with-text rounded-inherit px-button-x hover:bg-selected-frame`}
+          className={tailwindMerge.twMerge(
+            'group flex h-row items-center gap-icon-with-text rounded-full px-button-x selectable',
+            isCurrent ? 'disabled active' : 'hover:bg-selected-frame'
+          )}
         >
           <SvgMask
             src={icon}
@@ -116,7 +130,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           />
           <aria.Text slot="description">{getText(textId)}</aria.Text>
         </div>
-      </UnstyledButton>
+      </ariaComponents.Button>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
         {getText('drop')}
       </div>
@@ -137,10 +151,27 @@ export interface CategorySwitcherProps {
 
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
-  const { category, setCategory, dispatchAssetEvent } = props
+  const { category, setCategory } = props
+  const { dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
+  const categoryData = React.useMemo(
+    () =>
+      CATEGORY_DATA.filter(data => {
+        switch (data.category) {
+          case Category.local: {
+            return localBackend != null
+          }
+          default: {
+            return remoteBackend != null
+          }
+        }
+      }),
+    [remoteBackend, localBackend]
+  )
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
@@ -161,7 +192,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             role="grid"
             className="flex flex-col items-start"
           >
-            {CATEGORY_DATA.map(data => (
+            {categoryData.map(data => (
               <CategorySwitcherItem
                 key={data.category}
                 id={data.category}
@@ -171,7 +202,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
                   setCategory(data.category)
                 }}
                 acceptedDragTypes={
-                  (category === Category.trash && data.category === Category.home) ||
+                  (category === Category.trash &&
+                    (data.category === Category.cloud || data.category === Category.local)) ||
                   (category !== Category.trash && data.category === Category.trash)
                     ? [mimeTypes.ASSETS_MIME_TYPE]
                     : []

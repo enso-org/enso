@@ -1,22 +1,23 @@
 /** @file A list of members in the organization. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as mimeTypes from '#/data/mimeTypes'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import UserRow from '#/layouts/Settings/UserRow'
 
 import * as aria from '#/components/aria'
-import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // ====================
 // === MembersTable ===
@@ -24,6 +25,7 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link MembersTable}. */
 export interface MembersTableProps {
+  readonly backend: Backend
   /** If `true`, initialize the users list with self to avoid needing a loading spinner. */
   readonly populateWithSelf?: true
   readonly draggable?: true
@@ -32,27 +34,30 @@ export interface MembersTableProps {
 
 /** A list of members in the organization. */
 export default function MembersTable(props: MembersTableProps) {
-  const { populateWithSelf = false, draggable = false, allowDelete = false } = props
+  const { backend, populateWithSelf = false, draggable = false, allowDelete = false } = props
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [selectedKeys, setSelectedKeys] = React.useState<aria.Selection>(new Set())
   const rootRef = React.useRef<HTMLTableElement>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-  const members = asyncEffectHooks.useAsyncEffect<backendModule.User[] | null>(
-    !populateWithSelf || user == null ? null : [user],
-    () => backend.listUsers(),
-    [backend]
+  const userWithPlaceholder = React.useMemo(
+    () => (user == null ? null : { isPlaceholder: false, ...user }),
+    [user]
   )
-  const membersMap = React.useMemo(
-    () => new Map((members ?? []).map(member => [member.userId, member])),
-    [members]
+  const users = React.useMemo(
+    () =>
+      backendHooks.useBackendListUsers(backend) ??
+      (populateWithSelf && userWithPlaceholder != null ? [userWithPlaceholder] : null),
+    [backend, populateWithSelf, userWithPlaceholder]
   )
-  const isLoading = members == null
+  const usersMap = React.useMemo(
+    () => new Map((users ?? []).map(member => [member.userId, member])),
+    [users]
+  )
 
-  const { onScroll, shadowClass } = scrollHooks.useStickyTableHeaderOnScroll(
+  const { onScroll, shadowClassName } = scrollHooks.useStickyTableHeaderOnScroll(
     scrollContainerRef,
     bodyRef,
     { trackShadowClass: true }
@@ -62,7 +67,7 @@ export default function MembersTable(props: MembersTableProps) {
     getItems: keys =>
       [...keys].flatMap(key => {
         const userId = backendModule.UserId(String(key))
-        const member = membersMap.get(userId)
+        const member = usersMap.get(userId)
         return member != null ? [{ [mimeTypes.USER_MIME_TYPE]: JSON.stringify(member) }] : []
       }),
     renderDragPreview: items => {
@@ -113,7 +118,7 @@ export default function MembersTable(props: MembersTableProps) {
   return (
     <div
       ref={scrollContainerRef}
-      className={`overflow-auto overflow-x-hidden ${shadowClass}`}
+      className={tailwindMerge.twMerge('overflow-auto overflow-x-hidden', shadowClassName)}
       onScroll={onScroll}
     >
       <aria.Table
@@ -141,34 +146,17 @@ export default function MembersTable(props: MembersTableProps) {
         </aria.TableHeader>
         <aria.TableBody
           ref={bodyRef}
-          items={members ?? []}
-          dependencies={[members]}
+          items={users ?? []}
+          dependencies={[users]}
           className="select-text"
         >
-          {isLoading ? (
-            <aria.Row className="h-row">
-              <aria.Cell
-                ref={element => {
-                  if (element != null) {
-                    element.colSpan = allowDelete ? 3 : 2
-                  }
-                }}
-                className="rounded-full bg-transparent"
-              >
-                <div className="flex justify-center">
-                  <StatelessSpinner size={32} state={statelessSpinner.SpinnerState.loadingMedium} />
-                </div>
-              </aria.Cell>
-            </aria.Row>
-          ) : (
-            member => (
-              <UserRow
-                id={member.userId}
-                draggable={draggable}
-                user={member}
-                doDeleteUser={!allowDelete ? null : doDeleteUser}
-              />
-            )
+          {member => (
+            <UserRow
+              id={member.userId}
+              draggable={draggable}
+              user={member}
+              doDeleteUser={!allowDelete ? null : doDeleteUser}
+            />
           )}
         </aria.TableBody>
       </aria.Table>
