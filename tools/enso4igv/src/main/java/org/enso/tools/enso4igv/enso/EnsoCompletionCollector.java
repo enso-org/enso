@@ -10,8 +10,10 @@ import org.netbeans.spi.lsp.CompletionCollector;
 public class EnsoCompletionCollector implements CompletionCollector {
   @Override
   public boolean collectCompletions(Document dcmnt, int i, Completion.Context cntxt, Consumer<Completion> cnsmr) {
-    cnsmr.accept(CompletionCollector.newBuilder("Hi from Enso!").build());
+    for (var e : EnsoStructure.collectStructure(dcmnt)) {
+        cnsmr.accept(CompletionCollector.newBuilder(e.getName()).build());
+    }
     return true;
   }
-  
+
 }
