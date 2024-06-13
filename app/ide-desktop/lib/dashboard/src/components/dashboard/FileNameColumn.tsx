@@ -176,6 +176,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         editable={rowState.isEditingName}
         className="text grow bg-transparent"
         checkSubmittable={newTitle =>
+          newTitle !== '' &&
           newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(child => {
             const isSelf = child.key === item.key

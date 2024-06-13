@@ -347,6 +347,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           rowState.isEditingName && 'cursor-text'
         )}
         checkSubmittable={newTitle =>
+          newTitle !== '' &&
           newTitle !== item.item.title &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(child => {
             const isSelf = child.key === item.key

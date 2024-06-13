@@ -191,6 +191,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         )}
         checkSubmittable={newTitle =>
+          newTitle !== '' &&
           newTitle !== item.item.title &&
           validation.DIRECTORY_NAME_REGEX.test(newTitle) &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(child => {
