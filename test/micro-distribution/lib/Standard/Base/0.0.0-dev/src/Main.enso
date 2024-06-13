@@ -9,6 +9,7 @@ export project.Data.Time.Date.Date
 export project.Data.List.List
 from project.Data.Numbers export Number, Integer
 export project.Data.Vector.Vector
+export project.Function.Function
 export project.Polyglot.Java
 export project.Polyglot.Polyglot
 export project.Runtime

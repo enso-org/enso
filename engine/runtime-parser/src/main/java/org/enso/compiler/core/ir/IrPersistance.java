@@ -68,6 +68,8 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Unused.FunctionArgument.class, id = 787)
 @Persistable(clazz = Warning.DuplicatedImport.class, id = 788)
 @Persistable(clazz = Warning.WrongBuiltinMethod.class, id = 789)
+@Persistable(clazz = Warning.NotInvokable.class, id = 791)
+@Persistable(clazz = Warning.TypeMismatch.class, id = 792)
 @Persistable(clazz = Operator.Binary.class, id = 790)
 public final class IrPersistance {
   private IrPersistance() {}
