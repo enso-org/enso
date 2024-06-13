@@ -228,16 +228,51 @@ export function useBackendQuery<Method extends keyof Backend>(
 // === useBackendMutation ===
 // ==========================
 
-/** Wrap a backend method call in a React Query Mutation. */
+// @ts-expect-error
 export function useBackendMutation<Method extends keyof Backend>(
   backend: Backend,
+  method: Method,
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Omit<
+    reactQuery.UseMutationOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Error,
+      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+    >,
+    'mutationFn'
+  >
+): reactQuery.UseMutationResult<
+  Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+  Error,
+  Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+>
+export function useBackendMutation<Method extends keyof Backend>(
+  backend: Backend | null,
+  method: Method,
+  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
+  options?: Omit<
+    reactQuery.UseMutationOptions<
+      Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
+      Error,
+      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+    >,
+    'mutationFn'
+  >
+): reactQuery.UseMutationResult<
+  // eslint-disable-next-line no-restricted-syntax
+  Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>> | undefined,
+  Error,
+  Parameters<Extract<Backend[Method], (...args: never) => unknown>>
+>
+/** Wrap a backend method call in a React Query Mutation. */
+export function useBackendMutation<Method extends keyof Backend>(
+  backend: Backend | null,
   method: Method,
   options?: Omit<
     reactQuery.UseMutationOptions<
       Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
       Error,
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
-      unknown
+      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
     >,
     'mutationFn'
   >
@@ -245,13 +280,12 @@ export function useBackendMutation<Method extends keyof Backend>(
   return reactQuery.useMutation<
     Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
     Error,
-    Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
-    unknown
+    Parameters<Extract<Backend[Method], (...args: never) => unknown>>
   >({
     ...options,
     mutationKey: [backend, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    mutationFn: args => (backend[method] as any)(...args),
+    mutationFn: args => (backend?.[method] as any)?.(...args),
   })
 }
 
@@ -289,8 +323,7 @@ export function useBackendMutationWithVariables<Method extends keyof Backend>(
     reactQuery.UseMutationOptions<
       Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
       Error,
-      Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
-      unknown
+      Parameters<Extract<Backend[Method], (...args: never) => unknown>>
     >,
     'mutationFn'
   >
