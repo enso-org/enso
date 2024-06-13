@@ -283,6 +283,7 @@ public class ExcelConnectionPool {
           PackageAccess access = writeAccess ? PackageAccess.READ_WRITE : PackageAccess.READ;
           OPCPackage pkg = OPCPackage.open(file, access);
           try {
+
             yield new XSSFWorkbook(pkg);
           } catch (IOException e) {
             pkg.close();
