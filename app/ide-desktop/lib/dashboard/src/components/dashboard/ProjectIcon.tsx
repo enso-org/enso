@@ -363,7 +363,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               className="size-project-icon border-0"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}
-              tooltipPlacement="left"
+              tooltipPlacement="right"
               onPress={() => {
                 doOpenEditor(true)
               }}
