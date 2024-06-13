@@ -7,6 +7,7 @@ import javax.swing.text.Document;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.module.scope.Definition;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.netbeans.api.editor.mimelookup.MimeRegistration;
 import org.netbeans.api.lsp.StructureElement;
 import org.netbeans.spi.lsp.StructureProvider;
@@ -18,6 +19,10 @@ import scala.collection.Iterator;
 public final class EnsoStructure implements StructureProvider {
   @Override
   public List<StructureElement> getStructure(Document dcmnt) {
+      return collectStructure(dcmnt);
+  }
+
+  static List<StructureElement> collectStructure(Document dcmnt) {
     FileObject file = null;
     if (dcmnt.getProperty(Document.StreamDescriptionProperty) instanceof Lookup.Provider p) {
       if (p.getLookup().lookup(FileObject.class) instanceof FileObject fo) {
@@ -58,6 +63,11 @@ public final class EnsoStructure implements StructureProvider {
 
       case Definition.Data data -> {
         var bldr = StructureProvider.newBuilder(data.name().name(), StructureElement.Kind.Constructor);
+        yield bldr;
+      }
+
+      case Method.Binding bind -> {
+        var bldr = StructureProvider.newBuilder(bind.methodName().name(), StructureElement.Kind.Method);
         yield bldr;
       }
       default -> null;

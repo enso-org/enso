@@ -29,4 +29,18 @@ public class EnsoStructureTest {
     assertEquals("Constructor is it at 0", StructureElement.Kind.Constructor, chldrn.get(0).getKind());
     assertEquals("Constructor is it at 1", StructureElement.Kind.Constructor, chldrn.get(1).getKind());
   }
+
+  @Test
+  public void collectMethods() throws Exception {
+    var doc = new PlainDocument();
+    doc.insertString(0, """
+        main = 6 * 7
+        """, null);
+
+    var s = new EnsoStructure();
+    var root = s.getStructure(doc);
+    assertEquals("One root element: " + root, 1, root.size());
+    assertEquals("It is a method", StructureElement.Kind.Method, root.get(0).getKind());
+    assertEquals("It is a method", "main", root.get(0).getName());
+  }
 }
