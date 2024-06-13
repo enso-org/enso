@@ -38,7 +38,7 @@ jobs:
           path: |
             target/lib/**
 
-  build_mac_parser:
+  build_mac_intel_parser:
     runs-on: macos-12
 
     steps:
@@ -54,7 +54,27 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: parser_mac
+          name: parser_mac_intel
+          path: |
+            target/lib/**
+
+  build_mac_arm_parser:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Enso Parser
+        working-directory: .
+        env:
+          RUSTFLAGS: "-C target-feature=-crt-static"
+        run: |
+          cargo build -p enso-parser-jni -Z unstable-options --out-dir target/lib/aarch64/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser_mac_arm
           path: |
             target/lib/**
 
@@ -79,7 +99,7 @@ jobs:
             target/lib/**
 
   build_java:
-    needs: [build_linux_parser, build_mac_parser, build_windows_parser]
+    needs: [build_linux_parser, build_mac_intel_parser, build_mac_arm_parser, build_windows_parser]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
@@ -92,9 +112,7 @@ jobs:
 
       - name: List Binaries
         run: |
-          ls -l
           find . | grep -i enso.parser
-          ls -l enso_parser
 
       - name: Set up Rustup
         run: rustup show
