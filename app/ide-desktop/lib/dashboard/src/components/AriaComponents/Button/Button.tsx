@@ -84,6 +84,7 @@ export const BUTTON_STYLES = twv.tv({
     },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
+    fullWidthText: { true: { text: 'w-full' } },
     size: {
       custom: { base: '', extraClickZone: 'after:inset-[-12px]', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
@@ -185,7 +186,7 @@ export const BUTTON_STYLES = twv.tv({
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
-    text: 'inline-flex items-center gap-1',
+    text: 'inline-flex items-center justify-center gap-1',
     icon: 'h-[2cap] flex-none aspect-square',
   },
   defaultVariants: {
@@ -259,6 +260,7 @@ export const Button = React.forwardRef(function Button(
     iconPosition,
     size,
     fullWidth,
+    fullWidthText,
     rounded,
     tooltip,
     testId,
@@ -335,6 +337,7 @@ export const Button = React.forwardRef(function Button(
     isDisabled,
     loading: isLoading,
     fullWidth,
+    fullWidthText,
     size,
     rounded,
     variant,
