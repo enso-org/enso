@@ -14,6 +14,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import * as eventModule from '#/utilities/event'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ====================
 // === EditableSpan ===
@@ -74,7 +75,7 @@ export default function EditableSpan(props: EditableSpanProps) {
   if (editable) {
     return (
       <form
-        className="flex grow"
+        className="flex grow gap-1.5"
         onBlur={event => {
           const currentTarget = event.currentTarget
           if (!currentTarget.contains(event.relatedTarget)) {
@@ -99,7 +100,7 @@ export default function EditableSpan(props: EditableSpanProps) {
       >
         <aria.Input
           data-testid={props['data-testid']}
-          className={className}
+          className={tailwindMerge.twMerge('rounded-lg', className)}
           ref={inputRef}
           autoFocus
           type="text"
