@@ -269,8 +269,12 @@ class App {
             const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
             this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
             const backendVerboseOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
-            const backendProfileTime = this.args.groups.debug.options.profileTime.value ? ['--profiling-time', String(this.args.groups.debug.options.profileTime.value)] : ['--profiling-time', '120']
-            const backendProfileOpts = this.args.groups.debug.options.profile.value ? ['--profiling-path', 'profiling.npss', ...backendProfileTime] : []
+            const backendProfileTime = this.args.groups.debug.options.profileTime.value
+                ? ['--profiling-time', String(this.args.groups.debug.options.profileTime.value)]
+                : ['--profiling-time', '120']
+            const backendProfileOpts = this.args.groups.debug.options.profile.value
+                ? ['--profiling-path', 'profiling.npss', ...backendProfileTime]
+                : []
             const backendOpts = [...backendVerboseOpts, ...backendProfileOpts]
             const backendEnv = Object.assign({}, process.env, {
                 // These are environment variables, and MUST be in CONSTANT_CASE.

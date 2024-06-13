@@ -317,12 +317,14 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                     profile: new contentConfig.Option({
                         passToWebApplication: false,
                         value: false,
-                        description: 'Start backend profiler on startup and log data to a profiling.npss file',
+                        description:
+                            'Start backend profiler on startup and log data to a profiling.npss file',
                     }),
                     profileTime: new contentConfig.Option({
                         passToWebApplication: false,
                         value: DEFAULT_PROFILING_TIME,
-                        description: 'Time since backend startup for which profiling data will be collected, if enabled',
+                        description:
+                            'Time since backend startup for which profiling data will be collected, if enabled',
                     }),
                 },
             }),
