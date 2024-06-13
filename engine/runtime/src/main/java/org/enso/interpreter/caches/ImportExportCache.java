@@ -24,7 +24,6 @@ import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
 import org.openide.util.lookup.ServiceProvider;
 
-@Persistable(clazz = QualifiedName.class, id = 30300)
 public final class ImportExportCache
     implements Cache.Spi<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
@@ -223,6 +222,7 @@ public final class ImportExportCache
   @Persistable(clazz = BindingsMap.ResolvedConstructor.class, id = 33030)
   @Persistable(clazz = BindingsMap.ResolvedPolyglotSymbol.class, id = 33031)
   @Persistable(clazz = BindingsMap.ResolvedPolyglotField.class, id = 33032)
+  @Persistable(clazz = BindingsMap.Argument.class, id = 33033)
   @ServiceProvider(service = Persistance.class)
   public static final class PersistBindingsMap extends Persistance<BindingsMap> {
     public PersistBindingsMap() {
