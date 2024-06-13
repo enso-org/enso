@@ -124,12 +124,10 @@ export default function AssetPanel(props: AssetPanelProps) {
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
             <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className={tailwindMerge.twMerge(
-                'button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame',
-                tab === AssetPanelTab.versions && 'bg-selected-frame active'
-              )}
+              size="medium"
+              variant="ghost"
+              isDisabled={tab === AssetPanelTab.versions}
+              className="pointer-events-auto disabled:bg-selected-frame"
               onPress={() => {
                 setTab(oldTab =>
                   oldTab === AssetPanelTab.versions
@@ -145,10 +143,8 @@ export default function AssetPanel(props: AssetPanelProps) {
           <ariaComponents.Button
             size="medium"
             variant="ghost"
-            className={tailwindMerge.twMerge(
-              'button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame',
-              tab === AssetPanelTab.projectSessions && 'bg-selected-frame active'
-            )}
+            isDisabled={tab === AssetPanelTab.projectSessions}
+            className="pointer-events-auto disabled:bg-selected-frame"
             onPress={() => {
               setTab(oldTab =>
                 oldTab === AssetPanelTab.projectSessions
