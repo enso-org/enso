@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { useWidgetVisualizationConfig } from '@/components/GraphEditor/widgets/WidgetFunction/widgetVisualizationCfg'
+import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import {
   Score,
@@ -14,8 +16,7 @@ import {
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
-import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
+import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -24,19 +25,11 @@ import {
   ArgumentApplicationKey,
   ArgumentAst,
   ArgumentPlaceholder,
-  getAccessOprSubject,
   getMethodCallInfoRecursively,
-  interpretCall,
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
-import type { Opt } from '@/util/data/opt'
 import { isIdentifier } from '@/util/qualifiedName.ts'
-import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
-import { FunctionName } from './WidgetFunctionName.vue'
-
-const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
-const GET_WIDGETS_METHOD = 'get_widget_json'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -56,26 +49,23 @@ provideFunctionInfo(
   }),
 )
 
-const methodCallInfo = computed(() => {
-  return getMethodCallInfoRecursively(props.input.value, graph.db)
-})
+const { methodCallInfo, interpreted, visualizationConfig, selfArgumentPreapplied, subjectInfo } =
+  useWidgetVisualizationConfig(props.input, graph.db)
 
-const interpreted = computed(() => {
-  return interpretCall(props.input.value, methodCallInfo.value == null)
-})
-
-const subjectInfo = computed(() => {
-  const analyzed = interpreted.value
-  if (analyzed.kind !== 'prefix') return
-  const subject = getAccessOprSubject(analyzed.func)
-  if (!subject) return
-  return graph.db.getExpressionInfo(subject.id)
-})
-
-const selfArgumentPreapplied = computed(() => {
-  const info = methodCallInfo.value
-  const funcType = info?.methodCall.methodPointer.definedOnType
-  return funcType != null && subjectInfo.value?.typename !== `${funcType}.type`
+const innerInput = computed(() => {
+  if (application.value instanceof ArgumentApplication) {
+    return application.value.toWidgetInput()
+  } else if (methodCallInfo.value) {
+    const definition = graph.getMethodAst(methodCallInfo.value.methodCall.methodPointer)
+    if (definition.ok)
+      return {
+        ...props.input,
+        [FunctionName]: {
+          editableName: definition.value.name.externalId,
+        },
+      }
+  }
+  return props.input
 })
 
 const subjectTypeMatchesMethod = computed(() => {
@@ -100,101 +90,6 @@ const application = computed(() => {
         noArgsCall.notAppliedArguments
       : undefined,
   })
-})
-
-const innerInput = computed(() => {
-  if (application.value instanceof ArgumentApplication) {
-    return application.value.toWidgetInput()
-  } else if (methodCallInfo.value) {
-    const definition = graph.getMethodAst(methodCallInfo.value.methodCall.methodPointer)
-    if (definition.ok)
-      return {
-        ...props.input,
-        [FunctionName]: {
-          editableName: definition.value.name.externalId,
-        },
-      }
-  }
-  return props.input
-})
-
-const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
-  const analyzed = interpreted.value
-  if (analyzed.kind === 'infix') {
-    return analyzed.lhs?.externalId
-  } else if (methodCallInfo.value?.suggestion.selfType != null) {
-    const knownArguments = methodCallInfo.value?.suggestion?.arguments
-    const hasSelfArgument = knownArguments?.[0]?.name === 'self'
-    const selfArgument =
-      hasSelfArgument && !selfArgumentPreapplied.value ?
-        analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
-      : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
-
-    return selfArgument?.externalId
-  } else {
-    return null
-  }
-})
-
-const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
-  // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
-  // the current call and then merge them.
-
-  let args = ArgumentApplication.collectArgumentNamesAndUuids(
-    interpreted.value,
-    methodCallInfo.value,
-  )
-
-  const selfArgId = selfArgumentExternalId.value
-  const astId = props.input.value.id
-  if (astId == null) return null
-  const info = methodCallInfo.value
-  if (!info) return null
-  const annotatedArgs = info.suggestion.annotations
-  if (annotatedArgs.length === 0) return null
-  const name = info.suggestion.name
-  const positionalArgumentsExpressions = [
-    `.${name}`,
-    Ast.Vector.build(annotatedArgs, Ast.TextLiteral.new).code(),
-    Ast.TextLiteral.new(JSON.stringify(args)).code(),
-  ]
-  if (name == 'Equals_Ignore_Case') {
-    const analyzed = interpretCall(props.input.value, true)
-    if (analyzed.kind === 'infix') {
-      console.log(analyzed.lhs?.code())
-    } else {
-      const knownArguments = methodCallInfo.value?.suggestion?.arguments
-      const hasSelfArgument = knownArguments?.[0]?.name === 'self'
-      const selfArgument =
-        hasSelfArgument && !selfArgumentPreapplied.value ?
-          analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
-        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
-
-      console.log(selfArgument?.code())
-    }
-    console.log(selfArgId, interpreted.value, getAccessOprSubject)
-  }
-  if (selfArgId != null) {
-    return {
-      expressionId: selfArgId,
-      visualizationModule: WIDGETS_ENSO_MODULE,
-      expression: {
-        module: WIDGETS_ENSO_MODULE,
-        definedOnType: WIDGETS_ENSO_MODULE,
-        name: GET_WIDGETS_METHOD,
-      },
-      positionalArgumentsExpressions,
-    }
-  } else {
-    // In the case when no self argument is present (for example in autoscoped constructor),
-    // we assume that this is a static function call.
-    return {
-      expressionId: props.input.value,
-      visualizationModule: WIDGETS_ENSO_MODULE,
-      expression: `a -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.definedIn}`,
-      positionalArgumentsExpressions,
-    }
-  }
 })
 
 const inheritedConfig = computed(() => {
