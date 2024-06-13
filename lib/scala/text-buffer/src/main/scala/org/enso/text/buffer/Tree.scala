@@ -1,7 +1,5 @@
 package org.enso.text.buffer
 
-import cats.Monoid
-
 /** A super class of nodes stored in the tree.
   *
   * @tparam C the container for leaf elements.
@@ -102,7 +100,7 @@ case class Node[C, M](
     */
   def ++(
     that: Node[C, M]
-  )(implicit treeShape: TreeShape, measureMonoid: Monoid[M]): Node[C, M] = {
+  )(implicit treeShape: TreeShape, measureMonoid: CombineOps[M]): Node[C, M] = {
 
     // get rid of empty arguments as soon as possible
     if (isEmpty) return that
@@ -174,7 +172,7 @@ case class Node[C, M](
     offset: I,
     measureOps: RangeOps[I, C, M]
   )(implicit
-    measureMonoid: Monoid[M],
+    measureMonoid: CombineOps[M],
     measurable: Measurable[C, M],
     treeShape: TreeShape
   ): Node[C, M] = {
@@ -209,7 +207,7 @@ case class Node[C, M](
     offset: I,
     measureOps: RangeOps[I, C, M]
   )(implicit
-    measureMonoid: Monoid[M],
+    measureMonoid: CombineOps[M],
     measurable: Measurable[C, M],
     treeShape: TreeShape
   ): Node[C, M] = {
@@ -267,7 +265,7 @@ case class Node[C, M](
     offset: I,
     measureOps: RangeOps[I, C, M]
   )(implicit
-    measureMonoid: Monoid[M],
+    measureMonoid: CombineOps[M],
     measurable: Measurable[C, M],
     treeShape: TreeShape
   ): (Node[C, M], Node[C, M]) = {
@@ -345,7 +343,7 @@ object Node {
     */
   def unsafeFromChildren[C, M](
     children: Array[Node[C, M]]
-  )(implicit measureMonoid: Monoid[M]): Node[C, M] = {
+  )(implicit measureMonoid: CombineOps[M]): Node[C, M] = {
     val height = children(0).height + 1
     val size = children.foldLeft(measureMonoid.empty)((acc, n) =>
       measureMonoid.combine(acc, n.measure)
@@ -364,7 +362,7 @@ object Node {
   def unsafeMergeChildren[C, M](
     leftChildren: Array[Node[C, M]],
     rightChildren: Array[Node[C, M]]
-  )(implicit treeShape: TreeShape, measureMonoid: Monoid[M]): Node[C, M] = {
+  )(implicit treeShape: TreeShape, measureMonoid: CombineOps[M]): Node[C, M] = {
     val allChildren = leftChildren ++ rightChildren
     val nChildren   = allChildren.length
     if (nChildren <= treeShape.maxChildren) {
@@ -384,7 +382,7 @@ object Node {
     *
     * @return an empty tree.
     */
-  def empty[C, M](implicit measureMonoid: Monoid[M]): Node[C, M] =
+  def empty[C, M](implicit measureMonoid: CombineOps[M]): Node[C, M] =
     Node(0, measureMonoid.empty, Empty())
 
   /** A safe operation for concatenating multliple valid trees into one.
@@ -395,6 +393,6 @@ object Node {
     */
   def mergeTrees[C, M](
     nodes: List[Node[C, M]]
-  )(implicit treeShape: TreeShape, measureMonoid: Monoid[M]): Node[C, M] =
+  )(implicit treeShape: TreeShape, measureMonoid: CombineOps[M]): Node[C, M] =
     nodes.foldLeft(empty[C, M])((tree, node) => tree ++ node)
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePointer } from '@/composables/events'
-import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'vue'
+import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
@@ -70,7 +70,7 @@ const sliderWidth = computed(() => {
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
 const MIN_CONTENT_WIDTH = 56
 
-const inputStyle = computed<StyleValue>(() => {
+const inputStyle = computed<CSSProperties>(() => {
   const value = `${editedValue.value}`
   const dotIdx = value.indexOf('.')
   let indent = 0
@@ -119,20 +119,19 @@ defineExpose({
 </script>
 
 <template>
-  <label class="NumericInputWidget">
-    <div v-if="props.limits != null" class="slider" :style="{ width: sliderWidth }"></div>
-    <AutoSizedInput
-      ref="inputComponent"
-      v-model="editedValue"
-      autoSelect
-      :style="inputStyle"
-      v-on="dragPointer.events"
-      @click.stop
-      @blur="blurred"
-      @focus="focused"
-      @input="emit('input', editedValue)"
-    />
-  </label>
+  <AutoSizedInput
+    ref="inputComponent"
+    v-model="editedValue"
+    autoSelect
+    class="NumericInputWidget"
+    :class="{ slider: sliderWidth != null }"
+    :style="{ ...inputStyle, '--slider-width': sliderWidth }"
+    v-on="dragPointer.events"
+    @click.stop
+    @blur="blurred"
+    @focus="focused"
+    @input="emit('input', editedValue)"
+  />
 </template>
 
 <style scoped>
@@ -140,22 +139,24 @@ defineExpose({
   position: relative;
   overflow: clip;
   border-radius: var(--radius-full);
-}
-.AutoSizedInput {
   user-select: none;
+  padding: 0 4px;
   background: var(--color-widget);
-  border-radius: var(--radius-full);
-  overflow: clip;
-  padding: 0px 4px;
   &:focus {
     background: var(--color-widget-focus);
   }
 }
 
-.slider {
-  position: absolute;
-  height: 100%;
-  left: 0;
-  background: var(--color-widget);
+.NumericInputWidget.slider {
+  &:focus {
+    /* Color will be blended with background defined below. */
+    background-color: var(--color-widget);
+  }
+  background: linear-gradient(
+    to right,
+    var(--color-widget-focus) 0 calc(var(--slider-width) - 1px),
+    var(--color-widget-slight) calc(var(--slider-width) - 1px) var(--slider-width),
+    var(--color-widget) var(--slider-width) 100%
+  );
 }
 </style>
