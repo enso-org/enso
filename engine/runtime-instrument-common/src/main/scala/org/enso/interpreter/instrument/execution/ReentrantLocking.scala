@@ -248,7 +248,10 @@ class ReentrantLocking(logger: TruffleLogger) extends Locking {
     contextMapLock.lock()
     try {
       if (contextLocks.contains(contextId)) {
-        contextLocks(contextId).unlock()
+        assertNotLocked(
+          contextLocks(contextId),
+          s"Cannot remove context ${contextId} lock when having a lock on it"
+        )
         contextLocks -= contextId
       }
     } finally {
