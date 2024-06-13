@@ -35,8 +35,6 @@ class ProjectManagementApiSpec
 
   override val engineToInstall = Some(SemVer.of(0, 0, 1))
 
-  override val deleteProjectsRootAfterEachTest = false
-
   override lazy val timeoutConfig: TimeoutConfig = {
     config.timeout.copy(delayedShutdownTimeout = 1.nanosecond)
   }
