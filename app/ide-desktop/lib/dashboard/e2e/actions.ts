@@ -400,7 +400,7 @@ export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
 
 /** Find an icon to open or close the asset panel (if any) on the current page. */
 export function locateAssetPanelIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Asset Panel').locator('visible=true')
+  return page.getByLabel('Asset Panel').locator('visible=true')
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
