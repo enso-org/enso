@@ -1,16 +1,26 @@
+;
 /** @file A styled button. */
-import * as React from 'react'
+import * as React from 'react';
 
-import * as twv from 'tailwind-variants'
 
-import * as focusHooks from '#/hooks/focusHooks'
 
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
-import Spinner, * as spinnerModule from '#/components/Spinner'
-import SvgMask from '#/components/SvgMask'
+import * as twv from 'tailwind-variants';
 
-import * as text from '../Text'
+
+
+import * as focusHooks from '#/hooks/focusHooks';
+
+
+
+import * as aria from '#/components/aria';
+import * as ariaComponents from '#/components/AriaComponents';
+import Spinner, * as spinnerModule from '#/components/Spinner';
+import SvgMask from '#/components/SvgMask';
+
+
+
+import * as text from '../Text';
+
 
 // ==============
 // === Button ===
@@ -157,8 +167,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary:
-        'relative flex items-center rounded-full text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90',
+      tertiary: 'relative text-white bg-accent hover:bg-accent-dark',
       cancel: 'bg-white/50 hover:bg-white',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
