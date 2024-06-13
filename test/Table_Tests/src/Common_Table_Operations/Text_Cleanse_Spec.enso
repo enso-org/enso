@@ -59,17 +59,25 @@ add_specs suite_builder setup =
             clean_passenger = ["Passenger", ["Albert Einstein", "Marie Curie   ", "Isaac Newton   ", "Stephen   Hawking", "A d a Lovelace "]]
             expected_table = Table.new [clean_flight, clean_passenger, ticket_price]
             res = table.text_cleanse [Named_Pattern.Leading_Whitespace] [(regex "Fl.*"), (regex "P.*")]
-            r = materialize res . rows . map .to_vector
-            r.length . should_equal 5
-            r.should_equal (expected_table . rows . map .to_vector)
+            case res.is_error && setup.is_database of
+                True ->
+                    res.should_fail_with Unsupported_Database_Operation
+                False ->
+                    r = materialize res . rows . map .to_vector
+                    r.length . should_equal 5
+                    r.should_equal (expected_table . rows . map .to_vector)
         group_builder.specify "can select columns by type" <|
             clean_flight = ["Flight", ["BA0123", "BA0123 ", "SG0456  ", "BA  0123", "S G 0 4 5 6 "]]
             clean_passenger = ["Passenger", ["Albert Einstein", "Marie Curie   ", "Isaac Newton   ", "Stephen   Hawking", "A d a Lovelace "]]
             expected_table = Table.new [clean_flight, clean_passenger, ticket_price]
             res = table.text_cleanse [Named_Pattern.Leading_Whitespace] [..By_Type ..Char]
-            r = materialize res . rows . map .to_vector
-            r.length . should_equal 5
-            r.should_equal (expected_table . rows . map .to_vector)
+            case res.is_error && setup.is_database of
+                True ->
+                    res.should_fail_with Unsupported_Database_Operation
+                False ->
+                    r = materialize res . rows . map .to_vector
+                    r.length . should_equal 5
+                    r.should_equal (expected_table . rows . map .to_vector)
         group_builder.specify "should error if applied to non-text column" <|
             table.text_cleanse [Named_Pattern.Leading_Whitespace] ["Ticket Price"] . should_fail_with Invalid_Value_Type
     suite_builder.group "Column Text Cleanse" group_builder->
