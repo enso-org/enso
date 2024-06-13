@@ -54,7 +54,6 @@ import AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
-import Debug from '#/utilities/Debug'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
 import type * as geometry from '#/utilities/geometry'
@@ -2395,108 +2394,104 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const table = (
-    <Debug>
-      <div
-        className="flex grow flex-col"
-        onContextMenu={event => {
-          event.preventDefault()
-          event.stopPropagation()
-          setModal(
-            <AssetsTableContextMenu
-              category={category}
-              pasteData={pasteData}
-              selectedKeys={selectedKeys}
-              clearSelectedKeys={clearSelectedKeys}
-              nodeMapRef={nodeMapRef}
-              event={event}
-              rootDirectoryId={rootDirectoryId}
-              dispatchAssetEvent={dispatchAssetEvent}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-              doCopy={doCopy}
-              doCut={doCut}
-              doPaste={doPaste}
-            />
-          )
-        }}
-        onDragLeave={event => {
-          const payload = drag.LABELS.lookup(event)
-          if (
-            payload != null &&
-            event.relatedTarget instanceof Node &&
-            !event.currentTarget.contains(event.relatedTarget)
-          ) {
-            dispatchAssetEvent({
-              type: AssetEventType.temporarilyAddLabels,
-              ids: selectedKeysRef.current,
-              labelNames: set.EMPTY,
-            })
-          }
-        }}
-      >
-        <table className="table-fixed border-collapse rounded-rows">
-          <thead>{headerRow}</thead>
-          <tbody ref={bodyRef}>
-            {itemRows}
-            <tr className="hidden h-row first:table-row">
-              <td colSpan={columns.length} className="bg-transparent">
-                {category === Category.trash ? (
-                  query.query !== '' ? (
-                    <aria.Text className="px-cell-x placeholder">
-                      {getText('noFilesMatchTheCurrentFilters')}
-                    </aria.Text>
-                  ) : (
-                    <aria.Text className="px-cell-x placeholder">
-                      {getText('yourTrashIsEmpty')}
-                    </aria.Text>
-                  )
-                ) : query.query !== '' ? (
+    <div
+      className="flex grow flex-col"
+      onContextMenu={event => {
+        event.preventDefault()
+        event.stopPropagation()
+        setModal(
+          <AssetsTableContextMenu
+            category={category}
+            pasteData={pasteData}
+            selectedKeys={selectedKeys}
+            clearSelectedKeys={clearSelectedKeys}
+            nodeMapRef={nodeMapRef}
+            event={event}
+            rootDirectoryId={rootDirectoryId}
+            dispatchAssetEvent={dispatchAssetEvent}
+            dispatchAssetListEvent={dispatchAssetListEvent}
+            doCopy={doCopy}
+            doCut={doCut}
+            doPaste={doPaste}
+          />
+        )
+      }}
+      onDragLeave={event => {
+        const payload = drag.LABELS.lookup(event)
+        if (
+          payload != null &&
+          event.relatedTarget instanceof Node &&
+          !event.currentTarget.contains(event.relatedTarget)
+        ) {
+          dispatchAssetEvent({
+            type: AssetEventType.temporarilyAddLabels,
+            ids: selectedKeysRef.current,
+            labelNames: set.EMPTY,
+          })
+        }
+      }}
+    >
+      <table className="table-fixed border-collapse rounded-rows">
+        <thead>{headerRow}</thead>
+        <tbody ref={bodyRef}>
+          {itemRows}
+          <tr className="hidden h-row first:table-row">
+            <td colSpan={columns.length} className="bg-transparent">
+              {category === Category.trash ? (
+                query.query !== '' ? (
                   <aria.Text className="px-cell-x placeholder">
                     {getText('noFilesMatchTheCurrentFilters')}
                   </aria.Text>
                 ) : (
                   <aria.Text className="px-cell-x placeholder">
-                    {getText('youHaveNoFiles')}
+                    {getText('yourTrashIsEmpty')}
                   </aria.Text>
-                )}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div
-          data-testid="root-directory-dropzone"
-          className="grow"
-          onClick={() => {
-            setSelectedKeys(new Set())
-          }}
-          onDragEnter={onDragOver}
-          onDragOver={onDragOver}
-          onDrop={event => {
-            const payload = drag.ASSET_ROWS.lookup(event)
-            const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
-            if (filtered != null && filtered.length > 0) {
-              event.preventDefault()
-              event.stopPropagation()
-              unsetModal()
-              dispatchAssetEvent({
-                type: AssetEventType.move,
-                newParentKey: rootDirectoryId,
-                newParentId: rootDirectoryId,
-                ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
-              })
-            } else if (event.dataTransfer.types.includes('Files')) {
-              event.preventDefault()
-              event.stopPropagation()
-              dispatchAssetListEvent({
-                type: AssetListEventType.uploadFiles,
-                parentKey: rootDirectoryId,
-                parentId: rootDirectoryId,
-                files: Array.from(event.dataTransfer.files),
-              })
-            }
-          }}
-        />
-      </div>
-    </Debug>
+                )
+              ) : query.query !== '' ? (
+                <aria.Text className="px-cell-x placeholder">
+                  {getText('noFilesMatchTheCurrentFilters')}
+                </aria.Text>
+              ) : (
+                <aria.Text className="px-cell-x placeholder">{getText('youHaveNoFiles')}</aria.Text>
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div
+        data-testid="root-directory-dropzone"
+        className="grow"
+        onClick={() => {
+          setSelectedKeys(new Set())
+        }}
+        onDragEnter={onDragOver}
+        onDragOver={onDragOver}
+        onDrop={event => {
+          const payload = drag.ASSET_ROWS.lookup(event)
+          const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
+          if (filtered != null && filtered.length > 0) {
+            event.preventDefault()
+            event.stopPropagation()
+            unsetModal()
+            dispatchAssetEvent({
+              type: AssetEventType.move,
+              newParentKey: rootDirectoryId,
+              newParentId: rootDirectoryId,
+              ids: new Set(filtered.map(dragItem => dragItem.asset.id)),
+            })
+          } else if (event.dataTransfer.types.includes('Files')) {
+            event.preventDefault()
+            event.stopPropagation()
+            dispatchAssetListEvent({
+              type: AssetListEventType.uploadFiles,
+              parentKey: rootDirectoryId,
+              parentId: rootDirectoryId,
+              files: Array.from(event.dataTransfer.files),
+            })
+          }
+        }}
+      />
+    </div>
   )
 
   return (
