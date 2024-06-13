@@ -287,7 +287,7 @@ export const Button = React.forwardRef(function Button(
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
-  const shouldShowTooltip = isIconOnly && tooltip !== false
+  const shouldShowTooltip = isIconOnly || tooltip !== false
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
