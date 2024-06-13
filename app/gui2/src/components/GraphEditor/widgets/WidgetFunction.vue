@@ -15,7 +15,7 @@ import {
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
-import { entryQn } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -139,26 +139,41 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
 
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
-  if (astId == null || expressionId == null) return null
+  if (astId == null) return null
   const info = methodCallInfo.value
+  console.log('INFO', info)
   if (!info) return null
   const args = info.suggestion.annotations
   if (args.length === 0) return null
   const name = info.suggestion.name
-  return {
-    expressionId,
-    visualizationModule: 'Standard.Visualization.Widgets',
-    expression: {
-      module: 'Standard.Visualization.Widgets',
-      definedOnType: 'Standard.Visualization.Widgets',
-      name: 'get_widget_json',
-    },
-    positionalArgumentsExpressions: [
-      `.${name}`,
-      Ast.Vector.build(args, Ast.TextLiteral.new).code(),
-      Ast.TextLiteral.new(JSON.stringify(m)).code(),
-    ],
+  if (info.suggestion.kind === SuggestionKind.Constructor && expressionId == null) {
+    return {
+      expressionId: props.input.value.externalId,
+      visualizationModule: 'Standard.Visualization.Widgets',
+      expression: `a -> Standard.Visualization.Widgets.get_widget_json ${info.suggestion.definedIn}`,
+      positionalArgumentsExpressions: [
+        `.${name}`,
+        Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+        Ast.TextLiteral.new(JSON.stringify(m)).code(),
+      ],
+    }
+  } else if (expressionId != null) {
+    return {
+      expressionId,
+      visualizationModule: 'Standard.Visualization.Widgets',
+      expression: {
+        module: 'Standard.Visualization.Widgets',
+        definedOnType: 'Standard.Visualization.Widgets',
+        name: 'get_widget_json',
+      },
+      positionalArgumentsExpressions: [
+        `.${name}`,
+        Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+        Ast.TextLiteral.new(JSON.stringify(m)).code(),
+      ],
+    }
   }
+  return null
 })
 
 const inheritedConfig = computed(() => {
