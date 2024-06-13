@@ -14,7 +14,7 @@
   "main": "target/index.js",
   "type": "module",
   "scripts": {
-    "start": "tsc && node target/index.js",
+    "start": "vite-node src/index.ts",
     "build": "tsc",
     "test": "vitest",
     "lint": "eslint src",
