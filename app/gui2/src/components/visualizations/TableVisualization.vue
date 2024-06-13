@@ -332,7 +332,7 @@ watchEffect(() => {
         return toField(v, valueType)
       }) ?? []
 
-    columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : [...dataHeader]
+    columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : dataHeader
     const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
