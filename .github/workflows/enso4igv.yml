@@ -34,7 +34,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux_parser
+          name: parser_linux
           path: |
             target/lib/**
 
@@ -54,7 +54,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mac_parser
+          name: parser_mac
           path: |
             target/lib/**
 
@@ -74,7 +74,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows_parser
+          name: parser_windows
           path: |
             target/lib/**
 
@@ -84,6 +84,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Download Libraries
+        uses: actions/download-artifact@v4
+        with:
+          path: enso_parser
+          merge-multiple: true
+
+      - name: List Binaries
+        run: |
+          ls -l
+          find . | grep -i enso.parser
+          ls -l enso_parser
+
       - name: Set up Rustup
         run: rustup show
 
@@ -92,7 +104,7 @@ jobs:
           java-version: "21"
           distribution: "graalvm-community"
 
-      - name: Publish to Maven Repository
+      - name: Publish Enso Libraries to Local Maven Repository
         run: sbt publishM2
 
       - name: Find out pom & micro versions
@@ -108,18 +120,6 @@ jobs:
         run: |
           echo "Setting version to $POM_VERSION.$MICRO_VERSION"
           mvn versions:set -DnewVersion="$POM_VERSION.$MICRO_VERSION"
-
-      - name: Download Libraries
-        uses: actions/download-artifact@v2
-        with:
-          path: enso_parser
-          merge-multiple: true
-
-      - name: List Binaries
-        run: |
-          ls -l
-          find . | grep -i enso.parser
-          ls -l lib
 
       - name: Build with Maven
         run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml -Denso.parser.lib=`pwd`/enso_parser/
