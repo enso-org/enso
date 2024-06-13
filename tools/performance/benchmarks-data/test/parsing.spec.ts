@@ -1,4 +1,5 @@
 
+import { describe, expect, it } from 'vitest'
 import { parseLinesFromJobOutput } from '../src/utils'
 
 describe('Parsing from job output', () => {
