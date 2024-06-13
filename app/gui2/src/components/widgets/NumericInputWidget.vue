@@ -25,19 +25,29 @@ watch(
 )
 const SLIDER_INPUT_THRESHOLD = 4.0
 
+let dragState: { thresholdMet: boolean } | undefined = undefined
 const dragPointer = usePointer(
   (position, event, eventType) => {
     const slider = event.target
     if (!(slider instanceof HTMLElement)) return false
 
-    if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) {
+    if (dragState) {
+      dragState.thresholdMet ||= Math.abs(position.relative.x) >= SLIDER_INPUT_THRESHOLD
+    }
+
+    if (eventType === 'stop' && !dragState?.thresholdMet) {
       inputComponent.value?.focus()
       return
     }
 
-    if (eventType === 'start') return
-
     if (inputFieldActive.value || props.limits == null) return false
+
+    if (eventType === 'start') {
+      // Prevent selecting the input's text content.
+      event.preventDefault()
+      dragState = { thresholdMet: false }
+      return
+    }
 
     const { min, max } = props.limits
     const rect = slider.getBoundingClientRect()
