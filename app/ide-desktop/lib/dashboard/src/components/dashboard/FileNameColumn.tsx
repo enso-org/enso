@@ -180,8 +180,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(child => {
             const isSelf = child.key === item.key
             const hasSameType = child.item.type === item.type
-            const hasSameTitle = child.item.title !== newTitle
-            return !(isSelf && hasSameType && hasSameTitle)
+            const hasSameTitle = child.item.title === newTitle
+            return !(!isSelf && hasSameType && hasSameTitle)
           })
         }
         onSubmit={doRename}
