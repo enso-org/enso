@@ -370,7 +370,7 @@ export function locateNewLabelButton(page: test.Locator | test.Page) {
 
 /** Find an "upgrade" button (if any) on the current page. */
 export function locateUpgradeButton(page: test.Locator | test.Page) {
-  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade')
+  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade').first()
 }
 
 /**
