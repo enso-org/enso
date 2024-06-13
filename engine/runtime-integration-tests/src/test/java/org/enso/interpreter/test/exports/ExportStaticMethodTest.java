@@ -1,6 +1,7 @@
 package org.enso.interpreter.test.exports;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 
@@ -77,6 +78,28 @@ public class ExportStaticMethodTest {
       var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));
       assertThat(mainModExportedSymbols, hasKey("static_method"));
+    }
+  }
+
+  @Test
+  public void staticMethodIsDefinedEntity() throws IOException {
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"), """
+        static_method x = x
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
+
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      polyCtx.getTopScope().compile(true);
+      var definedEntities = ModuleUtils.getDefinedEntities(ctx, "local.Proj.Main");
+      assertThat(definedEntities.size(), is(1));
+      assertThat(definedEntities.get(0).name(), containsString("static_method"));
     }
   }
 }

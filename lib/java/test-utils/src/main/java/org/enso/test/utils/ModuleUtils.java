@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.enso.compiler.context.CompilerContext.Module;
+import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.graalvm.polyglot.Context;
 import scala.jdk.javaapi.CollectionConverters;
@@ -23,6 +24,12 @@ public class ModuleUtils {
     var ensoCtx = ContextUtils.leakContext(ctx);
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return getExportedSymbols(mod);
+  }
+
+  public static List<DefinedEntity> getDefinedEntities(Context ctx, String modName) {
+    var ensoCtx = ContextUtils.leakContext(ctx);
+    var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
+    return CollectionConverters.asJava(mod.getBindingsMap().definedEntities());
   }
 
   private static Map<String, List<ResolvedName>> getExportedSymbols(Module module) {

@@ -1,11 +1,13 @@
 package org.enso.interpreter.test.exports;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Set;
+import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.RuntimeOptions;
@@ -122,6 +124,32 @@ public class ExportExtensionMethodTest {
       polyCtx.getTopScope().compile(true);
       var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols, hasKey("extension_method"));
+    }
+  }
+
+  @Test
+  public void extensionMethodIsDefinedEntity() throws IOException {
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        type My_Type
+            Value x
+        My_Type.extension_method self = self.x
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
+
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      polyCtx.getTopScope().compile(true);
+      var definedEntities = ModuleUtils.getDefinedEntities(ctx, "local.Proj.Main");
+      assertThat(definedEntities.isEmpty(), is(false));
+      var entityNames = definedEntities.stream().map(DefinedEntity::name).toList();
+      assertThat(entityNames, hasItem("extension_method"));
     }
   }
 }
