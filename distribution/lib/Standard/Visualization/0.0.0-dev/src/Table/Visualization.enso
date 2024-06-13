@@ -147,14 +147,14 @@ make_json_for_js_object js_object max_items =
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
 make_json_for_table : Table -> Integer -> Boolean -> JS_Object
-make_json_for_table dataframe all_rows_count index_col =
+make_json_for_table dataframe all_rows_count include_index_col =
     get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
     columns     = dataframe.columns
     header      = ["header", columns.map .name]
     value_type  = ["value_type", columns.map .value_type]
     data        = ["data",   columns.map get_vector]
     all_rows    = ["all_rows_count", all_rows_count]
-    has_index_col = ["has_index_col", index_col]
+    has_index_col = ["has_index_col", include_index_col]
     pairs       = [header, value_type, data, all_rows, has_index_col, ["type", "Table"]]
     JS_Object.from_pairs pairs
 
