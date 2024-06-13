@@ -1,11 +1,16 @@
 package org.enso.interpreter.test.exports;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.PolyglotContext;
+import org.enso.polyglot.RuntimeOptions;
+import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.junit.Rule;
@@ -89,5 +94,34 @@ public class ExportExtensionMethodTest {
           assertThat(res.isBoolean(), is(true));
           assertThat(res.asBoolean(), is(true));
         });
+  }
+
+  @Test
+  public void extensionMethodIsInBindingMap() throws IOException {
+    var tMod =
+        new SourceModule(
+            QualifiedName.fromString("T_Module"),
+            """
+        type My_Type
+            Value x
+        My_Type.extension_method self = self.x
+        """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        from project.T_Module export My_Type, extension_method
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      polyCtx.getTopScope().compile(true);
+      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainModExportedSymbols, hasKey("extension_method"));
+    }
   }
 }
