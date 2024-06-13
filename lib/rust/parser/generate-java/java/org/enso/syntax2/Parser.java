@@ -8,6 +8,12 @@ import java.nio.charset.StandardCharsets;
 
 public final class Parser implements AutoCloseable {
   private static void initializeLibraries() {
+    try {
+      System.loadLibrary("enso_parser");
+      return;
+    } catch (LinkageError err) {
+      // try harder to find the library
+    }
     String os = System.getProperty("os.name");
     String name;
     if (os.startsWith("Mac")) {
@@ -21,18 +27,6 @@ public final class Parser implements AutoCloseable {
     File parser = null;
     try {
       var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
-      /*
-        try {
-          if ("jar".equals(whereAmI.getProtocol()) && whereAmI.openConnection() instanceof JarURLConnection jar) {
-            whereAmI = jar.getJarFileURL();
-          }
-        } catch (IOException ex) {
-          // go on
-        }
-      File dir = new File(whereAmI.toURI()).getParentFile();
-      parser = new File(dir, name);
-      */
-
       var d = new File(whereAmI.toURI()).getParentFile();
       File path = null;
       while (d != null) {
