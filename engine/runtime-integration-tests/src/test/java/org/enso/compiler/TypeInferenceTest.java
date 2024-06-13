@@ -1093,11 +1093,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   private void assertAtomType(String fqn, IR ir) {
-    var type = getInferredType(ir);
+    var option = getInferredTypeOption(ir);
+    if (option.isEmpty()) {
+      fail("Expected " + ir.showCode() + " to have Atom type "+fqn+", but no type metadata was found.");
+    }
+
+    var type = option.get();
     if (type instanceof TypeRepresentation.AtomType atomType) {
-      assertEquals(fqn, atomType.fqn().toString());
+      assertEquals("Expected " + ir.showCode()+" to have the right atom type: ", fqn, atomType.fqn().toString());
     } else {
-      fail("Expected " + ir.showCode() + " to have an AtomType, but got " + type);
+      fail("Expected " + ir.showCode() + " to have an Atom type "+fqn+", but got " + type);
     }
   }
 
