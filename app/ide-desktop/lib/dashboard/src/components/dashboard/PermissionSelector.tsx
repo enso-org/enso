@@ -137,7 +137,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
       permissionDisplay = (
         <div className="flex w-permission-display gap-px">
           <ariaComponents.Button
-            size="custom"
+            size="xxsmall"
             variant="custom"
             rounded="none"
             ref={permissionSelectorButtonRef}
@@ -153,7 +153,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {getText(permissions.TYPE_TO_TEXT_ID[permission.type])}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
+            size="xxsmall"
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
@@ -176,7 +176,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {getText('docsPermissionModifier')}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
+            size="xxsmall"
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
@@ -205,7 +205,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     default: {
       permissionDisplay = (
         <ariaComponents.Button
-          size="custom"
+          size="xxsmall"
           variant="custom"
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
