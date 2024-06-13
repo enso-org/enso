@@ -156,8 +156,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary:
-        'relative flex items-center rounded-full text-white before:absolute before:inset before:rounded-full before:bg-accent before:transition-all hover:before:brightness-90',
+      tertiary: 'relative text-white bg-accent hover:bg-accent-dark',
       cancel: 'bg-white/50 hover:bg-white',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
