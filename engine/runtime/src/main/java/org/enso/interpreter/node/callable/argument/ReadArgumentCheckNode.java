@@ -82,6 +82,38 @@ public abstract class ReadArgumentCheckNode extends Node {
 
   abstract String expectedTypeMessage();
 
+  protected final String joinTypeParts(List<String> parts, String separator) {
+    assert !parts.isEmpty();
+    if (parts.size() == 1) {
+      return parts.get(0);
+    }
+
+    var separatorWithSpace = " " + separator + " ";
+    var builder = new StringBuilder();
+    boolean isFirst = true;
+    for (String part : parts) {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        builder.append(separatorWithSpace);
+      }
+
+      // If the part contains a space, it means it is not a single type but already a more complex
+      // expression with a separator.
+      // So to ensure we don't mess up the expression layers, we need to add parentheses around it.
+      boolean needsParentheses = part.contains(" ");
+      if (needsParentheses) {
+        builder.append("(");
+      }
+      builder.append(part);
+      if (needsParentheses) {
+        builder.append(")");
+      }
+    }
+
+    return builder.toString();
+  }
+
   final PanicException panicAtTheEnd(Object v) {
     if (expectedTypeMessage == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -125,7 +157,8 @@ public abstract class ReadArgumentCheckNode extends Node {
     };
   }
 
-  public static ReadArgumentCheckNode build(String comment, Type expectedType) {
+  public static ReadArgumentCheckNode build(EnsoContext ctx, String comment, Type expectedType) {
+    assert ctx.getBuiltins().any() != expectedType : "Don't check for Any: " + expectedType;
     return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(comment, expectedType);
   }
 
@@ -195,9 +228,11 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Override
     String expectedTypeMessage() {
-      return Arrays.stream(checks)
-          .map(n -> n.expectedTypeMessage())
-          .collect(Collectors.joining(" & "));
+      var parts =
+          Arrays.stream(checks)
+              .map(ReadArgumentCheckNode::expectedTypeMessage)
+              .collect(Collectors.toList());
+      return joinTypeParts(parts, "&");
     }
   }
 
@@ -239,9 +274,11 @@ public abstract class ReadArgumentCheckNode extends Node {
 
     @Override
     String expectedTypeMessage() {
-      return Arrays.stream(checks)
-          .map(n -> n.expectedTypeMessage())
-          .collect(Collectors.joining(" | "));
+      var parts =
+          Arrays.stream(checks)
+              .map(ReadArgumentCheckNode::expectedTypeMessage)
+              .collect(Collectors.toList());
+      return joinTypeParts(parts, "|");
     }
   }
 
@@ -386,6 +423,9 @@ public abstract class ReadArgumentCheckNode extends Node {
     Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {
       if (v instanceof EnsoMultiValue multi) {
         return multi.allTypes();
+      }
+      if (v instanceof UnresolvedConstructor) {
+        return null;
       }
       if (typeOfNode.execute(v) instanceof Type from) {
         if (previous != null && previous.length == 1 && previous[0] == from) {

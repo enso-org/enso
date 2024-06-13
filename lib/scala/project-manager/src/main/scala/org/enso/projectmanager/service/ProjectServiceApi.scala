@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import org.enso.semver.SemVer
 import org.enso.projectmanager.data.{
   LanguageServerStatus,
-  MissingComponentAction,
+  MissingComponentActions,
   ProjectMetadata,
   RunningLanguageServerInfo
 }
@@ -33,7 +33,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     name: String,
     engineVersion: SemVer,
     projectTemplate: Option[String],
-    missingComponentAction: MissingComponentAction,
+    missingComponentAction: MissingComponentActions.MissingComponentAction,
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, Project]
 
@@ -71,7 +71,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     progressTracker: ActorRef,
     clientId: UUID,
     projectId: UUID,
-    missingComponentAction: MissingComponentAction,
+    missingComponentAction: MissingComponentActions.MissingComponentAction,
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo]
 

@@ -30,7 +30,7 @@ const showColorPicker = ref(false)
 </script>
 
 <template>
-  <div class="CircularMenu">
+  <div class="CircularMenu" :class="{ partial: !props.isFullMenuVisible }">
     <div
       v-if="!showColorPicker"
       class="circle menu"

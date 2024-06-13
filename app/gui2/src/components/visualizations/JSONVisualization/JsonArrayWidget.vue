@@ -25,7 +25,7 @@ function entryTitle(index: number) {
       v-for="(child, index) in props.data"
       :key="index"
       :title="entryTitle(index)"
-      class="element"
+      class="element clickable"
       @click.stop="emit('createProjection', [$event.shiftKey ? [...props.data.keys()] : [index]])"
     >
       <JsonValueWidget
@@ -50,7 +50,6 @@ function entryTitle(index: number) {
 .block > .element {
   display: block;
   margin-left: 1em;
-  cursor: pointer;
 }
 .element:not(:last-child)::after {
   display: inline;

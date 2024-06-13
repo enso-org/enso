@@ -7,16 +7,15 @@ const emit = defineEmits<{ click: [] }>()
 </script>
 
 <template>
-  <div class="Breadcrumb">
+  <div class="Breadcrumb clickable" @click.stop="emit('click')">
     <SvgIcon v-if="props.icon" :name="props.icon || ''" />
-    <span @click.stop="emit('click')" v-text="props.text"></span>
+    <span v-text="props.text"></span>
   </div>
 </template>
 
 <style scoped>
 .Breadcrumb {
   user-select: none;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 2px;

@@ -1,6 +1,8 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
@@ -48,7 +50,10 @@ export default function Label(props: InternalLabelProps) {
   return (
     <FocusRing within placement="after">
       <div
-        className={`relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-inherit ${negated ? 'after:!outline-offset-0' : ''}`}
+        className={tailwindMerge.twMerge(
+          'relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-inherit',
+          negated && 'after:!outline-offset-0'
+        )}
       >
         {/* An `aria.Button` MUST NOT be used here, as it breaks dragging. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
@@ -58,11 +63,13 @@ export default function Label(props: InternalLabelProps) {
           draggable={draggable}
           title={title}
           disabled={isDisabled}
-          className={`focus-child selectable ${
-            active ? 'active' : ''
-          } relative flex h-text items-center whitespace-nowrap rounded-inherit px-label-x transition-all after:pointer-events-none after:absolute after:inset after:rounded-full ${
-            negated ? 'after:border-2 after:border-delete' : ''
-          } ${className} ${textClass}`}
+          className={tailwindMerge.twMerge(
+            'focus-child relative flex h-text items-center whitespace-nowrap rounded-inherit px-label-x transition-all selectable after:pointer-events-none after:absolute after:inset after:rounded-full',
+            active && 'active',
+            negated && 'after:border-2 after:border-delete',
+            className,
+            textClass
+          )}
           style={{ backgroundColor: backend.lChColorToCssColor(color) }}
           onClick={event => {
             event.stopPropagation()

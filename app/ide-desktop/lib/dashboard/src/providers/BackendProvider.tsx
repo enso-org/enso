@@ -4,29 +4,12 @@ import * as React from 'react'
 
 import invariant from 'tiny-invariant'
 
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as common from 'enso-common'
 
-import * as backendModule from '#/services/Backend'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
+import type Category from '#/layouts/CategorySwitcher/Category'
+
 import type Backend from '#/services/Backend'
-
-import * as array from '#/utilities/array'
-import LocalStorage from '#/utilities/LocalStorage'
-
-// ============================
-// === Global configuration ===
-// ============================
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly backendType: backendModule.BackendType
-  }
-}
-
-const BACKEND_TYPES = Object.values(backendModule.BackendType)
-LocalStorage.registerKey('backendType', {
-  tryParse: value => (array.includes(BACKEND_TYPES, value) ? value : null),
-})
 
 // ======================
 // === BackendContext ===
@@ -34,16 +17,19 @@ LocalStorage.registerKey('backendType', {
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
-  readonly backend: Backend
-  readonly setBackend: (backend: Backend) => void
-  readonly setBackendWithoutSavingType: (backend: Backend) => void
+  readonly remoteBackend: Backend | null
+  readonly localBackend: Backend | null
 }
 
-const BackendContext = React.createContext<BackendContextType | null>(null)
+const BackendContext = React.createContext<BackendContextType>({
+  remoteBackend: null,
+  localBackend: null,
+})
 
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
-  readonly initialBackend: Backend
+  readonly remoteBackend: Backend | null
+  readonly localBackend: Backend | null
 }
 
 // =======================
@@ -52,39 +38,70 @@ export interface BackendProviderProps extends Readonly<React.PropsWithChildren> 
 
 /** A React Provider that lets components get and set the current backend. */
 export default function BackendProvider(props: BackendProviderProps) {
-  const { initialBackend, children } = props
-  const { localStorage } = localStorageProvider.useLocalStorage()
-  const [backend, setBackendWithoutSavingType] = React.useState<Backend>(initialBackend)
-  const setBackend = React.useCallback(
-    (newBackend: Backend) => {
-      setBackendWithoutSavingType(newBackend)
-      localStorage.set('backendType', newBackend.type)
-    },
-    [/* should never change */ localStorage]
-  )
+  const { remoteBackend, localBackend, children } = props
 
   return (
-    <BackendContext.Provider value={{ backend, setBackend, setBackendWithoutSavingType }}>
+    <BackendContext.Provider value={{ remoteBackend, localBackend }}>
       {children}
     </BackendContext.Provider>
   )
 }
 
-/** Provide all exposed methods of backend in context. */
-function useStrictBackendContext() {
-  const ctx = React.useContext(BackendContext)
-  invariant(ctx != null, 'Backend not provided.')
-  return ctx
+// ========================
+// === useRemoteBackend ===
+// ========================
+
+/** Get the Remote Backend. */
+export function useRemoteBackend() {
+  return React.useContext(BackendContext).remoteBackend
 }
 
-/** Exposes a property to get the current backend. */
-export function useStrictBackend() {
-  const { backend } = useStrictBackendContext()
-  return { backend }
+// ==============================
+// === useRemoteBackendStrict ===
+// ==============================
+
+/** Get the Remote Backend.
+ * @throws {Error} when no Remote Backend exists. This should only happen if the user is not logged
+ * in. */
+export function useRemoteBackendStrict() {
+  const remoteBackend = React.useContext(BackendContext).remoteBackend
+  if (remoteBackend == null) {
+    // eslint-disable-next-line no-restricted-syntax
+    throw new Error('This component requires a Cloud Backend to function.')
+  }
+  return remoteBackend
 }
 
-/** Exposes a property to set the current backend. */
-export function useStrictSetBackend() {
-  const { setBackend, setBackendWithoutSavingType } = useStrictBackendContext()
-  return { setBackend, setBackendWithoutSavingType }
+// =======================
+// === useLocalBackend ===
+// =======================
+
+/** Get the Local Backend. */
+export function useLocalBackend() {
+  return React.useContext(BackendContext).localBackend
+}
+
+// ==================
+// === useBackend ===
+// ==================
+
+/** Get the corresponding backend for the given property.
+ * @throws {Error} when neither the Remote Backend nor the Local Backend are supported.
+ * This should never happen unless the build is misconfigured. */
+export function useBackend(category: Category) {
+  const remoteBackend = useRemoteBackend()
+  const localBackend = useLocalBackend()
+  if (categoryModule.isCloud(category)) {
+    invariant(
+      remoteBackend != null,
+      `This distribution of ${common.PRODUCT_NAME} does not support the Cloud Backend.`
+    )
+    return remoteBackend
+  } else {
+    invariant(
+      localBackend != null,
+      `This distribution of ${common.PRODUCT_NAME} does not support the Local Backend.`
+    )
+    return localBackend
+  }
 }

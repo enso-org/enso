@@ -1,6 +1,8 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
 
@@ -225,25 +227,29 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
       </FocusRing>
       <div className="h">
         <div
-          className={`relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default ${
-            isDropdownVisible && matchingItems.length !== 0
-              ? 'before:border before:border-primary/10'
-              : ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default',
+            isDropdownVisible &&
+              matchingItems.length !== 0 &&
+              'before:border before:border-primary/10'
+          )}
         >
           <div
-            className={`relative max-h-autocomplete-suggestions w-full overflow-auto rounded-default ${
-              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h'
-            }`}
+            className={tailwindMerge.twMerge(
+              'relative max-h-autocomplete-suggestions w-full overflow-auto rounded-default',
+              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h-0'
+            )}
           >
             {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
              * so the suggestions may go offscreen. */}
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
-                className={`text relative cursor-pointer whitespace-nowrap px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg ${
-                  index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-hover-bg' : ''
-                }`}
+                className={tailwindMerge.twMerge(
+                  'text relative cursor-pointer whitespace-nowrap px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg',
+                  valuesSet.has(item) && 'bg-hover-bg',
+                  index === selectedIndex && 'bg-black/5'
+                )}
                 onMouseDown={event => {
                   event.preventDefault()
                 }}

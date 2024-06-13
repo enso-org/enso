@@ -2906,7 +2906,7 @@ type Table
              table.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
     @from (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    text_cleanse : Vector Text_Cleanse -> Vector (Integer | Text | Regex | By_Type) -> Table
+    text_cleanse : Vector Named_Pattern -> Vector (Integer | Text | Regex | By_Type) -> Table
     text_cleanse self remove from:(Vector (Integer | Text | Regex | By_Type)) =
         transformer col = col.text_cleanse remove
         Table_Helpers.replace_columns_with_transformed_columns self from transformer

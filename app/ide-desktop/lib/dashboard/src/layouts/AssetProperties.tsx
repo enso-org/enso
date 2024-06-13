@@ -5,10 +5,10 @@ import PenIcon from 'enso-assets/pen.svg'
 
 import * as datalinkValidator from '#/data/datalinkValidator'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -16,14 +16,15 @@ import type * as assetEvent from '#/events/assetEvent'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import Button from '#/components/styled/Button'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
@@ -36,10 +37,10 @@ import * as permissions from '#/utilities/permissions'
 
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {
+  readonly backend: Backend
   readonly item: assetTreeNode.AnyAssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<assetTreeNode.AnyAssetTreeNode>>
   readonly category: Category
-  readonly labels: backendModule.Label[]
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly isReadonly?: boolean
@@ -47,18 +48,10 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const {
-    item: itemRaw,
-    setItem: setItemRaw,
-    category,
-    labels,
-    setQuery,
-    isReadonly = false,
-  } = props
-  const { dispatchAssetEvent } = props
+  const { backend, item: itemRaw, setItem: setItemRaw, category, setQuery } = props
+  const { isReadonly = false, dispatchAssetEvent } = props
 
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [item, setItemInner] = React.useState(itemRaw)
@@ -81,6 +74,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [/* should never change */ setItemRaw]
   )
+  const labels = backendHooks.useBackendListTags(backend) ?? []
   const self = item.item.permissions?.find(
     backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
   )
@@ -92,6 +86,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const isDatalink = item.item.type === backendModule.AssetType.datalink
   const isDatalinkDisabled = datalinkValue === editedDatalinkValue || !isDatalinkSubmittable
 
+  const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
+  const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
+  const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
   }, [item.item.description])
@@ -99,13 +97,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await backend.getDatalink(item.item.id, item.item.title)
+        const value = await getDatalinkMutation.mutateAsync([item.item.id, item.item.title])
         setDatalinkValue(value)
         setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item])
+  }, [backend, item.item, getDatalinkMutation])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
@@ -114,15 +112,15 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
         const projectPath = item.item.projectState?.path
-        await backend.updateAsset(
+        await updateAssetMutation.mutateAsync([
           item.item.id,
           {
             parentDirectoryId: null,
             description,
             ...(projectPath == null ? {} : { projectPath }),
           },
-          item.item.title
-        )
+          item.item.title,
+        ])
       } catch (error) {
         toastAndLog('editDescriptionError')
         setItem(oldItem =>
@@ -188,12 +186,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
               <div className="flex gap-buttons">
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className="button self-start bg-selected-frame"
                   onPress={doEditDescription}
                 >
                   {getText('update')}
-                </UnstyledButton>
+                </ariaComponents.Button>
               </div>
             </form>
           )}
@@ -217,7 +217,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   isReadonly={isReadonly}
                   item={item}
                   setItem={setItem}
-                  state={{ category, dispatchAssetEvent, setQuery }}
+                  state={{ backend, category, dispatchAssetEvent, setQuery }}
                 />
               </td>
             </tr>
@@ -261,7 +261,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               />
               {canEditThisAsset && (
                 <div className="flex gap-buttons">
-                  <UnstyledButton
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={isDatalinkDisabled}
                     {...(isDatalinkDisabled
                       ? { title: 'Edit the Datalink before updating it.' }
@@ -273,12 +275,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                           const oldDatalinkValue = datalinkValue
                           try {
                             setDatalinkValue(editedDatalinkValue)
-                            await backend.createDatalink({
-                              datalinkId: item.item.id,
-                              name: item.item.title,
-                              parentDirectoryId: null,
-                              value: editedDatalinkValue,
-                            })
+                            await createDatalinkMutation.mutateAsync([
+                              {
+                                datalinkId: item.item.id,
+                                name: item.item.title,
+                                parentDirectoryId: null,
+                                value: editedDatalinkValue,
+                              },
+                            ])
                           } catch (error) {
                             toastAndLog(null, error)
                             setDatalinkValue(oldDatalinkValue)
@@ -289,8 +293,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }}
                   >
                     {getText('update')}
-                  </UnstyledButton>
-                  <UnstyledButton
+                  </ariaComponents.Button>
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
                     isDisabled={isDatalinkDisabled}
                     className="button bg-selected-frame enabled:active"
                     onPress={() => {
@@ -298,7 +304,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     }}
                   >
                     {getText('cancel')}
-                  </UnstyledButton>
+                  </ariaComponents.Button>
                 </div>
               )}
             </>

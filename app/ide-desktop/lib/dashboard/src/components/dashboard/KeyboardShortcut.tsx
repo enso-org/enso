@@ -1,6 +1,8 @@
 /** @file A visual representation of a keyboard shortcut. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CommandKeyIcon from 'enso-assets/command_key.svg'
 import CtrlKeyIcon from 'enso-assets/ctrl_key.svg'
 import OptionKeyIcon from 'enso-assets/option_key.svg'
@@ -123,10 +125,11 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       .sort(inputBindingsModule.compareModifiers)
       .map(inputBindingsModule.toModifierKey)
     return (
-      <aria.Keyboard
-        className={`flex h-text items-center ${
+      <aria.Text
+        className={tailwindMerge.twMerge(
+          'flex h-text items-center',
           detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
-        }`}
+        )}
       >
         {modifiers.map(
           modifier =>
@@ -139,7 +142,7 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
         <aria.Text className="text">
           {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}
         </aria.Text>
-      </aria.Keyboard>
+      </aria.Text>
     )
   }
 }

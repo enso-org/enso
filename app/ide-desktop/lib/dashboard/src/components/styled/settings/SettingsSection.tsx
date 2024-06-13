@@ -1,6 +1,8 @@
 /** @file A styled settings section. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 
@@ -26,7 +28,7 @@ export default function SettingsSection(props: SettingsSectionProps) {
   )
 
   return noFocusArea ? (
-    <div className={`flex flex-col gap-settings-section-header ${className ?? ''}`}>
+    <div className={tailwindMerge.twMerge('flex flex-col gap-settings-section-header', className)}>
       {heading}
       {children}
     </div>
@@ -34,7 +36,7 @@ export default function SettingsSection(props: SettingsSectionProps) {
     <FocusArea direction="vertical">
       {innerProps => (
         <div
-          className={`flex flex-col gap-settings-section-header ${className ?? ''}`}
+          className={tailwindMerge.twMerge('flex flex-col gap-settings-section-header', className)}
           {...innerProps}
         >
           {heading}

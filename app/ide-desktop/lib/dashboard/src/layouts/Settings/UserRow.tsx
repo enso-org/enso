@@ -1,6 +1,8 @@
 /** @file A row representing a user in a table of users. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import Cross2 from 'enso-assets/cross2.svg'
 
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
@@ -12,7 +14,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
@@ -64,7 +65,10 @@ export default function UserRow(props: UserRowProps) {
   return (
     <aria.Row
       id={user.userId}
-      className={`group h-row rounded-rows-child ${draggable ? 'cursor-grab' : ''}`}
+      className={tailwindMerge.twMerge(
+        'group h-row rounded-rows-child',
+        draggable && 'cursor-grab'
+      )}
       ref={contextMenuRef}
     >
       <aria.Cell className="text relative overflow-hidden whitespace-nowrap border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 group-selected:bg-selected-frame">
@@ -89,8 +93,10 @@ export default function UserRow(props: UserRowProps) {
       {doDeleteUserRaw == null ? null : doDeleteUser == null ? (
         <></>
       ) : (
-        <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-          <UnstyledButton
+        <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             onPress={event => {
               const rect = event.target.getBoundingClientRect()
               const position = { pageX: rect.left, pageY: rect.top }
@@ -107,7 +113,7 @@ export default function UserRow(props: UserRowProps) {
             className="absolute right-full mr-4 size-icon -translate-y-1/2"
           >
             <img src={Cross2} className="size-icon" />
-          </UnstyledButton>
+          </ariaComponents.Button>
         </aria.Cell>
       )}
     </aria.Row>

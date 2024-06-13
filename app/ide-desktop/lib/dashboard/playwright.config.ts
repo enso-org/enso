@@ -16,7 +16,7 @@ export default test.defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: true,
-  workers: 1,
+  workers: process.env.PROD ? 8 : 1,
   repeatEach: process.env.CI ? 3 : 1,
   expect: {
     toHaveScreenshot: { threshold: 0 },
@@ -50,7 +50,7 @@ export default test.defineConfig({
     },
   },
   webServer: {
-    command: 'npm run dev:e2e',
+    command: process.env.CI || process.env.PROD ? 'npm run dev:e2e:ci' : 'npm run dev:e2e',
     port: 8080,
     reuseExistingServer: false,
   },
