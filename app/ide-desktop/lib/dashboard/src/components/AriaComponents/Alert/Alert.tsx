@@ -1,6 +1,4 @@
-/**
- * @file Alert component.
- */
+/** @file Alert component. */
 import * as React from 'react'
 
 import * as twv from 'tailwind-variants'
@@ -9,13 +7,9 @@ import * as mergeRefs from '#/utilities/mergeRefs'
 
 import * as text from '../Text'
 
-/**
- * Props for the Alert component.
- */
-export interface AlertProps
-  extends React.PropsWithChildren,
-    twv.VariantProps<typeof ALERT_STYLES>,
-    React.HTMLAttributes<HTMLDivElement> {}
+// =================
+// === Constants ===
+// =================
 
 export const ALERT_STYLES = twv.tv({
   base: 'flex flex-col items-stretch',
@@ -66,9 +60,17 @@ export const ALERT_STYLES = twv.tv({
   },
 })
 
-/**
- * Alert component.
- */
+// =============
+// === Alert ===
+// =============
+
+/** Props for an {@link Alert}. */
+export interface AlertProps
+  extends React.PropsWithChildren,
+    twv.VariantProps<typeof ALERT_STYLES>,
+    React.HTMLAttributes<HTMLDivElement> {}
+
+/** Alert component. */
 export const Alert = React.forwardRef(function Alert(
   props: AlertProps,
   ref: React.ForwardedRef<HTMLDivElement>

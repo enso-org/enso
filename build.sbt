@@ -285,6 +285,7 @@ lazy val enso = (project in file("."))
     `json-rpc-server`,
     `language-server`,
     `polyglot-api`,
+    `polyglot-api-macros`,
     `project-manager`,
     `syntax-rust-definition`,
     `text-buffer`,
@@ -415,7 +416,6 @@ val catsVersion = "2.9.0"
 
 val circeVersion              = "0.14.5"
 val circeYamlVersion          = "0.14.2"
-val enumeratumCirceVersion    = "1.7.2"
 val circeGenericExtrasVersion = "0.14.2"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
@@ -480,11 +480,6 @@ val helidon = Seq(
 // === Jackson ================================================================
 
 val jacksonVersion = "2.15.2"
-val jackson = Seq(
-  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
-  "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
-  "com.fasterxml.jackson.module"    %% "jackson-module-scala"    % jacksonVersion
-)
 
 // === JAXB ================================================================
 
@@ -563,6 +558,7 @@ val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
 val apacheArrowVersion      = "14.0.1"
 val snowflakeJDBCVersion    = "3.15.0"
+val jsoniterVersion         = "2.28.5"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -623,7 +619,6 @@ lazy val `text-buffer` = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.typelevel"  %% "cats-core"  % catsVersion,
       "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
       "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
     )
@@ -927,8 +922,7 @@ lazy val cli = project
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test,
-      "org.typelevel"              %% "cats-core"     % catsVersion
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     Test / parallelExecution := false
   )
@@ -939,8 +933,7 @@ lazy val `task-progress-notifications` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-      "com.beachape"  %% "enumeratum-circe" % enumeratumCirceVersion,
-      "org.scalatest" %% "scalatest"        % scalatestVersion % Test
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ),
     Test / parallelExecution := false
   )
@@ -1006,7 +999,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       "commons-cli"                 % "commons-cli"                  % commonsCliVersion,
       "commons-io"                  % "commons-io"                   % commonsIoVersion,
       "org.apache.commons"          % "commons-lang3"                % commonsLangVersion,
-      "com.beachape"               %% "enumeratum-circe"             % enumeratumCirceVersion,
       "com.miguno.akka"            %% "akka-mock-scheduler"          % akkaMockSchedulerVersion % Test,
       "org.mockito"                %% "mockito-scala"                % mockitoScalaVersion      % Test,
       "junit"                       % "junit"                        % junitVersion             % Test,
@@ -1437,8 +1429,6 @@ lazy val `engine-common` = project
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
-    Test / javaOptions ++= Seq(
-    ),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     )
@@ -1462,13 +1452,15 @@ lazy val `polyglot-api` = project
         "runtime-fat-jar"
       ) / Compile / fullClasspath).value,
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"        % "polyglot-tck"     % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion % "provided",
-      "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
-      "org.scalatest"         %% "scalatest"        % scalatestVersion          % Test,
-      "org.scalacheck"        %% "scalacheck"       % scalacheckVersion         % Test
+      "org.graalvm.sdk"                        % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"                    % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion,
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
+      "io.circe"                              %% "circe-yaml"            % circeYamlVersion          % "provided", // as required by `pkg` and `editions`
+      "com.google.flatbuffers"                 % "flatbuffers-java"      % flatbuffersVersion,
+      "org.scalatest"                         %% "scalatest"             % scalatestVersion          % Test,
+      "org.scalacheck"                        %% "scalacheck"            % scalacheckVersion         % Test
     ),
-    libraryDependencies ++= jackson,
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
@@ -1477,6 +1469,17 @@ lazy val `polyglot-api` = project
   .dependsOn(`text-buffer`)
   .dependsOn(`logging-utils`)
   .dependsOn(testkit % Test)
+  .dependsOn(`polyglot-api-macros`)
+
+lazy val `polyglot-api-macros` = project
+  .in(file("engine/polyglot-api-macros"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion % "provided",
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "provided"
+    )
+  )
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .enablePlugins(JPMSPlugin)
@@ -1489,7 +1492,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
       "io.circe"                   %% "circe-literal"        % circeVersion,
       "dev.zio"                    %% "zio"                  % zioVersion,
-      "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,
       "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
       "commons-io"                  % "commons-io"           % commonsIoVersion,
       "com.github.pureconfig"      %% "pureconfig"           % pureconfigVersion,
@@ -2510,7 +2512,6 @@ lazy val `engine-runner` = project
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
       "com.monovore"           %% "decline"                 % declineVersion,
       "org.jline"               % "jline"                   % jlineVersion,
-      "org.typelevel"          %% "cats-core"               % catsVersion,
       "junit"                   % "junit"                   % junitVersion              % Test,
       "com.github.sbt"          % "junit-interface"         % junitIfVersion            % Test,
       "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatVersion
@@ -2660,7 +2661,6 @@ lazy val launcher = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
-      "org.typelevel"              %% "cats-core"        % catsVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaSLF4J
@@ -2979,7 +2979,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     )
   )
   .dependsOn(cli)
-  .dependsOn(`http-test-helper`)
+  .dependsOn(`http-test-helper` % "test->test")
   .dependsOn(testkit % Test)
 
 lazy val `edition-updater` = project
@@ -3085,7 +3085,6 @@ lazy val `runtime-version-manager` = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
-      "org.typelevel"              %% "cats-core"        % catsVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaHttp

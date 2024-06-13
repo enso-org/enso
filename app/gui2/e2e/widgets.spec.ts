@@ -55,7 +55,7 @@ test('Widget in plain AST', async ({ page }) => {
   const numberNode = locate.graphNodeByBinding(page, 'five')
   const numberWidget = numberNode.locator('.WidgetNumber')
   await expect(numberWidget).toBeVisible()
-  await expect(numberWidget.locator('input')).toHaveValue('5')
+  await expect(numberWidget).toHaveValue('5')
 
   const listNode = locate.graphNodeByBinding(page, 'list')
   const listWidget = listNode.locator('.WidgetVector')

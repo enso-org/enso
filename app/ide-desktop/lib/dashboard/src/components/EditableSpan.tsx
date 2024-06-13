@@ -10,9 +10,9 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as eventModule from '#/utilities/event'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -123,15 +123,19 @@ export default function EditableSpan(props: EditableSpanProps) {
               })}
         />
         {isSubmittable && (
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
             onPress={eventModule.submitForm}
           >
             <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
-          </UnstyledButton>
+          </ariaComponents.Button>
         )}
         <FocusRing>
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
             onPress={() => {
               cancelledRef.current = true
@@ -142,7 +146,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             }}
           >
             <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
-          </UnstyledButton>
+          </ariaComponents.Button>
         </FocusRing>
       </form>
     )

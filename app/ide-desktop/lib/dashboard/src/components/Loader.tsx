@@ -1,24 +1,11 @@
-/**
- * @file
- * A full-screen loading spinner.
- */
+/** @file A full-screen loading spinner. */
 import * as twv from 'tailwind-variants'
 
 import Spinner, * as spinnerModule from '#/components/Spinner'
 
-/**
- * Props for a {@link Loader}.
- */
-export interface LoaderProps extends twv.VariantProps<typeof STYLES> {
-  readonly className?: string
-  readonly size?: Size | number
-  readonly state?: spinnerModule.SpinnerState
-}
-
-/**
- * The possible sizes for a {@link Loader}.
- */
-export type Size = 'large' | 'medium' | 'small'
+// =================
+// === Constants ===
+// =================
 
 const STYLES = twv.tv({
   base: 'animate-appear-delayed flex h-full w-full items-center justify-center duration-200',
@@ -55,23 +42,39 @@ const SIZE_MAP: Record<Size, number> = {
   small: 16,
 }
 
-/**
- * A full-screen loading spinner.
- */
+// ============
+// === Size ===
+// ============
+
+/** The possible sizes for a {@link Loader}. */
+export type Size = 'large' | 'medium' | 'small'
+
+// ==============
+// === Loader ===
+// ==============
+
+/** Props for a {@link Loader}. */
+export interface LoaderProps extends twv.VariantProps<typeof STYLES> {
+  readonly className?: string
+  readonly size?: Size | number
+  readonly state?: spinnerModule.SpinnerState
+}
+
+/** A full-screen loading spinner. */
 export function Loader(props: LoaderProps) {
   const {
     className,
-    size = 'medium',
+    size: sizeRaw = 'medium',
     state = spinnerModule.SpinnerState.loadingFast,
     minHeight = 'full',
     color = 'primary',
   } = props
 
-  const sizeValue = typeof size === 'number' ? size : SIZE_MAP[size]
+  const size = typeof sizeRaw === 'number' ? sizeRaw : SIZE_MAP[sizeRaw]
 
   return (
     <div className={STYLES({ minHeight, className, color })}>
-      <Spinner size={sizeValue} state={state} className="text-current" />
+      <Spinner size={size} state={state} className="text-current" />
     </div>
   )
 }

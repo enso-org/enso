@@ -21,7 +21,7 @@ export interface FocusRootInnerProps {
 /** Props for a {@link FocusRoot} */
 export interface FocusRootProps {
   readonly active?: boolean
-  readonly children: (props: FocusRootInnerProps) => JSX.Element
+  readonly children: (props: FocusRootInnerProps) => React.JSX.Element
 }
 
 /** An element that prevents navigation outside of itself. */
