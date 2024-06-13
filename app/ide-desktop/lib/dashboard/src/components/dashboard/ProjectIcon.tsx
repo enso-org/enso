@@ -285,6 +285,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <ariaComponents.Button
           size="custom"
           variant="custom"
+          noExtraClickZone
           icon={PlayIcon}
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
@@ -308,6 +309,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
+            noExtraClickZone
             isDisabled={isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
@@ -335,6 +337,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             <ariaComponents.Button
               size="custom"
               variant="custom"
+              noExtraClickZone
               isDisabled={isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
@@ -360,6 +363,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             <ariaComponents.Button
               size="custom"
               variant="custom"
+              noExtraClickZone
               className="size-project-icon border-0"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}

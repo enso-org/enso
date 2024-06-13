@@ -181,6 +181,7 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: {
       true: { icon: 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100' },
     },
+    noExtraClickZone: { true: { extraClickZone: 'after:inset-0' } },
   },
   slots: {
     extraClickZone: 'flex relative after:absolute after:cursor-pointer',
@@ -260,6 +261,7 @@ export const Button = React.forwardRef(function Button(
     showIconOnHover,
     iconPosition,
     size,
+    noExtraClickZone,
     fullWidth,
     fullWidthText,
     rounded,
@@ -338,6 +340,7 @@ export const Button = React.forwardRef(function Button(
   } = BUTTON_STYLES({
     isDisabled,
     loading: isLoading,
+    noExtraClickZone,
     fullWidth,
     fullWidthText,
     size,
