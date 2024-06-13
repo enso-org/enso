@@ -117,10 +117,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
     item.projectState.executeAsync ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
-  const [openProjectAbortController, setOpenProjectAbortController] =
-    React.useState<AbortController | null>(null)
-  const [closeProjectAbortController, setCloseProjectAbortController] =
-    React.useState<AbortController | null>(null)
   const doOpenEditorRef = React.useRef(doOpenEditor)
   doOpenEditorRef.current = doOpenEditor
   const toastId: toast.Id = React.useId()
@@ -167,9 +163,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     },
     [
       state,
-      backend,
       item,
-      closeProjectAbortController,
       session,
       toastAndLog,
       openProjectMutate,

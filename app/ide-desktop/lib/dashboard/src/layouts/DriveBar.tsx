@@ -73,7 +73,7 @@ export default function DriveBar(props: DriveBarProps) {
         uploadFilesRef.current?.click()
       },
     })
-  }, [doCreateDirectory, doCreateProject, inputBindings])
+  }, [isCloud, doCreateDirectory, doCreateProject, inputBindings])
 
   switch (category) {
     case Category.recent: {

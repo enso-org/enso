@@ -34,6 +34,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
       return (
         <ariaComponents.TooltipTrigger>
           <ariaComponents.Button
+            ref={tooltipTargetRef}
             size="custom"
             variant="custom"
             isDisabled={!onPress}
@@ -55,6 +56,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
       return (
         <ariaComponents.TooltipTrigger>
           <ariaComponents.Button
+            ref={tooltipTargetRef}
             size="custom"
             variant="custom"
             className={tailwindMerge.twMerge(
