@@ -1,7 +1,6 @@
 package org.enso.languageserver.text
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
-import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.boot.TimingsConfig
 import org.enso.languageserver.capability.CapabilityProtocol._
@@ -14,7 +13,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.{
   FileAttributes,
   FileEvent,
-  FileEventKind,
+  FileEventKinds,
   FileManagerProtocol,
   FileNotFound,
   GenericFileSystemFailure,
@@ -407,7 +406,7 @@ class CollaborativeBuffer(
       clients.values.foreach {
         _.rpcController ! TextProtocol.FileEvent(
           path,
-          FileEventKind.Removed,
+          FileEventKinds.Removed,
           None
         )
       }
@@ -786,7 +785,8 @@ class CollaborativeBuffer(
   ): Either[ApplyEditFailure, Buffer] = {
     EditorOps
       .applyEdits(buffer.contents, edits)
-      .leftMap(toEditFailure)
+      .left
+      .map(toEditFailure)
       .map(rope => buffer.withContents(rope))
   }
 

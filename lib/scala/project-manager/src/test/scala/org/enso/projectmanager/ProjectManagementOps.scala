@@ -6,7 +6,8 @@ import io.circe.syntax._
 import io.circe.literal._
 import org.enso.semver.SemVerJson._
 import io.circe.parser.parse
-import org.enso.projectmanager.data.{MissingComponentAction, Socket}
+import org.enso.projectmanager.data.Socket
+import org.enso.projectmanager.data.MissingComponentActions.MissingComponentAction
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 import org.enso.semver.SemVer
 import org.scalactic.source.Position

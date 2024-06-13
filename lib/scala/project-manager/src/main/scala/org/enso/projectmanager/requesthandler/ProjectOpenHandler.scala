@@ -4,7 +4,7 @@ import akka.actor.Props
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.{Exec, Sync}
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions
 import org.enso.projectmanager.infrastructure.file.Files
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 import org.enso.projectmanager.service.{
@@ -45,7 +45,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap: Sync](
 
   override def handleRequest = { params =>
     val missingComponentAction =
-      params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
+      params.missingComponentAction.getOrElse(MissingComponentActions.Fail)
 
     for {
       projectsDirectory <-

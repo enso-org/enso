@@ -13,7 +13,7 @@ import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
   FileEvent,
-  FileEventKind,
+  FileEventKinds,
   Path
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
@@ -225,7 +225,7 @@ class BufferRegistry(
       )
 
     case msg @ FileEvent(path, kind, _) =>
-      if (kind == FileEventKind.Added || kind == FileEventKind.Modified) {
+      if (kind == FileEventKinds.Added || kind == FileEventKinds.Modified) {
         registry.get(path).foreach { buffer =>
           buffer ! msg
         }

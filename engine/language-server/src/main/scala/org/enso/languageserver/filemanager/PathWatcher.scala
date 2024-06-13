@@ -2,7 +2,6 @@ package org.enso.languageserver.filemanager
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
-import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.filewatcher.{Watcher, WatcherFactory}
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -196,28 +195,28 @@ final class PathWatcher(
   private def buildWatcher(
     path: File
   ): Either[FileSystemFailure, Watcher] =
-    Either
-      .catchNonFatal(watcherFactory.build(path.toPath, self ! _, self ! _))
-      .leftMap(errorHandler)
+    Try {
+      watcherFactory.build(path.toPath, self ! _, self ! _)
+    }.toEither.left
+      .map(errorHandler)
 
   private def startWatcher(
     watcher: Watcher
-  ): Either[FileSystemFailure, Unit] =
-    Either
-      .catchNonFatal {
-        fileWatcher = Some(watcher)
-        exec.exec__(ec => ZIO.attempt(watcher.start(ec.asJava)))
-      }
-      .leftMap(errorHandler)
+  ): Either[FileSystemFailure, Unit] = {
+    Try {
+      fileWatcher = Some(watcher)
+      exec.exec__(ec => ZIO.attempt(watcher.start(ec.asJava)))
+    }.toEither.left
+      .map(errorHandler)
+  }
 
   private def stopWatcher(): Either[FileSystemFailure, Unit] =
-    Either
-      .catchNonFatal {
-        fileWatcher.foreach { watcher =>
-          Await.ready(exec.exec(ZIO.attempt(watcher.stop())), config.timeout)
-        }
+    Try {
+      fileWatcher.foreach { watcher =>
+        Await.ready(exec.exec(ZIO.attempt(watcher.stop())), config.timeout)
       }
-      .leftMap(errorHandler)
+    }.toEither.left
+      .map(errorHandler)
 
   private val errorHandler: Throwable => FileSystemFailure = { ex =>
     GenericFileSystemFailure(ex.getMessage)
