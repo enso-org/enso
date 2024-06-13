@@ -10,6 +10,8 @@ import org.enso.compiler.data.BindingsMap.{
   ConversionMethod,
   ModuleMethod,
   PolyglotSymbol,
+  ResolutionAmbiguous,
+  ResolvedMethod,
   StaticMethod,
   Type
 }
@@ -67,6 +69,13 @@ class BindingAnalysisTest extends CompilerTest {
         Type("My_Type", List(), List(), false),
         StaticMethod("extension_method", "My_Type")
       )
+
+      metadata.resolveName("extension_method") shouldEqual Right(
+        ResolvedMethod(
+          ctx.moduleReference(),
+          StaticMethod("extension_method", "My_Type")
+        )
+      )
     }
 
     "extension methods are defined entities" in {
@@ -85,6 +94,21 @@ class BindingAnalysisTest extends CompilerTest {
         Type("Other_Type", List(), List(), false),
         StaticMethod("extension_method", "My_Type"),
         StaticMethod("extension_method", "Other_Type")
+      )
+
+      metadata.resolveName("extension_method") shouldBe Left(
+        ResolutionAmbiguous(
+          List(
+            ResolvedMethod(
+              ctx.moduleReference(),
+              StaticMethod("extension_method", "My_Type")
+            ),
+            ResolvedMethod(
+              ctx.moduleReference(),
+              StaticMethod("extension_method", "Other_Type")
+            )
+          )
+        )
       )
     }
 
