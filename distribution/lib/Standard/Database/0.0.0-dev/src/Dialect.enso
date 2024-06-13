@@ -140,8 +140,8 @@ type Dialect
 
     ## PRIVATE
        Specifies whether round() can take a decimal_places argument for floating point values.
-    rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self =
+    supports_float_round_decimal_places : Boolean
+    supports_float_round_decimal_places self =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
