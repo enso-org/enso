@@ -114,7 +114,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
+      className="p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
@@ -188,7 +188,9 @@ export default function AssetPanel(props: AssetPanelProps) {
             />
           )}
           {tab === AssetPanelTab.projectSessions &&
-            item.type === backendModule.AssetType.project && <AssetProjectSessions item={item} />}
+            item.type === backendModule.AssetType.project && (
+              <AssetProjectSessions backend={backend} item={item} />
+            )}
         </>
       )}
     </div>

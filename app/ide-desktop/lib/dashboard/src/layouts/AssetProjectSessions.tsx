@@ -12,6 +12,7 @@ import StatelessSpinner from '#/components/StatelessSpinner'
 import * as statelessSpinnerModule from '#/components/StatelessSpinner'
 
 import type * as backendModule from '#/services/Backend'
+import Backend from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
@@ -28,13 +29,13 @@ const SPINNER_SIZE = 32
 
 /** Props for a {@link AssetProjectSessions}. */
 export interface AssetProjectSessionsProps {
+  readonly backend: Backend
   readonly item: AssetTreeNode<backendModule.ProjectAsset>
 }
 
 /** A list of previous versions of an asset. */
 export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
-  const { item } = props
-  const { backend } = backendProvider.useStrictBackend()
+  const { backend, item } = props
 
   const projectSessionsQuery = reactQuery.useQuery({
     queryKey: ['getProjectSessions', item.item.id, item.item.title],
@@ -47,6 +48,7 @@ export default function AssetProjectSessions(props: AssetProjectSessionsProps) {
         projectSessionsQuery.data.map(session => (
           <AssetProjectSession
             key={session.projectSessionId}
+            backend={backend}
             project={item.item}
             projectSession={session}
           />
