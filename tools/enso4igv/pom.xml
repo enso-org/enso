@@ -23,9 +23,9 @@
                               <directory>${enso.parser.lib}</directory>
                               <targetPath>modules/lib/</targetPath>
                               <includes>
-                                <include>*.dll</include>
-                                <include>*.so</include>
-                                <include>*.dylib</include>
+                                <include>**/*.dll</include>
+                                <include>**/*.so</include>
+                                <include>**/*.dylib</include>
                               </includes>
                         </nbmResource>
                     </nbmResources>
