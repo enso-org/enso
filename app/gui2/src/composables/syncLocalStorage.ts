@@ -2,7 +2,6 @@ import { useAbortScope } from '@/util/net'
 import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding } from 'lib0'
 import { xxHash128 } from 'shared/ast/ffi'
-import { assert } from 'shared/util/assert'
 import { AbortScope } from 'shared/util/net'
 import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
 
