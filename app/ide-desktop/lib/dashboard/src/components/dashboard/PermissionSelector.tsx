@@ -1,8 +1,6 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -12,6 +10,7 @@ import Modal from '#/components/Modal'
 import type * as backend from '#/services/Backend'
 
 import * as permissions from '#/utilities/permissions'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

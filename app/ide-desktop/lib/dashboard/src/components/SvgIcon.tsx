@@ -1,9 +1,9 @@
 /** @file Styled wrapper around SVG images. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import SvgMask from '#/components/SvgMask'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===============
 // === SvgIcon ===

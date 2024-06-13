@@ -1,8 +1,6 @@
 /** @file A menu containing info about the app. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import LogoIcon from 'enso-assets/enso_logo.svg'
 import * as common from 'enso-common'
 
@@ -15,6 +13,8 @@ import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
 
 import AboutModal from '#/modals/AboutModal'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === InfoMenu ===

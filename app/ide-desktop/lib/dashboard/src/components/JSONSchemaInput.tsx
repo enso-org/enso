@@ -1,8 +1,6 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -16,6 +14,7 @@ import FocusRing from '#/components/styled/FocusRing'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =======================
 // === JSONSchemaInput ===

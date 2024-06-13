@@ -1,8 +1,6 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
@@ -26,6 +24,7 @@ import AboutModal from '#/modals/AboutModal'
 
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === UserMenu ===

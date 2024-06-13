@@ -1,8 +1,6 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import RecentIcon from 'enso-assets/recent.svg'
@@ -28,6 +26,8 @@ import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
 import type * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =============
 // === Types ===

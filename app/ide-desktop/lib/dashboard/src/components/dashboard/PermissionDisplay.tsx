@@ -1,12 +1,11 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import type * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as permissionsModule from '#/utilities/permissions'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Component ===

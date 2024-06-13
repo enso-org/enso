@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as toast from 'react-toastify'
-import * as tailwindMerge from 'tailwind-merge'
 
 import DropFilesImage from 'enso-assets/drop_files.svg'
 
@@ -73,6 +72,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as set from '#/utilities/set'
 import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
 

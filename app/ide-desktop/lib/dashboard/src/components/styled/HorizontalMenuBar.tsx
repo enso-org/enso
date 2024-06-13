@@ -1,10 +1,11 @@
 /** @file A styled horizontal menu bar. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
 import * as tailwindVariants from 'tailwind-variants'
 
 import FocusArea from '#/components/styled/FocusArea'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

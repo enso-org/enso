@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
-import * as tailwindMerge from 'tailwind-merge'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -24,6 +23,7 @@ import Twemoji from '#/components/Twemoji'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === Newtypes ===

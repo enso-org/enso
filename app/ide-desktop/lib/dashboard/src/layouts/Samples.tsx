@@ -1,8 +1,6 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import Logo from 'enso-assets/enso_logo.svg'
 import GeoImage from 'enso-assets/geo.svg'
 import HeartIcon from 'enso-assets/heart.svg'
@@ -16,6 +14,8 @@ import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

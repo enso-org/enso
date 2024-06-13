@@ -1,8 +1,6 @@
 /** @file A row representing a user in a table of users. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import Cross2 from 'enso-assets/cross2.svg'
 
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
@@ -18,6 +16,8 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import type * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===============
 // === UserRow ===

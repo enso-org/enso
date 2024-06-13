@@ -1,8 +1,6 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -22,6 +20,7 @@ import type Backend from '#/services/Backend'
 import * as array from '#/utilities/array'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =====================
 // === AssetPanelTab ===

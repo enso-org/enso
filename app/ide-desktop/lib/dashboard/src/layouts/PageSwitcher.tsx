@@ -1,8 +1,6 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DriveIcon from 'enso-assets/drive.svg'
 import WorkspaceIcon from 'enso-assets/workspace.svg'
 
@@ -12,6 +10,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ============
 // === Page ===

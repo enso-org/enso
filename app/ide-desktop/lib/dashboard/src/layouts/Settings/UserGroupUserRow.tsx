@@ -1,8 +1,6 @@
 /** @file A row of the user groups table representing a user. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import Cross2 from 'enso-assets/cross2.svg'
 
 import type * as backendHooks from '#/hooks/backendHooks'
@@ -18,6 +16,8 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import type * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ========================
 // === UserGroupUserRow ===

@@ -1,8 +1,6 @@
 /** @file A heading for the "Modified" column. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
@@ -15,6 +13,7 @@ import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import Button from '#/components/styled/Button'
 
 import * as sorting from '#/utilities/sorting'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(

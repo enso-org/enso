@@ -1,8 +1,6 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import KeyIcon from 'enso-assets/key.svg'
 import Play2Icon from 'enso-assets/play2.svg'
@@ -28,6 +26,7 @@ import type Backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as sorting from '#/utilities/sorting'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

@@ -1,10 +1,10 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

@@ -1,8 +1,6 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
@@ -23,6 +21,7 @@ import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =============
 // === Types ===
