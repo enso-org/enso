@@ -291,7 +291,7 @@ class RuntimeComponentsTest
     context.pkg
       .getConfig()
       .componentGroups
-      .getOrElse(fail("Unexpected config value."))
+      .isEmpty() should not be true
 
     components
       .get(LibraryName("Standard", "Base"))
@@ -364,7 +364,7 @@ class RuntimeComponentsTest
     context.pkg
       .getConfig()
       .componentGroups
-      .getOrElse(fail("Unexpected config value."))
+      .isEmpty() should not be true
 
     components
       .get(LibraryName("Enso_Test", "Test"))

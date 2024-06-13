@@ -191,20 +191,13 @@ class LocalLibraryManager(
       configPath = libraryRootPath / Package.configFileName
       config <- loadPackageConfig(configPath)
     } yield {
-      config.componentGroups match {
-        case Left(error) =>
-          logger.error(
-            "Failed to parse library [{}] component groups.",
-            libraryName,
-            error
-          )
-        case _ =>
-      }
       GetPackageResponse(
-        libraryName     = LibraryName(config.namespace, config.moduleName),
-        license         = config.license,
-        componentGroups = config.componentGroups.toOption,
-        rawPackage      = config.originalJson
+        libraryName = LibraryName(config.namespace, config.moduleName),
+        license     = config.license,
+        componentGroups =
+          if (config.componentGroups.isEmpty()) None
+          else Some(config.componentGroups),
+        rawPackage = config.originalJson
       )
     }
 

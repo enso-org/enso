@@ -12,7 +12,9 @@ import org.enso.editions.LibraryName
 case class ComponentGroups(
   newGroups: List[ComponentGroup],
   extendedGroups: List[ExtendedComponentGroup]
-)
+) {
+  def isEmpty(): Boolean = newGroups.isEmpty && extendedGroups.isEmpty
+}
 object ComponentGroups {
 
   /** Empty component groups. */

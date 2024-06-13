@@ -1,9 +1,14 @@
 package org.enso.languageserver.libraries
 
-import io.circe.DecodingFailure
 import org.enso.editions.LibraryName
 import org.enso.logger.ReportLogsOnFailure
-import org.enso.pkg.{ComponentGroups, Config, GroupName, GroupReference}
+import org.enso.pkg.{
+  ComponentGroup,
+  ComponentGroups,
+  Config,
+  GroupName,
+  GroupReference
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -27,21 +32,22 @@ class ComponentGroupsValidatorSpec
           "Baz",
           ComponentGroups(List(newComponentGroup("Mod1", "one", "two")), List())
         ),
-        configError(
+        duplicateGroupsConfigError(
           "Foo",
           "Quux",
-          "Error message"
+          "Foo"
         )
       )
-      val expected = testPackages.map { config =>
-        val groups = config.componentGroups.left.map { error =>
-          ValidationError.InvalidComponentGroups(
-            libraryName(config),
-            error.getMessage()
+      val expected = Vector(
+        libraryName(testPackages(0)) -> Right(testPackages(0).componentGroups),
+        libraryName(testPackages(1)) -> Right(testPackages(1).componentGroups),
+        libraryName(testPackages(2)) -> Left(
+          ValidationError.DuplicatedComponentGroup(
+            libraryName(testPackages(2)),
+            GroupReference(LibraryName("Foo", "Quux"), GroupName("Foo"))
           )
-        }
-        libraryName(config) -> groups
-      }
+        )
+      )
 
       validator.validate(testPackages) shouldEqual expected
     }
@@ -66,14 +72,14 @@ class ComponentGroupsValidatorSpec
         )
       )
       val expected = Vector(
-        libraryName(testPackages(0)) -> testPackages(0).componentGroups,
+        libraryName(testPackages(0)) -> Right(testPackages(0).componentGroups),
         libraryName(testPackages(1)) -> Left(
           ValidationError.DuplicatedComponentGroup(
             libraryName(testPackages(1)),
             GroupReference(LibraryName("Foo", "Bar"), GroupName("Mod1"))
           )
         ),
-        libraryName(testPackages(2)) -> testPackages(2).componentGroups
+        libraryName(testPackages(2)) -> Right(testPackages(2).componentGroups)
       )
 
       validator.validate(testPackages) shouldEqual expected
@@ -105,8 +111,8 @@ class ComponentGroupsValidatorSpec
         )
       )
       val expected = Vector(
-        libraryName(testPackages(0)) -> testPackages(0).componentGroups,
-        libraryName(testPackages(1)) -> testPackages(1).componentGroups,
+        libraryName(testPackages(0)) -> Right(testPackages(0).componentGroups),
+        libraryName(testPackages(1)) -> Right(testPackages(1).componentGroups),
         libraryName(testPackages(2)) -> Left(
           ValidationError.ComponentGroupExtendsNothing(
             libraryName(testPackages(2)),
@@ -141,7 +147,7 @@ class ComponentGroupsValidatorSpec
         )
       )
       val expected = testPackages.map { config =>
-        libraryName(config) -> config.componentGroups
+        libraryName(config) -> Right(config.componentGroups)
       }
 
       validator.validate(testPackages) shouldEqual expected
@@ -154,10 +160,10 @@ class ComponentGroupsValidatorSpec
 object ComponentGroupsValidatorSpec {
 
   /** Create a new config with containing a component groups error. */
-  def configError(
+  def duplicateGroupsConfigError(
     namespace: String,
     name: String,
-    message: String
+    groupName: String
   ): Config =
     Config(
       name                 = name,
@@ -169,7 +175,23 @@ object ComponentGroupsValidatorSpec {
       maintainers          = Nil,
       edition              = None,
       preferLocalLibraries = true,
-      componentGroups      = Left(DecodingFailure.apply(message, List()))
+      componentGroups = ComponentGroups(
+        newGroups = List(
+          ComponentGroup(
+            group   = GroupName(groupName),
+            color   = None,
+            icon    = None,
+            exports = Seq.empty
+          ),
+          ComponentGroup(
+            group   = GroupName(groupName),
+            color   = None,
+            icon    = None,
+            exports = Seq.empty
+          )
+        ),
+        extendedGroups = Nil
+      )
     )
 
   /** Create a library name from config. */

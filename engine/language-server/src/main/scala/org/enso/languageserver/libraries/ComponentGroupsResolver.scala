@@ -33,7 +33,7 @@ final class ComponentGroupsResolver {
           config.moduleName
         ) -> config.componentGroups
       }
-      .collect { case (libraryName, Right(componentGroups)) =>
+      .collect { case (libraryName, componentGroups) =>
         libraryName -> componentGroups
       }
     val libraryComponentsMap =

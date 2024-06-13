@@ -280,7 +280,7 @@ object ComponentGroupsResolverSpec {
       maintainers          = Nil,
       edition              = None,
       preferLocalLibraries = true,
-      componentGroups      = Right(componentGroups)
+      componentGroups      = componentGroups
     )
 
   /** Create a new component group. */

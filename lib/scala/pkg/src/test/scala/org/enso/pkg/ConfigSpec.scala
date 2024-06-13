@@ -8,6 +8,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}
 
+import scala.util.Failure
+
 class ConfigSpec
     extends AnyWordSpec
     with Matchers
@@ -47,7 +49,7 @@ class ConfigSpec
           Contact(None, Some("c@example.com"))
         ),
         preferLocalLibraries = true,
-        componentGroups      = Right(ComponentGroups.empty)
+        componentGroups      = ComponentGroups.empty
       )
       val deserialized = Config.fromYaml(config.toYaml).get
       val withoutJson  = deserialized.copy(originalJson = JsonObject())
@@ -156,7 +158,7 @@ class ConfigSpec
           )
         )
       )
-      parsed.componentGroups shouldEqual Right(expectedComponentGroups)
+      parsed.componentGroups shouldEqual expectedComponentGroups
 
       val serialized = parsed.toYaml
       serialized should include(
@@ -185,7 +187,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
-      parsed.componentGroups shouldEqual Right(ComponentGroups.empty)
+      parsed.componentGroups shouldEqual ComponentGroups.empty
     }
 
     "allow unknown keys in component groups" in {
@@ -199,7 +201,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
-      parsed.componentGroups shouldEqual Right(ComponentGroups.empty)
+      parsed.componentGroups shouldEqual ComponentGroups.empty
     }
 
     "fail to de-serialize invalid extended modules" in {
@@ -211,10 +213,10 @@ class ConfigSpec
           |      exports:
           |      - bax
           |""".stripMargin
-      val parsed = Config.fromYaml(config).get
+      val parsed = Config.fromYaml(config)
 
-      parsed.componentGroups match {
-        case Left(f: DecodingFailure) =>
+      parsed match {
+        case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode 'Group 1' as a module reference"
           )
@@ -259,7 +261,7 @@ class ConfigSpec
         extendedGroups = List()
       )
 
-      parsed.componentGroups shouldEqual Right(expectedComponentGroups)
+      parsed.componentGroups shouldEqual expectedComponentGroups
     }
 
     "fail to de-serialize invalid shortcuts" in {
@@ -272,9 +274,9 @@ class ConfigSpec
           |      - foo:
           |          shortcut: []
           |""".stripMargin
-      val parsed = Config.fromYaml(config).get
-      parsed.componentGroups match {
-        case Left(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config)
+      parsed match {
+        case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode shortcut"
           )
@@ -291,9 +293,9 @@ class ConfigSpec
           |  - exports:
           |    - name: foo
           |""".stripMargin
-      val parsed = Config.fromYaml(config).get
-      parsed.componentGroups match {
-        case Left(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config)
+      parsed match {
+        case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode component group"
           )
@@ -311,9 +313,9 @@ class ConfigSpec
           |      exports:
           |      - one: two
           |""".stripMargin
-      val parsed = Config.fromYaml(config).get
-      parsed.componentGroups match {
-        case Left(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config)
+      parsed match {
+        case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode exported component"
           )

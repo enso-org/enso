@@ -118,7 +118,7 @@ case class Config(
   maintainers: List[Contact],
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
-  componentGroups: Either[DecodingFailure, ComponentGroups],
+  componentGroups: ComponentGroups,
   originalJson: JsonObject = JsonObject()
 ) {
 
@@ -181,11 +181,12 @@ object Config {
           error => DecodingFailure(error, json.history)
         }
       originals <- json.as[JsonObject]
+      componentGroups <- json.getOrElse[ComponentGroups](
+        JsonFields.componentGroups
+      )(
+        ComponentGroups.empty
+      )
     } yield {
-      val componentGroups =
-        json.getOrElse[ComponentGroups](JsonFields.componentGroups)(
-          ComponentGroups.empty
-        )
 
       Config(
         name                 = name,
@@ -213,11 +214,12 @@ object Config {
       }
       .map(JsonFields.edition -> _)
 
-    val componentGroups = config.componentGroups.toOption.flatMap { value =>
-      Option.unless(value.newGroups.isEmpty && value.extendedGroups.isEmpty)(
-        JsonFields.componentGroups -> value.asJson
+    val componentGroups =
+      Option.unless(
+        config.componentGroups.newGroups.isEmpty && config.componentGroups.extendedGroups.isEmpty
+      )(
+        JsonFields.componentGroups -> config.componentGroups.asJson
       )
-    }
 
     val normalizedName = config.normalizedName.map(value =>
       JsonFields.normalizedName -> value.asJson

@@ -336,35 +336,27 @@ private class DefaultPackageRepository(
   ): Either[PackageRepository.Error, Unit] =
     if (loadedComponents.contains(pkg.libraryName)) Right(())
     else {
-      pkg.getConfig().componentGroups match {
-        case Left(err) =>
-          Left(PackageRepository.Error.PackageLoadingError(err.getMessage()))
-        case Right(componentGroups) =>
-          logger.debug(
-            s"Resolving component groups of package [${pkg.normalizedName}]."
-          )
-
-          registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
-          componentGroups.extendedGroups
-            .foldLeft[Either[PackageRepository.Error, Unit]](Right(())) {
-              (accumulator, componentGroup) =>
-                for {
-                  _ <- accumulator
-                  extendedLibraryName = componentGroup.group.libraryName
-                  _ <- ensurePackageIsLoaded(extendedLibraryName)
-                  pkgOpt = loadedPackages(extendedLibraryName)
-                  _ <- pkgOpt.fold[Either[PackageRepository.Error, Unit]](
-                    Right(())
-                  )(
-                    resolveComponentGroups
-                  )
-                  _ = registerExtendedComponentGroup(
-                    pkg.libraryName,
-                    componentGroup
-                  )
-                } yield ()
-            }
-      }
+      val componentGroups = pkg.getConfig().componentGroups
+      registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
+      componentGroups.extendedGroups
+        .foldLeft[Either[PackageRepository.Error, Unit]](Right(())) {
+          (accumulator, componentGroup) =>
+            for {
+              _ <- accumulator
+              extendedLibraryName = componentGroup.group.libraryName
+              _ <- ensurePackageIsLoaded(extendedLibraryName)
+              pkgOpt = loadedPackages(extendedLibraryName)
+              _ <- pkgOpt.fold[Either[PackageRepository.Error, Unit]](
+                Right(())
+              )(
+                resolveComponentGroups
+              )
+              _ = registerExtendedComponentGroup(
+                pkg.libraryName,
+                componentGroup
+              )
+            } yield ()
+        }
     }
 
   /** Register the list of component groups defined by a library.
