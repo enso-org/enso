@@ -740,7 +740,8 @@ lazy val `syntax-rust-definition` = project
     javaModuleName := "org.enso.syntax",
     Compile / sourceGenerators += generateParserJavaSources,
     Compile / resourceGenerators += generateRustParserLib,
-    Compile / javaSource := baseDirectory.value / "generate-java" / "java"
+    Compile / javaSource := baseDirectory.value / "generate-java" / "java",
+    Compile / compile / javacOptions ++= Seq("-source", "11", "-target", "11")
   )
 
 lazy val yaml = (project in file("lib/java/yaml"))
