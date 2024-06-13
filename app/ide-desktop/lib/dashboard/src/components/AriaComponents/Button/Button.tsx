@@ -43,6 +43,7 @@ interface PropsWithoutHref {
 export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactElement | string | false
+  readonly tooltipPlacement?: aria.Placement
   /**
    * The icon to display in the button
    */
@@ -263,6 +264,7 @@ export const Button = React.forwardRef(function Button(
     fullWidthText,
     rounded,
     tooltip,
+    tooltipPlacement,
     testId,
     onPress = () => {},
     ...ariaProps
@@ -408,7 +410,11 @@ export const Button = React.forwardRef(function Button(
   ) : (
     <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
       {button}
-      <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
+      <ariaComponents.Tooltip
+        {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
+      >
+        {tooltipElement}
+      </ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
   )
 })

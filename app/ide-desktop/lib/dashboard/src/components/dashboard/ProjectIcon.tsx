@@ -22,7 +22,6 @@ import AssetEventType from '#/events/AssetEventType'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
-import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -286,6 +285,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <ariaComponents.Button
           size="custom"
           variant="custom"
+          icon={PlayIcon}
+          aria-label={getText('openInEditor')}
+          tooltipPlacement="left"
           className="size-project-icon border-0"
           onPress={() => {
             dispatchAssetEvent({
@@ -295,9 +297,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               runInBackground: false,
             })
           }}
-        >
-          <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
-        </ariaComponents.Button>
+        />
       )
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
@@ -311,7 +311,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
             isDisabled={isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
-            {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
+            tooltipPlacement="left"
+            {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
             className={tailwindMerge.twMerge(
               'size-project-icon border-0 selectable enabled:active',
               isRunningInBackground && 'text-green'
@@ -337,7 +338,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
               isDisabled={isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
-              {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
+              tooltipPlacement="left"
+              {...(isOtherUserUsingProject
+                ? { title: getText('otherUserIsUsingProjectError') }
+                : {})}
               className={tailwindMerge.twMerge(
                 'size-project-icon border-0 selectable enabled:active',
                 isRunningInBackground && 'text-green'
@@ -359,6 +363,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               className="size-project-icon border-0"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}
+              tooltipPlacement="left"
               onPress={() => {
                 doOpenEditor(true)
               }}
