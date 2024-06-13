@@ -702,7 +702,7 @@ object BindingsMap {
     def name: String
     def resolvedIn(module: ModuleReference): ResolvedName = this match {
       case t: Type           => ResolvedType(module, t)
-      case m: ModuleMethod   => ResolvedMethod(module, m)
+      case m: Method         => ResolvedMethod(module, m)
       case p: PolyglotSymbol => ResolvedPolyglotSymbol(module, p)
     }
     def resolvedIn(module: Module): ResolvedName = resolvedIn(
@@ -749,13 +749,38 @@ object BindingsMap {
     override def canExport: Boolean = false
   }
 
-  /** A representation of a method defined on the current module.
+  sealed trait Method extends DefinedEntity {
+    override def canExport: Boolean = true
+  }
+
+  /** A representation of a method defined on the module, that is, a method
+    * that is not defined on any type, but directly on a module.
     *
     * @param name the name of the method.
     */
-  case class ModuleMethod(override val name: String) extends DefinedEntity {
-    override def canExport: Boolean = true
-  }
+  case class ModuleMethod(override val name: String) extends Method {}
+
+  /** Static or extension method. Note that from the perspective of the runtime, there is no difference
+    * between a static or an extension method. In the following snippet, both methods are considered
+    * a duplicate:
+    * ```
+    * type My_Type
+    *     method = 42
+    * My_Type.method = 42
+    * ```
+    * @param name
+    * @param tpName
+    */
+  case class StaticMethod(
+    override val name: String,
+    tpName: String
+  ) extends Method {}
+
+  case class ConversionMethod(
+    override val name: String,
+    sourceTpName: String,
+    targetTpName: String
+  ) extends Method {}
 
   /** A name resolved to a sum type.
     *
@@ -881,7 +906,7 @@ object BindingsMap {
     * @param module the module defining the method.
     * @param method the method representation.
     */
-  case class ResolvedMethod(module: ModuleReference, method: ModuleMethod)
+  case class ResolvedMethod(module: ModuleReference, method: Method)
       extends ResolvedName {
 
     /** @inheritdoc */

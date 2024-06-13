@@ -199,7 +199,6 @@ public final class ImportExportCache
   @Persistable(
       clazz = org.enso.compiler.data.BindingsMap$ModuleReference$Abstract.class,
       id = 33007)
-  @Persistable(clazz = BindingsMap.ModuleMethod.class, id = 33008)
   @Persistable(clazz = BindingsMap.Type.class, id = 33009)
   @Persistable(clazz = BindingsMap.ResolvedImport.class, id = 33010)
   @Persistable(clazz = BindingsMap.Cons.class, id = 33011)
@@ -223,6 +222,9 @@ public final class ImportExportCache
   @Persistable(clazz = BindingsMap.ResolvedConstructor.class, id = 33030)
   @Persistable(clazz = BindingsMap.ResolvedPolyglotSymbol.class, id = 33031)
   @Persistable(clazz = BindingsMap.ResolvedPolyglotField.class, id = 33032)
+  @Persistable(clazz = BindingsMap.ModuleMethod.class, id = 33033)
+  @Persistable(clazz = BindingsMap.StaticMethod.class, id = 33034)
+  @Persistable(clazz = BindingsMap.ConversionMethod.class, id = 33035)
   @ServiceProvider(service = Persistance.class)
   public static final class PersistBindingsMap extends Persistance<BindingsMap> {
     public PersistBindingsMap() {

@@ -562,7 +562,7 @@ public class IRDumper {
                   var entity = bindingsMap.definedEntities().apply(i);
                   switch (entity) {
                     case BindingsMap.Type tp -> bldr.addLabelLine("  - Type(" + tp.name() + ")");
-                    case BindingsMap.ModuleMethod method -> bldr.addLabelLine(
+                    case BindingsMap.Method method -> bldr.addLabelLine(
                         "  - Method(" + method.name() + ")");
                     case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine(
                         "  - PolyglotSymbol(" + polySym.name() + ")");

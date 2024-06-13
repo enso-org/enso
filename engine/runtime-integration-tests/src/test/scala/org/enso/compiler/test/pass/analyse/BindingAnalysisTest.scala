@@ -7,8 +7,10 @@ import org.enso.compiler.core.ir.Module
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Cons,
+  ConversionMethod,
   ModuleMethod,
   PolyglotSymbol,
+  StaticMethod,
   Type
 }
 import org.enso.compiler.pass.analyse.BindingAnalysis
@@ -52,6 +54,58 @@ class BindingAnalysisTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Module binding resolution" should {
+    "extension method is a defined entity" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |My_Type.extension_method = 42
+          |""".stripMargin.preprocessModule.analyse
+      val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
+
+      metadata.definedEntities should contain theSameElementsAs List(
+        Type("My_Type", List(), List(), false),
+        StaticMethod("extension_method", "My_Type")
+      )
+    }
+
+    "extension methods are defined entities" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |type Other_Type
+          |My_Type.extension_method = 42
+          |Other_Type.extension_method = 42
+          |""".stripMargin.preprocessModule.analyse
+      val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
+
+      metadata.definedEntities should contain theSameElementsAs List(
+        Type("My_Type", List(), List(), false),
+        Type("Other_Type", List(), List(), false),
+        StaticMethod("extension_method", "My_Type"),
+        StaticMethod("extension_method", "Other_Type")
+      )
+    }
+
+    "conversion method is a defined entity" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type Source
+          |type Target
+          |Target.from (that:Source) = 42
+          |Source.from (that:Target) = 42
+          |""".stripMargin.preprocessModule.analyse
+      val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
+      metadata.definedEntities should contain theSameElementsAs List(
+        Type("Source", List(), List(), false),
+        Type("Target", List(), List(), false),
+        ConversionMethod("from", "Source", "Target"),
+        ConversionMethod("from", "Target", "Source")
+      )
+    }
+
     "discover all atoms, methods, and polyglot symbols in a module" in {
       implicit val ctx: ModuleContext = mkModuleContext
       val ir =
@@ -78,11 +132,14 @@ class BindingAnalysisTest extends CompilerTest {
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
       metadata.definedEntities should contain theSameElementsAs List(
+        PolyglotSymbol("MyClass"),
+        PolyglotSymbol("Renamed_Class"),
         Type("Foo", List(), List(Cons("Mk_Foo", 3, false, false)), false),
         Type("Bar", List(), List(), false),
         Type("Baz", List("x", "y"), List(), false),
-        PolyglotSymbol("MyClass"),
-        PolyglotSymbol("Renamed_Class"),
+        StaticMethod("foo", "Baz"),
+        StaticMethod("baz", "Bar"),
+        ConversionMethod("from", "Bar", "Foo"),
         ModuleMethod("foo")
       )
       metadata.currentModule shouldEqual ctx.moduleReference()
@@ -104,8 +161,12 @@ class BindingAnalysisTest extends CompilerTest {
       ir.getMetadata(BindingAnalysis)
         .get
         .definedEntities
-        .filter(_.isInstanceOf[BindingsMap.ModuleMethod]) shouldEqual List(
-        ModuleMethod("bar")
+        .filter(
+          _.isInstanceOf[BindingsMap.Method]
+        ) should contain theSameElementsAs List(
+        StaticMethod("foo", moduleName),
+        ModuleMethod("bar"),
+        StaticMethod("baz", moduleName)
       )
 
     }
