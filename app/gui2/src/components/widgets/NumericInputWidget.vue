@@ -4,7 +4,8 @@ import { computed, ref, watch, type CSSProperties, type ComponentInstance } from
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
-  modelValue: number | string
+  modelValue: number | undefined
+  placeholder?: string | undefined
   limits?: { min: number; max: number } | undefined
 }>()
 const emit = defineEmits<{
@@ -14,16 +15,15 @@ const emit = defineEmits<{
   input: [content: string]
 }>()
 
-const inputFieldActive = ref(false)
-// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
-const editedValue = ref(`${props.modelValue}`)
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    editedValue.value = `${newValue}`
-  },
-)
+const DEFAULT_PLACEHOLDER = ''
 const SLIDER_INPUT_THRESHOLD = 4.0
+const MIN_CONTENT_WIDTH = 56
+
+// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
+const editedValue = ref('')
+const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))
+watch(valueString, (newValue) => (editedValue.value = newValue), { immediate: true })
+const inputFieldActive = ref(false)
 
 let dragState: { thresholdMet: boolean } | undefined = undefined
 const dragPointer = usePointer(
@@ -68,7 +68,6 @@ const sliderWidth = computed(() => {
 })
 
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
-const MIN_CONTENT_WIDTH = 56
 
 const inputStyle = computed<CSSProperties>(() => {
   const value = `${editedValue.value}`
@@ -92,7 +91,7 @@ const inputStyle = computed<CSSProperties>(() => {
 })
 
 function emitUpdate() {
-  if (`${props.modelValue}` !== editedValue.value) {
+  if (valueString.value !== editedValue.value) {
     emit('update:modelValue', editedValue.value)
   }
 }
@@ -110,7 +109,7 @@ function focused() {
 
 defineExpose({
   cancel: () => {
-    editedValue.value = `${props.modelValue}`
+    editedValue.value = valueString.value
     inputComponent.value?.blur()
   },
   blur: () => inputComponent.value?.blur(),
@@ -126,6 +125,7 @@ defineExpose({
     class="NumericInputWidget"
     :class="{ slider: sliderWidth != null }"
     :style="{ ...inputStyle, '--slider-width': sliderWidth }"
+    :placeholder="placeholder ?? DEFAULT_PLACEHOLDER"
     v-on="dragPointer.events"
     @click.stop
     @blur="blurred"
