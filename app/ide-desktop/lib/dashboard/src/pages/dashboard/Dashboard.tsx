@@ -154,7 +154,10 @@ export default function Dashboard(props: DashboardProps) {
   const isUserEnabled = session.user?.isEnabled === true
 
   if (isCloud && !isUserEnabled && localBackend != null) {
-    setCategory(Category.local)
+    setTimeout(() => {
+      // This sets `BrowserRouter`, so it must not be set synchronously.
+      setCategory(Category.local)
+    })
   }
 
   React.useEffect(() => {
