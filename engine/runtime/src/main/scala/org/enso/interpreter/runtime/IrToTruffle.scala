@@ -91,8 +91,6 @@ import org.enso.interpreter.node.{
   MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
-import org.enso.interpreter.runtime.EnsoContext
-import org.enso.interpreter.runtime.callable
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
@@ -1021,8 +1019,14 @@ class IrToTruffle(
                     tp != null,
                     s"Type should be defined in module ${modWithTp.getName}"
                   )
+                  // We have to search for the method on eigen type, because it is a static method.
+                  // Static methods are always defined on eigen types
+                  val eigenTp = tp.getEigentype
                   val fun =
-                    currentScope.getMethodForType(tp, staticMethod.methodName)
+                    currentScope.getMethodForType(
+                      eigenTp,
+                      staticMethod.methodName
+                    )
                   assert(
                     fun != null,
                     s"exported symbol (static method) `${staticMethod.name}` needs to be registered first in the module "
