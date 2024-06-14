@@ -120,7 +120,7 @@ export default function UserBar(props: UserBarProps) {
           <Button
             active
             mask={false}
-            aria-label={getText('userMenuAltText')}
+            alt={getText('userMenuAltText')}
             image={user?.profilePicture ?? DefaultUserIcon}
             buttonClassName="rounded-full after:rounded-full"
             className="h-row-h w-row-h rounded-full"
