@@ -1150,7 +1150,7 @@ Text.drop self range=(Index_Sub_Range.First 1) =
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
 @locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
-Text.to_case self case_option=Case.Lower locale=Locale.default = case case_option of
+Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale self
     Case.Upper -> UCharacter.toUpperCase locale.java_locale self
     Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
