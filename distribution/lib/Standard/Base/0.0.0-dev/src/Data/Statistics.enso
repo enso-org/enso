@@ -403,7 +403,7 @@ is_valid v = case v of
 ## PRIVATE
 type Accumulator
     ## PRIVATE
-    new : Boolean -> Integer -> Accumulator
+    new : Boolean -> Integer -> Boolean -> Accumulator
     new min_max=True moments=0 calc_product=False = Accumulator.Value 0 min_max Nothing Nothing (Vector.fill moments 0) calc_product Nothing
 
     ## PRIVATE

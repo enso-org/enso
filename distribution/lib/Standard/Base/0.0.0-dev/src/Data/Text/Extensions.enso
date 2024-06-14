@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
 import project.Data.Range.Range
@@ -35,6 +34,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.Internal.Reporting_Stream_Decoder_Helper
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Index_Sub_Range import invert_range_selection
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
@@ -46,12 +46,12 @@ polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.encoding.Encoding_Utils
-polyglot java import org.enso.base.text.ResultWithWarnings
-polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Regex_Utils
-polyglot java import org.enso.base.WithProblems
 polyglot java import org.enso.base.text.GraphemeSpan
+polyglot java import org.enso.base.text.ResultWithWarnings
 polyglot java import org.enso.base.text.Utf16Span
+polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.WithProblems
 
 ## GROUP Text
    ICON text
@@ -1113,7 +1113,7 @@ Text.drop self range=(Index_Sub_Range.First 1) =
         _ : Codepoint_Ranges ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
             char_length = Text_Utils.char_length self
-            inverted = Index_Sub_Range_Module.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
+            inverted = invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
             slice_text self inverted
 
 ## ALIAS lower, proper, title, upper
