@@ -54,9 +54,9 @@ public interface CompilerContext extends CompilerStub {
   /**
    * Format the given diagnostic into a string. The returned string might have ANSI colors.
    *
-   * @param module May be null if inline diagnostics is required.
-   * @param diagnostic
-   * @param isOutputRedirected True if the output is not system's out. If true, no ANSI color escape
+   * @param module may be null if inline diagnostics is required.
+   * @param diagnostic an IR node representing diagnostic information
+   * @param isOutputRedirected true if the output is not system's out. If true, no ANSI color escape
    *     characters will be inside the returned string.
    * @return exception with a message to display or to throw
    */

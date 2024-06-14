@@ -588,7 +588,7 @@ class Compiler(
     val src   = context.getCharacters(module)
     val idMap = context.getIdMap(module)
     val tree  = ensoCompiler.parse(src)
-    val expr  = ensoCompiler.generateModuleIr(tree, idMap.getValues)
+    val expr  = ensoCompiler.generateModuleIr(tree, idMap.values)
 
     val exprWithModuleExports =
       if (context.isSynthetic(module))

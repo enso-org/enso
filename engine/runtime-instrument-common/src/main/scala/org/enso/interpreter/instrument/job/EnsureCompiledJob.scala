@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.common.CompilationStage
-import org.enso.compiler.CompilerResult
+import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
@@ -52,7 +52,7 @@ final class EnsureCompiledJob(
       false
     ) {
 
-  import EnsureCompiledJob.CompilationStatus
+  import EnsureCompiledJob._
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
@@ -295,15 +295,9 @@ final class EnsureCompiledJob(
         val compiler = ctx.executionService.getContext.getCompiler
 
         idMapOpt.foreach { idMap =>
-          val moduleIdMap =
-            idMap.values.foldLeft(new util.HashMap[Location, UUID]()) {
-              case (map, (span, id)) =>
-                map.put(new Location(span.start, span.end), id)
-                map
-            }
           compiler.context.updateModule(
             module.asCompilerModule(),
-            _.idMap(new org.enso.compiler.data.IdMap(moduleIdMap))
+            _.idMap(toCompilerIdMap(idMap))
           )
         }
 
@@ -678,4 +672,18 @@ object EnsureCompiledJob {
           None
       }
 
+  /** Convert the identifiers map to its compiler equivalent.
+    *
+    * @param idMap the identifiers map
+    * @return the compiler representation of identifiers map
+    */
+  private def toCompilerIdMap(idMap: IdMap): data.IdMap = {
+    val values =
+      idMap.values.foldLeft(new util.HashMap[Location, UUID]()) {
+        case (map, (span, id)) =>
+          map.put(new Location(span.start, span.end), id)
+          map
+      }
+    new data.IdMap(values)
+  }
 }
