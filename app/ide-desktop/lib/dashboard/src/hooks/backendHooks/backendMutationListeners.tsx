@@ -15,7 +15,10 @@ import * as permissions from '#/utilities/permissions'
 // === Constants ===
 // =================
 
-const createAssetObject = <T extends Partial<backendModule.AnyAsset>>(rest: T) => ({
+const createAssetObject = <T extends Partial<backendModule.AnyAsset>>(
+  user: backendModule.User | null,
+  rest: T
+) => ({
   description: null,
   labels: [],
   permissions: permissions.tryGetSingletonOwnerPermission(user),
@@ -95,7 +98,7 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
 
   // === Create assets ===
 
-  createDirectory: (data, variables, setQueryData) => {
+  createDirectory: (data, variables, setQueryData, _backend, session) => {
     const [body] = variables
 
     setQueryData(
@@ -110,7 +113,7 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
       ],
       items => [
         ...items,
-        createAssetObject({
+        createAssetObject(session.user, {
           type: backendModule.AssetType.directory,
           id: data.id,
           title: body.title,
@@ -119,10 +122,10 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
       ]
     )
   },
-  createProject: (data, variables, setQueryData, backend) => {
+  createProject: (data, variables, setQueryData, backend, session) => {
     const [body] = variables
 
-    const parentId = body.parentDirectoryId ?? backend.rootDirectoryId(user)
+    const parentId = body.parentDirectoryId ?? backend.rootDirectoryId(session.user)
     if (parentId != null) {
       setQueryData(
         'listDirectory',
@@ -136,7 +139,7 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
         ],
         items => [
           ...items,
-          createAssetObject({
+          createAssetObject(session.user, {
             type: backendModule.AssetType.project,
             id: data.projectId,
             title: data.name,
@@ -147,10 +150,10 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
       )
     }
   },
-  createDatalink: (data, variables, setQueryData, backend) => {
+  createDatalink: (data, variables, setQueryData, backend, session) => {
     const [body] = variables
 
-    const parentId = body.parentDirectoryId ?? backend.rootDirectoryId(user)
+    const parentId = body.parentDirectoryId ?? backend.rootDirectoryId(session.user)
     if (parentId != null) {
       setQueryData(
         'listDirectory',
@@ -164,7 +167,7 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
         ],
         items => [
           ...items,
-          createAssetObject({
+          createAssetObject(session.user, {
             type: backendModule.AssetType.datalink,
             id: data.id,
             title: body.name,
@@ -174,10 +177,10 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
       )
     }
   },
-  createSecret: (data, variables, setQueryData, backend) => {
+  createSecret: (data, variables, setQueryData, backend, session) => {
     const [body] = variables
     const id = data
-    const parentId = body.parentDirectoryId ?? backend.rootDirectoryId(user)
+    const parentId = body.parentDirectoryId ?? backend.rootDirectoryId(session.user)
     if (parentId != null) {
       setQueryData(
         'listDirectory',
@@ -191,7 +194,7 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
         ],
         items => [
           ...items,
-          createAssetObject({
+          createAssetObject(session.user, {
             type: backendModule.AssetType.secret,
             id,
             title: body.name,
@@ -204,10 +207,10 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
 
   // === Update assets ===
 
-  uploadFile: (data, variables, setQueryData, backend) => {
+  uploadFile: (data, variables, setQueryData, backend, session) => {
     const [body] = variables
 
-    const parentId = body.parentDirectoryId ?? backend.rootDirectoryId(user)
+    const parentId = body.parentDirectoryId ?? backend.rootDirectoryId(session.user)
     if (parentId != null) {
       setQueryData(
         'listDirectory',
@@ -222,13 +225,13 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
         items => [
           ...items,
           data.project == null
-            ? createAssetObject({
+            ? createAssetObject(session.user, {
                 type: backendModule.AssetType.file,
                 id: data.id,
                 title: body.fileName,
                 parentId,
               })
-            : createAssetObject({
+            : createAssetObject(session.user, {
                 type: backendModule.AssetType.project,
                 id: data.project.projectId,
                 title: data.project.name,
@@ -260,7 +263,7 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
 
   // === Delete assets ===
 
-  deleteAsset: (_data, variables, setQueryData) => {
+  deleteAsset: (_data, variables, setQueryData, backend, session) => {
     const [id, body] = variables
     // This IIFE is required so that TypeScript does not eagerly narrow the type of this
     // variable.
@@ -285,14 +288,15 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
           }
         })
     )
-    if (!body.force) {
+    const rootId = backend.rootDirectoryId(session.user)
+    if (!body.force && rootId != null) {
       if (found != null) {
         const deletedItem = found
         setQueryData(
           'listDirectory',
           [
             {
-              parentId: body.parentId,
+              parentId: rootId,
               filterBy: backendModule.FilterBy.trashed,
               labels: [],
               recentProjects: false,
@@ -305,7 +309,7 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
         // then the asset is no longer in its original directory.
         void backendHooks.invalidateBackendQuery(queryClient, backend, 'listDirectory', [
           {
-            parentId: body.parentId,
+            parentId: rootId,
             filterBy: backendModule.FilterBy.trashed,
             labels: null,
             recentProjects: false,
@@ -314,45 +318,48 @@ export const BACKEND_MUTATION_LISTENERS: Readonly<{
       }
     }
   },
-  undoDeleteAsset: (_data, variables, setQueryData) => {
+  undoDeleteAsset: (_data, variables, setQueryData, backend, session) => {
     const [id] = variables
     // This IIFE is required so that TypeScript does not eagerly narrow the type of this
     // variable.
     let found = ((): backendModule.AnyAsset | null => null)()
-    setQueryData(
-      'listDirectory',
-      [
-        {
-          parentId: body.parentId,
-          filterBy: backendModule.FilterBy.trashed,
-          labels: [],
-          recentProjects: false,
-        },
-      ],
-      items =>
-        items.filter(item => {
-          if (item.id !== id) {
-            return false
-          } else {
-            found = item
-            return true
-          }
-        })
-    )
-    if (found != null) {
-      const deletedItem = found
+    const rootId = backend.rootDirectoryId(session.user)
+    if (rootId != null) {
       setQueryData(
         'listDirectory',
         [
           {
-            parentId: body.parentId,
-            filterBy: backendModule.FilterBy.active,
+            parentId: rootId,
+            filterBy: backendModule.FilterBy.trashed,
             labels: [],
             recentProjects: false,
           },
         ],
-        items => [...items, deletedItem]
+        items =>
+          items.filter(item => {
+            if (item.id !== id) {
+              return false
+            } else {
+              found = item
+              return true
+            }
+          })
       )
+      if (found != null) {
+        const deletedItem = found
+        setQueryData(
+          'listDirectory',
+          [
+            {
+              parentId: found.parentId,
+              filterBy: backendModule.FilterBy.active,
+              labels: [],
+              recentProjects: false,
+            },
+          ],
+          items => [...items, deletedItem]
+        )
+      }
     }
   },
 
