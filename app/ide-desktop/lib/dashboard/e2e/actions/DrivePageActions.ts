@@ -138,8 +138,8 @@ export default class DrivePageActions extends BaseActions {
     ).into(StartModalActions)
   }
 
-  /** Create an empty project using the text button. */
-  createEmptyProject() {
+  /** Create a new empty project. */
+  newEmptyProject() {
     return this.step('Create empty project', page =>
       page.getByText('New Empty Project').click()
     ).into(EditorPageActions)
@@ -153,13 +153,6 @@ export default class DrivePageActions extends BaseActions {
   /** Interact with the drive view (the main container of this page). */
   withDriveView(callback: baseActions.LocatorCallback) {
     return this.step('Interact with drive view', page => callback(actions.locateDriveView(page)))
-  }
-
-  /** Create a new project using the button in the Drive Bar. */
-  createProject() {
-    return this.step('Create project', page =>
-      page.getByRole('button', { name: 'New Project' }).getByText('New Project').click()
-    ).into(EditorPageActions)
   }
 
   /** Create a new folder using the icon in the Drive Bar. */

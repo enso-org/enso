@@ -11,7 +11,7 @@ test.test('drive view', ({ page }) =>
           await test.expect(view).toBeVisible()
         })
         .driveTable.expectPlaceholderRow()
-        .createProject()
+        .newEmptyProject()
         .do(async () => {
           await test.expect(actions.locateEditor(page)).toBeVisible()
         })
@@ -22,7 +22,7 @@ test.test('drive view', ({ page }) =>
         .do(async () => {
           await test.expect(actions.locateAssetsTable(page)).toBeVisible()
         })
-        .createProject()
+        .newEmptyProject()
         .do(async () => {
           await test.expect(actions.locateEditor(page)).toBeVisible()
         })

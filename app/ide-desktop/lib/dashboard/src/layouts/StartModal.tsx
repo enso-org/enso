@@ -24,7 +24,11 @@ export default function StartModal(props: StartModalProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <ariaComponents.Dialog type="fullscreen" closeButton="floating">
+    <ariaComponents.Dialog
+      aria-label={getText('startModalLabel')}
+      type="fullscreen"
+      closeButton="floating"
+    >
       {opts => (
         <div className="relative mb-4 flex flex-1 flex-col gap-home text-xs text-primary">
           <aria.Heading

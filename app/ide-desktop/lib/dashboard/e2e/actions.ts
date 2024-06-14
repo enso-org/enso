@@ -278,7 +278,10 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 /** Find a "name" column heading (if any) on the current page. */
 export function locateNameColumnHeading(page: test.Locator | test.Page) {
-  return page.getByLabel('Sort by name').or(page.getByLabel('Stop sorting by name'))
+  return page
+    .getByLabel('Sort by name')
+    .or(page.getByLabel('Stop sorting by name'))
+    .or(page.getByLabel('Sort by name descending'))
 }
 
 /** Find a "modified" column heading (if any) on the current page. */
@@ -286,6 +289,7 @@ export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
   return page
     .getByLabel('Sort by modification date')
     .or(page.getByLabel('Stop sorting by modification date'))
+    .or(page.getByLabel('Sort by modification date descending'))
 }
 
 // === Container locators ===
@@ -618,13 +622,39 @@ export function getAssetRowLeftPx(locator: test.Locator) {
 }
 
 // ===================================
-// === expect functions for themes ===
+// === Expect functions for themes ===
 // ===================================
 
 /** A test assertion to confirm that the element has the class `selected`. */
 export async function expectClassSelected(locator: test.Locator) {
   await test.test.step('Expect `selected`', async () => {
     await test.expect(locator).toHaveClass(/(?:^| )selected(?: |$)/)
+  })
+}
+
+// ==============================
+// === Other expect functions ===
+// ==============================
+
+/** A test assertion to confirm that the element is fully transparent. */
+export async function expectOpacity0(locator: test.Locator) {
+  await test.test.step('Expect `opacity: 0`', async () => {
+    await test
+      .expect(async () => {
+        test.expect(await locator.evaluate(el => getComputedStyle(el).opacity)).toBe('0')
+      })
+      .toPass()
+  })
+}
+
+/** A test assertion to confirm that the element is not fully transparent. */
+export async function expectNotOpacity0(locator: test.Locator) {
+  await test.test.step('Expect not `opacity: 0`', async () => {
+    await test
+      .expect(async () => {
+        test.expect(await locator.evaluate(el => getComputedStyle(el).opacity)).not.toBe('0')
+      })
+      .toPass()
   })
 }
 

@@ -85,5 +85,9 @@ test.test('upload organization profile picture', async ({ page }) => {
   const name = 'bar.jpeg'
   const content = 'organization profile picture'
   await fileChooser.setFiles([{ name, buffer: Buffer.from(content), mimeType: 'image/jpeg' }])
-  test.expect(api.currentOrganizationProfilePicture()).toEqual(content)
+  await test
+    .expect(() => {
+      test.expect(api.currentOrganizationProfilePicture()).toEqual(content)
+    })
+    .toPass()
 })

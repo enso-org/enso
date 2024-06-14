@@ -35,7 +35,7 @@ export default function ModifiedColumnHeading(
             ? getText('stopSortingByModificationDate')
             : getText('sortByModificationDateDescending')
       }
-      className="h-drive-table-heading group flex w-full cursor-pointer items-center gap-icon-with-text"
+      className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
     >
       <Button
         active

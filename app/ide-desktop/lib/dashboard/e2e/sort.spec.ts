@@ -54,9 +54,9 @@ test.test('sort', async ({ page }) => {
 
   // By default, assets should be grouped by type.
   // Assets in each group are ordered by insertion order.
-  await test.expect(actions.locateSortAscendingIcon(nameHeading)).not.toBeVisible()
+  await actions.expectOpacity0(actions.locateSortAscendingIcon(nameHeading))
   await test.expect(actions.locateSortDescendingIcon(nameHeading)).not.toBeVisible()
-  await test.expect(actions.locateSortAscendingIcon(modifiedHeading)).not.toBeVisible()
+  await actions.expectOpacity0(actions.locateSortAscendingIcon(modifiedHeading))
   await test.expect(actions.locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^a directory/)
   await test.expect(assetRows.nth(1)).toHaveText(/^G directory/)
@@ -69,7 +69,7 @@ test.test('sort', async ({ page }) => {
 
   // Sort by name ascending.
   await nameHeading.click()
-  await test.expect(actions.locateSortAscendingIcon(nameHeading)).toBeVisible()
+  await actions.expectNotOpacity0(actions.locateSortAscendingIcon(nameHeading))
   await test.expect(assetRows.nth(0)).toHaveText(/^a directory/)
   await test.expect(assetRows.nth(1)).toHaveText(/^b project/)
   await test.expect(assetRows.nth(2)).toHaveText(/^C project/)
@@ -81,7 +81,7 @@ test.test('sort', async ({ page }) => {
 
   // Sort by name descending.
   await nameHeading.click()
-  await test.expect(actions.locateSortDescendingIcon(nameHeading)).toBeVisible()
+  await actions.expectNotOpacity0(actions.locateSortDescendingIcon(nameHeading))
   await test.expect(assetRows.nth(0)).toHaveText(/^H secret/)
   await test.expect(assetRows.nth(1)).toHaveText(/^G directory/)
   await test.expect(assetRows.nth(2)).toHaveText(/^f secret/)
@@ -94,7 +94,7 @@ test.test('sort', async ({ page }) => {
   // Sorting should be unset.
   await nameHeading.click()
   await page.mouse.move(0, 0)
-  await test.expect(actions.locateSortAscendingIcon(nameHeading)).not.toBeVisible()
+  await actions.expectOpacity0(actions.locateSortAscendingIcon(nameHeading))
   await test.expect(actions.locateSortDescendingIcon(nameHeading)).not.toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^a directory/)
   await test.expect(assetRows.nth(1)).toHaveText(/^G directory/)
@@ -107,7 +107,7 @@ test.test('sort', async ({ page }) => {
 
   // Sort by date ascending.
   await modifiedHeading.click()
-  await test.expect(actions.locateSortAscendingIcon(modifiedHeading)).toBeVisible()
+  await actions.expectNotOpacity0(actions.locateSortAscendingIcon(modifiedHeading))
   await test.expect(assetRows.nth(0)).toHaveText(/^b project/)
   await test.expect(assetRows.nth(1)).toHaveText(/^H secret/)
   await test.expect(assetRows.nth(2)).toHaveText(/^f secret/)
@@ -119,7 +119,7 @@ test.test('sort', async ({ page }) => {
 
   // Sort by date descending.
   await modifiedHeading.click()
-  await test.expect(actions.locateSortDescendingIcon(modifiedHeading)).toBeVisible()
+  await actions.expectNotOpacity0(actions.locateSortDescendingIcon(modifiedHeading))
   await test.expect(assetRows.nth(0)).toHaveText(/^d file/)
   await test.expect(assetRows.nth(1)).toHaveText(/^C project/)
   await test.expect(assetRows.nth(2)).toHaveText(/^G directory/)
@@ -132,7 +132,7 @@ test.test('sort', async ({ page }) => {
   // Sorting should be unset.
   await modifiedHeading.click()
   await page.mouse.move(0, 0)
-  await test.expect(actions.locateSortAscendingIcon(modifiedHeading)).not.toBeVisible()
+  await actions.expectOpacity0(actions.locateSortAscendingIcon(modifiedHeading))
   await test.expect(actions.locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
   await test.expect(assetRows.nth(0)).toHaveText(/^a directory/)
   await test.expect(assetRows.nth(1)).toHaveText(/^G directory/)

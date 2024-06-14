@@ -35,7 +35,7 @@ export default function NameColumnHeading(
             ? getText('stopSortingByName')
             : getText('sortByNameDescending')
       }
-      className="h-drive-table-heading group flex w-full items-center justify-start gap-icon-with-text px-name-column-x"
+      className="group flex h-drive-table-heading w-full items-center justify-start gap-icon-with-text px-name-column-x"
       onPress={() => {
         const nextDirection = isSortActive
           ? sorting.nextSortDirection(sortInfo.direction)
