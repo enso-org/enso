@@ -1,10 +1,9 @@
 package org.enso.compiler.data;
 
-import org.enso.compiler.core.ir.Location;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
+import org.enso.compiler.core.ir.Location;
 
 public final class IdMap {
 
