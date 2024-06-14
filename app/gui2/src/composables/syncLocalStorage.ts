@@ -2,7 +2,6 @@ import { useAbortScope } from '@/util/net'
 import { debouncedWatch, useLocalStorage } from '@vueuse/core'
 import { encoding } from 'lib0'
 import { xxHash128 } from 'shared/ast/ffi'
-import { assert } from 'shared/util/assert'
 import { AbortScope } from 'shared/util/net'
 import { computed, getCurrentInstance, ref, watch, withCtx } from 'vue'
 
@@ -119,17 +118,12 @@ export function useSyncLocalStorage<StoredState extends Object>(
 
   async function restoreState(storageKey: string) {
     abortLastRestore()
-    assert(restoreIdInProgress.value == null)
 
     const thisRestoreId = nextRestoreId++
     restoreIdInProgress.value = thisRestoreId
     const restored = storageMap.value.get(storageKey)
 
     restoreAbort = abortScope.child()
-    restoreAbort.onAbort(() => {
-      if (restoreIdInProgress.value === thisRestoreId) restoreIdInProgress.value = undefined
-    })
-
     try {
       await restoreStateInCtx(restored, restoreAbort.signal)
     } catch (e) {

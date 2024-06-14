@@ -220,6 +220,15 @@ export default class LocalBackend extends Backend {
   override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
     const { id } = extractTypeAndId(projectId)
     try {
+      const state = this.projectManager.projects.get(id)
+      if (state?.state === backend.ProjectState.openInProgress) {
+        // Projects that are not opened cannot be closed.
+        // This is the only way to wait until the project is open.
+        await this.projectManager.openProject({
+          projectId: id,
+          missingComponentAction: projectManager.MissingComponentAction.install,
+        })
+      }
       await this.projectManager.closeProject({ projectId: id })
       return
     } catch (error) {
@@ -236,7 +245,7 @@ export default class LocalBackend extends Backend {
   override async getProjectDetails(
     projectId: backend.ProjectId,
     directory: backend.DirectoryId | null,
-    title: string | null
+    title: string
   ): Promise<backend.Project> {
     const { id } = extractTypeAndId(projectId)
     const state = this.projectManager.projects.get(id)
@@ -249,9 +258,7 @@ export default class LocalBackend extends Backend {
         )
         .find(metadata => metadata.id === id)
       if (project == null) {
-        throw new Error(
-          `Could not get details of project ${title != null ? `'${title}'` : `with ID '${id}'`}.`
-        )
+        throw new Error(`Could not get details of project '${title}'.`)
       } else {
         const version =
           project.engineVersion == null
@@ -470,6 +477,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override removeUser() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override uploadUserPicture() {
     return this.invalidOperation()
   }
@@ -577,6 +589,14 @@ export default class LocalBackend extends Backend {
     const to = projectManager.joinPath(projectManager.Path(folderPath), body.title)
     await this.projectManager.moveFile(from, to)
   }
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  override async waitUntilProjectIsReady(
+    projectId: backend.ProjectId,
+    directory: backend.DirectoryId | null,
+    title: string
+  ) {
+    return await this.getProjectDetails(projectId, directory, title)
+  }
 
   /** Construct a new path using the given parent directory and a file name. */
   joinPath(parentId: backend.DirectoryId, fileName: string) {
@@ -585,6 +605,16 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override updateDirectory() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override duplicateProject() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override restoreProject() {
     return this.invalidOperation()
   }
 
@@ -653,7 +683,8 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /** Return an empty array. This function should never need to be called. */
+  /** Return an empty array. This function is required to be implemented as it is unconditionally
+   * called, but its result should never need to be used. */
   override listTags() {
     return Promise.resolve([])
   }
@@ -693,27 +724,28 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
-  /**
-   * Invalid operation.
-   */
+  /** Invalid operation. */
   override listInvitations() {
     return this.invalidOperation()
   }
-  /**
-   * Invalid operation.
-   */
-  override deleteInvitation(): Promise<void> {
+
+  /** Invalid operation. */
+  override deleteInvitation() {
     return this.invalidOperation()
   }
-  /**
-   * Invalid operation.
-   */
-  override resendInvitation(): Promise<void> {
+
+  /** Invalid operation. */
+  override resendInvitation() {
     return this.invalidOperation()
   }
 
   /** Invalid operation. */
   override getLogEvents() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override logEvent() {
     return this.invalidOperation()
   }
 }

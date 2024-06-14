@@ -97,7 +97,7 @@ const defaultVisualizationRaw = projectStore.useVisualizationData(
 const defaultVisualizationForCurrentNodeSource = computed<VisualizationIdentifier | undefined>(
   () => {
     const raw = defaultVisualizationRaw.value
-    if (!raw?.ok || !raw.value) return
+    if (!raw?.ok || !raw.value || !raw.value.name) return
     return {
       name: raw.value.name,
       module:
@@ -381,3 +381,10 @@ watch(
     </Suspense>
   </div>
 </template>
+
+<style scoped>
+.GraphVisualization {
+  /** Prevent drawing on top of other UI elements (e.g. dropdown widgets). */
+  isolation: isolate;
+}
+</style>

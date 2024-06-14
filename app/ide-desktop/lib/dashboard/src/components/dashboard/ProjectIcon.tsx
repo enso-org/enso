@@ -1,30 +1,30 @@
 /** @file An interactive button indicating the status of a project. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
+import * as tailwindMerge from 'tailwind-merge'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
-import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
-import * as remoteBackend from '#/services/RemoteBackend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
@@ -32,8 +32,6 @@ import * as object from '#/utilities/object'
 // === Constants ===
 // =================
 
-/** The size of the icon, in pixels. */
-const ICON_SIZE_PX = 24
 const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -69,24 +67,22 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
-  readonly keyProp: string
+  readonly backend: Backend
   readonly item: backendModule.ProjectAsset
   readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly assetEvents: assetEvent.AssetEvent[]
-  /** Called when the project is opened via the {@link ProjectIcon}. */
-  readonly doOpenManually: (projectId: backendModule.ProjectId) => void
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly doCloseEditor: () => void
   readonly doOpenEditor: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
+  const { backend, item, setItem, assetEvents, setProjectStartupInfo, dispatchAssetEvent } = props
   const { doCloseEditor, doOpenEditor } = props
-  const { backend } = backendProvider.useStrictBackend()
   const { session } = sessionProvider.useSession()
   const { user } = authProvider.useNonPartialUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
   const state = item.projectState.type
@@ -112,106 +108,106 @@ export default function ProjectIcon(props: ProjectIconProps) {
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [user, /* should never change */ setItem]
+    [/* should never change */ user, /* should never change */ setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
-    ((state: spinner.SpinnerState | null) => void) | null
-  >(null)
   const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
   const [isRunningInBackground, setIsRunningInBackground] = React.useState(
     item.projectState.executeAsync ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
-  const [toastId, setToastId] = React.useState<toast.Id | null>(null)
-  const [openProjectAbortController, setOpenProjectAbortController] =
-    React.useState<AbortController | null>(null)
-  const [closeProjectAbortController, setCloseProjectAbortController] =
-    React.useState<AbortController | null>(null)
+  const toastId: toast.Id = React.useId()
+  const isOpening =
+    backendModule.IS_OPENING[item.projectState.type] &&
+    item.projectState.type !== backendModule.ProjectState.placeholder
+  const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local && item.projectState.openedBy !== user?.email
+    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
+
+  const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
+  const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
+  const getProjectDetailsMutation = backendHooks.useBackendMutation(backend, 'getProjectDetails')
+  const waitUntilProjectIsReadyMutation = backendHooks.useBackendMutation(
+    backend,
+    'waitUntilProjectIsReady'
+  )
+  const openProjectMutate = openProjectMutation.mutateAsync
+  const getProjectDetailsMutate = getProjectDetailsMutation.mutateAsync
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
-      closeProjectAbortController?.abort()
-      setCloseProjectAbortController(null)
-      setState(backendModule.ProjectState.openInProgress)
-      try {
-        switch (backend.type) {
-          case backendModule.BackendType.remote: {
-            if (state !== backendModule.ProjectState.opened) {
-              if (!shouldRunInBackground) {
-                setToastId(toast.toast.loading(LOADING_MESSAGE))
-              }
-              await backend.openProject(
-                item.id,
-                {
-                  executeAsync: shouldRunInBackground,
-                  parentId: item.parentId,
-                  cognitoCredentials: session,
-                },
-                item.title
-              )
-            }
-            const abortController = new AbortController()
-            setOpenProjectAbortController(abortController)
-            await remoteBackend.waitUntilProjectIsReady(backend, item, abortController)
-            setToastId(null)
-            if (!abortController.signal.aborted) {
-              setState(oldState =>
-                oldState === backendModule.ProjectState.openInProgress
-                  ? backendModule.ProjectState.opened
-                  : oldState
-              )
-            }
-            break
-          }
-          case backendModule.BackendType.local: {
-            await backend.openProject(
-              item.id,
-              {
-                executeAsync: shouldRunInBackground,
-                parentId: item.parentId,
-                cognitoCredentials: null,
-              },
-              item.title
-            )
-            setState(oldState =>
-              oldState === backendModule.ProjectState.openInProgress
-                ? backendModule.ProjectState.opened
-                : oldState
-            )
-            break
-          }
+      if (state !== backendModule.ProjectState.opened) {
+        setState(backendModule.ProjectState.openInProgress)
+        try {
+          await openProjectMutate([
+            item.id,
+            {
+              executeAsync: shouldRunInBackground,
+              parentId: item.parentId,
+              cognitoCredentials: session,
+            },
+            item.title,
+          ])
+        } catch (error) {
+          const project = await getProjectDetailsMutate([item.id, item.parentId, item.title])
+          // `setState` is not used here as `project` contains the full state information,
+          // not just the state type.
+          setItem(object.merger({ projectState: project.state }))
+          toastAndLog('openProjectError', error, item.title)
+          setState(backendModule.ProjectState.closed)
         }
-      } catch (error) {
-        const project = await backend.getProjectDetails(item.id, item.parentId, item.title)
-        setItem(object.merger({ projectState: project.state }))
-        toastAndLog('openProjectError', error, item.title)
-        setState(backendModule.ProjectState.closed)
       }
     },
     [
       state,
-      backend,
       item,
-      closeProjectAbortController,
       session,
       toastAndLog,
+      /* should never change */ openProjectMutate,
+      /* should never change */ getProjectDetailsMutate,
       /* should never change */ setState,
       /* should never change */ setItem,
     ]
   )
 
-  React.useEffect(() => {
-    if (toastId != null) {
-      return () => {
+  const openEditorMutation = reactQuery.useMutation({
+    mutationKey: ['openEditor', item.id],
+    mutationFn: async (abortController: AbortController) => {
+      if (!isRunningInBackground && isCloud) {
+        toast.toast.loading(LOADING_MESSAGE, { toastId })
+      }
+      const project = await waitUntilProjectIsReadyMutation.mutateAsync([
+        item.id,
+        item.parentId,
+        item.title,
+        abortController,
+      ])
+      setProjectStartupInfo({
+        project,
+        projectAsset: item,
+        setProjectAsset: setItem,
+        backendType: backend.type,
+        accessToken: session?.accessToken ?? null,
+      })
+      if (!abortController.signal.aborted) {
         toast.toast.dismiss(toastId)
+        setState(backendModule.ProjectState.opened)
+      }
+    },
+  })
+  const openEditorMutate = openEditorMutation.mutate
+
+  React.useEffect(() => {
+    if (isOpening) {
+      const abortController = new AbortController()
+      openEditorMutate(abortController)
+      return () => {
+        abortController.abort()
       }
     } else {
       return
     }
-  }, [toastId])
+  }, [isOpening, openEditorMutate])
 
   React.useEffect(() => {
     // Ensure that the previous spinner state is visible for at least one frame.
@@ -221,50 +217,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
           ? REMOTE_SPINNER_STATE[state]
           : LOCAL_SPINNER_STATE[state]
       setSpinnerState(newSpinnerState)
-      onSpinnerStateChange?.(state === backendModule.ProjectState.closed ? null : newSpinnerState)
     })
-  }, [state, backend.type, onSpinnerStateChange])
-
-  React.useEffect(() => {
-    onSpinnerStateChange?.(spinner.SpinnerState.initial)
-    return () => {
-      onSpinnerStateChange?.(null)
-    }
-  }, [onSpinnerStateChange])
+  }, [state, backend.type])
 
   eventHooks.useEventHandler(assetEvents, event => {
     switch (event.type) {
-      case AssetEventType.newFolder:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newDatalink:
-      case AssetEventType.newSecret:
-      case AssetEventType.copy:
-      case AssetEventType.updateFiles:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
       case AssetEventType.openProject: {
         if (event.id !== item.id) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
             if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
-              void closeProject(false)
+              void closeProject()
             }
           }
         } else {
@@ -278,16 +241,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.closeProject: {
         if (event.id === item.id) {
           setShouldOpenWhenReady(false)
-          void closeProject(false)
+          void closeProject()
         }
         break
       }
-      case AssetEventType.newProject: {
-        if (event.placeholderId === key) {
-          setOnSpinnerStateChange(() => event.onSpinnerStateChange)
-        } else if (event.onSpinnerStateChange === onSpinnerStateChange) {
-          setOnSpinnerStateChange(null)
-        }
+      default: {
+        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
     }
@@ -304,40 +265,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
-  const closeProject = async (triggerOnClose = true) => {
-    if (triggerOnClose) {
+  const closeProject = async () => {
+    if (!isRunningInBackground) {
       doCloseEditor()
     }
-    setToastId(null)
+    toast.toast.dismiss(toastId)
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)
-    onSpinnerStateChange?.(null)
-    setOnSpinnerStateChange(null)
-    openProjectAbortController?.abort()
-    setOpenProjectAbortController(null)
-    const abortController = new AbortController()
-    setCloseProjectAbortController(abortController)
-    if (backendModule.IS_OPENING_OR_OPENED[state]) {
-      try {
-        if (
-          backend.type === backendModule.BackendType.local &&
-          state === backendModule.ProjectState.openInProgress
-        ) {
-          // Projects that are not opened cannot be closed.
-          // This is the only way to wait until the project is open.
-          await backend.openProject(item.id, null, item.title)
-        }
-        try {
-          await backend.closeProject(item.id, item.title)
-        } catch {
-          // Ignored. The project is already closed.
-        }
-      } finally {
-        if (!abortController.signal.aborted) {
-          setState(backendModule.ProjectState.closed)
-        }
-      }
-    }
+    await closeProjectMutation.mutateAsync([item.id, item.title])
   }
 
   switch (state) {
@@ -347,75 +282,96 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
       return (
-        <UnstyledButton
-          className="size-project-icon rounded-full"
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          noExtraClickZone
+          icon={PlayIcon}
+          aria-label={getText('openInEditor')}
+          tooltipPlacement="left"
+          className="size-project-icon border-0"
           onPress={() => {
-            unsetModal()
-            doOpenManually(item.id)
+            dispatchAssetEvent({
+              type: AssetEventType.openProject,
+              id: item.id,
+              shouldAutomaticallySwitchPage: true,
+              runInBackground: false,
+            })
           }}
-        >
-          <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
-        </UnstyledButton>
+        />
       )
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <UnstyledButton
-          isDisabled={isOtherUserUsingProject}
-          {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="size-project-icon rounded-full selectable enabled:active"
-          onPress={() => {
-            unsetModal()
-            void closeProject(!isRunningInBackground)
-          }}
-        >
-          <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
-            <Spinner size={ICON_SIZE_PX} state={spinnerState} />
-          </div>
-          <SvgMask
-            alt={getText('stopExecution')}
-            src={StopIcon}
-            className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
+        <div className="relative">
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            noExtraClickZone
+            isDisabled={isOtherUserUsingProject}
+            icon={StopIcon}
+            aria-label={getText('stopExecution')}
+            tooltipPlacement="left"
+            {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
+            className={tailwindMerge.twMerge(
+              'size-project-icon border-0 selectable enabled:active',
+              isRunningInBackground && 'text-green'
+            )}
+            onPress={closeProject}
           />
-        </UnstyledButton>
+          <Spinner
+            state={spinnerState}
+            className={tailwindMerge.twMerge(
+              'pointer-events-none absolute top-0 size-project-icon',
+              isRunningInBackground && 'text-green'
+            )}
+          />
+        </div>
       )
     case backendModule.ProjectState.opened:
       return (
-        <div>
-          <UnstyledButton
-            isDisabled={isOtherUserUsingProject}
-            {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="size-project-icon rounded-full selectable enabled:active"
-            onPress={() => {
-              unsetModal()
-              void closeProject(!isRunningInBackground)
-            }}
-          >
-            <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
-              <Spinner className="size-project-icon" state={spinnerState} />
-            </div>
-            <SvgMask
-              alt={getText('stopExecution')}
-              src={StopIcon}
-              className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
+        <div className="flex flex-row gap-0.5">
+          <div className="relative">
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
+              noExtraClickZone
+              isDisabled={isOtherUserUsingProject}
+              icon={StopIcon}
+              aria-label={getText('stopExecution')}
+              tooltipPlacement="left"
+              {...(isOtherUserUsingProject
+                ? { title: getText('otherUserIsUsingProjectError') }
+                : {})}
+              className={tailwindMerge.twMerge(
+                'size-project-icon border-0 selectable enabled:active',
+                isRunningInBackground && 'text-green'
+              )}
+              onPress={closeProject}
             />
-          </UnstyledButton>
+            <Spinner
+              state={spinnerState}
+              className={tailwindMerge.twMerge(
+                'pointer-events-none absolute top-0 size-project-icon',
+                isRunningInBackground && 'text-green'
+              )}
+            />
+          </div>
           {!isOtherUserUsingProject && !isRunningInBackground && (
-            <UnstyledButton
-              className="size-project-icon rounded-full"
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
+              noExtraClickZone
+              className="size-project-icon border-0"
+              icon={ArrowUpIcon}
+              aria-label={getText('openInEditor')}
+              tooltipPlacement="right"
               onPress={() => {
-                unsetModal()
                 doOpenEditor(true)
               }}
-            >
-              <SvgMask
-                alt={getText('openInEditor')}
-                src={ArrowUpIcon}
-                className="size-project-icon"
-              />
-            </UnstyledButton>
+            />
           )}
         </div>
       )

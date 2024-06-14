@@ -8,9 +8,12 @@ import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
+import org.enso.persist.Persistance.Reference
 import org.enso.pkg.QualifiedName
 
 import java.io.ObjectOutputStream
@@ -228,13 +231,30 @@ case class BindingsMap(
       case List()     => Left(ResolutionNotFound)
       case List(item) => resolveName(item)
       case firstModuleName :: rest =>
-        val consName = rest.last
-        val modNames = rest.init
-        resolveName(firstModuleName).flatMap(
-          resolveQualifiedNameIn(_, modNames, consName)
-        )
-
+        resolveName(firstModuleName).flatMap { firstModule =>
+          // This special handling is needed, because when resolving a local module name, we do not necessarily only look at _exported_ symbols, but overall locally defined symbols.
+          val isQualifiedLocalImport =
+            firstModule == ResolvedModule(currentModule)
+          if (isQualifiedLocalImport) {
+            resolveLocalName(rest)
+          } else {
+            val consName = rest.last
+            val modNames = rest.init
+            resolveQualifiedNameIn(firstModule, modNames, consName)
+          }
+        }
     }
+
+  private def resolveLocalName(
+    name: List[String]
+  ): Either[ResolutionError, ResolvedName] = name match {
+    case List() => Left(ResolutionNotFound)
+    case List(singleItem) =>
+      handleAmbiguity(findLocalCandidates(singleItem))
+    case firstName :: rest =>
+      handleAmbiguity(findLocalCandidates(firstName))
+        .flatMap(resolveQualifiedNameIn(_, rest.init, rest.last))
+  }
 
   private def findExportedSymbolsFor(
     name: String
@@ -715,16 +735,31 @@ object BindingsMap {
   /** A representation of a constructor.
     *
     * @param name the name of the constructor.
-    * @param arity the number of fields in the constructor.
-    * @param allFieldsDefaulted whether all fields provide a default value.
+    * @param arguments description of constructor's arguments
     * @param isProjectPrivate whether this constructor is project-private.
     */
   case class Cons(
     name: String,
-    arity: Int,
-    allFieldsDefaulted: Boolean,
+    arguments: List[Argument],
     isProjectPrivate: Boolean
-  )
+  ) {
+
+    /** The number of fields in the constructor. */
+    def arity: Int = arguments.length
+
+    /** Whether all fields provide a default value. */
+    def allFieldsDefaulted: Boolean = arguments.forall(_.hasDefaultValue)
+  }
+
+  case class Argument(
+    name: String,
+    hasDefaultValue: Boolean,
+    typReference: Reference[Expression]
+  ) {
+    def typ(): Option[Expression] = Option(
+      typReference.get(classOf[Expression])
+    )
+  }
 
   /** A representation of a sum type
     *
@@ -739,6 +774,33 @@ object BindingsMap {
     builtinType: Boolean
   ) extends DefinedEntity {
     override def canExport: Boolean = true
+  }
+
+  object Type {
+    def fromIr(ir: Definition.Type, isBuiltinType: Boolean): Type =
+      BindingsMap.Type(
+        ir.name.name,
+        ir.params.map(_.name.name),
+        ir.members.map(m =>
+          Cons(
+            m.name.name,
+            m.arguments.map { arg =>
+              val ascribedType: Reference[Expression] =
+                arg.ascribedType match {
+                  case Some(value) => Reference.of(value, true)
+                  case None        => Reference.none()
+                }
+              BindingsMap.Argument(
+                arg.name.name,
+                arg.defaultValue.isDefined,
+                ascribedType
+              )
+            },
+            m.isPrivate
+          )
+        ),
+        isBuiltinType
+      )
   }
 
   /** A representation of an imported polyglot symbol.
@@ -770,16 +832,15 @@ object BindingsMap {
     }
 
     /** @inheritdoc */
-    override def toAbstract: ResolvedType = {
+    override def toAbstract: ResolvedType =
       this.copy(module = module.toAbstract)
-    }
 
     /** @inheritdoc */
     override def toConcrete(
       moduleMap: ModuleMap
-    ): Option[ResolvedType] = {
-      module.toConcrete(moduleMap).map(module => this.copy(module = module))
-    }
+    ): Option[ResolvedType] = for {
+      concreteModule <- module.toConcrete(moduleMap)
+    } yield ResolvedType(concreteModule, tp)
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(tp.name)
@@ -866,14 +927,15 @@ object BindingsMap {
     override def findExportedSymbolsFor(name: String): List[ResolvedName] =
       exportedSymbols.getOrElse(name, List())
 
-    override def exportedSymbols: Map[String, List[ResolvedName]] = module
-      .unsafeAsModule("must be a module to run resolution")
-      .getIr
-      .unsafeGetMetadata(
-        BindingAnalysis,
-        "Wrong pass ordering. Running resolution on an unparsed module."
-      )
-      .exportedSymbols
+    override def exportedSymbols: Map[String, List[ResolvedName]] =
+      module
+        .unsafeAsModule("must be a module to run resolution")
+        .getIr
+        .unsafeGetMetadata(
+          BindingAnalysis,
+          "Wrong pass ordering. Running resolution on an unparsed module."
+        )
+        .exportedSymbols
   }
 
   /** A representation of a name being resolved to a method call.

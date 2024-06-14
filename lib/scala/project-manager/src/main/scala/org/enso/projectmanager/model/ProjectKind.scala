@@ -1,17 +1,19 @@
 package org.enso.projectmanager.model
 
-import enumeratum._
+import io.circe.{Decoder, Encoder}
 
 /** Enum that distinguishes between different kinds of projects.
   */
-sealed trait ProjectKind extends EnumEntry
-
-object ProjectKind extends Enum[ProjectKind] with CirceEnum[ProjectKind] {
+object ProjectKinds extends Enumeration {
+  type ProjectKind = Value
 
   /** Enum value for user projects.
     */
-  case object UserProject extends ProjectKind
+  val UserProject = Value
 
-  override def values = findValues
+  implicit val genderDecoder: Decoder[ProjectKind] =
+    Decoder.decodeEnumeration(ProjectKinds)
+  implicit val genderEncoder: Encoder[ProjectKind] =
+    Encoder.encodeEnumeration(ProjectKinds)
 
 }

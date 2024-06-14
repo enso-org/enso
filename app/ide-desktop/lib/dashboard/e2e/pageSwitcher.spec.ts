@@ -15,12 +15,6 @@ test.test('page switcher', ({ page }) =>
           await test.expect(actions.locateSamplesList(thePage)).not.toBeVisible()
           await test.expect(actions.locateEditor(thePage)).not.toBeVisible()
         })
-        .goToPage.home()
-        .do(async thePage => {
-          await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()
-          await test.expect(actions.locateSamplesList(thePage)).toBeVisible()
-          await test.expect(actions.locateEditor(thePage)).not.toBeVisible()
-        })
         .goToPage.editor()
         .do(async thePage => {
           await test.expect(actions.locateDriveView(thePage)).not.toBeVisible()

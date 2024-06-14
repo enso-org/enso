@@ -30,7 +30,7 @@ const showColorPicker = ref(false)
 </script>
 
 <template>
-  <div class="CircularMenu">
+  <div class="CircularMenu" :class="{ partial: !props.isFullMenuVisible }">
     <div
       v-if="!showColorPicker"
       class="circle menu"
@@ -239,7 +239,7 @@ const showColorPicker = ref(false)
 
 .below-slot5 {
   position: absolute;
-  top: calc(var(--outer-diameter) - 24px);
+  top: calc(var(--outer-diameter) - 32px);
   pointer-events: all;
 }
 

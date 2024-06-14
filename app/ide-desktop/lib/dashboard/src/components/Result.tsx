@@ -1,44 +1,58 @@
-/**
- * @file A component for displaying the result of an operation.
- */
+/** @file Display the result of an operation. */
 import * as React from 'react'
 
-import * as tw from 'tailwind-merge'
+import * as tailwindMerge from 'tailwind-merge'
 
 import Success from 'enso-assets/check_mark.svg'
 import Error from 'enso-assets/cross.svg'
 
+import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
 
-import * as aria from './aria'
+// =================
+// === Constants ===
+// =================
 
-/**
- * The possible statuses for a result.
- */
+const STATUS_ICON_MAP: Readonly<Record<Status, StatusIcon>> = {
+  error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
+  success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
+}
+
+// ==============
+// === Status ===
+// ==============
+
+/** Possible statuses for a result. */
 export type Status = 'error' | 'success'
 
-/**
- * The props for the Result component.
- */
+// ==================
+// === StatusIcon ===
+// ==================
+
+/** The corresponding icon and color for each status. */
+interface StatusIcon {
+  readonly icon: string
+  readonly colorClassName: string
+  readonly bgClassName: string
+}
+
+// ==============
+// === Result ===
+// ==============
+
+/** Props for a {@link Result}. */
 export interface ResultProps extends React.PropsWithChildren {
-  /**
-   * The class name for the component.
-   */
   readonly className?: string
   readonly title?: React.JSX.Element | string
   readonly subtitle?: React.JSX.Element | string
-  /**
-   * The status of the result.
-   * @default 'success'
-   */
+  /** The status of the result.
+   * @default 'success' */
   readonly status?: React.ReactElement | Status
   readonly icon?: string | false
   readonly testId?: string
 }
 
-/**
- * A component for displaying the result of an operation.
- */
+/** Display the result of an operation. */
 export function Result(props: ResultProps) {
   const {
     title,
@@ -55,7 +69,7 @@ export function Result(props: ResultProps) {
 
   return (
     <section
-      className={tw.twMerge(
+      className={tailwindMerge.twMerge(
         'm-auto flex flex-col items-center justify-center px-6 py-4 text-center',
         className
       )}
@@ -65,14 +79,14 @@ export function Result(props: ResultProps) {
         <>
           {statusIcon != null ? (
             <div
-              className={tw.twJoin(
+              className={tailwindMerge.twMerge(
                 'mb-4 flex rounded-full bg-opacity-25 p-1 text-green',
                 statusIcon.bgClassName
               )}
             >
               <SvgMask
                 src={icon ?? statusIcon.icon}
-                className={tw.twJoin('h-16 w-16 flex-none', statusIcon.colorClassName)}
+                className={tailwindMerge.twMerge('h-16 w-16 flex-none', statusIcon.colorClassName)}
               />
             </div>
           ) : (
@@ -82,32 +96,21 @@ export function Result(props: ResultProps) {
       ) : null}
 
       {typeof title === 'string' ? (
-        <aria.Heading level={2} className="mb-2 text-2xl leading-10">
+        <aria.Heading level={2} className="mb-2 text-2xl leading-10 text-primary/60">
           {title}
         </aria.Heading>
       ) : (
         title
       )}
 
-      <aria.Text elementType="p" className="max-w-[750px] text-balance text-lg leading-6">
+      <aria.Text
+        elementType="p"
+        className="max-w-[750px] text-balance text-lg leading-6 text-primary/60"
+      >
         {subtitle}
       </aria.Text>
 
       <div className="mt-6 w-full">{children}</div>
     </section>
   )
-}
-
-/**
- * The icon and color for each status.
- */
-interface StatusIcon {
-  readonly icon: string
-  readonly colorClassName: string
-  readonly bgClassName: string
-}
-
-const STATUS_ICON_MAP: Record<Status, StatusIcon> = {
-  error: { icon: Error, colorClassName: 'text-red-500', bgClassName: 'bg-red-500' },
-  success: { icon: Success, colorClassName: 'text-green-500', bgClassName: 'bg-green' },
 }

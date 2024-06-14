@@ -55,12 +55,22 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
 export const DatalinkId = newtype.newtypeConstructor<DatalinkId>()
 
+/** Unique identifier for a version of an S3 object. */
+export type S3ObjectVersionId = newtype.Newtype<string, 'S3ObjectVersionId'>
+export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
+
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
 /** Unique identifier for a payment checkout session. */
 export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
 export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
+
+/**
+ * Unique identifier for a subscription.
+ */
+export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
+export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
 
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
@@ -438,6 +448,16 @@ export interface ResourceUsage {
   readonly storage: number
 }
 
+/**
+ * Metadata for a subscription.
+ */
+export interface Subscription {
+  readonly id?: SubscriptionId
+  readonly plan?: Plan
+  readonly trialStart?: dateTime.Rfc3339DateTime | null
+  readonly trialEnd?: dateTime.Rfc3339DateTime | null
+}
+
 /** Metadata for an organization. */
 export interface OrganizationInfo {
   readonly id: OrganizationId
@@ -446,6 +466,7 @@ export interface OrganizationInfo {
   readonly website: HttpsUrl | null
   readonly address: string | null
   readonly picture: HttpsUrl | null
+  readonly subscription: Subscription
 }
 
 /** A user group and its associated metadata. */
@@ -913,7 +934,7 @@ export const assetIsFile = assetIsType(AssetType.file)
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
-  readonly versionId: string
+  readonly versionId: S3ObjectVersionId
   readonly lastModified: dateTime.Rfc3339DateTime
   readonly isLatest: boolean
   /** An archive containing the all the project files object in the S3 bucket. */
@@ -1248,6 +1269,8 @@ export default abstract class Backend {
   abstract restoreUser(): Promise<void>
   /** Delete the current user. */
   abstract deleteUser(): Promise<void>
+  /** Delete a user. */
+  abstract removeUser(userId: UserId): Promise<void>
   /** Upload a new profile picture for the current user. */
   abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
   /** Set the list of groups a user is in. */
@@ -1308,6 +1331,18 @@ export default abstract class Backend {
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
+  /** Restore a project from a different version. */
+  abstract restoreProject(
+    projectId: ProjectId,
+    versionId: S3ObjectVersionId,
+    title: string
+  ): Promise<void>
+  /** Duplicate a specific version of a project. */
+  abstract duplicateProject(
+    projectId: ProjectId,
+    versionId: S3ObjectVersionId,
+    title: string
+  ): Promise<CreatedProject>
   /** Return project details. */
   abstract getProjectDetails(
     projectId: ProjectId,
@@ -1380,4 +1415,17 @@ export default abstract class Backend {
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
   /** List events in the organization's audit log. */
   abstract getLogEvents(): Promise<Event[]>
+  /** Log an event that will be visible in the organization audit log. */
+  abstract logEvent(
+    message: string,
+    projectId?: string | null,
+    metadata?: object | null
+  ): Promise<void>
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  abstract waitUntilProjectIsReady(
+    projectId: ProjectId,
+    directory: DirectoryId | null,
+    title: string,
+    abortController?: AbortController
+  ): Promise<Project>
 }

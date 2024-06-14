@@ -7,7 +7,6 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -17,12 +16,12 @@ import UserMenu from '#/layouts/UserMenu'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 // ===============
 // === UserBar ===
@@ -30,6 +29,7 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
+  readonly backend: Backend | null
   /** When `true`, the element occupies space in the layout but is not visible.
    * Defaults to `false`. */
   readonly invisible?: boolean
@@ -44,11 +44,10 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { invisible = false, page, setPage, setIsHelpChatOpen } = props
+  const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const self =
     user != null
@@ -57,13 +56,13 @@ export default function UserBar(props: UserBarProps) {
         ) ?? null
       : null
   const shouldShowShareButton =
-    backend.type === backendModule.BackendType.remote &&
+    backend != null &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
   const shouldShowInviteButton =
-    sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
+    backend != null && sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -85,7 +84,7 @@ export default function UserBar(props: UserBarProps) {
 
           {shouldShowInviteButton && (
             <ariaComponents.DialogTrigger>
-              <ariaComponents.Button rounded="full" size="xsmall" variant="tertiary">
+              <ariaComponents.Button size="small" variant="tertiary">
                 {getText('invite')}
               </ariaComponents.Button>
 
@@ -93,21 +92,19 @@ export default function UserBar(props: UserBarProps) {
             </ariaComponents.DialogTrigger>
           )}
 
-          <ariaComponents.Button
-            variant="primary"
-            rounded="full"
-            size="xsmall"
-            href={appUtils.SUBSCRIBE_PATH}
-          >
+          <ariaComponents.Button variant="primary" size="small" href={appUtils.SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </ariaComponents.Button>
           {shouldShowShareButton && (
-            <UnstyledButton
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
               className="text my-auto rounded-full bg-share px-button-x text-inversed"
               aria-label={getText('shareButtonAltText')}
               onPress={() => {
                 setModal(
                   <ManagePermissionsModal
+                    backend={backend}
                     item={projectAsset}
                     setItem={setProjectAsset}
                     self={self}
@@ -118,9 +115,11 @@ export default function UserBar(props: UserBarProps) {
               }}
             >
               <aria.Text slot="label">{getText('share')}</aria.Text>
-            </UnstyledButton>
+            </ariaComponents.Button>
           )}
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
             aria-label={getText('userMenuAltText')}
             onPress={() => {
@@ -138,7 +137,7 @@ export default function UserBar(props: UserBarProps) {
               height={28}
               width={28}
             />
-          </UnstyledButton>
+          </ariaComponents.Button>
           {/* Required for shortcuts to work. */}
           <div className="hidden">
             <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />

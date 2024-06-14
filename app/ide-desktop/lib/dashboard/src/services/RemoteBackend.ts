@@ -3,6 +3,8 @@
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
+import * as detect from 'enso-common/src/detect'
+
 import type * as text from '#/text'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
@@ -30,6 +32,9 @@ const STATUS_SERVER_ERROR = 500
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
 
+/** The interval between requests checking whether a project is ready to be opened in the IDE. */
+const CHECK_STATUS_INTERVAL_MS = 5000
+
 // =============
 // === Types ===
 // =============
@@ -49,35 +54,6 @@ interface RemoteBackendError {
 /** Whether a response has a success HTTP status code (200-299). */
 function responseIsSuccessful(response: Response) {
   return response.status >= STATUS_SUCCESS_FIRST && response.status <= STATUS_SUCCESS_LAST
-}
-
-// ===============================
-// === waitUntilProjectIsReady ===
-// ===============================
-
-/** The interval between requests checking whether the IDE is ready. */
-const CHECK_STATUS_INTERVAL_MS = 5000
-
-/** Return a {@link Promise} that resolves only when a project is ready to open. */
-export async function waitUntilProjectIsReady(
-  remoteBackend: Backend,
-  item: backend.ProjectAsset,
-  abortController: AbortController = new AbortController()
-) {
-  let project = await remoteBackend.getProjectDetails(item.id, item.parentId, item.title)
-  if (!backend.IS_OPENING_OR_OPENED[project.state.type]) {
-    await remoteBackend.openProject(item.id, null, item.title)
-  }
-  let nextCheckTimestamp = 0
-  while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
-    await new Promise<void>(resolve => {
-      const delayMs = nextCheckTimestamp - Number(new Date())
-      setTimeout(resolve, Math.max(0, delayMs))
-    })
-    nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await remoteBackend.getProjectDetails(item.id, item.parentId, item.title)
-  }
-  return project
 }
 
 // =============
@@ -234,9 +210,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Restore a user that has been soft-deleted.
-   */
+  /** Restore a user that has been soft-deleted. */
   async restoreUser(): Promise<void> {
     const response = await this.put(remoteBackendPaths.UPDATE_CURRENT_USER_PATH, {
       clearRemoveAt: true,
@@ -258,6 +232,12 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Delete a user.
+   * FIXME: Not implemented on backend yet. */
+  override async removeUser(): Promise<void> {
+    return await this.throw(null, 'removeUserBackendError')
+  }
+
   /** Invite a new user to the organization by email. */
   override async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
     const response = await this.post(remoteBackendPaths.INVITE_USER_PATH, body)
@@ -268,9 +248,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * List all invitations.
-   */
+  /** List all invitations. */
   override async listInvitations(): Promise<readonly backend.Invitation[]> {
     const response = await this.get<backend.ListInvitationsResponseBody>(
       remoteBackendPaths.INVITATION_PATH
@@ -283,9 +261,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Delete an invitation.
-   */
+  /** Delete an invitation. */
   override async deleteInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.delete(remoteBackendPaths.INVITATION_PATH, { userEmail })
 
@@ -296,9 +272,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Resend an invitation to a user.
-   */
+  /** Resend an invitation to a user. */
   override async resendInvitation(userEmail: backend.EmailAddress): Promise<void> {
     const response = await this.post(remoteBackendPaths.INVITATION_PATH, {
       userEmail,
@@ -621,6 +595,37 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'createProjectBackendError', body.projectName)
     } else {
       return await response.json()
+    }
+  }
+
+  /** Restore a project from a different version. */
+  override async restoreProject(
+    projectId: backend.ProjectId,
+    versionId: backend.S3ObjectVersionId,
+    title: string
+  ): Promise<void> {
+    const path = remoteBackendPaths.restoreProjectPath(projectId)
+    const response = await this.post(path, { versionId })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'restoreProjectBackendError', title)
+    } else {
+      return
+    }
+  }
+
+  /** Duplicate a specific version of a project. */
+  override async duplicateProject(
+    projectId: backend.ProjectId,
+    versionId: backend.S3ObjectVersionId,
+    title: string
+  ): Promise<backend.CreatedProject> {
+    const path = remoteBackendPaths.duplicateProjectPath(projectId)
+    const response = await this.post<backend.CreatedProject>(path, { versionId })
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'duplicateProjectBackendError', title)
+    } else {
+      const json = await response.json()
+      return json
     }
   }
 
@@ -1031,6 +1036,13 @@ export default class RemoteBackend extends Backend {
 
   /** Log an event that will be visible in the organization audit log. */
   async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
+    // Prevent events from being logged in dev mode, since we are often using production environment
+    // and are polluting real logs.
+    if (detect.IS_DEV_MODE && process.env.ENSO_CLOUD_ENVIRONMENT === 'production') {
+      // eslint-disable-next-line no-restricted-syntax
+      return
+    }
+
     const path = remoteBackendPaths.POST_LOG_EVENT_PATH
     const response = await this.post(
       path,
@@ -1050,6 +1062,23 @@ export default class RemoteBackend extends Backend {
       // eslint-disable-next-line no-restricted-syntax
       return this.throw(response, 'logEventBackendError', message)
     }
+  }
+
+  /** Return a {@link Promise} that resolves only when a project is ready to open. */
+  override async waitUntilProjectIsReady(
+    projectId: backend.ProjectId,
+    directory: backend.DirectoryId | null,
+    title: string,
+    abortController: AbortController = new AbortController()
+  ) {
+    let project = await this.getProjectDetails(projectId, directory, title)
+    while (!abortController.signal.aborted && project.state.type !== backend.ProjectState.opened) {
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, CHECK_STATUS_INTERVAL_MS)
+      })
+      project = await this.getProjectDetails(projectId, directory, title)
+    }
+    return project
   }
 
   /** Get the default version given the type of version (IDE or backend). */

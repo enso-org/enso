@@ -547,6 +547,52 @@ add_specs suite_builder =
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete
 
+        group_builder.specify "should report flipped BOM when reading with specified UTF-16 encoding" <|
+            f = File.create_temporary_file "flipped-bom" ".csv"
+            format = Delimited_Format.Delimited ',' encoding=Encoding.utf_16_le
+            flipped_bom = [-2, -1]
+            bytes = flipped_bom + ('A,B\n1,2'.bytes Encoding.utf_16_le)
+            bytes.write_bytes f . should_succeed
+            r = f.read format
+            # The flipped BOM is not a valid BOM so it is retained in the data and will be contained in column name:
+            r.column_names . should_equal [(Text.from_codepoints [65534]) + "A", "B"]
+            w = Problems.expect_only_warning Encoding_Error r
+            w.to_display_text . should_contain "BOM"
+
+        ## If the Delimited config has Encoding.default, the encoding for read will be determined by BOM and Win-1252 fallback heuristics.
+           The same encoding should be used for writing, to ensure that when the resulting file is read, all content is correctly decoded.
+        group_builder.specify "should use the same effective encoding for writing as the one that would be used for reading" <|
+            f = File.create_temporary_file "append-detect" ".csv"
+            Test.with_clue "UTF-16 detected by BOM: " <|
+                bom = [-1, -2]
+                initial_bytes = bom + ('A,B\n1,ąęćś\n2,💯'.bytes Encoding.utf_16_le)
+                initial_bytes.write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+
+                (Table.new [["A", [3, 4]], ["B", ["żółw", "🐢"]]]).write f on_existing_file=Existing_File_Behavior.Append . should_succeed
+
+                # Now we read in auto mode, the part appended to the table should have been correctly written in UTF-16
+                t = f.read
+                t.should_be_a Table
+                t.column_names . should_equal ["A", "B"]
+                t.at "A" . to_vector . should_equal [1, 2, 3, 4]
+                t.at "B" . to_vector . should_equal ["ąęćś", "💯", "żółw", "🐢"]
+
+            Test.with_clue "Windows-1252 fallback: " <|
+                initial_bytes = 'A,B\n1,a\n2,b\n3,¥\n4,d'.bytes Encoding.windows_1252
+                initial_bytes.write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+
+                r = (Table.new [["A", [5, 6]], ["B", ["æ", "💯"]]]).write f on_existing_file=Existing_File_Behavior.Append
+                # Should report problem writing the 💯 character, because selected Windows-1252 encoding does not support it
+                Problems.expect_only_warning Encoding_Error r
+
+                # Now we read in auto mode, the part appended to the table should have been correctly written in Windows-1252
+                t = f.read
+                t.should_be_a Table
+                t.column_names . should_equal ["A", "B"]
+                t.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+                # The æ should have been correctly written in Win-1252, the 💯 is replaced by `?`.
+                t.at "B" . to_vector . should_equal ["a", "b", "¥", "d", "æ", "?"]
+
         group_builder.specify "should fail if the target file is read-only" <|
             f = enso_project.data / "transient" / "permission.csv"
             f.delete_if_exists
@@ -605,4 +651,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

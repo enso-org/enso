@@ -1,14 +1,10 @@
-/**
- * @file
- *
- * Modal for accepting the terms of service.
- */
+/** @file Modal for accepting the terms of service. */
 
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router'
-import * as twMerge from 'tailwind-merge'
+import * as tailwindMerge from 'tailwind-merge'
 import * as z from 'zod'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -20,15 +16,24 @@ import * as ariaComponents from '#/components/AriaComponents'
 
 import LocalStorage from '#/utilities/LocalStorage'
 
+// =================
+// === Constants ===
+// =================
+
+const TEN_MINUTES_MS = 600_000
+const TERMS_OF_SERVICE_SCHEMA = z.object({ versionHash: z.string() })
+
+// ============================
+// === Global configuration ===
+// ============================
+
 declare module '#/utilities/LocalStorage' {
-  /**
-   * Contains the latest terms of service version hash that the user has accepted.
-   */
+  /** Metadata containing the version hash of the terms of service that the user has accepted. */
   interface LocalStorageData {
     readonly termsOfService: z.infer<typeof TERMS_OF_SERVICE_SCHEMA> | null
   }
 }
-const TERMS_OF_SERVICE_SCHEMA = z.object({ versionHash: z.string() })
+
 LocalStorage.registerKey('termsOfService', { schema: TERMS_OF_SERVICE_SCHEMA })
 
 export const latestTermsOfService = reactQuery.queryOptions({
@@ -48,27 +53,47 @@ export const latestTermsOfService = reactQuery.queryOptions({
       }),
   refetchOnWindowFocus: true,
   refetchIntervalInBackground: true,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  refetchInterval: 1000 * 60 * 10, // 10 minutes
+  refetchInterval: TEN_MINUTES_MS,
 })
 
-/**
- * Modal for accepting the terms of service.
- */
+// ===========================
+// === TermsOfServiceModal ===
+// ===========================
+
+/** Modal for accepting the terms of service. */
 export function TermsOfServiceModal() {
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const checkboxId = React.useId()
   const { session } = authProvider.useAuth()
 
-  const eula = reactQuery.useSuspenseQuery(latestTermsOfService)
-
-  const latestVersionHash = eula.data.hash
   const localVersionHash = localStorage.get('termsOfService')?.versionHash
+  const { data: latestVersionHash } = reactQuery.useSuspenseQuery({
+    ...latestTermsOfService,
+    // If the user has already accepted EULA, we don't need to
+    // block user interaction with the app while we fetch the latest version.
+    // We can use the local version hash as the initial data.
+    // and refetch in the background to check for updates.
+    ...(localVersionHash != null && {
+      initialData: { hash: localVersionHash },
+      initialDataUpdatedAt: 0,
+    }),
+    select: data => data.hash,
+  })
 
   const isLatest = latestVersionHash === localVersionHash
   const isAccepted = localVersionHash != null
   const shouldDisplay = !(isAccepted && isLatest)
+
+  const formSchema = ariaComponents.Form.useFormSchema(schema =>
+    schema.object({
+      agree: schema
+        .boolean()
+        // we accept only true
+        .refine(value => value, getText('licenseAgreementCheckboxError')),
+      hash: schema.string(),
+    })
+  )
 
   if (shouldDisplay) {
     return (
@@ -78,76 +103,61 @@ export function TermsOfServiceModal() {
           isKeyboardDismissDisabled
           isDismissable={false}
           hideCloseButton
-          modalProps={{ isOpen: true }}
+          modalProps={{ defaultOpen: true }}
           testId="terms-of-service-modal"
           id="terms-of-service-modal"
         >
           <ariaComponents.Form
+            schema={formSchema}
+            defaultValues={{ agree: false, hash: latestVersionHash }}
             testId="terms-of-service-form"
-            schema={ariaComponents.Form.schema.object({
-              agree: ariaComponents.Form.schema
-                .boolean()
-                // we accept only true
-                .refine(value => value, getText('licenseAgreementCheckboxError')),
-            })}
-            onSubmit={() => {
-              localStorage.set('termsOfService', { versionHash: latestVersionHash })
+            method="dialog"
+            onSubmit={({ hash }) => {
+              localStorage.set('termsOfService', { versionHash: hash })
             }}
           >
-            {({ register, formState }) => {
-              const agreeError = formState.errors.agree
-              const hasError = formState.errors.agree != null
+            {({ register }) => (
+              <>
+                <ariaComponents.Form.Field name="agree">
+                  {({ isInvalid }) => (
+                    <>
+                      <div className="flex w-full items-center gap-1">
+                        <aria.Input
+                          type="checkbox"
+                          className={tailwindMerge.twMerge(
+                            'flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2',
+                            isInvalid && 'border-red-700 text-red-500 outline-red-500'
+                          )}
+                          id={checkboxId}
+                          data-testid="terms-of-service-checkbox"
+                          {...register('agree')}
+                        />
 
-              const checkboxRegister = register('agree')
-
-              return (
-                <>
-                  <div className="pb-6 pt-2">
-                    <div className="mb-1">
-                      <div className="flex items-center gap-1.5 text-sm">
-                        <div className="mt-0">
-                          <aria.Input
-                            type="checkbox"
-                            className={twMerge.twMerge(
-                              `flex size-4 cursor-pointer overflow-clip rounded-lg border border-primary outline-primary focus-visible:outline focus-visible:outline-2 ${hasError ? 'border-red-700 text-red-500 outline-red-500' : ''}`
-                            )}
-                            id={checkboxId}
-                            aria-invalid={hasError}
-                            {...checkboxRegister}
-                            onInput={event => {
-                              void checkboxRegister.onChange(event)
-                            }}
-                            data-testid="terms-of-service-checkbox"
-                          />
-                        </div>
-
-                        <aria.Label htmlFor={checkboxId} className="text-sm">
-                          {getText('licenseAgreementCheckbox')}
-                        </aria.Label>
+                        <label htmlFor={checkboxId}>
+                          <ariaComponents.Text>
+                            {getText('licenseAgreementCheckbox')}
+                          </ariaComponents.Text>
+                        </label>
                       </div>
 
-                      {agreeError && (
-                        <p className="m-0 text-xs text-red-700" role="alert">
-                          {agreeError.message}
-                        </p>
-                      )}
-                    </div>
+                      <ariaComponents.Button
+                        variant="link"
+                        target="_blank"
+                        href="https://enso.org/eula"
+                      >
+                        {getText('viewLicenseAgreement')}
+                      </ariaComponents.Button>
+                    </>
+                  )}
+                </ariaComponents.Form.Field>
 
-                    <ariaComponents.Button
-                      variant="link"
-                      target="_blank"
-                      href="https://enso.org/eula"
-                    >
-                      {getText('viewLicenseAgreement')}
-                    </ariaComponents.Button>
-                  </div>
+                <ariaComponents.Form.FormError />
 
-                  <ariaComponents.Form.FormError />
-
-                  <ariaComponents.Form.Submit>{getText('accept')}</ariaComponents.Form.Submit>
-                </>
-              )
-            }}
+                <ariaComponents.Form.Submit fullWidth>
+                  {getText('accept')}
+                </ariaComponents.Form.Submit>
+              </>
+            )}
           </ariaComponents.Form>
         </ariaComponents.Dialog>
       </>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import TooltipTrigger from '@/components/TooltipTrigger.vue'
+
 /**
  * A button. Supports toggling and disabled state.
  *
@@ -10,7 +12,7 @@
  */
 
 const toggledOn = defineModel<boolean>({ default: undefined })
-const props = defineProps<{ disabled?: boolean | undefined }>()
+const props = defineProps<{ disabled?: boolean | undefined; title?: string | undefined }>()
 
 function onClick() {
   if (!props.disabled && toggledOn.value != null) toggledOn.value = !toggledOn.value
@@ -18,14 +20,23 @@ function onClick() {
 </script>
 
 <template>
-  <button
-    class="MenuButton"
-    :class="{ toggledOn, toggledOff: toggledOn === false, disabled }"
-    :disabled="disabled ?? false"
-    @click.stop="onClick"
-  >
-    <slot />
-  </button>
+  <TooltipTrigger>
+    <template #default="triggerProps">
+      <button
+        class="MenuButton clickable"
+        :aria-label="props.title ?? ''"
+        :class="{ toggledOn, toggledOff: toggledOn === false, disabled }"
+        :disabled="disabled ?? false"
+        v-bind="triggerProps"
+        @click.stop="onClick"
+      >
+        <slot />
+      </button>
+    </template>
+    <template v-if="$slots.tooltip || props.title" #tooltip>
+      <slot name="tooltip">{{ props.title }}</slot>
+    </template>
+  </TooltipTrigger>
 </template>
 
 <style scoped>
@@ -37,7 +48,6 @@ function onClick() {
   padding: 4px;
   border-radius: var(--radius-full);
   border: none;
-  cursor: pointer;
   transition: background-color 0.3s;
   &:hover {
     background-color: var(--color-menu-entry-hover-bg);

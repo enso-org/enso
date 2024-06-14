@@ -233,7 +233,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       var outputRedirect = new ByteArrayOutputStream();
       var redirectConfigWithStrictErrors =
           new CompilerConfig(
-              false, false, true, true, scala.Option.apply(new PrintStream(outputRedirect)));
+              false, false, true, false, true, scala.Option.apply(new PrintStream(outputRedirect)));
       var moduleContext =
           new ModuleContext(
               module.asCompilerModule(),
@@ -265,7 +265,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =
               new IrToTruffle(
-                  context, request.getSource(), m.getScope(), redirectConfigWithStrictErrors);
+                  context,
+                  request.getSource(),
+                  m.getScopeBuilder(),
+                  redirectConfigWithStrictErrors);
           exprNode = toTruffle.runInline(ir, sco, "<inline_source>");
         } else {
           exprNode = null;

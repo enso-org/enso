@@ -123,12 +123,12 @@ export function locateCreateButton(page: test.Locator | test.Page) {
 
 /** Find a button to open the editor (if any) on the current page. */
 export function locatePlayOrOpenProjectButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Open in editor')
+  return page.getByLabel('Open in editor')
 }
 
 /** Find a button to close the project (if any) on the current page. */
 export function locateStopProjectButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Stop execution')
+  return page.getByLabel('Stop execution')
 }
 
 /** Find all labels in the labels panel (if any) on the current page. */
@@ -216,7 +216,7 @@ export function locateNewLabelButton(page: test.Locator | test.Page) {
 
 /** Find an "upgrade" button (if any) on the current page. */
 export function locateUpgradeButton(page: test.Locator | test.Page) {
-  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade')
+  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade').first()
 }
 
 /** Find a not enabled stub view (if any) on the current page. */
@@ -780,26 +780,6 @@ export async function passTermsAndConditionsDialog({ page }: MockParams) {
   }
 }
 
-// ========================
-// === mockIDEContainer ===
-// ========================
-
-/** Make the IDE container have a non-zero size. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
-export async function mockIDEContainer({ page }: MockParams) {
-  await test.test.step('Mock IDE container', async () => {
-    await page.evaluate(() => {
-      const ideContainer = document.getElementById('app')
-      if (ideContainer) {
-        ideContainer.style.position = 'absolute'
-        ideContainer.style.height = '100vh'
-        ideContainer.style.width = '100vw'
-      }
-    })
-  })
-}
-
 // ===============
 // === mockApi ===
 // ===============
@@ -820,7 +800,6 @@ export async function mockAll({ page }: MockParams) {
     const api = await mockApi({ page })
     await mockIsInPlaywrightTest({ page })
     await mockDate({ page })
-    await mockIDEContainer({ page })
     return { api, pageActions: new LoginPageActions(page) }
   })
 }
@@ -836,16 +815,10 @@ export async function mockAllAndLogin({ page }: MockParams) {
   return await test.test.step('Execute all mocks and login', async () => {
     const mocks = await mockAll({ page })
     await login({ page })
-
     await passTermsAndConditionsDialog({ page })
-
-    // This MUST run after login because the element's styles are reset when the browser
-    // is navigated to another page.
-    await mockIDEContainer({ page })
-    // This MUST also run after login because globals are reset when the browser
+    // This MUST run after login because globals are reset when the browser
     // is navigated to another page.
     await mockIsInPlaywrightTest({ page })
-
     return { ...mocks, pageActions: new DrivePageActions(page) }
   })
 }

@@ -18,7 +18,7 @@ export async function goToGraph(page: Page, closeDocPanel: boolean = true) {
   // Wait until nodes are loaded.
   await expect(locate.graphNode(page)).toExist()
   // Wait for position initialization
-  await expectNodePositionsInitialized(page, 64)
+  await expectNodePositionsInitialized(page, 72)
 }
 
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {

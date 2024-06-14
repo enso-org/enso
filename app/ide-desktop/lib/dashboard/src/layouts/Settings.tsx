@@ -3,10 +3,9 @@ import * as React from 'react'
 
 import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
@@ -24,7 +23,7 @@ import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
 
-import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 
@@ -32,64 +31,42 @@ import * as array from '#/utilities/array'
 // === Settings ===
 // ================
 
+/** Props for a {@link Settings}. */
+export interface SettingsProps {
+  readonly backend: Backend | null
+}
+
 /** Settings screen. */
-export default function Settings() {
+export default function Settings(props: SettingsProps) {
+  const { backend } = props
   const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
     SettingsTab.account,
-    (value): value is SettingsTab => {
-      return array.includes(Object.values(SettingsTab), value)
-    }
+    array.includesPredicate(Object.values(SettingsTab))
   )
-
-  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useStrictBackend()
   const { getText } = textProvider.useText()
   const root = portal.useStrictPortalContext()
-  const [isUserInOrganization, setIsUserInOrganization] = React.useState(true)
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    id: user?.organizationId ?? backendModule.OrganizationId(''),
-    name: null,
-    email: null,
-    website: null,
-    address: null,
-    picture: null,
-  }))
+  const user = backendHooks.useBackendUsersMe(backend)
+  const organization = backendHooks.useBackendGetOrganization(backend)
+  const isUserInOrganization = organization != null
 
-  React.useEffect(() => {
-    void (async () => {
-      if (
-        sessionType === authProvider.UserSessionType.full &&
-        backend.type === backendModule.BackendType.remote
-      ) {
-        const newOrganization = await backend.getOrganization()
-        setIsUserInOrganization(newOrganization != null)
-        if (newOrganization != null) {
-          setOrganization(newOrganization)
-        }
-      }
-    })()
-  }, [sessionType, backend])
-
-  let content: React.JSX.Element
+  let content: React.JSX.Element | null
   switch (settingsTab) {
     case SettingsTab.account: {
-      content = <AccountSettingsTab />
+      content = backend == null ? null : <AccountSettingsTab backend={backend} />
       break
     }
     case SettingsTab.organization: {
-      content = (
-        <OrganizationSettingsTab organization={organization} setOrganization={setOrganization} />
-      )
+      content = backend == null ? null : <OrganizationSettingsTab backend={backend} />
       break
     }
     case SettingsTab.members: {
-      content = <MembersSettingsTab />
+      content = backend == null ? null : <MembersSettingsTab backend={backend} />
       break
     }
     case SettingsTab.userGroups: {
-      content = <UserGroupsSettingsTab />
+      content = backend == null ? null : <UserGroupsSettingsTab backend={backend} />
       break
     }
     case SettingsTab.keyboardShortcuts: {
@@ -97,7 +74,7 @@ export default function Settings() {
       break
     }
     case SettingsTab.activityLog: {
-      content = <ActivityLogSettingsTab />
+      content = backend == null ? null : <ActivityLogSettingsTab backend={backend} />
       break
     }
     default: {
@@ -106,15 +83,24 @@ export default function Settings() {
       break
     }
   }
+  const noContent = content == null
+
+  React.useEffect(() => {
+    if (noContent) {
+      // Set to the first settings page that does not require a backend.
+      setSettingsTab(SettingsTab.keyboardShortcuts)
+    }
+  }, [noContent, setSettingsTab])
 
   return (
     <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
-          <aria.Popover UNSTABLE_portalContainer={root.current}>
+          <aria.Popover UNSTABLE_portalContainer={root}>
             <SettingsSidebar
               isMenu
+              hasBackend={backend != null}
               isUserInOrganization={isUserInOrganization}
               settingsTab={settingsTab}
               setSettingsTab={setSettingsTab}
@@ -132,11 +118,12 @@ export default function Settings() {
           settingsTab !== SettingsTab.members &&
           settingsTab !== SettingsTab.userGroups
             ? user?.name ?? 'your account'
-            : organization.name ?? 'your organization'}
+            : organization?.name ?? 'your organization'}
         </div>
       </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar
+          hasBackend={backend != null}
           isUserInOrganization={isUserInOrganization}
           settingsTab={settingsTab}
           setSettingsTab={setSettingsTab}

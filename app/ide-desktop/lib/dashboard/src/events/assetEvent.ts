@@ -1,8 +1,6 @@
 /** @file Events related to changes in asset state. */
 import type AssetEventType from '#/events/AssetEventType'
 
-import type * as spinner from '#/components/Spinner'
-
 import type * as backend from '#/services/Backend'
 
 // This is required, to whitelist this event.
@@ -64,7 +62,8 @@ export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newP
   readonly placeholderId: backend.ProjectId
   readonly templateId: string | null
   readonly datalinkId: backend.DatalinkId | null
-  readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
+  readonly originalId: backend.ProjectId | null
+  readonly versionId: backend.S3ObjectVersionId | null
 }
 
 /** A signal to create a directory. */

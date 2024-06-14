@@ -1,8 +1,11 @@
 /** @file A row representing a user group. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import Cross2 from 'enso-assets/cross2.svg'
 
+import type * as backendHooks from '#/hooks/backendHooks'
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -11,11 +14,10 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
-import * as backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
 
 // ====================
 // === UserGroupRow ===
@@ -23,7 +25,7 @@ import * as backend from '#/services/Backend'
 
 /** Props for a {@link UserGroupRow}. */
 export interface UserGroupRowProps {
-  readonly userGroup: backend.UserGroupInfo
+  readonly userGroup: backendHooks.WithPlaceholder<backend.UserGroupInfo>
   readonly doDeleteUserGroup: (userGroup: backend.UserGroupInfo) => void
 }
 
@@ -56,7 +58,10 @@ export default function UserGroupRow(props: UserGroupRowProps) {
   return (
     <aria.Row
       id={userGroup.id}
-      className={`group h-row rounded-rows-child ${backend.isPlaceholderUserGroupId(userGroup.id) ? 'pointer-events-none placeholder' : ''}`}
+      className={tailwindMerge.twMerge(
+        'group h-row select-none rounded-rows-child',
+        userGroup.isPlaceholder && 'pointer-events-none placeholder'
+      )}
       ref={contextMenuRef}
     >
       <aria.Cell className="rounded-r-full border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:border-r-0">
@@ -66,8 +71,10 @@ export default function UserGroupRow(props: UserGroupRowProps) {
           </ariaComponents.Text>
         </div>
       </aria.Cell>
-      <aria.Cell className="relative bg-transparent p transparent group-hover-2:opacity-100">
-        <UnstyledButton
+      <aria.Cell className="relative bg-transparent p-0 opacity-0 group-hover-2:opacity-100">
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           onPress={() => {
             setModal(
               <ConfirmDeleteModal
@@ -81,7 +88,7 @@ export default function UserGroupRow(props: UserGroupRowProps) {
           className="absolute right-full mr-4 size-icon -translate-y-1/2"
         >
           <img src={Cross2} className="size-icon" />
-        </UnstyledButton>
+        </ariaComponents.Button>
       </aria.Cell>
     </aria.Row>
   )

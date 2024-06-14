@@ -4,9 +4,7 @@
 // === Constants ===
 // =================
 
-// =============
 // === Paths ===
-// =============
 
 /** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = '/'
@@ -16,10 +14,8 @@ export const LOGIN_PATH = '/login'
 export const REGISTRATION_PATH = '/registration'
 /** Path to the confirm registration page. */
 export const CONFIRM_REGISTRATION_PATH = '/confirmation'
-/**
- * Path to the page in which a user can restore their account after it has been
- * marked for deletion.
- */
+/** Path to the page in which a user can restore their account after it has been
+ * marked for deletion. */
 export const RESTORE_USER_PATH = '/restore-user'
 /** Path to the forgot password page. */
 export const FORGOT_PASSWORD_PATH = '/forgot-password'
@@ -38,8 +34,6 @@ export const ALL_PATHS_REGEX = new RegExp(
     `${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH})$`
 )
 
-// ===========
-// === URL ===
-// ===========
+// === Constants related to URLs ===
 
 export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'

@@ -7,17 +7,24 @@ import { computed, ref, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
-const value = computed({
-  get() {
-    const valueStr = WidgetInput.valueRepr(props.input)
-    return valueStr ? parseFloat(valueStr) : 0
-  },
-  set(value) {
-    props.onUpdate({
-      portUpdate: { value: value.toString(), origin: props.input.portId },
-    })
-  },
+
+function setValue(value: number | string) {
+  props.onUpdate({
+    portUpdate: { value: value.toString(), origin: props.input.portId },
+  })
+}
+
+const value = computed<number | undefined>(() => {
+  const inputValue = WidgetInput.valueRepr(props.input)
+  if (inputValue == null) return undefined
+  const inputNumber = parseFloat(inputValue)
+  if (Number.isNaN(inputNumber)) return undefined
+  return inputNumber
 })
+
+const placeholder = computed<string | undefined>(() =>
+  value.value == null ? WidgetInput.valueRepr(props.input) : undefined,
+)
 
 const limits = computed(() => {
   const config = props.input.dynamicConfig
@@ -64,9 +71,11 @@ export const widgetDefinition = defineWidget(
 <template>
   <NumericInputWidget
     ref="inputComponent"
-    v-model="value"
     class="WidgetNumber r-24"
     :limits="limits"
+    :placeholder="placeholder"
+    :modelValue="value"
+    @update:modelValue="setValue"
     @click.stop
     @focus="editHandler.start()"
     @blur="editHandler.end()"

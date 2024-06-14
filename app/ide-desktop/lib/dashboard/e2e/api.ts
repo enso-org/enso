@@ -70,13 +70,16 @@ export async function mockApi({ page }: MockParams) {
     email: null,
     picture: null,
     website: null,
+    subscription: {},
   }
+
   let isOnline = true
   let currentUser: backend.User | null = defaultUser
   let currentProfilePicture: string | null = null
   let currentPassword = defaultPassword
   let currentOrganization: backend.OrganizationInfo | null = null
   let currentOrganizationProfilePicture: string | null = null
+
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []

@@ -100,7 +100,8 @@ function eventAngle(event: MouseEvent) {
 
 function setColorForEvent(event: MouseEvent) {
   mouseAngle.value = eventAngle(event)
-  if (cssTriangleColor.value !== selectedColor.value) selectedColor.value = cssTriangleColor.value
+  if (triangleStyle.value?.fill !== selectedColor.value)
+    selectedColor.value = triangleStyle.value?.fill
 }
 function ringClick(event: MouseEvent) {
   setColorForEvent(event)
@@ -143,22 +144,26 @@ const cssGradient = computed(() => {
       `conic-gradient(in oklch increasing hue,${colorStops})`
     : `conic-gradient(${colorStops})`
 })
-const cssTriangleAngle = computed(() =>
-  triangleAngle.value != null ? `${triangleAngle.value}turn` : undefined,
-)
-const cssTriangleColor = computed(() =>
-  triangleAngle.value != null ? cssColor(angleToHue(snapAngle(triangleAngle.value))) : undefined,
+
+const triangleStyle = computed(() =>
+  triangleAngle.value != null ?
+    {
+      transform: `rotate(${triangleAngle.value}turn)`,
+      fill: cssColor(angleToHue(snapAngle(triangleAngle.value))),
+    }
+  : undefined,
 )
 </script>
 
 <template>
   <div class="ColorRing">
-    <svg v-if="cssTriangleAngle != null" class="svg" viewBox="-2 -2 4 4">
-      <polygon class="triangle" points="0,-1 -0.4,-1.35 0.4,-1.35" />
+    <svg v-if="triangleStyle != null" class="svg" viewBox="-2 -2 4 4">
+      <polygon :style="triangleStyle" points="0,-1 -0.4,-1.35 0.4,-1.35" />
     </svg>
     <div
       ref="svgElement"
       class="gradient"
+      :style="{ background: cssGradient }"
       @pointerleave="mouseAngle = undefined"
       @pointermove="setColorForEvent"
       @click.stop="ringClick"
@@ -184,7 +189,6 @@ const cssTriangleColor = computed(() =>
   inset: 0;
   pointer-events: auto;
   margin-top: auto;
-  background: v-bind('cssGradient');
   cursor: crosshair;
   border-radius: var(--radius-full);
   animation: grow 0.1s forwards;
@@ -196,10 +200,5 @@ const cssTriangleColor = computed(() =>
   to {
     transform: scale(1);
   }
-}
-
-.triangle {
-  transform: rotate(v-bind('cssTriangleAngle'));
-  fill: v-bind('cssTriangleColor');
 }
 </style>

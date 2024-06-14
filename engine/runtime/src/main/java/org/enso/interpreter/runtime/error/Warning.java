@@ -88,7 +88,7 @@ public final class Warning implements EnsoObject {
   }
 
   @Builtin.Method(
-      name = "get_all_array",
+      name = "get_all_vector",
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize
@@ -97,11 +97,11 @@ public final class Warning implements EnsoObject {
       WithWarnings value, boolean shouldWrap, WarningsLibrary warningsLib) {
     Warning[] warnings = value.getWarningsArray(warningsLib, shouldWrap);
     sortArray(warnings);
-    return ArrayLikeHelpers.wrapEnsoObjects(warnings);
+    return ArrayLikeHelpers.asVectorEnsoObjects(warnings);
   }
 
   @Builtin.Method(
-      name = "get_all_array",
+      name = "get_all_vector",
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
@@ -110,12 +110,12 @@ public final class Warning implements EnsoObject {
       try {
         Warning[] warnings = warningsLib.getWarnings(value, null, shouldWrap);
         sortArray(warnings);
-        return ArrayLikeHelpers.wrapEnsoObjects(warnings);
+        return ArrayLikeHelpers.asVectorEnsoObjects(warnings);
       } catch (UnsupportedMessageException e) {
         throw EnsoContext.get(warningsLib).raiseAssertionPanic(warningsLib, null, e);
       }
     } else {
-      return ArrayLikeHelpers.empty();
+      return ArrayLikeHelpers.asVectorEmpty();
     }
   }
 

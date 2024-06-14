@@ -50,8 +50,7 @@ const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z
 /** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
     {
-        selector:
-            ':matches(ImportDeclaration:has(ImportSpecifier), ExportDeclaration, ExportSpecifier)',
+        selector: ':matches(ImportDeclaration:has(ImportSpecifier))',
         message: 'No {} imports and exports',
     },
     {
@@ -215,16 +214,13 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use a `getText()` from `useText` instead of a literal string',
     },
     {
+        selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
+        message:
+            'Use `tv` from `tailwind-variants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
+    },
+    {
         selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',
         message: 'Use `Button` or `UnstyledButton` instead of `button`',
-    },
-    {
-        selector: 'JSXOpeningElement[name.name=label] > JSXIdentifier',
-        message: 'Use `aria.Label` instead of `label`',
-    },
-    {
-        selector: 'JSXOpeningElement[name.name=input] > JSXIdentifier',
-        message: 'Use `aria.Input` instead of `input`',
     },
     {
         selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
@@ -460,11 +456,6 @@ export default [
                 {
                     selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
-                },
-                {
-                    selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
-                    message:
-                        'Use `export default` on the declaration, instead of as a separate statement',
                 },
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.

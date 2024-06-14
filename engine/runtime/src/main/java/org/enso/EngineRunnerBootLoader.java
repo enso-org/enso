@@ -76,7 +76,7 @@ public final class EngineRunnerBootLoader {
 
     @Override
     public URL findResource(String name) {
-      if (ClassLoaderConstants.RESOURCE_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+      if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
         return systemClassLoader.getResource(name);
       } else {
         return super.findResource(name);
@@ -85,7 +85,7 @@ public final class EngineRunnerBootLoader {
 
     @Override
     public Enumeration<URL> findResources(String name) throws IOException {
-      if (ClassLoaderConstants.RESOURCE_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
+      if (ClassLoaderConstants.CLASS_DELEGATION_PATTERNS.stream().anyMatch(name::startsWith)) {
         return systemClassLoader.getResources(name);
       } else {
         return super.findResources(name);

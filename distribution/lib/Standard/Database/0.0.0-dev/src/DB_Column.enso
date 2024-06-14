@@ -278,7 +278,7 @@ type DB_Column
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Warnings
+       ! Error Conditions
 
          - If this operation results in comparing floating-point values for
            equality which is not recommended, a `Floating_Point_Equality`
@@ -320,7 +320,7 @@ type DB_Column
             Value_Type.expect_text other <|
                 Helpers.assume_default_locale locale <|
                     new_name = self.naming_helper.function_name "equals_ignore_case" [self, other]
-                    self.make_binary_op "equals_ignore_case" other new_name
+                    self.make_binary_op "EQUALS_IGNORE_CASE" other new_name
 
     ## ALIAS not equals
        GROUP Standard.Base.Operators
@@ -335,7 +335,7 @@ type DB_Column
        Returns a column with results of comparing this column's elements against
        `other`.
 
-       ! Warnings
+       ! Error Conditions
 
          - If this operation results in comparing floating-point values for
            equality which is not recommended, a `Floating_Point_Equality`
@@ -536,7 +536,7 @@ type DB_Column
        Returns a column containing the result of dividing each element of `self`
        by `other`.
 
-       ! Warnings
+       ! Error Conditions
 
          - If division by zero occurs, an `Arithmetic_Error` warning is attached
            to the result.
@@ -581,7 +581,7 @@ type DB_Column
        Returns a column with results of modulus this column's elements against
        `other`.
 
-       ! Warnings
+       ! Error Conditions
 
          - If division by zero occurs, an `Arithmetic_Error` warning is attached
            to the result.
@@ -604,7 +604,7 @@ type DB_Column
         Value_Type_Helpers.check_binary_numeric_op self other <|
             other_type = Value_Type_Helpers.find_argument_type other
             # Different implementation may be used for integer types.
-            op = if self.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "mod"
+            op = if self.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "MOD"
             new_name = self.naming_helper.binary_operation_name "%" self other
             self.make_binary_op op other new_name
 
@@ -798,7 +798,7 @@ type DB_Column
         # Don't use for negative decimal places, if the backend doesn't support it
         negative_dp_ok = decimal_places >= 0 || self.connection.dialect.supports_negative_round_decimal_places
         # Don't use for floating-point inputs if decimal_places != 0, for Postgres
-        dp_param_ok = (self.connection.dialect.rounding_decimal_places_not_allowed_for_floats && self.value_type.is_floating_point && decimal_places != 0).not
+        dp_param_ok = decimal_places == 0 || self.value_type.is_floating_point.not || self.connection.dialect.supports_float_round_decimal_places
         not_bankers && negative_dp_ok && dp_param_ok
 
     ## PRIVATE
@@ -1237,7 +1237,7 @@ type DB_Column
     starts_with : DB_Column | Text -> Case_Sensitivity -> DB_Column
     starts_with self other case_sensitivity=Case_Sensitivity.Default =
         new_name = self.naming_helper.function_name "starts_with" [self, other]
-        make_text_case_op self "starts_with" other case_sensitivity new_name
+        make_text_case_op self "STARTS_WITH" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1255,7 +1255,7 @@ type DB_Column
     ends_with : DB_Column | Text -> Case_Sensitivity -> DB_Column
     ends_with self other case_sensitivity=Case_Sensitivity.Default =
         new_name = self.naming_helper.function_name "ends_with" [self, other]
-        make_text_case_op self "ends_with" other case_sensitivity new_name
+        make_text_case_op self "ENDS_WITH" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1335,7 +1335,7 @@ type DB_Column
     contains : DB_Column | Text -> Case_Sensitivity -> DB_Column
     contains self other case_sensitivity=Case_Sensitivity.Default =
         new_name = self.naming_helper.function_name "contains" [self, other]
-        make_text_case_op self "contains" other case_sensitivity new_name
+        make_text_case_op self "CONTAINS" other case_sensitivity new_name
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1485,9 +1485,9 @@ type DB_Column
 
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
-    text_cleanse : Vector Text_Cleanse -> DB_Column ! Unsupported_Database_Operation
+    text_cleanse : Vector Named_Pattern -> DB_Column ! Unsupported_Database_Operation
     text_cleanse self remove =
-      remove.fold self (current-> tc-> tc.apply current)
+      remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
     ## GROUP Standard.Base.DateTime
        ICON time
@@ -1732,7 +1732,7 @@ type DB_Column
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> DB_Column
-    parse self type format:(Text | Data_Formatter)="" on_problems=Report_Warning =
+    parse self type:(Value_Type | Auto) format:(Text | Data_Formatter)="" on_problems=Report_Warning =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "The `Auto` parse type is not supported by the Database backend. Either pick a specific type or materialize the table to memory using `.read`.") else
             if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting is not supported by the Database backend. Please set the format to `''` to use the default settings, or if custom formatting is needed, materialize the table to memory using `.read` first.") else
                 Value_Type.expect_text self <|

@@ -25,7 +25,7 @@ export default function Checkbox(props: CheckboxProps) {
         <SvgMask
           invert
           src={CheckMarkIcon}
-          className="-m-0.5 size-icon transition-all duration-75 transparent group-selected:opacity-100"
+          className="-m-0.5 size-icon opacity-0 transition-all duration-75 group-selected:opacity-100"
         />
       </aria.Checkbox>
     </FocusRing>

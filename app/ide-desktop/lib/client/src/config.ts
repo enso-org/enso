@@ -17,6 +17,7 @@ export const HELP_EXTENDED_OPTION_NAME = naming.camelToKebabCase(HELP_EXTENDED_N
 const DEFAULT_WIDTH = 1380
 const DEFAULT_HEIGHT = 900
 const DEFAULT_PORT = 8080
+const DEFAULT_PROFILING_TIME = 120
 
 // ==================
 // === WindowSize ===
@@ -312,6 +313,18 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                         passToWebApplication: false,
                         value: false,
                         description: 'Run the application in development mode.',
+                    }),
+                    profile: new contentConfig.Option({
+                        passToWebApplication: false,
+                        value: false,
+                        description:
+                            'Start backend profiler on startup and log data to a profiling.npss file',
+                    }),
+                    profileTime: new contentConfig.Option({
+                        passToWebApplication: false,
+                        value: DEFAULT_PROFILING_TIME,
+                        description:
+                            'Time since backend startup for which profiling data will be collected, if enabled',
                     }),
                 },
             }),

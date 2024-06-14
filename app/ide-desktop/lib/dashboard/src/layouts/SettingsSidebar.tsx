@@ -1,6 +1,8 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
 import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
@@ -12,6 +14,7 @@ import * as textProvider from '#/providers/TextProvider'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
 
@@ -27,11 +30,13 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Account',
         settingsTab: SettingsTab.account,
         icon: SettingsIcon,
+        requiresBackend: true,
       },
       {
         name: 'Organization',
         settingsTab: SettingsTab.organization,
         icon: PeopleSettingsIcon,
+        requiresBackend: true,
       },
     ],
   },
@@ -42,12 +47,14 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Members',
         settingsTab: SettingsTab.members,
         icon: PeopleIcon,
+        requiresBackend: true,
         organizationOnly: true,
       },
       {
         name: 'User Groups',
         settingsTab: SettingsTab.userGroups,
         icon: PeopleSettingsIcon,
+        requiresBackend: true,
         organizationOnly: true,
       },
     ],
@@ -59,6 +66,7 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Keyboard shortcuts',
         settingsTab: SettingsTab.keyboardShortcuts,
         icon: KeyboardShortcutsIcon,
+        requiresBackend: false,
       },
     ],
   },
@@ -69,11 +77,17 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Activity log',
         settingsTab: SettingsTab.activityLog,
         icon: LogIcon,
+        requiresBackend: true,
         organizationOnly: true,
       },
     ],
   },
 ]
+
+const SECTIONS_NO_BACKEND = SECTIONS.flatMap(section => {
+  const tabs = section.tabs.filter(tab => !tab.requiresBackend)
+  return tabs.length === 0 ? [] : [{ ...section, tabs }]
+})
 
 // =============
 // === Types ===
@@ -84,6 +98,7 @@ interface SettingsTabLabelData {
   readonly name: string
   readonly settingsTab: SettingsTab
   readonly icon: string
+  readonly requiresBackend: boolean
   readonly organizationOnly?: true
 }
 
@@ -100,6 +115,7 @@ interface SettingsSectionData {
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
   readonly isMenu?: true
+  readonly hasBackend: boolean
   readonly isUserInOrganization: boolean
   readonly settingsTab: SettingsTab
   readonly setSettingsTab: React.Dispatch<React.SetStateAction<SettingsTab>>
@@ -108,7 +124,7 @@ export interface SettingsSidebarProps {
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { isMenu = false, isUserInOrganization, settingsTab, setSettingsTab } = props
+  const { isMenu = false, hasBackend, isUserInOrganization, settingsTab, setSettingsTab } = props
   const { onClickCapture } = props
   const { getText } = textProvider.useText()
 
@@ -117,15 +133,16 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
       {innerProps => (
         <div
           aria-label={getText('settingsSidebarLabel')}
-          className={`w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto ${
+          className={tailwindMerge.twMerge(
+            'w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto',
             !isMenu
               ? 'hidden sm:flex'
               : 'relative rounded-default p-modal text-xs text-primary before:absolute before:inset before:rounded-default before:bg-frame before:backdrop-blur-default sm:hidden'
-          }`}
+          )}
           onClickCapture={onClickCapture}
           {...innerProps}
         >
-          {SECTIONS.map(section => (
+          {(hasBackend ? SECTIONS : SECTIONS_NO_BACKEND).map(section => (
             <div key={section.name} className="flex flex-col items-start">
               <aria.Header
                 id={`${section.name}_header`}
@@ -133,19 +150,22 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
               >
                 {section.name}
               </aria.Header>
-              {section.tabs.map(tab => (
-                <SidebarTabButton
-                  key={tab.settingsTab}
-                  isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
-                  id={tab.settingsTab}
-                  icon={tab.icon}
-                  label={tab.name}
-                  active={tab.settingsTab === settingsTab}
-                  onPress={() => {
-                    setSettingsTab(tab.settingsTab)
-                  }}
-                />
-              ))}
+
+              <ariaComponents.ButtonGroup gap="xxsmall" direction="column" align="start">
+                {section.tabs.map(tab => (
+                  <SidebarTabButton
+                    key={tab.settingsTab}
+                    isDisabled={(tab.organizationOnly ?? false) && !isUserInOrganization}
+                    id={tab.settingsTab}
+                    icon={tab.icon}
+                    label={tab.name}
+                    active={tab.settingsTab === settingsTab}
+                    onPress={() => {
+                      setSettingsTab(tab.settingsTab)
+                    }}
+                  />
+                ))}
+              </ariaComponents.ButtonGroup>
             </div>
           ))}
         </div>

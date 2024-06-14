@@ -77,6 +77,7 @@ public final class EnsoContext {
   private final HostClassLoader hostClassLoader = new HostClassLoader();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
+  private final boolean isStaticTypeAnalysisEnabled;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -135,6 +136,7 @@ public final class EnsoContext {
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
+    this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     this.executionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
@@ -144,6 +146,7 @@ public final class EnsoContext {
             isParallelismEnabled,
             true,
             !isPrivateCheckDisabled,
+            isStaticTypeAnalysisEnabled,
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
             scala.Option.empty());
     this.home = home;

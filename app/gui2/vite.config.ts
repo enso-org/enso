@@ -1,5 +1,6 @@
 /// <reference types="histoire" />
 
+import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
@@ -27,16 +28,12 @@ export default defineConfig({
   envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
     vue(),
+    react({
+      include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
+      babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
+    }),
     gatewayServer(),
-    ...(process.env.ELECTRON_DEV_MODE === 'true' ?
-      [
-        (await import('@vitejs/plugin-react')).default({
-          include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
-          babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
-        }),
-      ]
-    : process.env.NODE_ENV === 'development' ? [await projectManagerShim()]
-    : []),
+    ...(process.env.NODE_ENV === 'development' ? [await projectManagerShim()] : []),
   ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
@@ -84,13 +81,6 @@ export default defineConfig({
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          fontawesome: ['@fortawesome/react-fontawesome', '@fortawesome/free-brands-svg-icons'],
-        },
-      },
-    },
   },
 })
 

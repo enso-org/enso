@@ -1,20 +1,20 @@
-/**
- * @file This file contains the useFormSchema hook for creating form schemas.
- */
-
+/** @file A hook to create a form schema. */
 import * as React from 'react'
 
 import * as callbackEventHooks from '#/hooks/eventCallbackHooks'
 
-import * as schemaComponent from './schema'
-import type * as types from './types'
+import * as schemaComponent from '#/components/AriaComponents/Form/components/schema'
+import type * as types from '#/components/AriaComponents/Form/components/types'
 
-/**
- * Hook to create a form schema.
- */
-export function useFormSchema<T extends types.FieldValues>(
+// =====================
+// === useFormSchema ===
+// =====================
+
+/** A hook to create a form schema. */
+export function useFormSchema<Schema extends types.TSchema, T extends types.FieldValues<Schema>>(
   callback: (schema: typeof schemaComponent.schema) => schemaComponent.schema.ZodObject<T>
-): schemaComponent.schema.ZodObject<T> {
+) {
   const callbackEvent = callbackEventHooks.useEventCallback(callback)
+
   return React.useMemo(() => callbackEvent(schemaComponent.schema), [callbackEvent])
 }
