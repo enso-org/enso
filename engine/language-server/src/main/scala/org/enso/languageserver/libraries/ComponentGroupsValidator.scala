@@ -26,7 +26,9 @@ final class ComponentGroupsValidator {
     val groupsMap: mutable.Map[GroupReference, ComponentGroup] = mutable.Map()
     val init = packages.map { config =>
       val libraryName = LibraryName(config.namespace, config.moduleName)
-      libraryName -> Right(config.componentGroups)
+      libraryName -> Right(
+        config.componentGroups.getOrElse(ComponentGroups.empty)
+      )
     }
 
     runValidation(init)(

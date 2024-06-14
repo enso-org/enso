@@ -268,7 +268,7 @@ object ComponentGroupsResolverSpec {
   def config(
     namespace: String,
     name: String,
-    componentGroups: ComponentGroups = ComponentGroups.empty
+    componentGroups: ComponentGroups
   ): Config =
     Config(
       name                 = name,
@@ -280,7 +280,25 @@ object ComponentGroupsResolverSpec {
       maintainers          = Nil,
       edition              = None,
       preferLocalLibraries = true,
-      componentGroups      = componentGroups
+      componentGroups      = Some(componentGroups)
+    )
+
+  /** Create a new config. */
+  def config(
+    namespace: String,
+    name: String
+  ): Config =
+    Config(
+      name                 = name,
+      normalizedName       = None,
+      namespace            = namespace,
+      version              = "0.0.1",
+      license              = "",
+      authors              = Nil,
+      maintainers          = Nil,
+      edition              = None,
+      preferLocalLibraries = true,
+      componentGroups      = None
     )
 
   /** Create a new component group. */

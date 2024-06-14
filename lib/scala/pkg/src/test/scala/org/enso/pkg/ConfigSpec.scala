@@ -49,7 +49,7 @@ class ConfigSpec
           Contact(None, Some("c@example.com"))
         ),
         preferLocalLibraries = true,
-        componentGroups      = ComponentGroups.empty
+        componentGroups      = None
       )
       val deserialized = Config.fromYaml(config.toYaml).get
       val withoutJson  = deserialized.copy(originalJson = JsonObject())
@@ -158,7 +158,7 @@ class ConfigSpec
           )
         )
       )
-      parsed.componentGroups shouldEqual expectedComponentGroups
+      parsed.componentGroups shouldEqual Some(expectedComponentGroups)
 
       val serialized = parsed.toYaml
       serialized should include(
@@ -187,7 +187,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
-      parsed.componentGroups shouldEqual ComponentGroups.empty
+      parsed.componentGroups shouldEqual None
     }
 
     "allow unknown keys in component groups" in {
@@ -201,7 +201,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
-      parsed.componentGroups shouldEqual ComponentGroups.empty
+      parsed.componentGroups shouldEqual Some(ComponentGroups.empty)
     }
 
     "fail to de-serialize invalid extended modules" in {
@@ -261,7 +261,7 @@ class ConfigSpec
         extendedGroups = List()
       )
 
-      parsed.componentGroups shouldEqual expectedComponentGroups
+      parsed.componentGroups shouldEqual Some(expectedComponentGroups)
     }
 
     "fail to de-serialize invalid shortcuts" in {

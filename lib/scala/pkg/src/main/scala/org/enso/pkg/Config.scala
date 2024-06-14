@@ -118,7 +118,7 @@ case class Config(
   maintainers: List[Contact],
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
-  componentGroups: ComponentGroups,
+  componentGroups: Option[ComponentGroups],
   originalJson: JsonObject = JsonObject()
 ) {
 
@@ -181,11 +181,9 @@ object Config {
           error => DecodingFailure(error, json.history)
         }
       originals <- json.as[JsonObject]
-      componentGroups <- json.getOrElse[ComponentGroups](
+      componentGroups <- json.getOrElse[Option[ComponentGroups]](
         JsonFields.componentGroups
-      )(
-        ComponentGroups.empty
-      )
+      )(None)
     } yield {
 
       Config(
@@ -216,7 +214,7 @@ object Config {
 
     val componentGroups =
       Option.unless(
-        config.componentGroups.newGroups.isEmpty && config.componentGroups.extendedGroups.isEmpty
+        config.componentGroups.isEmpty
       )(
         JsonFields.componentGroups -> config.componentGroups.asJson
       )

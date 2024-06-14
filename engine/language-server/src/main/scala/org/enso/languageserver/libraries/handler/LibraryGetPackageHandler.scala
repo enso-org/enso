@@ -138,8 +138,7 @@ class LibraryGetPackageHandler(
             LocalLibraryManagerProtocol.GetPackageResponse(
               LibraryName(config.namespace, config.moduleName),
               config.license,
-              if (config.componentGroups.isEmpty()) None
-              else Some(config.componentGroups),
+              config.componentGroups,
               config.originalJson
             )
           )
@@ -155,12 +154,10 @@ class LibraryGetPackageHandler(
       .fetchPackageConfig()
       .toFuture
   } yield LocalLibraryManagerProtocol.GetPackageResponse(
-    libraryName = LibraryName(config.namespace, config.moduleName),
-    license     = config.license,
-    componentGroups =
-      if (config.componentGroups.isEmpty()) None
-      else Some(config.componentGroups),
-    rawPackage = config.originalJson
+    libraryName     = LibraryName(config.namespace, config.moduleName),
+    license         = config.license,
+    componentGroups = config.componentGroups,
+    rawPackage      = config.originalJson
   )
 }
 

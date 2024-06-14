@@ -336,27 +336,30 @@ private class DefaultPackageRepository(
   ): Either[PackageRepository.Error, Unit] =
     if (loadedComponents.contains(pkg.libraryName)) Right(())
     else {
-      val componentGroups = pkg.getConfig().componentGroups
-      registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
-      componentGroups.extendedGroups
-        .foldLeft[Either[PackageRepository.Error, Unit]](Right(())) {
-          (accumulator, componentGroup) =>
-            for {
-              _ <- accumulator
-              extendedLibraryName = componentGroup.group.libraryName
-              _ <- ensurePackageIsLoaded(extendedLibraryName)
-              pkgOpt = loadedPackages(extendedLibraryName)
-              _ <- pkgOpt.fold[Either[PackageRepository.Error, Unit]](
-                Right(())
-              )(
-                resolveComponentGroups
-              )
-              _ = registerExtendedComponentGroup(
-                pkg.libraryName,
-                componentGroup
-              )
-            } yield ()
-        }
+      pkg.getConfig().componentGroups match {
+        case None => Right(())
+        case Some(componentGroups) =>
+          registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
+          componentGroups.extendedGroups
+            .foldLeft[Either[PackageRepository.Error, Unit]](Right(())) {
+              (accumulator, componentGroup) =>
+                for {
+                  _ <- accumulator
+                  extendedLibraryName = componentGroup.group.libraryName
+                  _ <- ensurePackageIsLoaded(extendedLibraryName)
+                  pkgOpt = loadedPackages(extendedLibraryName)
+                  _ <- pkgOpt.fold[Either[PackageRepository.Error, Unit]](
+                    Right(())
+                  )(
+                    resolveComponentGroups
+                  )
+                  _ = registerExtendedComponentGroup(
+                    pkg.libraryName,
+                    componentGroup
+                  )
+                } yield ()
+            }
+      }
     }
 
   /** Register the list of component groups defined by a library.

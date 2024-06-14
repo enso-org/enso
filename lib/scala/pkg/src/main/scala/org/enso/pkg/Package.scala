@@ -287,15 +287,15 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   def create(
     root: F,
     name: String,
-    namespace: String                    = "local",
-    normalizedName: Option[String]       = None,
-    version: String                      = "0.0.1",
-    template: Template                   = Template.Default,
-    edition: Option[Editions.RawEdition] = None,
-    authors: List[Contact]               = List(),
-    maintainers: List[Contact]           = List(),
-    license: String                      = "",
-    componentGroups: ComponentGroups     = ComponentGroups.empty
+    namespace: String                        = "local",
+    normalizedName: Option[String]           = None,
+    version: String                          = "0.0.1",
+    template: Template                       = Template.Default,
+    edition: Option[Editions.RawEdition]     = None,
+    authors: List[Contact]                   = List(),
+    maintainers: List[Contact]               = List(),
+    license: String                          = "",
+    componentGroups: Option[ComponentGroups] = None
   ): Package[F] = {
     val config = Config(
       name                 = name,

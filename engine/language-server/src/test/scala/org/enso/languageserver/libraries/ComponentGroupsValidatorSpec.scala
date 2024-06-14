@@ -39,8 +39,12 @@ class ComponentGroupsValidatorSpec
         )
       )
       val expected = Vector(
-        libraryName(testPackages(0)) -> Right(testPackages(0).componentGroups),
-        libraryName(testPackages(1)) -> Right(testPackages(1).componentGroups),
+        libraryName(testPackages(0)) -> Right(
+          testPackages(0).componentGroups.getOrElse(ComponentGroups.empty)
+        ),
+        libraryName(testPackages(1)) -> Right(
+          testPackages(1).componentGroups.getOrElse(ComponentGroups.empty)
+        ),
         libraryName(testPackages(2)) -> Left(
           ValidationError.DuplicatedComponentGroup(
             libraryName(testPackages(2)),
@@ -72,14 +76,18 @@ class ComponentGroupsValidatorSpec
         )
       )
       val expected = Vector(
-        libraryName(testPackages(0)) -> Right(testPackages(0).componentGroups),
+        libraryName(testPackages(0)) -> Right(
+          testPackages(0).componentGroups.getOrElse(ComponentGroups.empty)
+        ),
         libraryName(testPackages(1)) -> Left(
           ValidationError.DuplicatedComponentGroup(
             libraryName(testPackages(1)),
             GroupReference(LibraryName("Foo", "Bar"), GroupName("Mod1"))
           )
         ),
-        libraryName(testPackages(2)) -> Right(testPackages(2).componentGroups)
+        libraryName(testPackages(2)) -> Right(
+          testPackages(2).componentGroups.getOrElse(ComponentGroups.empty)
+        )
       )
 
       validator.validate(testPackages) shouldEqual expected
@@ -111,8 +119,12 @@ class ComponentGroupsValidatorSpec
         )
       )
       val expected = Vector(
-        libraryName(testPackages(0)) -> Right(testPackages(0).componentGroups),
-        libraryName(testPackages(1)) -> Right(testPackages(1).componentGroups),
+        libraryName(testPackages(0)) -> Right(
+          testPackages(0).componentGroups.getOrElse(ComponentGroups.empty)
+        ),
+        libraryName(testPackages(1)) -> Right(
+          testPackages(1).componentGroups.getOrElse(ComponentGroups.empty)
+        ),
         libraryName(testPackages(2)) -> Left(
           ValidationError.ComponentGroupExtendsNothing(
             libraryName(testPackages(2)),
@@ -147,7 +159,9 @@ class ComponentGroupsValidatorSpec
         )
       )
       val expected = testPackages.map { config =>
-        libraryName(config) -> Right(config.componentGroups)
+        libraryName(config) -> Right(
+          config.componentGroups.getOrElse(ComponentGroups.empty)
+        )
       }
 
       validator.validate(testPackages) shouldEqual expected
@@ -175,22 +189,24 @@ object ComponentGroupsValidatorSpec {
       maintainers          = Nil,
       edition              = None,
       preferLocalLibraries = true,
-      componentGroups = ComponentGroups(
-        newGroups = List(
-          ComponentGroup(
-            group   = GroupName(groupName),
-            color   = None,
-            icon    = None,
-            exports = Seq.empty
+      componentGroups = Some(
+        ComponentGroups(
+          newGroups = List(
+            ComponentGroup(
+              group   = GroupName(groupName),
+              color   = None,
+              icon    = None,
+              exports = Seq.empty
+            ),
+            ComponentGroup(
+              group   = GroupName(groupName),
+              color   = None,
+              icon    = None,
+              exports = Seq.empty
+            )
           ),
-          ComponentGroup(
-            group   = GroupName(groupName),
-            color   = None,
-            icon    = None,
-            exports = Seq.empty
-          )
-        ),
-        extendedGroups = Nil
+          extendedGroups = Nil
+        )
       )
     )
 

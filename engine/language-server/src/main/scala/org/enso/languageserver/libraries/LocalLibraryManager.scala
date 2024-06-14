@@ -192,12 +192,10 @@ class LocalLibraryManager(
       config <- loadPackageConfig(configPath)
     } yield {
       GetPackageResponse(
-        libraryName = LibraryName(config.namespace, config.moduleName),
-        license     = config.license,
-        componentGroups =
-          if (config.componentGroups.isEmpty()) None
-          else Some(config.componentGroups),
-        rawPackage = config.originalJson
+        libraryName     = LibraryName(config.namespace, config.moduleName),
+        license         = config.license,
+        componentGroups = config.componentGroups,
+        rawPackage      = config.originalJson
       )
     }
 
