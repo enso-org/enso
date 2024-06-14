@@ -15,7 +15,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -154,17 +153,14 @@ public abstract class AtomWithAHoleNode extends Node {
     private SwapAtomFieldNode() {
       super(null);
       this.schema =
-          new FunctionSchema(
-              FunctionSchema.CallerFrameAccess.NONE,
-              new ArgumentDefinition[] {
-                new ArgumentDefinition(
-                    0, "lazy", null, null, ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(
-                    1, "value", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)
-              },
-              new boolean[] {true, false},
-              new CallArgumentInfo[0],
-              new Annotation[0]);
+          FunctionSchema.newBuilder()
+              .argumentDefinitions(
+                  new ArgumentDefinition(
+                      0, "lazy", null, null, ArgumentDefinition.ExecutionMode.EXECUTE),
+                  new ArgumentDefinition(
+                      1, "value", null, null, ArgumentDefinition.ExecutionMode.EXECUTE))
+              .hasPreapplied(true, false)
+              .build();
     }
 
     @NeverDefault

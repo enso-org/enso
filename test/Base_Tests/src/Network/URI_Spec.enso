@@ -3,11 +3,11 @@ import Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Request.Request
+import Standard.Base.Network.URI.Invalid_Query_String
 
 from Standard.Test import all
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from project.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 add_specs suite_builder =
     ## To run this test locally:
@@ -66,6 +66,15 @@ add_specs suite_builder =
             addr.raw_path.should_equal "/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux"
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_equal Nothing
+
+        group_builder.specify "should automatically URI encode the query string if needed with a warning" <|
+            addr = URI.parse 'https://httpbin.org/get?foo=bar&baz="a&c=d"%20?'
+            addr.to_text . should_equal "https://httpbin.org/get?foo=bar&baz=%22a&c=d%22%2520%3F"
+            w1 = Problems.expect_only_warning Invalid_Query_String addr
+            w1.query_string . should_equal 'foo=bar&baz="a&c=d"%20?'
+
+            addr2 = URI.parse 'https://httpbin.org/get?c=d d=e=f&g=h'
+            addr2.to_text . should_equal 'https://httpbin.org/get?c=d+d%3De%3Df&g=h'
 
         group_builder.specify "should return Syntax_Error when parsing invalid URI" <|
             r = URI.parse "a b c"
@@ -312,7 +321,7 @@ add_specs suite_builder =
                         uri.to_text . should_equal (cloud_setup.httpbin_secure_uri.to_text + "get?arg1=__SECRET__&arg2=plain+value&arg3=__SECRET__")
                         uri.raw_query . should_fail_with Enso_Secret_Error
 
-                        with_retries <|
+                        Test.with_retries <|
                             response = cloud_setup.httpbin_secure_client.request (Request.get uri)
                             decode_query_params response.decode_as_json . should_equal [["arg1", "My Very Secret Value"], ["arg2", "plain value"], ["arg3", s2]]
 

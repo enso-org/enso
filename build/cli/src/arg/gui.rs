@@ -13,6 +13,7 @@ use enso_build::project::gui::Gui;
 source_args_hlp!(Gui, "gui", BuildInput);
 
 #[derive(Args, Clone, Copy, Debug, PartialEq)]
+#[group(skip)]
 pub struct BuildInput {}
 
 #[derive(Subcommand, Clone, Debug, PartialEq)]

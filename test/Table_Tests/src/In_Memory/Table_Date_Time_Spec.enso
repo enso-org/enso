@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Delimited, Column, Data_Formatter
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Delimited_Format, Column, Data_Formatter, Value_Type
 from Standard.Table.Extensions.Table_Conversions import all
 
 from Standard.Test import all
@@ -31,8 +30,8 @@ add_specs suite_builder =
     suite_builder.group "File.read (Delimited) should work with Date_Time" group_builder->
         group_builder.specify "should be able to read in a table with dates" <|
             data.table.column_count.should_equal 3
-            data.table.info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting date']
-            data.table.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Date_Time]
+            data.table.column_info.at "Column" . to_vector . should_equal ['Serial number','Movement type', 'Posting date']
+            data.table.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Date_Time]
             data.table.row_count.should_equal 6
 
         group_builder.specify "should be able to treat a single value as a Date_Time" <|
@@ -51,14 +50,14 @@ add_specs suite_builder =
             expected_text = normalize_lines <|
                 (enso_project.data / "datetime_sample_normalized_hours.csv").read_text
             data_formatter = Data_Formatter.Value . with_datetime_formats datetime_formats=["yyyy-MM-dd HH:mm:ss"]
-            delimited = Text.from data.expected format=(Delimited "," line_endings=Line_Ending_Style.Unix value_formatter=data_formatter)
+            delimited = Text.from data.expected format=(Delimited_Format.Delimited "," line_endings=Line_Ending_Style.Unix value_formatter=data_formatter)
             delimited.should_equal expected_text
 
         group_builder.specify "should serialise dates with format" <|
             test_table = Table.new [data.c_date]
             expected_text = 'Posting date\n05.01.2015 09-00\n05.01.2015 14-00\n06.01.2015 09-00\n07.01.2015 17-30\n05.01.2011 09-00\n09.01.2011 15-30\n'
             data_formatter = Data_Formatter.Value . with_datetime_formats datetime_formats=["dd.MM.yyyy HH-mm"]
-            delimited = Text.from test_table format=(Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
+            delimited = Text.from test_table format=(Delimited_Format.Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
 main filter=Nothing =

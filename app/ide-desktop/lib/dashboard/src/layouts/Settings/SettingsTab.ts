@@ -12,7 +12,7 @@ enum SettingsTab {
   notifications = 'notifications',
   billingAndPlans = 'billing-and-plans',
   members = 'members',
-  memberRoles = 'member-roles',
+  userGroups = 'user-groups',
   appearance = 'appearance',
   keyboardShortcuts = 'keyboard-shortcuts',
   dataCoPilot = 'data-co-pilot',

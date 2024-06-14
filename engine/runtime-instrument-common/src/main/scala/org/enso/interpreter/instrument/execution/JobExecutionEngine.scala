@@ -50,12 +50,13 @@ final class JobExecutionEngine(
     context.newCachedThreadPool(
       "prioritized-job-pool",
       2,
-      Integer.MAX_VALUE,
+      4,
+      50,
       false
     )
 
   private val backgroundJobExecutor: ExecutorService =
-    context.newFixedThreadPool(1, "background-job-pool", false)
+    context.newCachedThreadPool("background-job-pool", 1, 4, 50, false)
 
   private val runtimeContext =
     RuntimeContext(
@@ -139,8 +140,8 @@ final class JobExecutionEngine(
         case NonFatal(ex) =>
           logger.log(Level.SEVERE, s"Error executing $job", ex)
           promise.failure(ex)
-        case err: InterruptedException =>
-          logger.log(Level.WARNING, s"$job got interrupted", err)
+        case _: InterruptedException =>
+          logger.log(Level.WARNING, s"$job got interrupted")
         case err: Throwable =>
           logger.log(Level.SEVERE, s"Error executing $job", err)
           throw err

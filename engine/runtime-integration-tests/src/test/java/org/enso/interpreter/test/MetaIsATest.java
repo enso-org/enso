@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.enso.interpreter.test.ValuesGenerator.Language;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -17,22 +18,24 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class MetaIsATest extends TestBase {
+public class MetaIsATest {
   private static Context ctx;
   private static Value isACheck;
+  private static Value warningCheck;
   private static ValuesGenerator generator;
 
   @BeforeClass
   public static void prepareCtx() throws Exception {
-    ctx = createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
     final URI uri = new URI("memory://choose.enso");
     final Source src =
         Source.newBuilder(
                 "enso",
                 """
-    import Standard.Base.Meta
+    from Standard.Base import Meta, Warning
 
     check x y = Meta.is_a x y
+    check_warning x = Warning.has_warnings x
     """,
                 "check.enso")
             .uri(uri)
@@ -40,6 +43,7 @@ public class MetaIsATest extends TestBase {
 
     var module = ctx.eval(src);
     isACheck = module.invokeMember("eval_expression", "check");
+    warningCheck = module.invokeMember("eval_expression", "check_warning");
     assertTrue("it is a function", isACheck.canExecute());
   }
 
@@ -283,9 +287,22 @@ public class MetaIsATest extends TestBase {
       Value caseOf, Value v, Value t, StringBuilder f, ValuesGenerator g) {
     var test = caseOf.execute(v);
     if (test.isException()) {
-      assertEquals("DataFlowError in", g.typeError(), v.getMetaObject());
-      assertEquals("DataFlowError out", g.typeError(), test.getMetaObject());
-      return;
+      // if a generated value isException (from interop point of view)
+      // then it is either DataflowError or Warning
+      var vMeta = v.getMetaObject();
+      if (g.typeError().equals(vMeta)) {
+        assertEquals("DataFlowError in", g.typeError(), v.getMetaObject());
+        assertEquals("DataFlowError out", g.typeError(), test.getMetaObject());
+        // end the test here as DataflowError doesn't represent a value
+        return;
+      } else {
+        // check if Warning.has_warnings is true
+        var wv = warningCheck.execute(v);
+        var wTest = warningCheck.execute(test);
+        assertTrue("Warning in", wv.asBoolean());
+        assertTrue("Warning out", wTest.asBoolean());
+        // but continue with the rest of the test, as Warning still represents a value
+      }
     }
     assertTrue("Expecting 0 or 1 result: " + test + " for " + v, test.isNumber());
     var testBool = test.asInt() == 1;

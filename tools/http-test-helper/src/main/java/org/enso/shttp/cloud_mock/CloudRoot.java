@@ -3,17 +3,31 @@ package org.enso.shttp.cloud_mock;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URI;
+import org.enso.shttp.HttpMethod;
 import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
 
   private final ExpiredTokensCounter expiredTokensCounter;
-  private final CloudHandler[] handlers =
-      new CloudHandler[] {new UsersHandler(), new SecretsHandler()};
+  private final CloudHandler[] handlers;
 
   public CloudRoot(ExpiredTokensCounter expiredTokensCounter) {
     this.expiredTokensCounter = expiredTokensCounter;
+    AssetStore assetStore = new AssetStore();
+    UsersService usersService = new UsersService();
+    EventsService eventsService = new EventsService();
+    this.handlers =
+        new CloudHandler[] {
+          new UsersHandler(usersService),
+          new SecretsHandler(assetStore),
+          new HiddenSecretsHandler(assetStore),
+          new AssetsHandler(assetStore),
+          new PathResolver(assetStore),
+          new DirectoriesHandler(assetStore),
+          new GetLogsHandler(eventsService),
+          new PostLogHandler(usersService, eventsService)
+        };
   }
 
   @Override
@@ -50,6 +64,7 @@ public class CloudRoot extends HandlerWithTokenAuth {
       }
     }
 
+    System.err.println("No handler found for request: " + subPath);
     sendResponse(404, "No handler found for: " + subPath, exchange);
   }
 
@@ -71,8 +86,18 @@ public class CloudRoot extends HandlerWithTokenAuth {
       }
 
       @Override
+      public void sendEmptyResponse(int code) throws IOException {
+        CloudRoot.this.sendEmptyResponse(code, exchange);
+      }
+
+      @Override
       public String decodeBodyAsText() throws IOException {
         return CloudRoot.this.decodeBodyAsText(exchange);
+      }
+
+      @Override
+      public HttpMethod getMethod() throws IllegalArgumentException {
+        return HttpMethod.valueOf(exchange.getRequestMethod());
       }
     };
   }

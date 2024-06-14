@@ -1,13 +1,12 @@
 package org.enso.compiler.context;
 
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import org.enso.common.CompilationStage;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
@@ -18,8 +17,6 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.CompilationStage;
-import org.enso.polyglot.data.TypeGraph;
 
 /**
  * Interface that encapsulate all services {@link Compiler} needs from Truffle or other environment.
@@ -59,8 +56,10 @@ public interface CompilerContext extends CompilerStub {
    * @param diagnostic
    * @param isOutputRedirected True if the output is not system's out. If true, no ANSI color escape
    *     characters will be inside the returned string.
+   * @return exception with a message to display or to throw
    */
-  String formatDiagnostic(Module module, Diagnostic diagnostic, boolean isOutputRedirected);
+  RuntimeException formatDiagnostic(
+      Module module, Diagnostic diagnostic, boolean isOutputRedirected);
 
   // threads
   boolean isCreateThreadAllowed();
@@ -71,11 +70,12 @@ public interface CompilerContext extends CompilerStub {
 
   // Truffle related
 
-  void truffleRunCodegen(Module module, CompilerConfig config) throws IOException;
+  void truffleRunCodegen(Module module, ModuleScopeBuilder scopeBuilder, CompilerConfig config)
+      throws IOException;
 
   // module related
 
-  void runStubsGenerator(Module module);
+  void runStubsGenerator(Module module, ModuleScopeBuilder scopeBuilder);
 
   boolean typeContainsValues(String name);
 
@@ -92,26 +92,27 @@ public interface CompilerContext extends CompilerStub {
 
   boolean isInteractive(Module module);
 
+  boolean isModuleInRootPackage(Module module);
+
   boolean wasLoadedFromCache(Module module);
 
   org.enso.compiler.core.ir.Module getIr(Module module);
 
   CompilationStage getCompilationStage(Module module);
 
-  TypeGraph getTypeHierarchy();
-
   Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
+
+  scala.Option<Object> deserializeSuggestions(LibraryName libraryName) throws InterruptedException;
 
   Future<Boolean> serializeModule(
       Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool);
 
   boolean deserializeModule(Compiler compiler, Module module);
 
-  scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(LibraryName libraryName)
-      throws InterruptedException;
-
   void shutdown(boolean waitForPendingJobCompletion);
+
+  RuntimeException throwAbortedException();
 
   public static interface Updater {
     void bindingsMap(BindingsMap map);
@@ -128,17 +129,15 @@ public interface CompilerContext extends CompilerStub {
   }
 
   public abstract static class Module {
-    public abstract Source getSource() throws IOException;
+    public abstract CharSequence getCharacters() throws IOException;
 
     public abstract String getPath();
 
-    public abstract Package<TruffleFile> getPackage();
+    public abstract Package<? extends Object> getPackage();
 
     public abstract QualifiedName getName();
 
     public abstract BindingsMap getBindingsMap();
-
-    public abstract TruffleFile getSourceFile();
 
     public abstract List<QualifiedName> getDirectModulesRefs();
 
@@ -149,5 +148,11 @@ public interface CompilerContext extends CompilerStub {
     public abstract org.enso.compiler.core.ir.Module getIr();
 
     public abstract boolean isPrivate();
+
+    public abstract ModuleScopeBuilder getScopeBuilder();
+
+    public abstract ModuleScopeBuilder newScopeBuilder();
   }
+
+  public abstract static class ModuleScopeBuilder {}
 }

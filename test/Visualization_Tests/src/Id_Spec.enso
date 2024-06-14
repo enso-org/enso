@@ -32,10 +32,13 @@ add_specs suite_builder = suite_builder.group "Serializable Visualization Identi
         v_1.to_json.should_equal (expected "enso_dev.Visualization_Tests" "My Vis")
         v_2.to_json.should_equal (expected "Standard.Base" "Other Vis")
 
-    group_builder.specify "specifies default JSON visualization for any type" <|
-        My_Type.Value 30 . default_visualization . should_equal Visualization.Id.json
-        "foobar".default_visualization.should_equal Visualization.Id.json
-        True.default_visualization.should_equal Visualization.Id.json
+    group_builder.specify "specifies default Table visualization for any type" <|
+        My_Type.Value 30 . default_visualization . should_equal Visualization.Id.table
+        "foobar".default_visualization.should_equal Visualization.Id.table
+        True.default_visualization.should_equal Visualization.Id.table
+
+    group_builder.specify "specifies default json visualization JS_Object type" <|
+        (Json.parse '{"name":"John","age":25,"email":"john@example.com"}') . default_visualization . should_equal Visualization.Id.json
 
     group_builder.specify "specifies default Table visualization for Vector and Array type" <|
         [1,2,3].default_visualization.should_equal Visualization.Id.table

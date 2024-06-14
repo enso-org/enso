@@ -77,7 +77,7 @@ main = sumTo ->
 
   @Setup
   public void initializeBenchmarks(BenchmarkParams params) {
-    this.context = SrcUtil.newContextBuilder().build();
+    this.context = org.enso.compiler.benchmarks.Utils.createDefaultContextBuilder().build();
 
     this.sumTCOfromCall = Utils.getMainMethod(context, SUM_TCO_FROM_CALL_CODE);
     this.sumTCOmethodCall = Utils.getMainMethod(context, SUM_TCO_METHOD_CALL_CODE);

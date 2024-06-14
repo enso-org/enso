@@ -84,25 +84,25 @@ new_builtin year month day hour minute second nanosecond zone = @Builtin_Method 
    the Europe/Paris timezone" can be stored as `Time`.
 @Builtin_Type
 type Date_Time
-    ## ICON date_and_time
+    ## ICON time
        Obtains the start of the epoch for Enso.
 
-        ? Start of the epoch
-        For Enso, start of the epoch is equal to the start of the Gregorian calendar,
-        which is on 15th October 1582.
+       ? Start of the epoch
+       For Enso, start of the epoch is equal to the start of the Gregorian calendar,
+       which is on 15th October 1582.
 
-        Invoking some Gregorian calendar related functionalities, like `is_leap_year`,
-        is computed for all the date times, including those before an epoch start,
-        with today's rules. Trying to get some Gregorian calendar related properties
-        for a historical date times that is defined before the epoch is likely an error,
-        as the Gregorian calendar had not yet been introduced. Therefore, for such
-        historical date times, a warning is attached to the result.
+       Invoking some Gregorian calendar related functionalities, like `is_leap_year`,
+       is computed for all the date times, including those before an epoch start,
+       with today's rules. Trying to get some Gregorian calendar related properties
+       for a historical date times that is defined before the epoch is likely an error,
+       as the Gregorian calendar had not yet been introduced. Therefore, for such
+       historical date times, a warning is attached to the result.
     enso_epoch_start : Date_Time
     enso_epoch_start = @Builtin_Method "Date_Time.epoch_start"
 
     ## ALIAS current time
        GROUP DateTime
-       ICON date_and_time
+       ICON time
 
        Obtains the current date-time from the system clock in the system timezone.
 
@@ -116,7 +116,7 @@ type Date_Time
     now = @Builtin_Method "Date_Time.now"
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Obtains an instance of `Date_Time` from a year, month, day, hour, minute,
        second, nanosecond and timezone.
 
@@ -586,7 +586,7 @@ type Date_Time
             Day_Of_Week.from (Time_Utils.get_field_as_zoneddatetime self ChronoField.DAY_OF_WEEK) Day_Of_Week.Monday
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the first date within the `Time_Period` or `Date_Period`
        containing self.
     start_of : (Date_Period|Time_Period) -> Date_Time
@@ -597,7 +597,7 @@ type Date_Time
             _ : Time_Period -> adjusted
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the last date within the `Time_Period` or `Date_Period`
        containing self.
     end_of : (Date_Period|Time_Period) -> Date_Time
@@ -625,7 +625,7 @@ type Date_Time
 
     ## ALIAS change time zone
        GROUP DateTime
-       ICON date_and_time
+       ICON time
 
        Convert the time instant to the same instant in the provided time zone.
 
@@ -643,7 +643,7 @@ type Date_Time
         Time_Utils.with_zone_same_instant self zone
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns a requested date-time part as integer.
 
        Produces a warning for a Date_Time that is before epoch start.
@@ -665,7 +665,7 @@ type Date_Time
             Time_Period.Nanosecond  -> self.nanosecond
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Computes a time difference between the two date-times.
 
        It returns an integer expressing how many periods fit between the two
@@ -684,7 +684,7 @@ type Date_Time
         Time_Utils.unit_datetime_difference period.to_java_unit self end
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Shifts the date-time by a specified period.
 
        Produces a warning for a Date_Time that is before epoch start.
@@ -700,7 +700,7 @@ type Date_Time
 
     ## ALIAS add duration, add period
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Add the specified amount of time to this instant to produce a new instant.
 
        Arguments:
@@ -734,7 +734,7 @@ type Date_Time
                 self + date_period.to_period
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Shift the date by the specified amount of business days.
 
        For the purpose of this method, the business days are defined to be
@@ -778,7 +778,7 @@ type Date_Time
 
     ## ALIAS subtract duration, subtract period
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Subtract the specified amount of time from this instant to get a new
        instant.
 
@@ -925,7 +925,7 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
-    @format (value-> make_date_time_format_selector value)
+    @format make_date_time_format_selector
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter =
         format.format_date_time self

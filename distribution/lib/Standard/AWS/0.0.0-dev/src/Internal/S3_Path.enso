@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Internal.Path_Helpers
 
 import project.Errors.S3_Error
 import project.S3.S3
@@ -145,13 +146,7 @@ type Decomposed_S3_Path
 
     ## PRIVATE
     normalize self -> Decomposed_S3_Path ! S3_Error =
-        new_stack = self.parts.fold List.Nil stack-> part-> case part.name of
-            "." -> stack
-            ".." -> case stack of
-                List.Nil -> Error.throw (S3_Error.Error "Cannot move above root folder." Nothing)
-                List.Cons _ tail -> tail
-            _ -> List.Cons part stack
-        new_parts = new_stack.to_vector.reverse
+        new_parts = Path_Helpers.normalize_segments self.parts .name
         Decomposed_S3_Path.Value new_parts self.go_to_root
 
     ## PRIVATE

@@ -1,0 +1,37 @@
+import project.Data.Json.JS_Object
+import project.Data.Text.Text
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, False, True
+
+polyglot java import org.enso.base.enso_cloud.audit.AuditLog
+
+## PRIVATE
+type Audit_Log
+    ## PRIVATE
+       Reports an event to the audit log.
+       The event is submitted asynchronously.
+
+       Arguments:
+       - event_type: The type of the event.
+       - message: The message associated with the event.
+       - metadata: Additional metadata to include with the event.
+         Note that it should be a JS object and it should _not_ contain fields
+         that are restricted. These fields are added to the metadata
+         automatically.
+       - async: Whether to submit the event asynchronously.
+         Defaults to True.
+
+       ? Restricted Fields
+
+         The following fields are added by the system and should not be included
+         in the provided metadata:
+         - `type`
+         - `operation`
+         - `localTimestamp`
+         - `projectName`
+    report_event event_type:Text message:Text (metadata:JS_Object = JS_Object.from_pairs []) (async : Boolean = True) -> Nothing =
+        Illegal_Argument.handle_java_exception <|
+            case async of
+                True -> AuditLog.logAsync event_type message metadata.object_node
+                False -> AuditLog.logSynchronously event_type message metadata.object_node

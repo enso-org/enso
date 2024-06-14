@@ -1,7 +1,6 @@
 package org.enso.languageserver.text
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
-import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.boot.TimingsConfig
 import org.enso.languageserver.capability.CapabilityProtocol._
@@ -14,7 +13,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.{
   FileAttributes,
   FileEvent,
-  FileEventKind,
+  FileEventKinds,
   FileManagerProtocol,
   FileNotFound,
   GenericFileSystemFailure,
@@ -130,6 +129,7 @@ class CollaborativeBuffer(
       stop(Map.empty)
 
     case IOTimeout =>
+      logger.warn("Timeout reached when awaiting file's content")
       replyTo ! OpenFileResponse(Left(OperationTimeout))
       stop(Map.empty)
 
@@ -152,11 +152,36 @@ class CollaborativeBuffer(
     buffer: Buffer,
     rpcSession: JsonSession,
     replyTo: ActorRef,
-    timeout: Cancellable
+    timeout: Cancellable,
+    retries: Int
   ): Receive = {
     case ServerConfirmationTimeout =>
-      replyTo ! OpenFileResponse(Left(OperationTimeout))
-      stop(Map.empty)
+      if (retries > 0) {
+        logger.warn(
+          "Timeout reached when awaiting response from the server. Retries left {}",
+          retries
+        )
+        val timeoutCancellable = context.system.scheduler
+          .scheduleOnce(
+            timingsConfig.runtimeRequestTimeout,
+            self,
+            ServerConfirmationTimeout
+          )
+        context.become(
+          waitingOnServerConfirmation(
+            requestId,
+            buffer,
+            rpcSession,
+            replyTo,
+            timeoutCancellable,
+            retries - 1
+          )
+        )
+      } else {
+        logger.warn("Timeout reached when awaiting response from the server")
+        replyTo ! OpenFileResponse(Left(OperationTimeout))
+        stop(Map.empty)
+      }
     case Api.Response(Some(id), Api.OpenFileResponse) if id == requestId =>
       timeout.cancel()
       val cap = CapabilityRegistration(CanEdit(bufferPath))
@@ -355,6 +380,9 @@ class CollaborativeBuffer(
             failure
           )
       }
+
+    case ReadCollaborativeBuffer(_) =>
+      sender() ! ReadCollaborativeBufferResult(Some(buffer))
   }
 
   private def waitingOnReloadedContent(
@@ -402,7 +430,7 @@ class CollaborativeBuffer(
       clients.values.foreach {
         _.rpcController ! TextProtocol.FileEvent(
           path,
-          FileEventKind.Removed,
+          FileEventKinds.Removed,
           None
         )
       }
@@ -432,6 +460,7 @@ class CollaborativeBuffer(
       stop(Map.empty)
 
     case IOTimeout =>
+      logger.warn("Timeout reached when awaiting file's content reloading")
       replyTo ! ReloadBufferFailed(path, "io timeout")
       context.become(
         collaborativeEditing(
@@ -455,6 +484,9 @@ class CollaborativeBuffer(
     timeoutCancellable: Cancellable
   ): Receive = {
     case IOTimeout =>
+      logger.warn(
+        "Timeout reached when awaiting confirmation of buffer's saving"
+      )
       replyTo.foreach(_ ! SaveFailed(OperationTimeout))
       unstashAll()
       onClose match {
@@ -777,7 +809,8 @@ class CollaborativeBuffer(
   ): Either[ApplyEditFailure, Buffer] = {
     EditorOps
       .applyEdits(buffer.contents, edits)
-      .leftMap(toEditFailure)
+      .left
+      .map(toEditFailure)
       .map(rope => buffer.withContents(rope))
   }
 
@@ -856,7 +889,8 @@ class CollaborativeBuffer(
         buffer,
         rpcSession,
         replyTo,
-        timeoutCancellable
+        timeoutCancellable,
+        5
       )
     )
   }

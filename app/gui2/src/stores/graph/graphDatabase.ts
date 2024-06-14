@@ -1,5 +1,6 @@
+import { computeNodeColor } from '@/composables/nodeColors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
-import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
@@ -7,7 +8,6 @@ import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule, autospaced, subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst } from '@/util/ast/node'
-import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { Vec2 } from '@/util/data/vec2'
@@ -19,6 +19,11 @@ import type { Opt } from 'shared/util/data/opt'
 import type { ExternalId, SourceRange, VisualizationMetadata } from 'shared/yjsModel'
 import { isUuid, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
+
+export interface MethodCallInfo {
+  methodCall: MethodCall
+  suggestion: SuggestionEntry
+}
 
 export interface BindingInfo {
   identifier: string
@@ -133,6 +138,10 @@ export class GraphDb {
     private valuesRegistry: ComputedValueRegistry,
   ) {}
 
+  private nodeIdToOuterExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
+    return [[id, entry.outerExpr.id]]
+  })
+
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
     if (entry.pattern) entry.pattern.visitRecursiveAst((ast) => void exprs.push(ast.id))
@@ -159,6 +168,15 @@ export class GraphDb {
   allConnections = new ReactiveIndex(this.bindings.bindings, (alias, info) => {
     const srcNode = this.getPatternExpressionNodeId(alias)
     return Array.from(this.connectionsFromBindings(info, alias, srcNode))
+  })
+
+  nodeDependents = new ReactiveIndex(this.nodeIdToNode, (id) => {
+    const result = new Set<NodeId>()
+    for (const port of this.getNodeUsages(id)) {
+      const portNode = this.getExpressionNodeId(port)
+      if (portNode != null) result.add(portNode)
+    }
+    return Array.from(result, (target) => [id, target])
   })
 
   private *connectionsFromBindings(
@@ -188,7 +206,7 @@ export class GraphDb {
     return Array.from(ports, (port) => [id, port])
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (_id, entry) => {
     const expressionInfo = this.getExpressionInfo(entry.innerExpr.id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
@@ -197,18 +215,27 @@ export class GraphDb {
     return this.suggestionDb.get(suggestionId)
   })
 
-  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
-    const index = this.nodeMainSuggestion.lookup(id)?.groupIndex
-    const group = tryGetIndex(this.groups.value, index)
-    if (group == null) {
-      const typename = this.getExpressionInfo(id)?.typename
-      return typename ? colorFromString(typename) : 'var(--node-color-no-type)'
-    }
-    return groupColorStyle(group)
+  nodeColor = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+    if (entry.colorOverride != null) return entry.colorOverride
+    return computeNodeColor(
+      () => tryGetIndex(this.groups.value, this.nodeMainSuggestion.lookup(id)?.groupIndex),
+      () => this.getExpressionInfo(id)?.typename,
+    )
   })
 
   getNodeFirstOutputPort(id: NodeId): AstId {
     return set.first(this.nodeOutputPorts.lookup(id)) ?? id
+  }
+
+  *getNodeUsages(id: NodeId): IterableIterator<AstId> {
+    const outputPorts = this.nodeOutputPorts.lookup(id)
+    for (const outputPort of outputPorts) {
+      yield* this.connections.lookup(outputPort)
+    }
+  }
+
+  getOuterExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
+    return exprId && set.first(this.nodeIdToOuterExprIds.reverseLookup(exprId))
   }
 
   getExpressionNodeId(exprId: AstId | undefined): NodeId | undefined {
@@ -241,6 +268,10 @@ export class GraphDb {
     return this.bindings.identifierToBindingId.hasKey(ident)
   }
 
+  nodeIds(): IterableIterator<NodeId> {
+    return this.nodeIdToNode.keys()
+  }
+
   isKnownFunctionCall(id: AstId): boolean {
     return this.getMethodCallInfo(id) != null
   }
@@ -253,37 +284,7 @@ export class GraphDb {
     )
   }
 
-  /**
-   * Get a list of all nodes that depend on given node. Includes transitive dependencies.
-   */
-  dependantNodes(id: NodeId): Set<NodeId> {
-    const toVisit = [id]
-    const result = new Set<NodeId>()
-
-    let currentNode: NodeId | undefined
-    while ((currentNode = toVisit.pop())) {
-      const outputPorts = this.nodeOutputPorts.lookup(currentNode)
-      for (const outputPort of outputPorts) {
-        const connectedPorts = this.connections.lookup(outputPort)
-        for (const port of connectedPorts) {
-          const portNode = this.getExpressionNodeId(port)
-          if (portNode == null) continue
-          if (!result.has(portNode)) {
-            result.add(portNode)
-            toVisit.push(portNode)
-          }
-        }
-      }
-    }
-
-    return result
-  }
-
-  getMethodCallInfo(
-    id: AstId,
-  ):
-    | { methodCall: MethodCall; suggestion: SuggestionEntry; partiallyApplied: boolean }
-    | undefined {
+  getMethodCallInfo(id: AstId): MethodCallInfo | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
     const payloadFuncSchema =
@@ -294,8 +295,7 @@ export class GraphDb {
     if (suggestionId == null) return
     const suggestion = this.suggestionDb.get(suggestionId)
     if (suggestion == null) return
-    const partiallyApplied = mathodCallEquals(methodCall, payloadFuncSchema)
-    return { methodCall, suggestion, partiallyApplied }
+    return { methodCall, suggestion }
   }
 
   getNodeColorStyle(id: NodeId): string {
@@ -348,19 +348,12 @@ export class GraphDb {
       const node = this.nodeIdToNode.get(nodeId)
       currentNodeIds.add(nodeId)
       if (node == null) {
-        let metadataFields: NodeDataFromMetadata = {
-          position: new Vec2(0, 0),
-          vis: undefined,
-        }
-        // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
-        // when we switch to a different function.
-        if (functionChanged) {
-          const nodeMeta = newNode.rootExpr.nodeMetadata
-          const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
-          metadataFields = {
-            position: new Vec2(pos.x, pos.y),
-            vis: nodeMeta.get('visualization'),
-          }
+        const nodeMeta = newNode.rootExpr.nodeMetadata
+        const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
+        const metadataFields = {
+          position: new Vec2(pos.x, pos.y),
+          vis: nodeMeta.get('visualization'),
+          colorOverride: nodeMeta.get('colorOverride'),
         }
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
       } else {
@@ -435,6 +428,9 @@ export class GraphDb {
     if (changes.has('visualization')) {
       const newVis = changes.get('visualization')
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
+    }
+    if (changes.has('colorOverride')) {
+      node.colorOverride = changes.get('colorOverride')
     }
   }
 
@@ -520,6 +516,7 @@ export interface NodeDataFromAst {
 export interface NodeDataFromMetadata {
   position: Vec2
   vis: Opt<VisualizationMetadata>
+  colorOverride: Opt<string>
 }
 
 export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
@@ -532,10 +529,11 @@ const baseMockNode = {
   prefixes: { enableRecording: undefined },
   primarySubject: undefined,
   documentation: undefined,
+  colorOverride: undefined,
   conditionalPorts: new Set(),
 } satisfies Partial<Node>
 
-function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
+export function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
   return (
     a === b ||
     (a != null &&

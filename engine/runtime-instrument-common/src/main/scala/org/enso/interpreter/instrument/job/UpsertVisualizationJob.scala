@@ -1,11 +1,9 @@
 package org.enso.interpreter.instrument.job
 
-import cats.implicits._
-import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.module.scope.definition
+import org.enso.compiler.core.ir.module.scope.{definition, Definition}
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   DataflowAnalysis
@@ -27,8 +25,10 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.UUID
 import java.util.logging.Level
 import scala.annotation.unused
+import scala.util.Try
 
 /** A job that upserts a visualization.
   *
@@ -60,12 +60,10 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
-    implicit val logger: TruffleLogger = ctx.executionService.getLogger
-    val lockTimestamp =
-      ctx.locking.acquireContextLock(config.executionContextId)
-    try {
-      val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
-      try {
+    ctx.locking.withContextLock(
+      config.executionContextId,
+      this.getClass,
+      () => {
         val maybeCallable =
           UpsertVisualizationJob.evaluateVisualizationExpression(
             config.visualizationModule,
@@ -99,9 +97,12 @@ class UpsertVisualizationJob(
                 callable,
                 arguments
               )
-            val stack = ctx.contextManager.getStack(config.executionContextId)
-            val cachedValue = stack.headOption
-              .flatMap(frame => Option(frame.cache.get(expressionId)))
+            val stack =
+              ctx.contextManager.getStack(config.executionContextId)
+            val runtimeCache = stack.headOption
+              .flatMap(frame => Option(frame.cache))
+            val cachedValue = runtimeCache
+              .flatMap(c => Option(c.get(expressionId)))
             UpsertVisualizationJob.requireVisualizationSynchronization(
               stack,
               expressionId
@@ -110,6 +111,7 @@ class UpsertVisualizationJob(
               case Some(value) =>
                 ProgramExecutionSupport.executeAndSendVisualizationUpdate(
                   config.executionContextId,
+                  runtimeCache.getOrElse(new RuntimeCache),
                   stack.headOption.get.syncState,
                   visualization,
                   expressionId,
@@ -120,25 +122,8 @@ class UpsertVisualizationJob(
                 Some(Executable(config.executionContextId, stack))
             }
         }
-      } finally {
-        ctx.locking.releaseWriteCompilationLock()
-        logger.log(
-          Level.FINEST,
-          s"Kept write compilation lock [UpsertVisualizationJob] for ${System
-            .currentTimeMillis() - writeLockTimestamp} milliseconds"
-        )
       }
-    } finally {
-      ctx.locking.releaseContextLock(config.executionContextId)
-      logger.log(
-        Level.FINEST,
-        "Kept context lock [{0}] for {1} milliseconds.",
-        Array(
-          getClass.getSimpleName,
-          System.currentTimeMillis() - lockTimestamp
-        )
-      )
-    }
+    )
   }
 
   private def replyWithExpressionFailedError(
@@ -293,58 +278,55 @@ object UpsertVisualizationJob {
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] = {
-    Either
-      .catchNonFatal {
-        ctx.locking.assertWriteCompilationLock()
-        ctx.executionService.evaluateExpression(module, argumentExpression)
-      }
-      .leftFlatMap {
-        case _: ThreadInterruptedException
-            if retryCount < MaxEvaluationRetryCount =>
-          evaluateArgumentExpression(
-            module,
+    Try(
+      ctx.executionService.evaluateExpression(module, argumentExpression)
+    ).toEither.left.flatMap {
+      case _: ThreadInterruptedException
+          if retryCount < MaxEvaluationRetryCount =>
+        evaluateArgumentExpression(
+          module,
+          argumentExpression,
+          retryCount + 1
+        )
+
+      case error: ThreadInterruptedException =>
+        ctx.executionService.getLogger.log(
+          Level.SEVERE,
+          "Evaluation of visualization argument [{0}] in module [{1}] was interrupted [{2}] times.",
+          Array[Object](
             argumentExpression,
-            retryCount + 1
+            module.getName.toString,
+            retryCount: Integer,
+            error
           )
+        )
+        Left(
+          EvaluationFailed(
+            s"Evaluation of visualization argument was interrupted [$retryCount] times.",
+            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+          )
+        )
 
-        case error: ThreadInterruptedException =>
-          ctx.executionService.getLogger.log(
-            Level.SEVERE,
-            "Evaluation of visualization argument [{0}] in module [{1}] was interrupted [{2}] times.",
-            Array[Object](
-              argumentExpression,
-              module.getName.toString,
-              retryCount: Integer,
-              error
-            )
+      case error =>
+        ctx.executionService.getLogger.log(
+          Level.SEVERE,
+          "Evaluation of visualization argument [{0}] failed in module [{1}] with [{2}]: {3}",
+          Array[Object](
+            argumentExpression,
+            module.getName.toString,
+            error.getClass.getSimpleName,
+            error.getMessage,
+            error
           )
-          Left(
-            EvaluationFailed(
-              s"Evaluation of visualization argument was interrupted [$retryCount] times.",
-              ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
-            )
+        )
+        Left(
+          EvaluationFailed(
+            Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
+            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
           )
+        )
 
-        case error =>
-          ctx.executionService.getLogger.log(
-            Level.SEVERE,
-            "Evaluation of visualization argument [{0}] failed in module [{1}] with [{2}]: {3}",
-            Array[Object](
-              argumentExpression,
-              module.getName.toString,
-              error.getClass.getSimpleName,
-              error.getMessage,
-              error
-            )
-          )
-          Left(
-            EvaluationFailed(
-              Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
-              ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
-            )
-          )
-
-      }
+    }
   }
 
   /** Evaluate the visualization expression in a given module.
@@ -362,72 +344,69 @@ object UpsertVisualizationJob {
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, AnyRef] =
-    Either
-      .catchNonFatal {
-        expression match {
-          case Api.VisualizationExpression.Text(_, expression, _) =>
-            ctx.locking.assertWriteCompilationLock()
-            ctx.executionService.evaluateExpression(
-              expressionModule,
-              expression
-            )
-          case Api.VisualizationExpression.ModuleMethod(
-                Api.MethodPointer(_, definedOnType, name),
-                _
-              ) =>
-            ctx.executionService.prepareFunctionCall(
-              expressionModule,
-              QualifiedName.fromString(definedOnType).item,
-              name
-            )
-        }
+    Try {
+      expression match {
+        case Api.VisualizationExpression.Text(_, expression, _) =>
+          ctx.executionService.evaluateExpression(
+            expressionModule,
+            expression
+          )
+        case Api.VisualizationExpression.ModuleMethod(
+              Api.MethodPointer(_, definedOnType, name),
+              _
+            ) =>
+          ctx.executionService.prepareFunctionCall(
+            expressionModule,
+            QualifiedName.fromString(definedOnType).item,
+            name
+          )
       }
-      .leftFlatMap {
-        case _: ThreadInterruptedException
-            if retryCount < MaxEvaluationRetryCount =>
-          evaluateVisualizationFunction(
+    }.toEither.left.flatMap {
+      case _: ThreadInterruptedException
+          if retryCount < MaxEvaluationRetryCount =>
+        evaluateVisualizationFunction(
+          expression,
+          expressionModule,
+          retryCount + 1
+        )
+
+      case error: ThreadInterruptedException =>
+        ctx.executionService.getLogger.log(
+          Level.SEVERE,
+          "Evaluation of visualization [{0}] in module [{1}] was interrupted [{2}] times.",
+          Array[Object](
             expression,
             expressionModule,
-            retryCount + 1
+            retryCount: Integer,
+            error
           )
+        )
+        Left(
+          EvaluationFailed(
+            s"Evaluation of visualization was interrupted [$retryCount] times.",
+            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+          )
+        )
 
-        case error: ThreadInterruptedException =>
-          ctx.executionService.getLogger.log(
-            Level.SEVERE,
-            "Evaluation of visualization [{0}] in module [{1}] was interrupted [{2}] times.",
-            Array[Object](
-              expression,
-              expressionModule,
-              retryCount: Integer,
-              error
-            )
+      case error =>
+        ctx.executionService.getLogger.log(
+          Level.SEVERE,
+          "Evaluation of visualization [{0}] failed in module [{1}] with [{2}]: {3}",
+          Array[Object](
+            expression,
+            expressionModule,
+            error.getClass,
+            error.getMessage,
+            error
           )
-          Left(
-            EvaluationFailed(
-              s"Evaluation of visualization was interrupted [$retryCount] times.",
-              ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
-            )
+        )
+        Left(
+          EvaluationFailed(
+            Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
+            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
           )
-
-        case error =>
-          ctx.executionService.getLogger.log(
-            Level.SEVERE,
-            "Evaluation of visualization [{0}] failed in module [{1}] with [{2}]: {3}",
-            Array[Object](
-              expression,
-              expressionModule,
-              error.getClass,
-              error.getMessage,
-              error
-            )
-          )
-          Left(
-            EvaluationFailed(
-              Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
-              ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
-            )
-          )
-      }
+        )
+    }
 
   /** Evaluate the visualization expression in a given module.
     *
@@ -515,7 +494,10 @@ object UpsertVisualizationJob {
         callback,
         arguments
       )
-    invalidateCaches(visualization)
+    ctx.locking.withWriteCompilationLock(
+      this.getClass,
+      () => invalidateCaches(visualization)
+    )
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
@@ -536,25 +518,35 @@ object UpsertVisualizationJob {
     visualizationExpression match {
       case Api.VisualizationExpression.ModuleMethod(methodPointer, _) =>
         module.getIr.bindings
-          .collect { case method: definition.Method =>
-            val methodReference        = method.methodReference
-            val methodReferenceName    = methodReference.methodName.name
-            val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)
-
-            val externalIdOpt = method.body match {
-              case fun: Function => fun.body.getExternalId
-              case _             => method.getExternalId
-            }
-            externalIdOpt.filter { _ =>
-              methodReferenceName == methodPointer.name &&
-              methodReferenceTypeOpt.isEmpty
-            }
+          .collectFirst {
+            case ExternalIdOfMethod(externalId, methodReference)
+                if methodReference.methodName.name == methodPointer.name =>
+              externalId
           }
-          .flatten
-          .headOption
-
       case _: Api.VisualizationExpression.Text => None
     }
+
+  private object ExternalIdOfMethod {
+    def unapply(d: Definition): Option[(UUID, Name.MethodReference)] = {
+      d match {
+        case method: definition.Method =>
+          val methodReference        = method.methodReference
+          val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)
+
+          Option
+            .when(methodReferenceTypeOpt.isEmpty)(
+              method.body match {
+                case fun: Function => fun.body.getExternalId
+                case _             => method.getExternalId
+              }
+            )
+            .flatten
+            .map((_, methodReference))
+        case _ =>
+          None
+      }
+    }
+  }
 
   /** Update the caches. */
   private def invalidateCaches(

@@ -1,49 +1,60 @@
 /** @file A toolbar for displaying asset information. */
 import * as React from 'react'
 
+import * as tailwindVariants from 'tailwind-variants'
+
 import SettingsIcon from 'enso-assets/settings.svg'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import Button from '#/components/Button'
+import Button from '#/components/styled/Button'
+import FocusArea from '#/components/styled/FocusArea'
 
-import * as backendModule from '#/services/Backend'
+// =================
+// === Constants ===
+// =================
+
+const ASSET_INFO_BAR_VARIANTS = tailwindVariants.tv({
+  base: 'pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-icons rounded-full bg-frame px-icons-x',
+  variants: {
+    hidden: { true: 'invisible' },
+  },
+})
+
+// ====================
+// === AssetInfoBar ===
+// ====================
 
 /** Props for an {@link AssetInfoBar}. */
-export interface AssetInfoBarProps {
+export interface AssetInfoBarProps
+  extends tailwindVariants.VariantProps<typeof ASSET_INFO_BAR_VARIANTS> {
+  /** When `true`, the element occupies space in the layout but is not visible.
+   * Defaults to `false`. */
+  readonly invisible?: boolean
   readonly isAssetPanelEnabled: boolean
   readonly setIsAssetPanelEnabled: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 /** A menubar for displaying asset information. */
-// This parameter will be used in the future.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
-  const {
-    isAssetPanelEnabled: isAssetPanelVisible,
-    setIsAssetPanelEnabled: setIsAssetPanelVisible,
-  } = props
-  const { backend } = backendProvider.useBackend()
+  const { invisible = false, isAssetPanelEnabled, setIsAssetPanelEnabled, ...variantProps } = props
   const { getText } = textProvider.useText()
+
   return (
-    <div
-      className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-icons rounded-full bg-frame px-icons-x ${
-        backend.type === backendModule.BackendType.remote ? '' : 'invisible'
-      }`}
-      onClick={event => {
-        event.stopPropagation()
-      }}
-    >
-      <Button
-        alt={isAssetPanelVisible ? getText('closeAssetPanel') : getText('openAssetPanel')}
-        active={isAssetPanelVisible}
-        image={SettingsIcon}
-        error={getText('multipleAssetsSettingsError')}
-        onClick={() => {
-          setIsAssetPanelVisible(visible => !visible)
-        }}
-      />
-    </div>
+    <FocusArea active={!invisible} direction="horizontal">
+      {innerProps => (
+        <div className={ASSET_INFO_BAR_VARIANTS(variantProps)} {...innerProps}>
+          <Button
+            alt={isAssetPanelEnabled ? getText('closeAssetPanel') : getText('openAssetPanel')}
+            active={isAssetPanelEnabled}
+            image={SettingsIcon}
+            error={getText('multipleAssetsSettingsError')}
+            onPress={() => {
+              setIsAssetPanelEnabled(visible => !visible)
+            }}
+          />
+        </div>
+      )}
+    </FocusArea>
   )
 }

@@ -75,13 +75,13 @@ case class DistributionPaths(
   /** Sequence of paths to search for engine installations, in order of
     * precedence.
     */
-  def engineSearchPaths: Seq[Path] = Seq(engines) ++ bundle.map(_.engines).toSeq
+  def engineSearchPaths: Seq[Path] = bundle.map(_.engines).toSeq ++ Seq(engines)
 
   /** Sequence of paths to search for runtime installations, in order of
     * precedence.
     */
   def runtimeSearchPaths: Seq[Path] =
-    Seq(runtimes) ++ bundle.map(_.runtimes).toSeq
+    bundle.map(_.runtimes).toSeq ++ Seq(runtimes)
 
   /** The directory for cached editions managed by us. */
   def cachedEditions: Path = dataRoot / DistributionManager.EDITIONS_DIRECTORY
@@ -93,8 +93,8 @@ case class DistributionPaths(
     * precedence.
     */
   def editionSearchPaths: Seq[Path] =
-    customEditions ++ Seq(cachedEditions) ++
-    bundledWithEngines(DistributionManager.EDITIONS_DIRECTORY)
+    bundledWithEngines(DistributionManager.EDITIONS_DIRECTORY) ++
+    customEditions ++ Seq(cachedEditions)
 
   /** Returns a sequence of paths to some subdirectory in all installed engines.
     */

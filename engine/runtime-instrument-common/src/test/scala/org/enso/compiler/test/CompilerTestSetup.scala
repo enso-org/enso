@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils
 import org.enso.compiler.context.LocalScope
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.CompilationStage
+import org.enso.common.CompilationStage
 
 /** A reduced version of [[org.enso.compiler.test.CompilerRunner]] that avoids introducing a cyclic dependency
   * to `runtime-instrument-common` subject.

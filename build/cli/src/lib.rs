@@ -413,7 +413,7 @@ impl Processor {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
                 for arg in which {
                     match arg {
-                        Tests::Scala => config.test_scala = true,
+                        Tests::Jvm => config.test_jvm = true,
                         Tests::StandardLibrary => config.test_standard_library = true,
                     }
                 }

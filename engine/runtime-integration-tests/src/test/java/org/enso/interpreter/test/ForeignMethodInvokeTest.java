@@ -3,7 +3,12 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import java.util.concurrent.Executors;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -11,12 +16,12 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class ForeignMethodInvokeTest extends TestBase {
+public class ForeignMethodInvokeTest {
   private static Context ctx;
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = defaultContextBuilder("enso", "js").build();
+    ctx = ContextUtils.defaultContextBuilder("enso", "js").build();
   }
 
   @AfterClass
@@ -44,7 +49,7 @@ public class ForeignMethodInvokeTest extends TestBase {
     assertTrue("Invoking non-installed foreign function should recover", res.isException());
     try {
       throw res.throwException();
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       assertTrue(
           "Wrong error message",
           e.getMessage()
@@ -65,7 +70,7 @@ public class ForeignMethodInvokeTest extends TestBase {
         """;
 
     var module = ctx.eval("enso", source);
-    var third = module.invokeMember("eval_expression", "third");
+    var third = module.invokeMember("eval_expression", new AsString("third"));
     var res = third.execute(13);
     assertTrue("It is an array", res.hasArrayElements());
     assertEquals(3, res.getArraySize());
@@ -102,7 +107,7 @@ public class ForeignMethodInvokeTest extends TestBase {
         """;
 
     var module = ctx.eval("enso", source);
-    var third = module.invokeMember("eval_expression", "third");
+    var third = module.invokeMember("eval_expression", new AsString("third"));
 
     var future =
         Executors.newSingleThreadExecutor()
@@ -121,5 +126,24 @@ public class ForeignMethodInvokeTest extends TestBase {
 
     assertTrue("It is an array2", res2.hasArrayElements());
     assertEquals(12, res2.getArrayElement(2).asInt());
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static class AsString implements TruffleObject {
+    private final String value;
+
+    private AsString(String value) {
+      this.value = value;
+    }
+
+    @ExportMessage
+    boolean isString() {
+      return true;
+    }
+
+    @ExportMessage
+    String asString() {
+      return value;
+    }
   }
 }

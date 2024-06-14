@@ -5,7 +5,7 @@ import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Value_Type
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+from Standard.Table.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
@@ -123,8 +123,7 @@ type SQLite_Dialect
        A heuristic used by `Connection.query` to determine if a given text looks
        like a SQL query for the given dialect or is rather a table name.
     is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text =
-        (text.contains "SELECT ") || (text.contains "EXEC ")
+    is_probably_a_query self text = Base_Generator.is_probably_a_query text
 
     ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
@@ -138,7 +137,7 @@ type SQLite_Dialect
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
+    make_cast self (column : Internal_Column) (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_Expression -> SQL_Type_Reference) =
         _ = [infer_result_type_from_database_callback]
         mapping = self.get_type_mapping
         target_value_type = mapping.sql_type_to_value_type target_type
@@ -167,8 +166,8 @@ type SQLite_Dialect
     supports_negative_round_decimal_places self = False
 
     ## PRIVATE
-    rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self = False
+    supports_float_round_decimal_places : Boolean
+    supports_float_round_decimal_places self = True
 
     ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.
@@ -378,12 +377,12 @@ agg_count_distinct_include_null args = case args.length == 1 of
     False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
-starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
+starts_with = Base_Generator.lift_binary_op "STARTS_WITH" str-> sub->
     res = str ++ " GLOB (" ++ sub ++ " || '*')"
     res.paren
 
 ## PRIVATE
-ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+ends_with = Base_Generator.lift_binary_op "ENDS_WITH" str-> sub->
     res = str ++ " GLOB ('*' || " ++ sub ++ ")"
     res.paren
 
@@ -396,7 +395,7 @@ make_contains_expr expr substring =
     SQL_Builder.code "instr(" ++ expr ++ ", " ++ substring ++ ") > 0"
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
 
 ## PRIVATE
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
@@ -415,7 +414,7 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     SQL_Builder.code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
 
 ## PRIVATE
-mod_op = Base_Generator.lift_binary_op "mod" x-> y->
+mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
 
 ## PRIVATE

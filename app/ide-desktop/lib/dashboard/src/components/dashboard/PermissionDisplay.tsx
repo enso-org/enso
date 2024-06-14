@@ -1,6 +1,11 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
+import type * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
+
 import * as permissionsModule from '#/utilities/permissions'
 
 // =================
@@ -11,14 +16,12 @@ import * as permissionsModule from '#/utilities/permissions'
 export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren> {
   readonly action: permissionsModule.PermissionAction
   readonly className?: string
-  readonly onClick?: React.MouseEventHandler<HTMLButtonElement>
-  readonly onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>
-  readonly onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>
+  readonly onPress?: (event: aria.PressEvent) => void
 }
 
 /** Colored border around icons and text indicating permissions. */
 export default function PermissionDisplay(props: PermissionDisplayProps) {
-  const { action, className, onClick, onMouseEnter, onMouseLeave, children } = props
+  const { action, className, onPress: onPress, children } = props
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
   switch (permission.type) {
@@ -26,29 +29,32 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.admin:
     case permissionsModule.Permission.edit: {
       return (
-        <button
-          disabled={!onClick}
-          className={`${
-            permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y ${
-            className ?? ''
-          }`}
-          onClick={onClick}
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          isDisabled={!onPress}
+          className={tailwindMerge.twMerge(
+            'inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y',
+            permissionsModule.PERMISSION_CLASS_NAME[permission.type],
+            className
+          )}
+          onPress={onPress ?? (() => {})}
         >
           {children}
-        </button>
+        </ariaComponents.Button>
       )
     }
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       return (
-        <button
-          className={`relative inline-block whitespace-nowrap rounded-full ${className ?? ''}`}
-          onClick={onClick}
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          className={tailwindMerge.twMerge(
+            'relative inline-block whitespace-nowrap rounded-full',
+            className
+          )}
+          onPress={onPress ?? (() => {})}
         >
           {permission.docs && (
             <div className="absolute size-full rounded-full border-2 border-permission-docs clip-path-top" />
@@ -57,13 +63,14 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
             <div className="absolute size-full rounded-full border-2 border-permission-exec clip-path-bottom" />
           )}
           <div
-            className={`${
+            className={tailwindMerge.twMerge(
+              'm-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y',
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } m-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y`}
+            )}
           >
             {children}
           </div>
-        </button>
+        </ariaComponents.Button>
       )
     }
   }

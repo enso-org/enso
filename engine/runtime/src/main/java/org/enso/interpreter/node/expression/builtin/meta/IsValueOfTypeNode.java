@@ -14,6 +14,7 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -69,7 +70,7 @@ public abstract class IsValueOfTypeNode extends Node {
 
   abstract static class Typed extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
-    private @Child TypeOfNode typeOfNode = TypeOfNode.build();
+    private @Child TypeOfNode typeOfNode = TypeOfNode.create();
     private final CountingConditionProfile profile = CountingConditionProfile.create();
 
     abstract boolean execute(Object expectedType, Object payload);
@@ -151,7 +152,7 @@ public abstract class IsValueOfTypeNode extends Node {
 
   abstract static class Untyped extends Node {
     private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
-    private @Child TypeOfNode typeOfNode = TypeOfNode.build();
+    private @Child TypeOfNode typeOfNode = TypeOfNode.create();
     private final CountingConditionProfile profile = CountingConditionProfile.create();
 
     abstract boolean execute(Object expectedType, Object payload);

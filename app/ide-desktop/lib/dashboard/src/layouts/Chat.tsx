@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
+import * as tailwindMerge from 'tailwind-merge'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -15,6 +16,8 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
 
@@ -108,23 +111,31 @@ function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
-    <div className={`m-chat-reaction-bar inline-block rounded-full bg-frame ${className ?? ''}`}>
+    <div
+      className={tailwindMerge.twMerge(
+        'm-chat-reaction-bar inline-block rounded-full bg-frame',
+        className
+      )}
+    >
       {REACTION_EMOJIS.map(emoji => (
-        <button
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           key={emoji}
-          onClick={() => {
+          onPress={() => {
             if (selectedReactions.has(emoji)) {
               doRemoveReaction(emoji)
             } else {
               doReact(emoji)
             }
           }}
-          className={`m-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0 ${
+          className={tailwindMerge.twMerge(
+            'm-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0',
             selectedReactions.has(emoji) ? 'active' : 'grayscale'
-          }`}
+          )}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
-        </button>
+        </ariaComponents.Button>
       ))}
     </div>
   )
@@ -241,7 +252,6 @@ interface InternalChatHeaderProps {
 function ChatHeader(props: InternalChatHeaderProps) {
   const { threads, setThreads, threadId, threadTitle, setThreadTitle } = props
   const { switchThread, sendMessage, doClose } = props
-  const gtagEvent = gtagHooks.useGtagEvent()
   const [isThreadListVisible, setIsThreadListVisible] = React.useState(false)
   // These will never be `null` as their values are set immediately.
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -256,33 +266,31 @@ function ChatHeader(props: InternalChatHeaderProps) {
       setIsThreadListVisible(false)
     }
     document.addEventListener('click', onClick)
-    gtagEvent('cloud_open_chat')
     return () => {
       document.removeEventListener('click', onClick)
-      gtagEvent('cloud_close_chat')
     }
-  }, [gtagEvent])
-
-  const toggleThreadListVisibility = React.useCallback((event: React.SyntheticEvent) => {
-    event.stopPropagation()
-    setIsThreadListVisible(visible => !visible)
   }, [])
 
   return (
     <>
       <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
-        <button
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           className="flex grow items-center gap-icon-with-text"
-          onClick={toggleThreadListVisibility}
+          onPress={() => {
+            setIsThreadListVisible(visible => !visible)
+          }}
         >
           <SvgMask
-            className={`shrink-0 transition-transform duration-arrow ${
+            className={tailwindMerge.twMerge(
+              'shrink-0 transition-transform duration-arrow',
               isThreadListVisible ? '-rotate-90' : 'rotate-90'
-            }`}
+            )}
             src={FolderArrowIcon}
           />
           <div className="grow">
-            <input
+            <aria.Input
               type="text"
               ref={titleInputRef}
               defaultValue={threadTitle}
@@ -320,26 +328,33 @@ function ChatHeader(props: InternalChatHeaderProps) {
               }}
             />
           </div>
-        </button>
-        <button className="mx-close-icon" onClick={doClose}>
+        </ariaComponents.Button>
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          className="mx-close-icon"
+          onPress={doClose}
+        >
           <img src={CloseLargeIcon} />
-        </button>
+        </ariaComponents.Button>
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow ${
+          className={tailwindMerge.twMerge(
+            'absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow',
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
-          }`}
+          )}
         >
           <div className="max-h-chat-thread-list min-h overflow-y-auto">
             {threads.map(thread => (
               <div
                 key={thread.id}
-                className={`flex p-chat-thread-button ${
+                className={tailwindMerge.twMerge(
+                  'flex p-chat-thread-button',
                   thread.id === threadId
                     ? 'cursor-default bg-selected-frame'
                     : 'cursor-pointer hover:bg-frame'
-                }`}
+                )}
                 onClick={event => {
                   event.stopPropagation()
                   if (thread.id !== threadId) {
@@ -380,6 +395,32 @@ export default function Chat(props: ChatProps) {
   const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { isFocusVisible } = aria.useFocusVisible()
+  const { focusWithinProps } = aria.useFocusWithin({
+    onFocusWithin: event => {
+      if (
+        isFocusVisible &&
+        !isOpen &&
+        (event.relatedTarget instanceof HTMLElement || event.relatedTarget instanceof SVGElement)
+      ) {
+        const relatedTarget = event.relatedTarget
+        setTimeout(() => {
+          relatedTarget.focus()
+        })
+      }
+    },
+  })
+  const gtagEvent = gtagHooks.useGtagEvent()
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      return
+    } else {
+      return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'cloud_open_chat', 'cloud_close_chat')
+    }
+  }, [isOpen])
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
@@ -592,8 +633,7 @@ export default function Chat(props: ChatProps) {
   )
 
   const sendCurrentMessage = React.useCallback(
-    (event: React.SyntheticEvent, createNewThread?: boolean) => {
-      event.preventDefault()
+    (createNewThread?: boolean) => {
       const element = messageInputRef.current
       if (element != null) {
         const content = element.value
@@ -662,7 +702,11 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${isOpen ? '' : 'translate-x-full'}`}
+        className={tailwindMerge.twMerge(
+          'fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-[transform,opacity]',
+          isOpen ? 'opacity-1' : 'translate-x-full opacity-0'
+        )}
+        {...focusWithinProps}
       >
         <ChatHeader
           threads={threads}
@@ -743,7 +787,9 @@ export default function Chat(props: ChatProps) {
         </div>
         <form
           className="mx-chat-form-x my-chat-form-y rounded-default bg-frame p-chat-form"
-          onSubmit={sendCurrentMessage}
+          onSubmit={() => {
+            sendCurrentMessage()
+          }}
         >
           <textarea
             ref={messageInputRef}
@@ -776,36 +822,44 @@ export default function Chat(props: ChatProps) {
             }}
           />
           <div className="flex gap-chat-buttons">
-            <button
-              type="button"
-              disabled={!isReplyEnabled}
-              className={`text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white ${
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
+              isDisabled={!isReplyEnabled}
+              className={tailwindMerge.twMerge(
+                'text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white',
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
-              }`}
-              onClick={event => {
-                sendCurrentMessage(event, true)
+              )}
+              onPress={() => {
+                sendCurrentMessage(true)
               }}
             >
               {getText('clickForNewQuestion')}
-            </button>
-            <button
-              type="submit"
-              disabled={!isReplyEnabled}
+            </ariaComponents.Button>
+            <ariaComponents.Button
+              size="custom"
+              variant="custom"
+              isDisabled={!isReplyEnabled}
               className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
+              onPress={() => {
+                sendCurrentMessage()
+              }}
             >
               {getText('replyExclamation')}
-            </button>
+            </ariaComponents.Button>
           </div>
         </form>
         {!isPaidUser && (
-          <button
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             // This UI element does not appear anywhere else.
             // eslint-disable-next-line no-restricted-syntax
-            className="mx-2 my-1 rounded-default bg-call-to-action/90 p-2 text-center leading-cozy text-white"
-            onClick={upgradeToPro}
+            className="mx-2 my-1 text-wrap rounded-2xl bg-call-to-action/90 p-2 text-center leading-cozy text-white hover:bg-call-to-action"
+            onPress={upgradeToPro}
           >
             {getText('upgradeToProNag')}
-          </button>
+          </ariaComponents.Button>
         )}
       </div>,
       container

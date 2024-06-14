@@ -1,5 +1,5 @@
 import { Server } from '@open-rpc/server-js'
-import * as random from 'lib0/random.js'
+import * as random from 'lib0/random'
 import {
   methods as pmMethods,
   projects,

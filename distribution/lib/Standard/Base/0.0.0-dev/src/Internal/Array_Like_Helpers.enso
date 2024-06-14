@@ -71,7 +71,7 @@ slice vector start end = @Builtin_Method "Array_Like_Helpers.slice"
      After that, the warnings are dropped, but a count of the additional
      warnings is attached in an `Additional_Warnings` warning.
 
-   ? Problem Handling
+   ! Error Conditions
 
      The result of Errors thrown when executing the function depend on `on_problems`:
      - Report_Error: The first error is thrown, and is wrapped in
@@ -132,17 +132,16 @@ slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         _ : Integer -> acc+1
         _ : Range -> acc+descriptor.length
-    builder = Vector.new_builder new_length
-    ranges.each descriptor-> case descriptor of
-        _ : Integer ->
-            builder.append (vector.at descriptor)
-        Range.Between start end step -> case step == 1 of
-            True ->
-                builder.append_vector_range vector start end
-            False ->
-                descriptor.each ix->
-                    builder.append (vector.at ix)
-    builder.to_vector
+    Vector.build initial_capacity=new_length builder->
+        ranges.each descriptor-> case descriptor of
+            _ : Integer ->
+                builder.append (vector.at descriptor)
+            Range.Between start end step -> case step == 1 of
+                True ->
+                    builder.append_vector_range vector start end
+                False ->
+                    descriptor.each ix->
+                        builder.append (vector.at ix)
 
 check_start_valid start length function =
     used_start = if start < 0 then start + length else start
@@ -157,14 +156,20 @@ sort vector order on by on_incomparable =
     vector.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
 
 distinct vector on =
-    builder = Vector.new_builder
-    result = vector.fold Map.empty existing->
-        item->
-            key = on item
-            if (existing.get key False) then existing else
-                builder.append item
-                existing.insert key True
-    if result.is_error then result else builder.to_vector
+    Vector.build builder->
+        vector.fold Map.empty existing->
+            item->
+                key = on item
+                if (existing.get key False) then existing else
+                    builder.append item
+                    existing.insert key True
+
+duplicates vector on = Vector.build builder->
+    vector.fold Map.empty current-> item->
+        key = on item
+        count = current.get key 0
+        if count == 1 then builder.append item
+        current.insert key count+1
 
 take vector range = case range of
     ## We are using a specialized implementation for `take Sample`, because
@@ -241,7 +246,7 @@ transpose vec_of_vecs =
             Vector.from_polyglot_array proxy
 
 map vector function on_problems =
-    vector_from_function vector.length (function << vector.at) on_problems
+    vector_from_function vector.length (i-> function (vector.at i)) on_problems
 
 map_with_index vector function on_problems =
     vector_from_function vector.length (i-> function i (vector.at i)) on_problems
@@ -269,11 +274,11 @@ reduce vector function ~if_empty =
             fold_function (vector.at 0) 1
 
 running_fold vector init function =
-    wrapped builder value =
-        current = if builder.length == 0 then init else builder.last
-        builder.append (function current value)
-    built = vector.fold (Vector.new_builder vector.length) wrapped
-    built.to_vector
+    Vector.build initial_capacity=vector.length builder->
+        wrapped value =
+            current = if builder.length == 0 then init else builder.last
+            builder.append (function current value)
+        vector.map wrapped
 
 pad vector n elem =
     if vector.length >= n then vector else
@@ -308,31 +313,31 @@ join vector separator prefix suffix =
 
 partition vector condition =
     predicate = unify_condition_or_predicate condition
-    pair = vector.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
-        case predicate elem of
-            True ->
-                Pair.new (acc.first.append elem) acc.second
-            False ->
-                Pair.new acc.first (acc.second.append elem)
-    pair.map .to_vector
+    vecs = Vector.build_multiple 2 builders->
+        vector.map elem->
+            case predicate elem of
+                True -> builders.at 0 . append elem
+                False -> builders.at 1 . append elem
+    Pair.new (vecs.at 0) (vecs.at 1)
 
 partition_with_index vector predicate =
-    pair = vector.fold_with_index (Pair.new Vector.new_builder Vector.new_builder) acc-> ix-> elem->
-        case predicate ix elem of
-            True -> Pair.new (acc.first.append elem) acc.second
-            False -> Pair.new acc.first (acc.second.append elem)
-    pair.map .to_vector
+    vecs = Vector.build_multiple 2 builders->
+        vector.map_with_index ix-> elem->
+            case predicate ix elem of
+                True -> builders.at 0 . append elem
+                False -> builders.at 1 . append elem
+    Pair.new (vecs.at 0) (vecs.at 1)
 
 filter vector filter =
     predicate = unify_condition_or_predicate filter
-    builder = vector.fold Vector.new_builder builder-> elem->
-        if predicate elem then builder.append elem else builder
-    builder.to_vector
+    Vector.build builder->
+        vector.map elem->
+            if predicate elem then builder.append elem
 
 filter_with_index vector predicate =
-    builder = vector.fold_with_index Vector.new_builder builder-> ix-> elem->
-        if predicate ix elem then builder.append elem else builder
-    builder.to_vector
+    Vector.build builder->
+        vector.map_with_index ix-> elem->
+            if predicate ix elem then builder.append elem
 
 ## PRIVATE
    Check that all vectors have the same length and return an informative message

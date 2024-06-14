@@ -12,8 +12,10 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Function.Function
 import project.Nothing.Nothing
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate
+from project.Metadata import Display, Widget
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -59,7 +61,7 @@ type Range
                 Range.Between self.start self.end self.step.signum*new_step
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the first element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range is empty.
@@ -67,7 +69,7 @@ type Range
     first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Returns the second element that is included within the range.
 
        It will raise `Index_Out_Of_Bounds` if the range has less than two elements.
@@ -102,7 +104,7 @@ type Range
         if exact_fit then steps else steps+1
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets an element from the Range at a specified index (0-based).
 
        Arguments:
@@ -119,11 +121,13 @@ type Range
          Get the last element of a range with step.
 
             0.up_to 10 . with_step 2 . get -1 == 8
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     at : Integer -> Any ! Index_Out_Of_Bounds
-    at self index =
+    at self index:Integer=0 =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
-    ## Gets an element from the Range at a specified index (0-based).
+    ## ICON parse3
+       Gets an element from the Range at a specified index (0-based).
        If the index is invalid then `if_missing` is returned.
 
        Arguments:
@@ -131,8 +135,9 @@ type Range
          also allowed be negative, then the elements are indexed from the back,
          i.e. -1 will correspond to the last element.
        - if_missing: The value to return if the index is out of bounds.
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
     get : Integer -> Any -> Any
-    get self index ~if_missing=Nothing =
+    get self index:Integer=0 ~if_missing=Nothing =
         len = self.length
         used_index = if index < 0 then len + index else index
         if used_index >= 0 && used_index < len then self.start + used_index * self.step else
@@ -162,7 +167,7 @@ type Range
     not_empty : Boolean
     not_empty self = self.is_empty.not
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Applies a function to each element in the range, producing a vector of
        results.
 
@@ -195,11 +200,11 @@ type Range
              (0.up_to 7).filter (Filter_Condition.Greater than=3)
     @filter range_default_filter_condition_widget
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
-    filter self filter =
+    filter self (filter : Filter_Condition | (Integer -> Boolean)) =
         predicate = unify_condition_or_predicate filter
-        builder = self.fold Vector.new_builder builder-> elem->
-            if predicate elem then builder.append elem else builder
-        builder.to_vector
+        Vector.build builder->
+            self.map elem->
+                if predicate elem then builder.append elem
 
     ## GROUP Selections
        ICON preparation
@@ -223,19 +228,24 @@ type Range
              (0.up_to 4).partition (x-> x%2 == 0) == (Pair [0, 2] [1, 3])
     @condition range_default_filter_condition_widget
     partition : (Filter_Condition | (Integer -> Boolean)) -> Pair (Vector Integer) (Vector Integer)
-    partition self condition =
+    partition self (condition : Filter_Condition | (Integer -> Boolean)) =
         predicate = unify_condition_or_predicate condition
-        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
-            case predicate elem of
-                True ->
-                    Pair.new (acc.first.append elem) acc.second
-                False ->
-                    Pair.new acc.first (acc.second.append elem)
-        pair.map .to_vector
+        vecs = Vector.build_multiple 2 builders->
+            self.map elem->
+                case predicate elem of
+                    True -> builders.first . append elem
+                    False -> builders.second . append elem
+        Pair.new (vecs.at 0) (vecs.at 1)
 
     ## PRIVATE
        ADVANCED
        Applies a function for each element in the range.
+
+       This method does not return the results, so it is only useful for performing
+       computations with side-effects.
+
+       If the function returns a dataflow error, the error is converted to a
+       panic and thrown immediately stopping further processing.
 
        Arguments:
        - function: The function to apply to each integer in the range.
@@ -249,7 +259,7 @@ type Range
             end_condition = if self.step > 0 then (>=) else (<=)
             go current =
                 if end_condition current self.end then Nothing else
-                    function current
+                    Panic.rethrow (function current)
                     @Tail_Call go current+self.step
             go self.start
 
@@ -294,7 +304,8 @@ type Range
                     @Tail_Call go ix+1 current+self.step
             go 0 self.start
 
-    ## Combines all the elements of the range, by iteratively applying the
+    ## ICON transform4
+       Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
        Arguments:
@@ -322,7 +333,7 @@ type Range
                     @Tail_Call go new_acc current+self.step
             go init self.start
 
-    ## ICON dataframe_map_column
+    ## ICON column_add
        Combines all the elements of the range, by iteratively applying the
        passed function with the next element of the range. After each step the
        value is stored resulting in a new Vector of the same size as self.
@@ -337,11 +348,11 @@ type Range
             (0.up_to 4).running_fold 0 (+)
     running_fold : Any -> (Any -> Any -> Any) -> Vector Any
     running_fold self init function =
-        wrapped builder value =
-            current = if builder.length == 0 then init else builder.last
-            builder.append (function current value)
-        built = self.fold (Vector.new_builder self.length) wrapped
-        built.to_vector
+        Vector.build builder->
+            process value =
+                current = if builder.length == 0 then init else builder.last
+                builder.append (function current value)
+            self.map process
 
     ## GROUP Logical
        ICON preparation
@@ -362,7 +373,7 @@ type Range
              10.up_to 100 . with_step 2 . all (x-> x%2 == 0)
     @condition range_default_filter_condition_widget
     all : (Filter_Condition | (Integer -> Boolean)) -> Boolean
-    all self condition =
+    all self (condition : Filter_Condition | (Integer -> Boolean)) =
         predicate = unify_condition_or_predicate condition
         self.any (predicate >> .not) . not
 
@@ -385,7 +396,7 @@ type Range
              1.up_to 100 . any (x-> x%2 == 0)
     @condition range_default_filter_condition_widget
     any : (Filter_Condition | (Integer -> Boolean)) -> Boolean
-    any self condition = self.find condition . is_nothing . not
+    any self (condition : Filter_Condition | (Integer -> Boolean)) = self.find condition . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -410,7 +421,7 @@ type Range
              1.up_to 100 . find (Filter_Condition.Greater than=10)
     @condition range_default_filter_condition_widget
     find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
-    find self condition (start : Integer = 0) ~if_missing=Nothing =
+    find self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
         check_start_valid start self used_start->
             result = find_internal self used_start predicate
@@ -524,9 +535,8 @@ type Range
              1.up_to 6 . to_vector
     to_vector : Vector Integer
     to_vector self =
-        proxy = Array_Proxy.new self.length self.at
+        proxy = Array_Proxy.new self.length (self.at _)
         Vector.from_polyglot_array proxy
-
 
     ## ICON preparation
        Combines all the elements of a non-empty range using a binary operation.

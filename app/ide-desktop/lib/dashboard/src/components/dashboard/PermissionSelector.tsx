@@ -1,8 +1,11 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as textProvider from '#/providers/TextProvider'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
 
@@ -35,7 +38,7 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 export interface PermissionSelectorProps {
   readonly showDelete?: boolean
   /** When `true`, the button is not clickable. */
-  readonly disabled?: boolean
+  readonly isDisabled?: boolean
   /** When `true`, the button has lowered opacity when it is disabled. */
   readonly input?: boolean
   /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
@@ -52,12 +55,13 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-  const { showDelete = false, disabled = false, input = false, typeSelectorYOffsetPx } = props
+  const { showDelete = false, isDisabled = false, input = false, typeSelectorYOffsetPx } = props
   const { error, selfPermission, action: actionRaw, assetType, className } = props
   const { onChange, doDelete } = props
   const { getText } = textProvider.useText()
   const [action, setActionRaw] = React.useState(actionRaw)
-  const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
+  const [TheChild, setTheChild] = React.useState<(() => React.JSX.Element) | null>()
+  const permissionSelectorButtonRef = React.useRef<HTMLButtonElement>(null)
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
   const setAction = (newAction: permissions.PermissionAction) => {
@@ -65,93 +69,103 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     onChange(newAction)
   }
 
-  const doShowPermissionTypeSelector = (event: React.SyntheticEvent<HTMLElement>) => {
-    const position = event.currentTarget.getBoundingClientRect()
-    const originalLeft = position.left + window.scrollX
-    const originalTop = position.top + window.scrollY
-    const left = originalLeft + TYPE_SELECTOR_X_OFFSET_PX
-    const top = originalTop + (typeSelectorYOffsetPx ?? TYPE_SELECTOR_Y_OFFSET_PX)
-    // The border radius of the label. This is half of the label's height.
-    const r = LABEL_BORDER_RADIUS_PX
-    const clipPath =
-      // A rectangle covering the entire screen
-      'path(evenodd, "M0 0L3840 0 3840 2160 0 2160Z' +
-      // Move to top left of label
-      `M${originalLeft + LABEL_BORDER_RADIUS_PX} ${originalTop + LABEL_CLIP_Y_OFFSET_PX}` +
-      // Top straight edge of label
-      `h${LABEL_STRAIGHT_WIDTH_PX}` +
-      // Right semicircle of label
-      `a${r} ${r} 0 0 1 0 ${r * 2}` +
-      // Bottom straight edge of label
-      `h-${LABEL_STRAIGHT_WIDTH_PX}` +
-      // Left semicircle of label
-      `a${r} ${r} 0 0 1 0 -${r * 2}Z")`
-    setTheChild(oldTheChild =>
-      oldTheChild != null
-        ? null
-        : function Child() {
-            return (
-              <Modal
-                className="fixed size-full overflow-auto"
-                onClick={() => {
-                  setTheChild(null)
-                }}
-              >
-                <div style={{ clipPath }} className="absolute size-full bg-dim" />
-                <PermissionTypeSelector
-                  showDelete={showDelete}
-                  type={permission.type}
-                  assetType={assetType}
-                  selfPermission={selfPermission}
-                  style={{ left, top }}
-                  onChange={type => {
+  const doShowPermissionTypeSelector = () => {
+    if (permissionSelectorButtonRef.current != null) {
+      const position = permissionSelectorButtonRef.current.getBoundingClientRect()
+      const originalLeft = position.left + window.scrollX
+      const originalTop = position.top + window.scrollY
+      const left = originalLeft + TYPE_SELECTOR_X_OFFSET_PX
+      const top = originalTop + (typeSelectorYOffsetPx ?? TYPE_SELECTOR_Y_OFFSET_PX)
+      // The border radius of the label. This is half of the label's height.
+      const r = LABEL_BORDER_RADIUS_PX
+      const clipPath =
+        // A rectangle covering the entire screen
+        'path(evenodd, "M0 0L3840 0 3840 2160 0 2160Z' +
+        // Move to top left of label
+        `M${originalLeft + LABEL_BORDER_RADIUS_PX} ${originalTop + LABEL_CLIP_Y_OFFSET_PX}` +
+        // Top straight edge of label
+        `h${LABEL_STRAIGHT_WIDTH_PX}` +
+        // Right semicircle of label
+        `a${r} ${r} 0 0 1 0 ${r * 2}` +
+        // Bottom straight edge of label
+        `h-${LABEL_STRAIGHT_WIDTH_PX}` +
+        // Left semicircle of label
+        `a${r} ${r} 0 0 1 0 -${r * 2}Z")`
+      setTheChild(oldTheChild =>
+        oldTheChild != null
+          ? null
+          : function Child() {
+              return (
+                <Modal
+                  className="fixed size-full overflow-auto"
+                  onClick={() => {
                     setTheChild(null)
-                    if (type === permissionsModule.Permission.delete) {
-                      doDelete?.()
-                    } else {
-                      const newAction = permissionsModule.TYPE_TO_PERMISSION_ACTION[type]
-                      const newPermissions = permissionsModule.FROM_PERMISSION_ACTION[newAction]
-                      if ('docs' in permission && 'docs' in newPermissions) {
-                        setAction(permissionsModule.toPermissionAction({ ...permission, type }))
-                      } else {
-                        setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
-                      }
-                    }
                   }}
-                />
-              </Modal>
-            )
-          }
-    )
+                >
+                  <div style={{ clipPath }} className="absolute size-full bg-dim" />
+                  <PermissionTypeSelector
+                    showDelete={showDelete}
+                    type={permission.type}
+                    assetType={assetType}
+                    selfPermission={selfPermission}
+                    style={{ left, top }}
+                    onChange={type => {
+                      setTheChild(null)
+                      if (type === permissionsModule.Permission.delete) {
+                        doDelete?.()
+                      } else {
+                        const newAction = permissionsModule.TYPE_TO_PERMISSION_ACTION[type]
+                        const newPermissions = permissionsModule.FROM_PERMISSION_ACTION[newAction]
+                        if ('docs' in permission && 'docs' in newPermissions) {
+                          setAction(permissionsModule.toPermissionAction({ ...permission, type }))
+                        } else {
+                          setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
+                        }
+                      }
+                    }}
+                  />
+                </Modal>
+              )
+            }
+      )
+    }
   }
 
-  let permissionDisplay: JSX.Element
+  let permissionDisplay: React.JSX.Element
 
   switch (permission.type) {
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       permissionDisplay = (
         <div className="flex w-permission-display gap-px">
-          <button
-            type="button"
-            disabled={disabled}
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`selectable ${!disabled || !input ? 'active' : ''} ${
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            rounded="none"
+            ref={permissionSelectorButtonRef}
+            isDisabled={isDisabled}
+            {...(isDisabled && error != null ? { title: error } : {})}
+            className={tailwindMerge.twMerge(
+              'h-text flex-1 rounded-l-full py-permission-mini-button-y selectable',
+              (!isDisabled || !input) && 'active',
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
-            onClick={doShowPermissionTypeSelector}
+            )}
+            onPress={doShowPermissionTypeSelector}
           >
             {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`selectable ${permission.docs && (!disabled || !input) ? 'active' : ''} ${
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            rounded="none"
+            isDisabled={isDisabled}
+            {...(isDisabled && error != null ? { title: error } : {})}
+            className={tailwindMerge.twMerge(
+              'h-text flex-1 py-permission-mini-button-y selectable',
+              permission.docs && (!isDisabled || !input) && 'active',
               permissionsModule.DOCS_CLASS_NAME
-            } h-text grow px-permission-mini-button-x py-permission-mini-button-y`}
-            onClick={event => {
-              event.stopPropagation()
+            )}
+            onPress={() => {
               setAction(
                 permissionsModule.toPermissionAction({
                   type: permission.type,
@@ -162,16 +176,19 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             }}
           >
             {getText('docsPermissionModifier')}
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            {...(disabled && error != null ? { title: error } : {})}
-            className={`selectable ${permission.execute && (!disabled || !input) ? 'active' : ''} ${
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            rounded="none"
+            isDisabled={isDisabled}
+            {...(isDisabled && error != null ? { title: error } : {})}
+            className={tailwindMerge.twMerge(
+              'h-text flex-1 rounded-r-full py-permission-mini-button-y selectable',
+              permission.execute && (!isDisabled || !input) && 'active',
               permissionsModule.EXEC_CLASS_NAME
-            } h-text grow rounded-r-full px-permission-mini-button-x py-permission-mini-button-y`}
-            onClick={event => {
-              event.stopPropagation()
+            )}
+            onPress={() => {
               setAction(
                 permissionsModule.toPermissionAction({
                   type: permission.type,
@@ -182,24 +199,28 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             }}
           >
             {getText('execPermissionModifier')}
-          </button>
+          </ariaComponents.Button>
         </div>
       )
       break
     }
     default: {
       permissionDisplay = (
-        <button
-          type="button"
-          disabled={disabled}
-          {...(disabled && error != null ? { title: error } : {})}
-          className={`selectable ${!disabled || !input ? 'active' : ''} ${
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          ref={permissionSelectorButtonRef}
+          isDisabled={isDisabled}
+          {...(isDisabled && error != null ? { title: error } : {})}
+          className={tailwindMerge.twMerge(
+            'h-text w-permission-display rounded-full selectable',
+            (!isDisabled || !input) && 'active',
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } h-text w-permission-display rounded-full`}
-          onClick={doShowPermissionTypeSelector}
+          )}
+          onPress={doShowPermissionTypeSelector}
         >
           {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
-        </button>
+        </ariaComponents.Button>
       )
       break
     }

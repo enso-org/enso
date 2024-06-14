@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, expr
-import Standard.Table.Data.Expression.Expression_Error
+import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import SQL_Error

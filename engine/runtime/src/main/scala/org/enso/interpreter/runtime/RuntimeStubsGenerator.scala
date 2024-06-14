@@ -1,13 +1,13 @@
 package org.enso.interpreter.runtime
 
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.data.Type
+import org.enso.interpreter.runtime.scope.ModuleScope
 
 /** Generates stubs of runtime representations of atom constructors, to allow
   * [[IrToTruffle the code generator]] to refer to constructors that are not
@@ -19,9 +19,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
     *
     * @param module the module to generate stubs in.
     */
-  def run(module: Module): Unit = {
-    val ir    = module.getIr
-    val scope = module.getScope
+  def run(ir: IR, scope: ModuleScope.Builder): Unit = {
     val localBindings = ir.unsafeGetMetadata(
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
@@ -48,15 +46,36 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         scope.registerType(builtinType.getType)
         builtinType.getType.setShadowDefinitions(scope, true)
       } else {
+        val isTypeProjectPrivate =
+          tp.members.nonEmpty && tp.members.forall(_.isProjectPrivate)
         val createdType =
           if (tp.members.nonEmpty || tp.builtinType) {
-            Type.create(tp.name, scope, builtins.any(), builtins.any(), false)
+            Type.create(
+              tp.name,
+              scope,
+              builtins.any(),
+              builtins.any(),
+              false,
+              isTypeProjectPrivate
+            )
           } else {
-            Type.createSingleton(tp.name, scope, builtins.any(), false)
+            Type.createSingleton(
+              tp.name,
+              scope,
+              builtins.any(),
+              false,
+              isTypeProjectPrivate
+            )
           }
         val rtp = scope.registerType(createdType)
         tp.members.foreach { cons =>
-          val constructor = new AtomConstructor(cons.name, scope, rtp)
+          val constructor =
+            new AtomConstructor(
+              cons.name,
+              scope.getModule(),
+              rtp,
+              false
+            )
           rtp.registerConstructor(constructor)
         }
       }

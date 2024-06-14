@@ -666,12 +666,12 @@ type XML_Element
        Convert to a JavaScript Object representing this XML_Element.
     to_js_object : JS_Object ! XML_Error
     to_js_object self =
-        builder = Vector.new_builder 4
-        builder.append ["type", "XML_Element"]
-        builder.append ["tag", self.name]
-        builder.append ["attributes", self.attributes.to_js_object]
-        builder.append ["children", self.children_cache.to_js_object]
-        JS_Object.from_pairs builder.to_vector
+        vec = Vector.build initial_capacity=4 builder->
+            builder.append ["type", "XML_Element"]
+            builder.append ["tag", self.name]
+            builder.append ["attributes", self.attributes.to_js_object]
+            builder.append ["children", self.children_cache.to_js_object]
+        JS_Object.from_pairs vec
 
     ## PRIVATE
 
@@ -761,6 +761,6 @@ child_selector node:(XML_Element | XML_Document) =
 ## PRIVATE
    write an XML document or element to a file.
 write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-    declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
+    declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set_name + '\"?>\n' else ""
     XML_Error.handle_java_exceptions <|
         (declaration + XML_Utils.outerXML node True).write path encoding on_existing_file on_problems

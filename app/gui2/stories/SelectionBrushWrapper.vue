@@ -27,7 +27,7 @@ const scaledSelectionAnchor = computed(() => selectionAnchor.value?.scale(naviga
   <div
     ref="viewportNode"
     style="cursor: none; height: 100%"
-    v-on.="navigator.events"
+    v-on.="navigator.pointerEvents"
     v-on..="selection.events"
   >
     <slot

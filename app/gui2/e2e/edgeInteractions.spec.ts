@@ -39,7 +39,7 @@ test('Disconnect an edge from a port', async ({ page }) => {
 /**
  * Scenario: We replace the `sum` parameter in the `prod` node` with the `ten` node.
  */
-test('Connect an node to a port via dragging the edge', async ({ page }) => {
+test('Connect an node to a port', async ({ page }) => {
   await initGraph(page)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
@@ -55,6 +55,23 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
   // in port change, what confuses playwright's actionability checks.
   await targetPort.click({ force: true, noWaitAfter: true })
 
+  await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
+})
+
+/**
+ * As above, but by dragging edge instead of clicking source and target separately.
+ */
+test('Connect an node to a port via dragging the edge', async ({ page }) => {
+  await initGraph(page)
+
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
+  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
+  // Hover over edge to the left of node with binding `ten`.
+  await targetEdge.dragTo(targetPort, {
+    sourcePosition: { x: 450, y: 5.0 },
+    force: true,
+  })
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
 })
 

@@ -50,8 +50,9 @@ type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any ! File_Error
-    read self file on_problems = if file.is_directory then file.list else
-        reader = Auto_Detect.get_reading_format file
+    read self file on_problems:Problem_Behavior = if file.is_directory then file.list else
+        metadata = File_Format_Metadata.from file
+        reader = Auto_Detect.get_reading_format metadata
         if reader == Nothing then Error.throw (File_Error.Unsupported_Type file) else
             reader.read file on_problems
 
@@ -96,6 +97,13 @@ type File_Format
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
+        _ = [stream, metadata]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
     default_widget : Widget
     default_widget =
         options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
@@ -118,10 +126,11 @@ type Plain_Text_Format
        Arguments:
        - encoding: The encoding to use.
          If the encoding is set to `Infer`, it will be inferred from metadata if
-         available, falling back to UTF-8. For writing, `Infer` will also imply
-         the UTF-8 encoding as the default.
+         available, falling back to the default encoding (UTF-8 with
+         Windows-1252 fallback). For writing, UTF-8 is used as default, unless
+         overridden.
     @encoding Encoding.default_widget
-    Plain_Text (encoding:Encoding|Infer = Infer)
+    Plain_Text (encoding : Encoding | Infer = Infer)
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -131,12 +140,12 @@ type Plain_Text_Format
         from_content_type = content_type.if_not_nothing <|
             case content_type.base_type of
                 "text/plain" ->
-                    effective_encoding = content_type.encoding.if_nothing Encoding.utf_8
+                    effective_encoding = content_type.encoding.if_nothing Encoding.default
                     Plain_Text_Format.Plain_Text effective_encoding
                 _ -> Nothing
         from_content_type.if_nothing <| case file.guess_extension of
-            ".txt" -> Plain_Text_Format.Plain_Text
-            ".log" -> Plain_Text_Format.Plain_Text
+            ".txt" -> Plain_Text_Format.Plain_Text Encoding.default
+            ".log" -> Plain_Text_Format.Plain_Text Encoding.default
             _ -> Nothing
 
     ## PRIVATE
@@ -166,7 +175,7 @@ type Plain_Text_Format
         if self.encoding != Infer then self.encoding else
             content_type = metadata.interpret_content_type
             resolved_encoding = content_type.if_not_nothing <| content_type.encoding
-            resolved_encoding.if_nothing Encoding.utf_8
+            resolved_encoding.if_nothing Encoding.default
 
 ## A file format for reading or writing files as a sequence of bytes.
 type Bytes

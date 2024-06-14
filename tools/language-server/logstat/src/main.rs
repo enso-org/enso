@@ -285,7 +285,7 @@ fn analyze_iterations(iterations: &[Iteration], use_median: bool) -> Vec<Stats> 
 
             Stats { min, max, avg, line }
         })
-        .collect_vec();
+        .collect::<Vec<_>>();
 
     let overall_stats = iterations_average(iterations, &stats);
     stats.push(overall_stats);
@@ -330,7 +330,7 @@ async fn main() -> Result<()> {
                 let first_operation = &iteration.operations[0];
                 &first_operation.timestamp < start_time
             })
-            .collect_vec();
+            .collect::<Vec<_>>();
 
         if ws_iterations.len() != log_iterations_without_warmup.len() {
             eprintln!(

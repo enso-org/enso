@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
-import type { PortId } from '@/providers/portInfo'
+import { provideSelectionArrow } from '@/providers/selectionArrow.ts'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   multipleChoiceConfiguration,
@@ -25,7 +26,8 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { computed, ref, watch, type ComponentInstance } from 'vue'
+import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
+import { computed, proxyRefs, ref, type ComponentInstance, type RendererNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -33,11 +35,50 @@ const graph = useGraphStore()
 
 const tree = injectWidgetTree()
 
+const widgetRoot = ref<HTMLElement>()
 const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 
-const editedWidget = ref<PortId>()
+const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
+
+// How much wider a dropdown can be than a port it is attached to, when a long text is present.
+// Any text beyond that limit will receive an ellipsis and sliding animation on hover.
+const MAX_DROPDOWN_OVERSIZE_PX = 150
+
+const { floatingStyles } = useFloating(widgetRoot, dropdownElement, {
+  middleware: computed(() => {
+    return [
+      offset((state) => {
+        const NODE_HEIGHT = 32
+        return {
+          mainAxis: (NODE_HEIGHT - state.rects.reference.height) / 2,
+        }
+      }),
+      size(() => ({
+        elementContext: 'reference',
+        apply({ elements, rects, availableWidth }) {
+          const PORT_PADDING_X = 8
+          const screenOverflow = Math.max(
+            (rects.floating.width - availableWidth) / 2 + PORT_PADDING_X,
+            0,
+          )
+          const portWidth = rects.reference.width + PORT_PADDING_X * 2
+
+          const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
+          const maxWidth = `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px`
+
+          Object.assign(elements.floating.style, { minWidth, maxWidth })
+          elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+        },
+      })),
+      // Try to keep the dropdown within node's bounds.
+      shift(() => (tree.nodeElement ? { boundary: tree.nodeElement } : {})),
+      shift(), // Always keep within screen bounds, overriding node bounds.
+    ]
+  }),
+  whileElementsMounted: autoUpdate,
+})
 
 class ExpressionTag {
   private cachedExpressionAst: Ast.Ast | undefined
@@ -99,12 +140,12 @@ class ActionTag {
 type ExpressionFilter = (tag: ExpressionTag) => boolean
 function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | undefined {
   const editedAst = typeof pattern === 'string' ? Ast.parse(pattern) : pattern
+  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
     return (tag: ExpressionTag) =>
       tag.expressionAst instanceof Ast.TextLiteral &&
       tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)
   }
-  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedCode) {
     return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
   }
@@ -143,7 +184,7 @@ interface Entry extends DropdownEntry {
   tag: ExpressionTag | ActionTag
 }
 const entries = computed<Entry[]>(() => {
-  return filteredTags.value.map((tag, index) => ({
+  return filteredTags.value.map((tag, _index) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
     tag,
@@ -161,6 +202,7 @@ const selectedExpressions = computed(() => {
     }
   } else {
     const code = removeSurroundingParens(WidgetInput.valueRepr(props.input))
+    if (code?.includes(' ')) selected.add(code.substring(0, code.indexOf(' ')))
     if (code) selected.add(code)
   }
   return selected
@@ -178,25 +220,40 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     dynamicConfig,
   }
 })
-const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
-const dropdownVisible = ref(false)
-const dropDownInteraction = WidgetEditHandler.New(props.input, {
-  cancel: () => {
-    dropdownVisible.value = false
-  },
-  click: (e, _, childHandler) => {
-    if (targetIsOutside(e, unrefElement(dropdownElement))) {
-      if (childHandler) return childHandler()
-      else {
-        dropDownInteraction.end()
-        if (editedWidget.value)
-          props.onUpdate({ portUpdate: { origin: editedWidget.value, value: editedValue.value } })
+
+provideSelectionArrow(
+  proxyRefs({
+    id: computed(() => {
+      // Find the top-most PropertyAccess, and return its rhs id.
+      // It will be used to place the dropdown arrow under the constructor name.
+      let node = props.input.value
+      while (node instanceof Ast.Ast) {
+        if (node instanceof Ast.AutoscopedIdentifier) return node.identifier.id
+        if (node instanceof Ast.PropertyAccess) return node.rhs.id
+        if (node instanceof Ast.App) node = node.function
+        else break
       }
+      return null
+    }),
+    requestArrow: (target: RendererNode) => {
+      arrowLocation.value = target
+    },
+    handled: false,
+  }),
+)
+
+const isMulti = computed(() => props.input.dynamicConfig?.kind === 'Multiple_Choice')
+const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input, {
+  cancel: () => {},
+  end: () => {},
+  pointerdown: (e, _) => {
+    if (targetIsOutside(e, unrefElement(dropdownElement))) {
+      dropDownInteraction.end()
+      if (editedWidget.value)
+        props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
     }
-    return false
   },
   start: () => {
-    dropdownVisible.value = true
     editedWidget.value = undefined
     editedValue.value = undefined
   },
@@ -204,19 +261,14 @@ const dropDownInteraction = WidgetEditHandler.New(props.input, {
     editedWidget.value = origin
     editedValue.value = value
   },
-  end: () => {
-    dropdownVisible.value = false
-  },
   addItem: () => {
-    dropdownVisible.value = true
-    editedWidget.value = undefined
-    editedValue.value = undefined
+    dropDownInteraction.start()
     return true
   },
 })
 
 function toggleDropdownWidget() {
-  if (!dropdownVisible.value) dropDownInteraction.start()
+  if (!dropDownInteraction.active.value) dropDownInteraction.start()
   else dropDownInteraction.cancel()
 }
 
@@ -236,8 +288,11 @@ function resolveTagExpression(edit: Ast.MutableModule, tag: ExpressionTag) {
   if (tag.requiredImports) {
     const conflicts = graph.addMissingImports(edit, tag.requiredImports)
     if (conflicts != null && conflicts.length > 0) {
-      // Is there is a conflict, it would be a single one, because we only ask about a single entry.
-      return conflicts[0]?.fullyQualified!
+      // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+      // https://github.com/enso-org/enso/issues/9356
+      // And here it was wrong anyway: we should replace only conflicting name, not entire expression!
+      // // Is there is a conflict, it would be a single one, because we only ask about a single entry.
+      // return conflicts[0]?.fullyQualified!
     }
   }
   // Unless a conflict occurs, we use the selected expression as is.
@@ -281,16 +336,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   }
 }
 
-let endClippingInhibition: (() => void) | undefined
-watch(dropdownVisible, (visible) => {
-  if (visible) {
-    const { unregister } = tree.inhibitClipping()
-    endClippingInhibition = unregister
-  } else {
-    endClippingInhibition?.()
-    endClippingInhibition = undefined
-  }
-})
+const arrowLocation = ref()
 </script>
 
 <script lang="ts">
@@ -304,16 +350,24 @@ function isHandledByCheckboxWidget(parameter: SuggestionEntryArgument | undefine
   )
 }
 
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 50,
-  score: (props) =>
-    props.input[CustomDropdownItemsKey] != null ? Score.Perfect
-    : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
-    : props.input.dynamicConfig?.kind === 'Multiple_Choice' ? Score.Perfect
-    : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
-    : props.input[ArgumentInfoKey]?.info?.tagValues != null ? Score.Perfect
-    : Score.Mismatch,
-})
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 50,
+    score: (props) =>
+      props.input[CustomDropdownItemsKey] != null ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Multiple_Choice' ? Score.Perfect
+      : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
+        // TODO[ao] here, instead of checking for existing dynamic config, we should rather return
+        // Score.Good. But this does not work with WidgetArgument which would then take precedence
+        // over selection (and we want to have name always under it)
+      : props.input[ArgumentInfoKey]?.info?.tagValues != null && props.input.dynamicConfig == null ?
+        Score.Perfect
+      : Score.Mismatch,
+  },
+  import.meta.hot,
+)
 
 /** Custom item added to dropdown. These items can’t be selected, but can be clicked. */
 export interface CustomDropdownItem {
@@ -332,25 +386,34 @@ declare module '@/providers/widgetRegistry' {
 </script>
 
 <template>
-  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <div
-    class="WidgetSelection"
+    ref="widgetRoot"
+    class="WidgetSelection clickable"
     :class="{ multiSelect: isMulti }"
-    @pointerdown.stop
-    @pointerup.stop
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
-    <DropdownWidget
-      v-if="dropdownVisible"
-      ref="dropdownElement"
-      :color="'var(--node-color-primary)'"
-      :entries="entries"
-      @click="onClick"
-    />
+    <!-- Arrow icon is duplicated inside Teleport and outside because the teleport `to` target
+      must be already in the DOM when the <Teleport> component is mounted.
+      So the Teleport itself can be instantiated only when `arrowLocation` is already available. -->
+    <Teleport v-if="arrowLocation" :to="arrowLocation">
+      <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
+    </Teleport>
+    <SvgIcon v-else-if="isHovered" name="arrow_right_head_only" class="arrow" />
+    <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
+      <SizeTransition height :duration="100">
+        <DropdownWidget
+          v-if="dropDownInteraction.active.value"
+          ref="dropdownElement"
+          :style="floatingStyles"
+          :color="'var(--node-color-primary)'"
+          :entries="entries"
+          @clickEntry="onClick"
+        />
+      </SizeTransition>
+    </Teleport>
   </div>
 </template>
 
@@ -358,13 +421,19 @@ declare module '@/providers/widgetRegistry' {
 .WidgetSelection {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  position: relative;
+  min-height: var(--node-port-height);
 }
 
 .arrow {
   position: absolute;
-  bottom: -7px;
+  bottom: -8px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
+  transform-origin: center;
   opacity: 0.5;
+  /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
+  pointer-events: none;
 }
 </style>

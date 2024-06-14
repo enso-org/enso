@@ -29,11 +29,6 @@ pub use doc_sections::DocSection;
 
 
 
-pub(crate) use enso_profiler as profiler;
-pub(crate) use enso_profiler::profile;
-
-
-
 // ============
 // === Tags ===
 // ============
@@ -251,9 +246,7 @@ impl<'a, L: Location> Span<'a, L> {
                 }
                 Some(_) => break,
                 None => {
-                    let unexpected_condition = "Internal error: Expected greater indent level.";
-                    self.warn(unexpected_condition);
-                    warn!("{unexpected_condition}");
+                    self.warn("Internal error: Expected greater indent level.");
                     break;
                 }
             }
@@ -686,7 +679,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_list_parsing() {
+    fn test_doc_parsing() {
         use crate::doc_sections::Argument;
         use crate::DocSection::*;
         use crate::Mark::*;
@@ -695,13 +688,13 @@ mod tests {
         let docs = r#"
         ALIAS From Text
 
-        Parses a textual representation of an integer into an integer number, returning
+        Parses a textual <representation> of an integer into an integer number, returning
         a `Number_Parse_Error` if the text does not represent a valid integer.
 
         Arguments:
         - text: The text to parse into a integer.
         - radix: The number base to use for parsing (defaults to 10). `radix`
-            must be between 2 and 36 (inclusive)
+            must be between 2 and (&) 36 (inclusive)
         - arg argument without colon
         - argument_without_description
 
@@ -715,8 +708,8 @@ mod tests {
                 Integer.parse "20220216""#;
         let res = parse(docs);
         let expected = [
-            Tag { tag: Alias, body: "From Text".into() }, 
-            Paragraph { body: "Parses a textual representation of an integer into an integer number, \
+            Tag { tag: Alias, body: "From Text".into() },
+            Paragraph { body: "Parses a textual &lt;representation&gt; of an integer into an integer number, \
                 returning a <code>Number_Parse_Error</code> if the text does not represent a valid integer.".into() },
             Keyed { key: "Arguments".into(), body: "".into() },
             Arguments { args: [
@@ -726,7 +719,7 @@ mod tests {
                 Argument {
                     name: "radix".into(),
                     description: "The number base to use for parsing (defaults to 10). <code>radix</code> \
-                    must be between 2 and 36 (inclusive)".into()
+                    must be between 2 and (&amp;) 36 (inclusive)".into()
                 },
                 Argument {
                     name: "arg".into(),
@@ -740,7 +733,7 @@ mod tests {
             List { items: ["List item 1".into(), "List item 2".into(), "List item 3".into()].to_vec() },
             Marked {
                 mark: Example,
-                header: Some("Example".into()), 
+                header: Some("Example".into()),
                 body: "<p>Parse the text \"20220216\" into an integer number.<div class=\"example\">\nInteger.parse \"20220216\"</div>".into()
             }].to_vec();
         assert_eq!(res, expected);

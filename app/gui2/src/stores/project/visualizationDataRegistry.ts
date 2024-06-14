@@ -1,7 +1,7 @@
-import type { ExecutionContext } from '@/stores/project'
+import type { ExecutionContext } from '@/stores/project/executionContext'
 import { Err, Ok, type Result } from '@/util/data/result'
+import type { DataServer } from '@/util/net/dataServer'
 import { OutboundPayload, VisualizationUpdate } from 'shared/binaryProtocol'
-import type { DataServer } from 'shared/dataServer'
 import type {
   Diagnostic,
   ExpressionId,
@@ -24,21 +24,19 @@ export class VisualizationDataRegistry {
   /** This map stores only keys representing attached visualization. The responses for
    * executeExpression are handled by project store's `executeExpression` method. */
   private visualizationValues: Map<Uuid, Result<string> | null>
-  private dataServer: Promise<DataServer>
+  private dataServer: DataServer
   private executionContext: ExecutionContext
   private reconfiguredHandler = this.visualizationsConfigured.bind(this)
   private dataHandler = this.visualizationUpdate.bind(this)
   private errorHandler = this.visualizationError.bind(this)
 
-  constructor(executionContext: ExecutionContext, dataServer: Promise<DataServer>) {
+  constructor(executionContext: ExecutionContext, dataServer: DataServer) {
     this.executionContext = executionContext
     this.dataServer = dataServer
     this.visualizationValues = reactive(new Map())
 
     this.executionContext.on('newVisualizationConfiguration', this.reconfiguredHandler)
-    this.dataServer.then((data) => {
-      data.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)
-    })
+    dataServer.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)
     this.executionContext.on('visualizationEvaluationFailed', this.errorHandler)
   }
 
@@ -86,11 +84,9 @@ export class VisualizationDataRegistry {
     return this.visualizationValues.get(visualizationId) ?? null
   }
 
-  destroy() {
+  dispose() {
     this.executionContext.off('visualizationsConfigured', this.reconfiguredHandler)
-    this.dataServer.then((data) => {
-      data.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)
-    })
+    this.dataServer.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, this.dataHandler)
     this.executionContext.off('visualizationEvaluationFailed', this.errorHandler)
   }
 }

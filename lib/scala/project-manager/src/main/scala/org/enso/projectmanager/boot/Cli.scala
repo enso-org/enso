@@ -1,7 +1,7 @@
 package org.enso.projectmanager.boot
 
 import org.apache.commons.cli
-import org.enso.polyglot.LanguageInfo
+import org.enso.common.LanguageInfo
 
 import scala.util.Try
 

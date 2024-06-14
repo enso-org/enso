@@ -112,7 +112,7 @@ add_specs suite_builder prefix create_connection_func =
                 src = Table.new [["X", [1, 2, 3]]]
                 t1 = src.select_into_database_table data.connection long_name temporary=True
                 Problems.assume_no_problems t1
-                data.connection.query long_name . at "X" . to_vector . should_equal [1, 2, 3]
+                data.connection.query long_name . at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
 
                 longer_name_with_same_prefix = long_name + ("z" * 10)
                 data.connection.query longer_name_with_same_prefix . should_fail_with Table_Not_Found
@@ -478,6 +478,5 @@ add_specs suite_builder prefix create_connection_func =
 
 main filter=Nothing =
     suite = Test.build suite_builder->
-        add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite In_Memory))
+        add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite.In_Memory))
     suite.run_with_filter filter
-

@@ -6,7 +6,7 @@ import org.enso.base.enso_cloud.DataLinkSPI;
 public class HTTPFetchDataLinkSPI extends DataLinkSPI {
   @Override
   protected String getModuleName() {
-    return "Standard.Base.Network.HTTP.HTTP_Fetch_Data_Link";
+    return "Standard.Base.Network.HTTP.Internal.HTTP_Fetch_Data_Link";
   }
 
   @Override

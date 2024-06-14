@@ -3,15 +3,20 @@ import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import RecordControl from '@/components/RecordControl.vue'
+import SelectionMenu from '@/components/SelectionMenu.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
+const showColorPicker = defineModel<boolean>('showColorPicker', { required: true })
+const showCodeEditor = defineModel<boolean>('showCodeEditor', { required: true })
+const showDocumentationEditor = defineModel<boolean>('showDocumentationEditor', { required: true })
 const props = defineProps<{
   breadcrumbs: BreadcrumbItem[]
   recordMode: boolean
   allowNavigationLeft: boolean
   allowNavigationRight: boolean
   zoomLevel: number
+  componentsSelected: number
 }>()
 const emit = defineEmits<{
   recordOnce: []
@@ -22,7 +27,8 @@ const emit = defineEmits<{
   fitToAllClicked: []
   zoomIn: []
   zoomOut: []
-  toggleCodeEditor: []
+  collapseNodes: []
+  removeNodes: []
 }>()
 
 const LEFT_PADDING_PX = 11
@@ -52,12 +58,22 @@ const barStyle = computed(() => {
       @forward="emit('forward')"
       @breadcrumbClick="emit('breadcrumbClick', $event)"
     />
+    <Transition name="selection-menu">
+      <SelectionMenu
+        v-if="componentsSelected > 1"
+        v-model:showColorPicker="showColorPicker"
+        :selectedComponents="componentsSelected"
+        @collapseNodes="emit('collapseNodes')"
+        @removeNodes="emit('removeNodes')"
+      />
+    </Transition>
     <ExtendedMenu
+      v-model:showCodeEditor="showCodeEditor"
+      v-model:showDocumentationEditor="showDocumentationEditor"
       :zoomLevel="props.zoomLevel"
       @fitToAllClicked="emit('fitToAllClicked')"
       @zoomIn="emit('zoomIn')"
       @zoomOut="emit('zoomOut')"
-      @toggleCodeEditor="emit('toggleCodeEditor')"
     />
   </div>
 </template>
@@ -71,5 +87,19 @@ const barStyle = computed(() => {
   /* FIXME[sb]: Get correct offset from dashboard. */
   left: 9px;
   width: 100%;
+  pointer-events: none;
+  > * {
+    pointer-events: auto;
+  }
+}
+
+.selection-menu-enter-active,
+.selection-menu-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.selection-menu-enter-from,
+.selection-menu-leave-to {
+  opacity: 0;
 }
 </style>

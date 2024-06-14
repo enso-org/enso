@@ -19,8 +19,8 @@ import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
 import org.enso.benchmarks.ModuleBenchSuite;
 import org.enso.benchmarks.Utils;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames.TopScope;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames.TopScope;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -60,8 +60,8 @@ public class BenchProcessor extends AbstractProcessor {
           "import org.graalvm.polyglot.Context;",
           "import org.graalvm.polyglot.Value;",
           "import org.graalvm.polyglot.io.IOAccess;",
-          "import org.enso.polyglot.LanguageInfo;",
-          "import org.enso.polyglot.MethodNames;",
+          "import org.enso.common.LanguageInfo;",
+          "import org.enso.common.MethodNames;",
           "import org.enso.polyglot.RuntimeOptions;",
           "import org.enso.benchmarks.processor.SpecCollector;",
           "import org.enso.benchmarks.ModuleBenchSuite;",

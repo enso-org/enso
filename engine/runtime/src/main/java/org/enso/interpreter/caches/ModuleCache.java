@@ -15,11 +15,11 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
+import org.enso.common.CompilationStage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.persist.Persistance;
-import org.enso.polyglot.CompilationStage;
 
 public final class ModuleCache
     implements Cache.Spi<ModuleCache.CachedModule, ModuleCache.Metadata> {
@@ -67,7 +67,7 @@ public final class ModuleCache
   @Override
   public CachedModule deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
-      throws ClassNotFoundException, IOException, ClassNotFoundException {
+      throws IOException {
     var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
     var mod = ref.get(Module.class);
     return new CachedModule(

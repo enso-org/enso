@@ -11,9 +11,13 @@ import * as appUtils from '#/appUtils'
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
+
+import * as eventModule from '#/utilities/event'
 
 // ======================
 // === ForgotPassword ===
@@ -26,28 +30,30 @@ export default function ForgotPassword() {
   const [email, setEmail] = React.useState('')
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
-      <form
-        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
-        onSubmit={async event => {
-          event.preventDefault()
-          await forgotPassword(email)
-        }}
-      >
-        <div className="self-center text-xl font-medium">{getText('forgotYourPassword')}</div>
-        <Input
-          required
-          validate
-          type="email"
-          autoComplete="email"
-          icon={AtIcon}
-          placeholder={getText('emailPlaceholder')}
-          value={email}
-          setValue={setEmail}
-        />
-        <SubmitButton text={getText('sendLink')} icon={ArrowRightIcon} />
-      </form>
-      <Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />
-    </div>
+    <AuthenticationPage
+      title={getText('forgotYourPassword')}
+      footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
+      onSubmit={async event => {
+        event.preventDefault()
+        await forgotPassword(email)
+      }}
+    >
+      <Input
+        autoFocus
+        required
+        validate
+        type="email"
+        autoComplete="email"
+        icon={AtIcon}
+        placeholder={getText('emailPlaceholder')}
+        value={email}
+        setValue={setEmail}
+      />
+      <SubmitButton
+        text={getText('sendLink')}
+        icon={ArrowRightIcon}
+        onPress={eventModule.submitForm}
+      />
+    </AuthenticationPage>
   )
 }

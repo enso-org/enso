@@ -28,30 +28,53 @@ export class InteractionHandler {
 
   setCurrent(interaction: Interaction | undefined) {
     if (!this.isActive(interaction)) {
-      this.currentInteraction?.cancel?.()
+      this.currentInteraction?.end()
       this.currentInteraction = interaction
     }
   }
 
-  /** Unset the current interaction, if it is the specified instance. */
-  end(interaction: Interaction) {
+  getCurrent(): Interaction | undefined {
+    return this.currentInteraction
+  }
+
+  /** Clear the current interaction without calling any callback, if the current interaction is `interaction`. */
+  ended(interaction: Interaction) {
     if (this.isActive(interaction)) this.currentInteraction = undefined
+  }
+
+  /** End the current interaction, if it is the specified instance. */
+  end(interaction: Interaction) {
+    if (this.isActive(interaction)) {
+      this.currentInteraction = undefined
+      interaction.end()
+    }
   }
 
   /** Cancel the current interaction, if it is the specified instance. */
   cancel(interaction: Interaction) {
-    if (this.isActive(interaction)) this.setCurrent(undefined)
+    if (this.isActive(interaction)) {
+      this.currentInteraction = undefined
+      interaction.cancel()
+    }
   }
 
   handleCancel(): boolean {
     const hasCurrent = this.currentInteraction != null
-    if (hasCurrent) this.setCurrent(undefined)
+    this.currentInteraction?.cancel()
+    this.currentInteraction = undefined
     return hasCurrent
   }
 
-  handleClick(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    if (!this.currentInteraction?.click) return false
-    const handled = this.currentInteraction.click(event, graphNavigator) !== false
+  handlePointerEvent<HandlerName extends keyof Interaction>(
+    event: PointerEvent,
+    handlerName: Interaction[HandlerName] extends InteractionEventHandler | undefined ? HandlerName
+    : never,
+    graphNavigator: GraphNavigator,
+  ): boolean {
+    if (!this.currentInteraction) return false
+    const handler = this.currentInteraction[handlerName]
+    if (!handler) return false
+    const handled = handler.bind(this.currentInteraction)(event, graphNavigator) !== false
     if (handled) {
       event.stopImmediatePropagation()
       event.preventDefault()
@@ -60,8 +83,17 @@ export class InteractionHandler {
   }
 }
 
+type InteractionEventHandler = (event: PointerEvent, navigator: GraphNavigator) => boolean | void
+
 export interface Interaction {
-  cancel?(): void
+  /** Called when the interaction is explicitly canceled, e.g. with the `Esc` key. */
+  cancel(): void
+  /** Called when the interaction is ended due to activity elsewhere. */
+  end(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
-  click?(event: PointerEvent, navigator: GraphNavigator): boolean | void
+  pointerdown?: InteractionEventHandler
+  /** Uses a `capture` event handler to allow an interaction to respond to mouse button release
+   * over any element. It is useful for interactions happening during mouse press (like dragging
+   * edges) */
+  pointerup?: InteractionEventHandler
 }

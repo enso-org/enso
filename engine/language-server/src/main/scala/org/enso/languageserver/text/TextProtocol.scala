@@ -3,7 +3,7 @@ package org.enso.languageserver.text
 import org.enso.languageserver.data.{CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{
   FileAttributes,
-  FileEventKind,
+  FileEventKinds,
   FileSystemFailure,
   Path
 }
@@ -157,7 +157,7 @@ object TextProtocol {
     */
   case class FileEvent(
     path: Path,
-    kind: FileEventKind,
+    kind: FileEventKinds.FileEventKind,
     attributes: Option[FileAttributes]
   )
 
@@ -201,5 +201,17 @@ object TextProtocol {
 
   /** Signals that the file is modified on disk. */
   case object SaveFailedFileModifiedOnDisk extends SaveFileResult
+
+  /** Read the contents of a collaborative buffer.
+    *
+    * @param path the file path
+    */
+  case class ReadCollaborativeBuffer(path: Path)
+
+  /** The data carried by a successful read operation.
+    *
+    * @param buffer file contents
+    */
+  case class ReadCollaborativeBufferResult(buffer: Option[Buffer])
 
 }

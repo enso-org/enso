@@ -86,3 +86,23 @@ export function asObject(value: unknown): object | null {
 export function singletonObjectOrNull(value: unknown): [] | [object] {
   return typeof value === 'object' && value != null ? [value] : []
 }
+
+// ============
+// === omit ===
+// ============
+
+/** UNSAFE when `Ks` contains strings that are not in the runtime array. */
+export function omit<T, Ks extends readonly (string & keyof T)[] | []>(
+  object: T,
+  ...keys: Ks
+): Omit<T, Ks[number]> {
+  const keysSet = new Set<string>(keys)
+  // eslint-disable-next-line no-restricted-syntax
+  return Object.fromEntries(
+    // This is SAFE, as it is a reaonly upcast.
+    // eslint-disable-next-line no-restricted-syntax
+    Object.entries(object as Readonly<Record<string, unknown>>).flatMap(kv =>
+      !keysSet.has(kv[0]) ? [kv] : []
+    )
+  ) as Omit<T, Ks[number]>
+}

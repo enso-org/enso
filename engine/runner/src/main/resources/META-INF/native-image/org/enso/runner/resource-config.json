@@ -1,39 +1,614 @@
 {
   "resources":{
-    "includes":[
-      {
-        "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinMethods.metadata\\E"
-      },
-      {
-        "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinTypes.metadata\\E"
-      },
-      {
-        "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.TruffleLanguage$Provider\\E"
-      },
-      {
-        "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.instrumentation.TruffleInstrument$Provider\\E"
-      },
-      {
-        "pattern":"\\QMETA-INF/services/java.nio.file.spi.FileSystemProvider\\E"
-      },
-      {
-        "pattern":"\\Qcom/oracle/truffle/nfi/backend/libffi/LibFFILanguage.class\\E"
-      },
-      {
-        "pattern":"\\Qorg/enso/interpreter/Language.class\\E"
-      },
-      {
-        "pattern":"\\Qorg/enso/interpreter/epb/EpbLanguage.class\\E"
-      },
-      {
-        "pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"
-      },
-      {
-        "pattern":"\\Qapplication.conf\\E"
-      },
-      {
-        "pattern":"\\Qch/qos/logback/classic/spi/Configurator.class\\E"
-      }
-    ]},
-  "bundles":[]
+  "includes":[{
+    "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinMethods.metadata\\E"
+  }, {
+    "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinTypes.metadata\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/ch.qos.logback.classic.spi.Configurator\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.graal.python.builtins.PythonBuiltins\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.TruffleLanguage$Provider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.impl.TruffleLocator\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.instrumentation.TruffleInstrument$Provider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.instrumentation.provider.TruffleInstrumentProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.library.DefaultExportProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.library.provider.DefaultExportProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.object.LayoutFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.provider.InternalResourceProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.api.provider.TruffleLanguageProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.runtime.EngineCacheSupport\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.runtime.FloodControlHandler\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/com.oracle.truffle.runtime.TruffleTypes\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.lang.Cloneable\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.lang.System$LoggerFinder\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.net.ContentHandlerFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.net.spi.InetAddressResolverProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.net.spi.URLStreamHandlerProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.nio.channels.spi.SelectorProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.nio.charset.spi.CharsetProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.nio.file.spi.FileSystemProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.time.zone.ZoneRulesProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.xpath.XPathFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/jdk.vm.ci.services.JVMCIServiceLocator\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.apache.tika.detect.EncodingDetector\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.enso.base.file_format.FileFormatSPI\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.enso.logger.LoggerSetup\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.enso.persist.Persistance\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.slf4j.spi.SLF4JServiceProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.w3c.dom.DOMImplementationSourceList\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org/jline/terminal/provider/exec\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org/jline/terminal/provider/jansi\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org/jline/terminal/provider/jna\\E"
+  }, {
+    "pattern":"\\Qakka-http-version.conf\\E"
+  }, {
+    "pattern":"\\Qakka-http-version.json\\E"
+  }, {
+    "pattern":"\\Qakka-http-version.properties\\E"
+  }, {
+    "pattern":"\\Qapplication.conf\\E"
+  }, {
+    "pattern":"\\Qapplication.json\\E"
+  }, {
+    "pattern":"\\Qapplication.properties\\E"
+  }, {
+    "pattern":"\\Qch/qos/logback/classic/spi/Configurator.class\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/ICUConfig.properties\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/Thai.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/Thai_graphclust.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/Thai_graphclust_model4.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/Thai_graphclust_model4_heavy.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/char.brk\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/cjdict.dict\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/en.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/en_GB.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/en_Latn.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/en_US.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/root.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/thaidict.dict\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/word.brk\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/coll/\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/coll/en.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/coll/en_US.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/coll/root.res\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/coll/ucadata.icu\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/nfc.nrm\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/nfkc.nrm\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/nfkc_cf.nrm\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/pnames.icu\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/ucase.icu\\E"
+  }, {
+    "pattern":"\\Qcom/ibm/icu/impl/data/icudt73b/uprops.icu\\E"
+  }, {
+    "pattern":"\\Qcom/oracle/truffle/nfi/backend/libffi/LibFFILanguage.class\\E"
+  }, {
+    "pattern":"\\Qcom/sun/jna/linux-x86-64/libjnidispatch.so\\E"
+  }, {
+    "pattern":"\\Qlogback-test.xml\\E"
+  }, {
+    "pattern":"\\Qlogback.xml\\E"
+  }, {
+    "pattern":"\\Qorg/enso/interpreter/Language.class\\E"
+  }, {
+    "pattern":"\\Qorg/enso/interpreter/epb/EpbLanguage.class\\E"
+  }, {
+    "pattern":"\\Qorg/jline/utils/capabilities.txt\\E"
+  }, {
+    "pattern":"\\Qorg/jline/utils/xterm-256color.caps\\E"
+  }, {
+    "pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"
+  }, {
+    "pattern":"\\Qreference.conf\\E"
+  }, {
+    "pattern":"\\Qurlhandler.props\\E"
+  }, {
+    "pattern":"\\Qversion.conf\\E"
+  }, {
+    "pattern":"\\Qversion.json\\E"
+  }, {
+    "pattern":"\\Qversion.properties\\E"
+  }, {
+    "pattern":"java.base:\\Qjdk/internal/icu/impl/data/icudt72b/uprops.icu\\E"
+  }, {
+    "pattern":"java.base:\\Qsun/net/idn/uidna.spp\\E"
+  }, {
+    "pattern":"java.base:\\Qsun/net/www/content-types.properties\\E"
+  }, {
+    "pattern":"java.xml:\\Qcom/sun/org/apache/xml/internal/serializer/Encodings.properties\\E"
+  }, {
+    "pattern":"jdk.jfr:\\Qjdk/jfr/internal/query/view.ini\\E"
+  }, {
+    "pattern":"jdk.jfr:\\Qjdk/jfr/internal/types/metadata.bin\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/ICUConfig.properties\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/Thai.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/Thai_graphclust.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/Thai_graphclust_model4.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/Thai_graphclust_model4_heavy.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/char.brk\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/cjdict.dict\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/en.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/en_GB.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/en_Latn.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/en_US.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/root.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/thaidict.dict\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/brkitr/word.brk\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/coll/en.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/coll/en_US.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/coll/root.res\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/coll/ucadata.icu\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/nfc.nrm\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/nfkc.nrm\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/nfkc_cf.nrm\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/pnames.icu\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/ucase.icu\\E"
+  }, {
+    "pattern":"org.enso.runtime:\\Qcom/ibm/icu/impl/data/icudt73b/uprops.icu\\E"
+  }, {
+    "pattern":"org.graalvm.polyglot:\\QMETA-INF/graalvm/org.graalvm.polyglot/version\\E"
+  }, {
+    "pattern":"org.graalvm.py.resources:\\QMETA-INF/resources/include.sha256\\E"
+  }, {
+    "pattern":"org.graalvm.py.resources:\\QMETA-INF/resources/libgraalpy.sha256\\E"
+  }, {
+    "pattern":"org.graalvm.py.resources:\\QMETA-INF/resources/libpython.sha256\\E"
+  }, {
+    "pattern":"org.graalvm.py.resources:\\QMETA-INF/resources/linux/amd64/native.sha256\\E"
+  }, {
+    "pattern":"org.graalvm.py.resources:\\QMETA-INF/resources/ni.sha256\\E"
+  }, {
+    "pattern":"org.graalvm.py.resources:\\Qgraalpy_versions\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/PythonBuiltins.class\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenABC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenCODECS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenCOLLECTIONS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenCOLLECTIONS_ABC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenCOPYREG.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ALIASES.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ASCII.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_BASE64_CODEC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_BIG5.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_BIG5HKSCS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_BZ2_CODEC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CHARMAP.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP037.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1006.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1026.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1125.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1140.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1250.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1251.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1252.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1253.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1254.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1255.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1256.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1257.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP1258.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP273.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP424.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP437.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP500.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP720.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP737.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP775.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP850.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP852.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP855.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP856.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP857.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP858.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP860.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP861.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP862.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP863.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP864.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP865.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP866.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP869.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP874.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP875.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP932.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP949.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_CP950.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_EUC_JISX0213.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_EUC_JIS_2004.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_EUC_JP.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_EUC_KR.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_GB18030.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_GB2312.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_GBK.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_HEX_CODEC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_HP_ROMAN8.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_HZ.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_IDNA.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO2022_JP.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO2022_JP_1.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO2022_JP_2.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO2022_JP_2004.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO2022_JP_3.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO2022_JP_EXT.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO2022_KR.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_1.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_10.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_11.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_13.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_14.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_15.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_16.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_2.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_3.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_4.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_5.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_6.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_7.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_8.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ISO8859_9.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_JOHAB.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_KOI8_R.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_KOI8_T.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_KOI8_U.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_KZ1048.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_LATIN_1.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_ARABIC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_CROATIAN.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_CYRILLIC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_FARSI.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_GREEK.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_ICELAND.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_LATIN2.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_ROMAN.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_ROMANIAN.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MAC_TURKISH.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_MBCS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_OEM.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_PALMOS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_PTCP154.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_PUNYCODE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_QUOPRI_CODEC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_RAW_UNICODE_ESCAPE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ROT_13.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_SHIFT_JIS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_SHIFT_JISX0213.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_SHIFT_JIS_2004.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_TIS_620.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UNDEFINED.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UNICODE_ESCAPE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_16.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_16_BE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_16_LE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_32.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_32_BE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_32_LE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_7.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_8.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UTF_8_SIG.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_UU_CODEC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENCODINGS_ZLIB_CODEC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenENUM.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenFROZEN_ONLY.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenFUNCTOOLS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGENERICPATH.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY_BUILTINS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY_FUNCTION.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY_JAVA.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY_PIP_HOOK.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY_SULONG_SUPPORT.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY_UNICODEDATA.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY__SRE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY__STRUCT.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY__SYSCONFIG.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY__WEAKREF.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenGRAALPY___GRAALPYTHON__.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenHEAPQ.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenIMPORTLIB__BOOTSTRAP.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenIMPORTLIB__BOOTSTRAP_EXTERNAL.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenIO.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenKEYWORD.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenLOCALE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenNTPATH.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenOPERATOR.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenOS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenPOSIXPATH.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenRE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenREPRLIB.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenRLCOMPLETER.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenSITE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenSRE_COMPILE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenSRE_CONSTANTS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenSRE_PARSE.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenSTAT.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenTYPES.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/FrozenZIPIMPORT.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/Frozen_COLLECTIONS_ABC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/Frozen_PY_ABC.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/Frozen_SITEBUILTINS.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/Frozen_SYSCONFIGDATA.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/Frozen_WEAKREFSET.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qcom/oracle/graal/python/builtins/objects/module/Frozen__HELLO__.bin\\E"
+  }, {
+    "pattern":"org.graalvm.py:\\Qgraalpy_versions\\E"
+  }, {
+    "pattern":"org.graalvm.shadowed.icu4j:\\Qorg/graalvm/shadowed/com/ibm/icu/ICUConfig.properties\\E"
+  }, {
+    "pattern":"org.graalvm.shadowed.icu4j:\\Qorg/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/pool.res\\E"
+  }, {
+    "pattern":"org.graalvm.shadowed.icu4j:\\Qorg/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/root.res\\E"
+  }, {
+    "pattern":"org.graalvm.shadowed.icu4j:\\Qorg/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/uprops.icu\\E"
+  }, {
+    "pattern":"org.graalvm.shadowed.icu4j:\\Qorg/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/zoneinfo64.res\\E"
+  }, {
+    "pattern":"org.graalvm.truffle.runtime:\\QMETA-INF/resources/engine/libtruffleattach/linux/amd64/sha256\\E"
+  }, {
+    "pattern":"org.graalvm.truffle:\\QMETA-INF/graalvm/org.graalvm.truffle/version\\E"
+  }]},
+  "bundles":[{
+    "name":"com.oracle.js.parser.resources.Messages",
+    "locales":[""]
+  }, {
+    "name":"com.sun.org.apache.xerces.internal.impl.msg.XMLMessages",
+    "locales":[""]
+  }, {
+    "name":"com.sun.org.apache.xml.internal.serializer.XMLEntities",
+    "locales":[""]
+  }, {
+    "name":"com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages",
+    "classNames":["com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages", "com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages_en"]
+  }, {
+    "name":"com.sun.org.apache.xpath.internal.res.XPATHErrorResources",
+    "classNames":["com.sun.org.apache.xpath.internal.res.XPATHErrorResources", "com.sun.org.apache.xpath.internal.res.XPATHErrorResources_en"]
+  }]
 }

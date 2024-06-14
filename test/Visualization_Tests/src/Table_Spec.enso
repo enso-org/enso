@@ -23,7 +23,7 @@ type Data
     t2 self = self.data.at 1
 
     setup = Data.Value <|
-        connection = Database.connect (SQLite In_Memory)
+        connection = Database.connect (SQLite.In_Memory)
         in_mem = Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
         t = in_mem.select_into_database_table connection "T" primary_key=Nothing temporary=True
         t2 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]
@@ -38,50 +38,48 @@ type Foo
 
 
 add_specs suite_builder =
-    make_json header data all_rows ixes_header ixes =
+    make_json header data all_rows ixes_header ixes value_type =
         p_header      = ["header", header]
         p_data        = ["data",   data]
         p_all_rows    = ["all_rows_count", all_rows]
         p_ixes        = ["indices", ixes]
         p_ixes_header = ["indices_header", ixes_header]
-        pairs    = [p_header, p_data, p_all_rows, p_ixes, p_ixes_header, ["type", "Table"]]
+        p_value_type  = ["value_type", value_type]
+        pairs    = [p_header, p_value_type ,p_data, p_all_rows, p_ixes, p_ixes_header, ["type", "Table"]]
         JS_Object.from_pairs pairs . to_text
 
     suite_builder.group "Table Visualization" group_builder->
         data = Data.setup
 
-        group_builder.specify "should forward internal errors" <|
-            bad_table_test =
-                bad_table = DB_Table.Value Nothing Nothing Nothing Nothing
-                result = Panic.catch Any (Visualization.prepare_visualization bad_table 2) caught_panic->
-                    caught_panic.payload
-                message = "Method `set_limit` of type Nothing could not be found."
-                result.to_display_text . should_equal message
-            Panic.catch Type_Error bad_table_test (x -> x.payload) . should_be_a Type_Error
-
         group_builder.specify "should visualize database tables" <|
             vis = Visualization.prepare_visualization data.t 1
-            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 ixes_header=[] ixes=[]
+            value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
+            value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
+            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 ixes_header=[] ixes=[] value_type=[value_type_char, value_type_int, value_type_int]
             vis . should_equal json
 
         group_builder.specify "should visualize database columns" <|
             vis = Visualization.prepare_visualization (data.t.at "A") 2
-            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 ixes_header=[] ixes=[]
+            value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
+            value_type_float = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Float"], ["display_text", "Float (64 bits)"], ["bits", 64]]
+            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 ixes_header=[] ixes=[] value_type=[value_type_char]
             vis . should_equal json
 
             g = data.t.aggregate ["A", "B"] [Aggregate_Column.Average "C"] . at "Average C"
             vis2 = Visualization.prepare_visualization g 1
-            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 ixes_header=[] ixes=[]
+            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 ixes_header=[] ixes=[] value_type=[value_type_float]
             vis2 . should_equal json2
 
         group_builder.specify "should visualize dataframe tables" <|
             vis = Visualization.prepare_visualization data.t2 1
-            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 ixes_header=["#"] ixes=[[0]]
+            value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
+            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 ixes_header=["#"] ixes=[[0]] value_type=[value_type_int, value_type_int, value_type_int]
             vis . should_equal json
 
         group_builder.specify "should visualize dataframe columns" <|
             vis = Visualization.prepare_visualization (data.t2.at "A") 2
-            json = make_json header=["A"] data=[[1, 2]] all_rows=3 ixes_header=["#"] ixes=[[0, 1]]
+            value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
+            json = make_json header=["A"] data=[[1, 2]] all_rows=3 ixes_header=["#"] ixes=[[0, 1]] value_type=[value_type_int]
             vis . should_equal json
 
         group_builder.specify "should handle Vectors" <|

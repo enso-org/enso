@@ -82,29 +82,26 @@ function setBoolNode(ast: Ast.Mutable, value: Identifier): { requiresImport: boo
   }
 }
 
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 500,
-  score: (props) => {
-    if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value)) return Score.Perfect
-    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean' ?
-        Score.Good
-      : Score.Mismatch
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 500,
+    score: (props) => {
+      if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value))
+        return Score.Perfect
+      return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean' ?
+          Score.Good
+        : Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>
   <div class="CheckboxContainer r-24" :class="{ primary }">
     <span v-if="argumentName" class="name" v-text="argumentName" />
-    <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
-    <CheckboxWidget
-      v-model="value"
-      class="WidgetCheckbox"
-      contenteditable="false"
-      @beforeinput.stop
-      @pointerdown.stop
-      @pointerup.stop
-    />
+    <CheckboxWidget v-model="value" class="WidgetCheckbox" contenteditable="false" />
   </div>
 </template>
 

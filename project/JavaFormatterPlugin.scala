@@ -15,8 +15,8 @@
  */
 
 import com.google.googlejavaformat.java.JavaFormatterOptions
-import sbt.*
-import sbt.Keys.*
+import sbt._
+import sbt.Keys._
 
 /** A local fork of https://github.com/sbt/sbt-java-formatter. The original plugin uses a very outdated version
   * of `google-java-format` dependency which does not support syntax > JDK8. It's unlikely we will see the

@@ -1,6 +1,8 @@
 /** @file A context menu. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as detect from 'enso-common/src/detect'
 
 import Modal from '#/components/Modal'
@@ -17,7 +19,7 @@ export interface ContextMenusProps extends Readonly<React.PropsWithChildren> {
 }
 
 /** A context menu that opens at the current mouse position. */
-export default function ContextMenus(props: ContextMenusProps) {
+function ContextMenus(props: ContextMenusProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const { hidden = false, children, event } = props
 
   return hidden ? (
@@ -31,12 +33,14 @@ export default function ContextMenus(props: ContextMenusProps) {
     >
       <div
         data-testid="context-menus"
+        ref={ref}
         style={{ left: event.pageX, top: event.pageY }}
-        className={`pointer-events-none sticky flex w-min items-start gap-context-menus ${
+        className={tailwindMerge.twMerge(
+          'pointer-events-none sticky flex w-min items-start gap-context-menus',
           detect.isOnMacOS()
-            ? '-translate-x-context-menu-macos-half-x'
-            : '-translate-x-context-menu-half-x'
-        }`}
+            ? 'ml-context-menu-macos-half-x -translate-x-context-menu-macos-half-x'
+            : 'ml-context-menu-half-x -translate-x-context-menu-half-x'
+        )}
         onClick={clickEvent => {
           clickEvent.stopPropagation()
         }}
@@ -46,3 +50,5 @@ export default function ContextMenus(props: ContextMenusProps) {
     </Modal>
   )
 }
+
+export default React.forwardRef(ContextMenus)

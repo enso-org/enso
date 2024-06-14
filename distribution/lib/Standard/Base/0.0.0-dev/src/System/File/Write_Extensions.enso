@@ -104,4 +104,4 @@ Vector.write_bytes self (path : Writable_File) (on_existing_file : Existing_File
         r = path.write on_existing_file stream->
             # If the write succeeded, we return the file that was written to (original file or a dry run file).
             stream.write_bytes (Vector.from_polyglot_array byte_array)
-        r.if_not_error path.file
+        r.if_not_error path.file_for_return

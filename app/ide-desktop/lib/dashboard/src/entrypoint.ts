@@ -1,13 +1,14 @@
 /** @file Entry point into the cloud dashboard. */
 import '#/tailwind.css'
 
-import * as authentication from '#/index'
+import * as main from '#/index'
+import * as testAppRunner from '#/TestAppRunner'
 
 // ===================
 // === Entry point ===
 // ===================
 
-authentication.run({
+main.run({
   logger: console,
   // Browsers usually do not support vibrancy for webpages.
   vibrancy: false,
@@ -24,14 +25,6 @@ authentication.run({
   },
   /** The cloud frontend is not capable of running a Project Manager. */
   projectManagerUrl: null,
-  // This cannot be `appRunner: window.enso` as `window.enso` is set to a new value
-  // every time a new project is opened.
-  appRunner: {
-    stopApp: () => {
-      window.enso?.stopApp()
-    },
-    runApp: async (config, accessToken) => {
-      await window.enso?.runApp(config, accessToken)
-    },
-  },
+  ydocUrl: null,
+  appRunner: testAppRunner.TestAppRunner,
 })

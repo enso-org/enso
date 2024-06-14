@@ -15,6 +15,7 @@ const visualizationMetadata = z
   .object({
     show: z.boolean().default(true),
     width: z.number().optional(),
+    height: z.number().optional(),
     fullscreen: z.boolean().optional(),
     project: visualizationProject.optional(),
     name: z.string().optional(),
@@ -29,6 +30,7 @@ export const nodeMetadata = z
       return { vector: [0, 0] satisfies Vector }
     }),
     visualization: visualizationMetadata.optional().catch(() => undefined),
+    colorOverride: z.string().optional(),
   })
   .passthrough()
 

@@ -1,36 +1,38 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as React from 'react'
 
-import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
+import GithubIcon from 'enso-assets/github.svg'
+import GoogleIcon from 'enso-assets/google.svg'
 import LockIcon from 'enso-assets/lock.svg'
+import * as common from 'enso-common'
+import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import FontAwesomeIcon from '#/components/FontAwesomeIcon'
+import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
+
+import * as ariaComponents from '#/components/AriaComponents'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
+import TextLink from '#/components/TextLink'
+
+import * as eventModule from '#/utilities/event'
 
 // =============
 // === Login ===
 // =============
 
-/** Props for a {@link Login}. */
-export interface LoginProps {
-  readonly supportsLocalBackend: boolean
-}
-
 /** A form for users to log in. */
-export default function Login(props: LoginProps) {
-  const { supportsLocalBackend } = props
+export default function Login() {
   const location = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
@@ -42,97 +44,102 @@ export default function Login(props: LoginProps) {
   const [password, setPassword] = React.useState('')
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const shouldReportValidityRef = React.useRef(true)
+  const formRef = React.useRef<HTMLFormElement>(null)
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
-      <div className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md">
-        <div className="self-center text-xl font-medium">{getText('loginToYourAccount')}</div>
-        <div className="flex flex-col gap-auth">
-          <button
-            onMouseDown={() => {
-              shouldReportValidityRef.current = false
-            }}
-            onClick={async event => {
-              event.preventDefault()
-              await signInWithGoogle()
-            }}
-            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
-          >
-            <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
-            {getText('signUpOrLoginWithGoogle')}
-          </button>
-          <button
-            onMouseDown={() => {
-              shouldReportValidityRef.current = false
-            }}
-            onClick={async event => {
-              event.preventDefault()
-              await signInWithGitHub()
-            }}
-            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
-          >
-            <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-            {getText('signUpOrLoginWithGitHub')}
-          </button>
-        </div>
-        <div />
-        <form
-          className="flex flex-col gap-auth"
-          onSubmit={async event => {
-            event.preventDefault()
-            setIsSubmitting(true)
-            await signInWithPassword(email, password)
-            shouldReportValidityRef.current = true
-            setIsSubmitting(false)
+    <AuthenticationPage
+      isNotForm
+      title={getText('loginToYourAccount')}
+      footer={
+        <>
+          <Link
+            openInBrowser={detect.isOnElectron()}
+            to={
+              detect.isOnElectron()
+                ? 'https://' + common.CLOUD_DASHBOARD_DOMAIN + appUtils.REGISTRATION_PATH
+                : appUtils.REGISTRATION_PATH
+            }
+            icon={CreateAccountIcon}
+            text={getText('dontHaveAnAccount')}
+          />
+        </>
+      }
+    >
+      <div className="flex flex-col gap-auth">
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          fullWidthText
+          icon={GoogleIcon}
+          className="bg-primary/5 px-3 py-2 hover:bg-primary/10 focus:bg-primary/10"
+          onPress={() => {
+            shouldReportValidityRef.current = false
+            void signInWithGoogle()
           }}
         >
+          {getText('signUpOrLoginWithGoogle')}
+        </ariaComponents.Button>
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          fullWidthText
+          icon={GithubIcon}
+          className="bg-primary/5 px-3 py-2 hover:bg-primary/10 focus:bg-primary/10"
+          onPress={() => {
+            shouldReportValidityRef.current = false
+            void signInWithGitHub()
+          }}
+        >
+          {getText('signUpOrLoginWithGitHub')}
+        </ariaComponents.Button>
+      </div>
+      <div />
+      <form
+        ref={formRef}
+        className="flex flex-col gap-auth"
+        onSubmit={async event => {
+          event.preventDefault()
+          setIsSubmitting(true)
+          await signInWithPassword(email, password)
+          shouldReportValidityRef.current = true
+          setIsSubmitting(false)
+        }}
+      >
+        <Input
+          autoFocus
+          required
+          validate
+          type="email"
+          autoComplete="email"
+          icon={AtIcon}
+          placeholder={getText('emailPlaceholder')}
+          value={email}
+          setValue={setEmail}
+          shouldReportValidityRef={shouldReportValidityRef}
+        />
+        <div className="flex flex-col">
           <Input
             required
             validate
-            type="email"
-            autoComplete="email"
-            icon={AtIcon}
-            placeholder={getText('emailPlaceholder')}
-            value={email}
-            setValue={setEmail}
+            allowShowingPassword
+            type="password"
+            autoComplete="current-password"
+            icon={LockIcon}
+            placeholder={getText('passwordPlaceholder')}
+            error={getText('passwordValidationError')}
+            value={password}
+            setValue={setPassword}
             shouldReportValidityRef={shouldReportValidityRef}
           />
-          <div className="flex flex-col">
-            <Input
-              required
-              validate
-              allowShowingPassword
-              type="password"
-              autoComplete="current-password"
-              icon={LockIcon}
-              placeholder={getText('passwordPlaceholder')}
-              error={getText('passwordValidationError')}
-              value={password}
-              setValue={setPassword}
-              shouldReportValidityRef={shouldReportValidityRef}
-            />
-            <router.Link
-              to={appUtils.FORGOT_PASSWORD_PATH}
-              className="text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
-            >
-              {getText('forgotYourPassword')}
-            </router.Link>
-          </div>
-          <SubmitButton disabled={isSubmitting} text={getText('login')} icon={ArrowRightIcon} />
-        </form>
-      </div>
-      <Link
-        to={appUtils.REGISTRATION_PATH}
-        icon={CreateAccountIcon}
-        text={getText('dontHaveAnAccount')}
-      />
-      {supportsLocalBackend && (
-        <Link
-          to={appUtils.ENTER_OFFLINE_MODE_PATH}
+          <TextLink to={appUtils.FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
+        </div>
+        <SubmitButton
+          isDisabled={isSubmitting}
+          text={getText('login')}
           icon={ArrowRightIcon}
-          text={getText('continueWithoutCreatingAnAccount')}
+          onPress={eventModule.submitForm}
         />
-      )}
-    </div>
+      </form>
+    </AuthenticationPage>
   )
 }

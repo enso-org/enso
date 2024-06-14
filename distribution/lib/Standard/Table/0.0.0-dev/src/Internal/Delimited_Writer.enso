@@ -4,14 +4,15 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Output_Stream.Output_Stream
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Match_Columns.Match_Columns
-import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
+import project.Headers.Headers
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
+import project.Match_Columns.Match_Columns
+import project.Table.Table
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import java.io.IOException
@@ -39,10 +40,14 @@ write_file : Table -> Delimited_Format -> Writable_File -> Existing_File_Behavio
 write_file table format (file : Writable_File) on_existing_file match_columns on_problems =
     case on_existing_file of
         Existing_File_Behavior.Append ->
+            # The default encoding may be used for detecting the effective encoding in append mode.
             append_to_file table format file match_columns on_problems
         _ ->
+            # Override Encoding.default to be just UTF-8 for writing a new file.
+            amended_format = if format.encoding != Encoding.default then format else
+                format.clone encoding=Encoding.utf_8
             file.write_handling_dry_run on_existing_file effective_file-> stream->
-                r = write_to_stream table format stream on_problems related_file=effective_file
+                r = write_to_stream table amended_format stream on_problems related_file=effective_file
                 r.if_not_error effective_file
 
 ## PRIVATE
@@ -57,7 +62,7 @@ append_to_file table format (file : Writable_File) match_columns on_problems =
            the full file here - we only need to read the first few first and last bytes (to infer the headers and newline at EOF).
            Future implementation could take that into account and use the more efficient approach.
         file.write_requiring_local_file Existing_File_Behavior.Append local_temp_file->
-            append_to_local_file table format local_temp_file match_columns on_problems . if_not_error file.file
+            append_to_local_file table format local_temp_file match_columns on_problems . if_not_error file.file_for_return
 
 ## PRIVATE
 append_to_local_file table format (file : File) match_columns on_problems =
@@ -91,13 +96,14 @@ append_to_local_file table format (file : File) match_columns on_problems =
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
         reordered_table = Table.Value reordered_java_table
         writing_new_file = preexisting_headers == Nothing
-        amended_format = case writing_new_file && (should_write_headers format.headers) of
+        amended_format_1 = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers
             False -> format.without_headers
+        amended_format_2 = amended_format_1.clone encoding=metadata.detected_encoding
         needs_leading_newline =
             metadata.has_any_content && metadata.ends_with_newline.not
         (file : Writable_File).write_handling_dry_run Existing_File_Behavior.Append effective_file-> stream->
-            r = write_to_stream reordered_table amended_format stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
+            r = write_to_stream reordered_table amended_format_2 stream on_problems related_file=effective_file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
             r.if_not_error effective_file
 
 ## PRIVATE
@@ -172,10 +178,10 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
         writer.write table.java_table
 
 ## PRIVATE
-should_write_headers headers = case headers of
-    True -> True
-    Infer -> True
-    False -> False
+should_write_headers headers:Headers = case headers of
+    Headers.Has_Headers -> True
+    Headers.Detect_Headers -> True
+    Headers.No_Headers -> False
 
 ## PRIVATE
    The default line separator used for newly written delimited files, if no

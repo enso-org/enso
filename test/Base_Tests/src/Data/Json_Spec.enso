@@ -16,6 +16,9 @@ type Author
 type Book
     Value title author
 
+type My_Error
+    Error
+
 Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
         _ -> Spec_Result.Failure "Expected a parse error, but no error reported."
@@ -61,12 +64,13 @@ add_specs suite_builder =
                 JS_Object.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
 
         group_builder.specify "should report meaningful parsing errors" <|
-            "foo".should_fail_parsing_with "Unexpected token f in JSON at position 0"
-            "[,]".should_fail_parsing_with "Unexpected token , in JSON at position 1"
-            "{,}".should_fail_parsing_with "Unexpected token , in JSON at position 1"
+            "".should_fail_parsing_with "Empty string is not valid JSON."
+            "foo".should_fail_parsing_with "Unrecognized token 'foo': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false') at position [line: 1, column: 4]"
+            "[,]".should_fail_parsing_with "Unexpected character (',' (code 44)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false') at position [line: 1, column: 3]"
+            "{,}".should_fail_parsing_with "Unexpected character (',' (code 44)): was expecting double-quote to start field name at position [line: 1, column: 3]"
             deep_err = '{ "foo": "bar", "baz": ["foo", "x"", false], "y": {"z": null, "w": null} }'
-            deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
-            "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
+            deep_err.should_fail_parsing_with 'Unexpected character (\'\"\' (code 34)): was expecting comma to separate Array entries at position [line: 1, column: 36]'
+            "123 4".should_parse_as 123 # Jackson parser assumes this is "correct"
 
         group_builder.specify "should be able to deserialize using into via conversion" <|
             Json.parse '{"type":"Time_Zone","constructor":"parse","id":"Europe/Moscow"}' . into Time_Zone . should_equal (Time_Zone.parse "Europe/Moscow")
@@ -113,6 +117,13 @@ add_specs suite_builder =
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"second":52}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["second", 52]])
             '{"type":"Date_Time","constructor":"new","year":2023,"month":9,"day":29,"hour":11,"minute":52,"nanosecond":572104300}'.should_parse_as (JS_Object.from_pairs [["type", "Date_Time"], ["constructor", "new"], ["year", 2023], ["month", 9], ["day", 29], ["hour", 11], ["minute", 52], ["nanosecond", 572104300]])
 
+        group_builder.specify "should be able to read a JSON file with a BOM indicating UTF-16 encoding" <|
+            utf_16_le_bom = [-1, -2]
+            bytes = utf_16_le_bom + ("{}".bytes Encoding.utf_16_le)
+            f = File.create_temporary_file "json-with-bom" ".json"
+            bytes.write_bytes f . should_succeed
+            f.read . should_be_a JS_Object
+
     suite_builder.group "JSON Serialization" group_builder->
         group_builder.specify "should print JSON structures to valid json" <|
             "0".should_render_itself
@@ -147,9 +158,9 @@ add_specs suite_builder =
             JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
             JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
 
-        group_builder.specify "should be buildable from pairs" <|
-            JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
-            JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
+        group_builder.specify "`from_pairs` should propagate errors" <|
+            JS_Object.from_pairs [["key", (Error.throw My_Error.Error)]] . should_fail_with My_Error
+            JS_Object.from_pairs [[(Error.throw My_Error.Error), "value"]] . should_fail_with My_Error
 
         group_builder.specify "should be handle equality on a key level" <|
             JS_Object.from_pairs [["a", 42]] . should_equal <| Json.parse '{"a": 42}'
@@ -220,4 +231,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

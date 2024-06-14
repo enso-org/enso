@@ -44,15 +44,19 @@ const navigator = injectGraphNavigator(true)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 500,
-  score: (props) =>
-    props.input.dynamicConfig?.kind === 'Vector_Editor' ? Score.Perfect
-    : props.input.dynamicConfig?.kind === 'SomeOfFunctionCalls' ? Score.Perfect
-    : props.input.value instanceof Ast.Vector ? Score.Good
-    : props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector') ? Score.Good
-    : Score.Mismatch,
-})
+export const widgetDefinition = defineWidget(
+  WidgetInput.placeholderOrAstMatcher(Ast.Vector),
+  {
+    priority: 500,
+    score: (props) =>
+      props.input.dynamicConfig?.kind === 'Vector_Editor' ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'SomeOfFunctionCalls' ? Score.Perfect
+      : props.input.value instanceof Ast.Vector ? Score.Good
+      : props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector') ? Score.Good
+      : Score.Mismatch,
+  },
+  import.meta.hot,
+)
 
 const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
 </script>

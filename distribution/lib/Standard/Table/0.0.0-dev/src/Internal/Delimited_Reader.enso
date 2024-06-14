@@ -4,11 +4,13 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.Input_Stream.Input_Stream
 
-import project.Data.Data_Formatter.Data_Formatter
-import project.Data.Table.Table
+import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
+import project.Headers.Headers
 import project.Internal.Java_Problems
+import project.Rows_To_Read.Rows_To_Read
+import project.Table.Table
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
 
 polyglot java import com.univocity.parsers.common.TextParsingException
@@ -95,19 +97,15 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             reader = prepare_reader format max_columns on_problems java_problem_aggregator
             java_table = reader.read java_reader
-            Table.Value java_table
+            format.row_limit.attach_warning (Table.Value java_table)
 
 ## PRIVATE
-prepare_reader format max_columns on_problems java_problem_aggregator newline_override=Nothing =
+prepare_reader format:Delimited_Format max_columns on_problems java_problem_aggregator newline_override=Nothing =
     java_headers = case format.headers of
-        True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-        Infer -> DelimitedReader.HeaderBehavior.INFER
-        False -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
-    row_limit = case format.row_limit of
-        Nothing -> -1
-        _ : Integer -> format.row_limit
-        _ ->
-            Error.throw (Illegal_Argument.Error "`row_limit` should be Integer or Nothing.")
+        Headers.Has_Headers -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+        Headers.Detect_Headers -> DelimitedReader.HeaderBehavior.INFER
+        Headers.No_Headers -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
+    row_limit = format.row_limit.rows_to_read.if_nothing -1
     quote_characters = case format.quote_style of
         Quote_Style.No_Quotes -> Pair.new Nothing Nothing
         Quote_Style.With_Quotes _ quote quote_escape -> Pair.new quote quote_escape
@@ -118,7 +116,7 @@ prepare_reader format max_columns on_problems java_problem_aggregator newline_ov
     value_parser = if format.value_formatter.is_nothing then base_parser else
         wrapped = format.value_formatter.wrap_base_parser base_parser
         TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped
-    cell_type_guesser = if format.headers != Infer then Nothing else
+    cell_type_guesser = if format.headers != Headers.Detect_Headers then Nothing else
         formatter = format.value_formatter.if_nothing Data_Formatter.Value
         TypeInferringParser.new formatter.get_specific_type_parsers IdentityParser.new
     newline = newline_override.if_nothing <| case format.line_endings of
@@ -149,7 +147,11 @@ type Detected_File_Metadata
        - ends_with_newline: specifies if the last line ends with a line
          separator that is consistent with the detected one.
        - has_any_content: specifies if the file contains any content.
-    Value (headers : Detected_Headers | Nothing) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
+       - detected_encoding: the encoding that would be used if reading the file.
+         If a specific encoding was set in the configuration, it will be passed
+         unchanged. However, if `Encoding.default` was used, this will contain
+         the detected encoding that was chosen.
+    Value (headers : Detected_Headers | Nothing) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean) (detected_encoding : Encoding)
 
 ## PRIVATE
    Reads the beginning of the file to detect the existing headers and column
@@ -158,13 +160,14 @@ detect_metadata : File -> Delimited_Format -> Detected_File_Metadata
 detect_metadata file format =
     on_problems = Problem_Behavior.Ignore
     result = handle_io_exception file <| Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
-        trailing_line_separator = newline_at_eof file format.encoding
-        has_trailing_line_separator = trailing_line_separator.is_nothing.not
         file.with_input_stream [File_Access.Read] stream->
-            stream.with_stream_decoder format.encoding on_problems java_reader->
+            stream.with_stream_decoder format.encoding on_problems stream_decoder->
+                detected_encoding = Encoding.from_java_charset stream_decoder.getCharset
+                trailing_line_separator = newline_at_eof file detected_encoding
+                has_trailing_line_separator = trailing_line_separator.is_nothing.not
                 ## We don't need to close this one, as closing the parent stream
                    will suffice.
-                newline_detecting_reader = NewlineDetector.new java_reader
+                newline_detecting_reader = NewlineDetector.new stream_decoder
                 ## We use the default `max_columns` setting. If we want to be able to
                    read files with unlimited column limits (risking OutOfMemory
                    exceptions), we can catch the exception indicating the limit has been
@@ -190,9 +193,11 @@ detect_metadata file format =
                     True -> line_separator_from_parser
                     False -> trailing_line_separator
                 has_any_content = metadata.hasAnyContent
-                Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content
+                Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content detected_encoding
     result.catch File_Error error-> case error of
-        File_Error.Not_Found _ -> Detected_File_Metadata.Value Nothing Nothing False False
+        File_Error.Not_Found _ ->
+            default_encoding = if format.encoding == Encoding.default then Encoding.utf_8 else format.encoding
+            Detected_File_Metadata.Value Nothing Nothing False False default_encoding
         _ -> Error.throw error
 
 ## PRIVATE

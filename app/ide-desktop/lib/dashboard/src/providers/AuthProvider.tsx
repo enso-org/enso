@@ -10,13 +10,16 @@ import isNetworkError from 'is-network-error'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 
+import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
 
-import * as backendProvider from '#/providers/BackendProvider'
+import * as gtagHooks from '#/hooks/gtagHooks'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -24,11 +27,10 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
-import HttpClient, * as httpClient from '#/utilities/HttpClient'
+import HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
 import * as cognitoModule from '#/authentication/cognito'
@@ -68,7 +70,6 @@ interface BaseUserSession<Type extends UserSessionType> {
 export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
   readonly accessToken: null
   readonly user: null
-  readonly userInfo: null
 }
 
 /** The singleton instance of {@link OfflineUserSession}. Minimizes React re-renders. */
@@ -76,7 +77,6 @@ const OFFLINE_USER_SESSION: Readonly<OfflineUserSession> = {
   type: UserSessionType.offline,
   accessToken: null,
   user: null,
-  userInfo: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -91,7 +91,6 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
   /** User's organization information. */
   readonly user: backendModule.User
-  readonly userInfo: backendModule.SimpleUser | null
 }
 
 /** A user session for a user that may be either fully registered,
@@ -125,11 +124,18 @@ interface AuthContextType {
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
   readonly signOut: () => Promise<boolean>
+  readonly restoreUser: (backend: Backend) => Promise<boolean>
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
   readonly session: UserSession | null
   readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
+  /** Return `true` if the user is marked for deletion. */
+  readonly isUserMarkedForDeletion: () => boolean
+  /** Return `true` if the user is deleted completely. */
+  readonly isUserDeleted: () => boolean
+  /** Return `true` if the user is soft deleted. */
+  readonly isUserSoftDeleted: () => boolean
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null)
@@ -141,24 +147,23 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly supportsLocalBackend: boolean
+  readonly setRemoteBackend: (backend: Backend | null) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
-  readonly projectManagerUrl: string | null
 }
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
-  const { shouldStartInOfflineMode, supportsLocalBackend, authService, onAuthenticated } = props
-  const { children, projectManagerUrl } = props
+  const { shouldStartInOfflineMode, setRemoteBackend, authService, onAuthenticated } = props
+  const { children } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
-  const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
-  const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
+  const { session, onSessionError } = sessionProvider.useSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
+  const { unsetModal } = modalProvider.useSetModal()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
   // and the function call would error.
   // eslint-disable-next-line no-restricted-properties
@@ -187,21 +192,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     setInitialized(true)
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
-    if (supportsLocalBackend) {
-      setBackendWithoutSavingType(new LocalBackend(projectManagerUrl))
-    } else {
-      // Provide dummy headers to avoid errors. This `Backend` will never be called as
-      // the entire UI will be disabled.
-      const client = new HttpClient([['Authorization', '']])
-      setBackendWithoutSavingType(new RemoteBackend(client, logger, getText))
-    }
-  }, [
-    getText,
-    /* should never change */ projectManagerUrl,
-    /* should never change */ supportsLocalBackend,
-    /* should never change */ logger,
-    /* should never change */ setBackendWithoutSavingType,
-  ])
+    setRemoteBackend(null)
+  }, [/* should never change */ setRemoteBackend])
 
   const goOffline = React.useCallback(
     (shouldShowToast = true) => {
@@ -225,6 +217,17 @@ export default function AuthProvider(props: AuthProviderProps) {
     },
     [userSession?.type]
   )
+  const gtagEventRef = React.useRef(gtagEvent)
+  gtagEventRef.current = gtagEvent
+
+  React.useEffect(() => {
+    gtag.gtag('set', {
+      platform: detect.platform(),
+      architecture: detect.architecture(),
+    })
+
+    return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_app', 'close_app')
+  }, [])
 
   // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
   // circular dependency.
@@ -252,16 +255,6 @@ export default function AuthProvider(props: AuthProviderProps) {
     [onSessionError, /* should never change */ goOffline]
   )
 
-  React.useEffect(() => {
-    const onFetchError = () => {
-      void goOffline()
-    }
-    document.addEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
-    return () => {
-      document.removeEventListener(httpClient.FETCH_ERROR_EVENT_NAME, onFetchError)
-    }
-  }, [/* should never change */ goOffline])
-
   /** Fetch the JWT access token from the session via the AWS Amplify library.
    *
    * When invoked, retrieves the access token (if available) from the storage method chosen when
@@ -284,24 +277,14 @@ export default function AuthProvider(props: AuthProviderProps) {
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
-          setBackendWithoutSavingType(backend)
+          setRemoteBackend(backend)
         }
         gtagEvent('cloud_open')
+        void backend.logEvent('cloud_open')
         let user: backendModule.User | null
-        let userInfo: backendModule.SimpleUser | null
         while (true) {
           try {
             user = await backend.usersMe()
-            try {
-              userInfo =
-                user?.isEnabled === true
-                  ? (await backend.listUsers()).find(
-                      listedUser => listedUser.email === user?.email
-                    ) ?? null
-                  : null
-            } catch {
-              userInfo = null
-            }
             break
           } catch (error) {
             // The value may have changed after the `await`.
@@ -333,7 +316,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           }
         } else {
           sentry.setUser({
-            id: user.id,
+            id: user.userId,
             email: user.email,
             username: user.name,
             // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -343,7 +326,6 @@ export default function AuthProvider(props: AuthProviderProps) {
             type: UserSessionType.full,
             ...session,
             user,
-            userInfo,
           }
 
           // 34560000 is the recommended max cookie age.
@@ -387,8 +369,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     logger,
     onAuthenticated,
     session,
+    /* should never change */ setRemoteBackend,
     /* should never change */ goOfflineInternal,
-    /* should never change */ setBackendWithoutSavingType,
   ])
 
   /** Wrap a function returning a {@link Promise} to display a loading toast notification
@@ -490,7 +472,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (cognito == null) {
       return false
     } else if (backend.type === backendModule.BackendType.local) {
-      toastError(getText('setUsernameLocalBackend'))
+      toastError(getText('setUsernameLocalBackendError'))
       return false
     } else {
       gtagEvent('cloud_user_created')
@@ -521,6 +503,25 @@ export default function AuthProvider(props: AuthProviderProps) {
         return true
       } catch {
         return false
+      }
+    }
+  }
+
+  const restoreUser = async (backend: Backend) => {
+    if (cognito == null) {
+      return false
+    } else {
+      if (backend.type === backendModule.BackendType.local) {
+        toastError(getText('restoreUserLocalBackendError'))
+        return false
+      } else {
+        await backend.restoreUser()
+        setUser(object.merger({ removeAt: null }))
+
+        toastSuccess(getText('restoreUserSuccess'))
+        navigate(appUtils.DASHBOARD_PATH)
+
+        return true
       }
     }
   }
@@ -578,10 +579,11 @@ export default function AuthProvider(props: AuthProviderProps) {
       gtagEvent('cloud_sign_out')
       cognito.saveAccessToken(null)
       localStorage.clearUserSpecificEntries()
-      deinitializeSession()
       setInitialized(false)
       sentry.setUser(null)
       setUserSession(null)
+      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
+      unsetModal()
       // This should not omit success and error toasts as it is not possible
       // to render this optimistically.
       await toast.toast.promise(cognito.signOut(), {
@@ -593,11 +595,40 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
+  const isUserMarkedForDeletion = () =>
+    !!(userSession && 'user' in userSession && userSession.user?.removeAt)
+
+  const isUserDeleted = () => {
+    if (userSession && 'user' in userSession && userSession.user?.removeAt) {
+      const removeAtDate = new Date(userSession.user.removeAt)
+      const now = new Date()
+
+      return removeAtDate <= now
+    } else {
+      return false
+    }
+  }
+
+  const isUserSoftDeleted = () => {
+    if (userSession && 'user' in userSession && userSession.user?.removeAt) {
+      const removeAtDate = new Date(userSession.user.removeAt)
+      const now = new Date()
+
+      return removeAtDate > now
+    } else {
+      return false
+    }
+  }
+
   const value = {
     goOffline: goOffline,
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
+    isUserMarkedForDeletion,
+    isUserDeleted,
+    isUserSoftDeleted,
+    restoreUser,
     signInWithGoogle: () => {
       if (cognito == null) {
         return Promise.resolve(false)
@@ -749,6 +780,42 @@ export function GuestLayout() {
   }
 }
 
+/** A React Router layout route containing routes only accessible by users that are not deleted. */
+export function NotDeletedUserLayout() {
+  const { session, isUserMarkedForDeletion } = useAuth()
+  const shouldPreventNavigation = getShouldPreventNavigation()
+
+  if (shouldPreventNavigation) {
+    return <router.Outlet context={session} />
+  } else {
+    if (isUserMarkedForDeletion()) {
+      return <router.Navigate to={appUtils.RESTORE_USER_PATH} />
+    } else {
+      return <router.Outlet context={session} />
+    }
+  }
+}
+
+/** A React Router layout route containing routes only accessible by users that are deleted softly. */
+export function SoftDeletedUserLayout() {
+  const { session, isUserMarkedForDeletion, isUserDeleted, isUserSoftDeleted } = useAuth()
+  const shouldPreventNavigation = getShouldPreventNavigation()
+
+  if (shouldPreventNavigation) {
+    return <router.Outlet context={session} />
+  } else if (isUserMarkedForDeletion()) {
+    const isSoftDeleted = isUserSoftDeleted()
+    const isDeleted = isUserDeleted()
+    if (isSoftDeleted) {
+      return <router.Outlet context={session} />
+    } else if (isDeleted) {
+      return <router.Navigate to={appUtils.LOGIN_PATH} />
+    } else {
+      return <router.Navigate to={appUtils.DASHBOARD_PATH} />
+    }
+  }
+}
+
 // =============================
 // === usePartialUserSession ===
 // =============================
@@ -766,4 +833,14 @@ export function usePartialUserSession() {
 /** A React context hook returning the user session for a user that can perform actions. */
 export function useNonPartialUserSession() {
   return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
+}
+
+// ======================
+// === useUserSession ===
+// ======================
+
+/** A React context hook returning the user session for a user that may or may not be logged in. */
+export function useUserSession() {
+  // eslint-disable-next-line no-restricted-syntax
+  return router.useOutletContext<UserSession | undefined>()
 }

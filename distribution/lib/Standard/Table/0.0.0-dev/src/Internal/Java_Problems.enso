@@ -4,9 +4,11 @@ import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Type.Storage
+import project.Internal.Storage
 from project.Errors import all
+from project.Internal.Storage import java_to_enso
 
+polyglot java import org.enso.table.data.column.builder.LossOfBigDecimalPrecision
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
@@ -14,6 +16,8 @@ polyglot java import org.enso.table.data.column.operation.map.MapOperationProble
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
+polyglot java import org.enso.table.data.table.problems.IgnoredNaN
+polyglot java import org.enso.table.data.table.problems.IgnoredNothing
 polyglot java import org.enso.table.data.table.problems.IllegalArgumentError
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
@@ -35,10 +39,16 @@ translate_problem p = case p of
         Arithmetic_Error.Error p.getMessage
     _ : IllegalArgumentError ->
         Illegal_Argument.Error p.getMessage
+    _ : IgnoredNaN ->
+        Ignored_NaN_Values.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
+    _ : IgnoredNothing ->
+        Ignored_Nothing_Values.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : FloatingPointGrouping ->
         Floating_Point_Equality.Error p.getLocationName
     _ : LossOfIntegerPrecision ->
         Loss_Of_Integer_Precision.Warning p.getAffectedRowsCount p.getExampleValue p.getExampleValueConverted
+    _ : LossOfBigDecimalPrecision ->
+        Loss_Of_Decimal_Precision.Warning p.getAffectedRowsCount (java_to_enso p.getExampleValue) p.getExampleValueConverted
     _ : ArithmeticOverflow ->
         target_type = Storage.to_value_type p.targetType
         example_operands = case p.exampleOperands of

@@ -13,7 +13,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.BinaryOperatorNodeFactory.DoThatConversionNodeGen;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -22,6 +21,7 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 

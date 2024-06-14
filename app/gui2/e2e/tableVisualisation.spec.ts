@@ -10,7 +10,7 @@ import { graphNodeByBinding } from './locate'
  */
 async function initGraph(page: Page) {
   await actions.goToGraph(page)
-  await mockExpressionUpdate(page, 'aggregated', { type: 'Standard.Table.Data.Table.Table' })
+  await mockExpressionUpdate(page, 'aggregated', { type: 'Standard.Table.Table.Table' })
 }
 
 /**

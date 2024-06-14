@@ -13,7 +13,7 @@ import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
   FileEvent,
-  FileEventKind,
+  FileEventKinds,
   Path
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
@@ -38,6 +38,8 @@ import org.enso.languageserver.text.TextProtocol.{
   FileSaved,
   OpenBuffer,
   OpenFile,
+  ReadCollaborativeBuffer,
+  ReadCollaborativeBufferResult,
   SaveFailed,
   SaveFile
 }
@@ -156,6 +158,13 @@ class BufferRegistry(
         context.become(running(registry + (path -> bufferRef)))
       }
 
+    case msg @ ReadCollaborativeBuffer(path) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        sender() ! ReadCollaborativeBufferResult(None)
+      }
+
     case Terminated(bufferRef) =>
       context.become(running(registry.filter(_._2 != bufferRef)))
 
@@ -216,7 +225,7 @@ class BufferRegistry(
       )
 
     case msg @ FileEvent(path, kind, _) =>
-      if (kind == FileEventKind.Added || kind == FileEventKind.Modified) {
+      if (kind == FileEventKinds.Added || kind == FileEventKinds.Modified) {
         registry.get(path).foreach { buffer =>
           buffer ! msg
         }

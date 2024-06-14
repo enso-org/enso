@@ -16,7 +16,7 @@ import project.Database.Helpers.Name_Generator
 
 main filter=Nothing =
     suite = Test.build suite_builder->
-        add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite In_Memory))
+        add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite.In_Memory))
     suite.run_with_filter filter
 
 

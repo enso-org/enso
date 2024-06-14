@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Nothing.Nothing
-from project.Data.Boolean.Boolean import False, True
 
 from project.Data.Boolean.Boolean export False, True
 

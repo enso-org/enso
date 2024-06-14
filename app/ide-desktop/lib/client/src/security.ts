@@ -2,6 +2,7 @@
  * guide: https://www.electronjs.org/docs/latest/tutorial/security. */
 
 import * as electron from 'electron'
+import * as common from 'enso-common'
 
 // =================
 // === Constants ===
@@ -22,7 +23,14 @@ const TRUSTED_HOSTS = [
 ]
 
 /** The list of hosts that the app can open external links to. */
-const TRUSTED_EXTERNAL_HOSTS = ['enso.org', 'www.youtube.com', 'discord.gg', 'github.com']
+const TRUSTED_EXTERNAL_HOSTS = [
+    'enso.org',
+    common.CLOUD_DASHBOARD_DOMAIN,
+    'www.youtube.com',
+    'discord.gg',
+    'github.com',
+]
+const TRUSTED_EXTERNAL_PROTOCOLS = ['mailto:']
 
 /** The list of URLs a new WebView can be pointed to. */
 const WEBVIEW_URL_WHITELIST: string[] = []
@@ -121,10 +129,14 @@ function limitWebViewCreation() {
  * link to learn more:
  * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation. */
 function preventNavigation() {
+    let lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+    electron.app.on('browser-window-focus', () => {
+        lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+    })
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl)
-            const currentWindowUrl = electron.BrowserWindow.getFocusedWindow()?.webContents.getURL()
+            const currentWindowUrl = lastFocusedWindow?.webContents.getURL()
             const parsedCurrentWindowUrl =
                 currentWindowUrl != null ? new URL(currentWindowUrl) : null
             if (
@@ -148,7 +160,10 @@ function disableNewWindowsCreation() {
         contents.setWindowOpenHandler(details => {
             const { url } = details
             const parsedUrl = new URL(url)
-            if (TRUSTED_EXTERNAL_HOSTS.includes(parsedUrl.host)) {
+            if (
+                TRUSTED_EXTERNAL_HOSTS.includes(parsedUrl.host) ||
+                TRUSTED_EXTERNAL_PROTOCOLS.includes(parsedUrl.protocol)
+            ) {
                 void electron.shell.openExternal(url)
                 return { action: 'deny' }
             } else {

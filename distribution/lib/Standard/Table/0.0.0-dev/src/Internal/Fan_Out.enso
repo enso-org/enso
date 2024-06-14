@@ -1,12 +1,13 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Runtime.Ref.Ref
 
-import project.Data.Column.Column
-import project.Data.Conversions.Convertible_To_Rows.Key_Value
-import project.Data.Table.Table
-import project.Data.Type.Value_Type.Value_Type
+import project.Column.Column
+import project.Columns_To_Add.Columns_To_Add
+import project.Conversions.Convertible_To_Rows.Key_Value
 import project.Internal.Problem_Builder.Problem_Builder
-
+import project.Table.Table
+import project.Value_Type.Value_Type
 from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch
 from project.Internal.Java_Exports import make_string_builder
 
@@ -22,11 +23,13 @@ polyglot java import org.enso.table.data.mask.OrderMask
    - input_column: The column to transform.
    - function: A function that transforms a single element of `input_column`
      to multiple values.
-fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
-fan_out_to_columns table input_column_id function column_count=Nothing column_builder=make_string_builder on_problems=Report_Error =
+   - column_count: The number of columns to split to.
+     If `All_Columns` then columns will be added to fit all data.  
+fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> Columns_To_Add -> (Integer -> Any) -> Problem_Behavior -> Table | Nothing
+fan_out_to_columns table input_column_id function column_count column_builder=make_string_builder on_problems=Report_Error =
     input_column = table.get input_column_id
     problem_builder = Problem_Builder.new
-    new_columns_unrenamed = map_columns_to_multiple input_column function column_count column_builder=column_builder problem_builder=problem_builder
+    new_columns_unrenamed = map_columns_to_multiple input_column function column_count=column_count.columns_to_split column_builder=column_builder problem_builder=problem_builder
     new_columns = rename_new_columns table input_column.name new_columns_unrenamed problem_builder
     new_table = replace_column_with_columns table input_column new_columns
     problem_builder.attach_problems_after on_problems new_table
@@ -143,7 +146,7 @@ fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolea
     output_column_builders = Vector.new num_output_columns _-> column_builder num_input_rows
 
     # Accumulates repeated position indices for the order mask.
-    order_mask_positions = Vector.new_builder num_input_rows
+    order_mask_positions = Builder.new num_input_rows
 
     empty_row = [Vector.fill num_output_columns Nothing]
     maybe_add_empty_row vecs = if vecs.is_empty && at_least_one_row then empty_row else vecs
@@ -170,7 +173,7 @@ fan_out_to_rows_and_columns_dynamic : Any -> (Any -> Vector (Vector Any)) -> Boo
 fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row column_names_for_row column_builder problem_builder =
     # Accumulates the outputs of the function.
     column_map = Ref.new Map.empty
-    output_column_builders = Vector.new_builder
+    output_column_builders = Builder.new
 
     # Guess that most of the time, we'll get at least one value for each input.
     num_input_rows = input_storage.size
@@ -183,7 +186,7 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
         output_column_builders.append builder
 
     # Accumulates repeated position indices for the order mask.
-    order_mask_positions = Vector.new_builder num_input_rows
+    order_mask_positions = Builder.new num_input_rows
 
     maybe_add_empty_row vecs = if (vecs.is_empty && at_least_one_row).not then vecs else
         [Vector.fill output_column_builders.length Nothing]
@@ -245,7 +248,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
 
     builders = case column_count of
         Nothing ->
-            builders = Vector.new_builder
+            builders = Builder.new
 
             0.up_to num_rows . each i->
                 input_value = input_storage.getItemBoxed i

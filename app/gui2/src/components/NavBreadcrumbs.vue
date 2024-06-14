@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
-
 import NavBreadcrumb from '@/components/NavBreadcrumb.vue'
+import SvgButton from '@/components/SvgButton.vue'
 
 export interface BreadcrumbItem {
   label: string
@@ -15,14 +14,17 @@ const emit = defineEmits<{ selected: [index: number] }>()
 <template>
   <div class="NavBreadcrumbs">
     <template v-for="(breadcrumb, index) in props.breadcrumbs" :key="index">
-      <SvgIcon
+      <SvgButton
         v-if="index > 0"
         name="arrow_right_head_only"
-        :class="['arrow', { inactive: !breadcrumb.active }]"
+        :disabled="breadcrumb.active"
+        class="arrow"
       />
       <NavBreadcrumb
         :text="breadcrumb.label"
         :active="breadcrumb.active"
+        :title="index === 0 ? 'Project Name' : ''"
+        class="clickable"
         @click.stop="emit('selected', index)"
       />
     </template>

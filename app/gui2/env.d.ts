@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 declare const PROJECT_MANAGER_URL: string
+declare const YDOC_SERVER_URL: string
 declare const RUNNING_VITEST: boolean
 declare const IS_CLOUD_BUILD: boolean
 
@@ -22,8 +23,16 @@ interface Window {
  * interface.
  */
 interface FileBrowserApi {
-  /** Select path for local file or directory using the system file browser. */
+  /**
+   * Select path for local file or directory using the system file browser.
+   * 'filePath' is same as 'file', but allows picking non-existing files.
+   */
   readonly openFileBrowser: (
-    kind: 'file' | 'directory' | 'default',
+    kind: 'file' | 'directory' | 'default' | 'filePath',
+    defaultPath?: string,
   ) => Promise<string[] | undefined>
+}
+
+interface LogEvent {
+  (message: string, projectId?: string | null, metadata?: object | null): void
 }

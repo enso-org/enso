@@ -1,9 +1,9 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
+import org.enso.common.LanguageInfo
 import org.enso.polyglot.{
   ExportedSymbol,
-  LanguageInfo,
   ModuleExports,
   RuntimeOptions,
   RuntimeServerInfo,

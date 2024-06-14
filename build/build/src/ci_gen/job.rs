@@ -4,15 +4,15 @@ use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
 use crate::ci_gen::step;
+use crate::ci_gen::variables::ENSO_AG_GRID_LICENSE_KEY;
+use crate::ci_gen::variables::ENSO_MAPBOX_API_TOKEN;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::engine::env;
-
-use crate::ci_gen::variables::ENSO_AG_GRID_LICENSE_KEY;
-use crate::ci_gen::variables::ENSO_MAPBOX_API_TOKEN;
 use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
 use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
+
 use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
@@ -26,14 +26,6 @@ use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
 
 
-/// This should be kept as recent as possible.
-///
-/// macOS must use a recent version of Electron Builder to have Python 3 support. Otherwise, build
-/// would fail due to Python 2 missing.
-///
-/// We keep old versions of Electron Builder for Windows to avoid NSIS installer bug:
-/// https://github.com/electron-userland/electron-builder/issues/6865
-const ELECTRON_BUILDER_MACOS_VERSION: Version = Version::new(24, 6, 4);
 
 /// Target runners set (or just a single runner) for a job.
 pub trait RunsOn: 'static + Debug {
@@ -65,6 +57,8 @@ impl RunsOn for RunnerLabel {
             RunnerLabel::MacOS => Some("MacOS".to_string()),
             RunnerLabel::Linux => Some("Linux".to_string()),
             RunnerLabel::Windows => Some("Windows".to_string()),
+            RunnerLabel::MacOS12 => Some("MacOS12".to_string()),
+            RunnerLabel::MacOS13 => Some("MacOS13".to_string()),
             RunnerLabel::MacOSLatest => Some("MacOSLatest".to_string()),
             RunnerLabel::LinuxLatest => Some("LinuxLatest".to_string()),
             RunnerLabel::WindowsLatest => Some("WindowsLatest".to_string()),
@@ -92,7 +86,7 @@ impl RunsOn for OS {
 impl RunsOn for (OS, Arch) {
     fn runs_on(&self) -> Vec<RunnerLabel> {
         match self {
-            (OS::MacOS, Arch::X86_64) => runs_on(OS::MacOS, RunnerType::GitHubHosted),
+            (OS::MacOS, Arch::X86_64) => vec![RunnerLabel::MacOS12],
             (os, Arch::X86_64) => runs_on(*os, RunnerType::SelfHosted),
             (OS::MacOS, Arch::AArch64) => {
                 let mut ret = runs_on(OS::MacOS, RunnerType::SelfHosted);
@@ -144,6 +138,7 @@ pub fn expose_cloud_vars(step: Step) -> Step {
         .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID)
         .with_variable_exposed(ENSO_CLOUD_COGNITO_DOMAIN)
         .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
+        .with_variable_exposed(ENSO_CLOUD_GOOGLE_ANALYTICS_TAG)
 }
 
 /// Expose variables for the GUI build.
@@ -188,16 +183,15 @@ impl JobArchetype for VerifyLicensePackages {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ScalaTests {
+pub struct JvmTests {
     pub graal_edition: graalvm::Edition,
 }
 
-
-impl JobArchetype for ScalaTests {
+impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
-        let job_name = format!("Scala Tests ({graal_edition})");
-        let mut job = RunStepsBuilder::new("backend test scala")
+        let job_name = format!("JVM Tests ({graal_edition})");
+        let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
@@ -232,15 +226,15 @@ impl JobArchetype for StandardLibraryTests {
                 let main_step = step
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::aws::env::AWS_REGION,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_REGION,
                     )
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::aws::env::AWS_ACCESS_KEY_ID,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
                     )
                     .with_secret_exposed_as(
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
+                        crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                     );
                 vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
             })
@@ -386,45 +380,24 @@ pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
                 &crate::ide::web::env::APPLETEAMID,
             )
             .with_env(crate::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
+            // `CSC_FOR_PULL_REQUEST` can potentially expose sensitive information to third-party,
+            // see the comment in the definition of `CSC_FOR_PULL_REQUEST` for more information.
+            //
+            // In our case, we are safe here, as any PRs from forks do not get the secrets exposed.
             .with_env(crate::ide::web::env::CSC_FOR_PULL_REQUEST, "true"),
         _ => step,
     }
-}
-
-/// The sequence of steps that bumps the version of the Electron-Builder to
-/// [`ELECTRON_BUILDER_MACOS_VERSION`].
-pub fn bump_electron_builder() -> Vec<Step> {
-    let npm_install =
-        Step { name: Some("NPM install".into()), run: Some("npm install".into()), ..default() };
-    let uninstall_old = Step {
-        name: Some("Uninstall old Electron Builder".into()),
-        run: Some("npm uninstall --save --workspace enso electron-builder".into()),
-        ..default()
-    };
-    let command = format!(
-        "npm install --save-dev --workspace enso electron-builder@{ELECTRON_BUILDER_MACOS_VERSION}"
-    );
-    let install_new =
-        Step { name: Some("Install new Electron Builder".into()), run: Some(command), ..default() };
-    vec![npm_install, uninstall_old, install_new]
 }
 
 /// Prepares the packaging steps for the given OS.
 ///
 /// This involves:
 /// * exposing secrets necessary for code signing and notarization;
-/// * exposing variables defining cloud environment for dashboard;
-/// * (macOS only) bumping the version of the Electron Builder to
-///   [`ELECTRON_BUILDER_MACOS_VERSION`].
+/// * exposing variables defining cloud environment for dashboard.
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
     let step = expose_gui_vars(step);
     let step = expose_os_specific_signing_secret(os, step);
-    let mut steps = Vec::new();
-    if os == OS::MacOS {
-        steps.extend(bump_electron_builder());
-    }
-    steps.push(step);
-    steps
+    vec![step]
 }
 
 /// Convenience for [`prepare_packaging_steps`].

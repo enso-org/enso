@@ -117,7 +117,7 @@ mod tests {
 
     #[tokio::test]
     async fn check_node_version() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
 
         let version = Node.parse_version("v16.13.2")?;
         let requirement = VersionReq::parse("=16.15.0")?;
@@ -128,7 +128,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn deserialize() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let config = r#"
 # Options intended to be common for all developers.
 wasm-size-limit: "4.37MB"
@@ -147,7 +147,7 @@ required-versions:
 
     #[tokio::test]
     async fn deserialize_config_in_repo() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         // let config = include_str!("../../../build-config.yaml");
         let config = r#"# Options intended to be common for all developers.
 

@@ -9,6 +9,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Named_Pattern.Named_Pattern
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
@@ -31,19 +32,26 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
+import project.System.Internal.Reporting_Stream_Decoder_Helper
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
+from project.Data.Text.Text_Cleanse import Cleansable_Text, Text_Cleanse
 from project.Metadata import Display, Widget
-from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
+from project.Widget_Helpers import make_data_cleanse_vector_selector, make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
-polyglot java import org.enso.base.Encoding_Utils
-polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.encoding.Encoding_Utils
+polyglot java import org.enso.base.text.ResultWithWarnings
 polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.WithProblems
+polyglot java import org.enso.base.text.GraphemeSpan
+polyglot java import org.enso.base.text.Utf16Span
 
 ## GROUP Text
    ICON text
@@ -76,6 +84,12 @@ Text.reverse self =
    Arguments:
    - function: The operation to apply to each character in the text.
 
+   This method does not return the results, so it is only useful for performing
+   computations with side-effects.
+
+   If the function returns a dataflow error, the error is converted to a
+   panic and thrown immediately stopping further processing.
+
    ! What is a Character?
      A character is defined as an Extended Grapheme Cluster, see Unicode
      Standard Annex 29. This is the smallest unit that still has semantic
@@ -91,13 +105,13 @@ Text.each self function =
     iterator.setText self
 
     iterate prev nxt = if nxt == -1 then Nothing else
-        function (Text_Utils.substring self prev nxt)
+        Panic.rethrow (function (Text_Utils.substring self prev nxt))
         @Tail_Call iterate nxt iterator.next
     iterate iterator.first iterator.next
 
 ## ALIAS get character
    GROUP Selections
-   ICON split_text
+   ICON split
 
    Returns a character from the text at the specified index (0-based).
 
@@ -116,13 +130,13 @@ Text.each self function =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".at 1 == "반"
-@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
-Text.at self index =
+Text.at self index:Integer=0 =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
 ## ALIAS get character
-   ICON split_text
+   ICON split
 
    Returns a character from the text at the specified index (0-based).
    If the index is invalid then `if_missing` is returned.
@@ -143,9 +157,9 @@ Text.at self index =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".get 1 == "반"
-@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length-1 display=Display.Always)
 Text.get : Integer -> Any -> Any
-Text.get self index ~if_missing=Nothing =
+Text.get self index:Integer=0 ~if_missing=Nothing =
     new_index = if index < 0 then index + self.length else index
     if new_index < 0 then if_missing else
         iterator = BreakIterator.getCharacterInstance
@@ -156,7 +170,7 @@ Text.get self index ~if_missing=Nothing =
             Text_Utils.substring self first next
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the first character from the text.
 
    ! What is a Character?
@@ -172,7 +186,7 @@ Text.first : Text ! Index_Out_Of_Bounds
 Text.first self = self.at 0
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the second character from the text.
 
    ! What is a Character?
@@ -188,7 +202,7 @@ Text.second : Text ! Index_Out_Of_Bounds
 Text.second self = self.at 1
 
 ## GROUP Selections
-   ICON split_text
+   ICON split
    Returns the last character from the text.
 
    ! What is a Character?
@@ -220,9 +234,8 @@ Text.last self = self.at -1
          "건반(Korean)".characters
 Text.characters : Vector Text
 Text.characters self =
-    bldr = Vector.new_builder
-    self.each bldr.append
-    bldr.to_vector
+    Vector.build builder->
+        self.each builder.append
 
 ## GROUP Selections
    ICON find
@@ -318,7 +331,7 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    ICON text
    Compile the text into a regex pattern that can be used for matching.
 
-   Arguments
+   Arguments:
    - case_insensitive: Enables or disables case-insensitive matching. Case
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
@@ -335,7 +348,7 @@ Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
 ## ALIAS split text
    GROUP Conversions
-   ICON split_text
+   ICON split
 
    Takes a delimiter and returns the vector that results from splitting `self`
    on each of its occurrences.
@@ -386,7 +399,8 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                         start = if i == 0 then 0 else
                             delimiters.at i-1 . codeunit_end
                         end = if i == delimiters.length then (Text_Utils.char_length self) else
-                            delimiters.at i . codeunit_start
+                            span = delimiters.at i
+                            (span : Utf16Span) . codeunit_start
                         Text_Utils.substring self start end
                 True -> case delimiter of
                     _ : Text ->
@@ -400,7 +414,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
 
 ## ADVANCED
    GROUP Conversions
-   ICON split_text
+   ICON split
    Takes an input string and and a pattern and returns all the matches as a
    `Vector Text`. If the pattern contains marked groups, the values are
    concatenated together; otherwise the whole match is returned.
@@ -525,6 +539,39 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
             updated_regex = term.recompile case_sensitivity
             updated_regex.replace self replacement only_first
 
+## GROUP Text
+   ICON text
+   Applies the specified cleansings to the text.
+
+   Arguments:
+   - remove: A vector of the named patterns to cleanse from the text. The named patterns are 
+      applied in the order they are provided. The same named pattern can be used multiple
+      times. The named patterns are:
+      - ..Leading_Whitespace: Removes all whitespace from the start of the string.
+      - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
+      - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
+      - ..All_Whitespace: Removes all whitespace from the string.
+      - ..Leading_Numbers: Removes all numbers from the start of the string.
+      - ..Trailing_Numbers: Removes all numbers from the end of the string.
+      - ..Non_ASCII: Removes all non-ascii characters from the string.
+      - ..Tabs: Removes all tab characters from the string.
+      - ..Letters: Removes all letters from the string.
+      - ..Numbers: Removes all numbers characters from the string.
+      - ..Punctuation: Removes all characters in the set ,.!?():;'" from the string.
+      - ..Symbols: Removes anything that isn't letters, numbers or whitespace from the string.
+
+   > Example
+   Remove leading and trailing spaces from text.
+
+         text.cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
+@remove make_data_cleanse_vector_selector
+Text.cleanse : Vector Named_Pattern -> Text
+Text.cleanse self remove =
+   remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
+
+## PRIVATE
+Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (Regex.compile pattern) replace_with)
+
 ## ALIAS get words
    GROUP Text
    ICON text
@@ -554,21 +601,19 @@ Text.words : Boolean -> Vector Text
 Text.words self keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
     iterator.setText self
-    bldr = Vector.new_builder
-    fst = iterator.first
-    nxt = iterator.next
+    Vector.build builder->
+        fst = iterator.first
+        nxt = iterator.next
 
-    build prev nxt = if nxt == -1 then Nothing else
-        word = Text_Utils.substring self prev nxt
-        word_not_whitespace = (Text_Utils.is_all_whitespace word).not
-        if word_not_whitespace || keep_whitespace then bldr.append word
+        build prev nxt = if nxt == -1 then Nothing else
+            word = Text_Utils.substring self prev nxt
+            word_not_whitespace = (Text_Utils.is_all_whitespace word).not
+            if word_not_whitespace || keep_whitespace then builder.append word
 
-        next_nxt = iterator.next
-        @Tail_Call build nxt next_nxt
+            next_nxt = iterator.next
+            @Tail_Call build nxt next_nxt
 
-    build fst nxt
-
-    bldr.to_vector
+        build fst nxt
 
 ## ALIAS get lines
    GROUP Text
@@ -696,8 +741,8 @@ Text.is_whitespace self =
          "Hello".bytes (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
-Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
-    result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
+Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    result = Encoding_Utils.get_bytes self encoding.to_java_charset : ResultWithWarnings
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
         on_problems.attach_problems_after vector [Encoding_Error.Error result.warnings]
@@ -713,15 +758,13 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
      function. By default, a dataflow error is raised.
 
    > Example
-     Get the ASCII bytes of the text "Hello".
+     Decode a sequence of ASCII bytes into Text.
 
-         "Hello".bytes (Encoding.ascii)
+         Text.from_bytes [72, 101, 108, 108, 111] (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
-Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
-    result = Encoding_Utils.from_bytes bytes (encoding . to_java_charset)
-    if result.warnings.is_nothing then result.result else
-        on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
+Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
+    Reporting_Stream_Decoder_Helper.decode_bytes_to_text bytes encoding on_problems
 
 ## ICON convert
    Returns a vector containing bytes representing the UTF-8 encoding of the
@@ -742,7 +785,7 @@ Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
 
          "Hello".utf_8
 Text.utf_8 : Problem_Behavior -> Vector Integer
-Text.utf_8 self on_problems=Problem_Behavior.Report_Warning =
+Text.utf_8 self (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
     self.bytes Encoding.utf_8 on_problems
 
 ## ICON convert
@@ -761,7 +804,7 @@ Text.utf_8 self on_problems=Problem_Behavior.Report_Warning =
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
-Text.from_utf_8 bytes on_problems=Problem_Behavior.Report_Error =
+Text.from_utf_8 bytes (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
 ## ICON convert
@@ -885,7 +928,9 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
    ICON preparation
 
    Checks whether `self` contains `sequence` as its substring.
-   Returns: `True` if term is found within `self`. `False` otherwise.
+
+   Returns:
+   `True` if term is found within `self`. `False` otherwise.
 
    Arguments:
    - term: The term to find.
@@ -967,9 +1012,9 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, head, last, left, limit, mid, right, slice, substring, tail, top
+## ALIAS first, head, keep, last, left, limit, mid, right, slice, substring, tail, top
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by selecting the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -983,7 +1028,7 @@ Text.repeat self count=1 =
    Returns:
    The part of the input as specified by the range parameter.
 
-   > Examples
+   > Example
      Various different ways to take part of "Hello World!"
 
          "Hello World!".take First == "H"
@@ -1018,7 +1063,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
 
 ## ALIAS remove, skip
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1032,7 +1077,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
    Returns:
    The part of the input as specified by the range parameter.
 
-   > Examples
+   > Example
      Various different ways to take part of "Hello World!"
 
          "Hello World!".drop First == "ello World!"
@@ -1308,7 +1353,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
             case Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last of
                 Nothing -> Nothing
                 grapheme_span ->
-                    Span.Value (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
+                    Span.Value ((grapheme_span:GraphemeSpan).grapheme_start.up_to grapheme_span.grapheme_end) self
 
 ## ALIAS index_of_all, position_of_all, span_of_all
    GROUP Text
@@ -1837,7 +1882,7 @@ Text.parse_time_zone self = Time_Zone.parse self
 
 ## ALIAS mid, slice, substring
    GROUP Selections
-   ICON split_text
+   ICON split
    Creates a new Text by selecting the specified range of the input.
 
    Arguments:
@@ -1847,7 +1892,7 @@ Text.parse_time_zone self = Time_Zone.parse self
    Returns:
    Part of the selected Text starting at start and stopping after length.
 
-   > Examples
+   > Example
      Various different ways to take part of "Hello World!"
 
          "Hello World!".substring 3 2 == "lo"

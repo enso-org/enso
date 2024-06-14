@@ -15,7 +15,7 @@ pub struct DeployRuntime {
 #[derive(Args, Clone, Copy, Debug)]
 pub struct Promote {
     /// What kind of version is to be created.
-    #[clap(arg_enum)]
+    #[clap(value_enum)]
     pub designation: enso_build::version::promote::Designation,
 }
 

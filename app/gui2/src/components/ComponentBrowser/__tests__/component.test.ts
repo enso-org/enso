@@ -23,9 +23,9 @@ test.each([
   [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],
   [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
   [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
-  [makeConstructor('Standard.Table.Data.Join_Kind.Join_Kind.LeftInner'), 'Join_Kind.LeftInner'],
-  [makeModule('Standard.Table.Data.Join_Kind'), 'Join_Kind'],
-  [makeModule('Standard.Table.Data'), 'Data', 'Standard.Table.Data'],
+  [makeConstructor('Standard.Table.Join_Kind.Join_Kind.Inner'), 'Join_Kind.Inner'],
+  [makeModule('Standard.Table.Excel.Excel_Range'), 'Excel_Range'],
+  [makeModule('Standard.Table.Conversions'), 'Conversions', 'Standard.Table.Conversions'],
   [makeModuleMethod('local.Project.main'), 'Project.main'],
 ])("$name Component's label is valid", (suggestion, expected, mainExpected?) => {
   const mainView = new Filtering({})
@@ -107,29 +107,29 @@ test('Matched ranges are correct', () => {
     {
       name: 'bar',
       aliases: ['foo_bar', 'foo'],
-      highlighted: '<foo><_bar> (Project.bar)',
+      highlighted: 'Project.bar (<foo><_bar>)',
     }, // exact alias match
     {
       name: 'bar',
       aliases: ['foo', 'foo_xyz_barabc'],
-      highlighted: '<foo>_xyz<_bar>abc (Project.bar)',
+      highlighted: 'Project.bar (<foo>_xyz<_bar>abc)',
     }, // alias first word exact match
     {
       name: 'bar',
       aliases: ['foo', 'fooabc_barabc'],
-      highlighted: '<foo>abc<_bar>abc (Project.bar)',
+      highlighted: 'Project.bar (<foo>abc<_bar>abc)',
     }, // alias first word match
     { name: 'xyz_foo_abc_bar_xyz', highlighted: 'Project.xyz_<foo>_abc<_bar>_xyz' }, // exact word match
     { name: 'xyz_fooabc_abc_barabc_xyz', highlighted: 'Project.xyz_<foo>abc_abc<_bar>abc_xyz' }, // non-exact word match
     {
       name: 'bar',
       aliases: ['xyz_foo_abc_bar_xyz'],
-      highlighted: 'xyz_<foo>_abc<_bar>_xyz (Project.bar)',
+      highlighted: 'Project.bar (xyz_<foo>_abc<_bar>_xyz)',
     }, // alias word exact match
     {
       name: 'bar',
       aliases: ['xyz_fooabc_abc_barabc_xyz'],
-      highlighted: 'xyz_<foo>abc_abc<_bar>abc_xyz (Project.bar)',
+      highlighted: 'Project.bar (xyz_<foo>abc_abc<_bar>abc_xyz)',
     }, // alias word start match
   ]
   const entries = Array.from(matchedSorted, ({ name, aliases }, id) => {

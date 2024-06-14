@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, MethodNames}
+import org.enso.common.{LanguageInfo, MethodNames}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

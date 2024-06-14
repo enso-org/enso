@@ -4,7 +4,10 @@ import org.apache.commons.io.output.TeeOutputStream
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.common.MethodNames
+import org.enso.polyglot.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -46,6 +49,7 @@ class RuntimeTypesTest
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
+        .option(RuntimeOptions.STRICT_ERRORS, "false")
         .option(
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE

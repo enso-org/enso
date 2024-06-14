@@ -460,20 +460,17 @@ type ToGroup<T extends GroupObject> = Group<
 >
 
 /** Convert the plain group object to a `Group` object instance. */
-export function objectToGroup<T extends GroupObject>(
-    obj: T,
-    scope: Record<string, any> = {}
-): ToGroup<T> {
+export function objectToGroup<T extends GroupObject>(obj: T): ToGroup<T> {
     const options: Record<string, AnyOption> = {}
     const groups: Record<string, AnyGroup> = {}
     if (obj.options) {
         for (const [name, option] of Object.entries(obj.options)) {
-            options[name] = objectToOption(option, scope)
+            options[name] = objectToOption(option)
         }
     }
     if (obj.groups) {
         for (const [name, group] of Object.entries(obj.groups)) {
-            groups[name] = objectToGroup(group, scope)
+            groups[name] = objectToGroup(group)
         }
     }
     const description = obj.description
@@ -481,21 +478,7 @@ export function objectToGroup<T extends GroupObject>(
 }
 
 /** Convert the plain option object to an `Option` object instance. */
-export function objectToOption<T extends AnyOptionObject>(
-    obj: T,
-    scope: Record<string, any>
-): ToOption<T> {
-    const code = obj.valueEval
-    if (code != null) {
-        /* eslint @typescript-eslint/no-implied-eval: "off" */
-        const value: unknown = new Function('scope', 'return ' + code)(scope)
-        const expectedType = typeof obj.value
-        if (typeof value === typeof obj.value) {
-            obj.value = value as OptionValue
-        } else {
-            logger.error(`The value of eval option '${code}' did not resolve to '${expectedType}'.`)
-        }
-    }
+export function objectToOption<T extends AnyOptionObject>(obj: T): ToOption<T> {
     return new Option(obj)
 }
 

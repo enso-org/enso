@@ -1,15 +1,22 @@
 /** @file Displays a few details of an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import BreadcrumbArrowIcon from 'enso-assets/breadcrumb_arrow.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import AssetIcon from '#/components/dashboard/AssetIcon'
 
 import type * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
+
+// ====================
+// === AssetSummary ===
+// ====================
 
 /** Props for an {@link AssetSummary}. */
 export interface AssetSummaryProps {
@@ -26,13 +33,16 @@ export default function AssetSummary(props: AssetSummaryProps) {
   const { getText } = textProvider.useText()
   return (
     <div
-      className={`flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x ${className}`}
+      className={tailwindMerge.twMerge(
+        'flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x',
+        className
+      )}
     >
       <div className="grid size-icon place-items-center">
         <AssetIcon asset={asset} />
       </div>
       <div className="flex flex-col">
-        <span className="flex items-center gap-icon-with-text font-semibold">
+        <aria.Text className="flex items-center gap-icon-with-text font-semibold">
           {asset.title}
           {newName != null && (
             <>
@@ -40,13 +50,13 @@ export default function AssetSummary(props: AssetSummaryProps) {
               {newName}
             </>
           )}
-        </span>
+        </aria.Text>
         {!isNew && (
-          <span>
+          <aria.Text>
             {getText('lastModifiedOn', dateTime.formatDateTime(new Date(asset.modifiedAt)))}
-          </span>
+          </aria.Text>
         )}
-        <span>{asset.labels}</span>
+        <aria.Text>{asset.labels}</aria.Text>
       </div>
     </div>
   )

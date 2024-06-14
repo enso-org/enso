@@ -5,7 +5,6 @@ import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 /**
@@ -21,7 +20,6 @@ final class EpbContext {
   private final boolean isInner;
   private final TruffleLanguage.Env env;
   private @CompilationFinal TruffleContext innerContext;
-  private final ReentrantLock lock = new ReentrantLock();
   private final TruffleLogger log;
 
   /**

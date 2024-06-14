@@ -1,7 +1,7 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@300;400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
-/* Scoped to `.enso-dashboard .enso-chat` in tailwind config. */
+/* Scoped to `.enso-dashboard, .enso-chat, .enso-portal-root` in tailwind config. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -61,6 +61,7 @@
   --cozy-line-height: 170%;
   --default-backdrop-blur: 64px;
   --default-corner-radius: 1rem;
+  --button-focus-ring-corner-radius: 0.5rem;
   --profile-picture-large-size: 8rem;
   --profile-picture-caption-width: 16rem;
   --profile-picture-caption-padding-y: 0.25rem;
@@ -93,8 +94,8 @@
   --context-menu-macos-half-width: calc(var(--context-menu-macos-width) / 2);
   --context-menu-macos-width: 14.375rem;
   --context-menu-entry-padding-x: 0.75rem;
-  --context-menu-separator-padding-y: 0.125rem;
-  /* The vertical gap between entries in a Data Link input. */
+  --separator-margin-y: 0.125rem;
+  /* The vertical gap between entries in a Datalink input. */
   --json-schema-gap: 0.25rem;
   --json-schema-text-input-width: 10rem;
   --json-schema-object-input-padding: 0.5rem;
@@ -151,11 +152,13 @@
   --date-input-gap: 0.5rem;
   /* The gap between the month display and the calendar of the date picker. */
   --date-input-calendar-gap: 0.5rem;
+  --auth-link-padding-x: 0.5rem;
+  --auth-link-padding-y: 0.25rem;
+  --text-link-padding-x: 0.25rem;
 
   /********\
   |* Chat *|
   \********/
-
   --chat-header-margin-x: 1rem;
   --chat-header-margin-top: 0.5rem;
   --chat-thread-button-padding: 0.25rem;
@@ -232,10 +235,6 @@
 
   --menu-entry-padding: 0.25rem;
 
-  --frame-color: rgb(255 255 255 / 40%);
-  --selected-frame-color: rgb(255 255 255 / 70%);
-  --selection-brush-color: rgb(171 171 171 / 50%);
-
   --radio-button-size: 1rem;
   --radio-button-dot-size: 0.5rem;
   --radio-button-dot-padding: calc(
@@ -279,6 +278,7 @@
   --invite-users-modal-width: 28.8125rem;
   --manage-permissions-modal-width: 28.8125rem;
   --upsert-data-link-modal-width: 24rem;
+  --upsert-data-link-modal-max-width: min(40rem, 100vw);
   --upsert-secret-modal-width: 24rem;
 
   --modal-tab-bar-padding-x: 0.5rem;
@@ -326,7 +326,7 @@
   --organization-settings-label-width: 10rem;
   --delete-user-account-button-padding-x: 0.5rem;
 
-  --members-name-column-width: 8rem;
+  --members-name-column-width: 12rem;
   --members-email-column-width: 12rem;
   --keyboard-shortcuts-icon-column-width: 2rem;
   --keyboard-shortcuts-name-column-width: 9rem;
@@ -374,12 +374,6 @@
   --home-gap: 3rem;
   /* The padding at the very bottom of the entire home page. */
   --home-page-padding-b: 0.25rem;
-  /* The gap between items in the banner. Usually these are the title and the subtitle. */
-  --banner-gap: 0.5rem;
-  --banner-padding-x: 2.4375rem;
-  --banner-padding-y: 0.5625rem;
-  /* The vertical padding for each banner item (the title and the subtitle). */
-  --banner-item-padding: 0.125rem;
   /* The horizontal padding for each section of the home page. */
   --home-section-padding-x: 1.1875rem;
   /* The horizontal and vertical gap between adjacent news item tiles. */
@@ -390,7 +384,7 @@
   --news-item-subtitle-padding-y: 0.125rem;
   /* The horizontal and vertical gap between adjacent sample tiles. */
   --samples-gap: 0.75rem;
-  --samples-column-width: 15rem;
+  --samples-column-width: 18.75rem;
   /* The vertical gap between a sample's tile and its info. */
   --sample-gap: 0.375rem;
   /* The height of the tile containing the sample's image and description.
@@ -434,7 +428,7 @@
   /* Only used for the settings sidebar, not the drive sidebar. */
   --sidebar-section-heading-padding-y: 0.125rem;
   /* The vertical gap between the section heading and its content. */
-  --sidebar-section-heading-gap: 0.375rem;
+  --sidebar-section-heading-margin-b: 0.375rem;
 }
 
 body {
@@ -475,8 +469,7 @@ body::before {
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-.enso-dashboard,
-.enso-chat {
+:where(:is(.enso-dashboard, .enso-chat, .enso-portal-root)) {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -486,9 +479,18 @@ body::before {
   font-feature-settings: normal;
 }
 
-.enso-dashboard :focus,
-.enso-chat :focus {
+:where(:is(.enso-dashboard kbd, .enso-chat kbd, .enso-portal-root kbd)) {
+  font-family: "M PLUS 1";
+}
+
+:where(
+    :is(.enso-dashboard :focus, .enso-chat :focus, .enso-portal-root :focus)
+  ) {
   outline: none;
+}
+
+:where(.enso-portal-root) {
+  display: contents;
 }
 
 /* Must be kept in sync with app/gui/view/graph-editor/src/builtin/visualization/java_script/helpers/scrollable.js. */
@@ -511,9 +513,56 @@ body::before {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgb(0 0 0 / 10%);
 }
 
 ::-webkit-scrollbar-corner {
-  background: rgba(0, 0, 0, 0);
+  background: rgb(0 0 0 / 0%);
+}
+
+body[data-debug] :where(.focus-child:not(:disabled):not([data-disabled])) {
+  outline: 2px solid rgb(255 0 255 / 30%);
+  outline-offset: -1px;
+}
+
+body[data-debug] :focus {
+  outline: 2px solid rgb(0 0 255 / 60%);
+  outline-offset: -1px;
+}
+
+body[data-debug] :focus-visible {
+  outline: 2px solid rgb(0 128 0 / 60%);
+  outline-offset: -1px;
+}
+
+body[data-debug] [data-focus-area] {
+  outline: 2px solid rgb(255 0 0 / 60%);
+  outline-offset: -1px;
+}
+
+body[data-debug] [data-navigator2d-neighbor] {
+  outline: 2px solid rgb(0 255 255 / 60%);
+  outline-offset: -1px;
+}
+
+:root::highlight(field-wrong-email) {
+  @apply text-danger;
+}
+:root::highlight(field-existing-email) {
+  @apply text-amber-500;
+}
+
+/** The default styles for the popover. */
+:where(
+    :is(
+        .enso-dashboard [popover],
+        .enso-chat [popover],
+        .enso-portal-root [popover]
+      )
+  ) {
+  inset: unset;
+  margin: unset;
+  width: unset;
+  height: unset;
+  overflow: unset;
 }

@@ -30,13 +30,12 @@ const NAME = 'enso'
  * `yargs` is a modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|is-network-error|validator.+'
+    '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml|is-network-error|validator.+|.*[.]json$'
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
-const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
 const WHITELISTED_CONSTANTS = 'logger|.+Context|interpolationFunction.+'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
@@ -51,8 +50,7 @@ const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z
 /** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
     {
-        selector:
-            ':matches(ImportDeclaration:has(ImportSpecifier), ExportDeclaration, ExportSpecifier)',
+        selector: ':matches(ImportDeclaration:has(ImportSpecifier))',
         message: 'No {} imports and exports',
     },
     {
@@ -117,13 +115,8 @@ const RESTRICTED_SYNTAXES = [
             'No aliases to primitives - consider using brands instead: `string & { _brand: "BrandName"; }`',
     },
     {
-        // Matches other functions, non-consts, and consts not at the top level.
-        selector: `:matches(FunctionDeclaration[id.name=${NOT_CAMEL_CASE}]:not(:has(${JSX})), VariableDeclarator[id.name=${NOT_CAMEL_CASE}]:has(ArrowFunctionExpression.init:not(:has(${JSX}))), :matches(VariableDeclaration[kind^=const], Program :not(ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const], ExportNamedDeclaration > * VariableDeclaration[kind=const]) > VariableDeclarator[id.name=${NOT_CAMEL_CASE}]:not(:has(ArrowFunctionExpression)))`,
-        message: 'Use `camelCase` for everything but React components',
-    },
-    {
         // Matches non-functions.
-        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches(:has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {
@@ -202,15 +195,6 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use arrow functions for nested functions',
     },
     {
-        selector:
-            ':not(ExportNamedDeclaration) > TSInterfaceDeclaration[id.name=/^(?!Internal).+Props$/]',
-        message: 'All React component `Props` types must be exported',
-    },
-    {
-        selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
-        message: 'Destructure function parameters in the body, instead of in the parameter list',
-    },
-    {
         selector: 'IfStatement > ExpressionStatement',
         message: 'Wrap `if` branches in `{}`',
     },
@@ -229,6 +213,19 @@ const RESTRICTED_SYNTAXES = [
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',
     },
+    {
+        selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
+        message:
+            'Use `tv` from `tailwind-variants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',
+        message: 'Use `Button` or `UnstyledButton` instead of `button`',
+    },
+    {
+        selector: 'JSXOpeningElement[name.name=/^h[123456]$/] > JSXIdentifier',
+        message: 'Use `aria.Heading` instead of `h1`-`h6`',
+    },
 ]
 
 // ============================
@@ -239,8 +236,8 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
-        // Playwright build cache.
-        ignores: ['**/.cache/**', '**/playwright-report'],
+        // Playwright build cache and Vite build directory.
+        ignores: ['**/.cache/**', '**/playwright-report', '**/dist'],
     },
     {
         settings: {
@@ -273,6 +270,8 @@ export default [
             ...tsEslint.configs.strict?.rules,
             ...react.configs['jsx-runtime'].rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
+            // Any extra semicolons that exist, are required by Prettier.
+            'no-extra-semi': 'off',
             'jsdoc/require-jsdoc': [
                 'error',
                 {
@@ -295,7 +294,6 @@ export default [
             ],
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
-            'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
             // Not relevant because TypeScript checks types.
             'react/prop-types': 'off',
@@ -332,7 +330,7 @@ export default [
                     format: ['camelCase', 'PascalCase'],
                 },
                 {
-                    selector: ['parameter', 'property', 'method'],
+                    selector: ['parameter', 'method'],
                     format: ['camelCase'],
                 },
                 {
@@ -340,6 +338,14 @@ export default [
                     modifiers: ['unused'],
                     format: ['camelCase'],
                     leadingUnderscore: 'require',
+                },
+                {
+                    selector: ['property'],
+                    format: ['camelCase'],
+                    filter: {
+                        regex: '^(?:data-testid)$',
+                        match: false,
+                    },
                 },
             ],
             '@typescript-eslint/no-confusing-void-expression': 'error',
@@ -450,11 +456,6 @@ export default [
                 {
                     selector: ':not(TSModuleDeclaration)[declare=true]',
                     message: 'No ambient declarations',
-                },
-                {
-                    selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
-                    message:
-                        'Use `export default` on the declaration, instead of as a separate statement',
                 },
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.

@@ -21,10 +21,14 @@ export function* range(start: number, stop: number, step = start <= stop ? 1 : -
   }
 }
 
-export function* map<T, U>(iter: Iterable<T>, map: (value: T) => U) {
+export function* map<T, U>(iter: Iterable<T>, map: (value: T) => U): IterableIterator<U> {
   for (const value of iter) {
     yield map(value)
   }
+}
+
+export function* filter<T>(iter: Iterable<T>, include: (value: T) => boolean): IterableIterator<T> {
+  for (const value of iter) if (include(value)) yield value
 }
 
 export function* chain<T>(...iters: Iterable<T>[]) {
@@ -76,6 +80,14 @@ export class Resumable<T> {
   private current: IteratorResult<T>
   constructor(iterable: Iterable<T>) {
     this.iterator = iterable[Symbol.iterator]()
+    this.current = this.iterator.next()
+  }
+
+  peek() {
+    return this.current.done ? undefined : this.current.value
+  }
+
+  advance() {
     this.current = this.iterator.next()
   }
 

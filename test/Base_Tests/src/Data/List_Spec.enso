@@ -224,6 +224,11 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
                 State.put Number s+el
             State.get Number
         sum.should_equal 6
+    
+    group_builder.specify "dataflow errors in .each should become panics" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        Test.expect_panic_with (l.each do_write) Text
 
     group_builder.specify "should allow reversing with .reverse" <|
         l.reverse.first.should_equal 3

@@ -3,6 +3,7 @@ package org.enso.base.numeric;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import java.math.RoundingMode;
 
 /** Utils for the Enso Decmial type. */
 public class Decimal_Utils {
@@ -51,11 +52,15 @@ public class Decimal_Utils {
     }
   }
 
-  public static BigDecimal fromFloat(Double d) {
+  public static BigDecimal fromFloat(double d) {
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
     return BigDecimal.valueOf(d);
+  }
+
+  public static BigDecimal fromFloatExact(double d) {
+    return new BigDecimal(d);
   }
 
   public static ConversionResult fromFloat(Double d, MathContext mc) {
@@ -70,25 +75,26 @@ public class Decimal_Utils {
   }
 
   public static int hashCodeOf(BigDecimal bd) {
-    boolean isFractional = bd.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0;
-    boolean fitsInLong = fitsInLong(bd);
-    if (isFractional || fitsInLong) {
-      double d = bd.doubleValue();
-      var fitsInDouble = Double.isFinite(d);
-      if (fitsInDouble) {
-        return Double.hashCode(d);
-      } else {
-        // Infinite values here just means finite values outside the double
-        // range. In this path, the values must be fractional, and so cannot
-        // coincide with a value of any other type (including BigInteger), so we
-        // can hash it however we want.
-        assert isFractional;
-        return bd.hashCode();
-      }
-    } else {
-      // Will not throw ArithmeticException since the value has a 0 fractional part.
-      assert !isFractional;
-      return bd.toBigIntegerExact().hashCode();
-    }
+    return Double.hashCode(bd.doubleValue());
+  }
+
+  public static BigDecimal round(BigDecimal bd, int decimalPlaces, boolean useBankers) {
+    var roundingMode = useBankers ? RoundingMode.HALF_EVEN : RoundingMode.HALF_UP;
+    // `stripTrailingZeros` is necessary because rounding can produce results
+    // that have extra trailing zeros, which take up space and slow down later
+    // calculations.
+    return bd.setScale(decimalPlaces, roundingMode).stripTrailingZeros();
+  }
+
+  public static BigInteger floor(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.FLOOR).toBigInteger();
+  }
+
+  public static BigInteger ceil(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.CEILING).toBigInteger();
+  }
+
+  public static BigInteger truncate(BigDecimal bd) {
+    return bd.setScale(0, RoundingMode.DOWN).toBigInteger();
   }
 }

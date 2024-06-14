@@ -19,6 +19,7 @@ import { isUuid } from 'shared/yjsModel'
 import {
   computed,
   nextTick,
+  onMounted,
   onUpdated,
   proxyRefs,
   shallowRef,
@@ -35,16 +36,17 @@ const navigator = injectGraphNavigator()
 const tree = injectWidgetTree()
 const selection = injectGraphSelection(true)
 
-const isHovered = computed(() => selection?.hoveredPort === props.input.portId)
-
 const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isCurrentEdgeHoverTarget = computed(
-  () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
-)
-const isCurrentDisconectedEdgeTarget = computed(
   () =>
-    graph.unconnectedEdge?.disconnectedEdgeTarget === portId.value &&
-    graph.unconnectedEdge?.target !== portId.value,
+    graph.mouseEditedEdge?.source != null &&
+    selection?.hoveredPort === portId.value &&
+    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.nodeId,
+)
+const isCurrentDisconnectedEdgeTarget = computed(
+  () =>
+    graph.mouseEditedEdge?.disconnectedEdgeTarget === portId.value &&
+    graph.mouseEditedEdge?.target !== portId.value,
 )
 const isSelfArgument = computed(
   () =>
@@ -59,7 +61,7 @@ const connected = computed(
 )
 const isTarget = computed(
   () =>
-    (hasConnection.value && !isCurrentDisconectedEdgeTarget.value) ||
+    (hasConnection.value && !isCurrentDisconnectedEdgeTarget.value) ||
     isCurrentEdgeHoverTarget.value,
 )
 
@@ -109,64 +111,81 @@ const enabled = computed(() => {
   return !isConditional || keyboard.mod
 })
 
-const computedRect = computed(() => {
+/**
+ * NOTE: Reactive dependencies of this function are enforced externally in a `watch` below. This is
+ * necessary, since we don't want to introduce very noisy dependencies through `clientToSceneRect`
+ * call. Since this function calls `getBoundingClientRect`, it can't automatically track all its
+ * dependencies anyway and external refresh mechanisms are required.
+ */
+function updateRect() {
+  const oldRect = portRect.value
+  const newRect = relativePortSceneRect()
+  if (
+    oldRect !== newRect &&
+    (oldRect == null || newRect == null || !oldRect.equalsApproximately(newRect, 0.01))
+  ) {
+    portRect.value = newRect
+  }
+}
+
+function relativePortSceneRect(): Rect | undefined {
   const domNode = rootNode.value
-  const rootDomNode = domNode?.closest('.GraphNode')
+  const rootDomNode = tree.nodeElement
   if (domNode == null || rootDomNode == null) return
   if (!enabled.value) return
-  let _nodeSizeEffect = nodeSize.value
   const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
   const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
   const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
   const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
   return exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
-})
-
-function updateRect() {
-  const newRect = computedRect.value
-  if (!Rect.Equal(portRect.value, newRect)) {
-    portRect.value = newRect
-  }
 }
 
-watch(computedRect, updateRect)
+watch(
+  () => [nodeSize.value, rootNode.value, tree.nodeElement, tree.nodeSize, enabled.value],
+  updateRect,
+)
 onUpdated(() => nextTick(updateRect))
+onMounted(() => nextTick(updateRect))
 useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
-  priority: 0,
-  score: (props, _db) => {
-    const portInfo = injectPortInfo(true)
-    const value = props.input.value
-    if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAstOrPlaceholder,
+  {
+    priority: 0,
+    score: (props, _db) => {
+      const portInfo = injectPortInfo(true)
+      const value = props.input.value
+      if (portInfo != null && value instanceof Ast.Ast && portInfo.portId === value.id) {
+        return Score.Mismatch
+      }
+
+      if (
+        props.input.forcePort ||
+        WidgetInput.isPlaceholder(props.input) ||
+        props.input[ArgumentInfoKey] != undefined
+      )
+        return Score.Perfect
+
+      if (
+        props.input.value instanceof Ast.Invalid ||
+        props.input.value instanceof Ast.BodyBlock ||
+        props.input.value instanceof Ast.Group ||
+        props.input.value instanceof Ast.NumericLiteral ||
+        props.input.value instanceof Ast.OprApp ||
+        props.input.value instanceof Ast.PropertyAccess ||
+        props.input.value instanceof Ast.UnaryOprApp ||
+        props.input.value instanceof Ast.Wildcard ||
+        props.input.value instanceof Ast.TextLiteral
+      )
+        return Score.Perfect
+
       return Score.Mismatch
-    }
-
-    if (
-      props.input.forcePort ||
-      WidgetInput.isPlaceholder(props.input) ||
-      props.input[ArgumentInfoKey] != undefined
-    )
-      return Score.Perfect
-
-    if (
-      props.input.value instanceof Ast.Invalid ||
-      props.input.value instanceof Ast.BodyBlock ||
-      props.input.value instanceof Ast.Group ||
-      props.input.value instanceof Ast.NumericLiteral ||
-      props.input.value instanceof Ast.OprApp ||
-      props.input.value instanceof Ast.PropertyAccess ||
-      props.input.value instanceof Ast.UnaryOprApp ||
-      props.input.value instanceof Ast.Wildcard ||
-      props.input.value instanceof Ast.TextLiteral
-    )
-      return Score.Perfect
-
-    return Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>
@@ -203,8 +222,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   position: relative;
   text-align: center;
   border-radius: 12px;
-  min-height: 24px;
-  min-width: 24px;
+  min-height: var(--node-port-height);
+  min-width: var(--node-port-height);
   box-sizing: border-box;
   padding: 0 var(--widget-port-extra-pad);
   margin: 0 calc(0px - var(--widget-port-extra-pad));
@@ -260,7 +279,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   z-index: -1;
 }
 
-.isSelfArgument {
-  margin-right: 2px;
+/* Selector specificity must be high enough to override r-24 specific styles. */
+.WidgetPort.isSelfArgument.isSelfArgument {
+  margin-right: 6px;
 }
 </style>

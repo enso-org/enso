@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.13.0"
-clap = { version = "3", features = ["derive"] }
+clap = { workspace = true }
 either = "1.7.0"
 futures = { workspace = true }
 enso-prelude = { path = "../../../lib/rust/prelude" }

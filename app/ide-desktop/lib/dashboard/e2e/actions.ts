@@ -66,7 +66,7 @@ export function locateNewLabelModalColorButtons(page: test.Page) {
     locateNewLabelModal(page)
       .filter({ has: page.getByText('Color') })
       // The `radio` inputs are invisible, so they cannot be used in the locator.
-      .getByRole('button')
+      .locator('label[data-rac]')
   )
 }
 
@@ -83,7 +83,7 @@ export function locateSecretValueInput(page: test.Page) {
 /** Find a search bar input (if any) on the current page. */
 export function locateSearchBarInput(page: test.Page) {
   return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, Data Links, users, and more.'
+    'Type to search for projects, Datalinks, users, and more.'
   )
 }
 
@@ -148,12 +148,12 @@ export function locateCreateButton(page: test.Locator | test.Page) {
 
 /** Find a button to open the editor (if any) on the current page. */
 export function locatePlayOrOpenProjectButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Open in editor')
+  return page.getByLabel('Open in editor')
 }
 
 /** Find a button to close the project (if any) on the current page. */
 export function locateStopProjectButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Stop execution')
+  return page.getByLabel('Stop execution')
 }
 
 /** Find all labels in the labels panel (if any) on the current page. */
@@ -167,9 +167,14 @@ export function locateLabelsPanelLabels(page: test.Page) {
   )
 }
 
-/** Find a "home" button (if any) on the current page. */
-export function locateHomeButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Home' }).getByText('Home')
+/** Find a "cloud" category button (if any) on the current page. */
+export function locateCloudButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Cloud' }).getByText('Cloud')
+}
+
+/** Find a "local" category button (if any) on the current page. */
+export function locateLocalButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Local' }).getByText('Local')
 }
 
 /** Find a "trash" button (if any) on the current page. */
@@ -194,52 +199,52 @@ export function locateAssetLabels(page: test.Locator | test.Page) {
 
 /** Find a toggle for the "Name" column (if any) on the current page. */
 export function locateNameColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Name$/)
+  return page.getByAltText('Name')
 }
 
 /** Find a toggle for the "Modified" column (if any) on the current page. */
 export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Modified date column$/)
+  return page.getByAltText('Modified')
 }
 
 /** Find a toggle for the "Shared with" column (if any) on the current page. */
 export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Shared with column$/)
+  return page.getByAltText('Shared With')
 }
 
 /** Find a toggle for the "Labels" column (if any) on the current page. */
 export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Labels column$/)
+  return page.getByAltText('Labels')
 }
 
 /** Find a toggle for the "Accessed by projects" column (if any) on the current page. */
 export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed by projects column$/)
+  return page.getByAltText('Accessed By Projects')
 }
 
 /** Find a toggle for the "Accessed data" column (if any) on the current page. */
 export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed data column$/)
+  return page.getByAltText('Accessed Data')
 }
 
 /** Find a toggle for the "Docs" column (if any) on the current page. */
 export function locateDocsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Docs column$/)
+  return page.getByAltText('Docs')
 }
 
 /** Find a button for the "Recent" category (if any) on the current page. */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Recent')
+  return page.getByLabel('Recent').locator('visible=true')
 }
 
 /** Find a button for the "Home" category (if any) on the current page. */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Home')
+  return page.getByLabel('Home').locator('visible=true')
 }
 
 /** Find a button for the "Trash" category (if any) on the current page. */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Trash')
+  return page.getByLabel('Trash').locator('visible=true')
 }
 
 // === Context menu buttons ===
@@ -331,9 +336,16 @@ export function locateUploadFilesButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Upload Files' }).getByText('Upload Files')
 }
 
+/** Find a "start modal" button (if any) on the current page. */
+export function locateStartModalButton(page: test.Locator | test.Page) {
+  return page
+    .getByRole('button', { name: 'Start with a template' })
+    .getByText('Start with a template')
+}
+
 /** Find a "new project" button (if any) on the current page. */
 export function locateNewProjectButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Project' }).getByText('New Project')
+  return page.getByRole('button', { name: 'New Empty Project' }).getByText('New Empty Project')
 }
 
 /** Find a "new folder" button (if any) on the current page. */
@@ -358,35 +370,39 @@ export function locateNewLabelButton(page: test.Locator | test.Page) {
 
 /** Find an "upgrade" button (if any) on the current page. */
 export function locateUpgradeButton(page: test.Locator | test.Page) {
-  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade')
+  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade').first()
+}
+
+/**
+ * Find a not enabled stub view (if any) on the current page.
+ */
+export function locateNotEnabledStub(page: test.Locator | test.Page) {
+  return page.getByTestId('not-enabled-stub')
 }
 
 /** Find a "new folder" icon (if any) on the current page. */
 export function locateNewFolderIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('New Folder')
+  return page.getByRole('button').filter({ has: page.getByAltText('New Folder') })
 }
 
 /** Find a "new secret" icon (if any) on the current page. */
 export function locateNewSecretIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('New Secret')
+  return page.getByRole('button').filter({ has: page.getByAltText('New Secret') })
 }
 
-/** Find a "upload files" icon (if any) on the current page. */
+/** Find an "upload files" icon (if any) on the current page. */
 export function locateUploadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Upload Files')
+  return page.getByRole('button').filter({ has: page.getByAltText('Import') })
 }
 
 /** Find a "download files" icon (if any) on the current page. */
 export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Download Files')
+  return page.getByRole('button').filter({ has: page.getByAltText('Export') })
 }
 
 /** Find an icon to open or close the asset panel (if any) on the current page. */
 export function locateAssetPanelIcon(page: test.Locator | test.Page) {
-  return page
-    .getByAltText('Open Asset Panel')
-    .or(page.getByAltText('Close Asset Panel'))
-    .locator('visible=true')
+  return page.getByAltText('Asset Panel').locator('visible=true')
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
@@ -421,36 +437,31 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 // === Page locators ===
 
-/** Find a "home page" icon (if any) on the current page. */
-export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Home tab')
-}
-
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Drive tab')
+  return page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
 }
 
 /** Find an "editor page" icon (if any) on the current page. */
 export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Project tab')
+  return page.getByRole('button').filter({ has: page.getByAltText('Graph Editor') })
 }
 
 /** Find a "settings page" icon (if any) on the current page. */
 export function locateSettingsPageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Settings tab')
+  return page.getByRole('button').filter({ has: page.getByAltText('Settings') })
 }
 
 /** Find a "name" column heading (if any) on the current page. */
 export function locateNameColumnHeading(page: test.Locator | test.Page) {
-  return page.getByTitle('Sort by name').or(page.getByTitle('Stop sorting by name'))
+  return page.getByLabel('Sort by name').or(page.getByLabel('Stop sorting by name'))
 }
 
 /** Find a "modified" column heading (if any) on the current page. */
 export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
   return page
-    .getByTitle('Sort by modification date')
-    .or(page.getByTitle('Stop sorting by modification date'))
+    .getByLabel('Sort by modification date')
+    .or(page.getByLabel('Stop sorting by modification date'))
 }
 
 // === Container locators ===
@@ -481,10 +492,8 @@ export function locateModalBackground(page: test.Locator | test.Page) {
 
 /** Find an editor container (if any) on the current page. */
 export function locateEditor(page: test.Page) {
-  // This is fine as this element is defined in `index.html`, rather than from React.
-  // Using `data-testid` may be more correct though.
-  // eslint-disable-next-line no-restricted-properties
-  return page.locator('#app')
+  // Test ID of a placeholder editor component used during testing.
+  return page.getByTestId('gui-editor-root')
 }
 
 /** Find an assets table (if any) on the current page. */
@@ -530,6 +539,12 @@ export function locateNewLabelModal(page: test.Page) {
 export function locateUpsertSecretModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('upsert-secret-modal')
+}
+
+/** Find a "new user group" modal (if any) on the current page. */
+export function locateNewUserGroupModal(page: test.Page) {
+  // This has no identifying features.
+  return page.getByTestId('new-user-group-modal')
 }
 
 /** Find a user menu (if any) on the current page. */
@@ -670,10 +685,28 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
 // === Mouse utilities ===
 // =======================
 
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+
 /** Click an asset row. The center must not be clicked as that is the button for adding a label. */
 export async function clickAssetRow(assetRow: test.Locator) {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await assetRow.click({ position: { x: 300, y: 16 } })
+  await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRowToAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, {
+    sourcePosition: ASSET_ROW_SAFE_POSITION,
+    targetPosition: ASSET_ROW_SAFE_POSITION,
+  })
+}
+
+/** Drag an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function dragAssetRow(from: test.Locator, to: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await from.dragTo(to, { sourcePosition: ASSET_ROW_SAFE_POSITION })
 }
 
 // ==========================
@@ -724,6 +757,7 @@ export async function login(
   await locatePasswordInput(page).fill(password)
   await locateLoginButton(page).click()
   await locateToastCloseButton(page).click()
+  await passTermsAndConditionsDialog({ page })
 }
 
 // ================
@@ -759,21 +793,21 @@ async function mockDate({ page }: MockParams) {
     }`)
 }
 
-// ========================
-// === mockIDEContainer ===
-// ========================
-
-/** Make the IDE container have a non-zero size. */
-// This syntax is required for Playwright to work properly.
-// eslint-disable-next-line no-restricted-syntax
-export async function mockIDEContainer({ page }: MockParams) {
-  await page.evaluate(() => {
-    const ideContainer = document.getElementById('app')
-    if (ideContainer) {
-      ideContainer.style.height = '100vh'
-      ideContainer.style.width = '100vw'
-    }
-  })
+/**
+ * Passes Terms and conditions dialog
+ */
+export async function passTermsAndConditionsDialog({ page }: MockParams) {
+  // wait for terms and conditions dialog to appear
+  // but don't fail if it doesn't appear
+  try {
+    // wait for terms and conditions dialog to appear
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
+    await page.getByRole('checkbox').click()
+    await page.getByRole('button', { name: 'Accept' }).click()
+  } catch (error) {
+    // do nothing
+  }
 }
 
 // ===============
@@ -794,7 +828,6 @@ export const mockApi = apiModule.mockApi
 export async function mockAll({ page }: MockParams) {
   const api = await mockApi({ page })
   await mockDate({ page })
-  await mockIDEContainer({ page })
   return { api }
 }
 
@@ -808,8 +841,6 @@ export async function mockAll({ page }: MockParams) {
 export async function mockAllAndLogin({ page }: MockParams) {
   const mocks = await mockAll({ page })
   await login({ page })
-  // This MUST run after login, otherwise the element's styles are reset when the browser
-  // is navigated to another page.
-  await mockIDEContainer({ page })
+  await passTermsAndConditionsDialog({ page })
   return mocks
 }

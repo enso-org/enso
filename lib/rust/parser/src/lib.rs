@@ -110,10 +110,10 @@ pub mod syntax;
 
 /// Popular utilities, imported by most modules of this crate.
 pub mod prelude {
-    pub use enso_prelude::serde_reexports::*;
     pub use enso_prelude::*;
     pub use enso_reflect as reflect;
     pub use enso_reflect::Reflect;
+    pub(crate) use paste::paste;
 
     /// Return type for functions that will only fail in case of a bug in the implementation.
     #[derive(Debug, Default)]

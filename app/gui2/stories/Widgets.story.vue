@@ -4,7 +4,6 @@ import { computed, ref } from 'vue'
 
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import EnsoTextInputWidget from '@/components/widgets/EnsoTextInputWidget.vue'
 import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 
 // === Checkbox props ===
@@ -53,8 +52,6 @@ const values = ref(['address', 'age', 'id', 'language', 'location', 'workplace']
       </template>
     </Variant>
     <Variant title="text" :meta="{ customBackground: backgroundColor }">
-      <EnsoTextInputWidget v-model="text" />
-
       <template #controls>
         <HstText v-model="text" title="v-model" />
       </template>

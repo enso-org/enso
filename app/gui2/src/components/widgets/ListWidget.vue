@@ -370,7 +370,7 @@ function addItem() {
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
     "
   >
-    <div class="vector-literal literal">
+    <div class="vector-literal">
       <span class="token">[</span>
       <TransitionGroup
         tag="ul"
@@ -516,6 +516,7 @@ div {
     -2px 0 0 transparent;
   transition: box-shadow 0.2s ease;
   pointer-events: none;
+  cursor: grab;
 
   &:before {
     content: '';

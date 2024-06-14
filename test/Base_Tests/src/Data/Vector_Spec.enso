@@ -1,11 +1,14 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Empty_Error.Empty_Error
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
@@ -14,6 +17,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.State
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
+from Standard.Base.Panic import Wrapped_Dataflow_Error
 
 from Standard.Test import all
 
@@ -357,10 +361,10 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         v = alter [0, 1, 2]
 
         r1 = v.filter Filter_Condition.Less
-        r1 . should_fail_with Illegal_Argument
-        r1.catch.to_display_text . should_contain "missing arguments"
+        r1 . should_fail_with Missing_Argument
+        r1.catch.to_display_text . should_contain "Provide a value for"
 
-        v.filter (Filter_Condition.Between 10) . should_fail_with Illegal_Argument
+        v.filter (Filter_Condition.Between 10) . should_fail_with Missing_Argument
 
     group_builder.specify "should filter elements with indices" <|
         (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
@@ -420,27 +424,31 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should allow applying a function to each element" <|
         vec = alter [1, 2, 3, 4]
-        vec_mut = Vector.new_builder
-        vec.each vec_mut.append
-        vec_mut.to_vector . should_equal vec
+        result = Vector.build builder->
+            vec.each builder.append
+        result . should_equal vec
+    
+    group_builder.specify "dataflow errors in .each should become panics" <|
+        do_write x =
+            Error.throw "Failed to write "+x.to_text
+        vec = alter [1, 2, 3, 4]
+        Test.expect_panic_with (vec.each do_write) Text
 
     group_builder.specify "should accept changed elements" <|
-        vec_mut = Vector.new_builder
-        vec_mut.append 1
-        vec_mut.append 1.1
-        vec_mut.append Nothing
+        vec = alter <| Vector.build builder->
+            builder.append 1
+            builder.append 1.1
+            builder.append Nothing
 
-        vec = alter vec_mut.to_vector
         vec.length . should_equal 3
         vec.at 0 . should_equal 1
         vec.at 1 . should_equal 1.1
         vec.at 2 . should_equal Nothing
 
     group_builder.specify "should accept Nothing" <|
-        vec_mut = Vector.new_builder
-        vec_mut.append Nothing
+        vec = alter <| Vector.build builder->
+            builder.append Nothing
 
-        vec = alter vec_mut.to_vector
         vec.length . should_equal 1
         vec.at 0 . should_equal Nothing
 
@@ -666,22 +674,21 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         alter ["a", "a", "a"] . drop (Sample 100) . should_equal []
 
     suite_builder.group "take/drop Sample non-determinism" group_builder->
-        v = 0.up_to 20 . to_vector
+        v = 0.up_to 60 . to_vector
 
         group_builder.specify "sampling should be deterministic when a seed is supplied" <|
-            v.take (Sample 3 seed=4200000) . should_equal (v.take (Sample 3 seed=4200000))
+            v.take (Sample 5 seed=4200000) . should_equal (v.take (Sample 5 seed=4200000))
 
         group_builder.specify "sampling should be non-deterministic when a seed is not supplied" <|
-            0.up_to 3 . map _->
-                v.take (Sample 3) . should_not_equal (v.take (Sample 3))
+            v.take (Sample 5) . should_not_equal (v.take (Sample 5))
 
     group_builder.specify "take/drop should gracefully handle missing constructor arguments" <|
         Test.expect_panic Type_Error <| [].take "FOO"
         Test.expect_panic Type_Error <| [].drop "FOO"
 
         r1 = [].take (Index_Sub_Range.While)
-        r1.should_fail_with Illegal_Argument
-        r1.catch.to_display_text . should_contain "The constructor While is missing some arguments"
+        r1.should_fail_with Missing_Argument
+        r1.catch.to_display_text . should_contain "Provide a value for the argument `predicate`."
 
         r2 = [].drop (Index_Sub_Range.Every ...)
         r2.should_fail_with Illegal_Argument
@@ -778,21 +785,19 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should correctly propagate state through each" <|
         v = State.run Number 77 <|
-            b = Vector.new_builder
-            (alter ["A", "B"]).each x->
-                b.append x
-                b.append (State.get Number).to_text
-            b.to_vector
+            Vector.build builder->
+                (alter ["A", "B"]).each x->
+                    builder.append x
+                    builder.append (State.get Number).to_text
 
         v.should_equal ['A', '77', 'B', '77']
 
     group_builder.specify "should correctly propagate state through map" <|
         v = State.run Number 55 <|
-            b = Vector.new_builder
-            (alter ["X", "Y"]).map x->
-                b.append x
-                b.append (State.get Number).to_text
-            b.to_vector
+            Vector.build builder->
+                (alter ["X", "Y"]).map x->
+                    builder.append x
+                    builder.append (State.get Number).to_text
 
         v.should_equal ['X', '55', 'Y', '55']
 
@@ -853,6 +858,13 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         alter ['ś', 's', 's\u0301'] . distinct . should_equal ['ś', 's']
         alter [1, 1.0, 2, 2.0] . distinct . should_equal [1, 2]
         alter [] . distinct . should_equal []
+
+    group_builder.specify "should return a vector containing only duplicate elements" <|
+        alter [1, 3, 1, 2, 2, 1] . duplicates . should_equal [1, 2]
+        alter ["a", "a", "a"] . duplicates . should_equal ["a"]
+        alter ['ś', 's', 's\u0301'] . duplicates . should_equal ['s\u0301']
+        alter [1, 1.0, 2, 2.0] . duplicates . should_equal [1.0, 2.0]
+        alter [] . duplicates . should_equal []
 
     group_builder.specify "should be able to handle distinct on different primitive values" <|
         alter [1, "a"] . distinct . should_equal [1, "a"]
@@ -1001,9 +1013,57 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         mat2.transpose . should_fail_with Illegal_Argument
 
 add_specs suite_builder =
-    suite_builder.group "Vector builder" group_builder->
+    suite_builder.group "Builder.new" group_builder->
+        group_builder.specify "Should be able to build a vector" <|
+            builder = Builder.new
+            builder.append 1
+            builder.append 2
+            builder.append Nothing
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 2, Nothing, 3]
+
+            builder2 = Builder.new
+            v2 = builder2.to_vector
+            v2 . should_equal []
+
+            builder3 = Builder.new 20
+            builder3.append 1
+            v3 = builder3.to_vector
+            v3 . should_equal [1]
+
+        group_builder.specify "Builder should throw an uncaught dataflow error as a panic if it is appended with .append" <|
+            builder = Builder.new
+            builder.append 1
+            Test.expect_panic_with matcher=Wrapped_Dataflow_Error (builder.append (Error.throw (Illegal_Argument.Error "asdf")))
+
+        group_builder.specify "Builder should throw an uncaught error as a panic if it is appended with .append_vector_range" <|
+            builder = Builder.new
+            builder.append 1
+            Test.expect_panic_with matcher=Wrapped_Dataflow_Error (builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")])
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
+            builder = Builder.new
+            ww = Warning.attach (My_Error.Error "err") 2
+            builder.append 1
+            builder.append ww
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append_vector_range" <|
+            builder = Builder.new
+            ww = Warning.attach (My_Error.Error "err") 21
+            builder.append 1
+            builder.append_vector_range [20, ww, 22]
+            builder.append 3
+            v = builder.to_vector
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
         group_builder.specify "empty builder.get" <|
-            b = Vector.new_builder
+            b = Builder.new
             e = Panic.catch Index_Out_Of_Bounds (b.at 0) err->
                 err.payload
             Meta.type_of e . should_equal Index_Out_Of_Bounds
@@ -1011,7 +1071,7 @@ add_specs suite_builder =
             e.length . should_equal 0
 
         group_builder.specify "one number builder.get" <|
-            b = Vector.new_builder
+            b = Builder.new
             b.append 32
             e = Panic.catch Index_Out_Of_Bounds (b.at 1) err->
                 err.payload
@@ -1033,6 +1093,131 @@ add_specs suite_builder =
             l = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
             v = Vector.collect l .x .xs limit=30 stop_at=(_==List.Nil)
             v . should_equal [1, 2, 3]
+
+        group_builder.specify "example" <|
+            builder = Builder.new 5
+            do_build start stop =
+                builder.append start
+                if start >= stop then Nothing else
+                    @Tail_Call do_build start+1 stop
+            do_build 1 5
+            builder.to_vector . should_equal [1, 2, 3, 4, 5]
+
+    suite_builder.group "Vector.build" group_builder->
+        group_builder.specify "Should be able to build a vector" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                builder.append Nothing
+                builder.append 3
+            v . should_equal [1, 2, Nothing, 3]
+
+            v2 = Vector.build builder->
+                _ = builder  # Do nothing
+            v2 . should_equal []
+
+            v3 = Vector.build initial_capacity=20 builder->
+                builder.append 1
+            v3 . should_equal [1]
+
+        group_builder.specify "Should rethrow uncaught dataflow errors returned from build callback" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                Error.throw (Illegal_Argument.Error "asdf")
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should rethrow an uncaught dataflow error if it is appended with .append" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append (Error.throw (Illegal_Argument.Error "asdf"))
+                builder.append 3
+                Test.fail "should not reach here because builder is immediately interrupted on error"
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should rethrow an uncaught error if it is appended with .append_vector_range" <|
+            v = Vector.build builder->
+                builder.append 1
+                builder.append_vector_range [1, Error.throw (Illegal_Argument.Error "asdf")]
+                builder.append 3
+                Test.fail "should not reach here because builder is immediately interrupted on error"
+            v . should_fail_with (Illegal_Argument.Error "asdf")
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append" <|
+            v = Vector.build builder->
+                ww = Warning.attach (My_Error.Error "err") 2
+                builder.append 1
+                builder.append ww
+                builder.append 3
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
+        group_builder.specify "Builder should propagate warnings attached to an item added to the builder with .append_vector_range" <|
+            v = Vector.build builder->
+                ww = Warning.attach (My_Error.Error "err") 21
+                builder.append 1
+                builder.append_vector_range [20, ww, 22]
+                builder.append 3
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . map .value . should_equal [My_Error.Error "err"]
+
+        group_builder.specify "Builder should not propagate warnings attached to an item with .append with propagate_warnings=False" <|
+            v = Vector.build propagate_warnings=False builder->
+                ww = Warning.attach (My_Error.Error "err") 2
+                builder.append 1
+                builder.append ww
+                builder.append 3
+            v . should_equal [1, 2, 3]
+            Warning.get_all v . should_equal []
+
+        group_builder.specify "Builder should not propagate warnings attached to an item with .append_vector_range with propagate_warnings=False" <|
+            v = Vector.build propagate_warnings=False builder->
+                ww = Warning.attach (My_Error.Error "err") 21
+                builder.append 1
+                builder.append_vector_range [20, ww, 22]
+                builder.append 3
+            v . should_equal [1, 20, 21, 22, 3]
+            Warning.get_all v . should_equal []
+
+        group_builder.specify ".build_multiple count must be non-negative" <|
+            Vector.build_multiple -2 (_->Nothing) . should_fail_with Illegal_Argument
+
+        group_builder.specify "example (single)" <|
+            vec = Vector.build initial_capacity=5 builder->
+                do_build start stop =
+                    builder.append start
+                    if start >= stop then Nothing else
+                        @Tail_Call do_build start+1 stop
+                do_build 1 5
+            vec . should_equal [1, 2, 3, 4, 5]
+
+            vec2 = Vector.build builder->
+                builder.append 1
+                builder.append 2
+                builder.append 3
+            vec2 . should_equal [1, 2, 3]
+
+        group_builder.specify "example (vector)" <|
+            vec = Vector.build builder->
+                builder.append_vector_range [1, 2]
+            vec . should_equal [1, 2]
+
+        group_builder.specify "example (vector subrange)" <|
+            vec = Vector.build builder->
+                builder.append_vector_range [20, 30, 40, 50] 1 3
+            vec . should_equal [30, 40]
+
+        group_builder.specify "example (multiple)" <|
+             vec = Vector.build_multiple 2 builders->
+                 builder0 = builders.at 0
+                 builder0.append 0
+                 builder0.append 1
+                 builder0.append 2
+                 builder1 = builders.at 1
+                 builder1.append 3
+                 builder1.append 4
+                 builder1.append 5
+             vec . should_equal [[0, 1, 2], [3, 4, 5]]
 
     suite_builder.group "Vector/Array equality" group_builder->
         v1 = [1, 2, 3]

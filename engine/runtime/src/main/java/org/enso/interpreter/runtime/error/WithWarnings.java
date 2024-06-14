@@ -1,7 +1,11 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -9,21 +13,43 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
 
+/**
+ * Represents a typical Enso <em>value with warnings</em>. As much of care as possible is taken to
+ * delegate all operations to the underlaying {@code value}. Warnings are considered {@link
+ * InteropLibrary#isException exceptional values} - e.g. one can check for them in Java polyglot
+ * code as:
+ *
+ * <pre>
+ *  Value value = ...;
+ *  if (value.fitsInLong() && value.isException()) {
+ *    // probably an Integer with a warning
+ *    try {
+ *      warningMulti.throwException();
+ *    } catch (PolyglotException ex) {
+ *      System.out.println("Warnings attached to " + value.asLong() + " are " + ex.getMessage());
+ *    }
+ *  }
+ * </pre>
+ */
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
 @ExportLibrary(ReflectionLibrary.class)
+@ExportLibrary(value = InteropLibrary.class, delegateTo = "value")
 public final class WithWarnings implements EnsoObject {
-
+  final Object value;
   private final EconomicSet<Warning> warnings;
-  private final Object value;
 
   private final boolean limitReached;
   private final int maxWarnings;
@@ -39,7 +65,7 @@ public final class WithWarnings implements EnsoObject {
    * @param warnings non-empty warnings to be attached to a value
    */
   private WithWarnings(Object value, int maxWarnings, boolean limitReached, Warning... warnings) {
-    assert !(value instanceof WithWarnings);
+    assert isAcceptableValue(value);
     this.warnings = createSetFromArray(maxWarnings, warnings);
     assert this.warnings.size() > 0;
     this.value = value;
@@ -69,7 +95,7 @@ public final class WithWarnings implements EnsoObject {
       EconomicSet<Warning> warnings,
       boolean limitReached,
       Warning... additionalWarnings) {
-    assert !(value instanceof WithWarnings);
+    assert isAcceptableValue(value);
     this.warnings = cloneSetAndAppend(maxWarnings, warnings, additionalWarnings);
     assert this.warnings.size() > 0;
     this.value = value;
@@ -80,6 +106,18 @@ public final class WithWarnings implements EnsoObject {
   private WithWarnings(
       Object value, int maxWarnings, EconomicSet<Warning> warnings, Warning... additionalWarnings) {
     this(value, maxWarnings, warnings, false, additionalWarnings);
+  }
+
+  private static boolean isAcceptableValue(Object value) {
+    assert value != null;
+    assert !(value instanceof WithWarnings) : "Trying to double wrap WithWarnings " + value;
+    boolean goodValue =
+        value instanceof TruffleObject
+            || value instanceof Long
+            || value instanceof Double
+            || value instanceof Boolean;
+    assert goodValue : "Unexpected value floating around " + value + " type: " + value.getClass();
+    return goodValue;
   }
 
   public static WithWarnings wrap(EnsoContext ctx, Object value, Warning... warnings) {
@@ -178,6 +216,29 @@ public final class WithWarnings implements EnsoObject {
     }
   }
 
+  @CompilerDirectives.TruffleBoundary
+  private PanicException asException(Node where) {
+    var rawWarn = this.getWarnings(where, false, WarningsLibrary.getUncached());
+    var ctx = EnsoContext.get(where);
+    var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
+    var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
+    var node = InteropMethodCallNode.getUncached();
+    var state = State.create(ctx);
+
+    var text = Text.empty();
+    for (var w : rawWarn) {
+      try {
+        var wText = node.execute(toText, state, new Object[] {w});
+        if (wText instanceof Text t) {
+          text = text.add(t);
+        }
+      } catch (ArityException e) {
+        throw ctx.raiseAssertionPanic(where, null, e);
+      }
+    }
+    return new PanicException(text, where);
+  }
+
   @ExportMessage
   Object send(Message message, Object[] args, @CachedLibrary(limit = "3") ReflectionLibrary lib)
       throws Exception {
@@ -235,6 +296,16 @@ public final class WithWarnings implements EnsoObject {
   @ExportMessage
   boolean hasSpecialDispatch() {
     return true;
+  }
+
+  @ExportMessage
+  boolean isException() {
+    return true;
+  }
+
+  @ExportMessage
+  RuntimeException throwException(@Bind("$node") Node node) throws UnsupportedMessageException {
+    throw asException(node);
   }
 
   public static class WarningEquivalence extends Equivalence {

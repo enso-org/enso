@@ -6,8 +6,7 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
-import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Table, Value_Type
 
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.In_Transaction.In_Transaction
@@ -103,7 +102,7 @@ type JDBC_Connection
          (e.g. `ensure_query_has_no_holes` which prepares a statement but does
          not execute it).
     with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Boolean -> Any
-    with_prepared_statement self query statement_setter action skip_log=False = self.synchronized <|
+    with_prepared_statement self query statement_setter action skip_log=False = self.synchronized <| profile_sql_if_enabled self query.to_text <|
         prepare template values = self.with_connection java_connection->
             stmt = java_connection.prepareStatement template
             handle_illegal_state caught_panic =
@@ -160,7 +159,6 @@ type JDBC_Connection
     raw_read_statement : Text -> Table
     raw_read_statement self raw_sql =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
-            log_sql_if_enabled self stmt.toString
             rs = stmt.executeQuery
             make_fallback_fetcher _ =
                 Column_Fetcher_Module.fallback_fetcher
@@ -227,7 +225,7 @@ type JDBC_Connection
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
     batch_insert : Text -> Statement_Setter -> Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
-    batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing =
+    batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing = profile_sql_if_enabled self insert_template <|
         In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                 log_sql_if_enabled self insert_template
@@ -321,6 +319,31 @@ log_sql_if_enabled jdbc_connection ~query_text =
             log_line = timestamp + " [" + db_id + "] " + query_text + '\n'
             Context.Output.with_enabled <|
                 log_line.write path on_existing_file=Existing_File_Behavior.Append
+
+## PRIVATE
+   A helper that logs performed SQL queries/statements run-time to a profiling
+   file, if an environment variable is set.
+profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text : Text) ~action =
+    case Environment.get "ENSO_SQL_PROFILING_PATH" of
+        Nothing -> action
+        path -> if path.is_empty then action else
+            db_id = jdbc_connection.with_metadata .getDatabaseProductName
+            duration_and_result = Duration.time_execution action
+            duration = duration_and_result.first
+            result = duration_and_result.second
+            ## If the action returns a dataflow error, `time_execution` returns the error, no duration.
+               We could work around this. But we don't want to - the failing queries likely did not run anyway,
+               so their time info would most likely be an outlier. For current purposes it makes sense to ignore such cases.
+            result.if_not_error <|
+                padded_query = query_text.to_display_text.pad length=80
+                millis = duration.total_milliseconds
+                millis_text = (millis.to_text.pad length=5 with_pad=' ' at=Location.Start) + ' ms'
+
+                # E.g. [SQLite] SELECT * FROM "test" ... --> 12 ms
+                log_line = "[" + db_id + "] " + padded_query + " --> " + millis_text + '\n'
+                Context.Output.with_enabled <|
+                    log_line.write path on_existing_file=Existing_File_Behavior.Append
+                result
 
 ## PRIVATE
 get_pragma_value : JDBC_Connection -> Text -> Any

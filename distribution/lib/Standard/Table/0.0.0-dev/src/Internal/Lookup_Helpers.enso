@@ -1,10 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Data.Type.Storage
-import project.Data.Type.Value_Type.Value_Type
-import project.Data.Type.Value_Type_Helpers
+import project.Internal.Storage
+import project.Internal.Value_Type_Helpers
+import project.Value_Type.Value_Type
 from project.Errors import Floating_Point_Equality, Missing_Input_Columns, No_Common_Type, No_Output_Columns, Unexpected_Extra_Columns
 
 polyglot java import org.enso.table.data.table.join.lookup.LookupColumnDescription
@@ -47,7 +48,7 @@ prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_
     lookup_table_key_columns = lookup_table.select_columns key_columns . catch Missing_Input_Columns error->
         Error.throw (Missing_Input_Columns.Error error.criteria "the lookup table")
 
-    problems_to_add = Vector.new_builder
+    problems_to_add = Builder.new
     key_columns.if_not_error <| lookup_table_key_columns.if_not_error <|
         key_set = Set.from_vector key_columns
         my_updated_columns = base_table.columns.map on_problems=No_Wrap base_column->

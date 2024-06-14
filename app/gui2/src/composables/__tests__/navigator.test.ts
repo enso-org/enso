@@ -3,6 +3,7 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { effectScope, ref } from 'vue'
+import { useKeyboard } from '../keyboard'
 
 describe('useNavigator', async () => {
   let scope = effectScope()
@@ -16,7 +17,8 @@ describe('useNavigator', async () => {
       const node = document.createElement('div')
       vi.spyOn(node, 'getBoundingClientRect').mockReturnValue(new DOMRect(150, 150, 800, 400))
       const viewportNode = ref(node)
-      return useNavigator(viewportNode)
+      const keyboard = useKeyboard()
+      return useNavigator(viewportNode, keyboard)
     })!
   }
 
@@ -34,7 +36,7 @@ describe('useNavigator', async () => {
 
   test('clientToScenePos with scaling', () => {
     const navigator = makeTestNavigator()
-    navigator.scale = 2
+    navigator.setCenterAndScale(Vec2.Zero, 2)
     expect(navigator.clientToScenePos(Vec2.Zero)).toStrictEqual(new Vec2(-275, -175))
     expect(navigator.clientToScenePos(new Vec2(150, 150))).toStrictEqual(new Vec2(-200, -100))
     expect(navigator.clientToScenePos(new Vec2(550, 350))).toStrictEqual(new Vec2(0, 0))
@@ -53,7 +55,7 @@ describe('useNavigator', async () => {
 
   test('clientToSceneRect with scaling', () => {
     const navigator = makeTestNavigator()
-    navigator.scale = 2
+    navigator.setCenterAndScale(Vec2.Zero, 2)
     expect(navigator.clientToSceneRect(Rect.Zero)).toStrictEqual(Rect.XYWH(-275, -175, 0, 0))
     expect(navigator.clientToSceneRect(Rect.XYWH(150, 150, 800, 400))).toStrictEqual(
       navigator.viewport,

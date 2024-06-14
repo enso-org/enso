@@ -119,7 +119,7 @@ main = n ->
 
   @Setup
   public void initializeBenchmarks(BenchmarkParams params) {
-    this.context = SrcUtil.newContextBuilder().build();
+    this.context = org.enso.compiler.benchmarks.Utils.createDefaultContextBuilder().build();
 
     this.sumTCO = Utils.getMainMethod(context, SUM_TCO_CODE);
     this.sumTCOWithEval = Utils.getMainMethod(context, SUM_TCO_WITH_EVAL_CODE);

@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.vector;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -23,6 +24,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Vector.Vector")
 abstract class Vector implements EnsoObject {
+  private static final Vector EMPTY_LONG = new Long(new long[0]);
+  private static final Vector EMPTY_DOUBLE = new Double(new double[0]);
+  private static final Vector EMPTY_VECTOR = new EnsoOnly(new Object[0]);
+
   @ExportMessage
   boolean hasArrayElements() {
     return true;
@@ -73,8 +78,8 @@ abstract class Vector implements EnsoObject {
   }
 
   @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().vector();
+  Type getMetaObject(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().vector();
   }
 
   @ExportMessage
@@ -92,8 +97,8 @@ abstract class Vector implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().vector();
+  Type getType(@Bind("$node") Node node) {
+    return EnsoContext.get(node).getBuiltins().vector();
   }
 
   //
@@ -111,15 +116,27 @@ abstract class Vector implements EnsoObject {
   }
 
   static Vector fromLongArray(long[] arr) {
-    return new Long(arr);
+    if (arr == null || arr.length == 0) {
+      return EMPTY_LONG;
+    } else {
+      return new Long(arr);
+    }
   }
 
   static Vector fromDoubleArray(double[] arr) {
-    return new Double(arr);
+    if (arr == null || arr.length == 0) {
+      return EMPTY_DOUBLE;
+    } else {
+      return new Double(arr);
+    }
   }
 
-  static Object fromEnsoOnlyArray(Object[] arr) {
-    return new EnsoOnly(arr);
+  static Vector fromEnsoOnlyArray(Object[] arr) {
+    if (arr == null || arr.length == 0) {
+      return EMPTY_VECTOR;
+    } else {
+      return new EnsoOnly(arr);
+    }
   }
 
   @ExportLibrary(InteropLibrary.class)

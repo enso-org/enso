@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -212,7 +212,7 @@ function commitPendingChanges() {
   if (!pendingChanges || !currentModule) return
   try {
     currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule)
-    graphStore.commitEdit(currentModule, undefined, 'local:CodeEditor')
+    graphStore.commitEdit(currentModule, undefined, 'local:userAction:CodeEditor')
   } catch (error) {
     console.error(`Code Editor failed to modify module`, error)
     resetView()
@@ -264,7 +264,7 @@ function observeSourceChange(textEdits: SourceRangeEdit[], origin: Origin | unde
     return
   }
   // When we aren't in the `needResync` state, we can ignore updates that originated in the Code Editor.
-  if (origin === 'local:CodeEditor') return
+  if (origin === 'local:userAction:CodeEditor') return
   if (pendingChanges) {
     console.info(`Deferring update (editor dirty).`)
     needResync = true
@@ -331,13 +331,14 @@ const editorStyle = computed(() => {
     ref="rootElement"
     class="CodeEditor"
     :style="editorStyle"
+    @keydown.arrow-left.stop
+    @keydown.arrow-right.stop
+    @keydown.arrow-up.stop
+    @keydown.arrow-down.stop
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
     @wheel.stop.passive
-    @pointerdown.stop
-    @pointerup.stop
-    @click.stop
     @contextmenu.stop
   >
     <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">
@@ -350,7 +351,7 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
-    <SvgIcon name="close" class="closeButton button" @click="emit('close')" />
+    <SvgButton name="close" class="closeButton" title="Close Code Editor" @click="emit('close')" />
   </div>
 </template>
 

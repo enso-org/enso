@@ -36,6 +36,8 @@ const pattern = computed(() => Ast.parse(nodeBinding.value))
 const node = computed((): Node => {
   return {
     outerExpr: '' as any,
+    colorOverride: null,
+    zIndex: 1,
     pattern: pattern.value,
     position: position.value,
     prefixes: { enableRecording: undefined },

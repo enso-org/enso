@@ -46,7 +46,7 @@ export function applyDocumentUpdates(
   synced: EnsoFileParts,
   update: ModuleUpdate,
 ): AppliedUpdates {
-  const codeChanged = update.nodesUpdated.size !== 0
+  const codeChanged = update.nodesUpdated.size || update.nodesAdded.size || update.nodesDeleted.size
   let idsChanged = false
   let metadataChanged = false
   for (const { changes } of update.metadataUpdated) {
@@ -79,11 +79,13 @@ export function applyDocumentUpdates(
     root.visitRecursiveAst((ast) => {
       let pos = ast.nodeMetadata.get('position')
       const vis = ast.nodeMetadata.get('visualization')
+      const colorOverride = ast.nodeMetadata.get('colorOverride')
       if (vis && !pos) pos = { x: 0, y: 0 }
       if (pos) {
         newMetadata![ast.externalId] = {
           position: { vector: [Math.round(pos.x), Math.round(-pos.y)] },
           visualization: vis && translateVisualizationToFile(vis),
+          colorOverride,
         }
       }
     })
@@ -111,6 +113,7 @@ function translateVisualizationToFile(
     show: vis.visible,
     fullscreen: vis.fullscreen,
     width: vis.width ?? undefined,
+    height: vis.height ?? undefined,
     ...(project == null || vis.identifier == null ?
       {}
     : {
@@ -142,6 +145,7 @@ export function translateVisualizationFromFile(
     visible: vis.show,
     fullscreen: vis.fullscreen ?? false,
     width: vis.width ?? null,
+    height: vis.height ?? null,
   }
 }
 
@@ -149,7 +153,7 @@ export function translateVisualizationFromFile(
  * A simplified diff algorithm.
  *
  * The `fast-diff` package uses Myers' https://neil.fraser.name/writing/diff/myers.pdf with some
- * optimizations to generate minimal diff. Unfortunately, event this algorithm is still to slow
+ * optimizations to generate minimal diff. Unfortunately, event this algorithm is still too slow
  * for our metadata. Therefore we need to use faster algorithm which will not produce theoretically
  * minimal diff.
  *

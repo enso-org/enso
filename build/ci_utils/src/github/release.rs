@@ -20,14 +20,69 @@ pub use octocrab::models::ReleaseId as Id;
 
 
 
-/// The extensions that will be used for the archives in the GitHub release assets.
+/// Extension of the preferred archive format for release assets on the current platform.
+pub fn archive_extension() -> &'static str {
+    archive_extension_for(TARGET_OS)
+}
+
+/// Get archive format extension for release assets targeting the given operating system.
 ///
-/// On Windows we use `.zip`, because it has out-of-the-box support in the Explorer.
-/// On other platforms we use `.tar.gz`, because it is a good default.
-pub const ARCHIVE_EXTENSION: &str = match TARGET_OS {
-    OS::Windows => "zip",
-    _ => "tar.gz",
-};
+/// - For Windows, we use `.zip` because it has built-in support in Windows Explorer.
+/// - For all other operating systems, we use `.tar.gz` as the default.
+pub fn archive_extension_for(os: OS) -> &'static str {
+    match os {
+        OS::Windows => "zip",
+        _ => "tar.gz",
+    }
+}
+
+/// Get the prefix of URL of the release's asset in GitHub.
+///
+/// By joining it with the asset name, we can get the URL of the asset.
+///
+/// ```
+/// # use ide_ci::prelude::*;
+/// # use ide_ci::github::release::download_asset_prefix;
+/// # use ide_ci::github::RepoRef;
+/// let repo = RepoRef::new("enso-org", "enso");
+/// let version = Version::from_str("2020.1.1").unwrap();
+/// let prefix = download_asset_prefix(&repo, &version);
+/// assert_eq!(prefix.as_str(), "https://github.com/enso-org/enso/releases/download/2020.1.1/");
+/// ```
+pub fn download_asset_prefix(repo: &impl IsRepo, release_tag: &impl Display) -> Url {
+    let text = format!("https://github.com/{repo}/releases/download/{release_tag}/",);
+    Url::from_str(&text).expect("Failed to parse the URL.")
+}
+
+/// Get the URL for downloading the asset from the GitHub release.
+///
+/// ```
+/// # use ide_ci::prelude::*;
+/// # use ide_ci::github::release::download_asset;
+/// # use ide_ci::github::RepoRef;
+/// let repo = RepoRef::new("enso-org", "enso");
+/// let version = Version::from_str("2020.1.1").unwrap();
+/// let name = "foo.zip";
+/// let url = download_asset(&repo, &version, name);
+/// assert_eq!(url.as_str(), "https://github.com/enso-org/enso/releases/download/2020.1.1/foo.zip");
+/// ```
+pub fn download_asset(
+    repo: &impl IsRepo,
+    release_tag: &impl Display,
+    asset_name: impl AsRef<str>,
+) -> Url {
+    let prefix = download_asset_prefix(repo, release_tag);
+    prefix
+        .join(asset_name.as_ref())
+        .with_context(|| {
+            format!(
+                "Failed to join the prefix {} with the asset name {}.",
+                prefix,
+                asset_name.as_ref()
+            )
+        })
+        .expect("Failed to join the URL.")
+}
 
 /// Types that uniquely identify a release and can be used to fetch it from GitHub.
 pub trait IsRelease: Debug {
@@ -129,15 +184,18 @@ pub trait IsReleaseExt: IsRelease + Sync {
             asset_filename.as_ref().display()
         );
         async move {
-            let path = path.as_ref().to_path_buf();
-            let asset_name = asset_filename.as_ref().to_owned();
-            let content_type = new_mime_guess::from_path(&path).first_or_octet_stream();
-            let metadata = crate::fs::tokio::metadata(&path).await?;
+            let path = path.as_ref();
+            let asset_name = asset_filename.as_ref();
+            let content_type = new_mime_guess::from_path(path).first_or_octet_stream();
+            let metadata = crate::fs::tokio::metadata(path).await?;
             trace!("File metadata: {metadata:#?}.");
             let file_size = metadata.len();
-            let file = crate::fs::tokio::open_stream(&path).await?;
-            let body = Body::wrap_stream(file);
-            self.upload_asset(asset_name.as_str(), content_type, file_size, body).await
+            crate::io::retry(|| async {
+                let file = crate::fs::tokio::open_stream(path).await?;
+                let body = Body::wrap_stream(file);
+                self.upload_asset(asset_name.as_str(), content_type.clone(), file_size, body).await
+            })
+            .await
         }
         .await
         .context(error_msg)
@@ -155,7 +213,7 @@ pub trait IsReleaseExt: IsRelease + Sync {
         let dir_to_upload = dir_to_upload.as_ref();
         let temp_dir = tempfile::tempdir()?;
         let archive_path =
-            custom_name.with_parent(temp_dir.path()).with_appended_extension(ARCHIVE_EXTENSION);
+            custom_name.with_parent(temp_dir.path()).with_appended_extension(archive_extension());
         crate::archive::create(&archive_path, [&dir_to_upload]).await?;
         self.upload_asset_file(archive_path).await
     }

@@ -3,9 +3,11 @@ package org.enso.compiler;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.Test;
 import scala.collection.immutable.List;
 
@@ -464,6 +466,46 @@ public class ErrorCompilerTest extends CompilerTest {
   }
 
   @Test
+  public void illegalPrivateVariableDeclaration() throws Exception {
+    var ir = parse("private var = 42");
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 16);
+  }
+
+  @Test
+  public void illegalPrivateKeywordUseInType() throws Exception {
+    var ir = parse("""
+        type T
+            private
+        """);
+    assertSingleSyntaxError(
+        ir,
+        Syntax.UnexpectedDeclarationInType$.MODULE$,
+        "Unexpected declaration in the body of a type",
+        11,
+        18);
+  }
+
+  @Test
+  public void illegalPrivateKeywordUseInMethodBody() throws Exception {
+    var ir = parse("""
+        method =
+            private priv_nested_method x = x
+        """);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 13, 45);
+  }
+
+  @Test
+  public void illegalPrivateTypeDeclaration() throws Exception {
+    var ir = parse("""
+        private type T
+        """);
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 14);
+  }
+
+  @Test
   public void illegalEscapeSequence() throws Exception {
     var ir = parse("""
     escape = 'wrong \\c sequence'
@@ -500,10 +542,10 @@ public class ErrorCompilerTest extends CompilerTest {
          42
     """);
     var errors = ir.preorder().filter(Syntax.class::isInstance).map(Syntax.class::cast);
-    assertEquals("Two errors", 2, errors.size());
-    assertTrue(errors.head().reason() instanceof Syntax.UnsupportedSyntax);
-    assertEquals(errors.head().location().get().start(), 0);
-    assertEquals(errors.head().location().get().length(), 6);
+    assertEquals("One error", 1, errors.size());
+    assertEquals(Syntax.UnexpectedExpression$.MODULE$, errors.head().reason());
+    assertEquals(7, errors.head().location().get().start());
+    assertEquals(16, errors.head().location().get().length());
   }
 
   @Test
@@ -539,6 +581,16 @@ public class ErrorCompilerTest extends CompilerTest {
     """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
+  }
+
+  @Test
+  public void testEmptyBody() throws Exception {
+    var ir = parse("""
+    main =
+    """);
+
+    var method = (Method) ir.bindings().apply(0);
+    assertTrue(method.body() instanceof Empty);
   }
 
   private void assertSingleSyntaxError(

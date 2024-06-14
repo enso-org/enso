@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
+from Standard.Table import Value_Type
 
 polyglot java import java.math.BigDecimal as Java_Big_Decimal
 polyglot java import java.sql.PreparedStatement

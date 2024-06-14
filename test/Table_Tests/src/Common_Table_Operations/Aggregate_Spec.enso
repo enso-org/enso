@@ -1,8 +1,8 @@
 from Standard.Base import all hiding First, Last
 
 from Standard.Table import Table, Sort_Column, expr
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-import Standard.Table.Data.Expression.Expression_Error
+from Standard.Table.Aggregate_Column.Aggregate_Column import all
+import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
@@ -73,6 +73,15 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . name . should_equal "Count"
             materialized.columns.at 0 . at 0 . should_equal 2500
 
+        group_builder.specify "should be able to count (autoscoped)" <|
+            grouped = data.table.aggregate columns=[..Count]
+            materialized = materialize grouped
+            Problems.assume_no_problems materialized
+            grouped.row_count . should_equal 1
+            materialized.column_count . should_equal 1
+            materialized.columns.at 0 . name . should_equal "Count"
+            materialized.columns.at 0 . at 0 . should_equal 2500
+
         group_builder.specify "should be able to count missing values" <|
             grouped = data.table.aggregate columns=[Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
@@ -112,6 +121,21 @@ add_specs suite_builder setup =
 
         group_builder.specify "should be able to compute sum and average of values" <|
             grouped = data.table.aggregate columns=[Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
+            materialized = materialize grouped
+            Problems.assume_no_problems materialized
+            grouped.row_count . should_equal 1
+            materialized.column_count . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Sum Value"
+            materialized.columns.at 0 . at 0 . should_equal -932.411550 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Sum ValueWithNothing"
+            materialized.columns.at 1 . at 0 . should_equal 2757.09 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Average Value"
+            materialized.columns.at 2 . at 0 . should_equal -0.372965 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Average ValueWithNothing"
+            materialized.columns.at 3 . at 0 . should_equal 1.228650 epsilon=0.000001
+
+        group_builder.specify "should be able to compute sum and average of values (autoscoped)" <|
+            grouped = data.table.aggregate columns=[..Sum "Value", ..Sum "ValueWithNothing", ..Average "Value", ..Average "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1

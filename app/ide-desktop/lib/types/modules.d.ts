@@ -20,23 +20,6 @@ declare module '*/build.json' {
     export default BUILD_INFO
 }
 
-declare module '*/gui2/config.yaml' {
-    /** Content of the GUI config file. */
-    interface Config {
-        readonly windowAppScopeName: string
-        readonly windowAppScopeConfigName: string
-        readonly windowAppScopeThemeName: string
-        readonly projectManagerEndpoint: string
-        readonly projectManagerHttpEndpoint: string
-        readonly minimumSupportedVersion: string
-        readonly engineVersionSupported: string
-        readonly languageEditionSupported: string
-    }
-
-    const DATA: Config
-    export default DATA
-}
-
 declare module '@eslint/js' {
     /** A set of configurations. */
     export interface Config {
@@ -155,11 +138,18 @@ declare module 'tailwindcss/nesting/index.js' {
 
 declare module 'create-servers' {
     import type * as http from 'node:http'
+    import type * as https from 'node:https'
 
     /** Configuration options for `create-servers`. */
     interface CreateServersOptions {
-        readonly http: number
+        readonly http?: number
         readonly handler: http.RequestListener
+        // eslint-disable-next-line no-restricted-syntax
+        readonly https?: {
+            readonly port: number
+            readonly key: string
+            readonly cert: string
+        }
     }
 
     /** An error passed to a callback when a HTTP request fails. */
@@ -170,6 +160,7 @@ declare module 'create-servers' {
     /** Created server instances of various types. */
     interface CreatedServers {
         readonly http?: http.Server
+        readonly https?: https.Server
     }
 
     export default function (

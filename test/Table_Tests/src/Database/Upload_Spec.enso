@@ -27,9 +27,9 @@ polyglot java import org.enso.table_test_helpers.ExplodingStoragePayload
 polyglot java import java.lang.Thread
 
 main filter=Nothing =
-    create_connection_func _ = (Database.connect (SQLite In_Memory))
+    create_connection_func _ = (Database.connect (SQLite.In_Memory))
     suite = Test.build suite_builder->
-        add_specs suite_builder  create_connection_func "SQLite In-Memory" persistent_connector=False
+        add_specs suite_builder  create_connection_func "SQLite.In-Memory" persistent_connector=False
     suite.run_with_filter filter
 
 type Data

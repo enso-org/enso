@@ -18,22 +18,15 @@ final class ThreadExecutors {
     this.context = context;
   }
 
-  ExecutorService newCachedThreadPool(String name, boolean systemThread) {
-    var s = Executors.newCachedThreadPool(new Factory(name, systemThread));
-    pools.put(s, name);
-    return s;
-  }
-
-  ExecutorService newCachedThreadPool(String name, boolean systemThread, int min, int max) {
-    assert min >= 0;
-    assert max <= Integer.MAX_VALUE;
+  ExecutorService newCachedThreadPool(
+      String name, boolean systemThread, int min, int max, int maxQueueSize) {
     var s =
         new ThreadPoolExecutor(
             min,
             max,
             60L,
             TimeUnit.SECONDS,
-            new SynchronousQueue<Runnable>(),
+            new LinkedBlockingQueue<>(maxQueueSize),
             new Factory(name, systemThread));
     pools.put(s, name);
     return s;

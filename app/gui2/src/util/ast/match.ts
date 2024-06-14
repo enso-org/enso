@@ -1,6 +1,5 @@
 import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { zipLongest } from '@/util/data/iterable'
 
 export class Pattern {
@@ -22,8 +21,8 @@ export class Pattern {
   }
 
   static new(f: (placeholder: Ast.Owned) => Ast.Owned, placeholder: string = '__'): Pattern {
-    assert(isIdentifier(placeholder))
-    const module = MutableModule.Transient()
+    assert(Ast.isIdentifier(placeholder))
+    const module = Ast.MutableModule.Transient()
     return new Pattern(f(Ast.Ident.new(module, placeholder)), placeholder)
   }
 
@@ -39,8 +38,13 @@ export class Pattern {
     return matches
   }
 
+  /** Check if the given expression matches the pattern */
+  test(target: Ast.Ast): boolean {
+    return this.match(target) != null
+  }
+
   /** Create a new concrete example of the pattern, with the placeholders replaced with the given subtrees. */
-  instantiate(edit: MutableModule, subtrees: Ast.Owned[]): Ast.Owned {
+  instantiate(edit: Ast.MutableModule, subtrees: Ast.Owned[]): Ast.Owned {
     const template = edit.copy(this.template)
     const placeholders = findPlaceholders(template, this.placeholder).map((ast) => edit.tryGet(ast))
     for (const [placeholder, replacement] of zipLongest(placeholders, subtrees)) {
@@ -51,8 +55,8 @@ export class Pattern {
     return template
   }
 
-  instantiateCopied(subtrees: Ast.Ast[], edit?: MutableModule): Ast.Owned {
-    const module = edit ?? MutableModule.Transient()
+  instantiateCopied(subtrees: Ast.Ast[], edit?: Ast.MutableModule): Ast.Owned {
+    const module = edit ?? Ast.MutableModule.Transient()
     return this.instantiate(
       module,
       subtrees.map((ast) => module.copy(ast)),
@@ -60,7 +64,7 @@ export class Pattern {
   }
 
   compose(f: (pattern: Ast.Owned) => Ast.Owned): Pattern {
-    const module = MutableModule.Transient()
+    const module = Ast.MutableModule.Transient()
     return new Pattern(f(module.copy(this.template)), this.placeholder)
   }
 }

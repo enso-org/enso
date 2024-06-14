@@ -54,17 +54,17 @@ type File_Format_Metadata
 
     ## PRIVATE
     to_display_text self -> Text =
-        entries = Vector.new_builder
-        self.path.if_not_nothing <|
-            entries.append "path="+self.path
-        self.name.if_not_nothing <|
-            entries.append "name="+self.name
-        self.extension.if_not_nothing <|
-            entries.append "extension="+self.extension
-        self.content_type.if_not_nothing <|
-            entries.append "content_type="+self.content_type
+        entries = Vector.build builder->
+            self.path.if_not_nothing <|
+                builder.append "path="+self.path
+            self.name.if_not_nothing <|
+                builder.append "name="+self.name
+            self.extension.if_not_nothing <|
+                builder.append "extension="+self.extension
+            self.content_type.if_not_nothing <|
+                builder.append "content_type="+self.content_type
 
-        description = if entries.is_empty then "No information" else entries.to_vector.join ", "
+        description = if entries.is_empty then "No information" else entries.join ", "
         "(File_Format_Metadata: "+description+")"
 
 ## PRIVATE

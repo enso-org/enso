@@ -106,6 +106,7 @@ export interface FolderBrowse {
 
 export interface FileBrowse {
   kind: 'File_Browse'
+  existing_only?: boolean | undefined
 }
 
 export interface SingleChoice {
@@ -128,7 +129,7 @@ export interface FunctionCall {
 export interface OneOfFunctionCalls {
   kind: 'OneOfFunctionCalls'
   /** A list of possible function calls and their corresponding configuration.
-   * The key is typically a fully qualified name of the function, but in general it can be anything,
+   * The key is typically a fully qualified or autoscoped name of the function, but in general it can be anything,
    * depending on the widget implementation. */
   possibleFunctions: Map<string, FunctionCall>
 }
@@ -143,6 +144,7 @@ export const widgetConfigurationSchema: z.ZodType<
   z.ZodTypeDef,
   any
 > = withKindSchema.pipe(
+  /* eslint-disable camelcase */
   z.discriminatedUnion('kind', [
     z
       .object({
@@ -154,10 +156,8 @@ export const widgetConfigurationSchema: z.ZodType<
     z
       .object({
         kind: z.literal('Vector_Editor'),
-        /* eslint-disable camelcase */
         item_editor: z.lazy(() => widgetConfigurationSchema),
         item_default: z.string(),
-        /* eslint-enable camelcase */
       })
       .merge(withDisplay),
     z
@@ -178,7 +178,10 @@ export const widgetConfigurationSchema: z.ZodType<
       .merge(withDisplay),
     z.object({ kind: z.literal('Text_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
-    z.object({ kind: z.literal('File_Browse') }).merge(withDisplay),
+    z
+      .object({ kind: z.literal('File_Browse'), existing_only: z.boolean().optional() })
+      .merge(withDisplay),
+    /* eslint-enable camelcase */
   ]),
 )
 

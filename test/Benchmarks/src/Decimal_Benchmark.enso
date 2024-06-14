@@ -1,0 +1,62 @@
+from Standard.Base import all
+
+from Standard.Test import Bench, Faker
+
+
+options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)
+
+type Lazy
+    Value ~value
+
+type Data
+    Value float_pairs decimal_pairs int_pairs decimal_int_pairs small_float_int_pairs small_decimal_int_pairs
+
+    new faker =
+        num_pairs = 10000
+
+        floats0 = Vector.new num_pairs _-> faker.float_full_range_exp
+        floats1 = Vector.new num_pairs _-> faker.float_full_range_exp
+        ints0 = Vector.new num_pairs _-> faker.integer -500000000 500000000
+        ints1 = Vector.new num_pairs _-> faker.integer -500000000 500000000
+        small_floats = Vector.new num_pairs _-> faker.float -1000 1000
+        small_ints = Vector.new num_pairs _-> faker.integer 0 90
+
+        decimals0 = floats0.map (f-> Decimal.from_float f)
+        decimals1 = floats1.map (f-> Decimal.from_float f)
+        decimal_ints0 = ints0.map (i-> Decimal.from_integer i)
+        decimal_ints1 = ints1.map (i-> Decimal.from_integer i)
+        small_decimals = small_floats.map (f-> Decimal.from_float f)
+
+        Data.Value (floats0.zip floats1) (decimals0.zip decimals1) (ints0.zip ints1) (decimal_ints0.zip decimal_ints1) (small_floats.zip small_ints) (small_decimals.zip small_ints)
+
+collect_benches = Bench.build builder->
+    ## No specific significance to this constant, just fixed to make generated set deterministic
+    fixed_random_seed = 1644575867
+    faker = Faker.new fixed_random_seed
+
+    lazy_data = Lazy.Value (Data.new faker)
+
+    builder.group "Float_Decimal_comparison" options group_builder->
+        division_math_context = Math_Context.new 20
+
+        group_builder.specify "float_add" (lazy_data.value.float_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
+        group_builder.specify "decimal_add" (lazy_data.value.decimal_pairs.map (pr-> (pr.at 0) + (pr.at 1)))
+        group_builder.specify "float_subtract" (lazy_data.value.float_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
+        group_builder.specify "decimal_subtract" (lazy_data.value.decimal_pairs.map (pr-> (pr.at 0) - (pr.at 1)))
+        group_builder.specify "float_multiply" (lazy_data.value.float_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
+        group_builder.specify "decimal_multiply" (lazy_data.value.decimal_pairs.map (pr-> (pr.at 0) * (pr.at 1)))
+        group_builder.specify "float_divide" <|
+            float_pairs_without_zero_second = lazy_data.value.float_pairs.filter (pr-> (pr.at 1) != 0.0)
+            float_pairs_without_zero_second.map (pr-> (pr.at 0) / (pr.at 1))
+        group_builder.specify "decimal_divide" <|
+            decimal_pairs_without_zero_second = lazy_data.value.decimal_pairs.filter (pr-> (pr.at 1) != 0.0)
+            decimal_pairs_without_zero_second.map (pr-> (pr.at 0).divide (pr.at 1) division_math_context)
+
+        group_builder.specify "float_remainder" (lazy_data.value.float_pairs.map (pr-> (pr.at 0) % (pr.at 1)))
+        group_builder.specify "decimal_remainder" (lazy_data.value.decimal_pairs.map (pr-> (pr.at 0) % (pr.at 1)))
+        group_builder.specify "int_div" (lazy_data.value.int_pairs.map (pr-> (pr.at 0) . div (pr.at 1)))
+        group_builder.specify "decimal_div" (lazy_data.value.decimal_int_pairs.map (pr-> (pr.at 0) . div (pr.at 1)))
+        group_builder.specify "float_pow" (lazy_data.value.small_float_int_pairs.map (pr-> (pr.at 0) ^ (pr.at 1)))
+        group_builder.specify "decimal_pow" (lazy_data.value.small_decimal_int_pairs.map (pr-> (pr.at 0) ^ (pr.at 1)))
+
+main = collect_benches . run_main

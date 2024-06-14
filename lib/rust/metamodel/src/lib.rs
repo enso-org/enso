@@ -44,8 +44,6 @@
 //! Java code after all computation is completed.
 
 // === Features ===
-#![feature(option_get_or_insert_default)]
-#![feature(type_alias_impl_trait)]
 #![feature(impl_trait_in_assoc_type)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]

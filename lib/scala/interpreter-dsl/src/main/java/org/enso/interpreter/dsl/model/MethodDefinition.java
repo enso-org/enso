@@ -630,7 +630,7 @@ public class MethodDefinition {
     }
 
     /**
-     * @return whether thsi argument accepts a dataflow error.
+     * @return whether this argument accepts a dataflow error.
      */
     public boolean acceptsError() {
       return acceptsError;

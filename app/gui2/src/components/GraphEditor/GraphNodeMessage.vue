@@ -1,62 +1,85 @@
 <script setup lang="ts">
+import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { Icon } from '@/util/iconName'
-import { computed } from 'vue'
-
-/** The type of a message. */
-export type GraphNodeMessageType = 'error' | 'warning'
 
 const props = defineProps<{
   message: string
-  type: GraphNodeMessageType
-  icon?: Icon
+  type: MessageType
 }>()
 
-const icon = computed(() => iconForType[props.type])
+function copyText() {
+  window.navigator.clipboard.writeText(props.message)
+}
 </script>
 
 <script lang="ts">
-const styleClassForType: Record<GraphNodeMessageType, string> = {
-  error: 'GraphNodeError',
-  warning: 'GraphNodeWarning',
-}
-
-const iconForType: Record<GraphNodeMessageType, Icon | undefined> = {
+/** The type of a message. */
+export type MessageType = 'error' | 'warning' | 'panic'
+export const iconForMessageType: Record<MessageType, Icon> = {
   error: 'error',
   warning: 'warning',
+  panic: 'panic',
+}
+export const colorForMessageType: Record<MessageType, string> = {
+  error: 'var(--color-error)',
+  warning: 'var(--color-warning)',
+  panic: 'var(--color-error)',
 }
 </script>
 
 <template>
-  <div class="GraphNodeMessage" :class="styleClassForType[props.type]">
-    <SvgIcon v-if="icon" class="icon" :name="icon" />
-    <div v-text="props.message"></div>
+  <div class="GraphNodeMessage" :style="{ '--background-color': colorForMessageType[props.type] }">
+    <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
+    <div class="message" v-text="props.message"></div>
+    <div class="toolbar">
+      <SvgButton name="copy2" class="copyButton" title="Copy message text" @click.stop="copyText" />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .GraphNodeMessage {
+  --horizontal-padding: 8px;
   display: flex;
   height: 24px;
-  padding: 1px 8px;
+  padding: 0 var(--horizontal-padding);
   align-items: flex-start;
   gap: 6px;
   font-weight: 800;
   white-space: nowrap;
   border-radius: var(--radius-full);
   color: var(--color-text-inversed);
+  background-color: var(--background-color);
   line-height: 20px;
-}
-
-.GraphNodeWarning {
-  background-color: #faa212;
-}
-
-.GraphNodeError {
-  background-color: #e85252;
 }
 
 .icon {
   margin: auto 0;
+}
+
+.message {
+  margin-top: 1px;
+}
+
+.toolbar {
+  padding: 4px;
+  margin-right: calc(0px - var(--horizontal-padding));
+  border-radius: var(--radius-full);
+  position: relative;
+  z-index: 1;
+
+  & > .SvgButton:hover {
+    background-color: color-mix(in oklab, black, transparent 90%);
+    color: color-mix(in oklab, var(--color-text-inversed), transparent 20%);
+  }
+
+  & > .SvgButton:active {
+    background-color: color-mix(in oklab, black, transparent 70%);
+  }
+}
+
+.copyButton:active {
+  color: var(--color-text-inversed);
 }
 </style>

@@ -897,18 +897,7 @@ class FileManagerTest
                       ]
                     },
                     "name" : ".enso",
-                    "files" : [
-                      {
-                        "type" : "File",
-                        "name" : "suggestions.db",
-                        "path" : {
-                          "rootId" : $testContentRootId,
-                          "segments" : [
-                            ".enso"
-                          ]
-                        }
-                      }
-                    ],
+                    "files" : [],
                     "directories" : [
                     ]
                   },

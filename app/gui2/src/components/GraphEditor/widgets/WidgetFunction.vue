@@ -13,16 +13,19 @@ import {
   functionCallConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
-import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { useProjectStore } from '@/stores/project'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentApplicationKey,
   ArgumentAst,
   ArgumentPlaceholder,
   getAccessOprSubject,
+  getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
@@ -30,6 +33,7 @@ import type { Opt } from '@/util/data/opt'
 import { isIdentifier } from '@/util/qualifiedName.ts'
 import type { ExternalId } from 'shared/yjsModel.ts'
 import { computed, proxyRefs } from 'vue'
+import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -37,12 +41,20 @@ const project = useProjectStore()
 
 provideFunctionInfo(
   proxyRefs({
-    callId: computed(() => props.input.value.id),
+    prefixCalls: computed(() => {
+      const ids = new Set<AstId>([props.input.value.id])
+      let ast: any = props.input.value
+      while (ast instanceof Ast.App) {
+        ids.add(ast.function.id)
+        ast = ast.function
+      }
+      return ids
+    }),
   }),
 )
 
 const methodCallInfo = computed(() => {
-  return graph.db.getMethodCallInfo(props.input.value.id)
+  return getMethodCallInfoRecursively(props.input.value, graph.db)
 })
 
 const interpreted = computed(() => {
@@ -90,9 +102,17 @@ const application = computed(() => {
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
     return application.value.toWidgetInput()
-  } else {
-    return props.input
+  } else if (methodCallInfo.value) {
+    const definition = graph.getMethodAst(methodCallInfo.value.methodCall.methodPointer)
+    if (definition.ok)
+      return {
+        ...props.input,
+        [FunctionName]: {
+          editableName: definition.value.name.externalId,
+        },
+      }
   }
+  return props.input
 })
 
 const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
@@ -114,6 +134,9 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
   // the current call and then merge them.
+
+  let m = ArgumentApplication.collectArgumentNamesAndUuids(interpreted.value, methodCallInfo.value)
+
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
@@ -133,6 +156,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     positionalArgumentsExpressions: [
       `.${name}`,
       Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+      Ast.TextLiteral.new(JSON.stringify(m)).code(),
     ],
   }
 })
@@ -142,8 +166,9 @@ const inheritedConfig = computed(() => {
   if (props.input.dynamicConfig?.kind === 'OneOfFunctionCalls' && methodCallInfo.value != null) {
     const cfg = props.input.dynamicConfig
     const info = methodCallInfo.value
-    const name = entryQn(info?.suggestion)
-    return cfg.possibleFunctions.get(name)
+    const fullName = entryQn(info?.suggestion)
+    const autoscopedName = '..' + info?.suggestion.name
+    return cfg.possibleFunctions.get(fullName) ?? cfg.possibleFunctions.get(autoscopedName)
   }
   return undefined
 })
@@ -291,30 +316,32 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
 }
 </script>
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isFunctionCall, {
-  priority: 200,
-  score: (props, db) => {
-    // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
-    if (props.input[ArgumentApplicationKey]) return Score.Mismatch
-    const ast = props.input.value
-    if (ast.id == null) return Score.Mismatch
-    const prevFunctionState = injectFunctionInfo(true)
+export const widgetDefinition = defineWidget(
+  WidgetInput.isFunctionCall,
+  {
+    priority: 200,
+    score: (props, db) => {
+      // If ArgumentApplicationKey is stored, we already are handled by some WidgetFunction.
+      if (props.input[ArgumentApplicationKey]) return Score.Mismatch
+      const ast = props.input.value
+      if (ast.id == null) return Score.Mismatch
+      const prevFunctionState = injectFunctionInfo(true)
 
-    // It is possible to try to render the same function application twice, e.g. when detected an
-    // application with no arguments applied yet, but the application target is also an infix call.
-    // In that case, the reentrant call method info must be ignored to not create an infinite loop,
-    // and to resolve the infix call as its own application.
-    if (prevFunctionState?.callId === ast.id) return Score.Mismatch
+      // It is possible to try to render the same function application twice, e.g. when detected an
+      // application with no arguments applied yet, but the application target is also an infix call.
+      // In that case, the reentrant call method info must be ignored to not create an infinite loop,
+      // and to resolve the infix call as its own application.
+      // We only render the function widget on the application chain’s top-level.
+      if (prevFunctionState?.prefixCalls.has(ast.id)) return Score.Mismatch
 
-    if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
+      if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
 
-    const info = db.getMethodCallInfo(ast.id)
-    if (prevFunctionState != null && info?.partiallyApplied === true && ast instanceof Ast.Ident) {
-      return Score.Mismatch
-    }
-    return info != null ? Score.Perfect : Score.Mismatch
+      const info = getMethodCallInfoRecursively(ast, db)
+      return info != null ? Score.Perfect : Score.Mismatch
+    },
   },
-})
+  import.meta.hot,
+)
 </script>
 
 <template>

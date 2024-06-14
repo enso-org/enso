@@ -48,17 +48,21 @@ export async function mockApi({ page }: MockParams) {
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
   const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
+  const defaultUserId = backend.UserId('user-placeholder id')
   const defaultDirectoryId = backend.DirectoryId('directory-placeholder id')
   const defaultUser: backend.User = {
     email: defaultEmail,
     name: defaultUsername,
-    id: defaultOrganizationId,
-    profilePicture: null,
+    organizationId: defaultOrganizationId,
+    userId: defaultUserId,
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
+    userGroups: null,
   }
+
   let currentUser: backend.User | null = defaultUser
   let currentOrganization: backend.OrganizationInfo | null = null
+
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
@@ -109,8 +113,7 @@ export async function mockApi({ page }: MockParams) {
         id: backend.ProjectId('project-' + uniqueString.uniqueString()),
         projectState: {
           type: backend.ProjectState.opened,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          volume_id: '',
+          volumeId: '',
         },
         title,
         modifiedAt: dateTime.toRfc3339(new Date()),
@@ -348,23 +351,23 @@ export async function mockApi({ page }: MockParams) {
         const projectId = request.url().match(/[/]projects[/](.+?)[/]copy/)?.[1] ?? ''
         await route.fulfill({
           json: {
-            /* eslint-disable @typescript-eslint/naming-convention */
             organizationId: defaultOrganizationId,
             projectId: backend.ProjectId(projectId),
             name: 'example project name',
             state: {
               type: backend.ProjectState.opened,
-              volume_id: '',
-              opened_by: defaultEmail,
+              volumeId: '',
+              openedBy: defaultEmail,
             },
             packageName: 'Project_root',
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             ide_version: null,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             engine_version: {
               value: '2023.2.1-nightly.2023.9.29',
               lifecycle: backend.VersionLifecycle.development,
             },
             address: backend.Address('ws://example.com/'),
-            /* eslint-enable @typescript-eslint/naming-convention */
           } satisfies backend.ProjectRaw,
         })
       }
@@ -439,6 +442,9 @@ export async function mockApi({ page }: MockParams) {
       }
     )
     await page.route(BASE_URL + remoteBackendPaths.deleteTagPath(GLOB_TAG_ID), async route => {
+      await route.fulfill()
+    })
+    await page.route(BASE_URL + remoteBackendPaths.POST_LOG_EVENT_PATH, async route => {
       await route.fulfill()
     })
 
@@ -561,15 +567,18 @@ export async function mockApi({ page }: MockParams) {
           // The type of the body sent by this app is statically known.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const body: backend.CreateUserRequestBody = await request.postDataJSON()
-          const id = body.organizationId ?? defaultUser.id
-          const rootDirectoryId = backend.DirectoryId(id.replace(/^organization-/, 'directory-'))
+          const organizationId = body.organizationId ?? defaultUser.organizationId
+          const rootDirectoryId = backend.DirectoryId(
+            organizationId.replace(/^organization-/, 'directory-')
+          )
           currentUser = {
             email: body.userEmail,
             name: body.userName,
-            id: body.organizationId ?? defaultUser.id,
-            profilePicture: null,
+            organizationId,
+            userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
             isEnabled: false,
             rootDirectoryId,
+            userGroups: null,
           }
           await route.fulfill({ json: currentUser })
         } else if (request.method() === 'GET') {
@@ -621,8 +630,7 @@ export async function mockApi({ page }: MockParams) {
             organizationId: defaultOrganizationId,
             packageName: 'Project_root',
             projectId: id,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            state: { type: backend.ProjectState.opened, volume_id: '' },
+            state: { type: backend.ProjectState.opened, volumeId: '' },
           }
           addProject(title, {
             description: null,
@@ -633,13 +641,10 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: defaultOrganizationId,
-                  sk: backend.UserId(''),
-                  /* eslint-disable @typescript-eslint/naming-convention */
-                  user_subject: backend.Subject(''),
-                  user_name: defaultUsername,
-                  user_email: defaultEmail,
-                  /* eslint-enable @typescript-eslint/naming-convention */
+                  organizationId: defaultOrganizationId,
+                  userId: defaultUserId,
+                  name: defaultUsername,
+                  email: defaultEmail,
                 },
                 permission: permissions.PermissionAction.own,
               },
@@ -672,13 +677,10 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: defaultOrganizationId,
-                  sk: backend.UserId(''),
-                  /* eslint-disable @typescript-eslint/naming-convention */
-                  user_subject: backend.Subject(''),
-                  user_name: defaultUsername,
-                  user_email: defaultEmail,
-                  /* eslint-enable @typescript-eslint/naming-convention */
+                  organizationId: defaultOrganizationId,
+                  userId: defaultUserId,
+                  name: defaultUsername,
+                  email: defaultEmail,
                 },
                 permission: permissions.PermissionAction.own,
               },
@@ -698,6 +700,7 @@ export async function mockApi({ page }: MockParams) {
     defaultName: defaultUsername,
     defaultOrganizationId,
     defaultUser,
+    defaultUserId,
     rootDirectoryId: defaultDirectoryId,
     /** Returns the current value of `currentUser`. This is a getter, so its return value
      * SHOULD NOT be cached. */

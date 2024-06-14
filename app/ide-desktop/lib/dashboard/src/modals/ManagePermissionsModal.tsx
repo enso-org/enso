@@ -4,20 +4,23 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import Autocomplete from '#/components/Autocomplete'
+import Permission from '#/components/dashboard/Permission'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
-import UserPermission from '#/components/dashboard/UserPermission'
 import Modal from '#/components/Modal'
+import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissionsModule from '#/utilities/permissions'
@@ -38,6 +41,7 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 export interface ManagePermissionsModalProps<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 > {
+  readonly backend: Backend
   readonly item: Asset
   readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
   readonly self: backendModule.UserPermission
@@ -54,14 +58,17 @@ export interface ManagePermissionsModalProps<
 export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
-  const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const { user: user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { backend, item, setItem, self, doRemoveSelf, eventTarget } = props
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
+  const listedUsers = backendHooks.useBackendListUsers(backend)
+  const listedUserGroups = backendHooks.useBackendListUserGroups(backend)
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
-  const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
+  const [usersAndUserGroups, setUserAndUserGroups] = React.useState<
+    readonly (backendModule.UserGroupInfo | backendModule.UserInfo)[]
+  >([])
   const [email, setEmail] = React.useState<string | null>(null)
   const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
@@ -74,12 +81,17 @@ export default function ManagePermissionsModal<
           ),
     [permissions, self.permission]
   )
-  const usernamesOfUsersWithPermission = React.useMemo(
-    () => new Set(item.permissions?.map(userPermission => userPermission.user.user_name)),
+  const permissionsHoldersNames = React.useMemo(
+    () => new Set(item.permissions?.map(backendModule.getAssetPermissionName)),
     [item.permissions]
   )
   const emailsOfUsersWithPermission = React.useMemo(
-    () => new Set<string>(item.permissions?.map(userPermission => userPermission.user.user_email)),
+    () =>
+      new Set<string>(
+        item.permissions?.flatMap(userPermission =>
+          'user' in userPermission ? [userPermission.user.email] : []
+        )
+      ),
     [item.permissions]
   )
   const isOnlyOwner = React.useMemo(
@@ -88,10 +100,13 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          permission.user.user_email === user?.email
+          (backendModule.isUserPermission(permission) && permission.user.userId === user?.userId)
       ),
-    [user?.email, permissions, self.permission]
+    [user?.userId, permissions, self.permission]
   )
+
+  const inviteUserMutation = backendHooks.useBackendMutation(backend, 'inviteUser')
+  const createPermissionMutation = backendHooks.useBackendMutation(backend, 'createPermission')
 
   React.useEffect(() => {
     // This is SAFE, as the type of asset is not being changed.
@@ -106,123 +121,139 @@ export default function ManagePermissionsModal<
     // This MUST be an error, otherwise the hooks below are considered as conditionally called.
     throw new Error('Cannot share assets on the local backend.')
   } else {
-    const listedUsers = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [])
-    const allUsers = React.useMemo(
-      () =>
-        (listedUsers ?? []).filter(
+    const canAdd = React.useMemo(
+      () => [
+        ...(listedUsers ?? []).filter(
           listedUser =>
-            !usernamesOfUsersWithPermission.has(listedUser.name) &&
+            !permissionsHoldersNames.has(listedUser.name) &&
             !emailsOfUsersWithPermission.has(listedUser.email)
         ),
-      [emailsOfUsersWithPermission, usernamesOfUsersWithPermission, listedUsers]
+        ...(listedUserGroups ?? []).filter(
+          userGroup => !permissionsHoldersNames.has(userGroup.groupName)
+        ),
+      ],
+      [emailsOfUsersWithPermission, permissionsHoldersNames, listedUsers, listedUserGroups]
     )
     const willInviteNewUser = React.useMemo(() => {
-      if (users.length !== 0 || email == null || email === '') {
+      if (usersAndUserGroups.length !== 0 || email == null || email === '') {
         return false
       } else {
         const lowercase = email.toLowerCase()
         return (
           lowercase !== '' &&
-          !usernamesOfUsersWithPermission.has(lowercase) &&
+          !permissionsHoldersNames.has(lowercase) &&
           !emailsOfUsersWithPermission.has(lowercase) &&
-          !allUsers.some(
-            innerUser =>
-              innerUser.name.toLowerCase() === lowercase ||
-              innerUser.email.toLowerCase() === lowercase
+          !canAdd.some(
+            userOrGroup =>
+              ('name' in userOrGroup && userOrGroup.name.toLowerCase() === lowercase) ||
+              ('email' in userOrGroup && userOrGroup.email.toLowerCase() === lowercase) ||
+              ('groupName' in userOrGroup && userOrGroup.groupName.toLowerCase() === lowercase)
           )
         )
       }
-    }, [users.length, email, emailsOfUsersWithPermission, usernamesOfUsersWithPermission, allUsers])
+    }, [
+      usersAndUserGroups.length,
+      email,
+      emailsOfUsersWithPermission,
+      permissionsHoldersNames,
+      canAdd,
+    ])
 
     const doSubmit = async () => {
       if (willInviteNewUser) {
         try {
-          setUsers([])
+          setUserAndUserGroups([])
           setEmail('')
           if (email != null) {
-            await backend.inviteUser({
-              organizationId: user.id,
-              userEmail: backendModule.EmailAddress(email),
-            })
+            await inviteUserMutation.mutateAsync([
+              {
+                organizationId: user.organizationId,
+                userEmail: backendModule.EmailAddress(email),
+              },
+            ])
             toast.toast.success(getText('inviteSuccess', email))
           }
         } catch (error) {
           toastAndLog('couldNotInviteUser', error, email ?? '(unknown)')
         }
       } else {
-        setUsers([])
-        const addedUsersPermissions = users.map<backendModule.UserPermission>(newUser => ({
-          user: {
-            // The names come from a third-party API and cannot be
-            // changed.
-            /* eslint-disable @typescript-eslint/naming-convention */
-            pk: newUser.organizationId,
-            sk: newUser.userId,
-            user_subject: newUser.userSubject,
-            user_email: newUser.email,
-            user_name: newUser.name,
-            /* eslint-enable @typescript-eslint/naming-convention */
-          },
-          permission: action,
-        }))
-        const addedUsersSks = new Set(addedUsersPermissions.map(newUser => newUser.user.sk))
-        const oldUsersPermissions = permissions.filter(userPermission =>
-          addedUsersSks.has(userPermission.user.sk)
+        setUserAndUserGroups([])
+        const addedPermissions = usersAndUserGroups.map<backendModule.AssetPermission>(
+          newUserOrUserGroup =>
+            'userId' in newUserOrUserGroup
+              ? { user: newUserOrUserGroup, permission: action }
+              : { userGroup: newUserOrUserGroup, permission: action }
         )
+        const addedUsersIds = new Set(
+          addedPermissions.flatMap(permission =>
+            backendModule.isUserPermission(permission) ? [permission.user.userId] : []
+          )
+        )
+        const addedUserGroupsIds = new Set(
+          addedPermissions.flatMap(permission =>
+            backendModule.isUserGroupPermission(permission) ? [permission.userGroup.id] : []
+          )
+        )
+        const isPermissionNotBeingOverwritten = (permission: backendModule.AssetPermission) =>
+          backendModule.isUserPermission(permission)
+            ? !addedUsersIds.has(permission.user.userId)
+            : !addedUserGroupsIds.has(permission.userGroup.id)
+
         try {
           setPermissions(oldPermissions =>
-            [
-              ...oldPermissions.filter(
-                oldUserPermissions => !addedUsersSks.has(oldUserPermissions.user.sk)
-              ),
-              ...addedUsersPermissions,
-            ].sort(backendModule.compareUserPermissions)
+            [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...addedPermissions].sort(
+              backendModule.compareAssetPermissions
+            )
           )
-          await backend.createPermission({
-            actorsIds: addedUsersPermissions.map(userPermissions => userPermissions.user.sk),
-            resourceId: item.id,
-            action: action,
-          })
+          await createPermissionMutation.mutateAsync([
+            {
+              actorsIds: addedPermissions.map(permission =>
+                backendModule.isUserPermission(permission)
+                  ? permission.user.userId
+                  : permission.userGroup.id
+              ),
+              resourceId: item.id,
+              action: action,
+            },
+          ])
         } catch (error) {
           setPermissions(oldPermissions =>
-            [
-              ...oldPermissions.filter(permission => !addedUsersSks.has(permission.user.sk)),
-              ...oldUsersPermissions,
-            ].sort(backendModule.compareUserPermissions)
+            [...oldPermissions.filter(isPermissionNotBeingOverwritten), ...oldPermissions].sort(
+              backendModule.compareAssetPermissions
+            )
           )
-          const usernames = addedUsersPermissions.map(
-            userPermissions => userPermissions.user.user_name
-          )
-          toastAndLog('setPermissionsError', error, usernames.join("', '"))
+          toastAndLog('setPermissionsError', error)
         }
       }
     }
 
-    const doDelete = async (userToDelete: backendModule.UserInfo) => {
-      if (userToDelete.sk === self.user.sk) {
+    const doDelete = async (permissionId: backendModule.UserPermissionIdentifier) => {
+      if (permissionId === self.user.userId) {
         doRemoveSelf()
       } else {
         const oldPermission = permissions.find(
-          userPermission => userPermission.user.sk === userToDelete.sk
+          permission => backendModule.getAssetPermissionId(permission) === permissionId
         )
         try {
           setPermissions(oldPermissions =>
             oldPermissions.filter(
-              oldUserPermissions => oldUserPermissions.user.sk !== userToDelete.sk
+              permission => backendModule.getAssetPermissionId(permission) !== permissionId
             )
           )
-          await backend.createPermission({
-            actorsIds: [userToDelete.sk],
-            resourceId: item.id,
-            action: null,
-          })
+          await createPermissionMutation.mutateAsync([
+            {
+              actorsIds: [permissionId],
+              resourceId: item.id,
+              action: null,
+            },
+          ])
         } catch (error) {
           if (oldPermission != null) {
             setPermissions(oldPermissions =>
-              [...oldPermissions, oldPermission].sort(backendModule.compareUserPermissions)
+              [...oldPermissions, oldPermission].sort(backendModule.compareAssetPermissions)
             )
           }
-          toastAndLog('setPermissionsError', error, userToDelete.user_email)
+          toastAndLog('setPermissionsError', error)
         }
       }
     }
@@ -250,96 +281,115 @@ export default function ManagePermissionsModal<
             mouseEvent.stopPropagation()
             mouseEvent.preventDefault()
           }}
-          onKeyDown={event => {
-            if (event.key !== 'Escape') {
-              event.stopPropagation()
-            }
-          }}
         >
           <div className="relative flex flex-col gap-modal rounded-default p-modal">
             <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-              <h2 className="text text-sm font-bold">{getText('invite')}</h2>
+              <aria.Heading level={2} className="text text-sm font-bold">
+                {getText('invite')}
+              </aria.Heading>
               {/* Space reserved for other tabs. */}
             </div>
-            <form
-              className="flex gap-input-with-button"
-              onSubmit={event => {
-                event.preventDefault()
-                void doSubmit()
-              }}
-            >
-              <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
-                <PermissionSelector
-                  input
-                  disabled={willInviteNewUser}
-                  selfPermission={self.permission}
-                  typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
-                  action={permissionsModule.PermissionAction.view}
-                  assetType={item.type}
-                  onChange={setAction}
-                />
-                <div className="-mx-button-px grow">
-                  <Autocomplete
-                    multiple
-                    autoFocus
-                    placeholder={
-                      // `listedUsers` will always include the current user.
-                      listedUsers?.length !== 1
-                        ? getText('inviteUserPlaceholder')
-                        : getText('inviteFirstUserPlaceholder')
+            <FocusArea direction="horizontal">
+              {innerProps => (
+                <form
+                  className="flex gap-input-with-button"
+                  onSubmit={event => {
+                    event.preventDefault()
+                    void doSubmit()
+                  }}
+                  {...innerProps}
+                >
+                  <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
+                    <PermissionSelector
+                      input
+                      isDisabled={willInviteNewUser}
+                      selfPermission={self.permission}
+                      typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
+                      action={permissionsModule.PermissionAction.view}
+                      assetType={item.type}
+                      onChange={setAction}
+                    />
+                    <div className="-mx-button-px grow">
+                      <Autocomplete
+                        multiple
+                        autoFocus
+                        placeholder={
+                          // `listedUsers` will always include the current user.
+                          listedUsers?.length !== 1
+                            ? getText('inviteUserPlaceholder')
+                            : getText('inviteFirstUserPlaceholder')
+                        }
+                        type="text"
+                        itemsToString={items =>
+                          items.length === 1 && items[0] != null && 'email' in items[0]
+                            ? items[0].email
+                            : getText('xUsersSelected', items.length)
+                        }
+                        values={usersAndUserGroups}
+                        setValues={setUserAndUserGroups}
+                        items={canAdd}
+                        itemToKey={userOrGroup =>
+                          'userId' in userOrGroup ? userOrGroup.userId : userOrGroup.id
+                        }
+                        itemToString={userOrGroup =>
+                          'name' in userOrGroup
+                            ? `${userOrGroup.name} (${userOrGroup.email})`
+                            : userOrGroup.groupName
+                        }
+                        matches={(userOrGroup, text) =>
+                          ('email' in userOrGroup &&
+                            userOrGroup.email.toLowerCase().includes(text.toLowerCase())) ||
+                          ('name' in userOrGroup &&
+                            userOrGroup.name.toLowerCase().includes(text.toLowerCase())) ||
+                          ('groupName' in userOrGroup &&
+                            userOrGroup.groupName.toLowerCase().includes(text.toLowerCase()))
+                        }
+                        text={email}
+                        setText={setEmail}
+                      />
+                    </div>
+                  </div>
+                  <ariaComponents.Button
+                    size="custom"
+                    variant="custom"
+                    isDisabled={
+                      willInviteNewUser
+                        ? email == null || !isEmail(email)
+                        : usersAndUserGroups.length === 0 ||
+                          (email != null && emailsOfUsersWithPermission.has(email))
                     }
-                    type="text"
-                    itemsToString={items =>
-                      items.length === 1 && items[0] != null
-                        ? items[0].email
-                        : getText('xUsersSelected', items.length)
-                    }
-                    values={users}
-                    setValues={setUsers}
-                    items={allUsers}
-                    itemToKey={otherUser => otherUser.userSubject}
-                    itemToString={otherUser => `${otherUser.name} (${otherUser.email})`}
-                    matches={(otherUser, text) =>
-                      otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
-                      otherUser.name.toLowerCase().includes(text.toLowerCase())
-                    }
-                    text={email}
-                    setText={setEmail}
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={
-                  willInviteNewUser
-                    ? email == null || !isEmail(email)
-                    : users.length === 0 ||
-                      (email != null && emailsOfUsersWithPermission.has(email))
-                }
-                className="button bg-invite px-button-x text-tag-text selectable enabled:active"
-              >
-                <div className="h-text py-modal-invite-button-text-y">
-                  {willInviteNewUser ? 'Invite' : 'Share'}
-                </div>
-              </button>
-            </form>
+                    className="button bg-invite px-button-x text-tag-text selectable enabled:active"
+                    onPress={doSubmit}
+                  >
+                    <div className="h-text py-modal-invite-button-text-y">
+                      {willInviteNewUser ? getText('invite') : getText('share')}
+                    </div>
+                  </ariaComponents.Button>
+                </form>
+              )}
+            </FocusArea>
             <div className="max-h-manage-permissions-modal-permissions-list overflow-auto px-manage-permissions-modal-input">
-              {editablePermissions.map(userPermission => (
-                <div key={userPermission.user.sk} className="flex h-row items-center">
-                  <UserPermission
+              {editablePermissions.map(permission => (
+                <div
+                  key={backendModule.getAssetPermissionName(permission)}
+                  className="flex h-row items-center"
+                >
+                  <Permission
+                    backend={backend}
                     asset={item}
                     self={self}
                     isOnlyOwner={isOnlyOwner}
-                    userPermission={userPermission}
-                    setUserPermission={newUserPermission => {
+                    permission={permission}
+                    setPermission={newPermission => {
+                      const permissionId = backendModule.getAssetPermissionId(newPermission)
                       setPermissions(oldPermissions =>
-                        oldPermissions.map(oldUserPermission =>
-                          oldUserPermission.user.sk === newUserPermission.user.sk
-                            ? newUserPermission
-                            : oldUserPermission
+                        oldPermissions.map(oldPermission =>
+                          backendModule.getAssetPermissionId(oldPermission) === permissionId
+                            ? newPermission
+                            : oldPermission
                         )
                       )
-                      if (newUserPermission.user.sk === self.user.sk) {
+                      if (permissionId === self.user.userId) {
                         // This must run only after the permissions have
                         // been updated through `setItem`.
                         setTimeout(() => {
@@ -347,11 +397,11 @@ export default function ManagePermissionsModal<
                         }, 0)
                       }
                     }}
-                    doDelete={userToDelete => {
-                      if (userToDelete.sk === self.user.sk) {
+                    doDelete={id => {
+                      if (id === self.user.userId) {
                         unsetModal()
                       }
-                      void doDelete(userToDelete)
+                      void doDelete(id)
                     }}
                   />
                 </div>

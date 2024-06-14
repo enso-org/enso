@@ -89,7 +89,7 @@ export function attachProvider(
       subdocProvider.dispose()
     })
   }
-  return { provider, dispose: dispose }
+  return { provider, dispose }
 }
 
 interface MockYdocProviderMessages {

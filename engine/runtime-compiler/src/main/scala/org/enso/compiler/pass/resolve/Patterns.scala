@@ -111,7 +111,7 @@ object Patterns extends IRPass {
                 selfTypeResolution.map(Right(_))
               case _ => None
             }
-            val resolvedName = resolution
+            val resolvedName: Name = resolution
               .map {
                 case Left(err) =>
                   val r = errors.Resolution(

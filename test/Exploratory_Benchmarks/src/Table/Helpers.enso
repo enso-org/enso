@@ -21,7 +21,7 @@ column_from_vector name items convert_polyglot_dates =
                     Java_Column.fromItems name items expected_storage_type java_problem_aggregator
                 False ->
                     Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
-            Column.Value java_column
+            Column.from_storage java_column.getName java_column.getStorage
 
 check_results results =
     mapped = results.map x-> case x of

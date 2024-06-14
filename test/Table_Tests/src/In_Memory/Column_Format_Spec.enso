@@ -298,7 +298,7 @@ add_specs suite_builder =
     suite_builder.group "Edge cases" group_builder->
         group_builder.specify "empty table is ok" <|
             input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25] . take 0
-            expected = Column.from_vector "values" []
+            expected = Column.from_vector "values" [""] . take 0
             actual = input.format "yyyyMMdd"
             actual . should_equal expected
 

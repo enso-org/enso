@@ -7,14 +7,14 @@ options = Bench.options . set_warmup (Bench.phase_conf 1 5) . set_measure (Bench
 
 
 type Data
-    Value ~decimal_strings ~int_strings
+    Value ~float_strings ~int_strings
 
     create vector_size faker =
-        Data.Value (create_decimal_strings vector_size faker) (create_int_strings vector_size faker)
+        Data.Value (create_float_strings vector_size faker) (create_int_strings vector_size faker)
 
 
-create_decimal_strings vector_size faker =
-    Vector.new vector_size _->(faker.decimal -1000000000 1000000000).to_text
+create_float_strings vector_size faker =
+    Vector.new vector_size _->(faker.float -1000000000 1000000000).to_text
 
 
 create_int_strings vector_size faker =
@@ -30,8 +30,8 @@ collect_benches = Bench.build builder->
     data = Data.create vector_size faker
 
     builder.group "Number_Parse" options group_builder->
-        group_builder.specify "decimal_parse" <|
-            data.decimal_strings.map Float.parse
+        group_builder.specify "float_parse" <|
+            data.float_strings.map Float.parse
 
         group_builder.specify "integer_parse" <|
             data.int_strings.map Integer.parse

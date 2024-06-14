@@ -1,4 +1,5 @@
 /** @file Configuration for Tailwind. */
+import animate from 'tailwindcss-animate'
 import reactAriaComponents from 'tailwindcss-react-aria-components'
 import plugin from 'tailwindcss/plugin.js'
 
@@ -6,23 +7,26 @@ import plugin from 'tailwindcss/plugin.js'
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
 export default /** @satisfies {import('tailwindcss').Config} */ ({
   content: ['./src/**/*.tsx', './src/**/*.ts'],
-  important: `:is(.enso-dashboard, .enso-chat)`,
+  important: `:is(.enso-dashboard, .enso-chat, .enso-portal-root)`,
   theme: {
     extend: {
+      cursor: {
+        unset: 'unset',
+      },
       colors: {
         // While these COULD ideally be defined as CSS variables, then their opacity cannot be
         // modified.
         /** The default color of all text. */
         // This should be named "regular".
         primary: 'rgb(0 0 0 / 60%)',
+        accent: '#499f4b',
+        'accent-dark': '#3e9152',
         'hover-bg': 'rgb(0 0 0 / 10%)',
-        frame: 'var(--frame-color)',
-        'selected-frame': 'var(--selected-frame-color)',
-        'not-selected': 'rgb(0 0 0 / 40%)',
-        'icon-selected': 'rgb(0 0 0 / 50%)',
-        'icon-not-selected': 'rgb(0 0 0 / 30%)',
+        frame: 'rgb(255 255 255 / 40%)',
+        'selected-frame': 'rgb(255 255 255 / 70%)',
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
+        'not-selected': 'rgb(0 0 0 / 15%)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
         help: '#3f68ce',
@@ -31,45 +35,47 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         share: '#64b526',
         inversed: '#ffffff',
         green: '#3e8b29',
-        delete: 'rgba(243 24 10 / 87%)',
+        delete: 'rgb(243 24 10 / 87%)',
         v3: '#252423',
         youtube: '#c62421',
         discord: '#404796',
         danger: '#d33b0b',
-        // Equivalent to `lch(70% 0 0 / 0.5)`
-        'selection-brush': 'var(--selection-brush-color)',
-        dim: 'rgba(0, 0, 0, 0.25)',
-        'dim-darker': 'rgba(0, 0, 0, 0.40)',
-        'tag-text': 'rgba(255, 255, 255, 0.90)',
-        'tag-text-2': 'rgba(0, 0, 0, 0.60)',
-        'permission-owner': 'rgba(236, 2, 2, 0.70)',
-        'permission-admin': 'rgba(252, 60, 0, 0.70)',
-        'permission-edit': 'rgba(255, 138, 0, 0.90)',
-        'permission-read': 'rgba(152, 174, 18, 0.80)',
-        'permission-docs': 'rgba(91, 8, 226, 0.64)',
-        'permission-exec': 'rgba(236, 2, 2, 0.70)',
-        'permission-view': 'rgba(0, 0, 0, 0.10)',
+        'selection-brush': 'lch(70% 0 0 / 50%)',
+        dim: 'rgb(0 0 0 / 25%)',
+        'dim-darker': 'rgb(0 0 0 / 40%)',
+        'tag-text': 'rgb(255 255 255 / 90%)',
+        'tag-text-2': 'rgb(0 0 0 / 60%)',
+        'permission-owner': 'rgb(236 2 2 / 70%)',
+        'permission-admin': 'rgb(252 60 0 / 70%)',
+        'permission-edit': 'rgb(255 138 0 / 90%)',
+        'permission-read': 'rgb(152 174 18 / 80%)',
+        'permission-docs': 'rgb(91 8 226 / 64%)',
+        'permission-exec': 'rgb(236 2 2 / 70%)',
+        'permission-view': 'rgb(0 0 0 / 10%)',
         'label-running-project': '#257fd2',
         'label-low-resources': '#ff6b18',
-        'call-to-action': '#fa6c08',
-        'black-a5': 'rgba(0, 0, 0, 0.05)',
-        'black-a10': 'rgba(0, 0, 0, 0.10)',
-        'black-a16': 'rgba(0, 0, 0, 0.16)',
-        'black-a30': 'rgba(0, 0, 0, 0.30)',
-        'black-a50': 'rgba(0, 0, 0, 0.50)',
+        'call-to-action': 'rgb(250 108 8)',
+        'black-a5': 'rgb(0 0 0 / 5%)',
+        'black-a10': 'rgb(0 0 0 / 10%)',
+        'black-a16': 'rgb(0 0 0 / 16%)',
+        'black-a30': 'rgb(0 0 0 / 30%)',
+        'black-a50': 'rgb(0 0 0 / 50%)',
         'gray-350': '#b7bcc5',
       },
       fontSize: {
         xs: '0.71875rem',
         sm: '0.8125rem',
         xl: '1.1875rem',
+        '3xl': '2rem',
         '4xl': '2.375rem',
         'auth-heading': 'var(--auth-heading-font-size)',
       },
       borderRadius: {
+        inherit: 'inherit',
         '2.5xl': '1.25rem',
         '4xl': '2rem',
         default: 'var(--default-corner-radius)',
+        'button-focus-ring': 'var(--button-focus-ring-corner-radius)',
         auth: 'var(--auth-corner-radius)',
         input: 'var(--input-corner-radius)',
         'permission-type-selector': 'var(--permission-type-selector-corner-radius)',
@@ -93,6 +99,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'row-h': 'var(--row-height)',
         'text-h': 'var(--text-height)',
         'top-bar-margin': 'var(--top-bar-margin)',
+        'asset-panel-w': 'var(--asset-panel-width)',
         'indent-1': 'var(--indent-1-size)',
         'indent-2': 'var(--indent-2-size)',
         'indent-3': 'var(--indent-3-size)',
@@ -144,6 +151,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'invite-users-modal': 'var(--invite-users-modal-width)',
         'manage-permissions-modal': 'var(--manage-permissions-modal-width)',
         'upsert-data-link-modal': 'var(--upsert-data-link-modal-width)',
+        'upsert-data-link-modal-max': 'var(--upsert-data-link-modal-max-width)',
         'upsert-secret-modal': 'var(--upsert-secret-modal-width)',
 
         'members-name-column': 'var(--members-name-column-width)',
@@ -222,7 +230,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'settings-section-header': 'var(--settings-section-header-gap)',
         'settings-entry': 'var(--settings-entry-gap)',
         'settings-sidebar': 'var(--settings-sidebar-gap)',
-        banner: 'var(--banner-gap)',
         'new-empty-project': 'var(--new-empty-project-gap)',
         modifiers: 'var(--modifiers-gap)',
         'modifiers-macos': 'var(--modifiers-macos-gap)',
@@ -234,7 +241,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'column-items': 'var(--column-items-gap)',
         labels: 'var(--labels-gap)',
         'label-icons': 'var(--label-icons-gap)',
-        'sidebar-section-heading': 'var(--sidebar-section-heading-gap)',
         'user-menu': 'var(--user-menu-gap)',
         'user-permission': 'var(--user-permission-gap)',
         'name-column-icon': 'var(--name-column-icon-gap)',
@@ -258,6 +264,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'heading-y': 'var(--heading-padding-y)',
         'auth-input-y': 'var(--auth-input-padding-y)',
         'auth-input-r': 'var(--auth-input-padding-right)',
+        'auth-link-x': 'var(--auth-link-padding-x)',
+        'auth-link-y': 'var(--auth-link-padding-y)',
+        'text-link-x': 'var(--text-link-padding-x)',
         'drive-sidebar-y': 'var(--drive-sidebar-padding-y)',
         'radio-button-dot': 'var(--radio-button-dot-padding)',
         'chat-y': 'chat-padding-y',
@@ -270,11 +279,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'selector-y': 'var(--selector-padding-y)',
         'menu-entry': 'var(--menu-entry-padding)',
         'context-menu-entry-x': 'var(--context-menu-entry-padding-x)',
-        'context-menu-separator-y': 'var(--context-menu-separator-padding-y)',
         'profile-picture': 'var(--profile-picture-padding)',
-        'banner-x': 'var(--banner-padding-x)',
-        'banner-y': 'var(--banner-padding-y)',
-        'banner-item': 'var(--banner-item-padding)',
         'profile-picture-caption-y': 'var(--profile-picture-caption-padding-y)',
         'delete-user-account-button-x': 'var(--delete-user-account-button-padding-x)',
         'context-menu': 'var(--context-menu-padding)',
@@ -336,6 +341,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'close-icon': 'var(--close-icon-margin)',
         'date-input-gap': 'var(--date-input-gap)',
         'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
+        'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
+        'context-menu-half-x': 'var(--context-menu-half-width)',
         'chat-header-x': 'var(--chat-header-margin-x)',
         'chat-header-t': 'var(--chat-header-margin-top)',
         'chat-form-x': 'var(--chat-form-margin-x)',
@@ -347,6 +354,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-reaction-bar-py': 'var(--chat-reaction-bar-padding-y)',
         'chat-reaction-bar': 'var(--chat-reaction-bar-margin)',
         'chat-reaction': 'var(--chat-reaction-margin)',
+        'separator-y': 'var(--separator-margin-y)',
+        'sidebar-section-heading-b': 'var(--sidebar-section-heading-margin-b)',
+        'context-menu-entry-px': 'var(--context-menu-entry-padding-x)',
+        'text-link-px': 'var(--text-link-padding-x)',
       },
       lineHeight: {
         snug: 'var(--snug-line-height)',
@@ -362,15 +373,32 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         default: 'var(--default-backdrop-blur)',
       },
       borderWidth: {
+        0.5: '0.5px',
         'selection-brush': 'var(--selection-brush-border-width)',
       },
       boxShadow: {
         soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
 0 18px 80px 0 #0000001c`,
+        'inset-t-lg': `inset 0 1px 1.4px -1.4px #00000002, \
+inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
+inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
+inset 0 36px 51px -51px #00000014`,
+        'inset-b-lg': `inset 0 -1px 1.4px -1.4px #00000002, \
+inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
+inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
+inset 0 -36px 51px -51px #00000014`,
+        'inset-v-lg': `inset 0 1px 1.4px -1.4px #00000002, \
+inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
+inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
+inset 0 36px 51px -51px #00000014, inset 0 -1px 1.4px -1.4px #00000002, \
+inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
+inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
+inset 0 -36px 51px -51px #00000014`,
       },
       animation: {
         'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
+        'appear-delayed': 'appear-delayed 0.5s ease-in-out',
       },
       transitionProperty: {
         width: 'width',
@@ -408,11 +436,21 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         75: '75-12',
         100: '100-12',
       },
+      keyframes: {
+        'appear-delayed': {
+          '0%': { opacity: '0' },
+          '99%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+      },
     },
   },
   plugins: [
     reactAriaComponents,
-    plugin(({ addUtilities, matchUtilities, addComponents, theme }) => {
+    animate,
+    plugin(({ addVariant, addUtilities, matchUtilities, addComponents, theme }) => {
+      addVariant('group-hover-2', ['.group:where([data-hovered]) &', '.group:where(:hover) &'])
+
       addUtilities(
         {
           '.container-size': {
@@ -439,23 +477,35 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
             },
           },
 
+          // === States ===
+
+          '.focus-ring, .focus-ring:focus, .focus-ring-outset, .focus-ring-outset:focus, .focus-ring-within[data-focus-visible=true]':
+            {
+              '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
+            },
+          '.focus-ring.checkbox, .focus-ring-outset, .focus-ring-outset:focus': {
+            '@apply outline-offset-0': '',
+          },
+          '.drop-target-after': {
+            '@apply relative after:pointer-events-none after:absolute after:inset after:rounded-inherit [&[data-drop-target=true]]:after:bg-primary/10':
+              '',
+          },
+
           // === Classes affecting opacity ===
 
           '.selectable': {
-            '@apply disabled:opacity-30 disabled:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
+            '@apply disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
               '',
           },
           '.active': {
-            '@apply opacity-100 disabled:opacity-100 hover:opacity-100 disabled:cursor-default': '',
+            '@apply opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default':
+              '',
           },
           '.placeholder': {
             '@apply opacity-75': '',
           },
           '.read-only': {
             '@apply opacity-75 cursor-not-allowed': '',
-          },
-          '.transparent': {
-            '@apply opacity-0': '',
           },
 
           // === Visbility classes ===
@@ -472,16 +522,22 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
 
           '.rounded-rows': {
             [`:where(
-            & > tbody > tr:nth-child(odd) > td:not(.rounded-rows-skip-level),
-            & > tbody > tr:nth-child(odd) > td.rounded-rows-skip-level > *
-          )`]: {
-              backgroundColor: `rgba(0 0 0 / 3%)`,
+              & > tbody > tr:nth-child(odd of .rounded-rows-child) > td:not(.rounded-rows-skip-level),
+              & > tbody > tr:nth-child(odd of .rounded-rows-child) > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: `rgb(0 0 0 / 3%)`,
             },
             [`:where(
-            & > tbody > tr.selected > td:not(.rounded-rows-skip-level),
-            & > tbody > tr.selected > td.rounded-rows-skip-level > *
-          )`]: {
-              backgroundColor: 'rgb(255, 255, 255, 40%)',
+              & > tbody > tr.rounded-rows-child.selected > td:not(.rounded-rows-skip-level),
+              & > tbody > tr.rounded-rows-child.selected > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: 'rgb(255 255 255 / 40%)',
+            },
+            [`:where(
+              & > tbody > tr.rounded-rows-child[data-drop-target] > td:not(.rounded-rows-skip-level),
+              & > tbody > tr.rounded-rows-child[data-drop-target] > td.rounded-rows-skip-level > *
+            )`]: {
+              backgroundColor: 'rgb(0 0 0 / 8%)',
             },
           },
 
@@ -521,6 +577,16 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         }
       )
 
+      matchUtilities(
+        {
+          'translate-z': value => ({
+            '--tw-translate-z': value,
+            transform: ` translate3d(var(--tw-translate-x), var(--tw-translate-y), var(--tw-translate-z)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))`,
+          }),
+        },
+        { values: theme('translate', {}), supportsNegativeValues: true }
+      )
+
       addComponents(
         {
           '.button': {
@@ -543,9 +609,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
           },
           '.text-subheading': {
             '@apply text-xl leading-snug py-0.5': '',
-          },
-          '.settings-subheading': {
-            '@apply font-bold text-xl h-[2.375rem] py-0.5': '',
           },
           '.settings-value': {
             '@apply leading-cozy h-text py-px px-2': '',

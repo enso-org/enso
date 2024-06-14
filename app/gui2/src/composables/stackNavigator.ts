@@ -1,15 +1,12 @@
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
-import { useGraphStore } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
+import { type GraphStore } from '@/stores/graph'
+import { type ProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract.ts'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { methodPointerEquals, type StackItem } from 'shared/languageServerTypes'
 import { computed, onMounted, ref } from 'vue'
 
-export function useStackNavigator() {
-  const projectStore = useProjectStore()
-  const graphStore = useGraphStore()
-
+export function useStackNavigator(projectStore: ProjectStore, graphStore: GraphStore) {
   const breadcrumbs = ref<StackItem[]>([])
 
   const breadcrumbLabels = computed(() => {
@@ -43,23 +40,7 @@ export function useStackNavigator() {
   }
 
   function handleBreadcrumbClick(index: number) {
-    const activeStack = projectStore.executionContext.desiredStack
-    // Number of items in desired stack should be index + 1
-    if (index + 1 < activeStack.length) {
-      for (let i = activeStack.length; i > index + 1; i--) {
-        projectStore.executionContext.pop()
-      }
-    } else if (index + 1 > activeStack.length) {
-      for (let i = activeStack.length; i <= index; i++) {
-        const stackItem = breadcrumbs.value[i]
-        if (stackItem?.type === 'LocalCall') {
-          const exprId = stackItem.expressionId
-          projectStore.executionContext.push(exprId)
-        } else {
-          console.warn('Cannot enter non-local call.')
-        }
-      }
-    }
+    projectStore.executionContext.desiredStack = breadcrumbs.value.slice(0, index + 1)
     graphStore.updateState()
   }
 

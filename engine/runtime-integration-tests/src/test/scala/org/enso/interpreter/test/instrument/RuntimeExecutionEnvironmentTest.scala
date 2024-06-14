@@ -4,7 +4,10 @@ import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.polyglot._
+import org.enso.common.LanguageInfo
+import org.enso.common.MethodNames
+import org.enso.polyglot.RuntimeOptions
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
@@ -297,6 +300,24 @@ class RuntimeExecutionEnvironmentTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
+    context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
+      .Design()
+      .name
+
+    // setting execution environment to the existing one has no effect
+    context.send(
+      Api.Request(
+        requestId,
+        Api.SetExecutionEnvironmentRequest(
+          contextId,
+          Api.ExecutionEnvironment.Design()
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SetExecutionEnvironmentResponse(contextId))
+    )
     context.languageContext.getExecutionEnvironment.getName shouldEqual Api.ExecutionEnvironment
       .Design()
       .name

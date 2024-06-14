@@ -38,9 +38,13 @@ function transformChild(child: Ast.Ast | Ast.Token) {
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(WidgetInput.isAst, {
-  priority: 1000,
-})
+export const widgetDefinition = defineWidget(
+  WidgetInput.isAst,
+  {
+    priority: 1000,
+  },
+  import.meta.hot,
+)
 </script>
 
 <template>

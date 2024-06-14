@@ -53,6 +53,12 @@ type Set
     size : Integer
     size self = self.underlying_map.size
 
+    ## GROUP Metadata
+       ICON metadata
+       Returns the number of elements in this set.
+    length : Integer
+    length self = self.size
+
     ## GROUP Logical
        ICON metadata
        Checks if the set is empty.
@@ -103,7 +109,7 @@ type Set
         Set.Value new_map
 
     ## GROUP Calculations
-       ICON dataframes_union
+       ICON union
        Creates a union of the two sets.
     union : Set -> Set
     union self (other : Set) =
@@ -112,6 +118,7 @@ type Set
         Set.Value new_map
 
     ## GROUP Calculations
+       ICON join
        Creates an intersection of the two sets.
     intersection : Set -> Set
     intersection self (other : Set) =
@@ -120,7 +127,8 @@ type Set
             if other_map.contains_key el then m.insert el Nothing else m
         Set.Value new_map
 
-    ## Computes a set difference.
+    ## ICON join
+       Computes a set difference.
 
        Returns the set that contains all elements of this set that are not in
        the other set.
@@ -133,7 +141,7 @@ type Set
 
     ## PRIVATE
     to_text : Text
-    to_text self = self.to_vector.join ", " "Set{" "}"
+    to_text self = self.to_vector.map .pretty . join ", " "Set{" "}"
 
 ## PRIVATE
 type Set_Comparator

@@ -2,7 +2,12 @@ package org.enso.base.enso_cloud;
 
 import org.enso.base.Environment_Utils;
 
-public class CloudAPI {
+public final class CloudAPI {
+  /**
+   * Returns the URI to the root of the Cloud API.
+   *
+   * <p>It always ends with a slash.
+   */
   public static String getAPIRootURI() {
     var envUri = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URI");
     var effectiveUri =
@@ -11,33 +16,18 @@ public class CloudAPI {
     return uriWithSlash;
   }
 
-  public record CloudWorkingDirectory(String name, String id, String organizationId) {}
-
-  public static CloudWorkingDirectory getCurrentWorkingDirectory() {
-    if (cachedWorkingDirectory != null) {
-      return cachedWorkingDirectory;
-    }
-
-    String directoryId = Environment_Utils.get_environment_variable("ENSO_PROJECT_PATH");
-    if (directoryId == null) {
-      // No current working directory is set
-      return null;
-    }
-
-    // TODO we should be able to fetch the name and organizationId from the cloud:
-    // To be done in https://github.com/enso-org/enso/issues/9289
-    String directoryName = "???";
-    String organizationId = "";
-    cachedWorkingDirectory = new CloudWorkingDirectory(directoryName, directoryId, organizationId);
-    return cachedWorkingDirectory;
+  /**
+   * Returns the ID of the currently opened cloud project.
+   *
+   * <p>When running locally, this returns {@code null}.
+   */
+  public static String getCloudProjectId() {
+    return Environment_Utils.get_environment_variable("ENSO_CLOUD_PROJECT_ID");
   }
 
-  private static CloudWorkingDirectory cachedWorkingDirectory = null;
-
   public static void flushCloudCaches() {
+    CloudRequestCache.clear();
     AuthenticationProvider.reset();
-
-    cachedWorkingDirectory = null;
     EnsoSecretReader.flushCache();
   }
 }

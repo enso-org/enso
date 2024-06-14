@@ -18,9 +18,8 @@ process_warnings jdbc_object ~action =
    This works with any object that has a `getWarnings` method, returning a `SQLWarning`.
 extract_warnings : Any -> Vector SQL_Warning
 extract_warnings jdbc_object =
-    builder = Vector.new_builder
-    extract_warnings_into_builder builder jdbc_object
-    builder.to_vector
+    Vector.build builder->
+        extract_warnings_into_builder builder jdbc_object
 
 ## PRIVATE
    Extracts warnings from a JDBC object and appends them into a provided vector

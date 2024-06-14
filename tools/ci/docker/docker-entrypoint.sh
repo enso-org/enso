@@ -13,4 +13,9 @@ if [ "$INTERFACE" == "" ]; then
   INTERFACE="0.0.0.0"
 fi
 
-/opt/enso/bin/enso --log-level "$LOG_LEVEL" --rpc-port $RPC_PORT --data-port $DATA_PORT --root-id "$LS_ROOT_ID" --interface "$INTERFACE" "$@"
+PROFILING_OPTIONS=""
+if [ "$PROFILING_FILENAME" != "" ] && [ "$PROFILING_TIME" != "" ]; then
+  PROFILING_OPTIONS="--profiling-path /opt/enso/profiling/$PROFILING_FILENAME --profiling-time=$PROFILING_TIME"
+fi
+
+/opt/enso/bin/enso $PROFILING_OPTIONS --log-level "$LOG_LEVEL" --rpc-port $RPC_PORT --data-port $DATA_PORT --root-id "$LS_ROOT_ID" --interface "$INTERFACE" "$@"

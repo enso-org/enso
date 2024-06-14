@@ -15,9 +15,10 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.ValuesGenerator.Language;
-import org.enso.polyglot.MethodNames;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -25,13 +26,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class MetaObjectTest extends TestBase {
+public class MetaObjectTest {
   private static Context ctx;
   private static ValuesGenerator generator;
 
   @BeforeClass
   public static void prepareCtx() {
-    ctx = createDefaultContext();
+    ctx = ContextUtils.createDefaultContext();
   }
 
   @AfterClass
@@ -233,7 +234,7 @@ import Standard.Base.Nothing.Nothing
 
 main = Warning.attach "foo" Nothing
 """;
-    var nothingWithWarn = TestBase.evalModule(ctx, src);
+    var nothingWithWarn = ContextUtils.evalModule(ctx, src);
     assertThat(nothingWithWarn.isMetaObject(), is(false));
   }
 
@@ -243,7 +244,7 @@ main = Warning.attach "foo" Nothing
 import Standard.Base.Nothing.Nothing
 main = Nothing
 """;
-    var nothing = TestBase.evalModule(ctx, src);
+    var nothing = ContextUtils.evalModule(ctx, src);
     assertThat(nothing.isNull(), is(true));
   }
 

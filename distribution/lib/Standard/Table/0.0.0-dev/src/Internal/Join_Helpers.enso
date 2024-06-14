@@ -1,11 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Builder
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.Join_Condition.Join_Condition
-import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Join_Condition.Join_Condition
+import project.Value_Type.Value_Type
 from project.Errors import Invalid_Value_Type, Missing_Input_Columns, No_Such_Column
 
 type Join_Condition_Resolver
@@ -23,7 +24,7 @@ type Join_Condition_Resolver
        which can be used to deduplicate them.
     resolve : Join_Condition | Text | Vector (Join_Condition | Text) -> Problem_Behavior -> Join_Condition_Resolution
     resolve self conditions on_problems =
-        redundant_names = Vector.new_builder
+        redundant_names = Builder.new
         left_problem_builder = Problem_Builder.new missing_input_columns_location="the left table" types_to_always_throw=[Missing_Input_Columns]
         right_problem_builder = Problem_Builder.new missing_input_columns_location="the right table" types_to_always_throw=[Missing_Input_Columns]
 
@@ -42,10 +43,7 @@ type Join_Condition_Resolver
         is_nothing column = case column of
             Nothing -> True
             _ -> False
-        conditions_vector = case conditions of
-            _ : Vector -> conditions
-            single_condition : Join_Condition -> [single_condition]
-            single_condition : Text -> [single_condition]
+        conditions_vector = Vector.unify_vector_or_element conditions . map on_problems=No_Wrap condition-> (condition:Join_Condition)
         handle_equals left_selector right_selector =
             left = resolve_left left_selector
             right = resolve_right right_selector
@@ -58,7 +56,6 @@ type Join_Condition_Resolver
             Join_Condition.Equals left_selector right_selector ->
                 right_resovled = if right_selector == "" then left_selector else right_selector
                 handle_equals left_selector right_resovled
-            column_name : Text -> handle_equals column_name column_name
             Join_Condition.Equals_Ignore_Case left_selector right_selector locale ->
                 left = resolve_left left_selector
                 right_resovled = if right_selector == "" then left_selector else right_selector

@@ -2,8 +2,7 @@
  * currently authenticated user's session. */
 import * as React from 'react'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
-import * as refreshHooks from '#/hooks/refreshHooks'
+import * as reactQuery from '@tanstack/react-query'
 
 import * as errorModule from '#/utilities/error'
 
@@ -17,8 +16,6 @@ import * as listen from '#/authentication/listen'
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
   readonly session: cognito.UserSession | null
-  /** Set `initialized` to false. Must be called when logging out. */
-  readonly deinitializeSession: () => void
   readonly onSessionError: (callback: (error: Error) => void) => () => void
 }
 
@@ -44,14 +41,19 @@ export interface SessionProviderProps {
   readonly mainPageUrl: URL
   readonly registerAuthEventListener: listen.ListenFunction | null
   readonly userSession: (() => Promise<cognito.UserSession | null>) | null
+  readonly refreshUserSession: (() => Promise<void>) | null
   readonly children: React.ReactNode
 }
 
+const FIVE_MINUTES_MS = 300_000
+// const SIX_HOURS_MS = 21_600_000
+const SIX_HOURS_MS = 21_600_000
+
 /** A React provider for the session of the authenticated user. */
 export default function SessionProvider(props: SessionProviderProps) {
-  const { mainPageUrl, children, userSession, registerAuthEventListener } = props
-  const [refresh, doRefresh] = refreshHooks.useRefresh()
-  const [initialized, setInitialized] = React.useState(false)
+  const { mainPageUrl, children, userSession, registerAuthEventListener, refreshUserSession } =
+    props
+
   const errorCallbacks = React.useRef(new Set<(error: Error) => void>())
 
   /** Returns a function to unregister the listener. */
@@ -62,37 +64,49 @@ export default function SessionProvider(props: SessionProviderProps) {
     }
   }, [])
 
-  // Register an async effect that will fetch the user's session whenever the `refresh` state is
-  // set. This is useful when a user has just logged in (as their cached credentials are
-  // out of date, so this will update them).
-  const session = asyncEffectHooks.useAsyncEffect(
-    null,
-    async () => {
-      if (userSession == null) {
-        setInitialized(true)
-        return null
-      } else {
-        try {
-          const innerSession = await userSession()
-          setInitialized(true)
-          return innerSession
-        } catch (error) {
-          if (error instanceof Error) {
-            for (const listener of errorCallbacks.current) {
-              listener(error)
+  const queryClient = reactQuery.useQueryClient()
+
+  const session = reactQuery.useSuspenseQuery({
+    queryKey: ['userSession', userSession],
+    queryFn: userSession
+      ? () =>
+          userSession().catch(error => {
+            if (error instanceof Error) {
+              for (const listener of errorCallbacks.current) {
+                listener(error)
+              }
             }
-          }
-          throw error
-        }
-      }
-    },
-    [refresh]
-  )
+            throw error
+          })
+      : reactQuery.skipToken,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: true,
+  })
+
+  const timeUntilRefresh = session.data
+    ? // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
+      new Date(session.data.expireAt).getTime() - Date.now() - FIVE_MINUTES_MS
+    : Infinity
+
+  const refreshUserSessionMutation = reactQuery.useMutation({
+    mutationKey: ['refreshUserSession', session.data],
+    mutationFn: () => refreshUserSession?.().then(() => null) ?? Promise.resolve(),
+    meta: { invalidates: [['userSession']], awaitInvalidates: true },
+  })
+
+  reactQuery.useQuery({
+    queryKey: ['refreshUserSession'],
+    queryFn: refreshUserSession
+      ? () => refreshUserSessionMutation.mutateAsync()
+      : reactQuery.skipToken,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: true,
+    refetchInterval: timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS,
+  })
 
   // Register an effect that will listen for authentication events. When the event occurs, we
   // will refresh or clear the user's session, forcing a re-render of the page with the new
   // session.
-  //
   // For example, if a user clicks the "sign out" button, this will clear the user's session, which
   // means the login screen (which is a child of this provider) should render.
   React.useEffect(
@@ -101,7 +115,7 @@ export default function SessionProvider(props: SessionProviderProps) {
         switch (event) {
           case listen.AuthEvent.signIn:
           case listen.AuthEvent.signOut: {
-            doRefresh()
+            void queryClient.invalidateQueries({ queryKey: ['userSession'] })
             break
           }
           case listen.AuthEvent.customOAuthState:
@@ -112,7 +126,7 @@ export default function SessionProvider(props: SessionProviderProps) {
             // will not work.
             // See https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
             history.replaceState({}, '', mainPageUrl)
-            doRefresh()
+            void queryClient.invalidateQueries({ queryKey: ['userSession'] })
             break
           }
           default: {
@@ -120,16 +134,12 @@ export default function SessionProvider(props: SessionProviderProps) {
           }
         }
       }),
-    [doRefresh, registerAuthEventListener, mainPageUrl]
+    [registerAuthEventListener, mainPageUrl, queryClient]
   )
 
-  const deinitializeSession = () => {
-    setInitialized(false)
-  }
-
   return (
-    <SessionContext.Provider value={{ session, deinitializeSession, onSessionError }}>
-      {initialized && children}
+    <SessionContext.Provider value={{ session: session.data, onSessionError }}>
+      {children}
     </SessionContext.Provider>
   )
 }

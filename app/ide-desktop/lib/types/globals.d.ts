@@ -4,8 +4,9 @@
 /// <reference types="vite/client" />
 
 // This file is being imported for its types.
+// prettier-ignore
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import * as buildJson from './../../build.json' assert { type: 'json' }
+import * as buildJson from './../../build.json' assert {type: 'json'}
 
 // =============
 // === Types ===
@@ -29,7 +30,11 @@ interface Enso {
  * Electron context. It contains non-authentication-related functionality. */
 interface BackendApi {
     /** Return the ID of the new project. */
-    readonly importProjectFromPath: (openedPath: string) => Promise<string>
+    readonly importProjectFromPath: (
+        openedPath: string,
+        directory: string | null,
+        name: string
+    ) => Promise<string>
 }
 
 // ==========================
@@ -68,6 +73,28 @@ interface NavigationApi {
     readonly goForward: () => void
 }
 
+// ================
+// === Menu API ===
+// ================
+
+/** `window.menuApi` exposes functionality related to the system menu. */
+interface MenuApi {
+    /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
+    readonly setShowAboutModalHandler: (callback: () => void) => void
+}
+
+// ====================
+// === Version Info ===
+// ====================
+
+/** Versions of the app, and selected software bundled with Electron. */
+interface VersionInfo {
+    readonly version: string
+    readonly build: string
+    readonly electron: string
+    readonly chrome: string
+}
+
 // =====================================
 // === Global namespace augmentation ===
 // =====================================
@@ -76,11 +103,37 @@ interface NavigationApi {
 declare global {
     // Documentation is already inherited.
     /** */
+    // eslint-disable-next-line no-restricted-syntax
     interface Window {
-        readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
+        readonly menuApi: MenuApi
+        readonly versionInfo?: VersionInfo
+        toggleDevtools: () => void
+    }
+
+    /**
+     * Highlight a range of text.
+     */
+    class Highlight {
+        type: string
+        /**
+         * @param ranges - The range to highlight.
+         */
+        constructor(...ranges: Range[])
+    }
+
+    /**
+     *
+     */
+    namespace CSS {
+        // eslint-disable-next-line no-restricted-syntax
+        export const highlights: {
+            set: (key: string, value: Highlight) => void
+            delete: (key: string) => void
+            clear: () => void
+        }
     }
 
     namespace NodeJS {
@@ -89,6 +142,7 @@ declare global {
         // eslint-disable-next-line no-restricted-syntax
         interface ProcessEnv {
             readonly [key: string]: never
+
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
             // This is declared in `@types/node`. It MUST be re-declared here to suppress the error
@@ -97,6 +151,8 @@ declare global {
             TZ?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly CI?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly PROD?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly CSC_LINK?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
@@ -108,12 +164,14 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_BUILD_ICONS?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_BUILD_ELECTRON_BUILDER_CONFIG?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly npm_package_name?: string
 
             // === Cloud environment variables ===
 
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_REDIRECT: string
+            readonly ENSO_CLOUD_REDIRECT?: string
             // When unset, the `.env` loader tries to load `.env` rather than `.<name>.env`.
             // Set to the empty string to load `.env`.
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
@@ -135,14 +193,30 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_COGNITO_REGION?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_GOOGLE_ANALYTICS_TAG?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_DASHBOARD_VERSION?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_DASHBOARD_COMMIT_HASH?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_ENSO_HOST?: string
+
+            // === Electron watch script variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ELECTRON_DEV_MODE?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly GUI_CONFIG_PATH?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly NODE_MODULES_PATH?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
 
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
-    const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
     const IS_VITE: boolean

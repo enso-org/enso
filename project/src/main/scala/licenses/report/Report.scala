@@ -54,8 +54,12 @@ object Report {
         writer.writeSubHeading(
           f"There are ${errors.size} fatal-errors found in the review."
         )
-        writer.writeList(errors.map { problem => () =>
-          writer.writeText(problem.message, Style.Red)
+        writer.writeList(errors.map { error => () =>
+          writer.writeParagraph(
+            error.message,
+            error.metadata,
+            styles = Seq(Style.Red, Style.DisplayInline)
+          )
         })
       } else {
         writer.writeParagraph(
@@ -132,9 +136,14 @@ object Report {
     writer: HTMLWriter,
     summary: ReviewedSummary
   ): Unit = {
-    val sorted = summary.dependencies.sortBy(dep =>
-      (dep.information.moduleInfo.organization, dep.information.moduleInfo.name)
-    )
+    // We sort the dependencies first by the amount of things that need review, then among those by artifact id
+    val sorted = summary.dependencies.sortBy { dep =>
+      (
+        -dep.problemsCount,
+        dep.information.moduleInfo.organization,
+        dep.information.moduleInfo.name
+      )
+    }
 
     writer.writeSubHeading("Summary of all compile dependencies")
     writer.writeTable(
@@ -176,6 +185,10 @@ object Report {
                   writer.writeText(
                     s"Not reviewed, filename: <pre>$name</pre>",
                     Style.Red
+                  )
+                  writer.writeInjectionHandler(
+                    "license-not-reviewed",
+                    "name" -> name
                   )
                 case LicenseReview.Default(path, allowAdditional) =>
                   val additional =
@@ -226,7 +239,7 @@ object Report {
                         .map(origin => s" (Found at $origin)")
                         .getOrElse("")
                       writer.writeCollapsible(
-                        s"${file.fileName} (${renderStatus(status)})$origin " +
+                        s"${file.path} (${renderStatus(status)})$origin " +
                         s"${renderSimilarity(defaultLicense, file, status)}",
                         injection +
                         writer.escape(file.content)
@@ -286,6 +299,11 @@ object Report {
                   }, // Bullets are not needed because jQuery CSS will handle this better
                   addBullets = false
                 )
+
+              writer.writeInjectionHandler(
+                "add-custom-copyright-notice",
+                "package" -> dep.information.packageName
+              )
             }
       }
     )

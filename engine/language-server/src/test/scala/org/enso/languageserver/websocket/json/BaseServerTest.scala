@@ -35,6 +35,7 @@ import org.enso.languageserver.io._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.IdlenessMonitor
 import org.enso.languageserver.profiling.{
+  EventsMonitorActor,
   ProfilingManager,
   TestProfilingSnapshot
 }
@@ -54,11 +55,12 @@ import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
 }
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.testkit.{EitherValue, WithTemporaryDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalactic.source
@@ -71,8 +73,10 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicInteger
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import org.slf4j.LoggerFactory
 
 abstract class BaseServerTest
     extends JsonRpcServerTestKit
@@ -162,8 +166,7 @@ abstract class BaseServerTest
   val zioRuntime   = new ExecutionContextRuntime(testExecutor)
 
   val zioExec         = ZioExec(zioRuntime)
-  val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
-  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+  val suggestionsRepo = new InMemorySuggestionsRepo()(system.dispatcher)
 
   private def initializationComponent =
     new SequentialResourcesInitialization(
@@ -178,7 +181,6 @@ abstract class BaseServerTest
         initThreadPool,
         config.directories,
         system.eventStream,
-        sqlDatabase,
         suggestionsRepo
       )
     )
@@ -237,7 +239,7 @@ abstract class BaseServerTest
       FileManager.props(
         config.fileManager,
         contentRootManagerWrapper,
-        new FileSystem,
+        new FileSystem(LoggerFactory.getLogger(classOf[BaseServerTest])),
         zioExec
       ),
       s"file-manager-${UUID.randomUUID()}"
@@ -275,7 +277,7 @@ abstract class BaseServerTest
         config,
         contentRootManagerWrapper,
         watcherFactory,
-        new FileSystem,
+        new FileSystem(LoggerFactory.getLogger(classOf[BaseServerTest])),
         zioExec
       ),
       s"fileevent-registry-${UUID.randomUUID()}"
@@ -376,9 +378,13 @@ abstract class BaseServerTest
       )
     )
 
+    val eventsMonitor = system.actorOf(
+      EventsMonitorActor.props(new NoopEventsMonitor)
+    )
+
     val profilingManager = system.actorOf(
       ProfilingManager.props(
-        runtimeConnectorProbe.ref,
+        eventsMonitor,
         distributionManager,
         profilingSnapshot,
         clock

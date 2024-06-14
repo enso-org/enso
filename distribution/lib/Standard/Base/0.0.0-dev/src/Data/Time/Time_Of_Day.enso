@@ -52,7 +52,7 @@ new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_bui
 @Builtin_Type
 type Time_Of_Day
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Obtains the current time from the system clock in the default time-zone.
 
        > Example
@@ -65,7 +65,7 @@ type Time_Of_Day
     now = @Builtin_Method "Time_Of_Day.now"
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Obtains an instance of `Time_Of_Day` from an hour, minute, second
        and nanosecond.
 
@@ -262,13 +262,13 @@ type Time_Of_Day
         self.nanosecond_builtin include_milliseconds
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the first time within the `Time_Period` containing self.
     start_of : Time_Period -> Time_Of_Day
     start_of self period=Time_Period.Day = period.adjust_start self
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns the last time within the `Time_Period` containing self.
     end_of : Time_Period -> Time_Of_Day
     end_of self period=Time_Period.Day = period.adjust_end self
@@ -306,7 +306,7 @@ type Time_Of_Day
 
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Returns a requested time part as integer.
     date_part : Time_Period -> Integer
     date_part self (period : Time_Period) =
@@ -320,7 +320,7 @@ type Time_Of_Day
             Time_Period.Nanosecond  -> self.nanosecond
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Computes a time difference between the two times of day.
 
        It returns an integer expressing how many periods fit between the two
@@ -339,7 +339,7 @@ type Time_Of_Day
             Time_Utils.unit_time_difference period.to_java_unit self end
 
     ## GROUP DateTime
-       ICON date_and_time
+       ICON time
        Shifts the time of day by a specified period.
 
        Arguments:
@@ -354,7 +354,7 @@ type Time_Of_Day
 
     ## ALIAS add duration
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
@@ -383,7 +383,7 @@ type Time_Of_Day
 
     ## ALIAS subtract duration
        GROUP Operators
-       ICON date_and_time
+       ICON time
        Subtract the  specified amount of time from this instant to get a new
        instant.
 
@@ -486,7 +486,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
-    @format (value-> make_time_format_selector value)
+    @format make_time_format_selector
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter =
         format.format_time self

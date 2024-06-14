@@ -25,7 +25,7 @@ public class CreateFunctionNode extends ExpressionNode {
 
   private CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
     this.callTarget = callTarget;
-    this.schema = new FunctionSchema(args);
+    this.schema = FunctionSchema.newBuilder().argumentDefinitions(args).build();
   }
 
   /**
@@ -40,18 +40,6 @@ public class CreateFunctionNode extends ExpressionNode {
   }
 
   /**
-   * Generates the provided function definition in the given stack {@code frame}.
-   *
-   * @param frame the stack frame for execution
-   * @return the function defined by this node
-   */
-  @Override
-  public Function executeFunction(VirtualFrame frame) {
-    MaterializedFrame scope = frame.materialize();
-    return new Function(callTarget, scope, this.schema);
-  }
-
-  /**
    * Executes the current node.
    *
    * @param frame the stack frame for execution
@@ -59,7 +47,8 @@ public class CreateFunctionNode extends ExpressionNode {
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    return executeFunction(frame);
+    MaterializedFrame scope = frame.materialize();
+    return new Function(callTarget, scope, this.schema);
   }
 
   /**

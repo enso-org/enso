@@ -33,7 +33,6 @@ pub mod prelude {
 }
 
 pub mod aws;
-pub mod bump_version;
 pub mod changelog;
 pub mod ci;
 pub mod ci_gen;
@@ -44,6 +43,7 @@ pub mod enso;
 pub mod env;
 pub mod httpbin;
 pub mod ide;
+pub mod libraries_tests;
 pub mod paths;
 pub mod postgres;
 pub mod programs;
@@ -96,6 +96,11 @@ pub fn get_graal_version(build_sbt_contents: &str) -> Result<Version> {
 /// Get version of GraalVM packages from the `build.sbt` file contents.
 pub fn get_graal_packages_version(build_sbt_contents: &str) -> Result<Version> {
     get_string_assignment_value(build_sbt_contents, "graalMavenPackagesVersion")?.parse2()
+}
+
+/// Get version of GraalVM packages from the `build.sbt` file contents.
+pub fn get_flatbuffers_version(build_sbt_contents: &str) -> Result<Version> {
+    get_string_assignment_value(build_sbt_contents, "flatbuffersVersion")?.parse2()
 }
 
 #[cfg(test)]

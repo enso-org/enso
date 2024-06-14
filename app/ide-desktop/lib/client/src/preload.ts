@@ -5,6 +5,7 @@
 
 import * as electron from 'electron'
 
+import * as debug from 'debug'
 import * as ipc from 'ipc'
 
 // =================
@@ -23,6 +24,10 @@ const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
 const NAVIGATION_API_KEY = 'navigationApi'
 
+const MENU_API_KEY = 'menuApi'
+
+const VERSION_INFO_KEY = 'versionInfo'
+
 // =============================
 // === importProjectFromPath ===
 // =============================
@@ -30,8 +35,8 @@ const NAVIGATION_API_KEY = 'navigationApi'
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
 
 const BACKEND_API = {
-    importProjectFromPath: (projectPath: string) => {
-        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
+    importProjectFromPath: (projectPath: string, directory: string | null = null) => {
+        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory)
         return new Promise<string>(resolve => {
             IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
         })
@@ -168,7 +173,31 @@ const AUTHENTICATION_API = {
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
 
 const FILE_BROWSER_API = {
-    openFileBrowser: (kind: 'any' | 'directory' | 'file') =>
-        electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind),
+    openFileBrowser: (kind: 'any' | 'directory' | 'file' | 'filePath', defaultPath?: string) =>
+        electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath),
 }
 electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
+
+// ====================
+// === Version info ===
+// ====================
+
+electron.contextBridge.exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
+
+// ================
+// === Menu API ===
+// ================
+
+let showAboutModalHandler: (() => void) | null = null
+
+electron.ipcRenderer.on(ipc.Channel.showAboutModal, () => {
+    showAboutModalHandler?.()
+})
+
+const MENU_API = {
+    setShowAboutModalHandler: (callback: () => void) => {
+        showAboutModalHandler = callback
+    },
+}
+
+electron.contextBridge.exposeInMainWorld(MENU_API_KEY, MENU_API)

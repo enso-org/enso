@@ -1,17 +1,25 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -29,6 +37,7 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -240,7 +249,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Specialization
   public Object invokeDynamicConstructor(
       UnresolvedConstructor symbol, VirtualFrame callerFrame, State state, Object[] arguments) {
-    return symbol.withArguments(invokeFunctionNode.getSchema(), arguments);
+    return symbol.withArguments(this, invokeFunctionNode.getSchema(), arguments);
   }
 
   @Specialization
@@ -278,7 +287,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       VirtualFrame callerFrame,
       State state,
       Object[] arguments,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
 
     Warning[] extracted;
     Object callable;
@@ -320,6 +329,47 @@ public abstract class InvokeCallableNode extends BaseNode {
       }
     } catch (TailCallException e) {
       throw new TailCallException(e, extracted);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "iop.isExecutable(self)",
+      })
+  static Object doPolyglot(
+      Object self,
+      VirtualFrame frame,
+      State state,
+      Object[] arguments,
+      @Bind("$node") Node node,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Cached ThunkExecutorNode thunkNode,
+      @Cached InlinedBranchProfile errorNeedsToBeReported) {
+    var errors = EnsoContext.get(node).getBuiltins().error();
+    try {
+      for (int i = 0; i < arguments.length; i++) {
+        arguments[i] = thunkNode.executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
+      }
+      return iop.execute(self, arguments);
+    } catch (UnsupportedTypeException ex) {
+      errorNeedsToBeReported.enter(node);
+      var err = errors.makeUnsupportedArgumentsError(ex.getSuppliedValues(), ex.getMessage());
+      throw new PanicException(err, node);
+    } catch (ArityException ex) {
+      errorNeedsToBeReported.enter(node);
+      var err =
+          errors.makeArityError(
+              ex.getExpectedMinArity(), ex.getExpectedMaxArity(), arguments.length);
+      throw new PanicException(err, node);
+    } catch (UnsupportedMessageException ex) {
+      errorNeedsToBeReported.enter(node);
+      var err = errors.makeNotInvokable(self);
+      throw new PanicException(err, node);
     }
   }
 

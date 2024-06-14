@@ -1,11 +1,13 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -61,6 +63,9 @@ public class InferredBuilder extends Builder {
 
   @Override
   public void append(Object o) {
+    // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
+    o = Polyglot_Utils.convertPolyglotValue(o);
+
     if (currentBuilder == null) {
       if (o == null) {
         currentSize++;
@@ -111,6 +116,8 @@ public class InferredBuilder extends Builder {
       currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else if (o instanceof BigInteger) {
       currentBuilder = new BigIntegerBuilder(initialCapacity, problemAggregator);
+    } else if (o instanceof BigDecimal) {
+      currentBuilder = new BigDecimalBuilder(initialCapacity);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {

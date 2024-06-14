@@ -14,11 +14,9 @@ The template itself is written in [Handlebars](https://handlebarsjs.com/).
 Enso IDE is the main product of the Enso project. The packages are stand-alone, they contain both GUI and the backend.
 
 Download links:
-
-- [Linux]({{download_prefix}}/enso-linux-x86_64-{{version}}.AppImage) (AppImage);
-- [macOS (x64)]({{download_prefix}}/enso-mac-x64-{{version}}.dmg) (DMG);
-- [macOS (arm64)]({{download_prefix}}/enso-mac-arm64-{{version}}.dmg) (DMG);
-- [Windows]({{download_prefix}}/enso-win-x64-{{version}}.exe) (Installer Executable).
+{{#each assets.ide}}
+- [{{target_pretty}}]({{url}})
+{{/each}}
 
 This is the recommended download for most users.
 
@@ -27,11 +25,9 @@ This is the recommended download for most users.
 If you are interested in using Enso Engine command line tools only, download the Enso Engine bundle.
 
 Download links:
-
-- [Linux]({{download_prefix}}/enso-bundle-{{version}}-linux-amd64.tar.gz);
-- [macOS (x64)]({{download_prefix}}/enso-bundle-{{version}}-macos-amd64.tar.gz);
-- [macOS (arm64)]({{download_prefix}}/enso-bundle-{{version}}-macos-amd64.tar.gz);
-- [Windows]({{download_prefix}}/enso-bundle-{{version}}-windows-amd64.zip).
+{{#each assets.engine}}
+- [{{target_pretty}}]({{url}})
+{{/each}}
 
 These are archives containing the [Enso portable distribution](https://enso.org/docs/developer/enso/distribution/distribution.html#portable-enso-distribution-layout). User is responsible for setting up the environment variables and adding the `bin` directory to the `PATH`.
 

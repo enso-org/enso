@@ -1,5 +1,5 @@
 <script lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
@@ -10,7 +10,7 @@ import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
-export const inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+export const inputType = 'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector'
 const DEFAULT_LIMIT = 1024
 export const defaultPreprocessor = [
   'Standard.Visualization.Scatter_Plot',
@@ -539,12 +539,13 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @click.stop="zoomToSelected(false)" />
-      </button>
-      <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @click.stop="zoomToSelected" />
-      </button>
+      <SvgButton name="show_all" title="Fit All" @click.stop="zoomToSelected(false)" />
+      <SvgButton
+        name="find"
+        title="Zoom to Selected"
+        :disabled="brushExtent == null"
+        @click.stop="zoomToSelected"
+      />
     </template>
     <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">

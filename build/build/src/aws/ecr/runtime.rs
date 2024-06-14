@@ -43,7 +43,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_name() -> Result {
-        setup_logging()?;
+        setup_logging().ok();
         let tag = "test_runtime_image";
         info!("Current directory: {}", ide_ci::env::current_dir()?.display());
         let root = deduce_repository_path()?;

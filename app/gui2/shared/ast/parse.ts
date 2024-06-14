@@ -39,6 +39,7 @@ import {
   App,
   Assignment,
   Ast,
+  AutoscopedIdentifier,
   BodyBlock,
   Documented,
   Function,
@@ -201,6 +202,12 @@ class Abstractor {
         } else {
           node = UnaryOprApp.concrete(this.module, opr, arg)
         }
+        break
+      }
+      case RawAst.Tree.Type.AutoscopedIdentifier: {
+        const opr = this.abstractToken(tree.opr)
+        const ident = this.abstractToken(tree.ident)
+        node = AutoscopedIdentifier.concrete(this.module, opr, ident)
         break
       }
       case RawAst.Tree.Type.OprApp: {
@@ -500,11 +507,11 @@ export function printBlock(
 ): string {
   let blockIndent: string | undefined
   let code = ''
-  for (const line of block.fields.get('lines')) {
+  block.fields.get('lines').forEach((line, index) => {
     code += line.newline.whitespace ?? ''
     const newlineCode = block.module.getToken(line.newline.node).code()
     // Only print a newline if this isn't the first line in the output, or it's a comment.
-    if (offset || code || newlineCode.startsWith('#')) {
+    if (offset || index || newlineCode.startsWith('#')) {
       // If this isn't the first line in the output, but there is a concrete newline token:
       // if it's a zero-length newline, ignore it and print a normal newline.
       code += newlineCode || '\n'
@@ -526,7 +533,7 @@ export function printBlock(
       assertEqual(parentId(lineNode), block.id)
       code += lineNode.printSubtree(info, offset + code.length, blockIndent, verbatim)
     }
-  }
+  })
   const span = nodeKey(offset, code.length)
   map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(block)
   return code

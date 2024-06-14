@@ -9,6 +9,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
@@ -16,8 +18,6 @@ import org.enso.interpreter.test.InterpreterContext;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
-import org.enso.polyglot.LanguageInfo;
-import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.Suggestion;
 import org.junit.After;
 import org.junit.Assert;
@@ -78,6 +78,7 @@ public class SerializationManagerTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void serializeLibrarySuggestions()
       throws ExecutionException, InterruptedException, TimeoutException {
     LibraryName standardBaseLibrary = new LibraryName("Standard", "Base");
@@ -94,7 +95,8 @@ public class SerializationManagerTest {
     Assert.assertEquals(Boolean.TRUE, result);
 
     var cachedSuggestions =
-        ensoContext.getCompiler().context().deserializeSuggestions(standardBaseLibrary).get();
+        (java.util.List<Suggestion>)
+            ensoContext.getCompiler().context().deserializeSuggestions(standardBaseLibrary).get();
 
     Supplier<Stream<Suggestion.Constructor>> cachedConstructorSuggestions =
         () ->

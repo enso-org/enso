@@ -1,6 +1,11 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
+import FocusRing from '#/components/styled/FocusRing'
+import Input from '#/components/styled/Input'
+
 // =================
 // === Constants ===
 // =================
@@ -18,10 +23,10 @@ interface InternalBaseAutocompleteProps<T> {
   readonly type?: React.HTMLInputTypeAttribute
   readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
   readonly placeholder?: string
-  readonly values: T[]
+  readonly values: readonly T[]
   readonly autoFocus?: boolean
   /** This may change as the user types in the input. */
-  readonly items: T[]
+  readonly items: readonly T[]
   readonly itemToKey: (item: T) => string
   readonly itemToString: (item: T) => string
   readonly itemsToString?: (items: T[]) => string
@@ -45,8 +50,8 @@ interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteP
   /** This is `null` when multiple values are selected, causing the input to switch to a
    * {@link HTMLTextAreaElement}. */
   readonly inputRef?: React.MutableRefObject<HTMLInputElement | null>
-  readonly setValues: (value: T[]) => void
-  readonly itemsToString: (items: T[]) => string
+  readonly setValues: (value: readonly T[]) => void
+  readonly itemsToString: (items: readonly T[]) => string
 }
 
 /** {@link AutocompleteProps} when the text cannot be edited. */
@@ -76,6 +81,8 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const valuesSet = React.useMemo(() => new Set(values), [values])
   const canEditText = setText != null && values.length === 0
+  // We are only interested in the initial value of `canEditText` in effects.
+  const canEditTextRef = React.useRef(canEditText)
   const isMultipleAndCustomValue = multiple === true && text != null
   const matchingItems = React.useMemo(
     () => (text == null ? items : items.filter(item => matches(item, text))),
@@ -83,10 +90,10 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
   )
 
   React.useEffect(() => {
-    if (!canEditText) {
+    if (!canEditTextRef.current) {
       setIsDropdownVisible(true)
     }
-  }, [canEditText])
+  }, [])
 
   React.useEffect(() => {
     const onClick = () => {
@@ -175,68 +182,74 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
 
   return (
     <div onKeyDown={onKeyDown} className="grow">
-      <div className="flex flex-1">
-        {canEditText ? (
-          <input
-            type={type}
-            ref={inputRef}
-            autoFocus={autoFocus}
-            size={1}
-            value={text ?? ''}
-            placeholder={placeholder}
-            className="text grow bg-transparent px-button-x"
-            onFocus={() => {
-              setIsDropdownVisible(true)
-            }}
-            onBlur={() => {
-              window.setTimeout(() => {
-                setIsDropdownVisible(false)
-              })
-            }}
-            onChange={event => {
-              setIsDropdownVisible(true)
-              setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
-            }}
-          />
-        ) : (
-          <div
-            ref={element => element?.focus()}
-            tabIndex={-1}
-            className="text grow cursor-pointer bg-transparent px-button-x"
-            onClick={() => {
-              setIsDropdownVisible(true)
-            }}
-            onBlur={() => {
-              requestAnimationFrame(() => {
-                setIsDropdownVisible(false)
-              })
-            }}
-          >
-            {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
-          </div>
-        )}
-      </div>
+      <FocusRing within>
+        <div className="flex flex-1 rounded-full">
+          {canEditText ? (
+            <Input
+              type={type}
+              ref={inputRef}
+              autoFocus={autoFocus}
+              size={1}
+              value={text ?? ''}
+              placeholder={placeholder}
+              className="text grow rounded-full bg-transparent px-button-x"
+              onFocus={() => {
+                setIsDropdownVisible(true)
+              }}
+              onBlur={() => {
+                window.setTimeout(() => {
+                  setIsDropdownVisible(false)
+                })
+              }}
+              onChange={event => {
+                setIsDropdownVisible(true)
+                setText(event.currentTarget.value === '' ? null : event.currentTarget.value)
+              }}
+            />
+          ) : (
+            <div
+              ref={element => element?.focus()}
+              tabIndex={-1}
+              className="text grow cursor-pointer whitespace-nowrap bg-transparent px-button-x"
+              onClick={() => {
+                setIsDropdownVisible(true)
+              }}
+              onBlur={() => {
+                requestAnimationFrame(() => {
+                  setIsDropdownVisible(false)
+                })
+              }}
+            >
+              {itemsToString?.(values) ?? (values[0] != null ? itemToString(values[0]) : ZWSP)}
+            </div>
+          )}
+        </div>
+      </FocusRing>
       <div className="h">
         <div
-          className={`relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default ${
-            isDropdownVisible && matchingItems.length !== 0
-              ? 'before:border before:border-primary/10'
-              : ''
-          }`}
+          className={tailwindMerge.twMerge(
+            'relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default',
+            isDropdownVisible &&
+              matchingItems.length !== 0 &&
+              'before:border before:border-primary/10'
+          )}
         >
           <div
-            className={`relative max-h-autocomplete-suggestions w-full overflow-auto rounded-default ${
-              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h'
-            }`}
+            className={tailwindMerge.twMerge(
+              'relative max-h-autocomplete-suggestions w-full overflow-auto rounded-default',
+              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h-0'
+            )}
           >
             {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
              * so the suggestions may go offscreen. */}
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
-                className={`text relative cursor-pointer px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg ${
-                  index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-hover-bg' : ''
-                }`}
+                className={tailwindMerge.twMerge(
+                  'text relative cursor-pointer whitespace-nowrap px-input-x first:rounded-t-default last:rounded-b-default hover:bg-hover-bg',
+                  valuesSet.has(item) && 'bg-hover-bg',
+                  index === selectedIndex && 'bg-black/5'
+                )}
                 onMouseDown={event => {
                   event.preventDefault()
                 }}

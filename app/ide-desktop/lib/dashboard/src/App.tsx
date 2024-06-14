@@ -45,35 +45,49 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
+import * as backendHooks from '#/hooks/backendHooks'
+
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
-import ModalProvider from '#/providers/ModalProvider'
+import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
-import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
 import Login from '#/pages/authentication/Login'
 import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
+import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
-import Subscribe from '#/pages/subscribe/Subscribe'
+import * as subscribe from '#/pages/subscribe/Subscribe'
+import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
+import * as errorBoundary from '#/components/ErrorBoundary'
+import * as loader from '#/components/Loader'
 import * as rootComponent from '#/components/Root'
+
+import AboutModal from '#/modals/AboutModal'
+import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
+import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 
+import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
+
+import type * as types from '../../types/types'
 
 // ============================
 // === Global configuration ===
@@ -132,7 +146,9 @@ export interface AppProps {
   readonly initialProjectName: string | null
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
-  readonly appRunner: AppRunner
+  readonly ydocUrl: string | null
+  readonly appRunner: types.EditorRunner | null
+  readonly portalRoot: Element
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -141,30 +157,43 @@ export interface AppProps {
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
 export default function App(props: AppProps) {
-  // This is a React component even though it does not contain JSX.
-  // eslint-disable-next-line no-restricted-syntax
-  const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
-  const queryClient = React.useMemo(() => new reactQuery.QueryClient(), [])
+  const { supportsLocalBackend } = props
+
+  const { data: rootDirectoryPath } = reactQuery.useSuspenseQuery({
+    queryKey: ['root-directory', supportsLocalBackend],
+    queryFn: async () => {
+      if (supportsLocalBackend) {
+        const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
+        const text = await response.text()
+        return projectManager.Path(text)
+      } else {
+        return null
+      }
+    },
+  })
+
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
-    <reactQuery.QueryClientProvider client={queryClient}>
+    <>
       <toastify.ToastContainer
         position="top-center"
         theme="light"
         closeOnClick={false}
         draggable={false}
-        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
+        toastClassName="text-sm leading-cozy bg-selected-frame rounded-lg backdrop-blur-default"
         transition={toastify.Zoom}
         limit={3}
       />
-      <Router basename={getMainPageUrl().pathname}>
+      <router.BrowserRouter basename={getMainPageUrl().pathname}>
         <LocalStorageProvider>
-          <AppRouter {...props} />
+          <ModalProvider>
+            <AppRouter {...props} projectManagerRootDirectory={rootDirectoryPath} />
+          </ModalProvider>
         </LocalStorageProvider>
-      </Router>
-    </reactQuery.QueryClientProvider>
+      </router.BrowserRouter>
+    </>
   )
 }
 
@@ -172,27 +201,40 @@ export default function App(props: AppProps) {
 // === AppRouter ===
 // =================
 
+/** Props for an {@link AppRouter}. */
+export interface AppRouterProps extends AppProps {
+  readonly projectManagerRootDirectory: projectManager.Path | null
+}
+
 /** Router definition for the app.
  *
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
-function AppRouter(props: AppProps) {
-  const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
-  const { onAuthenticated, projectManagerUrl } = props
+function AppRouter(props: AppRouterProps) {
+  const { logger, isAuthenticationDisabled, shouldShowDashboard } = props
+  const { onAuthenticated, projectManagerUrl, projectManagerRootDirectory } = props
+  const { portalRoot } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
   // yet been initialized at this point.
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { setModal } = modalProvider.useSetModal()
+  const navigator2D = navigator2DProvider.useNavigator2D()
+  const [remoteBackend, setRemoteBackend] = React.useState<Backend | null>(null)
+  const [localBackend] = React.useState(() =>
+    projectManagerUrl != null && projectManagerRootDirectory != null
+      ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
+      : null
+  )
+  backendHooks.useObserveBackend(remoteBackend)
+  backendHooks.useObserveBackend(localBackend)
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
-  const [root] = React.useState<React.RefObject<HTMLElement>>(() => ({
-    current: document.getElementById('enso-dashboard'),
-  }))
 
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
@@ -211,6 +253,20 @@ function AppRouter(props: AppProps) {
       }
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+
+  React.useEffect(() => {
+    if (remoteBackend) {
+      void remoteBackend.logEvent('open_app')
+      const logCloseEvent = () => void remoteBackend.logEvent('close_app')
+      window.addEventListener('beforeunload', logCloseEvent)
+      return () => {
+        window.removeEventListener('beforeunload', logCloseEvent)
+        logCloseEvent()
+      }
+    } else {
+      return
+    }
+  }, [remoteBackend])
 
   const inputBindings = React.useMemo(() => {
     const updateLocalStorage = () => {
@@ -268,12 +324,25 @@ function AppRouter(props: AppProps) {
   }, [props, /* should never change */ navigate])
 
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
+  const refreshUserSession =
+    authService?.cognito.refreshUserSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
-  const initialBackend: Backend = isAuthenticationDisabled
-    ? new LocalBackend(projectManagerUrl)
-    : // This is safe, because the backend is always set by the authentication flow.
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      null!
+
+  React.useEffect(() => {
+    if ('menuApi' in window) {
+      window.menuApi.setShowAboutModalHandler(() => {
+        setModal(<AboutModal />)
+      })
+    }
+  }, [/* should never change */ setModal])
+
+  React.useEffect(() => {
+    const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [navigator2D])
 
   React.useEffect(() => {
     let isClick = false
@@ -284,7 +353,8 @@ function AppRouter(props: AppProps) {
       if (
         isClick &&
         !eventModule.isElementTextInput(event.target) &&
-        !eventModule.isElementPartOfMonaco(event.target)
+        !eventModule.isElementPartOfMonaco(event.target) &&
+        !eventModule.isElementTextInput(document.activeElement)
       ) {
         const selection = document.getSelection()
         const app = document.getElementById('app')
@@ -316,62 +386,110 @@ function AppRouter(props: AppProps) {
 
   const routes = (
     <router.Routes>
-      <React.Fragment>
-        {/* Login & registration pages are visible to unauthenticated users. */}
-        <router.Route element={<authProvider.GuestLayout />}>
-          <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
-          <router.Route
-            path={appUtils.LOGIN_PATH}
-            element={<Login supportsLocalBackend={supportsLocalBackend} />}
-          />
-        </router.Route>
-        {/* Protected pages are visible to authenticated users. */}
+      {/* Login & registration pages are visible to unauthenticated users. */}
+      <router.Route element={<authProvider.GuestLayout />}>
+        <router.Route path={appUtils.REGISTRATION_PATH} element={<Registration />} />
+        <router.Route path={appUtils.LOGIN_PATH} element={<Login />} />
+      </router.Route>
+
+      {/* Protected pages are visible to authenticated users. */}
+      <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
+          <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
+            <router.Route element={<setOrganizationNameModal.SetOrganizationNameModal />}>
+              <router.Route
+                path={appUtils.DASHBOARD_PATH}
+                element={shouldShowDashboard && <Dashboard {...props} />}
+              />
+
+              <router.Route
+                path={appUtils.SUBSCRIBE_PATH}
+                element={
+                  <errorBoundary.ErrorBoundary>
+                    <React.Suspense fallback={<loader.Loader />}>
+                      <subscribe.Subscribe />
+                    </React.Suspense>
+                  </errorBoundary.ErrorBoundary>
+                }
+              />
+            </router.Route>
+          </router.Route>
+
           <router.Route
-            path={appUtils.DASHBOARD_PATH}
-            element={shouldShowDashboard && <Dashboard {...props} />}
+            path={appUtils.SUBSCRIBE_SUCCESS_PATH}
+            element={
+              <errorBoundary.ErrorBoundary>
+                <React.Suspense fallback={<loader.Loader />}>
+                  <subscribeSuccess.SubscribeSuccess />
+                </React.Suspense>
+              </errorBoundary.ErrorBoundary>
+            }
           />
-          <router.Route path={appUtils.SUBSCRIBE_PATH} element={<Subscribe />} />
         </router.Route>
+      </router.Route>
+
+      <router.Route element={<termsOfServiceModal.TermsOfServiceModal />}>
         {/* Semi-protected pages are visible to users currently registering. */}
-        <router.Route element={<authProvider.SemiProtectedLayout />}>
-          <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+        <router.Route element={<authProvider.NotDeletedUserLayout />}>
+          <router.Route element={<authProvider.SemiProtectedLayout />}>
+            <router.Route path={appUtils.SET_USERNAME_PATH} element={<SetUsername />} />
+          </router.Route>
         </router.Route>
-        {/* Other pages are visible to unauthenticated and authenticated users. */}
-        <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
-        <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
-        <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
-        <router.Route path={appUtils.ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
-      </React.Fragment>
+      </router.Route>
+
+      {/* Other pages are visible to unauthenticated and authenticated users. */}
+      <router.Route path={appUtils.CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
+      <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
+      <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
+
+      {/* Soft-deleted user pages are visible to users who have been soft-deleted. */}
+      <router.Route element={<authProvider.ProtectedLayout />}>
+        <router.Route element={<authProvider.SoftDeletedUserLayout />}>
+          <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
+        </router.Route>
+      </router.Route>
+
+      {/* 404 page */}
+      <router.Route path="*" element={<router.Navigate to="/" replace />} />
     </router.Routes>
   )
+
   let result = routes
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
-  result = <ModalProvider>{result}</ModalProvider>
+  result = (
+    <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
+      {result}
+    </BackendProvider>
+  )
   result = (
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}
-      supportsLocalBackend={supportsLocalBackend}
+      setRemoteBackend={setRemoteBackend}
       authService={authService}
       onAuthenticated={onAuthenticated}
-      projectManagerUrl={projectManagerUrl}
     >
       {result}
     </AuthProvider>
   )
-  result = <BackendProvider initialBackend={initialBackend}>{result}</BackendProvider>
   result = (
     <SessionProvider
       mainPageUrl={mainPageUrl}
       userSession={userSession}
       registerAuthEventListener={registerAuthEventListener}
+      refreshUserSession={
+        refreshUserSession
+          ? async () => {
+              await refreshUserSession()
+            }
+          : null
+      }
     >
       {result}
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
   result = (
-    <rootComponent.Root rootRef={root} navigate={navigate}>
+    <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
       {result}
     </rootComponent.Root>
   )

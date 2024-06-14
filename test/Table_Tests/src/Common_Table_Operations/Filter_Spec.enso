@@ -1,13 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
-import Standard.Table.Data.Expression.Expression_Error
+import Standard.Table.Expression.Expression_Error
 
 from Standard.Database.Errors import SQL_Error
 
@@ -50,17 +51,24 @@ add_specs suite_builder setup =
         group_builder.specify "by integer comparisons" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
             t.filter "X" (Filter_Condition.Less than=10) . at "X" . to_vector . should_equal [3, 4]
+            t.filter "X" (..Less than=10) . at "X" . to_vector . should_equal [3, 4]
             t.filter "X" (Filter_Condition.Less than=4) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Less than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
+            t.filter "X" (..Less than=4 action=..Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
+            t.filter "X" (..Equal_Or_Less than=4) . at "X" . to_vector . should_equal [3, 4]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 12]
             t.filter "X" (Filter_Condition.Greater than=4) . at "X" . to_vector . should_equal [100, 12]
+            t.filter "X" (..Greater than=4) . at "X" . to_vector . should_equal [100, 12]
             t.filter "X" (Filter_Condition.Greater than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing, 4]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
+            t.filter "X" (..Equal_Or_Greater than=4) . at "X" . to_vector . should_equal [100, 4, 12]
             t.filter "X" (Filter_Condition.Equal_Or_Greater than=4 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
             t.filter "X" (Filter_Condition.Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
+            t.filter "X" (..Between 4 100) . at "X" . to_vector . should_equal [100, 4, 12]
             t.filter "X" (Filter_Condition.Between 4 100 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [3, Nothing]
             t.filter "X" (Filter_Condition.Equal to=100) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (..Equal to=100) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Equal to=123) . at "X" . to_vector . should_equal []
             t.filter "X" (Filter_Condition.Equal to=3 action=Filter_Action.Remove) . at "X" . to_vector . should_equal [100, Nothing, 4, 12]
 
@@ -94,6 +102,7 @@ add_specs suite_builder setup =
             t.filter "Y" (Filter_Condition.Between (t.at "ix") 100 action=Filter_Action.Remove) . at "Y" . to_vector . should_equal [2, Nothing]
 
             t.filter "X" (Filter_Condition.Equal to=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100]
+            t.filter "X" (..Equal to=(..Name "Y")) . at "X" . to_vector . should_equal [100]
             t.filter "X" (Filter_Condition.Equal to=(expr "[Y]-1")) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [3]
             t.filter "X" (Filter_Condition.Equal_Or_Less than=(Column_Ref.Name "Y")) . at "X" . to_vector . should_equal [100, 3]
@@ -385,10 +394,10 @@ add_specs suite_builder setup =
 
         group_builder.specify "should nicely handle Filter_Condition with unapplied arguments" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            t.filter "X" (Filter_Condition.Equal) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Starts_With) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Between) . should_fail_with Illegal_Argument
-            t.filter "X" (Filter_Condition.Between 1) . should_fail_with Illegal_Argument
+            t.filter "X" (Filter_Condition.Equal) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Starts_With) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Between) . should_fail_with Missing_Argument
+            t.filter "X" (Filter_Condition.Between 1) . should_fail_with Missing_Argument
 
         group_builder.specify "should report issues: floating point equality" <|
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [10.0, 2.0001, 2.0, 4.5, 2.0]]]

@@ -5,9 +5,11 @@
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
+    "./src/config.json": "./src/config.json",
     "./src/appConfig": "./src/appConfig.js",
     "./src/buildUtils": "./src/buildUtils.js",
     "./src/detect": "./src/detect.ts",
-    "./src/gtag": "./src/gtag.ts"
+    "./src/gtag": "./src/gtag.ts",
+    "./src/load": "./src/load.ts"
   }
 }

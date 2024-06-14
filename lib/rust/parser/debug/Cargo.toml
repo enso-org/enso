@@ -10,7 +10,7 @@ repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 [dependencies]
-enso-parser = { path = "../" }
+enso-parser = { path = "../", features = ["debug"] }
 enso-metamodel = { path = "../../metamodel", features = ["rust"] }
 enso-metamodel-lexpr = { path = "../../metamodel/lexpr" }
 enso-reflect = { path = "../../reflect" }

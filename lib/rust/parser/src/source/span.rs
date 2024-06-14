@@ -197,21 +197,10 @@ impl<'s> Span<'s> {
     pub fn length_including_whitespace(&self) -> code::Length {
         self.left_offset.code.length() + self.code_length
     }
-}
 
-impl<'s> AsRef<Span<'s>> for Span<'s> {
-    fn as_ref(&self) -> &Span<'s> {
-        self
-    }
-}
-
-impl<'s, 'a, T> PartialSemigroup<T> for Span<'s>
-where
-    T: Into<Ref<'s, 'a>>,
-    's: 'a,
-{
     #[inline(always)]
-    fn concat_mut(&mut self, other: T) {
+    fn concat<'a>(mut self, other: impl Into<Ref<'s, 'a>>) -> Self
+    where 's: 'a {
         let other = other.into();
         if self.code_length.is_zero() {
             self.left_offset += other.left_offset;
@@ -224,6 +213,13 @@ where
             self.code_length += other.left_offset.code.length();
             self.code_length += other.code_length;
         }
+        self
+    }
+}
+
+impl<'s> AsRef<Span<'s>> for Span<'s> {
+    fn as_ref(&self) -> &Span<'s> {
+        self
     }
 }
 

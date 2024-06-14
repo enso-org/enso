@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Enso_Cloud.Data_Link import parse_secure_value
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import parse_secure_value
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 import Standard.Database.Connection.Connection_Options.Connection_Options

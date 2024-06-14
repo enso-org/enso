@@ -22,5 +22,5 @@ add_specs suite_builder =
         group_builder.specify "Type names should match table visualization expectations" <|
             expect_type_representation [1,2] "Standard.Base.Data.Vector.Vector"
             expect_type_representation [1,2].to_array "Standard.Base.Data.Array.Array"
-            expect_type_representation sample_table "Standard.Table.Data.Table.Table"
-            expect_type_representation sample_column "Standard.Table.Data.Column.Column"
+            expect_type_representation sample_table "Standard.Table.Table.Table"
+            expect_type_representation sample_column "Standard.Table.Column.Column"

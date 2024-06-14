@@ -155,6 +155,7 @@ object Definition {
     * @param arguments   the arguments to the atom constructor
     * @param annotations the list of annotations
     * @param location    the source location that the node corresponds to
+    * @param isPrivate    If the constructor is private (project-private).
     * @param passData    the pass metadata associated with this node
     * @param diagnostics compiler diagnostics for this node
     */
@@ -163,6 +164,7 @@ object Definition {
     arguments: List[DefinitionArgument],
     annotations: List[Name.GenericAnnotation],
     location: Option[IdentifiedLocation],
+    isPrivate: Boolean             = false,
     passData: MetadataStorage      = new MetadataStorage(),
     diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
@@ -194,6 +196,7 @@ object Definition {
         arguments,
         annotations,
         location,
+        isPrivate,
         passData,
         diagnostics
       )

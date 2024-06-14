@@ -24,6 +24,7 @@ import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
 import org.enso.interpreter.node.expression.builtin.error.NotInvokable;
 import org.enso.interpreter.node.expression.builtin.error.NumberParseError;
 import org.enso.interpreter.node.expression.builtin.error.Panic;
+import org.enso.interpreter.node.expression.builtin.error.PrivateAccess;
 import org.enso.interpreter.node.expression.builtin.error.SyntaxError;
 import org.enso.interpreter.node.expression.builtin.error.TypeError;
 import org.enso.interpreter.node.expression.builtin.error.Unimplemented;
@@ -32,6 +33,7 @@ import org.enso.interpreter.node.expression.builtin.error.UnsupportedArgumentTyp
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -58,6 +60,7 @@ public final class Error {
   private final UnsupportedArgumentTypes unsupportedArgumentsError;
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokable notInvokable;
+  private final PrivateAccess privateAccessError;
   private final InvalidConversionTarget invalidConversionTarget;
   private final NoSuchField noSuchField;
   private final NumberParseError numberParseError;
@@ -96,6 +99,7 @@ public final class Error {
     unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokable = builtins.getBuiltinType(NotInvokable.class);
+    privateAccessError = builtins.getBuiltinType(PrivateAccess.class);
     invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
     noSuchField = builtins.getBuiltinType(NoSuchField.class);
     numberParseError = builtins.getBuiltinType(NumberParseError.class);
@@ -310,6 +314,22 @@ public final class Error {
     return notInvokable.newInstance(target);
   }
 
+  /**
+   * @param thisProjectName Current project name. May be null.
+   * @param targetProjectName Target method project name. May be null.
+   * @param targetMethodName Name of the method that is project-private and cannot be accessed.
+   */
+  public Atom makePrivateAccessError(
+      String thisProjectName, String targetProjectName, String targetMethodName) {
+    assert targetMethodName != null;
+    EnsoObject thisProjName =
+        thisProjectName != null ? Text.create(thisProjectName) : context.getNothing();
+    EnsoObject targetProjName =
+        targetProjectName != null ? Text.create(targetProjectName) : context.getNothing();
+    return privateAccessError.newInstance(
+        thisProjName, targetProjName, Text.create(targetMethodName));
+  }
+
   public ForbiddenOperation getForbiddenOperation() {
     return forbiddenOperation;
   }
@@ -324,7 +344,7 @@ public final class Error {
 
   /**
    * @param index the position at which the original error occured
-   * @param inner_error the original error
+   * @param innerError the original error
    * @return an error indicating the index of the error
    */
   public Atom makeMapError(long index, Object innerError) {

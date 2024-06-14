@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { PointerButtonMask, usePointer } from '@/composables/events'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
-import { computed, ref, watch, type ComponentInstance, type StyleValue } from 'vue'
+import { usePointer } from '@/composables/events'
+import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
-  modelValue: number | string
+  modelValue: number | undefined
+  placeholder?: string | undefined
   limits?: { min: number; max: number } | undefined
 }>()
 const emit = defineEmits<{
@@ -15,33 +15,39 @@ const emit = defineEmits<{
   input: [content: string]
 }>()
 
-const inputFieldActive = ref(false)
-// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
-const editedValue = ref(`${props.modelValue}`)
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    editedValue.value = `${newValue}`
-  },
-)
+const DEFAULT_PLACEHOLDER = ''
 const SLIDER_INPUT_THRESHOLD = 4.0
+const MIN_CONTENT_WIDTH = 56
 
+// Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
+const editedValue = ref('')
+const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))
+watch(valueString, (newValue) => (editedValue.value = newValue), { immediate: true })
+const inputFieldActive = ref(false)
+
+let dragState: { thresholdMet: boolean } | undefined = undefined
 const dragPointer = usePointer(
   (position, event, eventType) => {
     const slider = event.target
     if (!(slider instanceof HTMLElement)) return false
 
-    if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) {
-      event.stopImmediatePropagation()
-      return false
+    if (dragState) {
+      dragState.thresholdMet ||= Math.abs(position.relative.x) >= SLIDER_INPUT_THRESHOLD
     }
 
-    if (eventType === 'start') {
-      event.stopImmediatePropagation()
-      return false
+    if (eventType === 'stop' && !dragState?.thresholdMet) {
+      inputComponent.value?.focus()
+      return
     }
 
     if (inputFieldActive.value || props.limits == null) return false
+
+    if (eventType === 'start') {
+      // Prevent selecting the input's text content.
+      event.preventDefault()
+      dragState = { thresholdMet: false }
+      return
+    }
 
     const { min, max } = props.limits
     const rect = slider.getBoundingClientRect()
@@ -51,22 +57,19 @@ const dragPointer = usePointer(
     editedValue.value = `${newValue}`
     if (eventType === 'stop') emitUpdate()
   },
-  PointerButtonMask.Main,
-  (event) => !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey,
+  { predicate: (event) => !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey },
 )
 
 const sliderWidth = computed(() => {
   if (props.limits == null) return undefined
-  if (typeof editedValue.value === 'string') return undefined
-  return `${
-    ((editedValue.value - props.limits.min) * 100) / (props.limits.max - props.limits.min)
-  }%`
+  const numberValue = parseFloat(editedValue.value)
+  if (isNaN(numberValue)) return undefined
+  return `${((numberValue - props.limits.min) * 100) / (props.limits.max - props.limits.min)}%`
 })
 
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
-const MIN_CONTENT_WIDTH = 56
 
-const inputStyle = computed<StyleValue>(() => {
+const inputStyle = computed<CSSProperties>(() => {
   const value = `${editedValue.value}`
   const dotIdx = value.indexOf('.')
   let indent = 0
@@ -88,7 +91,7 @@ const inputStyle = computed<StyleValue>(() => {
 })
 
 function emitUpdate() {
-  if (`${props.modelValue}` !== editedValue.value) {
+  if (valueString.value !== editedValue.value) {
     emit('update:modelValue', editedValue.value)
   }
 }
@@ -106,7 +109,7 @@ function focused() {
 
 defineExpose({
   cancel: () => {
-    editedValue.value = `${props.modelValue}`
+    editedValue.value = valueString.value
     inputComponent.value?.blur()
   },
   blur: () => inputComponent.value?.blur(),
@@ -115,40 +118,45 @@ defineExpose({
 </script>
 
 <template>
-  <label class="NumericInputWidget">
-    <div v-if="props.limits != null" class="slider" :style="{ width: sliderWidth }"></div>
-    <AutoSizedInput
-      ref="inputComponent"
-      v-model="editedValue"
-      autoSelect
-      :style="inputStyle"
-      v-on="dragPointer.events"
-      @blur="blurred"
-      @focus="focused"
-      @input="emit('input', editedValue)"
-    />
-  </label>
+  <AutoSizedInput
+    ref="inputComponent"
+    v-model="editedValue"
+    autoSelect
+    class="NumericInputWidget"
+    :class="{ slider: sliderWidth != null }"
+    :style="{ ...inputStyle, '--slider-width': sliderWidth }"
+    :placeholder="placeholder ?? DEFAULT_PLACEHOLDER"
+    v-on="dragPointer.events"
+    @click.stop
+    @blur="blurred"
+    @focus="focused"
+    @input="emit('input', editedValue)"
+  />
 </template>
 
 <style scoped>
 .NumericInputWidget {
   position: relative;
-}
-.AutoSizedInput {
-  user-select: none;
-  background: var(--color-widget);
-  border-radius: var(--radius-full);
   overflow: clip;
-  padding: 0px 4px;
+  border-radius: var(--radius-full);
+  user-select: none;
+  padding: 0 4px;
+  background: var(--color-widget);
   &:focus {
     background: var(--color-widget-focus);
   }
 }
 
-.slider {
-  position: absolute;
-  height: 100%;
-  left: 0;
-  background: var(--color-widget);
+.NumericInputWidget.slider {
+  &:focus {
+    /* Color will be blended with background defined below. */
+    background-color: var(--color-widget);
+  }
+  background: linear-gradient(
+    to right,
+    var(--color-widget-focus) 0 calc(var(--slider-width) - 1px),
+    var(--color-widget-slight) calc(var(--slider-width) - 1px) var(--slider-width),
+    var(--color-widget) var(--slider-width) 100%
+  );
 }
 </style>

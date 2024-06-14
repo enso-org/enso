@@ -1,5 +1,5 @@
 <script lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import { useEvent } from '@/composables/events'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/shortcuts'
@@ -8,7 +8,7 @@ import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
 
 export const name = 'Histogram'
 export const inputType =
-  'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Histogram.Histogram'
+  'Standard.Table.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Histogram.Histogram'
 export const defaultPreprocessor = [
   'Standard.Visualization.Histogram',
   'process_to_json_text',
@@ -573,12 +573,8 @@ useEvent(document, 'scroll', endBrushing)
 <template>
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
-      <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @click="zoomToSelected(false)" />
-      </button>
-      <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @click="zoomToSelected(true)" />
-      </button>
+      <SvgButton name="show_all" title="Fit All" @click="zoomToSelected(false)" />
+      <SvgButton name="find" title="Zoom to Selected" @click="zoomToSelected(true)" />
     </template>
     <div ref="containerNode" class="HistogramVisualization" @pointerdown.stop>
       <svg :width="width" :height="height">
