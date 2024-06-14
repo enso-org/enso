@@ -1412,6 +1412,7 @@ type Table
        - prefix: Prefix to add to the column names. If `Nothing` then the column
          name is used.
     @column Widget_Helpers.make_column_name_selector
+    @fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
     expand_column : Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = Prefix_Name.Column_Name) =
         Expand_Objects_Helpers.expand_column self column fields prefix
@@ -3124,10 +3125,12 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
 
 ## PRIVATE
    Conversion method to a Table from a Vector.
+@fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
 Table.from (that:Vector) (fields : (Vector | Nothing) = Nothing) = that.to_table fields
 
 ## PRIVATE
    Conversion method to a Table from a JS_Object.
+@fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
 Table.from (that:JS_Object) (fields : (Vector | Nothing) = Nothing) =
     Table.from_objects that fields
 
