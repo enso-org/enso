@@ -3,7 +3,6 @@ import type * as baseActions from './BaseActions'
 import BaseActions from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import EditorPageActions from './EditorPageActions'
-import HomePageActions from './HomePageActions'
 import SettingsPageActions from './SettingsPageActions'
 
 // =======================
@@ -12,7 +11,6 @@ import SettingsPageActions from './SettingsPageActions'
 
 /** Actions for going to a different page. */
 export interface GoToPageActions {
-  readonly home: () => HomePageActions
   readonly drive: () => DrivePageActions
   readonly editor: () => EditorPageActions
   readonly settings: () => SettingsPageActions
@@ -27,13 +25,6 @@ export function goToPageActions(
   step: (name: string, callback: baseActions.PageCallback) => BaseActions
 ): GoToPageActions {
   return {
-    home: () =>
-      step('Go to "Home" page', page =>
-        page
-          .getByRole('button')
-          .filter({ has: page.getByAltText('Home') })
-          .click()
-      ).into(HomePageActions),
     drive: () =>
       step('Go to "Drive" page', page =>
         page

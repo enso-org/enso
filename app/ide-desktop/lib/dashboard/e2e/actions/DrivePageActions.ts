@@ -9,6 +9,7 @@ import EditorPageActions from './EditorPageActions'
 import * as goToPageActions from './goToPageActions'
 import NewDataLinkModalActions from './NewDataLinkModalActions'
 import * as openUserMenuAction from './openUserMenuAction'
+import StartModalActions from './StartModalActions'
 import * as userMenuActions from './userMenuActions'
 
 // ========================
@@ -122,6 +123,20 @@ export default class DrivePageActions extends BaseActions {
         })
       },
     }
+  }
+
+  /** Open the "start" modal. */
+  openStartModal() {
+    return this.step('Open "start" modal', page =>
+      page.getByText('Start with a template').click()
+    ).into(StartModalActions)
+  }
+
+  /** Create an empty project. */
+  createEmptyProject() {
+    return this.step('Create empty project', page =>
+      page.getByText('New Empty Project').click()
+    ).into(EditorPageActions)
   }
 
   /** Open the User Menu. */
