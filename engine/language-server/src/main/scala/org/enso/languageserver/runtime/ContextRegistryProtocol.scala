@@ -1,6 +1,5 @@
 package org.enso.languageserver.runtime
 
-import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
@@ -104,7 +103,7 @@ object ContextRegistryProtocol {
     rpcSession: JsonSession,
     contextId: ContextId,
     invalidatedExpressions: Option[InvalidatedExpressions],
-    executionEnvironment: Option[ExecutionEnvironment]
+    executionEnvironment: Option[ExecutionEnvironments.ExecutionEnvironment]
   )
 
   /** A response about recomputing the context.
@@ -153,7 +152,7 @@ object ContextRegistryProtocol {
   case class SetExecutionEnvironmentRequest(
     rpcSession: JsonSession,
     contextId: ContextId,
-    executionEnvironment: ExecutionEnvironment
+    executionEnvironment: ExecutionEnvironments.ExecutionEnvironment
   )
 
   /** A response to the set execution environment request.
@@ -340,15 +339,15 @@ object ContextRegistryProtocol {
   case class InvalidStackItemError(contextId: ContextId) extends Failure
 
   /** The type of a diagnostic message. */
-  sealed trait ExecutionDiagnosticKind extends EnumEntry
-  object ExecutionDiagnosticKind
-      extends Enum[ExecutionDiagnosticKind]
-      with CirceEnum[ExecutionDiagnosticKind] {
+  object ExecutionDiagnosticKinds extends Enumeration {
+    type ExecutionDiagnosticKind = Value
 
-    case object Error   extends ExecutionDiagnosticKind
-    case object Warning extends ExecutionDiagnosticKind
+    val Error, Warning = Value
 
-    override val values = findValues
+    implicit val genderDecoder: Decoder[ExecutionDiagnosticKind] =
+      Decoder.decodeEnumeration(ExecutionDiagnosticKinds)
+    implicit val genderEncoder: Encoder[ExecutionDiagnosticKind] =
+      Encoder.encodeEnumeration(ExecutionDiagnosticKinds)
   }
 
   /** The element in the stack trace.
@@ -375,7 +374,7 @@ object ContextRegistryProtocol {
     * @param stack the stack trace
     */
   case class ExecutionDiagnostic(
-    kind: ExecutionDiagnosticKind,
+    kind: ExecutionDiagnosticKinds.ExecutionDiagnosticKind,
     message: Option[String],
     path: Option[Path],
     location: Option[model.Range],

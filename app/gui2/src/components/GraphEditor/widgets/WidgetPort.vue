@@ -279,7 +279,8 @@ export const widgetDefinition = defineWidget(
   z-index: -1;
 }
 
-.isSelfArgument {
-  margin-right: 2px;
+/* Selector specificity must be high enough to override r-24 specific styles. */
+.WidgetPort.isSelfArgument.isSelfArgument {
+  margin-right: 6px;
 }
 </style>

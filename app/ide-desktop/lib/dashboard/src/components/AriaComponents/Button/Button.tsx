@@ -45,6 +45,7 @@ interface PropsWithoutHref {
 export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STYLES>, 'iconOnly'> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactElement | string | false
+  readonly tooltipPlacement?: aria.Placement
   /**
    * The icon to display in the button
    */
@@ -87,6 +88,7 @@ export const BUTTON_STYLES = twv.tv({
     },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
+    fullWidthText: { true: { text: 'w-full' } },
     size: {
       custom: { base: '', extraClickZone: 'after:inset-[-12px]', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
@@ -182,13 +184,14 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: {
       true: { icon: 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100' },
     },
+    noExtraClickZone: { true: { extraClickZone: 'after:inset-0' } },
   },
   slots: {
     extraClickZone: 'flex relative after:absolute after:cursor-pointer',
     wrapper: 'relative block',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center gap-[0.5em]',
-    text: 'inline-flex items-center gap-1',
+    text: 'inline-flex items-center justify-center gap-1',
     icon: 'h-[2cap] flex-none aspect-square',
   },
   defaultVariants: {
@@ -262,9 +265,12 @@ export const Button = React.forwardRef(function Button(
     showIconOnHover,
     iconPosition,
     size,
+    noExtraClickZone,
     fullWidth,
+    fullWidthText,
     rounded,
     tooltip,
+    tooltipPlacement,
     testId,
     onPress = () => {},
     ...ariaProps
@@ -285,7 +291,7 @@ export const Button = React.forwardRef(function Button(
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
-  const shouldShowTooltip = isIconOnly && tooltip !== false
+  const shouldShowTooltip = isIconOnly || tooltip !== false
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
@@ -338,7 +344,9 @@ export const Button = React.forwardRef(function Button(
   } = BUTTON_STYLES({
     isDisabled,
     loading: isLoading,
+    noExtraClickZone,
     fullWidth,
+    fullWidthText,
     size,
     rounded,
     variant,
@@ -409,7 +417,11 @@ export const Button = React.forwardRef(function Button(
   ) : (
     <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
       {button}
-      <ariaComponents.Tooltip>{tooltipElement}</ariaComponents.Tooltip>
+      <ariaComponents.Tooltip
+        {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
+      >
+        {tooltipElement}
+      </ariaComponents.Tooltip>
     </ariaComponents.TooltipTrigger>
   )
 })

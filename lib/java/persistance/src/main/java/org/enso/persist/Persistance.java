@@ -162,7 +162,6 @@ public abstract class Persistance<T> implements Cloneable {
    *
    * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
    *
-   * @param <T> expected type of object
    * @param arr the stored bytes
    * @param readResolve either {@code null} or function to call for each object being stored to
    *     provide a replacement
@@ -239,7 +238,7 @@ public abstract class Persistance<T> implements Cloneable {
     public <V> V get(Class<V> expectedType) {
       var value =
           switch (this) {
-            case PerMemoryReference m -> m.value();
+            case PerMemoryReference<T> m -> m.value();
             case PerBufferReference<T> b -> {
               try {
                 yield b.readObject(expectedType);
@@ -252,8 +251,8 @@ public abstract class Persistance<T> implements Cloneable {
     }
 
     /**
-     * Creates a reference to existing object. Behaves like {@link #of(V, boolean) of(obj, false)}
-     * when the {@code Reference} is being written into the stream.
+     * Creates a reference to existing object. Behaves like {@code of(obj, false)} when the {@code
+     * Reference} is being written into the stream.
      *
      * @param <V> the type of the object
      * @param obj the object to "reference"

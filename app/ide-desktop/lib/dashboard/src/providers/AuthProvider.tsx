@@ -472,7 +472,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (cognito == null) {
       return false
     } else if (backend.type === backendModule.BackendType.local) {
-      toastError(getText('setUsernameLocalBackend'))
+      toastError(getText('setUsernameLocalBackendError'))
       return false
     } else {
       gtagEvent('cloud_user_created')

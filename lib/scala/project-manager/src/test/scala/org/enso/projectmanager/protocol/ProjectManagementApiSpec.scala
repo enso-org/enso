@@ -35,8 +35,6 @@ class ProjectManagementApiSpec
 
   override val engineToInstall = Some(SemVer.of(0, 0, 1))
 
-  override val deleteProjectsRootAfterEachTest = false
-
   override lazy val timeoutConfig: TimeoutConfig = {
     config.timeout.copy(delayedShutdownTimeout = 1.nanosecond)
   }
@@ -78,7 +76,8 @@ class ProjectManagementApiSpec
             }
           """)
       val projectId = getGeneratedUUID
-      client.expectJson(json"""
+      client.expectJson(
+        json"""
           {"jsonrpc":"2.0",
           "id":1,
           "result":{
@@ -87,7 +86,9 @@ class ProjectManagementApiSpec
             "projectNormalizedName":$normalizedName
             }
           }
-          """)
+          """,
+        timeout = 10.seconds.dilated
+      )
 
       //teardown
       deleteProject(projectId)

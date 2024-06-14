@@ -18,7 +18,7 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import Category from '#/layouts/CategorySwitcher/Category'
+import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
@@ -149,6 +149,13 @@ export default function Dashboard(props: DashboardProps) {
       remoteBackend == null ? Category.local : localStorage.get('driveCategory') ?? defaultCategory,
     (value): value is Category => array.includes(Object.values(Category), value)
   )
+
+  const isCloud = categoryModule.isCloud(category)
+  const isUserEnabled = session.user?.isEnabled === true
+
+  if (isCloud && !isUserEnabled && localBackend != null) {
+    setCategory(Category.local)
+  }
 
   React.useEffect(() => {
     setInitialized(true)

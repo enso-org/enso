@@ -22,7 +22,7 @@ export default function SvgIcon(props: SvgIconProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'absolute left top inline-flex h-full w-auth-icon-container items-center justify-center text-gray-400',
+        'absolute left-0 top-0 inline-flex h-full w-auth-icon-container items-center justify-center text-gray-400',
         className
       )}
       onClick={onClick}
