@@ -19,6 +19,7 @@ export interface ButtonProps {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: React.ReactNode
   readonly autoFocus?: boolean
+  readonly mask?: boolean
   /** When `true`, the button uses a lighter color when it is not active. */
   readonly light?: boolean
   /** When `true`, the button is not faded out even when not hovered. */
@@ -44,6 +45,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     tooltip,
     light = false,
     active = false,
+    mask = true,
     image,
     error,
     alt,
@@ -56,6 +58,8 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   const focusChildProps = focusHooks.useFocusChild()
 
   const tooltipElement = tooltip === false ? null : tooltip ?? alt
+
+  const Img = mask ? SvgMask : 'img'
 
   const button = (
     <FocusRing placement="after">
@@ -76,7 +80,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
             active && 'active'
           )}
         >
-          <SvgMask
+          <Img
             src={image}
             {...(!active && isDisabled && error != null ? { title: error } : {})}
             {...(alt != null ? { alt } : {})}
