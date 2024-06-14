@@ -99,7 +99,13 @@ jobs:
             target/lib/**
 
   build_java:
-    needs: [build_linux_parser, build_mac_intel_parser, build_mac_arm_parser, build_windows_parser]
+    needs:
+      [
+        build_linux_parser,
+        build_mac_intel_parser,
+        build_mac_arm_parser,
+        build_windows_parser,
+      ]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
