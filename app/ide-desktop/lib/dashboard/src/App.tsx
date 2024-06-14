@@ -60,6 +60,7 @@ import SessionProvider from '#/providers/SessionProvider'
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import ForgotPassword from '#/pages/authentication/ForgotPassword'
 import Login from '#/pages/authentication/Login'
+import Logout from '#/pages/authentication/Logout'
 import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import RestoreAccount from '#/pages/authentication/RestoreAccount'
@@ -401,6 +402,7 @@ function AppRouter(props: AppRouterProps) {
                 path={appUtils.DASHBOARD_PATH}
                 element={shouldShowDashboard && <Dashboard {...props} />}
               />
+              <router.Route path={appUtils.LOGOUT_PATH} element={<Logout />} />
 
               <router.Route
                 path={appUtils.SUBSCRIBE_PATH}

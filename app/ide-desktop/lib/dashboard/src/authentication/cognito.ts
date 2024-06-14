@@ -173,6 +173,8 @@ interface CognitoError {
  * This way, the methods don't throw all errors, but define exactly which errors they return.
  * The caller can then handle them via pattern matching on the {@link results.Result} type. */
 export class Cognito {
+  private isSignedIn = true
+
   /** Create a new Cognito wrapper. */
   constructor(
     private readonly logger: loggerProvider.Logger,
@@ -296,6 +298,7 @@ export class Cognito {
 
   /** Sign out the current user. */
   async signOut() {
+    this.isSignedIn = false
     // FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/341
     // For some reason, the redirect back to the IDE from the browser doesn't work correctly so this
     // `await` throws a timeout error. As a workaround, we catch this error and force a refresh of

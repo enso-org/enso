@@ -10,6 +10,8 @@
 export const DASHBOARD_PATH = '/'
 /** Path to the login page. */
 export const LOGIN_PATH = '/login'
+/** Path to the logout page. */
+export const LOGOUT_PATH = '/logout'
 /** Path to the registration page. */
 export const REGISTRATION_PATH = '/registration'
 /** Path to the confirm registration page. */
@@ -29,9 +31,9 @@ export const SUBSCRIBE_PATH = '/subscribe'
 export const SUBSCRIBE_SUCCESS_PATH = '/subscribe/success'
 /** A {@link RegExp} matching all paths. */
 export const ALL_PATHS_REGEX = new RegExp(
-  `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
-    `${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|${SET_USERNAME_PATH}|${RESTORE_USER_PATH}|` +
-    `${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH})$`
+  `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${LOGOUT_PATH}|${REGISTRATION_PATH}|` +
+    `${CONFIRM_REGISTRATION_PATH}|${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|` +
+    `${SET_USERNAME_PATH}|${RESTORE_USER_PATH}|${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH})$`
 )
 
 // === Constants related to URLs ===

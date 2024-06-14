@@ -170,6 +170,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   const navigate = router.useNavigate()
   const [forceOfflineMode, setForceOfflineMode] = React.useState(shouldStartInOfflineMode)
   const [initialized, setInitialized] = React.useState(false)
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
   const [userSession, setUserSession] = React.useState<UserSession | null>(null)
   const toastId = React.useId()
 
@@ -581,7 +582,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       setInitialized(false)
       // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
       unsetModal()
-      navigate(appUtils.LOGIN_PATH)
+      setIsLoggingOut(true)
       // This should not omit success and error toasts as it is not possible
       // to render this optimistically.
       await toast.toast.promise(cognito.signOut(), {
@@ -589,6 +590,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         error: getText('signOutError'),
         pending: getText('loggingOut'),
       })
+      setIsLoggingOut(false)
       return true
     }
   }
@@ -661,7 +663,13 @@ export default function AuthProvider(props: AuthProviderProps) {
   return (
     <AuthContext.Provider value={value}>
       {/* Only render the underlying app after we assert for the presence of a current user. */}
-      {initialized ? children : <LoadingScreen />}
+      {initialized ? (
+        children
+      ) : isLoggingOut ? (
+        <LoadingScreen text={getText('loggingOut')} />
+      ) : (
+        <LoadingScreen />
+      )}
     </AuthContext.Provider>
   )
 }
