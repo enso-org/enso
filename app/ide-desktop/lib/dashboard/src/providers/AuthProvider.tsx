@@ -267,6 +267,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         setForceOfflineMode(false)
       } else if (session == null) {
         setInitialized(true)
+        setRemoteBackend(null)
         cognito?.saveAccessToken(null)
         sentry.setUser(null)
         setUserSession(null)
@@ -580,6 +581,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       setInitialized(false)
       // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
       unsetModal()
+      navigate(appUtils.LOGIN_PATH)
       // This should not omit success and error toasts as it is not possible
       // to render this optimistically.
       await toast.toast.promise(cognito.signOut(), {
