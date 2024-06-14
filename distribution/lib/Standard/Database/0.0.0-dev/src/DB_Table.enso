@@ -168,7 +168,7 @@ type DB_Table
     @selector Widget_Helpers.make_column_name_selector
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
     get_value : Text | Integer -> Integer -> Any -> Any
-    get_value self selector:Integer=0 index:Integer=0 ~if_missing=Nothing =
+    get_value self selector:(Text | Integer)=0 index:Integer=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing
 
