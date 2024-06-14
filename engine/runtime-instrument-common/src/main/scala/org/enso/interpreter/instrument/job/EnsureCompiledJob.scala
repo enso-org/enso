@@ -7,7 +7,7 @@ import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir
-import org.enso.compiler.core.ir.{expression, IdentifiedLocation, Location}
+import org.enso.compiler.core.ir.{expression, Location}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -29,7 +29,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
-import org.enso.text.editing.model.{IdMap, Span}
+import org.enso.text.editing.model.IdMap
 
 import java.io.File
 import java.util

@@ -567,7 +567,7 @@ final class TreeToIr {
     var methodRef = translateMethodReference(fn.getName(), false);
     var args = translateArgumentsDefinition(fn.getArgs());
     var body = translateExpression(fn.getBody());
-    var loc = getIdentifiedLocation(fn, 0, 0, Option.empty());
+    var loc = getIdentifiedLocation(fn, 0, 0, null);
     var returnSignature = resolveReturnTypeSignature(fn);
     if (body == null) {
       var emptyLocation = methodRef.location().map(identifiedLocation -> {
@@ -909,7 +909,7 @@ final class TreeToIr {
               );
             }
             var at = expandToContain(switch (body) {
-              case Expression.Block __ -> getIdentifiedLocation(tree, 0, 1, Option.empty());
+              case Expression.Block __ -> getIdentifiedLocation(tree, 0, 1, null);
               default -> getIdentifiedLocation(tree);
             }, body.location());
             yield new Function.Lambda(args, body, at, true, meta(), diag());
@@ -1014,7 +1014,7 @@ final class TreeToIr {
           expressions.remove(expressions.size() - 1);
         }
         var list = CollectionConverters.asScala(expressions.iterator()).toList();
-        var locationWithANewLine = getIdentifiedLocation(body, 0, 0, Option.empty());
+        var locationWithANewLine = getIdentifiedLocation(body, 0, 0, null);
         if (last != null && last.location().isDefined()
             && last.location().get().end() != locationWithANewLine.get().end()) {
           var patched = new Location(last.location().get().start(),
@@ -1962,7 +1962,7 @@ final class TreeToIr {
         var begin = castToInt(ast.getStartCode()) + b;
         var end = castToInt(ast.getEndCode()) + e;
         var location = new Location(begin, end);
-        var uuid = Option.apply(idMap.get(location)).orElse(() -> someId);
+        var uuid = Option.apply(idMap.get(location)).orElse(() -> someId == null ? Option.apply(ast.uuid()) : someId);
         yield IdentifiedLocation.create(location, uuid);
       }
     });
