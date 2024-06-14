@@ -21,7 +21,7 @@ import org.enso.pkg.{Config, PackageManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
   ExecutorWithUnlimitedPool,
@@ -343,7 +343,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     val blackhole = system.actorOf(blackholeProps)
     val runtimeVersionManager = RuntimeVersionManagerFactory(
       distributionConfiguration
-    ).makeRuntimeVersionManager(blackhole, MissingComponentAction.Fail)
+    ).makeRuntimeVersionManager(blackhole, MissingComponentActions.Fail)
     val runtime = runtimeVersionManager.findGraalRuntime(graalVMVersion).get
     FileUtils.deleteDirectory(runtime.path.toFile)
   }

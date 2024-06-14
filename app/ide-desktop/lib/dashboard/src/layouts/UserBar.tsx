@@ -47,8 +47,7 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
-  const { onSignOut } = props
+  const { backend, invisible = false, page, setPage, setIsHelpChatOpen, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -96,7 +95,7 @@ export default function UserBar(props: UserBarProps) {
 
           {shouldShowInviteButton && (
             <ariaComponents.DialogTrigger>
-              <ariaComponents.Button rounded="full" size="small" variant="tertiary">
+              <ariaComponents.Button size="small" variant="tertiary">
                 {getText('invite')}
               </ariaComponents.Button>
 
@@ -104,12 +103,7 @@ export default function UserBar(props: UserBarProps) {
             </ariaComponents.DialogTrigger>
           )}
 
-          <ariaComponents.Button
-            variant="primary"
-            rounded="full"
-            size="small"
-            href={appUtils.SUBSCRIBE_PATH}
-          >
+          <ariaComponents.Button variant="primary" size="small" href={appUtils.SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </ariaComponents.Button>
           {shouldShowShareButton && (

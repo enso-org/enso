@@ -17,8 +17,6 @@ import * as listen from '#/authentication/listen'
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
   readonly session: cognito.UserSession | null
-  /** Set `initialized` to false. Must be called when logging out. */
-  readonly deinitializeSession: () => void
   readonly onSessionError: (callback: (error: Error) => void) => () => void
 }
 
@@ -49,14 +47,13 @@ export interface SessionProviderProps {
 }
 
 const FIVE_MINUTES_MS = 300_000
+// const SIX_HOURS_MS = 21_600_000
 const SIX_HOURS_MS = 21_600_000
 
 /** A React provider for the session of the authenticated user. */
 export default function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, userSession, registerAuthEventListener, refreshUserSession } =
     props
-  const [refresh, doRefresh] = React.useReducer(() => uniqueString.uniqueString(), '')
-  const [initialized, setInitialized] = React.useState(false)
   const errorCallbacks = React.useRef(new Set<(error: Error) => void>())
 
   /** Returns a function to unregister the listener. */
@@ -67,44 +64,40 @@ export default function SessionProvider(props: SessionProviderProps) {
     }
   }, [])
 
-  const sessionQuery = reactQuery.useQuery({
-    queryKey: ['session', refresh],
-    queryFn: async () => {
-      if (userSession == null) {
-        setInitialized(true)
-        return null
-      } else {
-        try {
-          const innerSession = await userSession()
-          setInitialized(true)
-          return innerSession
-        } catch (error) {
-          if (error instanceof Error) {
-            for (const listener of errorCallbacks.current) {
-              listener(error)
-            }
-          }
-          throw error
-        }
-      }
-    },
-  })
-  const session = sessionQuery.data ?? null
+  const queryClient = reactQuery.useQueryClient()
 
-  const timeUntilRefresh = session
+  const session = reactQuery.useSuspenseQuery({
+    queryKey: ['userSession', userSession],
+    queryFn: userSession
+      ? () =>
+          userSession().catch(error => {
+            if (error instanceof Error) {
+              for (const listener of errorCallbacks.current) {
+                listener(error)
+              }
+            }
+            throw error
+          })
+      : reactQuery.skipToken,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: true,
+  })
+
+  const timeUntilRefresh = session.data
     ? // If the session has not expired, we should refresh it when it is 5 minutes from expiring.
-      new Date(session.expireAt).getTime() - Date.now() - FIVE_MINUTES_MS
+      new Date(session.data.expireAt).getTime() - Date.now() - FIVE_MINUTES_MS
     : Infinity
 
+  const refreshUserSessionMutation = reactQuery.useMutation({
+    mutationKey: ['refreshUserSession', session.data],
+    mutationFn: () => refreshUserSession?.().then(() => null) ?? Promise.resolve(),
+    meta: { invalidates: [['userSession']], awaitInvalidates: true },
+  })
+
   reactQuery.useQuery({
-    queryKey: ['userSession'],
+    queryKey: ['refreshUserSession'],
     queryFn: refreshUserSession
-      ? () =>
-          refreshUserSession()
-            .then(() => {
-              doRefresh()
-            })
-            .then(() => null)
+      ? () => refreshUserSessionMutation.mutateAsync()
       : reactQuery.skipToken,
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: true,
@@ -114,7 +107,6 @@ export default function SessionProvider(props: SessionProviderProps) {
   // Register an effect that will listen for authentication events. When the event occurs, we
   // will refresh or clear the user's session, forcing a re-render of the page with the new
   // session.
-  //
   // For example, if a user clicks the "sign out" button, this will clear the user's session, which
   // means the login screen (which is a child of this provider) should render.
   React.useEffect(
@@ -123,7 +115,7 @@ export default function SessionProvider(props: SessionProviderProps) {
         switch (event) {
           case listen.AuthEvent.signIn:
           case listen.AuthEvent.signOut: {
-            doRefresh()
+            void queryClient.invalidateQueries({ queryKey: ['userSession'] })
             break
           }
           case listen.AuthEvent.customOAuthState:
@@ -134,7 +126,7 @@ export default function SessionProvider(props: SessionProviderProps) {
             // will not work.
             // See https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
             history.replaceState({}, '', mainPageUrl)
-            doRefresh()
+            void queryClient.invalidateQueries({ queryKey: ['userSession'] })
             break
           }
           default: {
@@ -142,16 +134,12 @@ export default function SessionProvider(props: SessionProviderProps) {
           }
         }
       }),
-    [doRefresh, registerAuthEventListener, mainPageUrl]
+    [registerAuthEventListener, mainPageUrl, queryClient]
   )
 
-  const deinitializeSession = () => {
-    setInitialized(false)
-  }
-
   return (
-    <SessionContext.Provider value={{ session, deinitializeSession, onSessionError }}>
-      {initialized && children}
+    <SessionContext.Provider value={{ session: session.data, onSessionError }}>
+      {children}
     </SessionContext.Provider>
   )
 }

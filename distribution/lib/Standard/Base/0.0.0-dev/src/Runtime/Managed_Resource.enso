@@ -37,8 +37,12 @@ type Managed_Resource
        function once it is no longer in use.
 
        Arguments:
+       - resource: The resource to register.
        - function: The action to be executed on resource to clean it up when
          it is no longer in use.
+
+       Returns:
+       A `Managed_Resource` object that can be used to access the resource.
     register : Any -> (Any -> Nothing) -> Managed_Resource
     register resource function = @Builtin_Method "Managed_Resource.register"
 

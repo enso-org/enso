@@ -1,9 +1,9 @@
 package org.enso.projectmanager.test
 
 import java.net.{InetSocketAddress, Socket => JSocket}
-
-import cats.implicits._
 import org.enso.projectmanager.data.Socket
+
+import scala.util.Try
 
 object Net {
 
@@ -14,11 +14,11 @@ object Net {
     inetSocketAddress: InetSocketAddress,
     timeout: Int
   ): Either[Throwable, Unit] =
-    Either.catchNonFatal {
+    Try {
       val socket = new JSocket()
       socket.connect(inetSocketAddress, timeout)
       socket.getChannel
       socket.close()
-    }
+    }.toEither
 
 }

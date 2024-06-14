@@ -53,7 +53,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
     setIsEditing(false)
 
     if (newTitle !== item.title) {
-      // Do nothing - thecorresponding backend endpoint does not yet exist.
+      // Do nothing - the corresponding backend endpoint does not yet exist.
     }
   }
 

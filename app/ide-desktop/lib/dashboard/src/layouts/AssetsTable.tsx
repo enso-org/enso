@@ -45,10 +45,6 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as set from '#/utilities/set'
 import type * as sorting from '#/utilities/sorting'
 
-// FIXME: Reimplement `-startup.project` using React Query - it should query the root directory
-// and find a project with a matching name. In the future it should fire a search request through
-// all projects.
-
 // ============================
 // === Global configuration ===
 // ============================
@@ -188,6 +184,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const uploadFilesMutation = backendHooks.useBackendUploadFilesMutation(backend)
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
   const copyAssetMutation = backendHooks.useBackendMutation(backend, 'copyAsset')
+
+  const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
   React.useEffect(() => {
     setIsAssetOpen(backend.type, rootDirectoryId, true)

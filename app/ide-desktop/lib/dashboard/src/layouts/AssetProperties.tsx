@@ -6,7 +6,6 @@ import PenIcon from 'enso-assets/pen.svg'
 import * as datalinkValidator from '#/data/datalinkValidator'
 
 import * as backendHooks from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -47,9 +46,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
+  // FIXME: Fetch description using optimistic state
   const [description, setDescription] = React.useState('')
   const isDatalink = item.type === backendModule.AssetType.datalink
   const datalinkValueQuery = backendHooks.useBackendQuery(
@@ -84,14 +83,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     setDescription(item.description ?? '')
   }, [item.description])
 
-  const doEditDescription = async () => {
+  const doEditDescription = () => {
     setIsEditingDescription(false)
     if (description !== item.description) {
-      try {
-        await updateAssetMutation.mutateAsync([item.id, { parentDirectoryId: null, description }])
-      } catch (error) {
-        toastAndLog('editDescriptionError')
-      }
+      updateAssetMutation.mutate([item.id, { parentDirectoryId: null, description }])
     }
   }
 

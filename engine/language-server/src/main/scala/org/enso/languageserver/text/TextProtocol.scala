@@ -3,7 +3,7 @@ package org.enso.languageserver.text
 import org.enso.languageserver.data.{CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{
   FileAttributes,
-  FileEventKind,
+  FileEventKinds,
   FileSystemFailure,
   Path
 }
@@ -157,7 +157,7 @@ object TextProtocol {
     */
   case class FileEvent(
     path: Path,
-    kind: FileEventKind,
+    kind: FileEventKinds.FileEventKind,
     attributes: Option[FileAttributes]
   )
 

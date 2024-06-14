@@ -45,8 +45,7 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { hidden = false, backend, category, event, rootDirectoryId } = props
-  const { doPaste } = props
+  const { hidden = false, backend, category, event, rootDirectoryId, doPaste } = props
   const queryClient = reactQuery.useQueryClient()
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()

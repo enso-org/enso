@@ -126,10 +126,7 @@ export default function MenuEntry(props: MenuEntryProps) {
         {...aria.mergeProps<aria.ButtonProps>()(focusChildProps, {
           isDisabled,
           className: 'group flex w-full rounded-menu-entry',
-          onPress: () => {
-            unsetModal()
-            doAction()
-          },
+          onPress: doAction,
         })}
       >
         <div className={MENU_ENTRY_VARIANTS(variantProps)}>

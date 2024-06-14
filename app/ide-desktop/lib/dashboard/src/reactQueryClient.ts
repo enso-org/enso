@@ -78,11 +78,16 @@ export function createReactQueryClient() {
     defaultOptions: {
       queries: {
         staleTime: DEFAULT_QUERY_STALE_TIME_MS,
-        retry: (failureCount, error) => {
+        retry: (failureCount, error: unknown) => {
           // eslint-disable-next-line @typescript-eslint/no-magic-numbers
           const statusesToIgnore = [401, 403, 404]
           const errorStatus =
-            'status' in error && typeof error.status === 'number' ? error.status : -1
+            typeof error === 'object' &&
+            error != null &&
+            'status' in error &&
+            typeof error.status === 'number'
+              ? error.status
+              : -1
 
           if (statusesToIgnore.includes(errorStatus)) {
             return false

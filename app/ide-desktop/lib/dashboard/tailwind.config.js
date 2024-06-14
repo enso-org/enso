@@ -20,6 +20,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         // This should be named "regular".
         primary: 'rgb(0 0 0 / 60%)',
         accent: '#499f4b',
+        'accent-dark': '#3e9152',
         'hover-bg': 'rgb(0 0 0 / 10%)',
         frame: 'rgb(255 255 255 / 40%)',
         'selected-frame': 'rgb(255 255 255 / 70%)',

@@ -52,7 +52,7 @@ export interface AssetContextMenuProps {
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, rootDirectoryId, event, eventTarget, hidden = false, doPaste } = props
-  const { item, state, setRowState } = innerProps
+  const { item, state } = innerProps
   const { backend, category } = state
 
   const { session } = sessionProvider.useSession()
@@ -62,6 +62,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const downloadAsset = backendHooks.useDownloadAsset(backend)
+  const setIsAssetEditingName = store.useStore(storeState => storeState.setIsAssetEditingName)
   const setAssetPasteData = store.useStore(storeState => storeState.setAssetPasteData)
   const hasPasteData = store.useStore(storeState => storeState.assetPasteData != null)
   const self = item.permissions?.find(
@@ -223,7 +224,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }
             action="rename"
             doAction={() => {
-              setRowState(object.merger({ isEditingName: true }))
+              setIsAssetEditingName(backend.type, item.id, true)
             }}
           />
         )}

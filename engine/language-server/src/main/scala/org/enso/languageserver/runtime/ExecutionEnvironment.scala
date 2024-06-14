@@ -1,20 +1,13 @@
 package org.enso.languageserver.runtime
 
-import enumeratum._
+import io.circe.{Decoder, Encoder}
 import org.enso.polyglot.runtime.Runtime.Api
 
 /** Base trait for the execution environment. */
-sealed trait ExecutionEnvironment extends EnumEntry
+object ExecutionEnvironments extends Enumeration {
+  type ExecutionEnvironment = Value
 
-object ExecutionEnvironment
-    extends Enum[ExecutionEnvironment]
-    with CirceEnum[ExecutionEnvironment] {
-
-  case object Design extends ExecutionEnvironment
-  case object Live   extends ExecutionEnvironment
-
-  override val values: IndexedSeq[ExecutionEnvironment] =
-    findValues
+  val Design, Live = Value
 
   /** Create an execution environment from the polyglot environment.
     *
@@ -41,4 +34,9 @@ object ExecutionEnvironment
       case Design => Api.ExecutionEnvironment.Design()
       case Live   => Api.ExecutionEnvironment.Live()
     }
+
+  implicit val genderDecoder: Decoder[ExecutionEnvironment] =
+    Decoder.decodeEnumeration(ExecutionEnvironments)
+  implicit val genderEncoder: Encoder[ExecutionEnvironment] =
+    Encoder.encodeEnumeration(ExecutionEnvironments)
 }

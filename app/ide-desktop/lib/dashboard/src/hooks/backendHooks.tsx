@@ -26,7 +26,8 @@ import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // FIXME: Listeners and optimistic state for duplicateProjectMutation, copyAssetMutation,
-// updateAssetMutation (e.g. move), and associateTagMutation
+// updateAssetMutation (e.g. move), associateTagMutation, and closeProjectMutation
+// (set project state to closing)
 
 // FIXME: Keep track of the current project to open somewhere, and open project when ready when
 // the corresponding query returns state: Opened

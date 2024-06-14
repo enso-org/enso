@@ -62,7 +62,10 @@ type Encoding
        encoding. Otherwise, the input is decoded using UTF-8 unless it contains
        invalid UTF-8 sequences, in which case Windows-1252 is used as a fallback.
 
-       When used for encoding, it will always encode using UTF-8.
+       When used for encoding, it will either use the same encoding detection
+       heuristics as in read in case of Append mode. When writing a new file,
+       it will always use UTF-8.
+
        This encoding cannot be passed to some functions that require a Java
        Charset.
     default -> Encoding =
@@ -86,7 +89,8 @@ type Encoding
        Convert an Encoding to it's corresponding Java Charset, if applicable.
        This method should be used in places not aware of special logic for the
        Default encoding. In such places, usage of Default encoding will be forbidden.
-    to_java_charset self -> Charset ! Illegal_Argument =
+    to_java_charset : Charset ! Illegal_Argument
+    to_java_charset self =
         self.to_java_charset_or_null.if_nothing <|
             warning = Illegal_Argument.Error "The Default encoding has been used in an unexpected place (e.g. Write operation). It will be replaced with UTF-8. Please specify the desired encoding explicitly)"
             Warning.attach warning (Encoding.utf_8.to_java_charset)
@@ -94,7 +98,8 @@ type Encoding
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset or null if it is the Default encoding.
        This method should only be used in places where a null Charset is expected - i.e. places aware of the Default encoding.
-    to_java_charset_or_null self -> Charset ! Illegal_Argument = case self of
+    to_java_charset_or_null : Charset | Nothing ! Illegal_Argument
+    to_java_charset_or_null self = case self of
         Encoding.Value charset_name ->
             Panic.catch UnsupportedCharsetException (Charset.forName charset_name) _->
                 Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + charset_name))

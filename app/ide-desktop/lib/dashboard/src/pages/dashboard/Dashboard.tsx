@@ -158,6 +158,7 @@ export default function Dashboard(props: DashboardProps) {
   )
   const backend = backendProvider.useBackend(category)
   const isCloud = categoryModule.isCloud(category)
+  const isUserEnabled = session.user?.isEnabled === true
   const isAssetPanelVisible =
     page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
 
@@ -166,6 +167,10 @@ export default function Dashboard(props: DashboardProps) {
     'waitUntilProjectIsReady'
   )
   const waitUntilProjectIsReadyMutate = waitUntilProjectIsReadyMutation.mutateAsync
+
+  if (isCloud && !isUserEnabled && localBackend != null) {
+    setCategory(Category.local)
+  }
 
   React.useEffect(() => {
     setInitialized(true)
@@ -198,7 +203,14 @@ export default function Dashboard(props: DashboardProps) {
         }
       })()
     }
-  }, [backend, initialProjectName, queryClient, session.user, toastAndLog, waitUntilProjectIsReadyMutate])
+  }, [
+    backend,
+    initialProjectName,
+    queryClient,
+    session.user,
+    toastAndLog,
+    waitUntilProjectIsReadyMutate,
+  ])
 
   React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')

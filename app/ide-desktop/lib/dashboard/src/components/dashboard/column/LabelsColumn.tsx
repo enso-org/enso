@@ -1,6 +1,8 @@
 /** @file A column listing the labels on this asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import Plus2Icon from 'enso-assets/plus2.svg'
 
 import * as store from '#/store'
@@ -75,11 +77,10 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               active={!isRemoved}
               isDisabled={isRemoved}
               negated={isRemoved}
-              className={
-                isRemoved
-                  ? 'relative before:absolute before:inset before:h-full before:w-full before:rounded-full before:border-2 before:border-delete'
-                  : ''
-              }
+              className={tailwindMerge.twMerge(
+                isRemoved &&
+                  'relative before:absolute before:inset before:h-full before:w-full before:rounded-full before:border-2 before:border-delete'
+              )}
               onContextMenu={event => {
                 event.preventDefault()
                 event.stopPropagation()

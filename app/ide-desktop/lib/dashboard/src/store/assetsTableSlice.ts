@@ -99,6 +99,7 @@ interface BackendState {
 // === AssetsTableSlice ===
 // ========================
 
+// FIXME: Figure out which UI state (if any) to reset when switching categories.
 /** State and actions for this slice. */
 export interface AssetsTableSlice {
   readonly backends: Readonly<Record<BackendType, BackendState>>

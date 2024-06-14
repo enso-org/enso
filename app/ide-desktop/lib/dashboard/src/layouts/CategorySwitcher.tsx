@@ -16,6 +16,7 @@ import * as store from '#/store'
 
 import * as backendHooks from '#/hooks/backendHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -88,6 +89,8 @@ interface InternalCategorySwitcherItemProps {
   readonly id: string
   readonly data: CategoryMetadata
   readonly isCurrent: boolean
+  readonly isDisabled: boolean
+  readonly tooltip?: string | false
   readonly onPress: (event: aria.PressEvent) => void
   readonly acceptedDragTypes: string[]
   readonly onDrop: (event: aria.DropEvent) => void
@@ -95,7 +98,7 @@ interface InternalCategorySwitcherItemProps {
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { data, isCurrent, onPress, acceptedDragTypes, onDrop } = props
+  const { data, isCurrent, isDisabled, tooltip = false, onPress, acceptedDragTypes, onDrop } = props
   const { category, icon, textId, buttonTextId, dropZoneTextId } = data
   const { getText } = textProvider.useText()
 
@@ -111,15 +114,20 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       <ariaComponents.Button
         size="custom"
         variant="custom"
-        tooltip={false}
-        className={tailwindMerge.twMerge('rounded-full', isCurrent && 'focus-default')}
+        tooltip={tooltip}
+        tooltipPlacement="right"
+        className={tailwindMerge.twMerge(
+          isCurrent && 'focus-default',
+          isDisabled && 'cursor-not-allowed hover:bg-transparent'
+        )}
         aria-label={getText(buttonTextId)}
         onPress={onPress}
       >
         <div
           className={tailwindMerge.twMerge(
             'group flex h-row items-center gap-icon-with-text rounded-full px-button-x selectable',
-            isCurrent ? 'disabled active' : 'hover:bg-selected-frame'
+            isCurrent && 'disabled active',
+            !isCurrent && !isDisabled && 'hover:bg-selected-frame'
           )}
         >
           <SvgMask
@@ -154,6 +162,7 @@ export interface CategorySwitcherProps {
 /** A switcher to choose the currently visible assets table category. */
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { backend, category, setCategory: setCategoryRaw } = props
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
@@ -168,12 +177,32 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             return localBackend != null
           }
           default: {
-            return remoteBackend != null
+            return true
           }
         }
       }),
-    [remoteBackend, localBackend]
+    [localBackend]
   )
+  const getCategoryError = (otherCategory: Category) => {
+    switch (otherCategory) {
+      case Category.local: {
+        if (localBackend == null) {
+          return getText('localBackendNotDetectedError')
+        } else {
+          return null
+        }
+      }
+      default: {
+        if (remoteBackend == null) {
+          return getText('youAreNotLoggedIn')
+        } else if (user?.isEnabled !== true) {
+          return getText('notEnabledSubtitle')
+        } else {
+          return null
+        }
+      }
+    }
+  }
 
   const deleteAssetMutation = backendHooks.useBackendMutation(backend, 'deleteAsset')
   const undoDeleteAssetMutation = backendHooks.useBackendMutation(backend, 'undoDeleteAsset')
@@ -186,6 +215,10 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     },
     [clearAllAssetsState, localStorage, setCategoryRaw]
   )
+
+  if (!categoryData.some(data => data.category === category)) {
+    setCategory(categoryData[0]?.category ?? Category.cloud)
+  }
 
   return (
     <FocusArea direction="vertical">
@@ -202,56 +235,63 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             role="grid"
             className="flex flex-col items-start"
           >
-            {categoryData.map(data => (
-              <CategorySwitcherItem
-                key={data.category}
-                id={data.category}
-                data={data}
-                isCurrent={category === data.category}
-                onPress={() => {
-                  setCategory(data.category)
-                }}
-                acceptedDragTypes={
-                  (category === Category.trash &&
-                    (data.category === Category.cloud || data.category === Category.local)) ||
-                  (category !== Category.trash && data.category === Category.trash)
-                    ? [mimeTypes.ASSETS_MIME_TYPE]
-                    : []
-                }
-                onDrop={event => {
-                  unsetModal()
-                  void Promise.all(
-                    event.items.flatMap(async item => {
-                      if (item.kind === 'text') {
-                        const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
-                        const payload: unknown = JSON.parse(text)
-                        return Array.isArray(payload)
-                          ? payload.flatMap(id =>
-                              // This is SAFE, assuming only this app creates payloads with
-                              // the specific mimetype above.
-                              // eslint-disable-next-line no-restricted-syntax
-                              typeof id === 'string' ? [id as backend.AssetId] : []
-                            )
-                          : []
+            {categoryData.map(data => {
+              const error = getCategoryError(data.category)
+              return (
+                <CategorySwitcherItem
+                  key={data.category}
+                  id={data.category}
+                  data={data}
+                  isCurrent={category === data.category}
+                  isDisabled={error != null}
+                  tooltip={error ?? false}
+                  onPress={() => {
+                    if (error == null) {
+                      setCategory(data.category)
+                    }
+                  }}
+                  acceptedDragTypes={
+                    (category === Category.trash &&
+                      (data.category === Category.cloud || data.category === Category.local)) ||
+                    (category !== Category.trash && data.category === Category.trash)
+                      ? [mimeTypes.ASSETS_MIME_TYPE]
+                      : []
+                  }
+                  onDrop={event => {
+                    unsetModal()
+                    void Promise.all(
+                      event.items.flatMap(async item => {
+                        if (item.kind === 'text') {
+                          const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
+                          const payload: unknown = JSON.parse(text)
+                          return Array.isArray(payload)
+                            ? payload.flatMap(key =>
+                                // This is SAFE, assuming only this app creates payloads with
+                                // the specific mimetype above.
+                                // eslint-disable-next-line no-restricted-syntax
+                                typeof key === 'string' ? [key as backend.AssetId] : []
+                              )
+                            : []
+                        } else {
+                          return []
+                        }
+                      })
+                    ).then(idLists => {
+                      const ids = idLists.flat(1)
+                      if (category === Category.trash) {
+                        for (const id of ids) {
+                          undoDeleteAssetMutation.mutate([id])
+                        }
                       } else {
-                        return []
+                        for (const id of ids) {
+                          deleteAssetMutation.mutate([id, { force: false }])
+                        }
                       }
                     })
-                  ).then(idLists => {
-                    const ids = idLists.flat(1)
-                    if (category === Category.trash) {
-                      for (const id of ids) {
-                        undoDeleteAssetMutation.mutate([id])
-                      }
-                    } else {
-                      for (const id of ids) {
-                        deleteAssetMutation.mutate([id, { force: false }])
-                      }
-                    }
-                  })
-                }}
-              />
-            ))}
+                  }}
+                />
+              )
+            })}
           </div>
         </div>
       )}

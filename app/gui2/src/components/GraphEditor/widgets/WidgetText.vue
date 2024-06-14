@@ -99,8 +99,6 @@ export const widgetDefinition = defineWidget(
       ref="input"
       v-model="editedContents"
       autoSelect
-      @pointerdown.stop
-      @click.stop
       @keydown.enter.stop="accepted"
       @focusin="editing.start()"
       @input="editing.edit(makeLiteralFromUserInput($event ?? ''))"

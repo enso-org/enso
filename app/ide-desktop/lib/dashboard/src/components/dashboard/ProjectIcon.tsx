@@ -17,7 +17,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinner from '#/components/Spinner'
-import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -148,16 +147,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <ariaComponents.Button
           size="custom"
           variant="custom"
-          className="size-project-icon rounded-full"
+          noExtraClickZone
+          icon={PlayIcon}
+          aria-label={getText('openInEditor')}
+          tooltipPlacement="left"
+          className="size-project-icon border-0"
           onPress={() =>
             openProjectMutation.mutateAsync([
               item.id,
               { executeAsync: false, cognitoCredentials: session },
             ])
           }
-        >
-          <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
-        </ariaComponents.Button>
+        />
       )
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
@@ -168,32 +169,25 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <ariaComponents.Button
             size="custom"
             variant="custom"
+            noExtraClickZone
             isDisabled={isOtherUserUsingProject}
-            {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-            className="size-project-icon rounded-full selectable enabled:active"
+            icon={StopIcon}
+            aria-label={getText('stopExecution')}
+            tooltipPlacement="left"
+            {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
+            className={tailwindMerge.twMerge(
+              'size-project-icon border-0 selectable enabled:active',
+              isRunningInBackground && 'text-green'
+            )}
             onPress={closeProject}
-          >
-            <SvgMask
-              alt={getText('stopExecution')}
-              src={StopIcon}
-              className={tailwindMerge.twMerge(
-                'size-project-icon',
-                isRunningInBackground && 'text-green'
-              )}
-            />
-          </ariaComponents.Button>
-          {/* The spinner MUST NOT be shown in the `placeholder` state because the ID changes when
-           * the actual asset is recieved, causing the DOM nodes to be re-created due to the
-           * different ID (different key) and causing the CSS animation to restart. */}
-          {state !== backendModule.ProjectState.placeholder && (
-            <Spinner
-              state={spinnerState}
-              className={tailwindMerge.twMerge(
-                'pointer-events-none absolute top-0 size-project-icon',
-                isRunningInBackground && 'text-green'
-              )}
-            />
-          )}
+          />
+          <Spinner
+            state={spinnerState}
+            className={tailwindMerge.twMerge(
+              'pointer-events-none absolute top-0 size-project-icon',
+              isRunningInBackground && 'text-green'
+            )}
+          />
         </div>
       )
     case backendModule.ProjectState.opened:
@@ -203,20 +197,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
             <ariaComponents.Button
               size="custom"
               variant="custom"
+              noExtraClickZone
               isDisabled={isOtherUserUsingProject}
-              {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-              className="size-project-icon rounded-full selectable enabled:active"
+              icon={StopIcon}
+              aria-label={getText('stopExecution')}
+              tooltipPlacement="left"
+              {...(isOtherUserUsingProject
+                ? { title: getText('otherUserIsUsingProjectError') }
+                : {})}
+              className={tailwindMerge.twMerge(
+                'size-project-icon border-0 selectable enabled:active',
+                isRunningInBackground && 'text-green'
+              )}
               onPress={closeProject}
-            >
-              <SvgMask
-                alt={getText('stopExecution')}
-                src={StopIcon}
-                className={tailwindMerge.twMerge(
-                  'size-project-icon',
-                  isRunningInBackground && 'text-green'
-                )}
-              />
-            </ariaComponents.Button>
+            />
             <Spinner
               state={spinnerState}
               className={tailwindMerge.twMerge(
@@ -229,17 +223,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
             <ariaComponents.Button
               size="custom"
               variant="custom"
-              className="size-project-icon rounded-full"
+              noExtraClickZone
+              className="size-project-icon border-0"
+              icon={ArrowUpIcon}
+              aria-label={getText('openInEditor')}
+              tooltipPlacement="right"
               onPress={() => {
                 doOpenEditor(true)
               }}
-            >
-              <SvgMask
-                alt={getText('openInEditor')}
-                src={ArrowUpIcon}
-                className="size-project-icon"
-              />
-            </ariaComponents.Button>
+            />
           )}
         </div>
       )

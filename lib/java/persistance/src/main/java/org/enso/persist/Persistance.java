@@ -90,7 +90,7 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /** Extended output interface for {@link #writeObject(Object)} method. */
-  public static interface Output extends DataOutput {
+  public static sealed interface Output extends DataOutput permits PerGenerator.ReferenceOutput {
     /**
      * Writes an object "inline" - as a value.
      *
@@ -112,7 +112,7 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /** Extended input interface for the {@link #writeObject(T, Output)} method. */
-  public static interface Input extends DataInput {
+  public static sealed interface Input extends DataInput permits PerInputImpl {
     /**
      * Reads objects written down by {@link Output#writeInline}.
      *
@@ -162,14 +162,13 @@ public abstract class Persistance<T> implements Cloneable {
    *
    * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
    *
-   * @param <T> expected type of object
    * @param arr the stored bytes
    * @param readResolve either {@code null} or function to call for each object being stored to
    *     provide a replacement
    * @return the read object
    * @throws java.io.IOException when an I/O problem happens
    */
-  public static <T> Reference<T> read(byte[] arr, Function<Object, Object> readResolve)
+  public static Reference<?> read(byte[] arr, Function<Object, Object> readResolve)
       throws IOException {
     return read(ByteBuffer.wrap(arr), readResolve);
   }
@@ -177,14 +176,13 @@ public abstract class Persistance<T> implements Cloneable {
   /**
    * Read object written down by {@link #write} from a byte buffer.
    *
-   * @param <T> expected type of object
    * @param buf the stored bytes
    * @param readResolve either {@code null} or function to call for each object being stored to
    *     provide a replacement
    * @return the read object
    * @throws java.io.IOException when an I/O problem happens
    */
-  public static <T> Reference<T> read(ByteBuffer buf, Function<Object, Object> readResolve)
+  public static Reference<?> read(ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
     return PerInputImpl.readObject(buf, readResolve);
   }
@@ -206,6 +204,10 @@ public abstract class Persistance<T> implements Cloneable {
   /**
    * Reference to an object. Either created directly or obtained from {@link Input#readReference}
    * method.
+   *
+   * <p>When reading, the Reference is read lazily, only on demand. When writing, the Reference is
+   * deferred towards the end, allowing to handle circular references inside of the serialized
+   * structure.
    *
    * @see Input#readReference
    */
@@ -236,7 +238,7 @@ public abstract class Persistance<T> implements Cloneable {
     public <V> V get(Class<V> expectedType) {
       var value =
           switch (this) {
-            case PerMemoryReference m -> m.value();
+            case PerMemoryReference<T> m -> m.value();
             case PerBufferReference<T> b -> {
               try {
                 yield b.readObject(expectedType);
@@ -249,14 +251,38 @@ public abstract class Persistance<T> implements Cloneable {
     }
 
     /**
-     * Creates a reference to existing object.
+     * Creates a reference to existing object. Behaves like {@code of(obj, false)} when the {@code
+     * Reference} is being written into the stream.
      *
      * @param <V> the type of the object
      * @param obj the object to "reference"
      * @return reference pointing to the provided object
      */
     public static <V> Reference<V> of(V obj) {
-      return new PerMemoryReference<>(obj);
+      return of(obj, false);
     }
+
+    /**
+     * Creates a reference to existing object and specifies how to persist it. The {@code
+     * deferWrite} value controls the order of serialization:
+     *
+     * <ul>
+     *   <li>if {@code false} then the {@code obj} is stored in the stream immediatelly and only
+     *       then the {@link Persistance.Output#writeObject(Object)} returns - <b>more effective</b>
+     *   <li>if {@code true} then the {@link Persistance.Output#writeObject(Object)} makes <em>a
+     *       note</em> to persist also {@code obj}, but returns almost immediatelly - useful to deal
+     *       with <b>cycles in the references</b>
+     * </ul>
+     *
+     * @param <V> the type of the object
+     * @param obj the object to "reference"
+     * @param deferWrite {@code false} or {@code true} as described in the method description
+     * @return reference pointing to the provided object
+     */
+    public static <V> Reference<V> of(V obj, boolean deferWrite) {
+      return deferWrite ? new PerMemoryReference.Deferred<>(obj) : new PerMemoryReference<>(obj);
+    }
+
+    abstract boolean isDeferredWrite();
   }
 }

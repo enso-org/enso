@@ -440,7 +440,7 @@ class ContextEventsListenerSpec
               contextId,
               Seq(
                 ExecutionDiagnostic(
-                  ExecutionDiagnosticKind.Error,
+                  ExecutionDiagnosticKinds.Error,
                   Some(message),
                   None,
                   None,
