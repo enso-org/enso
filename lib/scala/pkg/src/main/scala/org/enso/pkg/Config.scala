@@ -18,13 +18,6 @@ import java.io.Reader
 
 import scala.util.Try
 
-/** An extra project dependency.
-  *
-  * @param name    name of the package
-  * @param version package version
-  */
-case class Dependency(name: String, version: String)
-
 /** Contact information to a user.
   *
   * Used for defining authors and maintainers.
@@ -118,8 +111,7 @@ case class Config(
   maintainers: List[Contact],
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
-  componentGroups: Option[ComponentGroups],
-  originalJson: JsonObject = JsonObject()
+  componentGroups: Option[ComponentGroups]
 ) {
 
   /** Converts the configuration into a YAML representation. */
@@ -180,7 +172,6 @@ object Config {
         editionOrVersionBackwardsCompatibility(edition, ensoVersion).left.map {
           error => DecodingFailure(error, json.history)
         }
-      originals <- json.as[JsonObject]
       componentGroups <- json.getOrElse[Option[ComponentGroups]](
         JsonFields.componentGroups
       )(None)
@@ -196,15 +187,12 @@ object Config {
         maintainers          = maintainer,
         edition              = finalEdition,
         preferLocalLibraries = preferLocal,
-        componentGroups      = componentGroups,
-        originalJson         = originals
+        componentGroups      = componentGroups
       )
     }
   }
 
   implicit val encoder: Encoder[Config] = { config =>
-    val originals = config.originalJson
-
     val edition = config.edition
       .map { edition =>
         if (edition.isDerivingWithoutOverrides) edition.parent.get.asJson
@@ -242,25 +230,7 @@ object Config {
       overrides ++ preferLocalOverride: _*
     )
 
-    /** Fields that should not be inherited from the original set of fields.
-      *
-      * `ensoVersion` is dropped, because due to migration it is overridden by
-      * `edition` and we don't want to have both to avoid inconsistency.
-      *
-      * `prefer-local-libraries` cannot be inherited, because if it was set to
-      * `true` and we have changed it to `false`, overrides will not include it,
-      * because, as `false` is its default value, we just ignore the field. But
-      * if we inherit it from original fields, we would get `true` back. If the
-      * setting is still set to true, it will be included in the overrides, so
-      * it does not have to be inherited either.
-      */
-    val fieldsToRemoveFromOriginals =
-      Seq(JsonFields.ensoVersion, JsonFields.preferLocalLibraries)
-
-    val removed = fieldsToRemoveFromOriginals.foldLeft(originals) {
-      case (obj, key) => obj.remove(key)
-    }
-    removed.deepMerge(overridesObject).asJson
+    overridesObject.asJson
   }
 
   /** Tries to parse the [[Config]] from a YAML string. */

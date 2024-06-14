@@ -80,8 +80,7 @@ class LibraryGetPackageHandler(
     case LocalLibraryManagerProtocol.GetPackageResponse(
           libraryName,
           license,
-          componentGroups,
-          rawPackage
+          componentGroups
         ) =>
       replyTo ! ResponseResult(
         LibraryGetPackage,
@@ -92,8 +91,7 @@ class LibraryGetPackageHandler(
             Option.unless(
               groups.newGroups.isEmpty && groups.extendedGroups.isEmpty
             )(LibraryComponentGroups.fromComponentGroups(libraryName, groups))
-          },
-          rawPackage
+          }
         )
       )
       cancellable.cancel()
@@ -138,8 +136,7 @@ class LibraryGetPackageHandler(
             LocalLibraryManagerProtocol.GetPackageResponse(
               LibraryName(config.namespace, config.moduleName),
               config.license,
-              config.componentGroups,
-              config.originalJson
+              config.componentGroups
             )
           )
       }
@@ -156,8 +153,7 @@ class LibraryGetPackageHandler(
   } yield LocalLibraryManagerProtocol.GetPackageResponse(
     libraryName     = LibraryName(config.namespace, config.moduleName),
     license         = config.license,
-    componentGroups = config.componentGroups,
-    rawPackage      = config.originalJson
+    componentGroups = config.componentGroups
   )
 }
 

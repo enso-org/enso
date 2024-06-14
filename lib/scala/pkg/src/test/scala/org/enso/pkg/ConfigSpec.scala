@@ -1,7 +1,7 @@
 package org.enso.pkg
 
 import cats.Show
-import io.circe.{DecodingFailure, Json, JsonObject}
+import io.circe.{DecodingFailure, Json}
 import org.enso.semver.SemVer
 import org.enso.editions.LibraryName
 import org.scalatest.matchers.should.Matchers
@@ -52,8 +52,7 @@ class ConfigSpec
         componentGroups      = None
       )
       val deserialized = Config.fromYaml(config.toYaml).get
-      val withoutJson  = deserialized.copy(originalJson = JsonObject())
-      withoutJson shouldEqual config
+      deserialized shouldEqual config
     }
 
     "only require the name and use defaults for everything else" in {
@@ -62,27 +61,6 @@ class ConfigSpec
       parsed.normalizedName shouldEqual None
       parsed.moduleName shouldEqual "FooBar"
       parsed.edition shouldBe empty
-    }
-
-    "be backwards compatible but correctly migrate to new format on save" in {
-      val oldFormat =
-        """name: FooBar
-          |enso-version: 1.2.3
-          |extra-key: extra-value
-          |""".stripMargin
-      val parsed = Config.fromYaml(oldFormat).get
-
-      parsed.edition.get.engineVersion should contain(SemVer.of(1, 2, 3))
-
-      val serialized  = parsed.toYaml
-      val parsedAgain = Config.fromYaml(serialized).get
-
-      parsedAgain.copy(originalJson = JsonObject()) shouldEqual
-      parsed.copy(originalJson      = JsonObject())
-
-      parsedAgain.originalJson("extra-key").flatMap(_.asString) should contain(
-        "extra-value"
-      )
     }
 
     "correctly de-serialize and serialize back the shortened edition syntax " +

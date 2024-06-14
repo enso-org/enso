@@ -194,8 +194,7 @@ class LocalLibraryManager(
       GetPackageResponse(
         libraryName     = LibraryName(config.namespace, config.moduleName),
         license         = config.license,
-        componentGroups = config.componentGroups,
-        rawPackage      = config.originalJson
+        componentGroups = config.componentGroups
       )
     }
 
