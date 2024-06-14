@@ -27,7 +27,7 @@ export interface InfoBarProps {
 /** A toolbar containing chat and the user menu. */
 export default function InfoBar(props: InfoBarProps) {
   const { isHelpChatOpen, setIsHelpChatOpen } = props
-  const { updateModal } = modalProvider.useSetModal()
+  const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
   return (
@@ -54,7 +54,7 @@ export default function InfoBar(props: InfoBarProps) {
             variant="custom"
             className="flex size-row-h select-none items-center overflow-clip rounded-full"
             onPress={() => {
-              updateModal(oldModal => (oldModal?.type === InfoMenu ? null : <InfoMenu />))
+              setModal(<InfoMenu />)
             }}
           >
             <SvgMask

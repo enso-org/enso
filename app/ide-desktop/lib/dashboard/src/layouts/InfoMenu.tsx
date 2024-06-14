@@ -11,6 +11,7 @@ import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 import FocusArea from '#/components/styled/FocusArea'
+import SvgMask from '#/components/SvgMask'
 
 import AboutModal from '#/modals/AboutModal'
 
@@ -43,7 +44,7 @@ export default function InfoMenu(props: InfoMenuProps) {
       <div
         {...(!hidden ? { 'data-testid': 'info-menu' } : {})}
         className={tailwindMerge.twMerge(
-          'right-top-bar-margin top-top-bar-margin absolute flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
+          'absolute right-2.5 top-2.5 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
           initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
         )}
         onClick={event => {
@@ -56,9 +57,7 @@ export default function InfoMenu(props: InfoMenuProps) {
             initialized && 'px-menu-entry'
           )}
         >
-          <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
-            <img src={LogoIcon} className="pointer-events-none size-row-h" />
-          </div>
+          <SvgMask src={LogoIcon} className="pointer-events-none h-7 w-7" />
           <aria.Text className="text">{common.PRODUCT_NAME}</aria.Text>
         </div>
         <div

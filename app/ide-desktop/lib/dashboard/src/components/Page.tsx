@@ -48,7 +48,7 @@ export default function Page(props: PageProps) {
     <>
       {children}
       {!hideInfoBar && (
-        <div className="m-top-bar fixed right top z-1 text-xs text-primary transition-all duration-side-panel">
+        <div className="fixed right top z-1 m-2.5 text-primary">
           <InfoBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
         </div>
       )}

@@ -47,7 +47,7 @@ export default function UserBar(props: UserBarProps) {
   const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { setModal, updateModal } = modalProvider.useSetModal()
+  const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const self =
     user != null
@@ -122,11 +122,7 @@ export default function UserBar(props: UserBarProps) {
             className="flex size-row-h select-none items-center overflow-clip rounded-full transition-colors hover:bg-black/10"
             aria-label={getText('userMenuAltText')}
             onPress={() => {
-              updateModal(oldModal =>
-                oldModal?.type === UserMenu ? null : (
-                  <UserMenu setPage={setPage} onSignOut={onSignOut} />
-                )
-              )
+              setModal(<UserMenu setPage={setPage} onSignOut={onSignOut} />)
             }}
           >
             <img
