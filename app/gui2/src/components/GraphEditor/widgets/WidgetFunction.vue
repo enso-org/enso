@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { useWidgetVisualizationConfig } from '@/components/GraphEditor/widgets/WidgetFunction/widgetVisualizationCfg'
+import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import {
@@ -50,7 +50,7 @@ provideFunctionInfo(
 )
 
 const { methodCallInfo, interpreted, visualizationConfig, selfArgumentPreapplied, subjectInfo } =
-  useWidgetVisualizationConfig(props.input, graph.db)
+  useWidgetFunctionCallInfo(props.input.value, graph.db)
 
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
@@ -278,3 +278,4 @@ export const widgetDefinition = defineWidget(
 <template>
   <NodeWidget :input="innerInput" @update="handleArgUpdate" />
 </template>
+@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo

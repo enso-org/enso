@@ -4,20 +4,36 @@ import { initializePrefixes } from '@/util/ast/node'
 import assert from 'assert'
 import type { AstId } from 'shared/ast'
 import { initializeFFI } from 'shared/ast/ffi'
-import { IdMap, type ExternalId } from 'shared/yjsModel'
+import { IdMap, type ExternalId, type SourceRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
 await initializeFFI()
 initializePrefixes()
 
-/**
- * Create a predictable fake UUID which contains given number in decimal at the end.
- * @param x sequential value, e.g. 15
- * @returns fake uuid, e.g. 00000000-0000-0000-0000-000000000015
- */
-function eid(x: number): ExternalId {
-  const xStr = `${x}`
-  return ('00000000-0000-0000-0000-000000000000'.slice(0, -xStr.length) + xStr) as ExternalId
+export function parseWithSpans<T extends Record<string, SourceRange>>(code: string, spans: T) {
+  const nameToEid = new Map<keyof T, ExternalId>()
+  const eid = (name: keyof T) => nameToEid.get(name)!
+
+  const idMap = IdMap.Mock()
+  let nextIndex = 0
+  for (const name in spans) {
+    const span = spans[name]!
+    const indexStr = `${nextIndex++}`
+    const eid =
+      idMap.getIfExist(span) ??
+      (('00000000-0000-0000-0000-000000000000'.slice(0, -indexStr.length) + indexStr) as ExternalId)
+    nameToEid.set(name, eid)
+    idMap.insertKnownId(span, eid)
+  }
+
+  const { root: ast, toRaw, getSpan } = Ast.parseExtended(code, idMap)
+  const idFromExternal = new Map<ExternalId, AstId>()
+  ast.visitRecursiveAst((ast) => {
+    idFromExternal.set(ast.externalId, ast.id)
+  })
+  const id = (name: keyof T) => idFromExternal.get(eid(name))!
+
+  return { ast, id, eid, toRaw, getSpan }
 }
 
 test('Reading graph from definition', () => {
@@ -25,23 +41,24 @@ test('Reading graph from definition', () => {
     node1 = a + 4
     node2 = node1 + 4
     node3 = node2 + 1`
+  const spans = {
+    functionName: [0, 8] as [number, number],
+    parameter: [9, 10] as [number, number],
+    node1Id: [17, 22] as [number, number],
+    node1Content: [25, 30] as [number, number],
+    node1LParam: [25, 26] as [number, number],
+    node1RParam: [29, 30] as [number, number],
+    node2Id: [35, 40] as [number, number],
+    node2Content: [43, 52] as [number, number],
+    node2LParam: [43, 48] as [number, number],
+    node2RParam: [51, 52] as [number, number],
+    node3Id: [57, 62] as [number, number],
+    node3Content: [65, 74] as [number, number],
+  }
 
-  const idMap = IdMap.Mock()
-  idMap.insertKnownId([0, 8], eid(1)) // function
-  idMap.insertKnownId([9, 10], eid(2)) // a
-  idMap.insertKnownId([17, 22], eid(3)) // node1
-  idMap.insertKnownId([25, 30], eid(4)) // a + 4
-  idMap.insertKnownId([25, 26], eid(5)) // a
-  idMap.insertKnownId([29, 30], eid(6)) // 4
-  idMap.insertKnownId([35, 40], eid(7)) // node2
-  idMap.insertKnownId([43, 52], eid(8)) // node1 + 4
-  idMap.insertKnownId([43, 48], eid(9)) // node1
-  idMap.insertKnownId([51, 52], eid(10)) // 4
-  idMap.insertKnownId([57, 62], eid(11)) // node3
-  idMap.insertKnownId([65, 74], eid(12)) // node2 + 1
+  const { ast, id, eid, toRaw, getSpan } = parseWithSpans(code, spans)
 
   const db = GraphDb.Mock()
-  const { root: ast, toRaw, getSpan } = Ast.parseExtended(code, idMap)
   const expressions = Array.from(ast.statements())
   const func = expressions[0]
   assert(func instanceof Ast.Function)
@@ -49,37 +66,48 @@ test('Reading graph from definition', () => {
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
   db.readFunctionAst(func, rawFunc, code, getSpan, new Set())
 
-  const idFromExternal = new Map<ExternalId, AstId>()
-  ast.visitRecursiveAst((ast) => {
-    idFromExternal.set(ast.externalId, ast.id)
-  })
-  const id = (x: number) => idFromExternal.get(eid(x))!
-
-  expect(Array.from(db.nodeIdToNode.keys())).toEqual([id(4), id(8), id(12)])
-  expect(db.getExpressionNodeId(id(4))).toBe(id(4))
-  expect(db.getExpressionNodeId(id(5))).toBe(id(4))
-  expect(db.getExpressionNodeId(id(6))).toBe(id(4))
-  expect(db.getExpressionNodeId(id(7))).toBeUndefined()
-  expect(db.getExpressionNodeId(id(9))).toBe(id(8))
-  expect(db.getExpressionNodeId(id(10))).toBe(id(8))
-  expect(db.getPatternExpressionNodeId(id(3))).toBe(id(4))
-  expect(db.getPatternExpressionNodeId(id(4))).toBeUndefined()
-  expect(db.getPatternExpressionNodeId(id(7))).toBe(id(8))
-  expect(db.getPatternExpressionNodeId(id(10))).toBeUndefined()
-  expect(db.getIdentDefiningNode('node1')).toBe(id(4))
-  expect(db.getIdentDefiningNode('node2')).toBe(id(8))
+  expect(Array.from(db.nodeIdToNode.keys())).toEqual([
+    id('node1Content'),
+    id('node2Content'),
+    id('node3Content'),
+  ])
+  expect(db.getExpressionNodeId(id('node1Content'))).toBe(id('node1Content'))
+  expect(db.getExpressionNodeId(id('node1LParam'))).toBe(id('node1Content'))
+  expect(db.getExpressionNodeId(id('node1RParam'))).toBe(id('node1Content'))
+  expect(db.getExpressionNodeId(id('node2Id'))).toBeUndefined()
+  expect(db.getExpressionNodeId(id('node2LParam'))).toBe(id('node2Content'))
+  expect(db.getExpressionNodeId(id('node2RParam'))).toBe(id('node2Content'))
+  expect(db.getPatternExpressionNodeId(id('node1Id'))).toBe(id('node1Content'))
+  expect(db.getPatternExpressionNodeId(id('node1Content'))).toBeUndefined()
+  expect(db.getPatternExpressionNodeId(id('node2Id'))).toBe(id('node2Content'))
+  expect(db.getPatternExpressionNodeId(id('node2RParam'))).toBeUndefined()
+  expect(db.getIdentDefiningNode('node1')).toBe(id('node1Content'))
+  expect(db.getIdentDefiningNode('node2')).toBe(id('node2Content'))
   expect(db.getIdentDefiningNode('function')).toBeUndefined()
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id(4))))).toBe('node1')
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id(8))))).toBe('node2')
-  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id(3))))).toBe('node1')
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id('node1Content'))))).toBe(
+    'node1',
+  )
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id('node2Content'))))).toBe(
+    'node2',
+  )
+  expect(db.getOutputPortIdentifier(db.getNodeFirstOutputPort(asNodeId(id('node1Id'))))).toBe(
+    'node1',
+  )
 
   // Commented the connection from input node, as we don't support them yet.
-  expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([id(3), id(7)])
-  // expect(Array.from(db.connections.lookup(id(2)))).toEqual([id(5)])
-  expect(Array.from(db.connections.lookup(id(3)))).toEqual([id(9)])
-  // expect(db.getOutputPortIdentifier(id(2))).toBe('a')
-  expect(db.getOutputPortIdentifier(id(3))).toBe('node1')
-  expect(Array.from(db.nodeDependents.lookup(asNodeId(id(4))))).toEqual([id(8)])
-  expect(Array.from(db.nodeDependents.lookup(asNodeId(id(8))))).toEqual([id(12)])
-  expect(Array.from(db.nodeDependents.lookup(asNodeId(id(12))))).toEqual([])
+  expect(Array.from(db.connections.allForward(), ([key]) => key)).toEqual([
+    id('node1Id'),
+    id('node2Id'),
+  ])
+  // expect(Array.from(db.connections.lookup(id('parameter')))).toEqual([id('node1LParam)])
+  expect(Array.from(db.connections.lookup(id('node1Id')))).toEqual([id('node2LParam')])
+  // expect(db.getOutputPortIdentifier(id('parameter'))).toBe('a')
+  expect(db.getOutputPortIdentifier(id('node1Id'))).toBe('node1')
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(id('node1Content'))))).toEqual([
+    id('node2Content'),
+  ])
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(id('node2Content'))))).toEqual([
+    id('node3Content'),
+  ])
+  expect(Array.from(db.nodeDependents.lookup(asNodeId(id('node3Content'))))).toEqual([])
 })

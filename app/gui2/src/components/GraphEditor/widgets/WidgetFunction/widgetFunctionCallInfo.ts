@@ -14,22 +14,26 @@ import type { Opt } from 'shared/util/data/opt'
 import type { ExternalId } from 'shared/yjsModel'
 import { computed } from 'vue'
 
-const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
-const GET_WIDGETS_METHOD = 'get_widget_json'
+export const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
+export const GET_WIDGETS_METHOD = 'get_widget_json'
 
-export function useWidgetVisualizationConfig(
-  input: WidgetInput & { value: Ast.Ast },
+/**
+ * A composable gathering information about call for WidgetFunction basing on AST and
+ * expression updates.
+ */
+export function useWidgetFunctionCallInfo(
+  inputAst: Ast.Ast,
   graphDb: {
     getMethodCallInfo(id: AstId): MethodCallInfo | undefined
     getExpressionInfo(id: AstId): ExpressionInfo | undefined
   },
 ) {
   const methodCallInfo = computed(() => {
-    return getMethodCallInfoRecursively(input.value, graphDb)
+    return getMethodCallInfoRecursively(inputAst, graphDb)
   })
 
   const interpreted = computed(() => {
-    return interpretCall(input.value, methodCallInfo.value == null)
+    return interpretCall(inputAst, methodCallInfo.value == null)
   })
 
   const subjectInfo = computed(() => {
@@ -65,17 +69,12 @@ export function useWidgetVisualizationConfig(
   })
 
   const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
-    // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
-    // the current call and then merge them.
-
     const args = ArgumentApplication.collectArgumentNamesAndUuids(
       interpreted.value,
       methodCallInfo.value,
     )
 
     const selfArgId = selfArgumentExternalId.value
-    const astId = input.value.id
-    if (astId == null) return null
     const info = methodCallInfo.value
     if (!info) return null
     const annotatedArgs = info.suggestion.annotations
@@ -101,7 +100,7 @@ export function useWidgetVisualizationConfig(
       // In the case when no self argument is present (for example in autoscoped constructor),
       // we assume that this is a static function call.
       return {
-        expressionId: input.value.externalId,
+        expressionId: inputAst.externalId,
         visualizationModule: WIDGETS_ENSO_MODULE,
         expression: `a -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.definedIn}`,
         positionalArgumentsExpressions,
