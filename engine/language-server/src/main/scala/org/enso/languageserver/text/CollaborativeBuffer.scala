@@ -152,12 +152,36 @@ class CollaborativeBuffer(
     buffer: Buffer,
     rpcSession: JsonSession,
     replyTo: ActorRef,
-    timeout: Cancellable
+    timeout: Cancellable,
+    retries: Int
   ): Receive = {
     case ServerConfirmationTimeout =>
-      logger.warn("Timeout reached when awaiting response from the server")
-      replyTo ! OpenFileResponse(Left(OperationTimeout))
-      stop(Map.empty)
+      if (retries > 0) {
+        logger.warn(
+          "Timeout reached when awaiting response from the server. Retries left {}",
+          retries
+        )
+        val timeoutCancellable = context.system.scheduler
+          .scheduleOnce(
+            timingsConfig.runtimeRequestTimeout,
+            self,
+            ServerConfirmationTimeout
+          )
+        context.become(
+          waitingOnServerConfirmation(
+            requestId,
+            buffer,
+            rpcSession,
+            replyTo,
+            timeoutCancellable,
+            retries - 1
+          )
+        )
+      } else {
+        logger.warn("Timeout reached when awaiting response from the server")
+        replyTo ! OpenFileResponse(Left(OperationTimeout))
+        stop(Map.empty)
+      }
     case Api.Response(Some(id), Api.OpenFileResponse) if id == requestId =>
       timeout.cancel()
       val cap = CapabilityRegistration(CanEdit(bufferPath))
@@ -865,7 +889,8 @@ class CollaborativeBuffer(
         buffer,
         rpcSession,
         replyTo,
-        timeoutCancellable
+        timeoutCancellable,
+        5
       )
     )
   }
