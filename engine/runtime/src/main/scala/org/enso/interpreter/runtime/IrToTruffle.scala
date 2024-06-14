@@ -1041,8 +1041,61 @@ class IrToTruffle(
                     s"Type ${staticMethod.tpName} should be resolvable in module ${module.getName}"
                   )
               }
-            case BindingsMap.ResolvedConversionMethod(_, _) =>
-              ???
+            case BindingsMap.ResolvedConversionMethod(
+                  module,
+                  conversionMethod
+                ) =>
+              val actualModule = module.unsafeAsModule()
+              val actualScope  = asScope(actualModule)
+              actualModule.getBindingsMap.resolveName(
+                conversionMethod.targetTpName
+              ) match {
+                case Right(BindingsMap.ResolvedType(modWithTargetTp, _)) =>
+                  val targetTpScope = asScope(modWithTargetTp.unsafeAsModule())
+                  val targetTp =
+                    targetTpScope.getType(conversionMethod.targetTpName, true)
+                  assert(
+                    targetTp != null,
+                    s"Target type should be defined in module ${module.getName}"
+                  )
+                  actualModule.getBindingsMap.resolveName(
+                    conversionMethod.sourceTpName
+                  ) match {
+                    case Right(BindingsMap.ResolvedType(modWithSourceTp, _)) =>
+                      val sourceTpScope =
+                        asScope(modWithSourceTp.unsafeAsModule())
+                      val sourceTp = sourceTpScope.getType(
+                        conversionMethod.sourceTpName,
+                        true
+                      )
+                      assert(
+                        sourceTp != null,
+                        s"Source type should be defined in module ${module.getName}"
+                      )
+                      val conversionFun =
+                        actualScope.lookupConversionDefinition(
+                          sourceTp,
+                          targetTp
+                        )
+                      assert(
+                        conversionFun != null,
+                        s"Conversion method `$conversionMethod` should be defined in module ${module.getName}"
+                      )
+                      scopeBuilder.registerConversionMethod(
+                        targetTp,
+                        sourceTp,
+                        conversionFun
+                      )
+                    case _ =>
+                      throw new CompilerError(
+                        s"Source type ${conversionMethod.sourceTpName} should be resolvable in module ${module.getName}"
+                      )
+                  }
+                case _ =>
+                  throw new CompilerError(
+                    s"Target type ${conversionMethod.targetTpName} should be resolvable in module ${module.getName}"
+                  )
+              }
             case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
             case BindingsMap.ResolvedPolyglotField(_, _)  =>
           }

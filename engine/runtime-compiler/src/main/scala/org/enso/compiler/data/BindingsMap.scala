@@ -790,6 +790,9 @@ object BindingsMap {
     targetTpName: String
   ) extends Method {
     override def name: String = s"$targetTpName.$methodName.$sourceTpName"
+
+    override def toString: String =
+      targetTpName + ".from (other:" + sourceTpName + ")"
   }
 
   /** A name resolved to a sum type.
