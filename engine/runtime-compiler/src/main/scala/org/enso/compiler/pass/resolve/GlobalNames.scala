@@ -19,8 +19,8 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Resolution,
   ResolutionNotFound,
-  ResolvedMethod,
-  ResolvedModule
+  ResolvedModule,
+  ResolvedModuleMethod
 }
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
@@ -181,7 +181,9 @@ case object GlobalNames extends IRPass {
                       lit,
                       errors.Resolution.ResolverError(error)
                     )
-                  case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
+                  case Right(
+                        r @ BindingsMap.ResolvedModuleMethod(mod, method)
+                      ) =>
                     if (isInsideApplication) {
                       lit.updateMetadata(
                         new MetadataPair(this, BindingsMap.Resolution(r))
@@ -297,7 +299,7 @@ case object GlobalNames extends IRPass {
       )
     )
     processedFun.getMetadata(this) match {
-      case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
+      case Some(Resolution(ResolvedModuleMethod(mod, _))) if !isLocalVar(fun) =>
         val self = freshNameSupply
           .newName()
           .updateMetadata(

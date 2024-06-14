@@ -140,11 +140,27 @@ object Patterns extends IRPass {
                     new MetadataPair(this, BindingsMap.Resolution(value))
                   )
 
-                case Right(_: BindingsMap.ResolvedMethod) =>
+                case Right(_: BindingsMap.ResolvedModuleMethod) =>
                   val r = errors.Resolution(
                     consName,
                     errors.Resolution.UnexpectedMethod(
-                      "a pattern match"
+                      "method inside pattern match"
+                    )
+                  )
+                  r.setLocation(consName.location)
+                case Right(_: BindingsMap.ResolvedStaticMethod) =>
+                  val r = errors.Resolution(
+                    consName,
+                    errors.Resolution.UnexpectedMethod(
+                      "static method inside pattern match"
+                    )
+                  )
+                  r.setLocation(consName.location)
+                case Right(_: BindingsMap.ResolvedConversionMethod) =>
+                  val r = errors.Resolution(
+                    consName,
+                    errors.Resolution.UnexpectedMethod(
+                      "conversion method inside pattern match"
                     )
                   )
                   r.setLocation(consName.location)
@@ -158,7 +174,15 @@ object Patterns extends IRPass {
                 case BindingsMap.ResolvedModule(_)            => 0
                 case BindingsMap.ResolvedPolyglotSymbol(_, _) => 0
                 case BindingsMap.ResolvedPolyglotField(_, _)  => 0
-                case BindingsMap.ResolvedMethod(_, _) =>
+                case BindingsMap.ResolvedModuleMethod(_, _) =>
+                  throw new CompilerError(
+                    "Impossible, should be transformed into an error before."
+                  )
+                case BindingsMap.ResolvedStaticMethod(_, _) =>
+                  throw new CompilerError(
+                    "Impossible, should be transformed into an error before."
+                  )
+                case BindingsMap.ResolvedConversionMethod(_, _) =>
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
                   )
@@ -223,15 +247,31 @@ object Patterns extends IRPass {
                     tpeName,
                     errors.Resolution.UnexpectedPolyglot(s"type pattern case")
                   )*/
-                case Right(_: BindingsMap.ResolvedMethod) =>
+                case Right(_: BindingsMap.ResolvedModuleMethod) =>
                   errors.Resolution(
                     tpeName,
-                    errors.Resolution.UnexpectedMethod(s"type pattern case")
+                    errors.Resolution
+                      .UnexpectedMethod(s"method type pattern case")
+                  )
+                case Right(_: BindingsMap.ResolvedStaticMethod) =>
+                  errors.Resolution(
+                    tpeName,
+                    errors.Resolution.UnexpectedMethod(
+                      s"static method inside type pattern case"
+                    )
+                  )
+                case Right(_: BindingsMap.ResolvedConversionMethod) =>
+                  errors.Resolution(
+                    tpeName,
+                    errors.Resolution.UnexpectedMethod(
+                      s"conversion method inside type pattern case"
+                    )
                   )
                 case Right(_: BindingsMap.ResolvedModule) =>
                   errors.Resolution(
                     tpeName,
-                    errors.Resolution.UnexpectedModule(s"type pattern case")
+                    errors.Resolution
+                      .UnexpectedModule(s"module inside type pattern case")
                   )
               }
               .getOrElse(tpeName)

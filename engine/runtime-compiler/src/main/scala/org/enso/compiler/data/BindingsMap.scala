@@ -700,14 +700,21 @@ object BindingsMap {
 
   sealed trait DefinedEntity {
     def name: String
+
     def resolvedIn(module: ModuleReference): ResolvedName = this match {
-      case t: Type           => ResolvedType(module, t)
-      case m: Method         => ResolvedMethod(module, m)
+      case t: Type => ResolvedType(module, t)
+      case staticMethod: StaticMethod =>
+        ResolvedStaticMethod(module, staticMethod)
+      case conversionMethod: ConversionMethod =>
+        ResolvedConversionMethod(module, conversionMethod)
+      case m: ModuleMethod   => ResolvedModuleMethod(module, m)
       case p: PolyglotSymbol => ResolvedPolyglotSymbol(module, p)
     }
+
     def resolvedIn(module: Module): ResolvedName = resolvedIn(
       ModuleReference.Concrete(module)
     )
+
     // Determines if this entity can be exported during export resolution pass
     def canExport: Boolean
   }
@@ -768,19 +775,22 @@ object BindingsMap {
     *     method = 42
     * My_Type.method = 42
     * ```
-    * @param name
-    * @param tpName
     */
   case class StaticMethod(
-    override val name: String,
+    methodName: String,
     tpName: String
-  ) extends Method {}
+  ) extends Method {
+
+    override def name: String = s"$tpName.$methodName"
+  }
 
   case class ConversionMethod(
-    override val name: String,
+    methodName: String,
     sourceTpName: String,
     targetTpName: String
-  ) extends Method {}
+  ) extends Method {
+    override def name: String = s"$targetTpName.$methodName.$sourceTpName"
+  }
 
   /** A name resolved to a sum type.
     *
@@ -901,23 +911,23 @@ object BindingsMap {
       .exportedSymbols
   }
 
-  /** A representation of a name being resolved to a method call.
+  /** A representation of a resolved method defined directly on module.
     *
     * @param module the module defining the method.
     * @param method the method representation.
     */
-  case class ResolvedMethod(module: ModuleReference, method: Method)
+  case class ResolvedModuleMethod(module: ModuleReference, method: ModuleMethod)
       extends ResolvedName {
 
     /** @inheritdoc */
-    override def toAbstract: ResolvedMethod = {
+    override def toAbstract: ResolvedModuleMethod = {
       this.copy(module = module.toAbstract)
     }
 
     /** @inheritdoc */
     override def toConcrete(
       moduleMap: ModuleMap
-    ): Option[ResolvedMethod] = {
+    ): Option[ResolvedModuleMethod] = {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
 
@@ -942,6 +952,52 @@ object BindingsMap {
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(method.name)
+  }
+
+  /** Method resolved on a type - either static method or extension method.
+    */
+  case class ResolvedStaticMethod(
+    module: ModuleReference,
+    staticMethod: StaticMethod
+  ) extends ResolvedName {
+    override def toAbstract: ResolvedStaticMethod = {
+      this.copy(module = module.toAbstract)
+    }
+
+    override def toConcrete(
+      moduleMap: ModuleMap
+    ): Option[ResolvedStaticMethod] = {
+      module.toConcrete(moduleMap).map { module =>
+        this.copy(module = module)
+      }
+    }
+
+    override def qualifiedName: QualifiedName =
+      module.getName
+        .createChild(staticMethod.tpName)
+        .createChild(staticMethod.methodName)
+  }
+
+  case class ResolvedConversionMethod(
+    module: ModuleReference,
+    conversionMethod: ConversionMethod
+  ) extends ResolvedName {
+    override def toAbstract: ResolvedConversionMethod = {
+      this.copy(module = module.toAbstract)
+    }
+
+    override def toConcrete(
+      moduleMap: ModuleMap
+    ): Option[ResolvedConversionMethod] = {
+      module.toConcrete(moduleMap).map { module =>
+        this.copy(module = module)
+      }
+    }
+
+    override def qualifiedName: QualifiedName =
+      module.getName
+        .createChild(conversionMethod.targetTpName)
+        .createChild(conversionMethod.methodName)
   }
 
   /** A representation of a name being resolved to a polyglot symbol.
@@ -1009,8 +1065,12 @@ object BindingsMap {
           s"    The imported polyglot symbol ${symbol.name};"
         case BindingsMap.ResolvedPolyglotField(_, name) =>
           s"    The imported polyglot field ${name};"
-        case BindingsMap.ResolvedMethod(module, symbol) =>
+        case BindingsMap.ResolvedModuleMethod(module, symbol) =>
           s"    The method ${symbol.name} defined in module ${module.getName}"
+        case BindingsMap.ResolvedStaticMethod(module, staticMethod) =>
+          s"    The static method ${staticMethod.methodName} defined in module ${module.getName} for type ${staticMethod.tpName}"
+        case BindingsMap.ResolvedConversionMethod(module, conversionMethod) =>
+          s"    The conversion method ${conversionMethod.targetTpName}.${conversionMethod.methodName} defined in module ${module.getName}"
         case BindingsMap.ResolvedType(module, typ) =>
           s"    Type ${typ.name} defined in module ${module.getName}"
       }

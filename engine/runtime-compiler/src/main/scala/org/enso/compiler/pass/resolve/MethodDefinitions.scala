@@ -219,11 +219,25 @@ case object MethodDefinitions extends IRPass {
                 "a method definition target"
               )
             )
-          case Right(_: BindingsMap.ResolvedMethod) =>
+          case Right(_: BindingsMap.ResolvedModuleMethod) =>
             errors.Resolution(
               typePointer,
               errors.Resolution.UnexpectedMethod(
                 "a method definition target"
+              )
+            )
+          case Right(_: BindingsMap.ResolvedStaticMethod) =>
+            errors.Resolution(
+              typePointer,
+              errors.Resolution.UnexpectedMethod(
+                "a static method definition target"
+              )
+            )
+          case Right(_: BindingsMap.ResolvedConversionMethod) =>
+            errors.Resolution(
+              typePointer,
+              errors.Resolution.UnexpectedMethod(
+                "a conversion method definition target"
               )
             )
 

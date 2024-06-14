@@ -11,7 +11,7 @@ import org.enso.compiler.data.BindingsMap.{
   ModuleMethod,
   PolyglotSymbol,
   ResolutionAmbiguous,
-  ResolvedMethod,
+  ResolvedStaticMethod,
   StaticMethod,
   Type
 }
@@ -71,7 +71,7 @@ class BindingAnalysisTest extends CompilerTest {
       )
 
       metadata.resolveName("extension_method") shouldEqual Right(
-        ResolvedMethod(
+        ResolvedStaticMethod(
           ctx.moduleReference(),
           StaticMethod("extension_method", "My_Type")
         )
@@ -99,11 +99,11 @@ class BindingAnalysisTest extends CompilerTest {
       metadata.resolveName("extension_method") shouldBe Left(
         ResolutionAmbiguous(
           List(
-            ResolvedMethod(
+            ResolvedStaticMethod(
               ctx.moduleReference(),
               StaticMethod("extension_method", "My_Type")
             ),
-            ResolvedMethod(
+            ResolvedStaticMethod(
               ctx.moduleReference(),
               StaticMethod("extension_method", "Other_Type")
             )

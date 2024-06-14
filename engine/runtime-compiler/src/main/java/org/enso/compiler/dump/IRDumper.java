@@ -29,7 +29,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
-import org.enso.compiler.data.BindingsMap.ResolvedMethod;
+import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
@@ -513,9 +513,9 @@ public class IRDumper {
                   bldr.addLabelLine(
                       "target: ResolvedConstructor(" + resolvedConstructor.cons().name() + ")");
                 }
-                case ResolvedMethod resolvedMethod -> {
+                case ResolvedModuleMethod resolvedModuleMethod -> {
                   bldr.addLabelLine(
-                      "target: ResolvedMethod(" + resolvedMethod.method().name() + ")");
+                      "target: ResolvedMethod(" + resolvedModuleMethod.method().name() + ")");
                 }
                 case ResolvedPolyglotField resolvedPolyglotField -> {
                   bldr.addLabelLine(
@@ -562,8 +562,8 @@ public class IRDumper {
                   var entity = bindingsMap.definedEntities().apply(i);
                   switch (entity) {
                     case BindingsMap.Type tp -> bldr.addLabelLine("  - Type(" + tp.name() + ")");
-                    case BindingsMap.Method method -> bldr.addLabelLine(
-                        "  - Method(" + method.name() + ")");
+                    case BindingsMap.ModuleMethod method -> bldr.addLabelLine(
+                        "  - ModuleMethod(" + method.name() + ")");
                     case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine(
                         "  - PolyglotSymbol(" + polySym.name() + ")");
                     default -> throw unimpl(entity);
