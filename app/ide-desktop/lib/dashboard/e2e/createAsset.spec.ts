@@ -31,6 +31,21 @@ test.test('create folder', ({ page }) =>
   )
 )
 
+test.test('create empty project', ({ page }) =>
+  actions.mockAllAndLogin({ page }).then(
+    async ({ pageActions }) =>
+      await pageActions
+        .createEmptyProject()
+        .do(async thePage => {
+          await test.expect(actions.locateEditor(thePage)).toBeVisible()
+        })
+        .goToPage.drive()
+        .driveTable.withRows(async rows => {
+          await test.expect(rows).toHaveCount(1)
+        })
+  )
+)
+
 test.test('create project', ({ page }) =>
   actions.mockAllAndLogin({ page }).then(
     async ({ pageActions }) =>

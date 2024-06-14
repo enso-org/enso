@@ -138,7 +138,7 @@ export default class DrivePageActions extends BaseActions {
     ).into(StartModalActions)
   }
 
-  /** Create an empty project. */
+  /** Create an empty project using the text button. */
   createEmptyProject() {
     return this.step('Create empty project', page =>
       page.getByText('New Empty Project').click()
