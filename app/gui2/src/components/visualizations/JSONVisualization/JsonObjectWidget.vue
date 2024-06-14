@@ -2,7 +2,7 @@
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
 import { computed } from 'vue'
 
-const props = defineProps<{ data: object }>()
+const props = defineProps<{ data: object; isClickThroughEnabled: boolean }>()
 const emit = defineEmits<{
   createProjection: [path: (string | number)[][]]
 }>()
@@ -29,13 +29,18 @@ function entryTitle(key: string) {
       v-for="[key, value] in Object.entries(props.data)"
       :key="key"
       :title="entryTitle(key)"
-      class="field clickable"
-      @click.stop="emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])"
+      class="field"
+      :class="[isClickThroughEnabled && 'clickable']"
+      @click.stop="
+        isClickThroughEnabled &&
+          emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])
+      "
     >
       <span class="key" v-text="JSON.stringify(key)" />:
       <JsonValueWidget
         :data="value"
-        @createProjection="emit('createProjection', [[key], ...$event])"
+        :isClickThroughEnabled="isClickThroughEnabled"
+        @createProjection="isClickThroughEnabled && emit('createProjection', [[key], ...$event])"
       />
     </span>
   </span>
