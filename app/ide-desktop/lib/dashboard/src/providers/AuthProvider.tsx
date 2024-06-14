@@ -267,10 +267,9 @@ export default function AuthProvider(props: AuthProviderProps) {
         setForceOfflineMode(false)
       } else if (session == null) {
         setInitialized(true)
-        if (!initialized) {
-          sentry.setUser(null)
-          setUserSession(null)
-        }
+        cognito?.saveAccessToken(null)
+        sentry.setUser(null)
+        setUserSession(null)
       } else {
         const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
         const backend = new RemoteBackend(client, logger, getText)
@@ -577,11 +576,8 @@ export default function AuthProvider(props: AuthProviderProps) {
       const parentDomain = location.hostname.replace(/^[^.]*\./, '')
       document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
       gtagEvent('cloud_sign_out')
-      cognito.saveAccessToken(null)
       localStorage.clearUserSpecificEntries()
       setInitialized(false)
-      sentry.setUser(null)
-      setUserSession(null)
       // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
       unsetModal()
       // This should not omit success and error toasts as it is not possible
