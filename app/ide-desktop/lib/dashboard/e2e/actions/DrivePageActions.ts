@@ -38,10 +38,16 @@ export default class DrivePageActions extends BaseActions {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self: DrivePageActions = this
     return {
-      /** Switch to the "home" category. */
-      home() {
-        return self.step('Go to "Home" category', page =>
-          page.getByRole('button', { name: 'Home' }).getByText('Home').click()
+      /** Switch to the "cloud" category. */
+      cloud() {
+        return self.step('Go to "Cloud" category', page =>
+          page.getByRole('button', { name: 'Cloud' }).getByText('Cloud').click()
+        )
+      },
+      /** Switch to the "local" category. */
+      local() {
+        return self.step('Go to "Local" category', page =>
+          page.getByRole('button', { name: 'Local' }).getByText('Local').click()
         )
       },
       /** Switch to the "recent" category. */

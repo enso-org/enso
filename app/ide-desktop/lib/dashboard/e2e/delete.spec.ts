@@ -21,7 +21,7 @@ test.test('delete and restore', ({ page }) =>
         .driveTable.rightClickRow(0)
         .contextMenu.restoreFromTrash()
         .driveTable.expectTrashPlaceholderRow()
-        .goToCategory.home()
+        .goToCategory.cloud()
         .driveTable.withRows(async rows => {
           await test.expect(rows).toHaveCount(1)
         })
@@ -46,7 +46,7 @@ test.test('delete and restore (keyboard)', ({ page }) =>
         .driveTable.clickRow(0)
         .press('Mod+R')
         .driveTable.expectTrashPlaceholderRow()
-        .goToCategory.home()
+        .goToCategory.cloud()
         .driveTable.withRows(async rows => {
           await test.expect(rows).toHaveCount(1)
         })
