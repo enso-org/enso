@@ -32,8 +32,14 @@ public final class GenerateDocs {
       var ir = module.getIr();
       assert ir != null : "need IR for " + module;
       var md = fs.getChild(api, module.getName() + ".md");
+      DONE:
       try (var w = fs.newBufferedWriter(md)) {
         w.append("## Documentation for " + module.getName() + "\n");
+
+        if (ir.isPrivate()) {
+          w.append("This module is **private**!\n");
+          break DONE;
+        }
 
         for (var b : asJava(ir.bindings())) {
           switch (b) {
