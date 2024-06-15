@@ -4,6 +4,8 @@ import java.io.IOException;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.pass.resolve.DocumentationComments;
+import org.enso.compiler.pass.resolve.DocumentationComments$;
 import org.enso.filesystem.FileSystem;
 import scala.collection.immutable.Seq;
 import scala.jdk.CollectionConverters;
@@ -43,12 +45,18 @@ public final class GenerateDocs {
 
         for (var b : asJava(ir.bindings())) {
           switch (b) {
-            case Definition.Type t -> w.append("- **type** " + t.name().name() + "\n");
-            case Definition.Data d -> w.append("- data " + d.name().name() + "\n");
-            case Definition.SugaredType s -> w.append("- sugar " + s.name().name() + "\n");
-            case Method.Explicit m -> w.append("- method " + m.methodName().name() + "\n");
-            case Method.Conversion c -> w.append("- conversion " + c.methodName().name() + "\n");
+            case Definition.Type t -> w.append("#### **type** " + t.name().name() + "\n");
+            case Definition.Data d -> w.append("#### data " + d.name().name() + "\n");
+            case Definition.SugaredType s -> w.append("#### sugar " + s.name().name() + "\n");
+            case Method.Explicit m -> w.append("#### method " + m.methodName().name() + "\n");
+            case Method.Conversion c -> w.append("#### conversion " + c.methodName().name() + "\n");
             default -> throw new AssertionError("unknown type " + b.getClass());
+          }
+          var option = b.passData().get(DocumentationComments$.MODULE$);
+          if (option.isDefined()) {
+            var doc = (DocumentationComments.Doc) option.get();
+            w.append(doc.documentation());
+            w.append("\n\n\n");
           }
         }
       }
