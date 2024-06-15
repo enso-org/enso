@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
+import org.enso.pkg.QualifiedName$;
 
 public sealed interface TypeRepresentation
     permits TypeRepresentation.ArrowType,
@@ -37,6 +38,10 @@ public sealed interface TypeRepresentation
     @Override
     public String toString() {
       return "Any";
+    }
+
+    public QualifiedName getAssociatedType() {
+      return new QualifiedName$.MODULE$.fromString(BuiltinTypes.anyQualifiedName);
     }
   }
 

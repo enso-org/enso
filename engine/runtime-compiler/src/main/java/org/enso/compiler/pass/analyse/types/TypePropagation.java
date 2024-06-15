@@ -19,6 +19,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
+import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -319,25 +320,26 @@ abstract class TypePropagation {
           return typeResolver.buildAtomConstructorType(typeObject, ctorCandidate.get());
         } else {
           System.out.println("TODO: static calling " + function.name() + " on " + typeObject);
-          // TODO if no ctor found, we should search static methods, but that is not implemented
-          // currently; so we cannot report an error either - just do nothing
-          return methodTypeResolver.resolveMethod(typeObject.name(), function.name());
+          var typeScope = TypeScopeReference.atomEigenType(typeObject.name());
+          return methodTypeResolver.resolveMethod(typeScope, function.name());
         }
       }
 
       case TypeRepresentation.AtomType atomInstanceType -> {
         System.out.println(
             "TODO: calling " + function.name() + " on an instance of " + atomInstanceType);
-        return methodTypeResolver.resolveMethod(atomInstanceType.fqn(), function.name());
+        var typeScope = TypeScopeReference.atomType(atomInstanceType.fqn());
+        return methodTypeResolver.resolveMethod(typeScope, function.name());
       }
 
       case TypeRepresentation.TopType topType -> {
         System.out.println("TODO: calling " + function.name() + " on Any");
-        // TODO
-        return methodTypeResolver.resolveMethod(null, function.name());
+        var typeScope = TypeScopeReference.atomType(topType.getAssociatedType());
+        return methodTypeResolver.resolveMethod(typeScope, function.name());
       }
 
       default -> {
+        System.out.println("TODO: " + argumentType);
         return null;
       }
     }

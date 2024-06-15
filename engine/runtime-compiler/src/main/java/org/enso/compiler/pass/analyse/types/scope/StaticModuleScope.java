@@ -24,7 +24,7 @@ public final class StaticModuleScope {
   private final TypeScopeReference associatedType;
 
   StaticModuleScope(QualifiedName moduleName) {
-    associatedType = new TypeScopeReference(moduleName);
+    associatedType = TypeScopeReference.moduleAssociatedType(moduleName);
   }
 
   void registerType(AtomType type) {
@@ -35,7 +35,7 @@ public final class StaticModuleScope {
   }
 
   void registerMethod(TypeScopeReference parentType, String name, TypeRepresentation type) {
-    var typeMethods = methods.computeIfAbsent(parentType.name, k -> new HashMap<>());
+    var typeMethods = methods.computeIfAbsent(parentType, k -> new HashMap<>());
     typeMethods.put(name, type);
   }
 
@@ -43,15 +43,6 @@ public final class StaticModuleScope {
     return associatedType;
   }
 
-  /** A reference to a Type-like scope that can have methods associated with it.
-   * <p>
-   * It can be one of three things:
-   * - An atom type
-   * - The eigentype of an atom type - this will hold the type's static methods
-   * - An associated type of a module
-   */
-  public record TypeScopeReference(QualifiedName name) {}
-
   private Map<String, AtomType> typesDefinedHere = new HashMap<>();
-  private Map<QualifiedName, Map<String, TypeRepresentation>> methods = new HashMap<>();
+  private Map<TypeScopeReference, Map<String, TypeRepresentation>> methods = new HashMap<>();
 }

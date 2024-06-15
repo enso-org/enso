@@ -122,7 +122,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
     scope.registerMethod(typeScope, name, type);
   }
 
-  StaticModuleScope.TypeScopeReference getTypeAssociatedWithMethod(StaticModuleScope scope, Method.Explicit method) {
+  TypeScopeReference getTypeAssociatedWithMethod(StaticModuleScope scope, Method.Explicit method) {
     // TODO this should be synchronized with declaredConsOpt of IrToTruffle::processModule - probably good to extract a common algorithm
     boolean isStatic = method.isStatic();
 
@@ -139,13 +139,10 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
       return switch (metadata.target()) {
         case BindingsMap.ResolvedType resolvedType ->
-          // TODO more encapsulated handling of the static scope
-            isStatic ?
-                new StaticModuleScope.TypeScopeReference(resolvedType.qualifiedName().createChild("type")) :
-                new StaticModuleScope.TypeScopeReference(resolvedType.qualifiedName());
+            TypeScopeReference.atomType(resolvedType.qualifiedName(), isStatic);
         case BindingsMap.ResolvedModule resolvedModule -> {
           assert !isStatic;
-          yield new StaticModuleScope.TypeScopeReference(resolvedModule.qualifiedName());
+          yield TypeScopeReference.moduleAssociatedType(resolvedModule.qualifiedName());
         }
         default ->
             throw new IllegalStateException("Unexpected target type: " + metadata.target().getClass().getCanonicalName());

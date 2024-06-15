@@ -24,11 +24,13 @@ public class BuiltinTypes {
 
   public static boolean isAny(QualifiedName qualifiedName) {
     var str = qualifiedName.toString();
-    return str.equals("Standard.Base.Any.Any") || str.equals("Standard.Base.Any");
+    return str.equals(anyQualifiedName) || str.equals("Standard.Base.Any");
   }
 
   public static boolean isFunction(QualifiedName qualifiedName) {
     var str = qualifiedName.toString();
     return str.equals("Standard.Base.Function.Function");
   }
+
+  static final String anyQualifiedName = "Standard.Base.Any.Any";
 }
