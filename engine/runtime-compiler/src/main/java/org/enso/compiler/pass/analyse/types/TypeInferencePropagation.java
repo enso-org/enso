@@ -1,5 +1,8 @@
 package org.enso.compiler.pass.analyse.types;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -21,10 +24,6 @@ import org.slf4j.LoggerFactory;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 
 /**
  * The compiler pass implementing the proof of concept of type inference.
@@ -90,14 +89,14 @@ public final class TypeInferencePropagation implements IRPass {
       }
 
       @Override
-      protected void encounteredInvocationOfNonFunctionType(
-          IR relatedIr, TypeRepresentation type) {
+      protected void encounteredInvocationOfNonFunctionType(IR relatedIr, TypeRepresentation type) {
         relatedIr
             .diagnostics()
             .add(new Warning.NotInvokable(relatedIr.location(), type.toString()));
       }
     };
   }
+
   private UUID uuid;
 
   @Override
@@ -163,7 +162,9 @@ public final class TypeInferencePropagation implements IRPass {
 
   @Override
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
-    var typePropagation = propagationResolverInModule(inlineContext.getModule().getIr(), inlineContext.moduleContext());
+    var typePropagation =
+        propagationResolverInModule(
+            inlineContext.getModule().getIr(), inlineContext.moduleContext());
     TypeRepresentation inferredType =
         typePropagation.tryInferringType(ir, LocalBindingsTyping.create());
     if (inferredType != null) {

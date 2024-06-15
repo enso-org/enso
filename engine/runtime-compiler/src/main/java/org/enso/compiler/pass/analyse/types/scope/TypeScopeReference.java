@@ -4,11 +4,9 @@ import org.enso.pkg.QualifiedName;
 
 /**
  * A reference to a Type-like scope that can have methods associated with it.
- * <p>
- * It can be one of three things:
- * - An atom type
- * - The eigentype of an atom type - this will hold the type's static methods
- * - An associated type of a module
+ *
+ * <p>It can be one of three things: - An atom type - The eigentype of an atom type - this will hold
+ * the type's static methods - An associated type of a module
  */
 public final class TypeScopeReference {
   private final QualifiedName name;
@@ -51,7 +49,9 @@ public final class TypeScopeReference {
   }
 
   private enum Kind {
-    MODULE_ASSOCIATED_TYPE, ATOM_TYPE, ATOM_EIGEN_TYPE
+    MODULE_ASSOCIATED_TYPE,
+    ATOM_TYPE,
+    ATOM_EIGEN_TYPE
   }
 
   QualifiedName relatedModuleName() {

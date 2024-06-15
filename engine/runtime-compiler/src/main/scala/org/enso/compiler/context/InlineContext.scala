@@ -51,7 +51,7 @@ object InlineContext {
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
-      moduleContext           = ModuleContext(module, compilerConfig),
+      moduleContext    = ModuleContext(module, compilerConfig),
       isInTailPosition = isInTailPosition,
       compilerConfig   = compilerConfig,
       pkgRepo          = pkgRepo
@@ -67,7 +67,7 @@ object InlineContext {
   def fromModuleContext(moduleContext: ModuleContext): InlineContext = {
     InlineContext(
       localScope        = None,
-      moduleContext            = moduleContext,
+      moduleContext     = moduleContext,
       isInTailPosition  = None,
       freshNameSupply   = moduleContext.freshNameSupply,
       passConfiguration = moduleContext.passConfiguration,

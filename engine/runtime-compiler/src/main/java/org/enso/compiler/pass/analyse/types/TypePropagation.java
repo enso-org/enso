@@ -3,9 +3,6 @@ package org.enso.compiler.pass.analyse.types;
 import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
 
 import java.util.List;
-
-import org.enso.compiler.PackageRepository;
-import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.NameResolutionAlgorithm;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
@@ -49,7 +46,9 @@ abstract class TypePropagation {
   TypePropagation(
       TypeResolver typeResolver,
       TypeCompatibility compatibilityChecker,
-      BuiltinTypes builtinTypes, Module currentModule, ModuleResolver moduleResolver) {
+      BuiltinTypes builtinTypes,
+      Module currentModule,
+      ModuleResolver moduleResolver) {
     this.typeResolver = typeResolver;
     this.compatibilityChecker = compatibilityChecker;
     this.builtinTypes = builtinTypes;

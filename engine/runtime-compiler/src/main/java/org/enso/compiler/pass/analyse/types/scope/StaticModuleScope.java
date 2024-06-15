@@ -1,16 +1,14 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
-import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.pkg.QualifiedName;
 import scala.Option;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * This is a sibling to the ModuleScope.
@@ -53,7 +51,8 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   private Map<TypeScopeReference, Map<String, TypeRepresentation>> methods = new HashMap<>();
 
   public static StaticModuleScope forIR(Module module) {
-    return MetadataInteropHelpers.getMetadata(module, StaticModuleScopeAnalysis.INSTANCE, StaticModuleScope.class);
+    return MetadataInteropHelpers.getMetadata(
+        module, StaticModuleScopeAnalysis.INSTANCE, StaticModuleScope.class);
   }
 
   public TypeRepresentation getMethodForType(TypeScopeReference type, String name) {
