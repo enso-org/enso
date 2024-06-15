@@ -11,6 +11,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.types.InferredType;
+import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
 import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
@@ -25,6 +26,11 @@ import java.util.List;
 import java.util.UUID;
 
 public class StaticModuleScopeAnalysis implements IRPass {
+  public static final StaticModuleScopeAnalysis INSTANCE = new StaticModuleScopeAnalysis();
+
+  private StaticModuleScopeAnalysis() {
+  }
+
   private UUID uuid;
 
   @Override
@@ -57,13 +63,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
   @Override
   @SuppressWarnings("unchecked")
   public Seq<IRPass> invalidatedPasses() {
-    List<IRPass> passes =
-        List.of(
-            GlobalNames$.MODULE$,
-            FullyQualifiedNames$.MODULE$,
-            TypeNames$.MODULE$,
-            TypeInferenceSignatures.INSTANCE
-        );
+    List<IRPass> passes = List.of();
     return CollectionConverters.asScala(passes).toList();
   }
 
@@ -83,6 +83,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
     // TODO process imports/exports
 
+    ir.passData().update(INSTANCE, scope);
     return ir;
   }
 
@@ -128,8 +129,8 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
     var typePointerOpt = method.methodReference().typePointer();
     if (typePointerOpt.isEmpty()) {
-      assert !isStatic;
       // A method not associated to a type - this is a module method.
+      // TODO should we check isStatic here?
       return scope.getAssociatedType();
     } else {
       var metadata = MetadataInteropHelpers.getMetadataOrNull(typePointerOpt.get(), MethodDefinitions$.MODULE$, BindingsMap.Resolution.class);

@@ -12,20 +12,24 @@ import org.enso.pkg.QualifiedName;
  */
 public final class TypeScopeReference {
   private final QualifiedName name;
-  private TypeScopeReference(QualifiedName name) {
+
+  private final Kind kind;
+
+  private TypeScopeReference(QualifiedName name, Kind kind) {
     this.name = name;
+    this.kind = kind;
   }
 
   public static TypeScopeReference moduleAssociatedType(QualifiedName moduleName) {
-    return new TypeScopeReference(moduleName);
+    return new TypeScopeReference(moduleName, Kind.MODULE_ASSOCIATED_TYPE);
   }
 
   public static TypeScopeReference atomType(QualifiedName atomTypeName) {
-    return new TypeScopeReference(atomTypeName);
+    return new TypeScopeReference(atomTypeName, Kind.ATOM_TYPE);
   }
 
   public static TypeScopeReference atomEigenType(QualifiedName atomTypeName) {
-    return new TypeScopeReference(atomTypeName.createChild("type"));
+    return new TypeScopeReference(atomTypeName, Kind.ATOM_EIGEN_TYPE);
   }
 
   public static TypeScopeReference atomType(QualifiedName atomTypeName, boolean staticCall) {
@@ -34,7 +38,7 @@ public final class TypeScopeReference {
 
   @Override
   public int hashCode() {
-    return name.hashCode();
+    return name.hashCode() + kind.hashCode();
   }
 
   @Override
@@ -43,6 +47,24 @@ public final class TypeScopeReference {
       return false;
     }
 
-    return name.equals(other.name);
+    return name.equals(other.name) && kind.equals(other.kind);
+  }
+
+  private enum Kind {
+    MODULE_ASSOCIATED_TYPE, ATOM_TYPE, ATOM_EIGEN_TYPE
+  }
+
+  QualifiedName relatedModuleName() {
+    switch (kind) {
+      case MODULE_ASSOCIATED_TYPE:
+        return name;
+      case ATOM_TYPE:
+      case ATOM_EIGEN_TYPE:
+        var parent = name.getParent();
+        assert parent.isDefined();
+        return parent.get();
+      default:
+        throw new IllegalStateException("Unexpected value: " + kind);
+    }
   }
 }

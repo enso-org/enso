@@ -3,6 +3,9 @@ package org.enso.compiler.pass.analyse.types;
 import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
 
 import java.util.List;
+
+import org.enso.compiler.PackageRepository;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.NameResolutionAlgorithm;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
@@ -10,6 +13,7 @@ import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
+import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Application;
@@ -19,6 +23,8 @@ import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
+import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScope;
 import org.enso.compiler.pass.analyse.types.scope.TypeScopeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,15 +44,18 @@ abstract class TypePropagation {
   private final TypeResolver typeResolver;
   private final TypeCompatibility compatibilityChecker;
   private final BuiltinTypes builtinTypes;
-  private final MethodTypeResolver methodTypeResolver = new MethodTypeResolver();
+  private final MethodTypeResolver methodTypeResolver;
 
   TypePropagation(
       TypeResolver typeResolver,
       TypeCompatibility compatibilityChecker,
-      BuiltinTypes builtinTypes) {
+      BuiltinTypes builtinTypes, Module currentModule, ModuleResolver moduleResolver) {
     this.typeResolver = typeResolver;
     this.compatibilityChecker = compatibilityChecker;
     this.builtinTypes = builtinTypes;
+
+    var currentModuleScope = StaticModuleScope.forIR(currentModule);
+    this.methodTypeResolver = new MethodTypeResolver(moduleResolver, currentModuleScope);
   }
 
   /**

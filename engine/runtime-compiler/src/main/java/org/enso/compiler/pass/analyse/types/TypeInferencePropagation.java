@@ -1,8 +1,5 @@
 package org.enso.compiler.pass.analyse.types;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
@@ -13,6 +10,7 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
+import org.enso.compiler.pass.analyse.types.scope.ModuleResolver;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.Patterns$;
@@ -23,6 +21,10 @@ import org.slf4j.LoggerFactory;
 import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * The compiler pass implementing the proof of concept of type inference.
@@ -72,26 +74,30 @@ public final class TypeInferencePropagation implements IRPass {
   private final BuiltinTypes builtinTypes = new BuiltinTypes();
   private final TypeResolver typeResolver = new TypeResolver();
   private final TypeCompatibility checker = new TypeCompatibility(builtinTypes);
-  private final TypePropagation typePropagation =
-      new TypePropagation(typeResolver, checker, builtinTypes) {
-        @Override
-        protected void encounteredIncompatibleTypes(
-            IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
-          relatedIr
-              .diagnostics()
-              .add(
-                  new Warning.TypeMismatch(
-                      relatedIr.location(), expected.toString(), provided.toString()));
-        }
 
-        @Override
-        protected void encounteredInvocationOfNonFunctionType(
-            IR relatedIr, TypeRepresentation type) {
-          relatedIr
-              .diagnostics()
-              .add(new Warning.NotInvokable(relatedIr.location(), type.toString()));
-        }
-      };
+  private TypePropagation propagationResolverInModule(Module module, ModuleContext moduleContext) {
+    var packageRepo = moduleContext.pkgRepo().isDefined() ? moduleContext.pkgRepo().get() : null;
+    ModuleResolver moduleResolver = new ModuleResolver(packageRepo);
+    return new TypePropagation(typeResolver, checker, builtinTypes, module, moduleResolver) {
+      @Override
+      protected void encounteredIncompatibleTypes(
+          IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
+        relatedIr
+            .diagnostics()
+            .add(
+                new Warning.TypeMismatch(
+                    relatedIr.location(), expected.toString(), provided.toString()));
+      }
+
+      @Override
+      protected void encounteredInvocationOfNonFunctionType(
+          IR relatedIr, TypeRepresentation type) {
+        relatedIr
+            .diagnostics()
+            .add(new Warning.NotInvokable(relatedIr.location(), type.toString()));
+      }
+    };
+  }
   private UUID uuid;
 
   @Override
@@ -131,6 +137,7 @@ public final class TypeInferencePropagation implements IRPass {
 
   @Override
   public Module runModule(Module ir, ModuleContext moduleContext) {
+    TypePropagation typePropagation = propagationResolverInModule(ir, moduleContext);
     ir.bindings()
         .foreach(
             (def) ->
@@ -156,6 +163,7 @@ public final class TypeInferencePropagation implements IRPass {
 
   @Override
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
+    var typePropagation = propagationResolverInModule(inlineContext.getModule().getIr(), inlineContext.moduleContext());
     TypeRepresentation inferredType =
         typePropagation.tryInferringType(ir, LocalBindingsTyping.create());
     if (inferredType != null) {

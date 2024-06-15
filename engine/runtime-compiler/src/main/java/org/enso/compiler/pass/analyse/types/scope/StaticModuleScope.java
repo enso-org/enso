@@ -1,7 +1,13 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
+import org.enso.compiler.MetadataInteropHelpers;
+import org.enso.compiler.core.CompilerStub;
+import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.pkg.QualifiedName;
+import scala.Option;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +26,7 @@ import java.util.Map;
  * separate for now as it is easier to create a prototype that way. If later we find out they have
  * enough of similarity, we should merge them.
  */
-public final class StaticModuleScope {
+public final class StaticModuleScope implements ProcessingPass.Metadata {
   private final TypeScopeReference associatedType;
 
   StaticModuleScope(QualifiedName moduleName) {
@@ -45,4 +51,38 @@ public final class StaticModuleScope {
 
   private Map<String, AtomType> typesDefinedHere = new HashMap<>();
   private Map<TypeScopeReference, Map<String, TypeRepresentation>> methods = new HashMap<>();
+
+  public static StaticModuleScope forIR(Module module) {
+    return MetadataInteropHelpers.getMetadata(module, StaticModuleScopeAnalysis.INSTANCE, StaticModuleScope.class);
+  }
+
+  public TypeRepresentation getMethodForType(TypeScopeReference type, String name) {
+    var typeMethods = methods.get(type);
+    if (typeMethods == null) {
+      return null;
+    }
+
+    return typeMethods.get(name);
+  }
+
+  @Override
+  public String metadataName() {
+    return "StaticModuleScope";
+  }
+
+  @Override
+  public ProcessingPass.Metadata prepareForSerialization(CompilerStub compiler) {
+    return this;
+  }
+
+  @Override
+  public Option<ProcessingPass.Metadata> restoreFromSerialization(CompilerStub compiler) {
+    return Option.apply(this);
+  }
+
+  @Override
+  public Option<ProcessingPass.Metadata> duplicate() {
+    // TODO ?
+    return null;
+  }
 }
