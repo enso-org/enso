@@ -173,9 +173,24 @@ public final class TopLevelScope implements EnsoObject {
     private static Object compile(Object[] arguments, EnsoContext context)
         throws UnsupportedTypeException, ArityException {
       boolean useGlobalCache = context.isUseGlobalCache();
-      boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
+      boolean shouldCompileDependencies;
+      boolean generateDocs;
+      switch (arguments.length) {
+        case 2 -> {
+          var pair = Types.extractArguments(arguments, Boolean.class, Boolean.class);
+          shouldCompileDependencies = pair.getFirst();
+          generateDocs = pair.getSecond();
+        }
+        default -> {
+          shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
+          generateDocs = false;
+        }
+      }
       try {
-        return context.getCompiler().compile(shouldCompileDependencies, useGlobalCache).get();
+        return context
+            .getCompiler()
+            .compile(shouldCompileDependencies, useGlobalCache, generateDocs)
+            .get();
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       } catch (ExecutionException e) {

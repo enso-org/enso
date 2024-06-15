@@ -1,5 +1,6 @@
 package org.enso.compiler
 
+import scala.jdk.CollectionConverters.IterableHasAsJava
 import org.enso.compiler.context.{
   CompilerContext,
   FreshNameSupply,
@@ -139,7 +140,8 @@ class Compiler(
     */
   def compile(
     shouldCompileDependencies: Boolean,
-    useGlobalCacheLocations: Boolean
+    useGlobalCacheLocations: Boolean,
+    generateDocs: Boolean
   ): Future[java.lang.Boolean] = {
     getPackageRepository.getMainProjectPackage match {
       case None =>
@@ -180,6 +182,11 @@ class Compiler(
               generateCode = false,
               shouldCompileDependencies
             )
+
+            if (generateDocs) {
+              org.enso.compiler.dump.GenerateDocs
+                .write(pkg, packageModules.asJava)
+            }
 
             context.serializeLibrary(
               this,
