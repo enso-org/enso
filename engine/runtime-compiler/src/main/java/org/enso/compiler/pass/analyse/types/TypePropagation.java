@@ -315,6 +315,12 @@ abstract class TypePropagation {
       Expression argument,
       LocalBindingsTyping localBindingsTyping) {
     System.out.println("processUnresolvedSymbolApplication: " + function + " " + argument);
+
+    // TODO this is a hack. Where do these <internal-i> come from and why?
+    if (argument instanceof Name.Literal nameLiteral && nameLiteral.name().startsWith("<internal-")) {
+      // TODO where do I get a current module scope for this??
+    }
+
     var argumentType = tryInferringType(argument, localBindingsTyping);
     if (argumentType == null) {
        argumentType = TypeRepresentation.ANY;
