@@ -198,8 +198,7 @@ class Compiler(
     initialize()
     parseModule(
       module,
-      irCachingEnabled && !context.isInteractive(module),
-      isGenDocs = true
+      irCachingEnabled && !context.isInteractive(module)
     )
     module
   }
@@ -537,8 +536,7 @@ class Compiler(
 
   private def parseModule(
     module: Module,
-    useCaches: Boolean,
-    isGenDocs: Boolean = false
+    useCaches: Boolean
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -553,7 +551,7 @@ class Compiler(
       }
     }
 
-    uncachedParseModule(module, isGenDocs)
+    uncachedParseModule(module)
   }
 
   /** Retrieve module bindings from cache, if available.
@@ -570,7 +568,7 @@ class Compiler(
     } else None
   }
 
-  private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
+  private def uncachedParseModule(module: Module): Unit = {
     context.log(
       Compiler.defaultLogLevel,
       "Loading module [{0}] from source.",
@@ -579,10 +577,9 @@ class Compiler(
     context.updateModule(module, _.resetScope())
 
     val moduleContext = ModuleContext(
-      module           = module,
-      freshNameSupply  = Some(freshNameSupply),
-      compilerConfig   = config,
-      isGeneratingDocs = isGenDocs
+      module          = module,
+      freshNameSupply = Some(freshNameSupply),
+      compilerConfig  = config
     )
 
     val src  = context.getCharacters(module)
