@@ -326,7 +326,8 @@ public class IncrementalUpdatesTest {
                             new model.Position(3, 8),
                             new model.Position(3, 8 + originalText.length())),
                         newText)),
-                true)));
+                true,
+                None())));
     return context.receiveNIgnorePendingExpressionUpdates(1, 60, emptySet());
   }
 

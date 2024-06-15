@@ -873,7 +873,8 @@ class RuntimeErrorsTest
               "1234567890123456789"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -922,7 +923,8 @@ class RuntimeErrorsTest
               "1000000000000.div 0"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -971,7 +973,8 @@ class RuntimeErrorsTest
               "1000000000000.div 2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1096,7 +1099,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1220,7 +1224,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1443,7 +1448,8 @@ class RuntimeErrorsTest
               "1234567890123456789"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1574,7 +1580,8 @@ class RuntimeErrorsTest
               "101"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1714,7 +1721,8 @@ class RuntimeErrorsTest
               "MyError2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1857,7 +1865,8 @@ class RuntimeErrorsTest
               "10002 - 10000"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2054,7 +2063,8 @@ class RuntimeErrorsTest
               "10002 - 10000"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2188,7 +2198,8 @@ class RuntimeErrorsTest
               s"import Standard.Base.IO$newline$newline"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2301,7 +2312,8 @@ class RuntimeErrorsTest
               s"import Standard.Base.IO$newline$newline"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2401,7 +2413,8 @@ class RuntimeErrorsTest
               s"y = x - 1${newline}    y"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -2490,7 +2503,8 @@ class RuntimeErrorsTest
               "2"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
