@@ -67,4 +67,13 @@ public final class TypeScopeReference {
         throw new IllegalStateException("Unexpected value: " + kind);
     }
   }
+
+  @Override
+  public String toString() {
+    return switch (kind) {
+      case MODULE_ASSOCIATED_TYPE -> "ModuleAssociatedType(" + name + ")";
+      case ATOM_TYPE -> "AtomType(" + name + ")";
+      case ATOM_EIGEN_TYPE -> "AtomEigenType(" + name + ")";
+    };
+  }
 }
