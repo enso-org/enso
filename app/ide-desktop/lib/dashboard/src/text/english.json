@@ -201,6 +201,8 @@
   "profilePicture": "Profile picture",
   "settingsFor": "Settings for ",
   "inviteMembers": "Invite Members",
+  "seatsLeft": "You have $0 / $1 seats left on your plan. Upgrade to invite more users.",
+  "noSeatsLeft": "You have reached the limit of users for your plan. Upgrade to invite more users.",
   "status": "Status",
   "active": "Active",
   "pendingInvitation": "Pending Invitation",
@@ -345,6 +347,8 @@
   "confirmPrompt": "Are you sure you want to $0?",
   "couldNotInviteUser": "Could not invite user $0",
   "inviteFormDescription": "Invite users to join your organization by entering their email addresses below.",
+  "inviteFormSeatsLeft": "You have $0 seats left on your plan. Upgrade to invite more",
+  "inviteFormSeatsLeftError": "You have exceed the number of seats on your plan by $0",
   "inviteSuccess": "You've invited $0 to join Enso!",
   "inviteUserLinkCopyDescription": "You can also copy the invite link to send it directly",
   "inviteSubmit": "Send invites",
@@ -448,6 +452,7 @@
   "drivePageAltText": "Catalog",
   "editorPageAltText": "Graph Editor",
 
+  "freePlanName": "Free",
   "soloPlanName": "Solo",
   "soloPlanSubtitle": "For individuals",
   "soloPlanPricing": "$60 per user / month",
@@ -593,6 +598,8 @@
   "userGroups": "User Groups",
   "userGroup": "User Group",
   "newUserGroup": "New User Group",
+  "userGroupsPaywallMessage": "You have reached the limit of user groups for your plan. Upgrade to create more user groups.",
+  "userGroupsLimitMessage": "You can create up to $0 user group(s)",
   "userGroupNamePlaceholder": "Enter the name of the user group",
 
   "assetSearchFieldLabel": "Search through items",
@@ -649,5 +656,34 @@
   "team": "Team",
   "teamPlan": "Team Plan",
   "enterprise": "Organization",
-  "enterprisePlan": "Organization"
+  "enterprisePlan": "Organization",
+
+  "paywallScreenTitle": "Unlock the potential of Enso",
+  "paywallScreenDescription": "Upgrade to $0 to unlock additional features and get access to priority support.",
+  "paywallAvailabilityLevel": "Available on $0 plan",
+
+  "userGroupsFeatureLabel": "User Groups",
+  "userGroupsFeatureBulletPoints": "Create user group to manage permissions;Assign user group to assets;Assign users to group",
+  "userGroupsFeatureDescription": "Get fine-grained control over who can access your assets by creating user groups and assigning them to assets. Assign users to groups to manage their permissions.",
+  "userGroupsFullFeatureLabel": "Unlimited User Groups",
+  "userGroupsFullFeatureBulletPoints": "Create unlimited user groups to manage permissions;Assign user groups to assets;Assign users to groups",
+  "userGroupsFullFeatureDescription": "Get fine-grained control over who can access your assets by creating user groups and assigning them to assets. Assign users to groups to manage their permissions.",
+
+  "inviteUserFeatureLabel": "Invite Users",
+  "inviteUserFeatureBulletPoints": "Invite users to join your organization;Manage user access to assets;Assign users to user groups",
+  "inviteUserFeatureDescription": "Invite users to join your organization and manage their access to assets. Assign users to user groups to manage their permissions.",
+  "inviteUserFullFeatureLabel": "Unlimited Invitations",
+  "inviteUserFullFeatureBulletPoints": "Invite unlimited users to join your organization;Manage user access to assets;Assign users to user groups",
+  "inviteUserFullFeatureDescription": "Invite unlimited users to join your organization and manage their access to assets. Assign users to user groups to manage their permissions.",
+
+  "shareFeatureLabel": "Share Assets",
+  "shareFeatureBulletPoints": "Share assets with other users;Manage shared assets;Assign shared assets to user groups",
+  "shareFeatureDescription": "Share assets with other users and manage shared assets. Assign shared assets to user groups to manage their permissions.",
+  "shareFullFeatureLabel": "Unlimited Sharing",
+  "shareFullFeatureBulletPoints": "Share unlimited assets with other users;Manage shared assets;Assign shared assets to user groups",
+  "shareFullFeatureDescription": "Share unlimited assets with other users and manage shared assets. Assign shared assets to user groups to manage their permissions.",
+  "shareFullPaywallMessage": "You can share assets only with single user group. Upgrade to share assets with multiple user groups and users.",
+
+  "paywallDevtoolsButtonLabel": "Open Enso Devtools",
+  "paywallDevtoolsPopoverHeading": "Enso Devtools"
 }
