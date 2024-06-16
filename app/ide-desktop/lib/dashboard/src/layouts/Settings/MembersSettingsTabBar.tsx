@@ -39,18 +39,19 @@ export default function MembersSettingsTabBar(props: MembersSettingsTabBarProps)
         <InviteUsersModal />
       </ariaComponents.DialogTrigger>
 
-      <div>
-        {seatsLeft != null && (
+      {seatsLeft != null && (
+        <div className="flex gap-1">
           <ariaComponents.Text>
-            {seatsLeft <= 0 ? getText('noSeatsLeft') : getText('seatsLeft', seatsLeft, seatsTotal)}{' '}
-            <paywallComponents.PaywallDialogButton
-              feature={feature}
-              variant="link"
-              showIcon={false}
-            />
+            {seatsLeft <= 0 ? getText('noSeatsLeft') : getText('seatsLeft', seatsLeft, seatsTotal)}
           </ariaComponents.Text>
-        )}
-      </div>
+
+          <paywallComponents.PaywallDialogButton
+            feature={feature}
+            variant="link"
+            showIcon={false}
+          />
+        </div>
+      )}
     </HorizontalMenuBar>
   )
 }

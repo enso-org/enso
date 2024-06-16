@@ -62,7 +62,7 @@ export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
   const { backend, item, setItem, self, doRemoveSelf, eventTarget } = props
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
@@ -117,7 +117,7 @@ export default function ManagePermissionsModal<
     setItem(object.merger({ permissions } as Partial<Asset>))
   }, [permissions, /* should never change */ setItem])
 
-  if (backend.type === backendModule.BackendType.local || user == null) {
+  if (backend.type === backendModule.BackendType.local) {
     // This should never happen - the local backend does not have the "shared with" column,
     // and `organization` is absent only when offline - in which case the user should only
     // be able to access the local backend.

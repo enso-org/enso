@@ -162,7 +162,7 @@ export const BUTTON_STYLES = twv.tv({
     variant: {
       custom: 'focus-visible:outline-offset-2',
       link: {
-        base: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
+        base: 'inline-block px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',

@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 
 import * as backendHooks from '#/hooks/backendHooks'
-
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -18,7 +17,9 @@ import SettingsPage from '#/components/styled/settings/SettingsPage'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import type * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
+import type RemoteBackend from '#/services/RemoteBackend'
+
+import * as paywallSettingsLayout from './withPaywall'
 
 // =================
 // === Constants ===
@@ -26,22 +27,14 @@ import type Backend from '#/services/Backend'
 
 const LIST_USERS_STALE_TIME_MS = 60_000
 
-import * as paywallSettingsLayout from './withPaywall'
-
 // ==========================
 // === MembersSettingsTab ===
 // ==========================
 
-/** Props for a {@link MembersSettingsTab}. */
-export interface MembersSettingsTabProps {
-  readonly backend: Backend
-}
-
 /** Settings tab for viewing and editing organization members. */
-export function MembersSettingsTab(props: MembersSettingsTabProps) {
-  const { backend } = props
+export function MembersSettingsTab() {
   const { getText } = textProvider.useText()
-  const { backend } = backendProvider.useStrictBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
   const { user } = authProvider.useFullUserSession()
 
   const { isFeatureUnderPaywall, getFeature } = billingHooks.usePaywall({ plan: user.plan })
@@ -147,7 +140,7 @@ export function MembersSettingsTab(props: MembersSettingsTabProps) {
 /** Props for the ResendInvitationButton component. */
 interface ResendInvitationButtonProps {
   readonly invitation: backendModule.Invitation
-  readonly backend: Backend
+  readonly backend: RemoteBackend
 }
 
 /** Button for resending an invitation. */
@@ -180,7 +173,7 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
 
 /** Props for a {@link RemoveMemberButton}. */
 interface RemoveMemberButtonProps {
-  readonly backend: Backend
+  readonly backend: RemoteBackend
   readonly userId: backendModule.UserId
 }
 
@@ -211,7 +204,7 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
 
 /** Props for a {@link RemoveInvitationButton}. */
 interface RemoveInvitationButtonProps {
-  readonly backend: Backend
+  readonly backend: RemoteBackend
   readonly email: backendModule.EmailAddress
 }
 
@@ -238,4 +231,6 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
   )
 }
 
-export default paywallSettingsLayout.withPaywall(MembersSettingsTab, { feature: 'inviteUser' })
+export default paywallSettingsLayout.withPaywall(MembersSettingsTab, {
+  feature: 'inviteUser',
+})

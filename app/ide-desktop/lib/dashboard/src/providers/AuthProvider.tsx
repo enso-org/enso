@@ -148,7 +148,7 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly setRemoteBackend: (backend: Backend | null) => void
+  readonly setRemoteBackend: (backend: RemoteBackend | null) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
