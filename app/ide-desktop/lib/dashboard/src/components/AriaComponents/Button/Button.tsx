@@ -87,7 +87,7 @@ export const BUTTON_STYLES = twv.tv({
     fullWidth: { true: 'w-full' },
     fullWidthText: { true: { text: 'w-full' } },
     size: {
-      custom: { base: '', extraClickZone: 'after:inset-[-12px]', icon: 'h-full' },
+      custom: { base: '', extraClickZone: '', icon: 'h-full' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: text.TEXT_STYLE({
@@ -181,7 +181,6 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: {
       true: { icon: 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100' },
     },
-    noExtraClickZone: { true: { extraClickZone: 'after:inset-0' } },
   },
   slots: {
     extraClickZone: 'flex relative after:absolute after:cursor-pointer',
@@ -261,7 +260,6 @@ export const Button = React.forwardRef(function Button(
     showIconOnHover,
     iconPosition,
     size,
-    noExtraClickZone,
     fullWidth,
     fullWidthText,
     rounded,
@@ -287,7 +285,15 @@ export const Button = React.forwardRef(function Button(
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
-  const shouldShowTooltip = isIconOnly || tooltip !== false
+  const shouldShowTooltip = (() => {
+    if (tooltip === false) {
+      return false
+    } else if (isIconOnly) {
+      return true
+    } else {
+      return tooltip != null
+    }
+  })()
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
@@ -340,7 +346,6 @@ export const Button = React.forwardRef(function Button(
   } = BUTTON_STYLES({
     isDisabled,
     loading: isLoading,
-    noExtraClickZone,
     fullWidth,
     fullWidthText,
     size,
@@ -413,6 +418,7 @@ export const Button = React.forwardRef(function Button(
   ) : (
     <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
       {button}
+
       <ariaComponents.Tooltip
         {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
       >
