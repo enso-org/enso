@@ -433,6 +433,7 @@
   "confirmNewPasswordLabel": "Confirm new password",
   "confirmNewPasswordPlaceholder": "Confirm your new password",
 
+  "selectTemplate": "Select a template",
   "welcomeSubtitle": "Explore templates, plugins, and data sources to kickstart your next big idea.",
   "newsItem3Beta": "Read what’s new in Enso 3.0 Beta",
   "newsItem3BetaDescription": "Learn about Enso Cloud, new data libraries, and Enso AI.",
