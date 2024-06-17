@@ -305,7 +305,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <div className="relative">
+        <div className="relative flex">
           <ariaComponents.Button
             size="custom"
             variant="custom"
@@ -333,7 +333,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.opened:
       return (
         <div className="flex flex-row gap-0.5">
-          <div className="relative">
+          <div className="relative flex">
             <ariaComponents.Button
               size="custom"
               variant="custom"

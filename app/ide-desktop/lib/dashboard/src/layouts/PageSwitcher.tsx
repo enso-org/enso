@@ -28,9 +28,8 @@ export enum Page {
 // === Constants ===
 // =================
 
-/** Configuration flag determining whether to show the close button.
- * This is present in order to match the Figma design as closely as possible. */
-const SHOW_CLOSE_BUTTON: boolean = false
+/** The amount of space that should be left aside for the OS to render the window controls. */
+const WINDOW_BUTTONS_WIDTH_LEFT_PX = 0
 
 const PAGE_DATA: PageUIData[] = [
   { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName' },
@@ -85,10 +84,6 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     }
   }, [isEditorDisabled])
 
-  const closeWindow = () => {
-    window.close()
-  }
-
   return (
     <FocusArea direction="horizontal">
       {innerProps => (
@@ -96,27 +91,22 @@ export default function PageSwitcher(props: PageSwitcherProps) {
           className="pointer-events-auto flex h-12 shrink-0 grow cursor-default items-center rounded-full"
           {...innerProps}
         >
-          {SHOW_CLOSE_BUTTON && (
-            <div
-              className={tailwindMerge.twMerge(
-                'flex bg-primary/5 py-[18px] pl-[19px] pr-[29px]',
-                pageIndex === 0 && 'rounded-br-3xl'
-              )}
-            >
-              <ariaComponents.CloseButton onPress={closeWindow} />
-            </div>
-          )}
+          <div
+            className={tailwindMerge.twMerge(
+              'h-full bg-primary/5',
+              pageIndex === 0 && 'rounded-br-3xl'
+            )}
+            style={{ width: WINDOW_BUTTONS_WIDTH_LEFT_PX }}
+          />
           {visiblePageData.map((pageData, i) => {
             const active = page === pageData.page
             return (
               <div
                 key={pageData.page}
                 className={tailwindMerge.twMerge(
-                  'h-full pr-4 transition-[padding-left]',
-                  page === pageData.page
-                    ? 'pl-[19px]'
-                    : 'bg-primary/5 pl-4 hover:enabled:bg-primary/[2.5%]',
-                  active && 'rounded-t-3xl outline outline-[1rem] outline-primary/5 clip-path-0',
+                  'h-full transition-[padding-left]',
+                  page !== pageData.page && 'bg-primary/5 hover:enabled:bg-primary/[2.5%]',
+                  active && 'clip-path-0 rounded-t-3xl outline outline-[1rem] outline-primary/5',
                   pageIndex != null && i === pageIndex + 1 && 'rounded-bl-3xl',
                   pageIndex != null && i === pageIndex - 1 && 'rounded-br-3xl'
                 )}
@@ -126,8 +116,9 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                   variant="custom"
                   icon={pageData.icon}
                   className={tailwindMerge.twMerge(
-                    'flex h-full items-center gap-3 selectable',
-                    active && 'disabled active'
+                    'flex h-full items-center gap-3 pr-4 selectable',
+                    active && 'disabled active',
+                    page === pageData.page ? 'pl-[19px]' : 'pl-4'
                   )}
                   onPress={() => {
                     setPage(pageData.page)

@@ -139,9 +139,8 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
             <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="px-new-project-button-x flex h-row items-center rounded-full border-0.5 border-primary/20 transition-colors hover:bg-primary/10"
+              size="medium"
+              variant="bar"
               onPress={() => {
                 setModal(
                   <ConfirmDeleteModal
@@ -168,7 +167,6 @@ export default function DriveBar(props: DriveBarProps) {
               <ariaComponents.Button
                 size="medium"
                 variant="tertiary"
-                className="px-2.5"
                 onPress={() => {}}
               >
                 {getText('startWithATemplate')}
@@ -178,7 +176,6 @@ export default function DriveBar(props: DriveBarProps) {
             <ariaComponents.Button
               size="medium"
               variant="bar"
-              className="px-2.5"
               onPress={() => {
                 doCreateProject()
               }}

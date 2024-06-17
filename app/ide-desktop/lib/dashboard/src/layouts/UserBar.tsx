@@ -68,69 +68,71 @@ export default function UserBar(props: UserBarProps) {
   return (
     <FocusArea active={!invisible} direction="horizontal">
       {innerProps => (
-        <div
-          className="pointer-events-auto mt-0.5 flex h-[46px] shrink-0 cursor-default items-center gap-user-bar bg-primary/5 pl-icons-x pr-3"
-          {...innerProps}
-        >
-          <ariaComponents.Button
-            variant="icon"
-            size="custom"
-            className="mr-1"
-            icon={ChatIcon}
-            aria-label={getText('openHelpChat')}
-            onPress={() => {
-              setIsHelpChatOpen(true)
-            }}
-          />
-
-          {shouldShowInviteButton && (
-            <ariaComponents.DialogTrigger>
-              <ariaComponents.Button size="medium" variant="tertiary">
-                {getText('invite')}
-              </ariaComponents.Button>
-
-              <InviteUsersModal />
-            </ariaComponents.DialogTrigger>
-          )}
-
-          <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
-            {getText('upgrade')}
-          </ariaComponents.Button>
-          {shouldShowShareButton && (
+        <div className="bg-primary/5 pt-0.5">
+          <div
+            className="pointer-events-auto flex h-[46px] shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-3"
+            {...innerProps}
+          >
             <ariaComponents.Button
-              size="medium"
-              variant="tertiary"
-              aria-label={getText('shareButtonAltText')}
+              variant="icon"
+              size="custom"
+              className="mr-1"
+              icon={ChatIcon}
+              aria-label={getText('openHelpChat')}
               onPress={() => {
-                setModal(
-                  <ManagePermissionsModal
-                    backend={backend}
-                    item={projectAsset}
-                    setItem={setProjectAsset}
-                    self={self}
-                    doRemoveSelf={doRemoveSelf}
-                    eventTarget={null}
-                  />
-                )
+                setIsHelpChatOpen(true)
               }}
-            >
-              <aria.Text slot="label">{getText('share')}</aria.Text>
+            />
+
+            {shouldShowInviteButton && (
+              <ariaComponents.DialogTrigger>
+                <ariaComponents.Button size="medium" variant="tertiary">
+                  {getText('invite')}
+                </ariaComponents.Button>
+
+                <InviteUsersModal />
+              </ariaComponents.DialogTrigger>
+            )}
+
+            <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
+              {getText('upgrade')}
             </ariaComponents.Button>
-          )}
-          <Button
-            active
-            mask={false}
-            alt={getText('userMenuAltText')}
-            image={user?.profilePicture ?? DefaultUserIcon}
-            buttonClassName="rounded-full after:rounded-full"
-            className="h-row-h w-row-h rounded-full"
-            onPress={() => {
-              setModal(<UserMenu setPage={setPage} onSignOut={onSignOut} />)
-            }}
-          />
-          {/* Required for shortcuts to work. */}
-          <div className="hidden">
-            <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />
+            {shouldShowShareButton && (
+              <ariaComponents.Button
+                size="medium"
+                variant="tertiary"
+                aria-label={getText('shareButtonAltText')}
+                onPress={() => {
+                  setModal(
+                    <ManagePermissionsModal
+                      backend={backend}
+                      item={projectAsset}
+                      setItem={setProjectAsset}
+                      self={self}
+                      doRemoveSelf={doRemoveSelf}
+                      eventTarget={null}
+                    />
+                  )
+                }}
+              >
+                <aria.Text slot="label">{getText('share')}</aria.Text>
+              </ariaComponents.Button>
+            )}
+            <Button
+              active
+              mask={false}
+              alt={getText('userMenuAltText')}
+              image={user?.profilePicture ?? DefaultUserIcon}
+              buttonClassName="rounded-full after:rounded-full"
+              className="h-row-h w-row-h rounded-full"
+              onPress={() => {
+                setModal(<UserMenu setPage={setPage} onSignOut={onSignOut} />)
+              }}
+            />
+            {/* Required for shortcuts to work. */}
+            <div className="hidden">
+              <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />
+            </div>
           </div>
         </div>
       )}
