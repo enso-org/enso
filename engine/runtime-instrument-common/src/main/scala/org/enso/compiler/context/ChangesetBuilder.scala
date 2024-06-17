@@ -18,7 +18,7 @@ import org.enso.compiler.suggestions.SimpleUpdate
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.instrument.execution.model.PendingEdit
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{IdMap, TextEdit}
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import scala.collection.mutable
@@ -31,13 +31,15 @@ import scala.util.Using
   * @param ir the IR node of the module
   * @param simpleUpdate description of a simple editing change (usually in a literal)
   * @param invalidated the list of invalidated expressions
+  * @param idMap the external identifiers
   * @tparam A the source type
   */
 case class Changeset[A](
   source: A,
   ir: IR,
   simpleUpdate: Option[SimpleUpdate],
-  invalidated: Set[UUID @ExternalID]
+  invalidated: Set[UUID @ExternalID],
+  idMap: Option[IdMap]
 )
 
 /** Compute invalidated expressions.
@@ -116,7 +118,9 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         }
       }
 
-    Changeset(source, ir, simpleUpdateOption, compute(edits.map(_.edit)))
+    val idMap = edits.flatMap(_.idMap).lastOption
+
+    Changeset(source, ir, simpleUpdateOption, compute(edits.map(_.edit)), idMap)
   }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit

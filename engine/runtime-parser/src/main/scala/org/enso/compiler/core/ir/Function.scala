@@ -154,7 +154,7 @@ object Function {
       copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Function.Lambda(
@@ -320,7 +320,7 @@ object Function {
         body      = fn(body)
       )
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Function.Binding(

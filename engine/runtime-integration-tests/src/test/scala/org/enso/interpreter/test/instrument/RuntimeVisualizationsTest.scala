@@ -705,7 +705,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 "5"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -840,7 +841,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 "5"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -1029,7 +1031,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 "5"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -1358,7 +1361,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               "7"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1710,7 +1714,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 "6"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -3429,7 +3434,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 "2"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -4192,7 +4198,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 "x"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )

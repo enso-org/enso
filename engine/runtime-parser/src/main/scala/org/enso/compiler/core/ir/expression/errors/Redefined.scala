@@ -209,7 +209,7 @@ object Redefined {
     ): Conversion =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Method(
@@ -332,7 +332,7 @@ object Redefined {
       fn: java.util.function.Function[Expression, Expression]
     ): Method = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Method(
@@ -458,7 +458,7 @@ object Redefined {
     ): MethodClashWithAtom =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.MethodClashWithAtom(
@@ -560,7 +560,7 @@ object Redefined {
       fn: java.util.function.Function[Expression, Expression]
     ): Type = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Atom(
@@ -661,7 +661,7 @@ object Redefined {
       fn: java.util.function.Function[Expression, Expression]
     ): Arg = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Arg(
@@ -755,7 +755,7 @@ object Redefined {
     ): Binding =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Error.Redefined.Binding(

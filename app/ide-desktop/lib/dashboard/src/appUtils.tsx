@@ -37,3 +37,17 @@ export const ALL_PATHS_REGEX = new RegExp(
 // === Constants related to URLs ===
 
 export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
+
+/**
+ * Build a Subscription URL for a given plan.
+ */
+export function getUpgradeURL(plan: string): string {
+  return SUBSCRIBE_PATH + '?plan=' + plan
+}
+
+/**
+ * Build a Subscription URL for contacting sales.
+ */
+export function getContactSalesURL(): string {
+  return 'mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan'
+}

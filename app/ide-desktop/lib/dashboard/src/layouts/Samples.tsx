@@ -166,10 +166,11 @@ export default function Samples(props: SamplesProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
+    <div data-testid="samples" className="flex flex-col gap-subheading px-[5px]">
       <aria.Heading level={2} className="text-subheading font-normal">
         {getText('sampleAndCommunityProjects')}
       </aria.Heading>
+
       <div className="grid grid-cols-fill-samples gap-samples">
         {SAMPLES.map(sample => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
