@@ -14,3 +14,6 @@ polyglot java import org.enso.base.text.CaseFoldedString.Grapheme
 
 # needed by Comparator_Spec:
 polyglot java import org.enso.base.ObjectComparator
+
+# often used in tests
+polyglot java import java.util.ArrayList
