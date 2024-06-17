@@ -62,15 +62,10 @@ export interface PageSwitcherProps {
 /** Switcher to choose the currently visible full-screen page. */
 export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
-  const { getText } = textProvider.useText()
-  const selectedChildIndexRef = React.useRef(0)
-  const lastChildIndexRef = React.useRef(0)
   const visiblePageData = React.useMemo(
     () => PAGE_DATA.filter(pageData => (pageData.page !== Page.editor ? true : !isEditorDisabled)),
     [isEditorDisabled]
   )
-  const pageIndexRaw = visiblePageData.findIndex(pageData => page === pageData.page)
-  const pageIndex = pageIndexRaw === -1 ? null : pageIndexRaw
   const cleanupResizeObserverRef = React.useRef(() => {})
   const backgroundRef = React.useRef<HTMLDivElement | null>(null)
   const selectedTabRef = React.useRef<HTMLDivElement | null>(null)
@@ -113,18 +108,6 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     }
   })
 
-  React.useEffect(() => {
-    selectedChildIndexRef.current = PAGE_DATA.findIndex(data => data.page === page)
-  }, [page])
-
-  React.useEffect(() => {
-    if (isEditorDisabled) {
-      lastChildIndexRef.current = PAGE_DATA.length - 2
-    } else {
-      lastChildIndexRef.current = PAGE_DATA.length - 1
-    }
-  }, [isEditorDisabled])
-
   const updateResizeObserver = (element: HTMLElement | null) => {
     cleanupResizeObserverRef.current()
     if (element == null) {
@@ -138,54 +121,97 @@ export default function PageSwitcher(props: PageSwitcherProps) {
   }
 
   return (
+    <div className="relative flex grow">
+      <div
+        ref={element => {
+          backgroundRef.current = element
+          updateResizeObserver(element)
+        }}
+        className="pointer-events-none absolute inset-0 bg-primary/5"
+      />
+      <Tabs>
+        {visiblePageData.map(pageData => {
+          const isActive = page === pageData.page
+          return (
+            <Tab
+              key={pageData.page}
+              ref={isActive ? updateClipPath : null}
+              isActive={isActive}
+              onPress={() => {
+                setPage(pageData.page)
+              }}
+              {...pageData}
+            />
+          )
+        })}
+      </Tabs>
+    </div>
+  )
+}
+
+// ============
+// === Tabs ===
+// ============
+
+/** Props for a {@link TabsInternal}. */
+export interface InternalTabsProps extends Readonly<React.PropsWithChildren> {}
+
+/** A tab list in a {@link PageSwitcher}. */
+function TabsInternal(props: InternalTabsProps, ref: React.ForwardedRef<HTMLDivElement>) {
+  const { children } = props
+  return (
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className="relative flex h-12 shrink-0 grow cursor-default items-center rounded-full"
-          {...aria.mergeProps<React.JSX.IntrinsicElements['div']>()(innerProps, {
-            ref: updateResizeObserver,
-          })}
+          className="flex h-12 shrink-0 grow cursor-default items-center rounded-full"
+          {...aria.mergeProps<React.JSX.IntrinsicElements['div']>()(innerProps, { ref })}
         >
-          <div
-            ref={element => {
-              backgroundRef.current = element
-              updateResizeObserver(element)
-            }}
-            className="pointer-events-none absolute inset-0 bg-primary/5"
-          />
-          {visiblePageData.map((pageData, i) => {
-            const active = page === pageData.page
-            return (
-              <div
-                key={pageData.page}
-                ref={active ? updateClipPath : null}
-                className={tailwindMerge.twMerge(
-                  'h-full transition-[padding-left]',
-                  page !== pageData.page && 'hover:enabled:bg-frame',
-                  pageIndex != null && i === pageIndex + 1 && 'rounded-bl-3xl',
-                  pageIndex != null && i === pageIndex - 1 && 'rounded-br-3xl'
-                )}
-              >
-                <ariaComponents.Button
-                  size="custom"
-                  variant="custom"
-                  icon={pageData.icon}
-                  className={tailwindMerge.twMerge(
-                    'flex h-full items-center gap-3 pr-4 selectable',
-                    active && 'disabled active',
-                    page === pageData.page ? 'pl-[19px]' : 'pl-4'
-                  )}
-                  onPress={() => {
-                    setPage(pageData.page)
-                  }}
-                >
-                  {getText(pageData.nameId)}
-                </ariaComponents.Button>
-              </div>
-            )
-          })}
+          {children}
         </div>
       )}
     </FocusArea>
   )
 }
+
+const Tabs = React.forwardRef(TabsInternal)
+
+// ===========
+// === Tab ===
+// ===========
+
+/** Props for a {@link Tab}. */
+interface InternalTabProps extends PageUIData {
+  readonly isActive: boolean
+  readonly onPress: () => void
+}
+
+/** A tab in a {@link PageSwitcher}. */
+function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivElement>) {
+  const { isActive, page, nameId, icon, onPress } = props
+  const { getText } = textProvider.useText()
+
+  return (
+    <div
+      key={page}
+      ref={ref}
+      className={tailwindMerge.twMerge(
+        'h-full transition-[padding-left]',
+        page !== page && 'hover:enabled:bg-frame'
+      )}
+    >
+      <ariaComponents.Button
+        size="custom"
+        variant="custom"
+        icon={icon}
+        isDisabled={isActive}
+        isActive={isActive}
+        className="flex h-full items-center gap-3 px-4"
+        onPress={onPress}
+      >
+        {getText(nameId)}
+      </ariaComponents.Button>
+    </div>
+  )
+}
+
+const Tab = React.forwardRef(TabInternal)
