@@ -6,7 +6,7 @@ import stringLength from 'string-length'
 // eslint-disable-next-line no-restricted-syntax
 import yargs, { type Options } from 'yargs'
 
-import * as contentConfig from 'enso-content-config'
+import * as contentConfig from 'content-config'
 
 import * as config from 'config'
 import * as fileAssociations from 'file-associations'

@@ -15,7 +15,7 @@ import createServer from 'create-servers'
 
 import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
-import * as contentConfig from 'enso-content-config'
+import * as contentConfig from 'content-config'
 import * as ydocServer from 'enso-gui2/ydoc-server'
 
 import * as paths from '../paths'

@@ -17,7 +17,7 @@ import * as portfinder from 'portfinder'
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
-import * as contentConfig from 'enso-content-config'
+import * as contentConfig from 'content-config'
 
 import * as authentication from 'authentication'
 import * as config from 'config'

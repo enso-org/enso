@@ -18,7 +18,7 @@ import * as tar from 'tar'
 
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
-import * as config from 'enso-content-config'
+import * as config from 'content-config'
 
 import * as paths from 'paths'
 import * as fileAssociations from '../file-associations'

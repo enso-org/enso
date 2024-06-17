@@ -4,7 +4,13 @@
     "baseUrl": "./src",
     "esModuleInterop": true
   },
-  "include": [".", "../content", "../types", "../../../../build.json"],
+  "include": [
+    ".",
+    "../content",
+    "../types",
+    "../../../../build.json",
+    "src/config.json"
+  ],
   "references": [
     { "path": "../../../gui2/tsconfig.server.json" },
     { "path": "../dashboard" }

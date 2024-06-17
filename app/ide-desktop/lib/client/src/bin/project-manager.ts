@@ -4,7 +4,7 @@ import * as childProcess from 'node:child_process'
 import * as fsSync from 'node:fs'
 import * as util from 'node:util'
 
-import * as contentConfig from 'enso-content-config'
+import * as contentConfig from 'content-config'
 
 import type * as config from 'config'
 
