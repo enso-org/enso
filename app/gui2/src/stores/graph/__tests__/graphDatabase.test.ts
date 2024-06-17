@@ -56,7 +56,7 @@ test('Reading graph from definition', () => {
     node3Content: [65, 74] as [number, number],
   }
 
-  const { ast, id, eid, toRaw, getSpan } = parseWithSpans(code, spans)
+  const { ast, id, toRaw, getSpan } = parseWithSpans(code, spans)
 
   const db = GraphDb.Mock()
   const expressions = Array.from(ast.statements())

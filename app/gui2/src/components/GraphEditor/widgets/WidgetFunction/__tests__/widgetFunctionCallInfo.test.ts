@@ -1,14 +1,12 @@
 import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { ExpressionInfo } from '@/stores/project/computedValueRegistry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryMethodPointer,
   makeArgument,
   makeConstructor,
   makeMethod,
   makeStaticMethod,
-  makeType,
 } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import type { AstId } from 'shared/ast'

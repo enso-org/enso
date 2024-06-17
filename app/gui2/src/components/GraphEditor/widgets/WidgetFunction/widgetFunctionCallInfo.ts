@@ -1,4 +1,3 @@
-import type { WidgetInput } from '@/providers/widgetRegistry'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
@@ -10,9 +9,10 @@ import {
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
+import type { ToValue } from '@/util/reactivity'
 import type { Opt } from 'shared/util/data/opt'
 import type { ExternalId } from 'shared/yjsModel'
-import { computed } from 'vue'
+import { computed, toValue } from 'vue'
 
 export const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
 export const GET_WIDGETS_METHOD = 'get_widget_json'
@@ -22,18 +22,18 @@ export const GET_WIDGETS_METHOD = 'get_widget_json'
  * expression updates.
  */
 export function useWidgetFunctionCallInfo(
-  inputAst: Ast.Ast,
+  inputAst: ToValue<Ast.Ast>,
   graphDb: {
     getMethodCallInfo(id: AstId): MethodCallInfo | undefined
     getExpressionInfo(id: AstId): ExpressionInfo | undefined
   },
 ) {
   const methodCallInfo = computed(() => {
-    return getMethodCallInfoRecursively(inputAst, graphDb)
+    return getMethodCallInfoRecursively(toValue(inputAst), graphDb)
   })
 
   const interpreted = computed(() => {
-    return interpretCall(inputAst, methodCallInfo.value == null)
+    return interpretCall(toValue(inputAst), methodCallInfo.value == null)
   })
 
   const subjectInfo = computed(() => {
@@ -100,7 +100,7 @@ export function useWidgetFunctionCallInfo(
       // In the case when no self argument is present (for example in autoscoped constructor),
       // we assume that this is a static function call.
       return {
-        expressionId: inputAst.externalId,
+        expressionId: toValue(inputAst).externalId,
         visualizationModule: WIDGETS_ENSO_MODULE,
         expression: `a -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.definedIn}`,
         positionalArgumentsExpressions,

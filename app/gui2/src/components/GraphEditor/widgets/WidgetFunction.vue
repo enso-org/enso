@@ -29,7 +29,7 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import { isIdentifier } from '@/util/qualifiedName.ts'
-import { computed, proxyRefs } from 'vue'
+import { computed, proxyRefs, toRef } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -50,7 +50,7 @@ provideFunctionInfo(
 )
 
 const { methodCallInfo, interpreted, visualizationConfig, selfArgumentPreapplied, subjectInfo } =
-  useWidgetFunctionCallInfo(props.input.value, graph.db)
+  useWidgetFunctionCallInfo(() => props.input.value, graph.db)
 
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
