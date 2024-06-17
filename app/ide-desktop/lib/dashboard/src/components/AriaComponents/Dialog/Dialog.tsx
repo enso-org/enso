@@ -2,8 +2,6 @@
  * Can be used to display alerts, confirmations, or other content. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
@@ -11,6 +9,7 @@ import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'

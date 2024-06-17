@@ -1,8 +1,6 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
-import * as tailwindVariants from 'tailwind-variants'
-
 import BlankIcon from 'enso-assets/blank.svg'
 
 import type * as text from '#/text'
@@ -20,6 +18,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===

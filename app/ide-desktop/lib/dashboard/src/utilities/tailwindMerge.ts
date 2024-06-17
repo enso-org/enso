@@ -1,12 +1,11 @@
 /** @file `tailwind-merge` with a custom configuration. */
 import * as tailwindMerge from 'tailwind-merge'
 
-// ===============
-// === twMerge ===
-// ===============
+// =================
+// === Constants ===
+// =================
 
-/** `twMerge` with a custom configuration. */
-export const twMerge = tailwindMerge.extendTailwindMerge({
+export const TAILWIND_MERGE_CONFIG = {
   extend: {
     classGroups: {
       m: [{ m: [() => true] }],
@@ -15,4 +14,13 @@ export const twMerge = tailwindMerge.extendTailwindMerge({
       h: [{ h: [() => true] }],
     },
   },
-})
+}
+
+// ===============
+// === twMerge ===
+// ===============
+
+/** `twMerge` with a custom configuration. */
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+export const twMerge = tailwindMerge.extendTailwindMerge(TAILWIND_MERGE_CONFIG)

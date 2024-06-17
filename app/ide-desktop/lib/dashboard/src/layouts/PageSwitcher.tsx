@@ -83,7 +83,6 @@ export default function PageSwitcher(props: PageSwitcherProps) {
   const [updateClipPath] = React.useState(() => {
     return (element: HTMLDivElement | null) => {
       const backgroundElement = backgroundRef.current
-      console.log(':D', backgroundElement, element)
       if (backgroundElement != null) {
         if (element == null) {
           backgroundElement.style.clipPath = ''
@@ -109,7 +108,6 @@ export default function PageSwitcher(props: PageSwitcherProps) {
             'Z',
           ]
           backgroundElement.style.clipPath = `path("${segments.join(' ')}")`
-          console.log(backgroundElement.style.clipPath, `path("${segments.join(' ')}")`)
         }
       }
     }

@@ -1,8 +1,6 @@
 /** @file A styled button. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
@@ -10,7 +8,7 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinnerModule from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
-import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as text from '../Text'
 
@@ -399,7 +397,7 @@ export const Button = React.forwardRef(function Button(
       )}
     >
       <span className={wrapper()}>
-        <span ref={contentRef} className={tailwindMerge.twMerge(content(), contentClassName)}>
+        <span ref={contentRef} className={content({ className: contentClassName })}>
           {childrenFactory()}
         </span>
 
