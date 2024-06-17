@@ -66,8 +66,22 @@ export default function ManagePermissionsModal<
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const listedUsers = backendHooks.useBackendListUsers(backend)
-  const listedUserGroups = backendHooks.useBackendListUserGroups(backend)
+
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+  const isUnderPaywall = isFeatureUnderPaywall('shareFull')
+
+  const listedUsers = reactQuery.useQuery({
+    queryKey: ['listUsers'],
+    queryFn: () => backend.listUsers(),
+    enabled: !isUnderPaywall,
+    select: data => (isUnderPaywall ? [] : data),
+  })
+
+  const listedUserGroups = reactQuery.useQuery({
+    queryKey: ['listUserGroups'],
+    queryFn: () => backend.listUserGroups(),
+  })
+
   const [permissions, setPermissions] = React.useState(item.permissions ?? [])
   const [usersAndUserGroups, setUserAndUserGroups] = React.useState<
     readonly (backendModule.UserGroupInfo | backendModule.UserInfo)[]
@@ -126,12 +140,12 @@ export default function ManagePermissionsModal<
   } else {
     const canAdd = React.useMemo(
       () => [
-        ...(listedUsers ?? []).filter(
+        ...(listedUsers.data ?? []).filter(
           listedUser =>
             !permissionsHoldersNames.has(listedUser.name) &&
             !emailsOfUsersWithPermission.has(listedUser.email)
         ),
-        ...(listedUserGroups ?? []).filter(
+        ...(listedUserGroups.data ?? []).filter(
           userGroup => !permissionsHoldersNames.has(userGroup.groupName)
         ),
       ],
@@ -302,7 +316,7 @@ export default function ManagePermissionsModal<
                   }}
                   {...innerProps}
                 >
-                  <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-1">
+                  <div className="flex w-0 grow items-center gap-user-permission rounded-full border border-primary/10 px-1">
                     <PermissionSelector
                       isInput
                       isDisabled={willInviteNewUser}
@@ -318,7 +332,7 @@ export default function ManagePermissionsModal<
                         autoFocus
                         placeholder={
                           // `listedUsers` will always include the current user.
-                          (listedUsers ?? []).length > 1
+                          (listedUsers.data?? []).length > 1
                             ? getText('inviteUserPlaceholder')
                             : getText('inviteFirstUserPlaceholder')
                         }
@@ -409,6 +423,13 @@ export default function ManagePermissionsModal<
                 </div>
               ))}
             </div>
+
+            {isUnderPaywall && (
+              <paywall.PaywallAlert
+                feature="shareFull"
+                label={getText('shareFullPaywallMessage')}
+              />
+            )}
           </div>
         </div>
       </Modal>

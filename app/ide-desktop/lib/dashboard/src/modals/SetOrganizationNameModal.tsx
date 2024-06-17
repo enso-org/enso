@@ -38,13 +38,7 @@ export function SetOrganizationNameModal() {
     session && 'user' in session && session.user?.plan != null ? session.user.plan : null
   const { data: organizationName } = reactQuery.useSuspenseQuery({
     queryKey: ['organization', userId],
-    queryFn: () => {
-      if (backend.type === backendModule.BackendType.remote) {
-        return backend.getOrganization().catch(() => null)
-      } else {
-        return null
-      }
-    },
+    queryFn: () => backend.getOrganization().catch(() => null),
     staleTime: Infinity,
     select: data => data?.name ?? '',
   })

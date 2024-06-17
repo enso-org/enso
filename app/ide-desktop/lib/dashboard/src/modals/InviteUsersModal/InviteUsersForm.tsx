@@ -4,8 +4,8 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import isEmail from 'validator/es/lib/isEmail'
 
-import * as billingHooks from '#/hooks/billing'
 import * as backendHooks from '#/hooks/backendHooks'
+import * as billingHooks from '#/hooks/billing'
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -46,7 +46,8 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
     meta: {
       invalidates: [['listInvitations']],
       awaitInvalidates: true,
-}})
+    },
+  })
 
   const [{ data: usersCount }, { data: invitationsCount }] = reactQuery.useSuspenseQueries({
     queries: [

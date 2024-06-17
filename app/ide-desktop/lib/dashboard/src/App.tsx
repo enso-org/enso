@@ -77,7 +77,6 @@ import AboutModal from '#/modals/AboutModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
-import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 import type RemoteBackend from '#/services/RemoteBackend'

@@ -73,7 +73,8 @@ export default function UserBar(props: UserBarProps) {
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
 
   const shouldShowInviteButton =
-    backend != null && sessionType === authProvider.UserSessionType.full &&
+    backend != null &&
+    sessionType === authProvider.UserSessionType.full &&
     !shouldShowShareButton &&
     !shouldShowUpgradeButton
 
@@ -96,18 +97,13 @@ export default function UserBar(props: UserBarProps) {
               }}
             />
 
-          {shouldShowUpgradeButton && (
-            <paywall.PaywallDialogButton
-              feature={'inviteUser'}
-              rounded="full"
-              size="xsmall"
-              variant="tertiary"
-            >
-              {getText('invite')}
-            </paywall.PaywallDialogButton>
-          )}
+            {shouldShowUpgradeButton && (
+              <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
+                {getText('invite')}
+              </paywall.PaywallDialogButton>
+            )}
 
-          {shouldShowInviteButton && (
+            {shouldShowInviteButton && (
               <ariaComponents.DialogTrigger>
                 <ariaComponents.Button size="medium" variant="tertiary">
                   {getText('invite')}
@@ -117,13 +113,13 @@ export default function UserBar(props: UserBarProps) {
               </ariaComponents.DialogTrigger>
             )}
 
-          <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
-            {getText('upgrade')}
-          </ariaComponents.Button>
+            <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
+              {getText('upgrade')}
+            </ariaComponents.Button>
 
-          {shouldShowShareButton && (
-            <ariaComponents.Button
-              size="medium"
+            {shouldShowShareButton && (
+              <ariaComponents.Button
+                size="medium"
                 variant="tertiary"
                 aria-label={getText('shareButtonAltText')}
                 onPress={() => {

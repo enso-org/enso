@@ -27,7 +27,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
   const isUnderPaywall = isFeatureUnderPaywall('share')
 
   return (
-    <div className="flex h-table-row w-full items-center gap-icon-with-text">
+    <div className="h-table-row flex w-full items-center gap-icon-with-text">
       <ariaComponents.Button
         variant="icon"
         size="xsmall"
@@ -37,18 +37,19 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
           hideColumn(columnUtils.Column.sharedWith)
         }}
       />
-      <aria.Text className="text-header flex items-center gap-0.5">
-        {getText('sharedWithColumnName')}
+
+      <div className="flex items-center gap-1">
+        <aria.Text className="text-header">{getText('sharedWithColumnName')}</aria.Text>
 
         {isUnderPaywall && (
           <paywall.PaywallDialogButton
             feature="share"
             variant="icon"
             children={false}
-            size="xxsmall"
+            size="xsmall"
           />
         )}
-      </aria.Text>
+      </div>
     </div>
   )
 }
