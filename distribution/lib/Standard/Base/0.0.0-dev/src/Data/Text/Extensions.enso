@@ -544,7 +544,7 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
    Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the named patterns to cleanse from the text. The named patterns are 
+   - remove: A vector of the named patterns to cleanse from the text. The named patterns are
       applied in the order they are provided. The same named pattern can be used multiple
       times. The named patterns are:
       - ..Leading_Whitespace: Removes all whitespace from the start of the string.
