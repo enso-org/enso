@@ -24,26 +24,28 @@ public final class Parser implements AutoCloseable {
       name = "libenso_parser.so";
     }
 
-    File parser = null;
+    var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
+    File root;
     try {
-      var whereAmI = Parser.class.getProtectionDomain().getCodeSource().getLocation();
-      var d = new File(whereAmI.toURI()).getParentFile();
+      root = new File(whereAmI.toURI()).getParentFile();
+    } catch (URISyntaxException ex) {
+      root = new File(".").getAbsoluteFile();
+    }
+    try {
+      var d = root;
       File path = null;
       while (d != null) {
         path = new File(d, name);
         if (path.exists()) break;
         d = d.getParentFile();
       }
-      if (d == null) {
-        throw new LinkageError(
-            "Cannot find parser in " + new File(whereAmI.toURI()).getParentFile());
+      if (d == null || path == null) {
+        throw new LinkageError("Cannot find parser in " + root);
       }
-      parser = path;
-      System.load(parser.getAbsolutePath());
-    } catch (IllegalArgumentException | URISyntaxException | LinkageError e) {
-      File root = new File(".").getAbsoluteFile();
+      System.load(path.getAbsolutePath());
+    } catch (NullPointerException | IllegalArgumentException | LinkageError e) {
       if (!searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
-        throw new IllegalStateException("Cannot load parser from " + parser, e);
+        throw new IllegalStateException("Cannot load parser from " + whereAmI, e);
       }
     }
   }
