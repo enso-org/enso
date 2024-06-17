@@ -15,6 +15,11 @@ public final class CompilerDependenciesTest {
     assertNoClass("io.circe.Error");
   }
 
+  @Test
+  public void noJacksonDependency() {
+    assertNoClass("com.fasterxml.jackson.databind.ObjectMapper");
+  }
+
   private static void assertNoClass(String name) {
     try {
       var c = Class.forName(name);

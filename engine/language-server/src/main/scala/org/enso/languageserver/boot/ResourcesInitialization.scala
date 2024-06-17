@@ -10,11 +10,13 @@ import org.enso.languageserver.boot.resource.{
   RepoInitialization,
   SequentialResourcesInitialization,
   TruffleContextInitialization,
+  YdocInitialization,
   ZioRuntimeInitialization
 }
 import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.effect
 import org.enso.searcher.memory.InMemorySuggestionsRepo
+import org.enso.ydoc.Ydoc
 import org.graalvm.polyglot.Context
 
 import scala.concurrent.ExecutionContextExecutor
@@ -32,6 +34,7 @@ object ResourcesInitialization {
     * @param suggestionsRepo the suggestions repo
     * @param truffleContext the runtime context
     * @param runtime the runtime to run effects
+    * @param ydoc the ydoc server
     * @return the initialization component
     */
   def apply(
@@ -40,7 +43,8 @@ object ResourcesInitialization {
     protocolFactory: ProtocolFactory,
     suggestionsRepo: InMemorySuggestionsRepo,
     truffleContext: Context,
-    runtime: effect.Runtime
+    runtime: effect.Runtime,
+    ydoc: Ydoc
   )(implicit ec: ExecutionContextExecutor): InitializationComponent = {
     new SequentialResourcesInitialization(
       ec,
@@ -54,7 +58,8 @@ object ResourcesInitialization {
           eventStream,
           suggestionsRepo
         ),
-        new TruffleContextInitialization(ec, truffleContext, eventStream)
+        new TruffleContextInitialization(ec, truffleContext, eventStream),
+        new YdocInitialization(ec, ydoc)
       )
     )
   }

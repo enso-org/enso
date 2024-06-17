@@ -147,7 +147,7 @@ object Import {
       fn: java.util.function.Function[Expression, Expression]
     ): Module = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Import.Module(

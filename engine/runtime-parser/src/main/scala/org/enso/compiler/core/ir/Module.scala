@@ -115,7 +115,7 @@ final case class Module(
   /** @inheritdoc */
   override def children: List[IR] = imports ++ exports ++ bindings
 
-  /** @inheritdoc */
+  /** String representation. */
   override def toString: String =
     s"""
        |Module(

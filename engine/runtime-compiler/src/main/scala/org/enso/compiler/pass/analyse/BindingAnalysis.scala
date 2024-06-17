@@ -61,19 +61,7 @@ case object BindingAnalysis extends IRPass {
       val isBuiltinType = sumType
         .getMetadata(ModuleAnnotations)
         .exists(_.annotations.exists(_.name == "@Builtin_Type"))
-      BindingsMap.Type(
-        sumType.name.name,
-        sumType.params.map(_.name.name),
-        sumType.members.map(m =>
-          Cons(
-            m.name.name,
-            m.arguments.length,
-            m.arguments.forall(_.defaultValue.isDefined),
-            m.isPrivate
-          )
-        ),
-        isBuiltinType
-      )
+      BindingsMap.Type.fromIr(sumType, isBuiltinType)
     }
     val importedPolyglot = ir.imports.collect { case poly: imports.Polyglot =>
       BindingsMap.PolyglotSymbol(poly.getVisibleName)

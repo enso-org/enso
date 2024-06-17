@@ -124,7 +124,7 @@ object Definition {
         members = members.map(_.mapExpressions(fn))
       )
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.Type(
@@ -249,7 +249,7 @@ object Definition {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.Data(
@@ -376,7 +376,7 @@ object Definition {
       location: Option[IdentifiedLocation]
     ): SugaredType = copy(location = location)
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.SugaredType(

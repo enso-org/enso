@@ -6,6 +6,7 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
+  Argument,
   Cons,
   ConversionMethod,
   ModuleMethod,
@@ -18,6 +19,7 @@ import org.enso.compiler.data.BindingsMap.{
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
+import org.enso.persist.Persistance
 
 class BindingAnalysisTest extends CompilerTest {
 
@@ -158,9 +160,36 @@ class BindingAnalysisTest extends CompilerTest {
       metadata.definedEntities should contain theSameElementsAs List(
         PolyglotSymbol("MyClass"),
         PolyglotSymbol("Renamed_Class"),
-        Type("Foo", List(), List(Cons("Mk_Foo", 3, false, false)), false),
-        Type("Bar", List(), List(), false),
-        Type("Baz", List("x", "y"), List(), false),
+        Type(
+          "Foo",
+          List(),
+          List(
+            Cons(
+              "Mk_Foo",
+              List(
+                Argument(
+                  "a",
+                  hasDefaultValue = false,
+                  Persistance.Reference.none()
+                ),
+                Argument(
+                  "b",
+                  hasDefaultValue = false,
+                  Persistance.Reference.none()
+                ),
+                Argument(
+                  "c",
+                  hasDefaultValue = false,
+                  Persistance.Reference.none()
+                )
+              ),
+              isProjectPrivate = false
+            )
+          ),
+          builtinType = false
+        ),
+        Type("Bar", List(), List(), builtinType         = false),
+        Type("Baz", List("x", "y"), List(), builtinType = false),
         StaticMethod("foo", "Baz"),
         StaticMethod("baz", "Bar"),
         ConversionMethod("from", "Bar", "Foo"),

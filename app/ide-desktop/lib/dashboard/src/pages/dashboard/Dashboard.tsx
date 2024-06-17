@@ -164,8 +164,13 @@ export default function Dashboard(props: DashboardProps) {
   )
 
   const isCloud = categoryModule.isCloud(category)
+  const isUserEnabled = session.user?.isEnabled === true
   const isAssetPanelVisible =
     page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
+
+  if (isCloud && !isUserEnabled && localBackend != null) {
+    setCategory(Category.local)
+  }
 
   React.useEffect(() => {
     setInitialized(true)

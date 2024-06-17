@@ -440,6 +440,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
 
+  private val ydoc = Ydoc
+    .builder()
+    .hostname(applicationConfig.ydoc.hostname)
+    .port(applicationConfig.ydoc.port)
+    .build()
+
   private val initializationComponent =
     ResourcesInitialization(
       system.eventStream,
@@ -447,7 +453,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       jsonRpcProtocolFactory,
       suggestionsRepo,
       context,
-      zioRuntime
+      zioRuntime,
+      ydoc
     )(system.dispatcher)
 
   private val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
@@ -509,14 +516,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       messagesCallback
     )
   log.trace("Created Binary WebSocket Server [{}].", binaryServer)
-
-  private val ydoc = Ydoc
-    .builder()
-    .hostname(applicationConfig.ydoc.hostname)
-    .port(applicationConfig.ydoc.port)
-    .build()
-  ydoc.start()
-  log.debug("Started Ydoc server.")
 
   log.info(
     "Main module of the Language Server initialized with config [{}].",

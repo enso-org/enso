@@ -38,7 +38,7 @@ class EditFileCmd(request: Api.EditFileNotification)
             )
             val edits =
               request.edits.map(edit =>
-                PendingEdit.ApplyEdit(edit, request.execute)
+                PendingEdit.ApplyEdit(edit, request.execute, request.idMap)
               )
             ctx.state.pendingEdits.enqueue(request.path, edits)
             if (request.execute) {

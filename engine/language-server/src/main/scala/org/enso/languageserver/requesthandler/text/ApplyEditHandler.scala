@@ -35,7 +35,8 @@ class ApplyEditHandler(
       bufferRegistry ! TextProtocol.ApplyEdit(
         Some(rpcSession.clientId),
         params.edit,
-        params.execute.getOrElse(true)
+        params.execute.getOrElse(true),
+        params.idMap
       )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
