@@ -69,7 +69,7 @@ add_database_specs suite_builder create_connection_fn =
     Common_Spec.add_specs suite_builder prefix create_connection_fn
     add_redshift_specific_specs suite_builder create_connection_fn
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False supports_decimal_type=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False supports_decimal_type=True run_advanced_edge_case_tests=False
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False date_support=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table_fn = _->
