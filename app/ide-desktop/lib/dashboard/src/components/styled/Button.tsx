@@ -74,10 +74,11 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
       >
         <div
           className={tailwindMerge.twMerge(
-            'group flex selectable',
+            'group flex opacity-50 transition-all hover:opacity-75 disabled:cursor-not-allowed disabled:opacity-30 [&.disabled]:cursor-not-allowed [&.disabled]:opacity-30',
             light && 'opacity-25',
             isDisabled && 'disabled',
-            active && 'active'
+            active &&
+              'opacity-100 hover:opacity-100 disabled:cursor-default disabled:opacity-100 [&.disabled]:cursor-default [&.disabled]:opacity-100'
           )}
         >
           <Img

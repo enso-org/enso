@@ -309,12 +309,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
             size="custom"
             variant="custom"
             isDisabled={isOtherUserUsingProject}
+            isActive={!isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
             tooltipPlacement="left"
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
             className={tailwindMerge.twMerge(
-              'size-project-icon border-0 selectable enabled:active',
+              'size-project-icon border-0',
               isRunningInBackground && 'text-green'
             )}
             onPress={closeProject}
@@ -336,6 +337,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               size="custom"
               variant="custom"
               isDisabled={isOtherUserUsingProject}
+              isActive={!isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
               tooltipPlacement="left"
@@ -343,7 +345,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 ? { title: getText('otherUserIsUsingProjectError') }
                 : {})}
               className={tailwindMerge.twMerge(
-                'size-project-icon border-0 selectable enabled:active',
+                'size-project-icon border-0',
                 isRunningInBackground && 'text-green'
               )}
               onPress={closeProject}

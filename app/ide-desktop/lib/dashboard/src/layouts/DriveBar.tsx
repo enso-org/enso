@@ -112,9 +112,9 @@ export default function DriveBar(props: DriveBarProps) {
         <ariaComponents.Button
           size="medium"
           variant="custom"
+          isActive={isAssetPanelOpen}
           icon={RightPanelIcon}
           aria-label={isAssetPanelOpen ? getText('openAssetPanel') : getText('closeAssetPanel')}
-          className={tailwindMerge.twMerge('selectable', isAssetPanelOpen && 'active')}
           onPress={() => {
             setIsAssetPanelOpen(isOpen => !isOpen)
           }}

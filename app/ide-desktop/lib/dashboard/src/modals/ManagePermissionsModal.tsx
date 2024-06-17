@@ -301,7 +301,7 @@ export default function ManagePermissionsModal<
                 >
                   <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-1">
                     <PermissionSelector
-                      input
+                      isInput
                       isDisabled={willInviteNewUser}
                       selfPermission={self.permission}
                       typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}

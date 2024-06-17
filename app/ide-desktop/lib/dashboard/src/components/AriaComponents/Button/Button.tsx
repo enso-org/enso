@@ -84,6 +84,12 @@ export const BUTTON_STYLES = twv.tv({
     isFocused: {
       true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
     },
+    isActive: {
+      none: '',
+      false:
+        'disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75',
+      true: 'opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default',
+    },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     fullWidthText: { true: { text: 'w-full' } },
@@ -192,6 +198,7 @@ export const BUTTON_STYLES = twv.tv({
     icon: 'h-[2cap] flex-none aspect-square',
   },
   defaultVariants: {
+    isActive: 'none',
     loading: false,
     fullWidth: false,
     size: 'xsmall',
@@ -259,6 +266,7 @@ export const Button = React.forwardRef(function Button(
     icon,
     loading = false,
     isDisabled,
+    isActive,
     showIconOnHover,
     iconPosition,
     size,
@@ -347,6 +355,7 @@ export const Button = React.forwardRef(function Button(
     text: textClasses,
   } = BUTTON_STYLES({
     isDisabled,
+    isActive,
     loading: isLoading,
     fullWidth,
     fullWidthText,

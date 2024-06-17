@@ -134,7 +134,8 @@ export default function Labels(props: LabelsProps) {
             <ariaComponents.Button
               size="custom"
               variant="bar"
-              className="px-2 selectable"
+              className="px-2"
+              isActive={false}
               onPress={event => {
                 if (event.target instanceof HTMLElement) {
                   setModal(<NewLabelModal backend={backend} eventTarget={event.target} />)

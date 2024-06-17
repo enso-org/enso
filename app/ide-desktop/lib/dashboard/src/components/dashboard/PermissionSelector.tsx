@@ -38,7 +38,7 @@ export interface PermissionSelectorProps {
   /** When `true`, the button is not clickable. */
   readonly isDisabled?: boolean
   /** When `true`, the button has lowered opacity when it is disabled. */
-  readonly input?: boolean
+  readonly isInput?: boolean
   /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
   readonly typeSelectorYOffsetPx?: number
   readonly error?: string | null
@@ -53,7 +53,7 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-  const { showDelete = false, isDisabled = false, input = false, typeSelectorYOffsetPx } = props
+  const { showDelete = false, isDisabled = false, isInput = false, typeSelectorYOffsetPx } = props
   const { error, selfPermission, action: actionRaw, assetType, className } = props
   const { onChange, doDelete } = props
   const { getText } = textProvider.useText()
@@ -142,10 +142,10 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             rounded="none"
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
+            isActive={!isDisabled || !isInput}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'flex-1 rounded-l-full border-0 py-0 selectable',
-              (!isDisabled || !input) && 'active',
+              'flex-1 rounded-l-full border-0 py-0',
               permissions.PERMISSION_CLASS_NAME[permission.type]
             )}
             onPress={doShowPermissionTypeSelector}
@@ -157,12 +157,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
+            isActive={permission.docs && (!isDisabled || !isInput)}
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={tailwindMerge.twMerge(
-              'flex-1 border-0 py-0 selectable',
-              permission.docs && (!isDisabled || !input) && 'active',
-              permissions.DOCS_CLASS_NAME
-            )}
+            className={tailwindMerge.twMerge('flex-1 border-0 py-0', permissions.DOCS_CLASS_NAME)}
             onPress={() => {
               setAction(
                 permissions.toPermissionAction({
@@ -180,10 +177,10 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
+            isActive={permission.execute && (!isDisabled || !isInput)}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'flex-1 rounded-r-full border-0 py-0 selectable',
-              permission.execute && (!isDisabled || !input) && 'active',
+              'flex-1 rounded-r-full border-0 py-0',
               permissions.EXEC_CLASS_NAME
             )}
             onPress={() => {
@@ -209,10 +206,10 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           variant="custom"
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
+          isActive={!isDisabled || !isInput}
           {...(isDisabled && error != null ? { title: error } : {})}
           className={tailwindMerge.twMerge(
-            'h-6 w-[121px] rounded-full selectable',
-            (!isDisabled || !input) && 'active',
+            'h-6 w-[121px] rounded-full',
             permissions.PERMISSION_CLASS_NAME[permission.type]
           )}
           onPress={doShowPermissionTypeSelector}
