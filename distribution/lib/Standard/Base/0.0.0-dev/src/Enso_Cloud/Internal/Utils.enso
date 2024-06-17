@@ -96,7 +96,7 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_B
         . catch Request_Error as_connection_error
     if response.is_error && (retries > 0) then http_request method url body additional_headers error_handlers (retries - 1) else
         if response.code.is_success then response else
-            is_unauthorized = (response.code == HTTP_Status_Code.unauthorized) || (response.code == HTTP_Status_Code.forbidden)
+            is_unauthorized = response.code == HTTP_Status_Code.unauthorized
             case is_unauthorized of
                 True -> if retries < 0 then Error.throw Enso_Cloud_Error.Unauthorized else
                     Authentication.refresh_access_token
