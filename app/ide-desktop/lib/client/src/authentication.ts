@@ -80,8 +80,8 @@ import * as electron from 'electron'
 import opener from 'opener'
 
 import * as common from 'enso-common'
-import * as contentConfig from 'content-config'
 
+import * as contentConfig from 'content-config'
 import * as ipc from 'ipc'
 import * as urlAssociations from 'url-associations'
 

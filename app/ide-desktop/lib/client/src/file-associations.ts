@@ -14,11 +14,11 @@ import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
-import * as contentConfig from 'content-config'
 
-import type * as clientConfig from './config'
+import type * as clientConfig from 'config'
+import * as contentConfig from 'content-config'
+import * as project from 'project-management'
 import * as fileAssociations from '../file-associations'
-import * as project from './project-management'
 
 const logger = contentConfig.logger
 

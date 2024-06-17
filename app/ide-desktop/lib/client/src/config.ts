@@ -4,7 +4,6 @@
 import chalk from 'chalk'
 
 import * as contentConfig from 'content-config'
-
 import * as naming from 'naming'
 import * as paths from 'paths'
 

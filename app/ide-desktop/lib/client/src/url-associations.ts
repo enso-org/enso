@@ -4,6 +4,7 @@ import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
+
 import * as contentConfig from 'content-config'
 
 const logger = contentConfig.logger
