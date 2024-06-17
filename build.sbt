@@ -2610,6 +2610,7 @@ lazy val `engine-runner` = project
           additionalOptions = Seq(
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
             "-H:IncludeResources=.*Main.enso$",
+            "-H:+IncludeAllLocales",
             // useful perf & debug switches:
             // "-g",
             // "-H:+SourceLevelDebug",
