@@ -46,9 +46,6 @@ class EnsoSecretReader {
 
     HttpResponse<String> response;
 
-    System.out.println("Fetching secret: " + request.uri());
-    System.out.println(" --- headers:" + request.headers());
-
     try {
       response = client.send(request, HttpResponse.BodyHandlers.ofString());
     } catch (IOException | InterruptedException e) {
@@ -73,8 +70,6 @@ class EnsoSecretReader {
     }
 
     if (status != 200) {
-      System.out.println(" --- response:" + response.statusCode() + "; " + response.body());
-
       throw new IllegalArgumentException(
           "Unable to read secret - the service responded with status " + status + ".");
     }
