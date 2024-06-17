@@ -1,7 +1,7 @@
 /** @file A column listing the users with which this asset is shared. */
 import * as React from 'react'
 
-import Plus2Icon from 'enso-assets/plus2.svg'
+import Plus2Icon from '#/assets/plus2.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'

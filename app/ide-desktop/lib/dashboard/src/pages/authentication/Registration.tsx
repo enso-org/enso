@@ -1,12 +1,11 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import * as React from 'react'
 
+import AtIcon from '#/assets/at.svg'
+import CreateAccountIcon from '#/assets/create_account.svg'
+import GoBackIcon from '#/assets/go_back.svg'
+import LockIcon from '#/assets/lock.svg'
 import * as router from 'react-router-dom'
-
-import AtIcon from 'enso-assets/at.svg'
-import CreateAccountIcon from 'enso-assets/create_account.svg'
-import GoBackIcon from 'enso-assets/go_back.svg'
-import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
 

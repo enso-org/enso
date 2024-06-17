@@ -1,9 +1,9 @@
 /** @file A button that copies text to the clipboard. */
 import * as React from 'react'
 
-import Error from 'enso-assets/cross.svg'
-import CopyIcon from 'enso-assets/duplicate.svg'
-import Done from 'enso-assets/tick.svg'
+import Error from '#/assets/cross.svg'
+import CopyIcon from '#/assets/duplicate.svg'
+import Done from '#/assets/tick.svg'
 
 import * as copyHook from '#/hooks/copyHooks'
 

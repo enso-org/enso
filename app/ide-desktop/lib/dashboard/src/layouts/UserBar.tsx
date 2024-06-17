@@ -1,8 +1,8 @@
 /** @file A toolbar containing chat and the user menu. */
 import * as React from 'react'
 
-import ChatIcon from 'enso-assets/chat.svg'
-import DefaultUserIcon from 'enso-assets/default_user.svg'
+import ChatIcon from '#/assets/chat.svg'
+import DefaultUserIcon from '#/assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
 

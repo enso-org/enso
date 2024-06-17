@@ -1,11 +1,10 @@
 /** @file An input that outputs a {@link Date}. */
 import * as React from 'react'
 
+import CrossIcon from '#/assets/cross.svg'
+import FolderArrowDoubleIcon from '#/assets/folder_arrow_double.svg'
+import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import * as tailwindMerge from 'tailwind-merge'
-
-import CrossIcon from 'enso-assets/cross.svg'
-import FolderArrowDoubleIcon from 'enso-assets/folder_arrow_double.svg'
-import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 
 import * as focusHooks from '#/hooks/focusHooks'
 

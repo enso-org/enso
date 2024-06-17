@@ -1,11 +1,10 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
+import CompareIcon from '#/assets/compare.svg'
+import DuplicateIcon from '#/assets/duplicate.svg'
+import RestoreIcon from '#/assets/restore.svg'
 import * as tailwindMerge from 'tailwind-merge'
-
-import CompareIcon from 'enso-assets/compare.svg'
-import DuplicateIcon from 'enso-assets/duplicate.svg'
-import RestoreIcon from 'enso-assets/restore.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

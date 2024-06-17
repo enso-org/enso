@@ -1,7 +1,7 @@
 /** @file A column listing the labels on this asset. */
 import * as React from 'react'
 
-import Plus2Icon from 'enso-assets/plus2.svg'
+import Plus2Icon from '#/assets/plus2.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'

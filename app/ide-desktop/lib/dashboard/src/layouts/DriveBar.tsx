@@ -2,11 +2,11 @@
  * the current directory and some configuration options. */
 import * as React from 'react'
 
-import AddDatalinkIcon from 'enso-assets/add_datalink.svg'
-import AddFolderIcon from 'enso-assets/add_folder.svg'
-import AddKeyIcon from 'enso-assets/add_key.svg'
-import DataDownloadIcon from 'enso-assets/data_download.svg'
-import DataUploadIcon from 'enso-assets/data_upload.svg'
+import AddDatalinkIcon from '#/assets/add_datalink.svg'
+import AddFolderIcon from '#/assets/add_folder.svg'
+import AddKeyIcon from '#/assets/add_key.svg'
+import DataDownloadIcon from '#/assets/data_download.svg'
+import DataUploadIcon from '#/assets/data_upload.svg'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'

@@ -1,9 +1,9 @@
 /** @file Community updates for the app. */
 import * as React from 'react'
 
-import DiscordIcon from 'enso-assets/discord.svg'
-import IntegrationsImage from 'enso-assets/integrations.png'
-import YoutubeIcon from 'enso-assets/youtube.svg'
+import DiscordIcon from '#/assets/discord.svg'
+import IntegrationsImage from '#/assets/integrations.png'
+import YoutubeIcon from '#/assets/youtube.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

@@ -1,7 +1,7 @@
 /** @file A heading for the "Accessed by projects" column. */
 import * as React from 'react'
 
-import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
+import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

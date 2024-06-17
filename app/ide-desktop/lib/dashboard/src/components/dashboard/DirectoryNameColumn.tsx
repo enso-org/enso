@@ -1,10 +1,9 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
+import FolderArrowIcon from '#/assets/folder_arrow.svg'
+import FolderIcon from '#/assets/folder.svg'
 import * as tailwindMerge from 'tailwind-merge'
-
-import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
-import FolderIcon from 'enso-assets/folder.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'

@@ -1,9 +1,8 @@
 /** @file A row of the user groups table representing a user. */
 import * as React from 'react'
 
+import Cross2 from '#/assets/cross2.svg'
 import * as tailwindMerge from 'tailwind-merge'
-
-import Cross2 from 'enso-assets/cross2.svg'
 
 import type * as backendHooks from '#/hooks/backendHooks'
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'

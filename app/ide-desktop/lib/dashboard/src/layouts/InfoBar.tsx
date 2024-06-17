@@ -1,8 +1,8 @@
 /** @file A toolbar containing chat and the user menu. */
 import * as React from 'react'
 
-import ChatIcon from 'enso-assets/chat.svg'
-import LogoIcon from 'enso-assets/enso_logo.svg'
+import ChatIcon from '#/assets/chat.svg'
+import LogoIcon from '#/assets/enso_logo.svg'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'

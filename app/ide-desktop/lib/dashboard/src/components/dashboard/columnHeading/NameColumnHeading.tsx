@@ -1,9 +1,8 @@
 /** @file A heading for the "Name" column. */
 import * as React from 'react'
 
+import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import * as tailwindMerge from 'tailwind-merge'
-
-import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

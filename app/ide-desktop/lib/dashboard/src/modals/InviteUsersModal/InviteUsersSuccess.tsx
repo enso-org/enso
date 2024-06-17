@@ -1,9 +1,8 @@
 /** @file Success screen for the "invite users" modal. */
 import * as React from 'react'
 
+import ArrowRightIcon from '#/assets/arrow_right.svg'
 import * as reactRouterDom from 'react-router-dom'
-
-import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

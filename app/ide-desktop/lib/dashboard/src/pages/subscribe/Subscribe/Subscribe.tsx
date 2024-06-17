@@ -2,9 +2,8 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import Back from '#/assets/arrow_left.svg'
 import * as router from 'react-router-dom'
-
-import Back from 'enso-assets/arrow_left.svg'
 
 import * as appUtils from '#/appUtils'
 

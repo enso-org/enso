@@ -1,8 +1,8 @@
 /** @file A list of selectable labels. */
 import * as React from 'react'
 
-import PlusIcon from 'enso-assets/plus.svg'
-import Trash2Icon from 'enso-assets/trash2.svg'
+import PlusIcon from '#/assets/plus.svg'
+import Trash2Icon from '#/assets/trash2.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 

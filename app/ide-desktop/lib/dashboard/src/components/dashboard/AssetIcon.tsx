@@ -1,11 +1,11 @@
 /** @file Displays a non-interactable icon for an asset based on its type and name. */
 import * as React from 'react'
 
-import BlankIcon from 'enso-assets/blank.svg'
-import DatalinkIcon from 'enso-assets/datalink.svg'
-import FolderIcon from 'enso-assets/folder.svg'
-import KeyIcon from 'enso-assets/key.svg'
-import NetworkIcon from 'enso-assets/network.svg'
+import BlankIcon from '#/assets/blank.svg'
+import DatalinkIcon from '#/assets/datalink.svg'
+import FolderIcon from '#/assets/folder.svg'
+import KeyIcon from '#/assets/key.svg'
+import NetworkIcon from '#/assets/network.svg'
 
 import SvgMask from '#/components/SvgMask'
 

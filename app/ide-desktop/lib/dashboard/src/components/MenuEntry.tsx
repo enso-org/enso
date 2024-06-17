@@ -1,9 +1,8 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
+import BlankIcon from '#/assets/blank.svg'
 import * as tailwindVariants from 'tailwind-variants'
-
-import BlankIcon from 'enso-assets/blank.svg'
 
 import type * as text from '#/text'
 

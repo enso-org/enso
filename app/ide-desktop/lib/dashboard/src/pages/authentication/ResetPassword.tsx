@@ -2,11 +2,10 @@
  * flow. */
 import * as React from 'react'
 
+import ArrowRightIcon from '#/assets/arrow_right.svg'
+import GoBackIcon from '#/assets/go_back.svg'
+import LockIcon from '#/assets/lock.svg'
 import * as router from 'react-router-dom'
-
-import ArrowRightIcon from 'enso-assets/arrow_right.svg'
-import GoBackIcon from 'enso-assets/go_back.svg'
-import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
 

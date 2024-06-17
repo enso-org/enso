@@ -1,7 +1,7 @@
 /** @file A heading for the "Docs" column. */
 import * as React from 'react'
 
-import DocsIcon from 'enso-assets/docs.svg'
+import DocsIcon from '#/assets/docs.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

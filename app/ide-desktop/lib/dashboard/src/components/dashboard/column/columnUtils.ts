@@ -1,11 +1,11 @@
 /** @file Types and constants related to `Column`s. */
-import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
-import AccessedDataIcon from 'enso-assets/accessed_data.svg'
-import BlankIcon from 'enso-assets/blank.svg'
-import DocsIcon from 'enso-assets/docs.svg'
-import PeopleIcon from 'enso-assets/people.svg'
-import TagIcon from 'enso-assets/tag.svg'
-import TimeIcon from 'enso-assets/time.svg'
+import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
+import AccessedDataIcon from '#/assets/accessed_data.svg'
+import BlankIcon from '#/assets/blank.svg'
+import DocsIcon from '#/assets/docs.svg'
+import PeopleIcon from '#/assets/people.svg'
+import TagIcon from '#/assets/tag.svg'
+import TimeIcon from '#/assets/time.svg'
 
 import type * as text from '#/text'
 

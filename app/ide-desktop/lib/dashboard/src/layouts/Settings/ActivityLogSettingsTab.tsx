@@ -1,13 +1,12 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
+import DataUploadIcon from '#/assets/data_upload.svg'
+import KeyIcon from '#/assets/key.svg'
+import Play2Icon from '#/assets/play2.svg'
+import SortAscendingIcon from '#/assets/sort_ascending.svg'
+import TrashIcon from '#/assets/trash.svg'
 import * as tailwindMerge from 'tailwind-merge'
-
-import DataUploadIcon from 'enso-assets/data_upload.svg'
-import KeyIcon from 'enso-assets/key.svg'
-import Play2Icon from 'enso-assets/play2.svg'
-import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
-import TrashIcon from 'enso-assets/trash.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 

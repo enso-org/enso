@@ -1,7 +1,7 @@
 /** @file A heading for the "Labels" column. */
 import * as React from 'react'
 
-import TagIcon from 'enso-assets/tag.svg'
+import TagIcon from '#/assets/tag.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

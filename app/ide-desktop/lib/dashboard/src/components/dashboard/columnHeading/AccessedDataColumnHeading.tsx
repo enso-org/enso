@@ -1,7 +1,7 @@
 /** @file A heading for the "Accessed data" column. */
 import * as React from 'react'
 
-import AccessedDataIcon from 'enso-assets/accessed_data.svg'
+import AccessedDataIcon from '#/assets/accessed_data.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

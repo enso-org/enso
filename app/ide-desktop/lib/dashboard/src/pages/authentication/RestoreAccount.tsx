@@ -2,8 +2,7 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-
-import UntrashIcon from 'enso-assets/untrash.svg'
+import UntrashIcon from '#/assets/untrash.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'

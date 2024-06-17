@@ -1,10 +1,10 @@
 /** @file Settings tab for viewing and editing keyboard shortcuts. */
 import * as React from 'react'
 
-import BlankIcon from 'enso-assets/blank.svg'
-import CrossIcon from 'enso-assets/cross.svg'
-import Plus2Icon from 'enso-assets/plus2.svg'
-import ReloadInCircleIcon from 'enso-assets/reload_in_circle.svg'
+import BlankIcon from '#/assets/blank.svg'
+import CrossIcon from '#/assets/cross.svg'
+import Plus2Icon from '#/assets/plus2.svg'
+import ReloadInCircleIcon from '#/assets/reload_in_circle.svg'
 
 import type * as refreshHooks from '#/hooks/refreshHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'

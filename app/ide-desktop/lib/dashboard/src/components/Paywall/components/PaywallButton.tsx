@@ -5,7 +5,7 @@
  */
 import * as React from 'react'
 
-import PaywallBlocked from 'enso-assets/lock.svg'
+import PaywallBlocked from '#/assets/lock.svg'
 
 import * as billingHooks from '#/hooks/billing'
 

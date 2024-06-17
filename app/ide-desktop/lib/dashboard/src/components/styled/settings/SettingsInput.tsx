@@ -1,8 +1,8 @@
 /** @file A styled input specific to settings pages. */
 import * as React from 'react'
 
-import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
-import EyeIcon from 'enso-assets/eye.svg'
+import EyeCrossedIcon from '#/assets/eye_crossed.svg'
+import EyeIcon from '#/assets/eye.svg'
 
 import * as focusHooks from '#/hooks/focusHooks'
 

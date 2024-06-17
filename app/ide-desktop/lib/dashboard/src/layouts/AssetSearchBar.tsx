@@ -1,9 +1,9 @@
 /** @file A search bar containing a text input, and a list of suggestions. */
 import * as React from 'react'
 
+import FindIcon from '#/assets/find.svg'
 import * as tailwindMerge from 'tailwind-merge'
 
-import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as backendHooks from '#/hooks/backendHooks'

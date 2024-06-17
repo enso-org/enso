@@ -5,7 +5,7 @@
  */
 import * as React from 'react'
 
-import DevtoolsLogo from 'enso-assets/enso_logo.svg'
+import DevtoolsLogo from '#/assets/enso_logo.svg'
 
 import * as billing from '#/hooks/billing'
 

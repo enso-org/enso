@@ -1,7 +1,7 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
-import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
+import BurgerMenuIcon from '#/assets/burger_menu.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'

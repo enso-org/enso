@@ -1,7 +1,7 @@
 /** @file A styled checkbox. */
 import * as React from 'react'
 
-import CheckMarkIcon from 'enso-assets/check_mark.svg'
+import CheckMarkIcon from '#/assets/check_mark.svg'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'

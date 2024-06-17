@@ -1,12 +1,11 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
+import CloudIcon from '#/assets/cloud.svg'
+import NotCloudIcon from '#/assets/not_cloud.svg'
+import RecentIcon from '#/assets/recent.svg'
+import Trash2Icon from '#/assets/trash2.svg'
 import * as tailwindMerge from 'tailwind-merge'
-
-import CloudIcon from 'enso-assets/cloud.svg'
-import NotCloudIcon from 'enso-assets/not_cloud.svg'
-import RecentIcon from 'enso-assets/recent.svg'
-import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as text from '#/text'
 

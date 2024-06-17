@@ -5,7 +5,7 @@
  */
 import * as React from 'react'
 
-import OpenInNewTabIcon from 'enso-assets/open.svg'
+import OpenInNewTabIcon from '#/assets/open.svg'
 
 import type * as text from '#/text'
 

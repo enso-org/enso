@@ -1,7 +1,7 @@
 /** @file Settings tab for viewing and changing profile picture. */
 import * as React from 'react'
 
-import DefaultUserIcon from 'enso-assets/default_user.svg'
+import DefaultUserIcon from '#/assets/default_user.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'

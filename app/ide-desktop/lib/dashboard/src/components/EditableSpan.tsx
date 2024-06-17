@@ -1,8 +1,8 @@
 /** @file A text `<span>` which turns into an `input` when desired. */
 import * as React from 'react'
 
-import CrossIcon from 'enso-assets/cross.svg'
-import TickIcon from 'enso-assets/tick.svg'
+import CrossIcon from '#/assets/cross.svg'
+import TickIcon from '#/assets/tick.svg'
 
 import * as eventCalback from '#/hooks/eventCallbackHooks'
 

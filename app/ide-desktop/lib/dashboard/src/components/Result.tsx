@@ -1,10 +1,9 @@
 /** @file Display the result of an operation. */
 import * as React from 'react'
 
+import Success from '#/assets/check_mark.svg'
+import Error from '#/assets/cross.svg'
 import * as tailwindMerge from 'tailwind-merge'
-
-import Success from 'enso-assets/check_mark.svg'
-import Error from 'enso-assets/cross.svg'
 
 import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'

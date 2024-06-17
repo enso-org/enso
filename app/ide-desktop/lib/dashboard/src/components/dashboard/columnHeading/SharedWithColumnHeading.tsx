@@ -1,7 +1,7 @@
 /** @file A heading for the "Shared with" column. */
 import * as React from 'react'
 
-import PeopleIcon from 'enso-assets/people.svg'
+import PeopleIcon from '#/assets/people.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

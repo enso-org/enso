@@ -1,7 +1,7 @@
 /** @file Display and modify the properties of an asset. */
 import * as React from 'react'
 
-import PenIcon from 'enso-assets/pen.svg'
+import PenIcon from '#/assets/pen.svg'
 
 import * as datalinkValidator from '#/data/datalinkValidator'
 

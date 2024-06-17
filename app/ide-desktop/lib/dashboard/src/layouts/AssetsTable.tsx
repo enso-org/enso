@@ -1,10 +1,9 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
+import DropFilesImage from '#/assets/drop_files.svg'
 import * as toast from 'react-toastify'
 import * as tailwindMerge from 'tailwind-merge'
-
-import DropFilesImage from 'enso-assets/drop_files.svg'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
