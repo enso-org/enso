@@ -29,7 +29,7 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir target/lib/
+          cargo build --release -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir target/lib/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -49,7 +49,7 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build -p enso-parser-jni -Z unstable-options --out-dir target/lib/x86_64
+          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/x86_64
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -69,7 +69,7 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build -p enso-parser-jni -Z unstable-options --out-dir target/lib/aarch64/
+          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/aarch64/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -89,7 +89,7 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build -p enso-parser-jni -Z unstable-options --out-dir target/lib/
+          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
