@@ -49,7 +49,7 @@ add_specs suite_builder setup =
     values_without_nothing = if setup.test_selection.run_advanced_edge_case_tests then basic_values_without_nothing + advanced_values_without_nothing else basic_values_without_nothing
     values_with_nothing = values_without_nothing + [[Nothing, Nothing, type_for_nothing_column]]
 
-    suite_builder.group prefix+"Comparisons" group_builder->
+    suite_builder.group prefix+"(Nothing_Spec) (Nothing_Spec) Comparisons" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -85,7 +85,7 @@ add_specs suite_builder setup =
                     co = comparison (table.at "n") (table.at "x")
                     co.to_vector . should_equal [Nothing]
 
-    suite_builder.group prefix+"between" group_builder->
+    suite_builder.group prefix+"(Nothing_Spec) between" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -125,7 +125,7 @@ add_specs suite_builder setup =
                 co = table.at "x" . between (table.at "y") Nothing
                 co.to_vector . should_equal [Nothing]
 
-    suite_builder.group prefix+"is_nothing" group_builder->
+    suite_builder.group prefix+"(Nothing_Spec) is_nothing" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -145,7 +145,7 @@ add_specs suite_builder setup =
                 co = table.at "x" . is_nothing
                 co.to_vector . should_equal [value == Nothing]
 
-    suite_builder.group prefix+"not" group_builder->
+    suite_builder.group prefix+"(Nothing_Spec) not" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -158,7 +158,7 @@ add_specs suite_builder setup =
             table = table_builder [["x", [True, False, Nothing]]]
             table.at "x" . not . to_vector . should_equal [False, True, Nothing]
 
-    suite_builder.group prefix+"is_in" group_builder->
+    suite_builder.group prefix+"(Nothing_Spec) is_in" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -212,7 +212,7 @@ add_specs suite_builder setup =
                 table = table_builder_typed [["x", [value, Nothing]], ["y", [other_value, Nothing]], ["z", [value, other_value]], ["n", [Nothing, Nothing]]] value_type
                 table.at "x" . is_in [] . to_vector . should_equal [False, False]
 
-    if setup.test_selection.run_advanced_edge_case_tests then suite_builder.group prefix+"is_in: Boolean+Nothing edge cases" group_builder->
+    if setup.test_selection.run_advanced_edge_case_tests then suite_builder.group prefix+"(Nothing_Spec) is_in: Boolean+Nothing edge cases" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -278,7 +278,7 @@ add_specs suite_builder setup =
                     c.to_vector . length . should_equal input_column.length
                     c.to_vector.distinct . should_equal expected_output
 
-    suite_builder.group prefix+"distinct" group_builder->
+    suite_builder.group prefix+"(Nothing_Spec) distinct" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -310,7 +310,7 @@ add_specs suite_builder setup =
             v = t1.at "x" . to_vector
             v . should_equal [Nothing]
 
-    suite_builder.group prefix+"order_by" group_builder->
+    suite_builder.group prefix+"(Nothing_Spec) order_by" group_builder->
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
