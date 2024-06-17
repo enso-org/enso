@@ -64,7 +64,7 @@ sealed case class Empty(
     fn: java.util.function.Function[Expression, Expression]
   ): Empty = this
 
-  /** @inheritdoc */
+  /** String representation. */
   override def toString: String =
     s"""
        |Empty(

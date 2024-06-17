@@ -1,6 +1,8 @@
 /** @file A selection brush to indicate the area being selected by the mouse drag action. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as animationHooks from '#/hooks/animationHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -180,9 +182,10 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   return (
     <Portal>
       <div
-        className={`pointer-events-none fixed z-1 box-content rounded-selection-brush border-transparent bg-selection-brush transition-border-margin ${
+        className={tailwindMerge.twMerge(
+          'pointer-events-none fixed z-1 box-content rounded-selection-brush border-transparent bg-selection-brush transition-border-margin',
           hidden ? 'm border-0' : '-m-selection-brush-border border-selection-brush'
-        }`}
+        )}
         style={brushStyle}
       />
     </Portal>

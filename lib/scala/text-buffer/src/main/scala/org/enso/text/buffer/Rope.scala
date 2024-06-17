@@ -1,7 +1,5 @@
 package org.enso.text.buffer
 
-import cats.Monoid
-
 /** The measure used for storing strings in the b-tree.
   *
   * @param utf16Size number of characters.
@@ -23,17 +21,23 @@ case class StringMeasure(
   def linesCount: Int = fullLines + 1
 }
 
+trait CombineOps[T] {
+  def empty:               T
+  def combine(x: T, y: T): T
+}
+
 object StringMeasure {
-  implicit val monoid: Monoid[StringMeasure] = new Monoid[StringMeasure] {
-    override def empty: StringMeasure = StringMeasure(0, 0, 0, false)
-    override def combine(x: StringMeasure, y: StringMeasure): StringMeasure =
-      StringMeasure(
-        x.utf16Size + y.utf16Size,
-        x.utf32Size + y.utf32Size,
-        x.fullLines + y.fullLines,
-        y.endsInNewLine
-      )
-  }
+  implicit val stringMeasureOps: CombineOps[StringMeasure] =
+    new CombineOps[StringMeasure] {
+      override def empty: StringMeasure = StringMeasure(0, 0, 0, false)
+      override def combine(x: StringMeasure, y: StringMeasure): StringMeasure =
+        StringMeasure(
+          x.utf16Size + y.utf16Size,
+          x.utf32Size + y.utf32Size,
+          x.fullLines + y.fullLines,
+          y.endsInNewLine
+        )
+    }
 }
 
 /** Represents a string using a tree.

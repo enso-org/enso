@@ -1,6 +1,5 @@
 package org.enso.text.editing
 
-import cats.implicits._
 import org.enso.text.editing.model.TextEdit
 
 /** Auxiliary operations that edit a buffer validating diffs before applying it.
@@ -35,7 +34,7 @@ object EditorOps {
     */
   def applyEdits[A: TextEditor](buffer: A, diffs: Seq[TextEdit]): EditorOp[A] =
     diffs.foldLeft[EditorOp[A]](Right(buffer)) { case (maybeBuffer, diff) =>
-      maybeBuffer >>= (edit(_, diff))
+      maybeBuffer.flatMap(edit(_, diff))
     }
 
 }

@@ -97,7 +97,7 @@ object Type {
       copy(args = args.map(fn.asScala), result = fn(result))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""Type.Function(
          |args = $args,
@@ -204,7 +204,7 @@ object Type {
       copy(typed = fn(typed), signature = fn(signature))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""Type.Ascription(
          |typed = $typed,
@@ -310,7 +310,7 @@ object Type {
       copy(typed = fn(typed), context = fn(context))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""Type.Context(
          |typed = $typed,
@@ -413,7 +413,7 @@ object Type {
     ): Error =
       copy(typed = fn(typed), error = fn(error))
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""Type.Error(
          |typed = $typed,

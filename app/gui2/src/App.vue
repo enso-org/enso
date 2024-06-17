@@ -84,7 +84,6 @@ registerAutoBlurHandler()
   font-family: var(--font-sans);
   font-weight: 500;
   font-size: 11.5px;
-  font-weight: 500;
   line-height: 20px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

@@ -1,10 +1,10 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.PackageRepository
-import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.pass.PassConfiguration
-import org.enso.pkg.Package;
-import org.enso.pkg.QualifiedName;
+import org.enso.pkg.Package
+import org.enso.pkg.QualifiedName
 import org.enso.compiler.data.BindingsMap.ModuleReference
 
 /** A type containing the information about the execution context for a module.
@@ -24,11 +24,11 @@ case class ModuleContext(
   isGeneratingDocs: Boolean                    = false,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  def isSynthetic()                 = module.isSynthetic()
-  def bindingsAnalysis()            = module.getBindingsMap()
-  def getName(): QualifiedName      = module.getName()
-  def getPackage(): Package[_]      = module.getPackage()
-  def getCharacters(): CharSequence = module.getCharacters()
+  def isSynthetic(): Boolean          = module.isSynthetic()
+  def bindingsAnalysis(): BindingsMap = module.getBindingsMap()
+  def getName(): QualifiedName        = module.getName()
+  def getPackage(): Package[_]        = module.getPackage()
+  def getCharacters(): CharSequence   = module.getCharacters()
   def moduleReference(): ModuleReference.Concrete =
     ModuleReference.Concrete(module)
 }

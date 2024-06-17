@@ -43,10 +43,7 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
 function run(props: Omit<app.AppProps, 'portalRoot'>) {
-  const { logger, vibrancy, supportsDeepLinks } = props
-
-  logger.log('Starting authentication/dashboard UI.')
-
+  const { vibrancy, supportsDeepLinks } = props
   if (
     !detect.IS_DEV_MODE &&
     process.env.ENSO_CLOUD_SENTRY_DSN != null &&

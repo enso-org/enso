@@ -7,7 +7,7 @@ import { bytesToHex } from '@noble/hashes/utils'
 import { escapeTextLiteral } from 'shared/ast'
 import type { LanguageServer } from 'shared/languageServer'
 import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
-import type { ContentRoot, Path, StackItem, Uuid } from 'shared/languageServerTypes'
+import type { Path, StackItem, Uuid } from 'shared/languageServerTypes'
 import { Err, Ok, withContext, type Result } from 'shared/util/data/result'
 import { markRaw, toRaw } from 'vue'
 
@@ -54,32 +54,28 @@ export class Uploader {
     this.stackItem = markRaw(toRaw(stackItem))
   }
 
-  static async Create(
+  static Create(
     rpc: LanguageServer,
     binary: DataServer,
-    contentRoots: Promise<ContentRoot[]>,
+    projectRootId: Uuid,
     awareness: Awareness,
     file: File,
     position: Vec2,
     isOnLocalBackend: boolean,
     disableDirectRead: boolean,
     stackItem: StackItem,
-  ): Promise<Uploader> {
-    const roots = await contentRoots
-    const projectRootId = roots.find((root) => root.type == 'Project')
-    if (!projectRootId) throw new Error('Could not find project root, uploading not possible.')
-    const instance = new Uploader(
+  ): Uploader {
+    return new Uploader(
       rpc,
       binary,
       awareness,
       file,
-      projectRootId.id,
+      projectRootId,
       position,
       isOnLocalBackend,
       disableDirectRead,
       stackItem,
     )
-    return instance
   }
 
   async upload(): Promise<Result<UploadResult>> {

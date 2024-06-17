@@ -16,10 +16,10 @@ import * as textProvider from '#/providers/TextProvider'
 import KeyboardShortcutsSettingsTabBar from '#/layouts/Settings/KeyboardShortcutsSettingsTabBar'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 
@@ -85,7 +85,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
               {visibleBindings.map(kv => {
                 const [action, info] = kv
                 return (
-                  <tr key={action}>
+                  <tr key={action} className="rounded-rows-child">
                     <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-icon-column-r">
                       <SvgMask
                         src={info.icon ?? BlankIcon}
@@ -110,7 +110,9 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
                                 >
                                   <KeyboardShortcut shortcut={binding} />
-                                  <UnstyledButton
+                                  <ariaComponents.Button
+                                    size="custom"
+                                    variant="custom"
                                     className="flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg"
                                     onPress={() => {
                                       inputBindings.delete(action, binding)
@@ -118,11 +120,13 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                     }}
                                   >
                                     <SvgMask src={CrossIcon} className="size-icon" />
-                                  </UnstyledButton>
+                                  </ariaComponents.Button>
                                 </div>
                               ))}
                               <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
-                                <UnstyledButton
+                                <ariaComponents.Button
+                                  size="custom"
+                                  variant="custom"
                                   className="focus-default my-auto flex rounded-full"
                                   onPress={() => {
                                     setModal(
@@ -138,8 +142,10 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   }}
                                 >
                                   <img className="size-plus-icon" src={Plus2Icon} />
-                                </UnstyledButton>
-                                <UnstyledButton
+                                </ariaComponents.Button>
+                                <ariaComponents.Button
+                                  size="custom"
+                                  variant="custom"
                                   className="my-auto flex rounded-full"
                                   onPress={() => {
                                     inputBindings.reset(action)
@@ -147,7 +153,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   }}
                                 >
                                   <img className="size-plus-icon" src={ReloadInCircleIcon} />
-                                </UnstyledButton>
+                                </ariaComponents.Button>
                               </div>
                             </div>
                           </div>

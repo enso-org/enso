@@ -585,8 +585,8 @@ final class SuggestionsHandler(
     */
   private def fieldUpdateOption[A](value: Option[A]): FieldUpdate[A] =
     value match {
-      case Some(value) => FieldUpdate(FieldAction.Set, Some(value))
-      case None        => FieldUpdate(FieldAction.Remove, None)
+      case Some(value) => FieldUpdate(FieldActions.Set, Some(value))
+      case None        => FieldUpdate(FieldActions.Remove, None)
     }
 
   /** Construct the field update object from and update value.
@@ -595,10 +595,10 @@ final class SuggestionsHandler(
     * @return the field update object representing the value update
     */
   private def fieldUpdate[A](value: A): FieldUpdate[A] =
-    FieldUpdate(FieldAction.Set, Some(value))
+    FieldUpdate(FieldActions.Set, Some(value))
 
   private def fieldRemove[A]: FieldUpdate[A] =
-    FieldUpdate[A](FieldAction.Remove, None)
+    FieldUpdate[A](FieldActions.Remove, None)
 
   /** Construct [[SuggestionArgumentUpdate]] from the runtime message.
     *

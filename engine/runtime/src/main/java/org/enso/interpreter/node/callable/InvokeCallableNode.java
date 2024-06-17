@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -12,6 +13,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
@@ -337,32 +339,37 @@ public abstract class InvokeCallableNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "iop.isExecutable(self)",
       })
-  Object doPolyglot(
+  static Object doPolyglot(
       Object self,
       VirtualFrame frame,
       State state,
       Object[] arguments,
+      @Bind("$node") Node node,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") TypesLibrary types,
-      @Cached ThunkExecutorNode thunkNode) {
-    var errors = EnsoContext.get(this).getBuiltins().error();
+      @Cached ThunkExecutorNode thunkNode,
+      @Cached InlinedBranchProfile errorNeedsToBeReported) {
+    var errors = EnsoContext.get(node).getBuiltins().error();
     try {
       for (int i = 0; i < arguments.length; i++) {
         arguments[i] = thunkNode.executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
       }
       return iop.execute(self, arguments);
     } catch (UnsupportedTypeException ex) {
+      errorNeedsToBeReported.enter(node);
       var err = errors.makeUnsupportedArgumentsError(ex.getSuppliedValues(), ex.getMessage());
-      throw new PanicException(err, this);
+      throw new PanicException(err, node);
     } catch (ArityException ex) {
+      errorNeedsToBeReported.enter(node);
       var err =
           errors.makeArityError(
               ex.getExpectedMinArity(), ex.getExpectedMaxArity(), arguments.length);
-      throw new PanicException(err, this);
+      throw new PanicException(err, node);
     } catch (UnsupportedMessageException ex) {
+      errorNeedsToBeReported.enter(node);
       var err = errors.makeNotInvokable(self);
-      throw new PanicException(err, this);
+      throw new PanicException(err, node);
     }
   }
 

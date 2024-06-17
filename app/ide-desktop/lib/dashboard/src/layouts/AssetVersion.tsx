@@ -1,6 +1,8 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CompareIcon from 'enso-assets/compare.svg'
 import DuplicateIcon from 'enso-assets/duplicate.svg'
 import RestoreIcon from 'enso-assets/restore.svg'
@@ -59,14 +61,17 @@ export default function AssetVersion(props: AssetVersionProps) {
 
   return (
     <div
-      className={`flex w-full flex-shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2 ${placeholder ? 'opacity-50' : ''}`}
+      className={tailwindMerge.twMerge(
+        'flex w-full flex-shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2',
+        placeholder && 'opacity-50'
+      )}
     >
       <div className="flex flex-1 flex-col">
         <div>
           {getText('versionX', number)} {version.isLatest && getText('latestIndicator')}
         </div>
 
-        <time className="text-not-selected text-xs">
+        <time className="text-xs text-not-selected">
           {getText('onDateX', dateTime.formatDateTime(new Date(version.lastModified)))}
         </time>
       </div>
