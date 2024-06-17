@@ -8,6 +8,7 @@ import type * as text from '#/text'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 
@@ -28,8 +29,8 @@ export enum Page {
 // === Constants ===
 // =================
 
-/** The amount of space that should be left aside for the OS to render the window controls. */
-const WINDOW_BUTTONS_WIDTH_LEFT_PX = 0
+/** The corner radius of the tabs. */
+const TAB_RADIUS_PX = 24
 
 const PAGE_DATA: PageUIData[] = [
   { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName' },
@@ -70,7 +71,49 @@ export default function PageSwitcher(props: PageSwitcherProps) {
   )
   const pageIndexRaw = visiblePageData.findIndex(pageData => page === pageData.page)
   const pageIndex = pageIndexRaw === -1 ? null : pageIndexRaw
-  const isLastPageSelected = pageIndexRaw === visiblePageData.length - 1
+  const cleanupResizeObserverRef = React.useRef(() => {})
+  const backgroundRef = React.useRef<HTMLDivElement | null>(null)
+  const selectedTabRef = React.useRef<HTMLDivElement | null>(null)
+  const [resizeObserver] = React.useState(
+    () =>
+      new ResizeObserver(() => {
+        updateClipPath(selectedTabRef.current)
+      })
+  )
+  const [updateClipPath] = React.useState(() => {
+    return (element: HTMLDivElement | null) => {
+      const backgroundElement = backgroundRef.current
+      console.log(':D', backgroundElement, element)
+      if (backgroundElement != null) {
+        if (element == null) {
+          backgroundElement.style.clipPath = ''
+        } else {
+          selectedTabRef.current = element
+          const bounds = element.getBoundingClientRect()
+          const rootBounds = backgroundElement.getBoundingClientRect()
+          const tabLeft = bounds.left - rootBounds.left
+          const tabRight = bounds.right - rootBounds.left
+          const segments = [
+            'M 0 0',
+            `L ${rootBounds.width} 0`,
+            `L ${rootBounds.width} ${rootBounds.height}`,
+            `L ${tabRight + TAB_RADIUS_PX} ${rootBounds.height}`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabRight} ${rootBounds.height - TAB_RADIUS_PX}`,
+            `L ${tabRight} ${TAB_RADIUS_PX}`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${tabRight - TAB_RADIUS_PX} 0`,
+            `L ${tabLeft + TAB_RADIUS_PX} 0`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 0 ${tabLeft} ${TAB_RADIUS_PX}`,
+            `L ${tabLeft} ${rootBounds.height - TAB_RADIUS_PX}`,
+            `A ${TAB_RADIUS_PX} ${TAB_RADIUS_PX} 0 0 1 ${tabLeft - TAB_RADIUS_PX} ${rootBounds.height}`,
+            `L 0 ${rootBounds.height}`,
+            'Z',
+          ]
+          backgroundElement.style.clipPath = `path("${segments.join(' ')}")`
+          console.log(backgroundElement.style.clipPath, `path("${segments.join(' ')}")`)
+        }
+      }
+    }
+  })
 
   React.useEffect(() => {
     selectedChildIndexRef.current = PAGE_DATA.findIndex(data => data.page === page)
@@ -84,29 +127,43 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     }
   }, [isEditorDisabled])
 
+  const updateResizeObserver = (element: HTMLElement | null) => {
+    cleanupResizeObserverRef.current()
+    if (element == null) {
+      cleanupResizeObserverRef.current = () => {}
+    } else {
+      resizeObserver.observe(element)
+      cleanupResizeObserverRef.current = () => {
+        resizeObserver.unobserve(element)
+      }
+    }
+  }
+
   return (
     <FocusArea direction="horizontal">
       {innerProps => (
         <div
-          className="pointer-events-auto flex h-12 shrink-0 grow cursor-default items-center rounded-full"
-          {...innerProps}
+          className="relative flex h-12 shrink-0 grow cursor-default items-center rounded-full"
+          {...aria.mergeProps<React.JSX.IntrinsicElements['div']>()(innerProps, {
+            ref: updateResizeObserver,
+          })}
         >
           <div
-            className={tailwindMerge.twMerge(
-              'h-full bg-primary/5',
-              pageIndex === 0 && 'rounded-br-3xl'
-            )}
-            style={{ width: WINDOW_BUTTONS_WIDTH_LEFT_PX }}
+            ref={element => {
+              backgroundRef.current = element
+              updateResizeObserver(element)
+            }}
+            className="pointer-events-none absolute inset-0 bg-primary/5"
           />
           {visiblePageData.map((pageData, i) => {
             const active = page === pageData.page
             return (
               <div
                 key={pageData.page}
+                ref={active ? updateClipPath : null}
                 className={tailwindMerge.twMerge(
                   'h-full transition-[padding-left]',
-                  page !== pageData.page && 'bg-primary/5 hover:enabled:bg-primary/[2.5%]',
-                  active && 'clip-path-0 rounded-t-3xl outline outline-[1rem] outline-primary/5',
+                  page !== pageData.page && 'hover:enabled:bg-frame',
                   pageIndex != null && i === pageIndex + 1 && 'rounded-bl-3xl',
                   pageIndex != null && i === pageIndex - 1 && 'rounded-br-3xl'
                 )}
@@ -129,12 +186,6 @@ export default function PageSwitcher(props: PageSwitcherProps) {
               </div>
             )
           })}
-          <div
-            className={tailwindMerge.twMerge(
-              'h-full grow bg-primary/5',
-              isLastPageSelected && 'rounded-bl-3xl'
-            )}
-          />
         </div>
       )}
     </FocusArea>
