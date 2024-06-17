@@ -19,6 +19,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
   private static final String OPERATION = "operation";
   private static final String PROJECT_NAME = "projectName";
   private static final String PROJECT_ID = "projectId";
+  private static final String PROJECT_SESSION_ID = "projectSessionId";
   private static final String LOCAL_TIMESTAMP = "localTimestamp";
 
   private final String projectId;
@@ -34,6 +35,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     checkNoRestrictedField(metadata, RESERVED_TYPE);
     checkNoRestrictedField(metadata, OPERATION);
     checkNoRestrictedField(metadata, PROJECT_NAME);
+    checkNoRestrictedField(metadata, PROJECT_SESSION_ID);
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
 
     this.projectId = CloudAPI.getCloudProjectId();
@@ -59,6 +61,11 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
       copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     }
 
+    String sessionId = CloudAPI.getCloudSessionId();
+    if (sessionId != null) {
+      copy.set(PROJECT_SESSION_ID, TextNode.valueOf(sessionId));
+    }
+
     return copy;
   }
 
@@ -67,7 +74,7 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(message));
     payload.set(
-        "projectId", projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
+        PROJECT_ID, projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
     payload.set("metadata", computedMetadata());
     payload.set("kind", TextNode.valueOf("Lib"));
     return payload.toString();
