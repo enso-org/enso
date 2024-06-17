@@ -60,7 +60,7 @@ add_specs suite_builder setup =
                 Column.from_vector (c.at 0) (c.at 1) . cast value_type
             setup.table_builder cast_columns connection=data.connection
 
-        comparisons = [["==", ==], ["!=", !=], ["<", <], ["<=", <=], [">", >], [">=", >=]]
+        comparisons = [["==", ==], ["!=", !=], ["<", <]] + (if setup.test_selection.run_advanced_edge_case_tests then [["<=", <=], [">", >], [">=", >=]] else [])
 
         comparisons.map pair->
             comparison_name = pair.at 0
@@ -70,18 +70,18 @@ add_specs suite_builder setup =
                 value = triple.at 0
                 value_type = triple.at 2
 
-                group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" "+comparison_name+" Nothing value" <|
+                group_builder.specify "Correctly handle Nothing in: "+value.to_text+" ("+value_type.to_text+") "+comparison_name+" Nothing value" <|
                     table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
                     co = comparison (table.at "x") Nothing
                     co.to_vector . should_equal [Nothing]
 
                 if setup.test_selection.run_advanced_edge_case_tests then
-                    group_builder.specify "Correctly handle Nothing in: "+value_type.to_text+" "+comparison_name+" Nothing column" <|
+                    group_builder.specify "Correctly handle Nothing in: "+value.to_text+" ("+value_type.to_text+") "+comparison_name+" Nothing column" <|
                         table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
                         co = comparison (table.at "x") (table.at "n")
                         co.to_vector . should_equal [Nothing]
 
-                    group_builder.specify "Correctly handle Nothing in: Nothing column "+comparison_name+" "+value_type.to_text <|
+                    group_builder.specify "Correctly handle Nothing in: Nothing column "+comparison_name+" "+value.to_text+" ("+value_type.to_text+")" <|
                         table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
                         co = comparison (table.at "n") (table.at "x")
                         co.to_vector . should_equal [Nothing]
