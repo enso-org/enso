@@ -33,7 +33,11 @@ public final class MetadataInteropHelpers {
   public static <T> T getMetadata(IR ir, IRPass pass, Class<T> expectedType) {
     T metadataOrNull = getMetadataOrNull(ir, pass, expectedType);
     if (metadataOrNull == null) {
-      throw new IllegalStateException("Missing expected " + pass + " metadata for " + ir + ".");
+      String textRepresentation = ir.toString();
+      if (textRepresentation.length() > 100) {
+        textRepresentation = textRepresentation.substring(0, 100) + "...";
+      }
+      throw new IllegalStateException("Missing expected " + pass + " metadata for " + textRepresentation + " (" + ir.getClass().getCanonicalName() + ").");
     }
 
     return metadataOrNull;
