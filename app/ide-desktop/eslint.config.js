@@ -20,6 +20,7 @@ import tsEslintParser from '@typescript-eslint/parser'
 // === Constants ===
 // =================
 
+const DEBUG_STATEMENTS_MESSAGE = 'Avoid leaving debugging statements when committing code'
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 const NAME = 'enso'
 /** An explicit whitelist of CommonJS modules, which do not support namespace imports.
@@ -295,6 +296,10 @@ export default [
             'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-const': 'error',
+            'react/forbid-elements': [
+                'error',
+                { forbid: [{ element: 'Debug', message: DEBUG_STATEMENTS_MESSAGE }] },
+            ],
             // Not relevant because TypeScript checks types.
             'react/prop-types': 'off',
             'react/self-closing-comp': 'error',
@@ -488,26 +493,11 @@ export default [
                     property: 'useNavigate',
                     message: 'Use `hooks.useNavigate` instead.',
                 },
-                {
-                    object: 'console',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugState',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugEffect',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugMemo',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
-                {
-                    property: 'useDebugCallback',
-                    message: 'Avoid leaving debugging statements when committing code',
-                },
+                { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugState', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugEffect', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugMemo', message: DEBUG_STATEMENTS_MESSAGE },
+                { property: 'useDebugCallback', message: DEBUG_STATEMENTS_MESSAGE },
             ],
         },
     },
