@@ -61,9 +61,9 @@ public class AuditLogMessage implements AuditLogAPI.LogMessage {
       copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     }
 
-    String sessionId = CloudAPI.getCloudSessionId();
-    if (sessionId != null) {
-      copy.set(PROJECT_SESSION_ID, TextNode.valueOf(sessionId));
+    String projectSessionId = CloudAPI.getCloudSessionId();
+    if (projectSessionId != null) {
+      copy.set(PROJECT_SESSION_ID, TextNode.valueOf(projectSessionId));
     }
 
     return copy;
