@@ -17,9 +17,6 @@ internal folder structure of the module.
 - [`dashboard/`](./lib/dashboard/README.md): The dashboard, used to manage
   projects. It launches the GUI (located in `content/` for GUI1, or `/app/gui2/`
   for GUI2) when a project is opened.
-- `esbuild-plugin-copy-directories/`: An ESBuild plugin for continuously copying
-  directories from the a given location to a given subdirectory of the build
-  output directory.
 - `icons/`: Generates the logo for the app.
 - `ts-plugin-namespace-auto-import/`: (WIP) A TypeScript plugin to change
   auto-import to use `import * as moduleName` rather than `import {}`.
