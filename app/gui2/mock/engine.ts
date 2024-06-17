@@ -170,163 +170,7 @@ const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => U
     'warning 1',
     "warning 2!!&<>;'\x22",
   ]),
-  'Standard.Visualization.Widgets.get_widget_json': (params) => {
-    switch (params[0]) {
-      case '.read':
-        return encodeJSON([
-          [
-            'path',
-            {
-              type: 'Widget',
-              constructor: 'Single_Choice',
-              label: null,
-              values: [
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: '"File 1"',
-                  label: 'File 1',
-                  parameters: [],
-                },
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: '"File 2"',
-                  label: 'File 2',
-                  parameters: [],
-                },
-              ],
-              display: { type: 'Display', constructor: 'Always' },
-            },
-          ],
-        ])
-      case '.select_columns':
-        return encodeJSON([
-          [
-            'columns',
-            {
-              type: 'Widget',
-              constructor: 'Multiple_Choice',
-              label: null,
-              values: [
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: "'Column A'",
-                  label: 'Column A',
-                  parameters: [],
-                },
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: "'Column B'",
-                  label: 'Column B',
-                  parameters: [],
-                },
-              ],
-              display: { type: 'Display', constructor: 'Always' },
-            },
-          ],
-        ])
-      case '.aggregate':
-        return encodeJSON([
-          [
-            'columns',
-            {
-              type: 'Widget',
-              constructor: 'Vector_Editor',
-              /* eslint-disable camelcase */
-              item_default: 'Aggregate_Column.Group_By',
-              item_editor: {
-                type: 'Widget',
-                constructor: 'Single_Choice',
-                label: null,
-                values: [
-                  {
-                    type: 'Choice',
-                    constructor: 'Option',
-                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
-                    label: null,
-                    parameters: [
-                      [
-                        'column',
-                        {
-                          type: 'Widget',
-                          constructor: 'Single_Choice',
-                          label: null,
-                          values: [
-                            {
-                              type: 'Choice',
-                              constructor: 'Option',
-                              value: '"column 1"',
-                              label: 'column 1',
-                              parameters: [],
-                            },
-                            {
-                              type: 'Choice',
-                              constructor: 'Option',
-                              value: '"column 2"',
-                              label: 'column 2',
-                              parameters: [],
-                            },
-                          ],
-                          display: { type: 'Display', constructor: 'Always' },
-                        },
-                      ],
-                    ],
-                  },
-                  {
-                    type: 'Choice',
-                    constructor: 'Option',
-                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
-                    label: null,
-                    parameters: [],
-                  },
-                  {
-                    type: 'Choice',
-                    constructor: 'Option',
-                    value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
-                    label: null,
-                    parameters: [
-                      [
-                        'columns',
-                        {
-                          type: 'Widget',
-                          constructor: 'Single_Choice',
-                          label: null,
-                          values: [
-                            {
-                              type: 'Choice',
-                              constructor: 'Option',
-                              value: '"column 1"',
-                              label: 'column 1',
-                              parameters: [],
-                            },
-                            {
-                              type: 'Choice',
-                              constructor: 'Option',
-                              value: '"column 2"',
-                              label: 'column 2',
-                              parameters: [],
-                            },
-                          ],
-                          display: { type: 'Display', constructor: 'Always' },
-                        },
-                      ],
-                    ],
-                  },
-                ],
-                display: { type: 'Display', constructor: 'Always' },
-              },
-              /* eslint-enable camelcase */
-              display: { type: 'Display', constructor: 'Always' },
-            },
-          ],
-        ])
-      default:
-        return encodeJSON([])
-    }
-  },
+  'Standard.Visualization.Widgets.get_widget_json': (params) => mockWidgetConfiguration(params[0]),
 
   // The following visualizations do not have unique transformation methods, and as such are only kept
   // for posterity.
@@ -348,6 +192,164 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
   ]),
 }
 
+function mockWidgetConfiguration(method: string | undefined) {
+  switch (method) {
+    case '.read':
+      return encodeJSON([
+        [
+          'path',
+          {
+            type: 'Widget',
+            constructor: 'Single_Choice',
+            label: null,
+            values: [
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: '"File 1"',
+                label: 'File 1',
+                parameters: [],
+              },
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: '"File 2"',
+                label: 'File 2',
+                parameters: [],
+              },
+            ],
+            display: { type: 'Display', constructor: 'Always' },
+          },
+        ],
+      ])
+    case '.select_columns':
+      return encodeJSON([
+        [
+          'columns',
+          {
+            type: 'Widget',
+            constructor: 'Multiple_Choice',
+            label: null,
+            values: [
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: "'Column A'",
+                label: 'Column A',
+                parameters: [],
+              },
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: "'Column B'",
+                label: 'Column B',
+                parameters: [],
+              },
+            ],
+            display: { type: 'Display', constructor: 'Always' },
+          },
+        ],
+      ])
+    case '.aggregate':
+      return encodeJSON([
+        [
+          'columns',
+          {
+            type: 'Widget',
+            constructor: 'Vector_Editor',
+            /* eslint-disable camelcase */
+            item_default: 'Aggregate_Column.Group_By',
+            item_editor: {
+              type: 'Widget',
+              constructor: 'Single_Choice',
+              label: null,
+              values: [
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
+                  label: null,
+                  parameters: [
+                    [
+                      'column',
+                      {
+                        type: 'Widget',
+                        constructor: 'Single_Choice',
+                        label: null,
+                        values: [
+                          {
+                            type: 'Choice',
+                            constructor: 'Option',
+                            value: '"column 1"',
+                            label: 'column 1',
+                            parameters: [],
+                          },
+                          {
+                            type: 'Choice',
+                            constructor: 'Option',
+                            value: '"column 2"',
+                            label: 'column 2',
+                            parameters: [],
+                          },
+                        ],
+                        display: { type: 'Display', constructor: 'Always' },
+                      },
+                    ],
+                  ],
+                },
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
+                  label: null,
+                  parameters: [],
+                },
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                  label: null,
+                  parameters: [
+                    [
+                      'columns',
+                      {
+                        type: 'Widget',
+                        constructor: 'Single_Choice',
+                        label: null,
+                        values: [
+                          {
+                            type: 'Choice',
+                            constructor: 'Option',
+                            value: '"column 1"',
+                            label: 'column 1',
+                            parameters: [],
+                          },
+                          {
+                            type: 'Choice',
+                            constructor: 'Option',
+                            value: '"column 2"',
+                            label: 'column 2',
+                            parameters: [],
+                          },
+                        ],
+                        display: { type: 'Display', constructor: 'Always' },
+                      },
+                    ],
+                  ],
+                },
+              ],
+              display: { type: 'Display', constructor: 'Always' },
+            },
+            /* eslint-enable camelcase */
+            display: { type: 'Display', constructor: 'Always' },
+          },
+        ],
+      ])
+    default:
+      return encodeJSON([])
+  }
+}
+
 function createMessageId(builder: Builder) {
   const messageUuid = random.uuidv4()
   const [leastSigBits, mostSigBits] = uuidToBits(messageUuid)
@@ -361,11 +363,13 @@ function createId(id: Uuid) {
 
 function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
   const vizDataHandler =
-    mockVizPreprocessors[
-      typeof config.expression === 'string' ?
-        `${config.visualizationModule}.${config.expression}`
-      : `${config.expression.definedOnType}.${config.expression.name}`
-    ]
+    typeof config.expression === 'string' ?
+      // Getting widget configuration is a special case, where we sometimes pass lambda as
+      // expression to discard the input value
+      /^[a-z]+ *->.*get_widget_json/.test(config.expression) ?
+        mockWidgetConfiguration(config.positionalArgumentsExpressions?.at(0))
+      : mockVizPreprocessors[`${config.visualizationModule}.${config.expression}`]
+    : mockVizPreprocessors[`${config.expression.definedOnType}.${config.expression.name}`]
   if (!vizDataHandler || !sendData) return
   const vizData =
     vizDataHandler instanceof Uint8Array ? vizDataHandler : (
