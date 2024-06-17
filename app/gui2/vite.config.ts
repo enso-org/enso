@@ -96,9 +96,7 @@ function gatewayServer(): Plugin {
 }
 
 async function projectManagerShim(): Promise<Plugin> {
-  const module = await import(
-    '../ide-desktop/lib/project-manager-shim/src/projectManagerShimMiddleware'
-  )
+  const module = await import('./projectManagerShimMiddleware')
   return {
     name: 'project-manager-shim',
     configureServer(server) {
