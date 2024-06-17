@@ -25,6 +25,10 @@ public class ModuleResolver {
 
     var compilerModuleOpt = packageRepository.getLoadedModule(name.toString());
     if (compilerModuleOpt.isEmpty()) {
+      packageRepository.getLoadedModules().foreach(m -> {
+        System.out.println(m.getName());
+        return null;
+      });
       return null;
     }
 
