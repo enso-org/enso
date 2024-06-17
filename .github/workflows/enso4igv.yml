@@ -118,7 +118,7 @@ jobs:
 
       - name: List Binaries
         run: |
-          find . | grep -i enso.parser
+          find . | grep -i enso.parser | xargs ls -ld
 
       - name: Set up Rustup
         run: rustup show
