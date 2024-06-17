@@ -137,14 +137,14 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
       permissionDisplay = (
         <div className="flex w-[121px] gap-px">
           <ariaComponents.Button
-            size="xxsmall"
+            size="xsmall"
             variant="custom"
             rounded="none"
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-6 flex-1 rounded-l-full selectable',
+              'flex-1 rounded-l-full border-0 py-0 selectable',
               (!isDisabled || !input) && 'active',
               permissions.PERMISSION_CLASS_NAME[permission.type]
             )}
@@ -153,13 +153,13 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {getText(permissions.TYPE_TO_TEXT_ID[permission.type])}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="xxsmall"
+            size="xsmall"
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-6 flex-1 selectable',
+              'flex-1 border-0 py-0 selectable',
               permission.docs && (!isDisabled || !input) && 'active',
               permissions.DOCS_CLASS_NAME
             )}
@@ -176,13 +176,13 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {getText('docsPermissionModifier')}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="xxsmall"
+            size="xsmall"
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-6 flex-1 rounded-r-full selectable',
+              'flex-1 rounded-r-full border-0 py-0 selectable',
               permission.execute && (!isDisabled || !input) && 'active',
               permissions.EXEC_CLASS_NAME
             )}

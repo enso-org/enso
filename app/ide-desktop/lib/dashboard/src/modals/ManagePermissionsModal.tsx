@@ -299,7 +299,7 @@ export default function ManagePermissionsModal<
                   }}
                   {...innerProps}
                 >
-                  <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
+                  <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-1">
                     <PermissionSelector
                       input
                       isDisabled={willInviteNewUser}
@@ -352,20 +352,17 @@ export default function ManagePermissionsModal<
                     </div>
                   </div>
                   <ariaComponents.Button
-                    size="custom"
-                    variant="custom"
+                    size="medium"
+                    variant="submit"
                     isDisabled={
                       willInviteNewUser
                         ? email == null || !isEmail(email)
                         : usersAndUserGroups.length === 0 ||
                           (email != null && emailsOfUsersWithPermission.has(email))
                     }
-                    className="button bg-invite px-button-x text-tag-text selectable enabled:active"
                     onPress={doSubmit}
                   >
-                    <div className="h-text py-modal-invite-button-text-y">
-                      {willInviteNewUser ? getText('invite') : getText('share')}
-                    </div>
+                    {willInviteNewUser ? getText('invite') : getText('share')}
                   </ariaComponents.Button>
                 </form>
               )}
