@@ -168,12 +168,9 @@ add_specs suite_builder setup =
     prefix = setup.prefix
     create_connection_fn = setup.create_connection_func
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
-
     suite_builder.group prefix+"Rounding numeric tests" group_builder->
-        data = Data.setup create_connection_fn
-
         do_op n op =
-            table = setup.table_builder [["x", [n]]] connection=data.connection
+            table = setup.light_table_builder [["x", [n]]]
             result = table.at "x" |> op
             result.to_vector.at 0
 

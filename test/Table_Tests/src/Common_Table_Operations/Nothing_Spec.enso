@@ -70,6 +70,7 @@ add_specs suite_builder setup =
                 value = triple.at 0
                 value_type = triple.at 2
 
+                # TODO reuse tables between tests, here and later
                 group_builder.specify "Correctly handle Nothing in: "+value.to_text+" ("+value_type.to_text+") "+comparison_name+" Nothing value" <|
                     table = table_builder_typed [["x", [value]], ["n", [Nothing]]] value_type
                     co = comparison (table.at "x") Nothing
@@ -157,7 +158,7 @@ add_specs suite_builder setup =
             setup.table_builder columns connection=data.connection
 
         group_builder.specify "Correctly handle Nothing in .not" <|
-            table = table_builder [["x", [True, False, Nothing]]]
+            table = setup.light_table_builder [["x", [True, False, Nothing]]]
             table.at "x" . not . to_vector . should_equal [False, True, Nothing]
 
     suite_builder.group prefix+"(Nothing_Spec) is_in" group_builder->

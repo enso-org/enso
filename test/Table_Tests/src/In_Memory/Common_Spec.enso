@@ -25,10 +25,12 @@ add_specs suite_builder =
     table_builder columns connection=Nothing =
         _ = connection
         Table.new columns
+    light_table_builder columns =
+        Table.new columns
 
     create_connection_func = _-> Dummy_Connection
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func
+    setup = Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " agg_table_fn empty_table_fn table_builder materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder
 
     Common_Table_Operations.Main.add_specs suite_builder setup
 

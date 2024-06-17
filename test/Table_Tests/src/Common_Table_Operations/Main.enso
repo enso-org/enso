@@ -61,7 +61,10 @@ type Test_Setup
          support particular features.
        - create_connection_func: A function that takes Nothing and creates a related
          database connection or Nothing for in-memory tests.
-    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func
+       - light_table_builder: Like `table_builder`, but for Database backends it
+         will not create a new table, but instead just create a query with the values inlined.
+         Note that it has less guarantees about column types, but is faster.
+    Config prefix table_fn empty_table_fn (table_builder : (Vector Any -> (Any|Nothing)) -> Any) materialize is_database test_selection aggregate_test_selection create_connection_func light_table_builder
 
     ## Specifies if the given Table backend supports custom Enso types.
 
