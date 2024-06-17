@@ -843,7 +843,7 @@ object BindingsMap {
     tpName: String
   ) extends Method {
 
-    override def name: String = s"$tpName.$methodName"
+    override def name: String = methodName
   }
 
   case class ConversionMethod(
@@ -851,7 +851,7 @@ object BindingsMap {
     sourceTpName: String,
     targetTpName: String
   ) extends Method {
-    override def name: String = s"$targetTpName.$methodName.$sourceTpName"
+    override def name: String = methodName
 
     override def toString: String =
       targetTpName + ".from (other:" + sourceTpName + ")"
