@@ -212,7 +212,8 @@ class RuntimeSuggestionUpdatesTest
               "\n    x = 42\n    IO.println x"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -284,7 +285,8 @@ class RuntimeSuggestionUpdatesTest
               "x+y"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -376,7 +378,8 @@ class RuntimeSuggestionUpdatesTest
               "\n    y : Number"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -476,7 +479,8 @@ class RuntimeSuggestionUpdatesTest
               "\nfoo x = x * 10\n"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -603,7 +607,8 @@ class RuntimeSuggestionUpdatesTest
               "a b = a * b"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1265,7 +1270,8 @@ class RuntimeSuggestionUpdatesTest
               " hiding hello"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -1303,7 +1309,8 @@ class RuntimeSuggestionUpdatesTest
               ""
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )

@@ -1,6 +1,4 @@
-/**
- * @file A page to show when a user successfully subscribes to a plan.
- */
+/** @file A page to show when a user successfully subscribes to a plan. */
 import * as router from 'react-router'
 import * as routerDom from 'react-router-dom'
 
@@ -10,25 +8,27 @@ import * as navigation from '#/hooks/navigateHooks'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import * as constants from '#/pages/subscribe/constants'
+
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
 import * as backend from '#/services/Backend'
 
-import * as constants from './constants'
+// ========================
+// === SubscribeSuccess ===
+// ========================
 
-/**
- * A page to show when a user successfully subscribes to a plan.
- */
+/** A page to show when a user successfully subscribes to a plan. */
 export function SubscribeSuccess() {
   const { getText } = textProvider.useText()
-
   const [searchParams] = routerDom.useSearchParams()
   const navigate = navigation.useNavigate()
-
   const plan = searchParams.get('plan') ?? backend.Plan.solo
 
-  if (backend.isPlan(plan)) {
+  if (!backend.isPlan(plan)) {
+    return <router.Navigate to={appUtils.DASHBOARD_PATH} replace />
+  } else {
     return (
       <result.Result
         className="h-full"
@@ -49,7 +49,5 @@ export function SubscribeSuccess() {
         </ariaComponents.ButtonGroup>
       </result.Result>
     )
-  } else {
-    return <router.Navigate to={appUtils.DASHBOARD_PATH} replace />
   }
 }

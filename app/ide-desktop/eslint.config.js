@@ -50,8 +50,7 @@ const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z
 /** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
     {
-        selector:
-            ':matches(ImportDeclaration:has(ImportSpecifier), ExportDeclaration, ExportSpecifier)',
+        selector: ':matches(ImportDeclaration:has(ImportSpecifier))',
         message: 'No {} imports and exports',
     },
     {
@@ -86,10 +85,6 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `:matches(ImportDefaultSpecifier[local.name=/^${NAME}/i], ImportNamespaceSpecifier > Identifier[name=/^${NAME}/i])`,
         message: `Don't prefix modules with \`${NAME}\``,
-    },
-    {
-        selector: 'TSTypeLiteral',
-        message: 'No object types - use interfaces instead',
     },
     {
         selector: 'ForOfStatement > .left[kind=let]',
@@ -136,14 +131,6 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `TSAsExpression:not(:has(TSTypeReference > Identifier[name=const]))`,
         message: 'Avoid `as T`. Consider using a type annotation instead.',
-    },
-    {
-        selector: `:matches(\
-            TSUndefinedKeyword,\
-            Identifier[name=undefined],\
-            UnaryExpression[operator=void]:not(:has(CallExpression.argument)), BinaryExpression[operator=/^===?$/]:has(UnaryExpression.left[operator=typeof]):has(Literal.right[value=undefined])\
-        )`,
-        message: 'Use `null` instead of `undefined`, `void 0`, or `typeof x === "undefined"`',
     },
     {
         selector: 'ExportNamedDeclaration > VariableDeclaration[kind=let]',
@@ -213,6 +200,11 @@ const RESTRICTED_SYNTAXES = [
             )\
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',
+    },
+    {
+        selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
+        message:
+            'Use `tv` from `tailwind-variants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
     },
     {
         selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',

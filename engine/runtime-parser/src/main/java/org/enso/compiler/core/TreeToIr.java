@@ -1,6 +1,8 @@
 package org.enso.compiler.core;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
@@ -49,7 +51,14 @@ final class TreeToIr {
   static final String SKIP_MACRO_IDENTIFIER = "SKIP";
   static final String FREEZE_MACRO_IDENTIFIER = "FREEZE";
 
+  private final Map<Location, UUID> idMap;
+
   private TreeToIr() {
+    this.idMap = Collections.emptyMap();
+  }
+
+  public TreeToIr(Map<Location, UUID> idMap) {
+    this.idMap = idMap;
   }
 
   /**
@@ -1947,15 +1956,14 @@ final class TreeToIr {
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast, int b, int e,
       Option<UUID> someId) {
-    if (someId == null) {
-      someId = Option.apply(ast.uuid());
-    }
     return Option.apply(switch (ast) {
       case null -> null;
       default -> {
         var begin = castToInt(ast.getStartCode()) + b;
         var end = castToInt(ast.getEndCode()) + e;
-        yield IdentifiedLocation.create(new Location(begin, end), someId);
+        var location = new Location(begin, end);
+        var uuid = Option.apply(idMap.get(location)).orElse(() -> someId == null ? Option.apply(ast.uuid()) : someId);
+        yield IdentifiedLocation.create(location, uuid);
       }
     });
   }
@@ -1990,7 +1998,10 @@ final class TreeToIr {
       end = ast.getPattern().getEndCode();
     }
     int end_ = castToInt(end);
-    return Option.apply(IdentifiedLocation.create(new Location(begin_, end_), Option.empty()));
+
+    var location = new Location(begin_, end_);
+    var uuid = Option.apply(idMap.get(location));
+    return Option.apply(IdentifiedLocation.create(location, uuid));
   }
 
   private Option<IdentifiedLocation> getIdentifiedLocation(Token ast) {

@@ -68,17 +68,15 @@ export default function SessionProvider(props: SessionProviderProps) {
 
   const session = reactQuery.useSuspenseQuery({
     queryKey: ['userSession', userSession],
-    queryFn: userSession
-      ? () =>
-          userSession().catch(error => {
-            if (error instanceof Error) {
-              for (const listener of errorCallbacks.current) {
-                listener(error)
-              }
-            }
-            throw error
-          })
-      : reactQuery.skipToken,
+    queryFn: async () =>
+      userSession?.().catch(error => {
+        if (error instanceof Error) {
+          for (const listener of errorCallbacks.current) {
+            listener(error)
+          }
+        }
+        throw error
+      }) ?? null,
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: true,
   })
@@ -90,18 +88,17 @@ export default function SessionProvider(props: SessionProviderProps) {
 
   const refreshUserSessionMutation = reactQuery.useMutation({
     mutationKey: ['refreshUserSession', session.data],
-    mutationFn: () => refreshUserSession?.().then(() => null) ?? Promise.resolve(),
+    mutationFn: async () => refreshUserSession?.().then(() => null),
     meta: { invalidates: [['userSession']], awaitInvalidates: true },
   })
 
   reactQuery.useQuery({
     queryKey: ['refreshUserSession'],
-    queryFn: refreshUserSession
-      ? () => refreshUserSessionMutation.mutateAsync()
-      : reactQuery.skipToken,
+    queryFn: () => refreshUserSessionMutation.mutateAsync(),
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: true,
     refetchInterval: timeUntilRefresh < SIX_HOURS_MS ? timeUntilRefresh : SIX_HOURS_MS,
+    enabled: userSession != null && refreshUserSession != null,
   })
 
   // Register an effect that will listen for authentication events. When the event occurs, we

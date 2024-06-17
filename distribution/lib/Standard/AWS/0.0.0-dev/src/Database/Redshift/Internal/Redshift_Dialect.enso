@@ -87,8 +87,7 @@ type Redshift_Dialect
        A heuristic used by `Connection.query` to determine if a given text looks
        like a SQL query for the given dialect or is rather a table name.
     is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text =
-        (text.contains "SELECT ") || (text.contains "EXEC ")
+    is_probably_a_query self text = Base_Generator.is_probably_a_query text
 
     ## PRIVATE
        Returns the mapping between SQL types of this dialect and Enso
@@ -98,7 +97,7 @@ type Redshift_Dialect
 
     ## PRIVATE
     get_statement_setter : Statement_Setter
-    get_statement_setter self = Postgres_Dialect.postgres_statement_setter
+    get_statement_setter self = Statement_Setter.default
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
@@ -122,8 +121,8 @@ type Redshift_Dialect
     supports_negative_round_decimal_places self = True
 
     ## PRIVATE
-    rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self = True
+    supports_float_round_decimal_places : Boolean
+    supports_float_round_decimal_places self = False
 
     ## PRIVATE
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column

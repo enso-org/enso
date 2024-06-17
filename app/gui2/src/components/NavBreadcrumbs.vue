@@ -42,6 +42,7 @@ async function renameBreadcrumb(index: number, newName: string) {
         :active="breadcrumb.active"
         :editing="index === 0 && projectNameEdited"
         :title="index === 0 ? 'Project Name' : ''"
+        class="clickable"
         @click.stop="stackNavigator.handleBreadcrumbClick(index)"
         @renamed="renameBreadcrumb(index, $event)"
       />

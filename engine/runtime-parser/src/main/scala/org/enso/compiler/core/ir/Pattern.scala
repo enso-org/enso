@@ -98,7 +98,7 @@ object Pattern {
       copy(name = name.mapExpressions(fn))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Name(
@@ -245,7 +245,7 @@ object Pattern {
         fields      = fields.map(_.mapExpressions(fn))
       )
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Constructor(
@@ -342,7 +342,7 @@ object Pattern {
       copy(literal = literal.mapExpressions(fn))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Literal(
@@ -445,7 +445,7 @@ object Pattern {
       copy(name = name.mapExpressions(fn), tpe = tpe.mapExpressions(fn))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Type(
@@ -543,7 +543,7 @@ object Pattern {
     /** @inheritdoc */
     override def children: List[IR] = Nil
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Documentation(

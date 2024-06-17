@@ -73,6 +73,10 @@ const barStyle = computed(() => {
   /* FIXME[sb]: Get correct offset from dashboard. */
   left: 9px;
   width: 100%;
+  pointer-events: none;
+  > * {
+    pointer-events: auto;
+  }
 }
 
 .selection-menu-enter-active,

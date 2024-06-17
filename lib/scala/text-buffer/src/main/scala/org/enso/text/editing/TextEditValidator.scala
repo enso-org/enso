@@ -1,6 +1,5 @@
 package org.enso.text.editing
 
-import cats.implicits._
 import org.enso.text.editing.model.TextEdit
 
 /** A validator of [[TextEdit]] object.
@@ -45,9 +44,11 @@ object TextEditValidator {
     start: model.Position,
     reason: => String
   ): Either[TextEditValidationFailure, Unit] =
-    checkIfNotNegative(start.line, reason + " line") >> checkIfNotNegative(
-      start.character,
-      reason + " character"
+    checkIfNotNegative(start.line, reason + " line").flatMap(_ =>
+      checkIfNotNegative(
+        start.character,
+        reason + " character"
+      )
     )
 
   private def checkIfNotNegative(

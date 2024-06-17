@@ -13,7 +13,7 @@ import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
   FileEvent,
-  FileEventKind,
+  FileEventKinds,
   Path
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
@@ -189,7 +189,7 @@ class BufferRegistry(
         sender() ! CapabilityReleaseBadRequest
       }
 
-    case msg @ ApplyEdit(_, FileEdit(path, _, _, _), _) =>
+    case msg @ ApplyEdit(_, FileEdit(path, _, _, _), _, _) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)
       } else {
@@ -225,7 +225,7 @@ class BufferRegistry(
       )
 
     case msg @ FileEvent(path, kind, _) =>
-      if (kind == FileEventKind.Added || kind == FileEventKind.Modified) {
+      if (kind == FileEventKinds.Added || kind == FileEventKinds.Modified) {
         registry.get(path).foreach { buffer =>
           buffer ! msg
         }
@@ -245,7 +245,8 @@ class BufferRegistry(
                   msg.oldVersion,
                   msg.newVersion
                 ),
-                execute = true
+                execute = true,
+                None
               )
             }
           case None =>

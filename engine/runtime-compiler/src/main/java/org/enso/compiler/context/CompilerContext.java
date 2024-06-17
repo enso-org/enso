@@ -14,6 +14,7 @@ import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.IdMap;
 import org.enso.editions.LibraryName;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -25,6 +26,7 @@ import org.enso.pkg.QualifiedName;
  * {@link Compiler} & co. classes separately without any dependency on Truffle API.
  */
 public interface CompilerContext extends CompilerStub {
+
   boolean isIrCachingDisabled();
 
   boolean isPrivateCheckDisabled();
@@ -52,9 +54,9 @@ public interface CompilerContext extends CompilerStub {
   /**
    * Format the given diagnostic into a string. The returned string might have ANSI colors.
    *
-   * @param module May be null if inline diagnostics is required.
-   * @param diagnostic
-   * @param isOutputRedirected True if the output is not system's out. If true, no ANSI color escape
+   * @param module may be null if inline diagnostics is required.
+   * @param diagnostic an IR node representing diagnostic information
+   * @param isOutputRedirected true if the output is not system's out. If true, no ANSI color escape
    *     characters will be inside the returned string.
    * @return exception with a message to display or to throw
    */
@@ -85,6 +87,8 @@ public interface CompilerContext extends CompilerStub {
   QualifiedName getModuleName(Module module);
 
   CharSequence getCharacters(Module module) throws IOException;
+
+  IdMap getIdMap(Module module);
 
   void updateModule(Module module, Consumer<Updater> callback);
 
@@ -117,6 +121,8 @@ public interface CompilerContext extends CompilerStub {
   public static interface Updater {
     void bindingsMap(BindingsMap map);
 
+    void idMap(IdMap idMap);
+
     void ir(org.enso.compiler.core.ir.Module ir);
 
     void compilationStage(CompilationStage stage);
@@ -129,6 +135,7 @@ public interface CompilerContext extends CompilerStub {
   }
 
   public abstract static class Module {
+
     public abstract CharSequence getCharacters() throws IOException;
 
     public abstract String getPath();
@@ -138,6 +145,8 @@ public interface CompilerContext extends CompilerStub {
     public abstract QualifiedName getName();
 
     public abstract BindingsMap getBindingsMap();
+
+    public abstract IdMap getIdMap();
 
     public abstract List<QualifiedName> getDirectModulesRefs();
 

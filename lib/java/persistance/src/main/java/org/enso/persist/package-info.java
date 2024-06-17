@@ -1,13 +1,11 @@
 /**
  * Framework for persisting Java objects and reading them <em>"lazily"</em>. Use static {@link
- * Persistance#write write} method to turn a graph of JVM objects into a {@code byte[]}.
- *
- * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
+ * Persistance#write write} method to turn a graph of JVM objects into a {@code byte[]}. <br>
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
  *
  * <p>Use sibling static {@link Persistance#read read} method to read the byte buffer back into
- * their memory representation.
- *
- * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+ * their memory representation. <br>
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
  *
  * <h2>Laziness</h2>
  *
@@ -20,9 +18,8 @@
  * Unlike typical Java serialization (which tries to make things automatic), this framework requires
  * one to implement the persistance manually. For each class one wants to serde, one has to
  * implement a subclass of {@link Persistance} and implement its {@link Persistance#writeObject} and
- * {@link Persistance#readObject} methods.
- *
- * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
+ * {@link Persistance#readObject} methods. <br>
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
  *
  * <h2>Semi-automatic Persistance</h2>
  *
@@ -30,8 +27,7 @@
  * errorprone process. That's why there is a {@link Persistable @Persistable} annotation and
  * associated annotation processor that generates the necessary {@link Persistance} subclass based
  * on the "richest" constructor in the class to be persisted. This approach seems to work well for
- * Java records and Scala case classes.
- *
- * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"}
+ * Java records and Scala case classes. <br>
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"}
  */
 package org.enso.persist;

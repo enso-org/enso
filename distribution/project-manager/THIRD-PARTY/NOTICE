@@ -16,49 +16,19 @@ libc licensed under the MIT license. Its copyright notice is included in file
 ------------------------------
 
 
-'enumeratum-circe_2.13', licensed under the MIT, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-circe_2.13-1.7.2`.
-
-
-'enumeratum-macros_2.13', licensed under the MIT, is distributed with the project-manager.
-The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-macros_2.13-1.6.3`.
-
-
-'enumeratum_2.13', licensed under the MIT, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum_2.13-1.7.2`.
-
-
 'shapeless_2.13', licensed under the Apache 2, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.10`.
 
 
-'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
+'jsoniter-scala-core_2.13', licensed under the MIT License, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.15.2`.
+Copyright notices related to this dependency can be found in the directory `com.github.plokhotnyuk.jsoniter-scala.jsoniter-scala-core_2.13-2.28.5`.
 
 
-'jackson-core', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.15.2`.
-
-
-'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.15.2`.
-
-
-'jackson-dataformat-cbor', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.dataformat.jackson-dataformat-cbor-2.15.2`.
-
-
-'jackson-module-scala_2.13', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.module.jackson-module-scala_2.13-2.15.2`.
+'jsoniter-scala-macros_2.13', licensed under the MIT License, is distributed with the project-manager.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.plokhotnyuk.jsoniter-scala.jsoniter-scala-macros_2.13-2.28.5`.
 
 
 'pureconfig-core_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
@@ -84,11 +54,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.flatbuffers.flatbuffers-java-24.3.25`.
-
-
-'paranamer', licensed under the BSD, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.thoughtworks.paranamer.paranamer-2.8`.
 
 
 'akka-actor-typed_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
@@ -156,19 +121,9 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `commons-cli.commons-cli-1.5.0`.
 
 
-'commons-codec', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `commons-codec.commons-codec-1.9`.
-
-
 'commons-io', licensed under the Apache-2.0, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `commons-io.commons-io-2.12.0`.
-
-
-'commons-logging', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `commons-logging.commons-logging-1.2`.
 
 
 'izumi-reflect-thirdparty-boopickle-shaded_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
@@ -414,21 +369,6 @@ Copyright notices related to this dependency can be found in the directory `org.
 'commons-lang3', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-lang3-3.12.0`.
-
-
-'commons-text', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-text-1.10.0`.
-
-
-'httpclient', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpclient-4.4.1`.
-
-
-'httpcore', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.apache.httpcomponents.httpcore-4.4.1`.
 
 
 'reactive-streams', licensed under the CC0, is distributed with the project-manager.

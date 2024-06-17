@@ -46,7 +46,7 @@ export function Subscribe() {
   const { getText } = textProvider.useText()
 
   const [searchParams] = router.useSearchParams()
-  const { backend } = backendProvider.useStrictBackend()
+  const backend = backendProvider.useRemoteBackendStrict()
 
   const plan = searchParams.get('plan')
 

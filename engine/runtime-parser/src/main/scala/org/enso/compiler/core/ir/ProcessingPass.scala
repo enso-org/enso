@@ -41,7 +41,7 @@ object ProcessingPass {
       * there is no default definition for this method.
       *
       * @param compiler the Enso compiler
-      * @return `this`, but restored from serialization, or [[None]] if
+      * @return `this`, but restored from serialization, or None if
       *         restoration could not be performed
       */
     def restoreFromSerialization(compiler: Compiler): Option[Metadata]

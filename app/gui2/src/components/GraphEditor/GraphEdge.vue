@@ -17,6 +17,7 @@ const graph = useGraphStore()
 const props = defineProps<{
   edge: Edge
   maskSource?: boolean
+  animateFromSourceHover?: boolean
 }>()
 
 // The padding added around the masking rect for nodes with visible output port. The actual padding
@@ -30,6 +31,8 @@ const mouseAnchor = computed(() => 'anchor' in props.edge && props.edge.anchor.t
 const mouseAnchorPos = computed(() => (mouseAnchor.value ? navigator?.sceneMousePos : undefined))
 const hoveredNode = computed(() => (mouseAnchor.value ? selection?.hoveredNode : undefined))
 const hoveredPort = computed(() => (mouseAnchor.value ? selection?.hoveredPort : undefined))
+
+const isSuggestion = computed(() => 'suggestion' in props.edge && props.edge.suggestion)
 
 const connectedSourceNode = computed(
   () => props.edge.source && graph.db.getPatternExpressionNodeId(props.edge.source),
@@ -115,13 +118,15 @@ type NodeMask = {
   radius: number
 }
 
+const startsInPort = computed(() => currentJunctionPoints.value?.startsInPort)
 const sourceMask = computed<NodeMask | undefined>(() => {
-  const startsInPort = currentJunctionPoints.value?.startsInPort
-  if (!props.maskSource && !startsInPort) return
+  if (!props.maskSource && !startsInPort.value) return
   const nodeRect = sourceNodeRect.value
   if (!nodeRect) return
   const animProgress =
-    startsInPort ? (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0 : 0
+    startsInPort.value ?
+      (sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0
+    : 0
   let padding = animProgress * VISIBLE_PORT_MASK_PADDING
   if (!props.maskSource && padding === 0) return
   const rect = nodeRect.expand(padding)
@@ -409,10 +414,9 @@ const basePath = computed(() => {
   return render(origin.add(start), elements)
 })
 
-const activePath = computed(() => {
-  if (hovered.value && props.edge.source != null && props.edge.target != null) return basePath.value
-  else return undefined
-})
+const activePath = computed(
+  () => hovered.value && props.edge.source != null && props.edge.target != null,
+)
 
 function lengthTo(path: SVGPathElement, pos: Vec2): number {
   const totalLength = path.getTotalLength()
@@ -457,7 +461,6 @@ const activeStyle = computed(() => {
       distances.mouseToTarget
     : -distances.sourceToMouse
   return {
-    ...baseStyle.value,
     strokeDasharray: distances.sourceToTarget,
     strokeDashoffset: offset,
   }
@@ -475,6 +478,7 @@ const baseStyle = computed(() => ({ '--node-base-color': edgeColor.value ?? 'tan
 function click(event: PointerEvent) {
   const distances = mouseLocationOnEdge.value
   if (distances == null) return
+  if (!isConnected(props.edge)) return
   if (distances.sourceToMouse < distances.mouseToTarget) graph.disconnectTarget(props.edge, event)
   else graph.disconnectSource(props.edge, event)
 }
@@ -528,7 +532,15 @@ const selfArgumentArrowPath = [
   'Z',
 ].join('')
 
-const connected = computed(() => isConnected(props.edge))
+const sourceHoverAnimationStyle = computed(() => {
+  if (!props.animateFromSourceHover || !base.value || !sourceNode.value) return {}
+  const progress = graph.nodeHoverAnimations.get(sourceNode.value) ?? 0
+  if (progress === 1) return {}
+  const currentLength = progress * base.value.getTotalLength()
+  return {
+    strokeDasharray: `${currentLength}px 1000000px`,
+  }
+})
 </script>
 
 <template>
@@ -561,17 +573,18 @@ const connected = computed(() => isConnected(props.edge))
     </mask>
     <g v-bind="sourceMask && { mask: `url('#${sourceMask.id}')` }">
       <path
-        v-if="activePath"
+        ref="base"
         :d="basePath"
-        class="edge visible dimmed"
-        :style="baseStyle"
+        class="edge visible"
+        :class="{ dimmed: activePath || isSuggestion }"
+        :style="{ ...baseStyle, ...sourceHoverAnimationStyle }"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
       />
       <path
-        v-if="connected"
+        v-if="isConnected(props.edge)"
         :d="basePath"
-        class="edge io"
+        class="edge io clickable"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
         :data-testid="edgeIsBroken ? 'broken-edge' : null"
@@ -580,10 +593,10 @@ const connected = computed(() => isConnected(props.edge))
         @pointerleave="hovered = false"
       />
       <path
-        ref="base"
-        :d="activePath ?? basePath"
+        v-if="activePath"
+        :d="basePath"
         class="edge visible"
-        :style="activePath ? activeStyle : baseStyle"
+        :style="{ ...baseStyle, ...activeStyle }"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
       />
@@ -628,7 +641,6 @@ const connected = computed(() => isConnected(props.edge))
   stroke-width: 14;
   stroke: transparent;
   pointer-events: stroke;
-  cursor: pointer;
 }
 .edge.visible {
   stroke-width: 4;

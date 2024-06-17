@@ -7,10 +7,14 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as loader from '#/components/Loader'
 
+import * as inviteUsersForm from '#/modals/InviteUsersModal/InviteUsersForm'
+import * as inviteUsersSuccess from '#/modals/InviteUsersModal/InviteUsersSuccess'
+
 import type * as backendModule from '#/services/Backend'
 
-import * as inviteUsersForm from './InviteUsersForm'
-import * as inviteUsersSuccess from './InviteUsersSuccess'
+// ========================
+// === InviteUsersModal ===
+// ========================
 
 /** Props for an {@link InviteUsersModal}. */
 export interface InviteUsersModalProps {
@@ -44,17 +48,17 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   }
 }
 
-/**
- * Props for the content of an {@link InviteUsersModal}.
- */
+// ===============================
+// === InviteUsersModalContent ===
+// ===============================
+
+/** Props for the content of an {@link InviteUsersModal}. */
 interface InviteUsersModalContentProps {
   readonly onClose?: () => void
   readonly organizationId: backendModule.OrganizationId
 }
 
-/**
- * The content of an {@link InviteUsersModal}.
- */
+/** The content of an {@link InviteUsersModal}. */
 function InviteUsersModalContent(props: InviteUsersModalContentProps) {
   const { organizationId } = props
 

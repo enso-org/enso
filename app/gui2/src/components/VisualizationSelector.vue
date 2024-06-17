@@ -47,6 +47,7 @@ onMounted(() => setTimeout(() => rootNode.value?.querySelector('button')?.focus(
         v-for="type_ in props.types"
         :key="visIdKey(type_)"
         :class="{ selected: visIdentifierEquals(props.modelValue, type_) }"
+        class="clickable"
         @click.stop="emit('update:modelValue', type_)"
       >
         <button>
@@ -97,7 +98,6 @@ button {
   display: flex;
   gap: 4px;
   align-items: center;
-  cursor: pointer;
   padding: 0 8px;
   border-radius: 12px;
   white-space: nowrap;

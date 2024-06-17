@@ -1,4 +1,5 @@
 <script lang="ts">
+import icons from '@/assets/icons.svg'
 import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
@@ -26,7 +27,7 @@ export const defaultPreprocessor = [
   '1000',
 ] as const
 
-type Data = Error | Matrix | ObjectMatrix | LegacyMatrix | LegacyObjectMatrix | UnknownTable
+type Data = Error | Matrix | ObjectMatrix | UnknownTable
 
 interface Error {
   type: undefined
@@ -34,11 +35,17 @@ interface Error {
   all_rows_count?: undefined
 }
 
+interface ValueType {
+  constructor: string
+  display_text: string
+}
+
 interface Matrix {
   type: 'Matrix'
   column_count: number
   all_rows_count: number
   json: unknown[][]
+  value_type: ValueType[]
 }
 
 interface ObjectMatrix {
@@ -46,20 +53,7 @@ interface ObjectMatrix {
   column_count: number
   all_rows_count: number
   json: object[]
-}
-
-interface LegacyMatrix {
-  type: undefined
-  column_count: number
-  all_rows_count: number
-  json: unknown[][]
-}
-
-interface LegacyObjectMatrix {
-  type: undefined
-  column_count: number
-  all_rows_count: number
-  json: object[]
+  value_type: ValueType[]
 }
 
 interface UnknownTable {
@@ -70,9 +64,9 @@ interface UnknownTable {
   json: unknown
   all_rows_count?: number
   header: string[] | undefined
-  indices_header?: string[]
   data: unknown[][] | undefined
-  indices: unknown[][] | undefined
+  value_type: ValueType[]
+  has_index_col: boolean | undefined
 }
 
 declare module 'ag-grid-enterprise' {
@@ -204,16 +198,8 @@ function cellRenderer(params: ICellRendererParams) {
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
   else if (typeof params.value === 'number') return formatNumber(params)
-  else if (Array.isArray(params.value)) {
-    const content = params.value
-    if (isMatrix({ json: content })) {
-      return `[Vector ${content.length} rows x ${content[0].length} cols]`
-    } else if (isObjectMatrix({ json: content })) {
-      return `[Table ${content.length} rows x ${Object.keys(content[0]).length} cols]`
-    } else {
-      return `[Vector ${content.length} items]`
-    }
-  } else if (typeof params.value === 'object') {
+  else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
+  else if (typeof params.value === 'object') {
     const valueType = params.value?.type
     if (valueType === 'BigInt') return formatNumber(params)
     else if (valueType === 'Float')
@@ -228,49 +214,49 @@ function addRowIndex(data: object[]): object[] {
   return data.map((row, i) => ({ [INDEX_FIELD_NAME]: i, ...row }))
 }
 
-function hasExactlyKeys(keys: string[], obj: object) {
-  return (
-    Object.keys(obj).length === keys.length &&
-    keys.every((k) => Object.prototype.hasOwnProperty.call(obj, k))
-  )
-}
-
-function isObjectMatrix(data: object): data is LegacyObjectMatrix {
-  if (!('json' in data)) {
-    return false
+function toField(name: string, valueType?: ValueType | null | undefined): ColDef {
+  const valType = valueType ? valueType.constructor : null
+  const displayValue = valueType ? valueType.display_text : null
+  let icon
+  switch (valType) {
+    case 'Char':
+      icon = 'text3'
+      break
+    case 'Boolean':
+      icon = 'check'
+      break
+    case 'Integer':
+    case 'Float':
+    case 'Decimal':
+    case 'Byte':
+      icon = 'math'
+      break
+    case 'Date':
+    case 'Date_Time':
+      icon = 'calendar'
+      break
+    case 'Time':
+      icon = 'time'
+      break
+    case 'Mixed':
+      icon = 'mixed'
   }
-  const json = data.json
-  const isList = Array.isArray(json) && json[0] != null
-  if (!isList || !(typeof json[0] === 'object')) {
-    return false
+  const svgTemplate = `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+  const template =
+    icon ?
+      `<div style='display:flex; flex-direction:row; justify-content:space-between; width:inherit;'> ${name} ${svgTemplate}</div>`
+    : `<div>${name}</div>`
+  return {
+    field: name,
+    headerComponentParams: {
+      template,
+    },
+    headerTooltip: displayValue ? displayValue : '',
   }
-  const firstKeys = Object.keys(json[0])
-  return json.every((obj) => hasExactlyKeys(firstKeys, obj))
-}
-
-function isMatrix(data: object): data is LegacyMatrix {
-  if (!('json' in data)) {
-    return false
-  }
-  const json = data.json
-  const isList = Array.isArray(json) && json[0] != null
-  if (!isList) {
-    return false
-  }
-  const firstIsArray = Array.isArray(json[0])
-  if (!firstIsArray) {
-    return false
-  }
-  const firstLen = json[0].length
-  return json.every((d) => d.length === firstLen)
-}
-
-function toField(name: string): ColDef {
-  return { field: name }
 }
 
 function indexField(): ColDef {
-  return toField(INDEX_FIELD_NAME)
+  return { field: INDEX_FIELD_NAME }
 }
 
 /** Return a human-readable representation of an object. */
@@ -289,7 +275,10 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         all_rows_count: 1,
         data: undefined,
-        indices: undefined,
+        // eslint-disable-next-line camelcase
+        value_type: undefined,
+        // eslint-disable-next-line camelcase
+        has_index_col: false,
       }
   const options = agGridOptions.value
   if (options.api == null) {
@@ -329,16 +318,6 @@ watchEffect(() => {
     }
     rowData = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isMatrix(data_)) {
-    // Kept to allow visualization from older versions of the backend.
-    columnDefs = [indexField(), ...data_.json[0]!.map((_, i) => toField(i.toString()))]
-    rowData = addRowIndex(data_.json)
-    isTruncated.value = data_.all_rows_count !== data_.json.length
-  } else if (isObjectMatrix(data_)) {
-    // Kept to allow visualization from older versions of the backend.
-    columnDefs = [INDEX_FIELD_NAME, ...Object.keys(data_.json[0]!)].map(toField)
-    rowData = addRowIndex(data_.json)
-    isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (Array.isArray(data_.json)) {
     columnDefs = [indexField(), toField('Value')]
     rowData = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
@@ -347,20 +326,23 @@ watchEffect(() => {
     columnDefs = [toField('Value')]
     rowData = [{ Value: toRender(data_.json) }]
   } else {
-    const indicesHeader = ('indices_header' in data_ ? data_.indices_header : []).map(toField)
-    const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
-    columnDefs = [...indicesHeader, ...dataHeader]
-    const rows =
-      data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0
-      : data_.indices && data_.indices.length > 0 ? data_.indices[0]?.length ?? 0
-      : 0
+    const dataHeader =
+      ('header' in data_ ? data_.header : [])?.map((v, i) => {
+        const valueType = data_.value_type ? data_.value_type[i] : null
+        return toField(v, valueType)
+      }) ?? []
+
+    columnDefs = data_.has_index_col ? [indexField(), ...dataHeader] : dataHeader
+    const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
     rowData = Array.from({ length: rows }, (_, i) => {
-      const shift = data_.indices ? data_.indices.length : 0
+      const shift = data_.has_index_col ? 1 : 0
       return Object.fromEntries(
-        columnDefs.map((h, j) => [
-          h.field,
-          toRender(j < shift ? data_.indices?.[j]?.[i] : data_.data?.[j - shift]?.[i]),
-        ]),
+        columnDefs.map((h, j) => {
+          return [
+            h.field,
+            toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
+          ]
+        }),
       )
     })
     isTruncated.value = data_.all_rows_count !== rowData.length

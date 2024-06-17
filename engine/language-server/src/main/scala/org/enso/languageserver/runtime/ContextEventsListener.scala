@@ -2,7 +2,6 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
-import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   DetachVisualization,
@@ -17,6 +16,7 @@ import org.enso.languageserver.session.SessionRouter.{
   DeliverToJsonController
 }
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.CollectionConversions._
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration._
@@ -131,10 +131,10 @@ final class ContextEventsListener(
 
     case Api.ExecutionUpdate(`contextId`, diagnostics) =>
       val message = for {
-        diagnostics <- diagnostics
-          .map(runtimeFailureMapper.toProtocolDiagnostic)
-          .toList
-          .sequence
+        diagnostics <- liftSeqOfFutures(
+          diagnostics
+            .map(runtimeFailureMapper.toProtocolDiagnostic)
+        )
         payload = ContextRegistryProtocol.ExecutionDiagnosticNotification(
           contextId,
           diagnostics
@@ -153,9 +153,10 @@ final class ContextEventsListener(
           diagnostic
         ) =>
       val response = for {
-        diagnostic <- diagnostic
-          .map(runtimeFailureMapper.toProtocolDiagnostic)
-          .sequence
+        diagnostic <- liftOptionOfFuture(
+          diagnostic
+            .map(runtimeFailureMapper.toProtocolDiagnostic)
+        )
         payload =
           ContextRegistryProtocol.VisualizationEvaluationFailed(
             VisualizationContext(visualizationId, contextId, expressionId),

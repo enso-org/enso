@@ -10,10 +10,10 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
 import ButtonRow from '#/components/styled/ButtonRow'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -189,7 +189,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     : getText('projectsWithoutConflicts', nonConflictingFileCount)}
                 </aria.Text>
               )}
-              <UnstyledButton
+              <ariaComponents.Button
+                size="custom"
+                variant="custom"
                 isDisabled={didUploadNonConflicting}
                 className="button relative self-start rounded-full bg-selected-frame selectable enabled:active"
                 onPress={() => {
@@ -198,7 +200,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 }}
               >
                 {didUploadNonConflicting ? getText('uploaded') : getText('upload')}
-              </UnstyledButton>
+              </ariaComponents.Button>
             </div>
           ))}
         {firstConflict && (
@@ -218,7 +220,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             </div>
             {count > 1 && (
               <ButtonRow>
-                <UnstyledButton
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className="button bg-selected-frame active"
                   onPress={() => {
                     doUpdate([firstConflict])
@@ -235,8 +239,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   }}
                 >
                   {getText('update')}
-                </UnstyledButton>
-                <UnstyledButton
+                </ariaComponents.Button>
+                <ariaComponents.Button
+                  size="custom"
+                  variant="custom"
                   className="button  bg-selected-frame active"
                   onPress={() => {
                     doRename([firstConflict])
@@ -255,7 +261,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   {firstConflict.new.type === backendModule.AssetType.file
                     ? getText('renameNewFile')
                     : getText('renameNewProject')}
-                </UnstyledButton>
+                </ariaComponents.Button>
               </ButtonRow>
             )}
           </>
@@ -275,7 +281,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           </aria.Text>
         )}
         <ButtonRow>
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="button bg-invite text-white active"
             onPress={() => {
               unsetModal()
@@ -284,8 +292,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             }}
           >
             {count === 1 ? getText('update') : getText('updateAll')}
-          </UnstyledButton>
-          <UnstyledButton
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
             className="button bg-invite text-white active"
             onPress={() => {
               unsetModal()
@@ -300,10 +310,15 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               : firstConflict?.new.type === backendModule.AssetType.file
                 ? getText('renameNewFiles')
                 : getText('renameNewProjects')}
-          </UnstyledButton>
-          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            className="button bg-selected-frame active"
+            onPress={unsetModal}
+          >
             {getText('cancel')}
-          </UnstyledButton>
+          </ariaComponents.Button>
         </ButtonRow>
       </form>
     </Modal>
