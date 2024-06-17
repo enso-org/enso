@@ -38,8 +38,8 @@ make_biginteger_builder initial_size java_problem_aggregator=(Missing_Argument.e
     BigIntegerBuilder.new initial_size java_problem_aggregator
 
 ## PRIVATE
-make_bigdecimal_builder : Integer -> ProblemAggregator -> BigDecimalBuilder
-make_bigdecimal_builder initial_size java_problem_aggregator=Nothing =
+make_bigdecimal_builder : Integer -> BigDecimalBuilder
+make_bigdecimal_builder initial_size =
     BigDecimalBuilder.new initial_size
 
 ## PRIVATE
