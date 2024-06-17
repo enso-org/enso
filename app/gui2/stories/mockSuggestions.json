@@ -1025,7 +1025,7 @@
     "type": "module",
     "module": "Standard.Table.Excel.Excel_Range",
     "documentation": null,
-    "reexport": "Standard.Table.Excel "
+    "reexport": "Standard.Table.Excel"
   },
   {
     "type": "type",
