@@ -22,6 +22,8 @@ module.exports = {
           '',
           '^enso-',
           '',
+          '^#[/]assets',
+          '',
           '^#[/]App',
           '^#[/]appUtils',
           '^#[/]text',

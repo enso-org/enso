@@ -1,13 +1,14 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import Logo from '#/assets/enso_logo.svg'
 import GeoImage from '#/assets/geo.svg'
 import HeartIcon from '#/assets/heart.svg'
 import OpenCountIcon from '#/assets/open_count.svg'
 import SpreadsheetsImage from '#/assets/spreadsheets.svg'
 import VisualizeImage from '#/assets/visualize.png'
-import * as tailwindMerge from 'tailwind-merge'
 
 import * as textProvider from '#/providers/TextProvider'
 

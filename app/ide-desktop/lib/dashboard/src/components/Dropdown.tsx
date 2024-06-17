@@ -1,9 +1,10 @@
 /** @file A styled dropdown. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CheckMarkIcon from '#/assets/check_mark.svg'
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
-import * as tailwindMerge from 'tailwind-merge'
 
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'

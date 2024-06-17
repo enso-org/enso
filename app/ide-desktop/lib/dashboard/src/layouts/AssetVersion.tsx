@@ -1,10 +1,11 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CompareIcon from '#/assets/compare.svg'
 import DuplicateIcon from '#/assets/duplicate.svg'
 import RestoreIcon from '#/assets/restore.svg'
-import * as tailwindMerge from 'tailwind-merge'
 
 import * as textProvider from '#/providers/TextProvider'
 

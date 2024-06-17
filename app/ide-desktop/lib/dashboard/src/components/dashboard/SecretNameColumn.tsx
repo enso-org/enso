@@ -1,8 +1,9 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
-import KeyIcon from '#/assets/key.svg'
 import * as tailwindMerge from 'tailwind-merge'
+
+import KeyIcon from '#/assets/key.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'

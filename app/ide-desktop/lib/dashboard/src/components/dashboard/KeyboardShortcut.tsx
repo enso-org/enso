@@ -1,14 +1,15 @@
 /** @file A visual representation of a keyboard shortcut. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
+import * as detect from 'enso-common/src/detect'
+
 import CommandKeyIcon from '#/assets/command_key.svg'
 import CtrlKeyIcon from '#/assets/ctrl_key.svg'
 import OptionKeyIcon from '#/assets/option_key.svg'
 import ShiftKeyIcon from '#/assets/shift_key.svg'
 import WindowsKeyIcon from '#/assets/windows_key.svg'
-import * as tailwindMerge from 'tailwind-merge'
-
-import * as detect from 'enso-common/src/detect'
 
 import type * as text from '#/text'
 

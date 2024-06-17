@@ -1,11 +1,12 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import * as React from 'react'
 
+import * as router from 'react-router-dom'
+
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import * as router from 'react-router-dom'
 
 import * as appUtils from '#/appUtils'
 

@@ -1,8 +1,9 @@
 /** @file A toolbar for displaying asset information. */
 import * as React from 'react'
 
-import SettingsIcon from '#/assets/settings.svg'
 import * as tailwindVariants from 'tailwind-variants'
+
+import SettingsIcon from '#/assets/settings.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

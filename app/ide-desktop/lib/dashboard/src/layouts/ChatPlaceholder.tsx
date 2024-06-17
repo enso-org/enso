@@ -1,9 +1,10 @@
 /** @file A placeholder component replacing `Chat` when a user is not logged in. */
 import * as React from 'react'
 
-import CloseLargeIcon from '#/assets/close_large.svg'
 import * as reactDom from 'react-dom'
 import * as tailwindMerge from 'tailwind-merge'
+
+import CloseLargeIcon from '#/assets/close_large.svg'
 
 import * as appUtils from '#/appUtils'
 

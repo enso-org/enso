@@ -1,12 +1,13 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import KeyboardShortcutsIcon from '#/assets/keyboard_shortcuts.svg'
 import LogIcon from '#/assets/log.svg'
 import PeopleSettingsIcon from '#/assets/people_settings.svg'
 import PeopleIcon from '#/assets/people.svg'
 import SettingsIcon from '#/assets/settings.svg'
-import * as tailwindMerge from 'tailwind-merge'
 
 import * as textProvider from '#/providers/TextProvider'
 

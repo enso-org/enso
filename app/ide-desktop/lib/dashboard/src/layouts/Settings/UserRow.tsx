@@ -1,8 +1,9 @@
 /** @file A row representing a user in a table of users. */
 import * as React from 'react'
 
-import Cross2 from '#/assets/cross2.svg'
 import * as tailwindMerge from 'tailwind-merge'
+
+import Cross2 from '#/assets/cross2.svg'
 
 import * as contextMenuHooks from '#/hooks/contextMenuHooks'
 

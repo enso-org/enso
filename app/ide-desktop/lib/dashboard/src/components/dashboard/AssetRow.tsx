@@ -1,8 +1,9 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
-import BlankIcon from '#/assets/blank.svg'
 import * as tailwindMerge from 'tailwind-merge'
+
+import BlankIcon from '#/assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'

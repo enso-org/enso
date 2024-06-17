@@ -1,9 +1,10 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import DriveIcon from '#/assets/drive.svg'
 import NetworkIcon from '#/assets/network.svg'
-import * as tailwindMerge from 'tailwind-merge'
 
 import type * as text from '#/text'
 

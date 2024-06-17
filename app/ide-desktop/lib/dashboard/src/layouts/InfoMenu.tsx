@@ -1,10 +1,11 @@
 /** @file A menu containing info about the app. */
 import * as React from 'react'
 
-import LogoIcon from '#/assets/enso_logo.svg'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as common from 'enso-common'
+
+import LogoIcon from '#/assets/enso_logo.svg'
 
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'

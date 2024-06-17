@@ -1,11 +1,12 @@
 /** @file Switcher to choose the currently visible assets table category. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import CloudIcon from '#/assets/cloud.svg'
 import NotCloudIcon from '#/assets/not_cloud.svg'
 import RecentIcon from '#/assets/recent.svg'
 import Trash2Icon from '#/assets/trash2.svg'
-import * as tailwindMerge from 'tailwind-merge'
 
 import type * as text from '#/text'
 

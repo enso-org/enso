@@ -5,8 +5,9 @@
  */
 import * as React from 'react'
 
-import Check from '#/assets/check_mark.svg'
 import * as tw from 'tailwind-merge'
+
+import Check from '#/assets/check_mark.svg'
 
 import type * as text from '#/text'
 

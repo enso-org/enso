@@ -1,16 +1,17 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as React from 'react'
 
+import * as router from 'react-router-dom'
+
+import * as common from 'enso-common'
+import * as detect from 'enso-common/src/detect'
+
 import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GithubIcon from '#/assets/github.svg'
 import GoogleIcon from '#/assets/google.svg'
 import LockIcon from '#/assets/lock.svg'
-import * as router from 'react-router-dom'
-
-import * as common from 'enso-common'
-import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 

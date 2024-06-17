@@ -2,8 +2,9 @@
 
 import * as React from 'react'
 
-import Dismiss from '#/assets/dismiss.svg'
 import * as tailwindMerge from 'tailwind-merge'
+
+import Dismiss from '#/assets/dismiss.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

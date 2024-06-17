@@ -1,8 +1,9 @@
 /** @file Displays a few details of an asset. */
 import * as React from 'react'
 
-import BreadcrumbArrowIcon from '#/assets/breadcrumb_arrow.svg'
 import * as tailwindMerge from 'tailwind-merge'
+
+import BreadcrumbArrowIcon from '#/assets/breadcrumb_arrow.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 

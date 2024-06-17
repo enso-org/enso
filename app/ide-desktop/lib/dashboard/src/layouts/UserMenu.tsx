@@ -1,8 +1,9 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
 import * as React from 'react'
 
-import DefaultUserIcon from '#/assets/default_user.svg'
 import * as tailwindMerge from 'tailwind-merge'
+
+import DefaultUserIcon from '#/assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
 

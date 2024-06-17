@@ -1,5 +1,7 @@
 /** @file Shortcuts for the dashboard application. */
 
+import * as detect from 'enso-common/src/detect'
+
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
@@ -27,8 +29,6 @@ import SignOutIcon from '#/assets/sign_out.svg'
 import TagIcon from '#/assets/tag.svg'
 import TrashIcon from '#/assets/trash.svg'
 import UntrashIcon from '#/assets/untrash.svg'
-
-import * as detect from 'enso-common/src/detect'
 
 import * as inputBindings from '#/utilities/inputBindings'
 

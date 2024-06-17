@@ -1,13 +1,14 @@
 /** @file A WebSocket-based chat directly to official support on the official Discord server. */
 import * as React from 'react'
 
-import CloseLargeIcon from '#/assets/close_large.svg'
-import DefaultUserIcon from '#/assets/default_user.svg'
-import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import * as reactDom from 'react-dom'
 import * as tailwindMerge from 'tailwind-merge'
 
 import * as chat from 'enso-chat/chat'
+
+import CloseLargeIcon from '#/assets/close_large.svg'
+import DefaultUserIcon from '#/assets/default_user.svg'
+import FolderArrowIcon from '#/assets/folder_arrow.svg'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'

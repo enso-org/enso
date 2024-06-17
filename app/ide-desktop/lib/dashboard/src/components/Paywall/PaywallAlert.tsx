@@ -6,8 +6,9 @@
 
 import * as React from 'react'
 
-import LockIcon from '#/assets/lock.svg'
 import clsx from 'clsx'
+
+import LockIcon from '#/assets/lock.svg'
 
 import type * as billingHooks from '#/hooks/billing'
 

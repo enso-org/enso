@@ -1,9 +1,10 @@
 /** @file A heading for the "Modified" column. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TimeIcon from '#/assets/time.svg'
-import * as tailwindMerge from 'tailwind-merge'
 
 import * as textProvider from '#/providers/TextProvider'
 
