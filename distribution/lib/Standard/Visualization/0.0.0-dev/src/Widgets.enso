@@ -24,4 +24,3 @@ get_widget_json value call_name argument_names uuids="{}" =
 
     annotations = argument_names.map (arg -> [arg, read_annotation arg])
     annotations.to_json
-

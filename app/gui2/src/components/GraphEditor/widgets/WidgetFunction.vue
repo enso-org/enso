@@ -278,4 +278,3 @@ export const widgetDefinition = defineWidget(
 <template>
   <NodeWidget :input="innerInput" @update="handleArgUpdate" />
 </template>
-@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo
