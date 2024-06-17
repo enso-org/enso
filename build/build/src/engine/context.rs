@@ -651,7 +651,7 @@ pub async fn runner_sanity_test(
     );
     if enso_java.is_none() {
         let test_base = Command::new(&repo_root.runner)
-            .args(["--run", repo_root.test.join("Base_Tests").as_str(), "^Text"])
+            .args(["--run", repo_root.test.join("Base_Tests").as_str()])
             .set_env_opt(ENSO_JAVA, enso_java)?
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_stdout()
