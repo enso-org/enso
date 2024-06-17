@@ -105,7 +105,6 @@
   --asset-search-bar-width: 24.5625rem;
   /* The width of the asset search bar on wide screens. */
   --asset-search-bar-wide-width: 33.333333vw;
-  --permission-display-width: 7.5625rem;
   --permission-type-selector-width: 28.125rem;
   --payment-form-height: 38.75rem;
   /* The horizontal gap between adjacent column items. */
@@ -190,9 +189,6 @@
   --permission-type-button-gap: 0.5rem;
   --permission-type-width: 3.25rem;
   --permission-type-padding-y: 0.125rem;
-  --permission-mini-button-padding-x: 0.4375rem;
-  --permission-mini-button-padding-y: 0.125rem;
-  --permission-with-border-margin: 0.25rem;
 
   /*************\
   |* User menu *|

@@ -135,7 +135,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissions.Permission.read:
     case permissions.Permission.view: {
       permissionDisplay = (
-        <div className="flex w-permission-display gap-px">
+        <div className="flex w-[121px] gap-px">
           <ariaComponents.Button
             size="xxsmall"
             variant="custom"
@@ -144,7 +144,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text flex-1 rounded-l-full py-permission-mini-button-y selectable',
+              'h-6 flex-1 rounded-l-full selectable',
               (!isDisabled || !input) && 'active',
               permissions.PERMISSION_CLASS_NAME[permission.type]
             )}
@@ -159,7 +159,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text flex-1 py-permission-mini-button-y selectable',
+              'h-6 flex-1 selectable',
               permission.docs && (!isDisabled || !input) && 'active',
               permissions.DOCS_CLASS_NAME
             )}
@@ -182,7 +182,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text flex-1 rounded-r-full py-permission-mini-button-y selectable',
+              'h-6 flex-1 rounded-r-full selectable',
               permission.execute && (!isDisabled || !input) && 'active',
               permissions.EXEC_CLASS_NAME
             )}
@@ -211,7 +211,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           isDisabled={isDisabled}
           {...(isDisabled && error != null ? { title: error } : {})}
           className={tailwindMerge.twMerge(
-            'h-text w-permission-display rounded-full selectable',
+            'h-6 w-[121px] rounded-full selectable',
             (!isDisabled || !input) && 'active',
             permissions.PERMISSION_CLASS_NAME[permission.type]
           )}
