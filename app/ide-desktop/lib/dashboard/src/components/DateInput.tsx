@@ -134,7 +134,7 @@ export default function DateInput(props: DateInputProps) {
                 onInput(null)
               }}
             >
-              <SvgMask src={CrossIcon} className="size-icon" />
+              <SvgMask src={CrossIcon} className="size-4" />
             </ariaComponents.Button>
           )}
         </div>

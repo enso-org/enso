@@ -21,7 +21,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
       <Button
         active
         image={PeopleIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('sharedWithColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.sharedWith)

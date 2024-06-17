@@ -21,7 +21,7 @@ export default function LabelsColumnHeading(props: column.AssetColumnHeadingProp
       <Button
         active
         image={TagIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('labelsColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.labels)

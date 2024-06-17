@@ -39,7 +39,7 @@ export default function ModifiedColumnHeading(
       <Button
         active
         image={TimeIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('modifiedColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.modified)

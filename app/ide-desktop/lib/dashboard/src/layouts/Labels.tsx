@@ -54,15 +54,12 @@ export default function Labels(props: LabelsProps) {
       {innerProps => (
         <div
           data-testid="labels"
-          className="gap-sidebar-section-heading flex w-full flex-col items-start"
+          className="flex w-full flex-col items-start gap-4"
           {...innerProps}
         >
-          <aria.Header
-            id="header"
-            className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
-          >
+          <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('labels')}
-          </aria.Header>
+          </ariaComponents.Text>
           <div
             data-testid="labels-list"
             aria-label={getText('labelsListLabel')}
@@ -117,7 +114,7 @@ export default function Labels(props: LabelsProps) {
                         active
                         image={Trash2Icon}
                         alt={getText('delete')}
-                        className="relative flex size-icon text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
+                        className="relative flex size-4 text-delete opacity-0 transition-all after:absolute after:-inset-1 after:rounded-button-focus-ring group-has-[[data-focus-visible]]:active group-hover:active"
                         onPress={() => {
                           setModal(
                             <ConfirmDeleteModal

@@ -132,17 +132,17 @@ function ProjectTile(props: InternalProjectTileProps) {
       {/* eslint-disable-next-line no-restricted-syntax */}
       <div className="flex h-sample-info justify-between px-sample-description-x text-primary opacity-70">
         <div className="flex gap-samples-icon-with-text">
-          <SvgMask src={Logo} className="size-icon self-end" />
+          <SvgMask src={Logo} className="size-4 self-end" />
           <aria.Text className="self-start font-bold leading-snug">{author}</aria.Text>
         </div>
         {/* Normally `flex` */}
         <div className="hidden gap-icons">
           <div title={getText('views')} className="flex gap-samples-icon-with-text">
-            <SvgMask alt={getText('views')} src={OpenCountIcon} className="size-icon self-end" />
+            <SvgMask alt={getText('views')} src={OpenCountIcon} className="size-4 self-end" />
             <aria.Text className="self-start font-bold leading-snug">{opens}</aria.Text>
           </div>
           <div title={getText('likes')} className="flex gap-samples-icon-with-text">
-            <SvgMask alt={getText('likes')} src={HeartIcon} className="size-icon self-end" />
+            <SvgMask alt={getText('likes')} src={HeartIcon} className="size-4 self-end" />
             <aria.Text className="self-start font-bold leading-snug">{likes}</aria.Text>
           </div>
         </div>

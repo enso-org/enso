@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import FocusArea from '#/components/styled/FocusArea'
 
-import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 // =================
@@ -30,15 +29,12 @@ export interface HorizontalMenuBarProps
 
 /** A styled horizontal menu bar. */
 export default function HorizontalMenuBar(props: HorizontalMenuBarProps) {
-  const { children, className, ...variantProps } = props
+  const { children, ...variantProps } = props
 
   return (
     <FocusArea direction="horizontal">
       {innerProps => (
-        <div
-          className={tailwindMerge.twMerge(HORIZONTAL_MENU_BAR_VARIANTS(variantProps), className)}
-          {...innerProps}
-        >
+        <div className={HORIZONTAL_MENU_BAR_VARIANTS(variantProps)} {...innerProps}>
           {children}
         </div>
       )}

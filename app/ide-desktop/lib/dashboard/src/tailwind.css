@@ -25,7 +25,6 @@
   --subheading-gap: 1rem;
   /* The horizontal padding of the entire horizontal list of icons. */
   --icons-padding-x: 0.5rem;
-  --icon-size: 1rem;
   --project-icon-size: 1.5rem;
   /* The horizontal padding of the large text indicating that a feature is not enabled in the user's
    * current plan. */

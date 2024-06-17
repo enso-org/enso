@@ -318,7 +318,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       }}
     >
       {!canExecute ? (
-        <SvgMask src={NetworkIcon} className="m-name-column-icon size-icon" />
+        <SvgMask src={NetworkIcon} className="m-name-column-icon size-4" />
       ) : (
         <ProjectIcon
           backend={backend}

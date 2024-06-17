@@ -21,7 +21,7 @@ export default function DocsColumnHeading(props: column.AssetColumnHeadingProps)
       <Button
         active
         image={DocsIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('docsColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.docs)

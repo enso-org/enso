@@ -95,9 +95,9 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
               />
             )
           }}
-          className="absolute right-full mr-4 size-icon -translate-y-1/2"
+          className="absolute right-full mr-4 size-4 -translate-y-1/2"
         >
-          <img src={Cross2} className="size-icon" />
+          <img src={Cross2} className="size-4" />
         </ariaComponents.Button>
       </aria.Cell>
     </aria.Row>

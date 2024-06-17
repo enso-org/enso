@@ -295,7 +295,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             },
           })}
         >
-          <div className="relative size-icon placeholder" />
+          <div className="relative size-4 placeholder" />
           <div
             className={tailwindMerge.twMerge(
               'pointer-events-none absolute left top z-1 flex w-full max-w-[60em] flex-col overflow-hidden rounded-default border-0.5 border-primary/20 transition-colors before:absolute before:inset before:backdrop-blur-default hover:before:bg-frame',

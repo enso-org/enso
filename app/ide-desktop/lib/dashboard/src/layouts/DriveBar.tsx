@@ -104,11 +104,11 @@ export default function DriveBar(props: DriveBarProps) {
       {/* Spacing. */}
       <div
         className={tailwindMerge.twMerge(
-          'transition-all duration-side-panel',
-          !isAssetPanelOpen && 'w-5'
+          'transition-width duration-side-panel',
+          !isAssetPanelOpen && 'w-8'
         )}
       />
-      <div className="absolute right-[15px] top-[25px] z-1 transition-all duration-side-panel">
+      <div className="absolute right-[15px] top-[25px] z-1">
         <ariaComponents.Button
           size="medium"
           variant="custom"
@@ -164,11 +164,7 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-9 items-center">
           <HorizontalMenuBar grow>
             <aria.DialogTrigger>
-              <ariaComponents.Button
-                size="medium"
-                variant="tertiary"
-                onPress={() => {}}
-              >
+              <ariaComponents.Button size="medium" variant="tertiary" onPress={() => {}}>
                 {getText('startWithATemplate')}
               </ariaComponents.Button>
               <StartModal createProject={doCreateProject} />

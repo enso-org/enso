@@ -214,13 +214,10 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   return (
     <FocusArea direction="vertical">
       {innerProps => (
-        <div className="flex w-full flex-col" {...innerProps}>
-          <aria.Header
-            id="header"
-            className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
-          >
+        <div className="flex w-full flex-col gap-2 py-1" {...innerProps}>
+          <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('category')}
-          </aria.Header>
+          </ariaComponents.Text>
           <div
             aria-label={getText('categorySwitcherMenuLabel')}
             role="grid"

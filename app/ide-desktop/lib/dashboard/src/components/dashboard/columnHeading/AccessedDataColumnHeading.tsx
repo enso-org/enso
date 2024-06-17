@@ -21,7 +21,7 @@ export default function AccessedDataColumnHeading(props: column.AssetColumnHeadi
       <Button
         active
         image={AccessedDataIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('accessedDataColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.accessedData)

@@ -37,7 +37,7 @@ export default function AssetSummary(props: AssetSummaryProps) {
         className
       )}
     >
-      <div className="grid size-icon place-items-center">
+      <div className="grid size-4 place-items-center">
         <AssetIcon asset={asset} />
       </div>
       <div className="flex flex-col">

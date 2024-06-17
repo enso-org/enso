@@ -171,14 +171,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         tooltipPlacement="left"
         buttonClassName="m-0 hidden group-hover:inline-block"
         className={tailwindMerge.twMerge(
-          'size-icon cursor-pointer transition-transform duration-arrow',
+          'size-4 cursor-pointer transition-transform duration-arrow',
           item.children != null && 'rotate-90'
         )}
         onPress={() => {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
       />
-      <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
+      <SvgMask src={FolderIcon} className="m-name-column-icon size-4 group-hover:hidden" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}

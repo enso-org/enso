@@ -89,7 +89,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       spacing: {
         DEFAULT: '0',
-        icon: 'var(--icon-size)',
         'project-icon': 'var(--project-icon-size)',
         'profile-picture-large': 'var(--profile-picture-large-size)',
         'radio-button': 'var(--radio-button-size)',

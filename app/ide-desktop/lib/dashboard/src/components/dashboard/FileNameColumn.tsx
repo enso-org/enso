@@ -169,7 +169,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={fileIcon.fileIcon()} className="m-name-column-icon size-icon" />
+      <SvgMask src={fileIcon.fileIcon()} className="m-name-column-icon size-4" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
