@@ -22,16 +22,6 @@ from project.Common_Table_Operations.Util import run_default_backend
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn = Data.Value <|
-        connection = create_connection_fn Nothing
-        connection
-
-    teardown self =
-        self.connection.close
-
 type Arithmetic_Data
     Value ~data
 
@@ -210,14 +200,7 @@ add_specs suite_builder setup =
                     callback_with_clue aligned_table
 
     suite_builder.group prefix+"Boolean Column Operations" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
             c1 = t.at "X" . iif 22 33
@@ -370,13 +353,7 @@ add_specs suite_builder setup =
             ((t.at "Y") . iif 10 20) . should_fail_with Invalid_Value_Type
 
     suite_builder.group prefix+"Column Operations - Equality & Null Handling" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
+        table_builder = setup.light_table_builder
 
         group_builder.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
@@ -456,14 +433,7 @@ add_specs suite_builder setup =
             Problems.expect_warning Floating_Point_Equality r2
 
     suite_builder.group prefix+"Column.fill_nothing/empty" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should allow to fill_nothing from a value" <|
             col = table_builder [["col", [0, Nothing, 4, 5, Nothing, Nothing]]] . at "col"
             default = 300
@@ -491,14 +461,7 @@ add_specs suite_builder setup =
             r.name . should_equal "col"
 
     suite_builder.group prefix+"Table.fill_nothing/empty" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should allow to fill_nothing from a value" <|
             t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]]]
             default = 1000
@@ -627,14 +590,7 @@ add_specs suite_builder setup =
             s_true_2.at "col1" . to_vector . should_equal [False, True, True, False]
 
     suite_builder.group prefix+"Table.text_replace" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should allow to replace values in a table" <|
             with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]] t->
                 actual = t.text_replace ["col0", "col1"] "ab" "xy"
@@ -696,14 +652,7 @@ add_specs suite_builder setup =
                     t1.at "txt" . to_vector . should_equal ["aXc", "Yef", "ghZ"]
 
     suite_builder.group prefix+"Column Comparisons" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should allow to compare numbers" <|
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
                 x = t2.at "x"
@@ -1022,14 +971,7 @@ add_specs suite_builder setup =
             (data.x / Nothing).to_vector . should_equal nulls
 
     suite_builder.group prefix+"Rounding-like operations" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should name a rounding column correctly" <|
             table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
             table.at "x" . round . name . should_equal "round([x])"
@@ -1139,14 +1081,7 @@ add_specs suite_builder setup =
                 x.truncate . to_vector . should_equal [1, -2, 3]
 
     suite_builder.group prefix+"Date truncation" pending=pending_datetime group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should be able to truncate a column of Date_Times" <|
             dates = [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
             table = table_builder [["foo", dates]]
@@ -1157,14 +1092,7 @@ add_specs suite_builder setup =
             truncated.name . should_equal "truncate([foo])"
 
     suite_builder.group prefix+"Text Column Operations" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should handle operations like starts_with, ends_with, contains" <|
             with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
                 s1 = t3.at "s1"
@@ -1496,14 +1424,7 @@ add_specs suite_builder setup =
             do_replace data.col data.patterns data.replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
     suite_builder.group prefix+"replace: empty table and nothings" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should work on empty tables" <|
             col = table_builder [["x", ['hello Hello']]] . filter "x" (Filter_Condition.Is_Nothing) . at "x"
             do_replace col 'hello' 'bye' expected=[]
@@ -1513,14 +1434,7 @@ add_specs suite_builder setup =
             do_replace col 'hello' 'bye' expected=[Nothing]
 
     if setup.is_database then suite_builder.group prefix+"replace: DB specific edge-cases" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
             col = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]]] . at 'A'
             locale = Locale.new "en" "GB" "UTF-8"
@@ -1641,14 +1555,7 @@ add_specs suite_builder setup =
             data.a.trim what=data.c . should_fail_with Invalid_Value_Type
 
     suite_builder.group prefix+"Other Column Operations" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "is_in" <|
             t = table_builder [["X", [1, 2, 3, 4]], ["Y", [4, 3, 100, 200]]]
             x = t.at "X"
@@ -1735,14 +1642,7 @@ add_specs suite_builder setup =
                 data.t.at "a" . zip (data.t.at "b") [_, _] . name . should_equal "[a] x [b]"
 
     suite_builder.group prefix+"Column.rename" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "should not allow illegal names" <|
             t = table_builder [["a", [1, 2, 3]]]
             c = t.at "a"
@@ -1753,14 +1653,7 @@ add_specs suite_builder setup =
             c.rename '\0' . should_fail_with Invalid_Column_Names
 
     suite_builder.group prefix+"Column.const" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.table_builder
         group_builder.specify "Should allow the creation of constant columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const True . to_vector . should_equal [True, True, True]
@@ -1777,14 +1670,7 @@ add_specs suite_builder setup =
             t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"Table.make_constant_column" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.table_builder
         group_builder.specify "Should allow the creation of constant columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.make_constant_column True . to_vector . should_equal [True, True, True]
@@ -1819,14 +1705,7 @@ add_specs suite_builder setup =
 
     decimal_db_pending = if setup.is_database then "Decimals are currently not implemented for the Database backend."
     suite_builder.group prefix+"Decimal" pending=decimal_db_pending group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        table_builder = setup.light_table_builder
         group_builder.specify "can store and retrieve values" <|
             t = table_builder [["x", [Decimal.new "23257245345.345345345"]]]
             t.at "x" . at 0 . should_be_a Decimal
