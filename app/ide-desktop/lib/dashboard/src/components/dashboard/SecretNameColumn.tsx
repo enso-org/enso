@@ -15,6 +15,7 @@ import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
 
@@ -133,7 +134,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        'h-table-row flex min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
         indent.indentClass(item.depth)
       )}
       onKeyDown={event => {
@@ -166,9 +167,13 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     >
       <SvgMask src={KeyIcon} className="m-name-column-icon size-icon" />
       {/* Secrets cannot be renamed. */}
-      <aria.Text data-testid="asset-row-name" className="text grow bg-transparent font-naming">
+      <ariaComponents.Text
+        data-testid="asset-row-name"
+        font="naming"
+        className="grow bg-transparent"
+      >
         {asset.title}
-      </aria.Text>
+      </ariaComponents.Text>
     </div>
   )
 }
