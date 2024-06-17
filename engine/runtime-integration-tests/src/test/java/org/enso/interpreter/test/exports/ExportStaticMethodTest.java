@@ -54,11 +54,40 @@ public class ExportStaticMethodTest {
   }
 
   @Test
+  public void moduleMethodIsInBindingMap() throws IOException {
+    var tMod =
+        new SourceModule(
+            QualifiedName.fromString("T_Module"), """
+        module_method x = x
+        """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        from project.T_Module export module_method
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
+
+    try (var ctx =
+        ContextUtils.defaultContextBuilder()
+            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+            .build()) {
+      var polyCtx = new PolyglotContext(ctx);
+      polyCtx.getTopScope().compile(true);
+      var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
+      assertThat(mainModExportedSymbols.size(), is(1));
+      assertThat(mainModExportedSymbols, hasKey("module_method"));
+    }
+  }
+
+  @Test
   public void staticMethodIsInBindingMap() throws IOException {
     var tMod =
         new SourceModule(
             QualifiedName.fromString("T_Module"), """
-        static_method x = x
+        type My_Type
+        My_Type.static_method x = x
         """);
     var mainMod =
         new SourceModule(
