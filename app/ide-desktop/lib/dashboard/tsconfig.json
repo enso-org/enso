@@ -17,12 +17,6 @@
     "outDir": "../../../../node_modules/.cache/tsc",
     "paths": { "#/*": ["./src/*"] },
     "target": "ESNext",
-    "lib": ["ESNext", "DOM", "ES2023"],
-
-    "plugins": [
-      {
-        "name": "ts-plugin-namespace-auto-import"
-      }
-    ]
+    "lib": ["ESNext", "DOM", "ES2023"]
   }
 }

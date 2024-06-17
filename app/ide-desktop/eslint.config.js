@@ -50,10 +50,6 @@ const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z
 /** @type {{ selector: string; message: string; }[]} */
 const RESTRICTED_SYNTAXES = [
     {
-        selector: ':matches(ImportDeclaration:has(ImportSpecifier))',
-        message: 'No {} imports and exports',
-    },
-    {
         selector: `ImportDeclaration[source.value=/^(?!(${ALLOWED_DEFAULT_IMPORT_MODULES})$)[^.]/] > ImportDefaultSpecifier`,
         message:
             'No default imports from modules. Add to `DEFAULT_IMPORT_ONLY_MODULES` in `eslint.config.js` if the module only has a default export.',
