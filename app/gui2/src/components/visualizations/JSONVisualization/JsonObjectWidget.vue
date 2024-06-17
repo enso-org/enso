@@ -29,8 +29,8 @@ function entryTitle(key: string) {
       v-for="[key, value] in Object.entries(props.data)"
       :key="key"
       :title="entryTitle(key)"
-      class="field"
-      :class="[isClickThroughEnabled && 'clickable']"
+      class="field clickable"
+      :class="[isClickThroughEnabled && 'viewonly']"
       @click.stop="
         isClickThroughEnabled &&
           emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])
@@ -78,5 +78,8 @@ function entryTitle(key: string) {
 }
 .key {
   color: darkred;
+}
+.viewonly {
+  pointer-events: none;
 }
 </style>

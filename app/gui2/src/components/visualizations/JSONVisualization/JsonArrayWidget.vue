@@ -25,8 +25,8 @@ function entryTitle(index: number) {
       v-for="(child, index) in props.data"
       :key="index"
       :title="entryTitle(index)"
-      class="field"
-      :class="[isClickThroughEnabled && 'clickable']"
+      class="element clickable"
+      :class="[isClickThroughEnabled && 'viewonly']"
       @click.stop="
         isClickThroughEnabled &&
           emit('createProjection', [$event.shiftKey ? [...props.data.keys()] : [index]])
@@ -62,5 +62,8 @@ function entryTitle(index: number) {
 }
 .block > .element:not(:last-child)::after {
   content: ',';
+}
+.viewonly {
+  pointer-events: none;
 }
 </style>
