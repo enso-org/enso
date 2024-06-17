@@ -105,6 +105,7 @@ big_decimal_fetcher =
         if rs.wasNull then Nothing else
             big_decimal
     make_builder initial_size java_problem_aggregator =
+        _ = java_problem_aggregator
         java_builder = Java_Exports.make_bigdecimal_builder initial_size
         make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
