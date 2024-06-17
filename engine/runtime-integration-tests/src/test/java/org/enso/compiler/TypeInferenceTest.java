@@ -1064,6 +1064,34 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, findAssignment(foo, "x4"));
   }
 
+  @Test
+  public void noSuchMethodStaticCheck() throws Exception {
+    final URI uri = new URI("memory://noSuchMethodStaticCheck.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+
+                        method_one self = 42
+
+                    foo =
+                        inst = My_Type.Value 23
+                        x1 = inst.method_one
+                        x2 = inst.method_two
+                        x3 = inst.to_text
+                        x4 = inst.is_error
+                        [x1, x2, x3, x4]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    // TODO method_two should yield warning - unknown method, others are found so no warnings
+  }
+
   private TypeRepresentation getInferredType(IR ir) {
     var option = getInferredTypeOption(ir);
     assertTrue(
