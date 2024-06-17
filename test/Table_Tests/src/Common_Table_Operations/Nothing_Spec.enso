@@ -25,7 +25,6 @@ type Data
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
 
     # We cannot create a column of Nothing/NULL in the database without casting it to a non-mixed type.
     type_for_nothing_column = if setup.is_database then Value_Type.Char else Value_Type.Mixed
@@ -49,17 +48,12 @@ add_specs suite_builder setup =
     values_without_nothing = if setup.test_selection.run_advanced_edge_case_tests then basic_values_without_nothing + advanced_values_without_nothing else basic_values_without_nothing
     values_with_nothing = values_without_nothing + [[Nothing, Nothing, type_for_nothing_column]]
 
+    table_builder = setup.light_table_builder
+    table_builder_typed columns value_type =
+        raw_table = setup.light_table_builder columns
+        raw_table.cast raw_table.column_names value_type
+
     suite_builder.group prefix+"(Nothing_Spec) Comparisons" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
         comparisons = [["==", ==], ["!=", !=], ["<", <]] + (if setup.test_selection.run_advanced_edge_case_tests then [["<=", <=], [">", >], [">=", >=]] else [])
 
         comparisons.map pair->
@@ -88,16 +82,6 @@ add_specs suite_builder setup =
                         co.to_vector . should_equal [Nothing]
 
     suite_builder.group prefix+"(Nothing_Spec) between" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
         values_with_nothing.map triple->
             value = triple.at 0
             value_type = triple.at 2
@@ -129,16 +113,6 @@ add_specs suite_builder setup =
                     co.to_vector . should_equal [Nothing]
 
     suite_builder.group prefix+"(Nothing_Spec) is_nothing" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
         values_with_nothing.map triple->
             value = triple.at 0
             value_type = triple.at 2
@@ -149,29 +123,11 @@ add_specs suite_builder setup =
                 co.to_vector . should_equal [value == Nothing]
 
     suite_builder.group prefix+"(Nothing_Spec) not" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder columns =
-            setup.table_builder columns connection=data.connection
-
         group_builder.specify "Correctly handle Nothing in .not" <|
             table = setup.light_table_builder [["x", [True, False, Nothing]]]
             table.at "x" . not . to_vector . should_equal [False, True, Nothing]
 
     suite_builder.group prefix+"(Nothing_Spec) is_in" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
         values_with_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1
@@ -217,16 +173,6 @@ add_specs suite_builder setup =
                     table.at "x" . is_in [] . to_vector . should_equal [False, False]
 
     if setup.test_selection.run_advanced_edge_case_tests then suite_builder.group prefix+"(Nothing_Spec) is_in: Boolean+Nothing edge cases" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
         make_containing_values had_null had_true had_false =
             null_maybe = if had_null then [Nothing] else []
             true_maybe = if had_true then [True] else []
@@ -283,19 +229,6 @@ add_specs suite_builder setup =
                     c.to_vector.distinct . should_equal expected_output
 
     suite_builder.group prefix+"(Nothing_Spec) distinct" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder columns =
-            setup.table_builder columns connection=data.connection
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
         values_without_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1
@@ -315,16 +248,6 @@ add_specs suite_builder setup =
             v . should_equal [Nothing]
 
     suite_builder.group prefix+"(Nothing_Spec) order_by" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder_typed columns value_type =
-            cast_columns = columns.map c->
-                Column.from_vector (c.at 0) (c.at 1) . cast value_type
-            setup.table_builder cast_columns connection=data.connection
-
         values_with_nothing.map triple->
             value = triple.at 0
             other_value = triple.at 1
