@@ -36,6 +36,12 @@ public class ExtensionMethodResolutionTest {
           containsString("Method overloads are not supported"),
           containsString("defined multiple times"));
 
+  private static final Matcher<String> ambiguousResolutionErrorMessageMatcher =
+      allOf(
+          containsString("resolved ambiguously to"),
+          containsString("The symbol was first resolved to")
+      );
+
   @Test
   public void twoExtensionMethodsWithSameNameInOneModuleShouldFail() throws IOException {
     var src = """
@@ -126,7 +132,7 @@ public class ExtensionMethodResolutionTest {
   }
 
   @Test
-  public void resolutionFromImportedModulesIsDeterministic1() throws IOException {
+  public void resolutionFromImportedModulesIsCompilerError1() throws IOException {
     var xMod =
         new SourceModule(QualifiedName.fromString("X"), """
             type T
@@ -156,19 +162,11 @@ public class ExtensionMethodResolutionTest {
             """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
-    ProjectUtils.testProjectRun(
-        projDir,
-        res -> {
-          assertThat(
-              "Method resolution from imported modules should be deterministic "
-                  + "(Y module is imported first)",
-              res.asString(),
-              is("Y"));
-        });
+    testProjectCompilationFailure(projDir, ambiguousResolutionErrorMessageMatcher);
   }
 
   @Test
-  public void resolutionFromImportedModulesIsDeterministic2() throws IOException {
+  public void resolutionFromImportedModulesIsCompilerError2() throws IOException {
     var xMod =
         new SourceModule(QualifiedName.fromString("X"), """
             type T
@@ -198,15 +196,7 @@ public class ExtensionMethodResolutionTest {
             """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
-    ProjectUtils.testProjectRun(
-        projDir,
-        res -> {
-          assertThat(
-              "Method resolution from imported modules should be deterministic "
-                  + "(Z module is imported first)",
-              res.asString(),
-              is("Z"));
-        });
+    testProjectCompilationFailure(projDir, ambiguousResolutionErrorMessageMatcher);
   }
 
   @Test
