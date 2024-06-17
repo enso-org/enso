@@ -29,13 +29,16 @@ polyglot java import java.io.StringReader
 polyglot java import java.lang.Exception as JException
 polyglot java import javax.xml.parsers.DocumentBuilder
 polyglot java import javax.xml.parsers.DocumentBuilderFactory
+polyglot java import javax.xml.xpath.XPath
 polyglot java import javax.xml.xpath.XPathConstants
 polyglot java import javax.xml.xpath.XPathFactory
 polyglot java import org.enso.base.XML_Utils
+polyglot java import org.w3c.dom.Attr
 polyglot java import org.w3c.dom.Document
 polyglot java import org.w3c.dom.Element
 polyglot java import org.w3c.dom.Node
 polyglot java import org.w3c.dom.NodeList
+polyglot java import org.w3c.dom.NamedNodeMap
 polyglot java import org.w3c.dom.Text as Java_Text
 polyglot java import org.xml.sax.InputSource
 polyglot java import org.xml.sax.SAXException
