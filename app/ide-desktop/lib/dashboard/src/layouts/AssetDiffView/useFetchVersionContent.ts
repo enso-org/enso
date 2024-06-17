@@ -9,9 +9,7 @@ import type Backend from '#/services/Backend'
 // === Constants ===
 // =================
 
-const MS_IN_SECOND = 1000
-const HUNDRED = 100
-const HUNDRED_SECONDS = HUNDRED * MS_IN_SECOND
+const TWO_MINUTES_MS = 120_000
 
 // ==============================
 // === useFetchVersionContent ===
@@ -34,7 +32,7 @@ export function useFetchVersionContent(params: FetchVersionContentOptions) {
     queryKey: ['versionContent', versionId],
     queryFn: () => backend.getFileContent(project.id, versionId, project.title),
     select: data => (metadata ? data : omitMetadata(data)),
-    staleTime: HUNDRED_SECONDS,
+    staleTime: TWO_MINUTES_MS,
   })
 }
 

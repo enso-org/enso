@@ -5,6 +5,7 @@ package definition
 
 import org.enso.compiler.core.Implicits.{ShowPassData, ToStringHelper}
 import org.enso.compiler.core.{IR, Identifier}
+import org.enso.persist.Persistance
 
 import java.util.UUID
 
@@ -42,14 +43,14 @@ object Method {
   /** The definition of a method for a given constructor.
     *
     * @param methodReference a reference to the method being defined
-    * @param body            the body of the method
+    * @param bodyReference   the body of the method
     * @param location        the source location that the node corresponds to
     * @param passData        the pass metadata associated with this node
     * @param diagnostics     compiler diagnostics for this node
     */
   sealed case class Explicit(
     override val methodReference: Name.MethodReference,
-    val bodySeq: Seq[Expression],
+    val bodyReference: Persistance.Reference[Expression],
     val isStatic: Boolean,
     val isPrivate: Boolean,
     val isStaticWrapperForInstanceMethod: Boolean,
@@ -69,7 +70,7 @@ object Method {
     ) = {
       this(
         methodReference,
-        Seq(body),
+        Persistance.Reference.of(body, false),
         Explicit.computeIsStatic(body),
         isPrivate,
         Explicit.computeIsStaticWrapperForInstanceMethod(body),
@@ -79,7 +80,7 @@ object Method {
       );
     }
 
-    lazy val body = bodySeq.head
+    lazy val body: Expression = bodyReference.get(classOf[Expression])
 
     /** Creates a copy of `this`.
       *
@@ -105,7 +106,7 @@ object Method {
     ): Explicit = {
       val res = Explicit(
         methodReference,
-        List(body),
+        Persistance.Reference.of(body, false),
         isStatic,
         isPrivate,
         isStaticWrapperForInstanceMethod,
@@ -162,7 +163,7 @@ object Method {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.Method.Explicit(
@@ -341,7 +342,7 @@ object Method {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.Method.Binding(
@@ -484,7 +485,7 @@ object Method {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.Method.Conversion(

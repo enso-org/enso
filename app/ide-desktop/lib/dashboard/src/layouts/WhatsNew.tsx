@@ -20,8 +20,8 @@ export default function WhatsNew() {
   const { getText } = textProvider.useText()
 
   return (
-    <div className="flex flex-col gap-subheading px-home-section-x">
-      <aria.Heading level={2} className="text-subheading">
+    <div className="flex flex-col gap-subheading px-[5px]">
+      <aria.Heading level={2} className="text-subheading font-normal">
         {getText('discoverWhatsNew')}
       </aria.Heading>
       <div className="grid grid-cols-fill-news-items gap-news-items">

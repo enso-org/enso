@@ -1,12 +1,13 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
-import UnstyledButton from '#/components/UnstyledButton'
 
 import type * as backend from '#/services/Backend'
 
@@ -59,7 +60,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
   const { onChange, doDelete } = props
   const { getText } = textProvider.useText()
   const [action, setActionRaw] = React.useState(actionRaw)
-  const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
+  const [TheChild, setTheChild] = React.useState<(() => React.JSX.Element) | null>()
   const permissionSelectorButtonRef = React.useRef<HTMLButtonElement>(null)
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
@@ -130,29 +131,40 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     }
   }
 
-  let permissionDisplay: JSX.Element
+  let permissionDisplay: React.JSX.Element
 
   switch (permission.type) {
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       permissionDisplay = (
         <div className="flex w-permission-display gap-px">
-          <UnstyledButton
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            rounded="none"
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={`selectable ${!isDisabled || !input ? 'active' : ''} ${
+            className={tailwindMerge.twMerge(
+              'h-text flex-1 rounded-l-full py-permission-mini-button-y selectable',
+              (!isDisabled || !input) && 'active',
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
+            )}
             onPress={doShowPermissionTypeSelector}
           >
-            <aria.Text>{getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}</aria.Text>
-          </UnstyledButton>
-          <UnstyledButton
+            {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            rounded="none"
             isDisabled={isDisabled}
-            focusRingPlacement="after"
             {...(isDisabled && error != null ? { title: error } : {})}
-            className="relative h-text grow after:absolute after:inset"
+            className={tailwindMerge.twMerge(
+              'h-text flex-1 py-permission-mini-button-y selectable',
+              permission.docs && (!isDisabled || !input) && 'active',
+              permissionsModule.DOCS_CLASS_NAME
+            )}
             onPress={() => {
               setAction(
                 permissionsModule.toPermissionAction({
@@ -163,19 +175,19 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            <aria.Text
-              className={`selectable ${permission.docs && (!isDisabled || !input) ? 'active' : ''} ${
-                permissionsModule.DOCS_CLASS_NAME
-              } h-text grow px-permission-mini-button-x py-permission-mini-button-y`}
-            >
-              {getText('docsPermissionModifier')}
-            </aria.Text>
-          </UnstyledButton>
-          <UnstyledButton
+            {getText('docsPermissionModifier')}
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            size="custom"
+            variant="custom"
+            rounded="none"
             isDisabled={isDisabled}
-            focusRingPlacement="after"
             {...(isDisabled && error != null ? { title: error } : {})}
-            className="relative h-text grow rounded-r-full after:absolute after:inset after:rounded-r-full"
+            className={tailwindMerge.twMerge(
+              'h-text flex-1 rounded-r-full py-permission-mini-button-y selectable',
+              permission.execute && (!isDisabled || !input) && 'active',
+              permissionsModule.EXEC_CLASS_NAME
+            )}
             onPress={() => {
               setAction(
                 permissionsModule.toPermissionAction({
@@ -186,31 +198,29 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            <aria.Text
-              className={`selectable ${permission.execute && (!isDisabled || !input) ? 'active' : ''} ${
-                permissionsModule.EXEC_CLASS_NAME
-              } rounded-r-full px-permission-mini-button-x py-permission-mini-button-y`}
-            >
-              {getText('execPermissionModifier')}
-            </aria.Text>
-          </UnstyledButton>
+            {getText('execPermissionModifier')}
+          </ariaComponents.Button>
         </div>
       )
       break
     }
     default: {
       permissionDisplay = (
-        <UnstyledButton
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
           {...(isDisabled && error != null ? { title: error } : {})}
-          className={`selectable ${!isDisabled || !input ? 'active' : ''} ${
+          className={tailwindMerge.twMerge(
+            'h-text w-permission-display rounded-full selectable',
+            (!isDisabled || !input) && 'active',
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } h-text w-permission-display rounded-full`}
+          )}
           onPress={doShowPermissionTypeSelector}
         >
           {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
-        </UnstyledButton>
+        </ariaComponents.Button>
       )
       break
     }

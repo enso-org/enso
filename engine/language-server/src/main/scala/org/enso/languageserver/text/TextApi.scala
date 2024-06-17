@@ -4,13 +4,13 @@ import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
-import org.enso.text.editing.model.TextEdit
+import org.enso.text.editing.model.{IdMap, TextEdit}
 
 /** The text editing JSON RPC API provided by the language server.
   * See [[https://github.com/enso-org/enso/blob/develop/docs/language-server/README.md]]
   * for message specifications.
   */
-object TextApi {
+object TextApi extends TextProtocol.Codecs {
 
   type Version = String
 
@@ -61,7 +61,11 @@ object TextApi {
   }
 
   case object ApplyEdit extends Method("text/applyEdit") {
-    case class Params(edit: FileEdit, execute: Option[Boolean])
+    case class Params(
+      edit: FileEdit,
+      execute: Option[Boolean],
+      idMap: Option[IdMap]
+    )
     implicit val hasParams: HasParams.Aux[this.type, ApplyEdit.Params] =
       new HasParams[this.type] {
         type Params = ApplyEdit.Params

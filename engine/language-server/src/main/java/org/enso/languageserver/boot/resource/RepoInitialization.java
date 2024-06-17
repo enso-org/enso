@@ -63,7 +63,7 @@ public class RepoInitialization implements InitializationComponent {
     return initSuggestionsRepo()
         .whenCompleteAsync(
             (res, err) -> {
-              if (err == null && res != null) {
+              if (err == null) {
                 isInitialized = true;
               }
               lock.release();

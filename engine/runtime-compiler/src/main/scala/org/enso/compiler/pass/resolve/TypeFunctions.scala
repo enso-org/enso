@@ -106,16 +106,14 @@ case object TypeFunctions extends IRPass {
     * @return `expr`, with any typing functions resolved
     */
   def resolveExpression(expr: Expression): Expression = {
-    expr.transformExpressions {
-      case asc: Type.Ascription => asc
-      case app: Application =>
-        val result = resolveApplication(app)
-        app
-          .getMetadata(DocumentationComments)
-          .map(doc =>
-            result.updateMetadata(new MetadataPair(DocumentationComments, doc))
-          )
-          .getOrElse(result)
+    expr.transformExpressions { case app: Application =>
+      val result = resolveApplication(app)
+      app
+        .getMetadata(DocumentationComments)
+        .map(doc =>
+          result.updateMetadata(new MetadataPair(DocumentationComments, doc))
+        )
+        .getOrElse(result)
     }
   }
 

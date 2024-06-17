@@ -16,11 +16,8 @@ const { documentation: astDocumentation } = useAstDocumentation(
   graphStore,
   () => props.node.outerExpr,
 )
-const documentation = computed({
-  // This returns the same value as the `astDocumentation` getter, but with fewer reactive dependencies.
-  get: () => props.node.documentation ?? '',
-  set: (value) => (astDocumentation.value = value),
-})
+// This returns the same value as `astDocumentation.state`, but with fewer reactive dependencies.
+const documentation = computed(() => props.node.documentation ?? '')
 
 syncRef(editing, useFocusDelayed(textEditor).focused)
 </script>
@@ -28,7 +25,8 @@ syncRef(editing, useFocusDelayed(textEditor).focused)
   <div v-if="editing || props.node.documentation?.trimStart()" class="GraphNodeComment">
     <PlainTextEditor
       ref="textEditor"
-      v-model="documentation"
+      :modelValue="documentation"
+      @update:modelValue="astDocumentation.set"
       @keydown.enter.capture.stop="editing = false"
     />
   </div>

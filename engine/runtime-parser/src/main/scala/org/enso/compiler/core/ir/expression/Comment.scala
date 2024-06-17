@@ -91,7 +91,7 @@ object Comment {
       fn: java.util.function.Function[Expression, Expression]
     ): Documentation = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Comment.Documentation(

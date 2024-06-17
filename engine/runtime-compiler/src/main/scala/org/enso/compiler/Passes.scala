@@ -3,6 +3,7 @@ package org.enso.compiler
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
+import org.enso.compiler.pass.analyse.types.TypeInference
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
@@ -97,10 +98,15 @@ class Passes(
       AliasAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
+      // TODO passes below this line could be separated into a separate group, but it's more complicated - see usages of `functionBodyPasses`
       UnusedBindings,
       NoSelfInStatic,
       GenericAnnotations
-    )
+    ) ++ (if (config.staticTypeInferenceEnabled) {
+            List(
+              TypeInference.INSTANCE
+            )
+          } else List())
   )
 
   /** A list of the compiler phases, in the order they should be run.

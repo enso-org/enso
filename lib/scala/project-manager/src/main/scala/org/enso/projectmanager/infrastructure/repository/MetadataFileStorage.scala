@@ -21,7 +21,7 @@ import org.enso.projectmanager.infrastructure.file.{
 }
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.time.Clock
-import org.enso.projectmanager.model.{ProjectKind, ProjectMetadata}
+import org.enso.projectmanager.model.{ProjectKinds, ProjectMetadata}
 import shapeless.{Coproduct, Inl, Inr}
 
 /** File based implementation of the project metadata storage.
@@ -80,7 +80,7 @@ final class MetadataFileStorage[
       projectId <- gen.randomUUID()
     } yield ProjectMetadata(
       id         = projectId,
-      kind       = ProjectKind.UserProject,
+      kind       = ProjectKinds.UserProject,
       created    = now,
       lastOpened = None
     )
