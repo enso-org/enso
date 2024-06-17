@@ -27,7 +27,7 @@ import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
-import Editor from '#/layouts/Editor'
+import Editor, * as editor from '#/layouts/Editor'
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import Settings from '#/layouts/Settings'
 import TopBar from '#/layouts/TopBar'
@@ -43,8 +43,6 @@ import AssetQuery from '#/utilities/AssetQuery'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-
-import type * as types from '../../../../types/types'
 
 // ============================
 // === Global configuration ===
@@ -112,7 +110,7 @@ LocalStorage.registerKey('projectStartupInfo', {
 export interface DashboardProps {
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
-  readonly appRunner: types.EditorRunner | null
+  readonly appRunner: editor.GraphEditorRunner | null
   readonly initialProjectName: string | null
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null

@@ -10,8 +10,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 
 import type * as backendModule from '#/services/Backend'
 
-import type * as types from '../../../types/types'
-
 // =================
 // === Constants ===
 // =================
@@ -19,16 +17,46 @@ import type * as types from '../../../types/types'
 /** The horizontal offset of the editor's top bar from the left edge of the window. */
 const TOP_BAR_X_OFFSET_PX = 96
 
-// =================
-// === Component ===
-// =================
+// ====================
+// === StringConfig ===
+// ====================
+
+/** A configuration in which values may be strings or nested configurations. */
+interface StringConfig {
+  readonly [key: string]: StringConfig | string
+}
+
+// ========================
+// === GraphEditorProps ===
+// ========================
+
+/** Props for the GUI editor root component. */
+export interface GraphEditorProps {
+  readonly config: StringConfig | null
+  readonly projectId: string
+  readonly hidden: boolean
+  readonly ignoreParamsRegex?: RegExp
+  readonly logEvent: (message: string, projectId?: string | null, metadata?: object | null) => void
+}
+
+// =========================
+// === GraphEditorRunner ===
+// =========================
+
+/** The value passed from the entrypoint to the dashboard, which enables the dashboard to
+ * open a new IDE instance. */
+export type GraphEditorRunner = React.ComponentType<GraphEditorProps>
+
+// ==============
+// === Editor ===
+// ==============
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
   readonly hidden: boolean
   readonly ydocUrl: string | null
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly appRunner: types.EditorRunner | null
+  readonly appRunner: GraphEditorRunner | null
 }
 
 /** The container that launches the IDE. */
@@ -57,7 +85,7 @@ export default function Editor(props: EditorProps) {
     }
   }, [projectStartupInfo, hidden])
 
-  const appProps: types.EditorProps | null = React.useMemo(() => {
+  const appProps: GraphEditorProps | null = React.useMemo(() => {
     // eslint-disable-next-line no-restricted-syntax
     if (projectStartupInfo == null) return null
     const { project } = projectStartupInfo

@@ -68,6 +68,8 @@ import Dashboard from '#/pages/dashboard/Dashboard'
 import * as subscribe from '#/pages/subscribe/Subscribe'
 import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
+import * as editor from '#/layouts/Editor'
+
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
 import * as paywall from '#/components/Paywall'
@@ -87,8 +89,6 @@ import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
-
-import type * as types from '../../types/types'
 
 // ============================
 // === Global configuration ===
@@ -148,7 +148,7 @@ export interface AppProps {
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly projectManagerUrl: string | null
   readonly ydocUrl: string | null
-  readonly appRunner: types.EditorRunner | null
+  readonly appRunner: editor.GraphEditorRunner | null
   readonly portalRoot: Element
 }
 
