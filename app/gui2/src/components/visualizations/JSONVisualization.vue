@@ -59,7 +59,7 @@ function createProjection(path: (string | number)[][]) {
     <div class="JSONVisualization">
       <JsonValueWidget
         :data="props.data"
-        :isClickThroughEnabled="isClickThroughEnabled"
+        :class="{ viewonly: !isClickThroughEnabled }"
         @createProjection="createProjection"
       />
     </div>
@@ -70,5 +70,8 @@ function createProjection(path: (string | number)[][]) {
 .JSONVisualization {
   font-family: var(--font-mono);
   padding: 8px;
+}
+.viewonly {
+  pointer-events: none;
 }
 </style>

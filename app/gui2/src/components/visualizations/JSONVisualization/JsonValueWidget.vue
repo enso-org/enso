@@ -3,7 +3,7 @@ import JsonArrayWidget from '@/components/visualizations/JSONVisualization/JsonA
 import JsonObjectWidget from '@/components/visualizations/JSONVisualization/JsonObjectWidget.vue'
 import JsonPrimitiveWidget from '@/components/visualizations/JSONVisualization/JsonPrimitiveWidget.vue'
 
-const props = defineProps<{ data: unknown; isClickThroughEnabled: boolean }>()
+const props = defineProps<{ data: unknown }>()
 const emit = defineEmits<{
   createProjection: [path: (string | number)[][]]
 }>()
@@ -13,13 +13,11 @@ const emit = defineEmits<{
   <JsonArrayWidget
     v-if="Array.isArray(props.data)"
     :data="props.data"
-    :isClickThroughEnabled="isClickThroughEnabled"
     @createProjection="emit('createProjection', $event)"
   />
   <JsonObjectWidget
     v-else-if="props.data && typeof props.data === 'object'"
     :data="props.data"
-    :isClickThroughEnabled="isClickThroughEnabled"
     @createProjection="emit('createProjection', $event)"
   />
   <JsonPrimitiveWidget v-else :data="props.data" />

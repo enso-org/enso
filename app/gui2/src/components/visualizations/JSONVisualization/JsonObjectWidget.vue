@@ -2,7 +2,7 @@
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
 import { computed } from 'vue'
 
-const props = defineProps<{ data: object; isClickThroughEnabled: boolean }>()
+const props = defineProps<{ data: object }>()
 const emit = defineEmits<{
   createProjection: [path: (string | number)[][]]
 }>()
@@ -30,17 +30,12 @@ function entryTitle(key: string) {
       :key="key"
       :title="entryTitle(key)"
       class="field clickable"
-      :class="[isClickThroughEnabled && 'viewonly']"
-      @click.stop="
-        isClickThroughEnabled &&
-          emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])
-      "
+      @click.stop="emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])"
     >
       <span class="key" v-text="JSON.stringify(key)" />:
       <JsonValueWidget
         :data="value"
-        :isClickThroughEnabled="isClickThroughEnabled"
-        @createProjection="isClickThroughEnabled && emit('createProjection', [[key], ...$event])"
+        @createProjection="emit('createProjection', [[key], ...$event])"
       />
     </span>
   </span>
@@ -78,8 +73,5 @@ function entryTitle(key: string) {
 }
 .key {
   color: darkred;
-}
-.viewonly {
-  pointer-events: none;
 }
 </style>
