@@ -8,7 +8,9 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
-import type * as backendModule from '#/services/Backend'
+import Backend, * as backendModule from '#/services/Backend'
+
+import * as object from '#/utilities/object'
 
 import type * as types from '../../../types/types'
 
@@ -39,6 +41,7 @@ export default function Editor(props: EditorProps) {
   const gtagEventRef = React.useRef(gtagEvent)
   gtagEventRef.current = gtagEvent
   const remoteBackend = backendProvider.useRemoteBackend()
+  const localBackend = backendProvider.useLocalBackend()
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {
@@ -47,6 +50,35 @@ export default function Editor(props: EditorProps) {
       }
     },
     [remoteBackend]
+  )
+
+  const renameProject = React.useCallback(
+    (newName: string) => {
+      if (projectStartupInfo == null) return
+      let backend: Backend | null
+      switch (projectStartupInfo.backendType) {
+        case backendModule.BackendType.local:
+          backend = localBackend
+          break
+        case backendModule.BackendType.remote:
+          backend = remoteBackend
+          break
+      }
+      const { id: projectId, parentId, title } = projectStartupInfo.projectAsset
+      backend
+        ?.updateProject(
+          projectId,
+          { projectName: newName, ami: null, ideVersion: null, parentId },
+          title
+        )
+        .then(
+          () => {
+            projectStartupInfo.setProjectAsset?.(object.merger({ title: newName }))
+          },
+          e => toastAndLog('renameProjectError', e)
+        )
+    },
+    [remoteBackend, localBackend, projectStartupInfo]
   )
 
   React.useEffect(() => {
@@ -61,7 +93,7 @@ export default function Editor(props: EditorProps) {
     // eslint-disable-next-line no-restricted-syntax
     if (projectStartupInfo == null) return null
     const { project } = projectStartupInfo
-    const { id: projectId, parentId, title } = projectStartupInfo.projectAsset
+    const projectId = projectStartupInfo.projectAsset.id
     const jsonAddress = project.jsonAddress
     const binaryAddress = project.binaryAddress
     const ydocAddress = ydocUrl ?? ''
@@ -91,18 +123,10 @@ export default function Editor(props: EditorProps) {
         hidden,
         ignoreParamsRegex: new RegExp(`^${appUtils.SEARCH_PARAMS_PREFIX}(.+)$`),
         logEvent,
-        renameProject: newName => {
-          backend
-            .updateProject(
-              projectId,
-              { projectName: newName, ami: null, ideVersion: null, parentId },
-              title
-            )
-            .catch(e => toastAndLog('renameProjectError', e))
-        },
+        renameProject,
       }
     }
-  }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl, backend])
+  }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl, renameProject])
 
   if (projectStartupInfo == null || AppRunner == null || appProps == null) {
     return <></>
