@@ -9,7 +9,6 @@ import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
-  Cons,
   ConversionMethod,
   ModuleMethod,
   StaticMethod
