@@ -35,6 +35,8 @@
     "@hookform/resolvers": "^3.4.0",
     "@monaco-editor/react": "4.6.0",
     "@sentry/react": "^7.74.0",
+    "@stripe/react-stripe-js": "^2.7.1",
+    "@stripe/stripe-js": "^3.5.0",
     "@tanstack/react-query": "5.37.1",
     "ajv": "^8.12.0",
     "enso-common": "^1.0.0",
