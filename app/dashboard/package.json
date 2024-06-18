@@ -79,7 +79,6 @@
     "cross-env": "^7.0.3",
     "enso-chat": "git://github.com/enso-org/enso-bot",
     "eslint": "^8.49.0",
-    "eslint-plugin-jsdoc": "^46.8.1",
     "eslint-plugin-react": "^7.32.1",
     "fast-check": "^3.15.0",
     "playwright": "^1.38.0",

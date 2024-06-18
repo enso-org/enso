@@ -54,7 +54,8 @@ export function useForm<
 
     return reactHookForm.useForm<TFieldValues, unknown, TTransformedValues>({
       ...options,
-      resolver: zodResolver.zodResolver(schema, { async: true }),
+      // eslint-disable-next-line no-restricted-syntax
+      resolver: zodResolver.zodResolver(schema as never, { async: true }),
     })
   }
 }

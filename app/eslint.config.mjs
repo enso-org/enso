@@ -448,18 +448,18 @@ export default [
     },
     {
         files: [
-            'lib/dashboard/src/**/*.ts',
-            'lib/dashboard/src/**/*.mts',
-            'lib/dashboard/src/**/*.cts',
-            'lib/dashboard/src/**/*.tsx',
-            'lib/dashboard/src/**/*.mtsx',
-            'lib/dashboard/src/**/*.ctsx',
-            'lib/dashboard/mock/**/*.ts',
-            'lib/dashboard/mock/**/*.mts',
-            'lib/dashboard/mock/**/*.cts',
-            'lib/dashboard/mock/**/*.tsx',
-            'lib/dashboard/mock/**/*.mtsx',
-            'lib/dashboard/mock/**/*.ctsx',
+            'dashboard/src/**/*.ts',
+            'dashboard/src/**/*.mts',
+            'dashboard/src/**/*.cts',
+            'dashboard/src/**/*.tsx',
+            'dashboard/src/**/*.mtsx',
+            'dashboard/src/**/*.ctsx',
+            'dashboard/mock/**/*.ts',
+            'dashboard/mock/**/*.mts',
+            'dashboard/mock/**/*.cts',
+            'dashboard/mock/**/*.tsx',
+            'dashboard/mock/**/*.mtsx',
+            'dashboard/mock/**/*.ctsx',
         ],
         rules: {
             'no-restricted-properties': [
@@ -494,12 +494,12 @@ export default [
     },
     {
         files: [
-            'lib/dashboard/e2e/**/*.ts',
-            'lib/dashboard/e2e/**/*.mts',
-            'lib/dashboard/e2e/**/*.cts',
-            'lib/dashboard/e2e/**/*.tsx',
-            'lib/dashboard/e2e/**/*.mtsx',
-            'lib/dashboard/e2e/**/*.ctsx',
+            'dashboard/e2e/**/*.ts',
+            'dashboard/e2e/**/*.mts',
+            'dashboard/e2e/**/*.cts',
+            'dashboard/e2e/**/*.tsx',
+            'dashboard/e2e/**/*.mtsx',
+            'dashboard/e2e/**/*.ctsx',
         ],
         rules: {
             'no-restricted-properties': [
