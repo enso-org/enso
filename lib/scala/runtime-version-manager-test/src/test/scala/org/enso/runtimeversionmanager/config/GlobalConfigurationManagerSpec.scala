@@ -29,13 +29,14 @@ class GlobalConfigurationManagerSpec
       val configurationManager = makeConfigManager()
       val value                = Json.fromInt(42)
       configurationManager.updateConfigRaw("unknown-key", value)
-      configurationManager.getConfig.original
-        .apply("unknown-key")
-        .value shouldEqual value
-      configurationManager.removeFromConfig("unknown-key")
-      configurationManager.getConfig.original.apply(
-        "unknown-key"
-      ) should not be defined
+      configurationManager.getConfig
+        .findByKey("unknown-key") should not be defined
+      val newEmail = Json.fromString("foo@bar.com")
+      configurationManager.getConfig
+        .findByKey("author.email") should not be defined
+      configurationManager.updateConfigRaw("author.email", newEmail)
+      configurationManager.getConfig
+        .findByKey("author.email") shouldEqual newEmail.asString
     }
 
     "not allow saving an invalid config" in {
