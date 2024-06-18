@@ -65,7 +65,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "output_stream_builtin")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoObject outputStream(
       Object opts,
       @Cached ArrayLikeLengthNode lengthNode,
@@ -102,6 +102,7 @@ public final class EnsoFile implements EnsoObject {
       return ArrayLikeHelpers.wrapStrings(MEMBERS);
     }
 
+    @TruffleBoundary
     @ExportMessage
     Object invokeMember(
         String name,
@@ -162,7 +163,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "input_stream_builtin")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoObject inputStream(
       Object opts,
       @Cached ArrayLikeLengthNode lengthNode,
@@ -328,7 +329,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "read_last_bytes_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoObject readLastBytes(long n) throws IOException {
     try (SeekableByteChannel channel =
         this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
@@ -357,7 +358,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoDateTime getCreationTime() throws IOException {
     return new EnsoDateTime(
         ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC));
@@ -365,7 +366,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoDateTime getLastModifiedTime() throws IOException {
     return new EnsoDateTime(
         ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC));
@@ -373,13 +374,13 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "posix_permissions_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Text getPosixPermissions() throws IOException {
     return Text.create(PosixFilePermissions.toString(truffleFile.getPosixPermissions()));
   }
 
   @Builtin.Method(name = "parent")
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoObject getParent() {
     // Normalization is needed to correctly handle paths containing `..` and `.`.
     var parentOrNull = this.normalize().truffleFile.getParent();
@@ -399,32 +400,32 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method(name = "absolute")
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoFile getAbsoluteFile() {
     return new EnsoFile(this.truffleFile.getAbsoluteFile());
   }
 
   @Builtin.Method(name = "path")
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Text getPath() {
     return Text.create(this.truffleFile.getPath());
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean isAbsolute() {
     return this.truffleFile.isAbsolute();
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean isDirectory() {
     return this.truffleFile.isDirectory();
   }
 
   @Builtin.Method(name = "create_directory_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public void createDirectories() throws IOException {
     try {
       this.truffleFile.createDirectories();
@@ -502,32 +503,32 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "list_immediate_children_array")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoObject list() throws IOException {
     return ArrayLikeHelpers.wrapEnsoObjects(
         this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new));
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoFile relativize(EnsoFile other) {
     return new EnsoFile(this.truffleFile.relativize(other.truffleFile));
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean isRegularFile() {
     return this.truffleFile.isRegularFile();
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean isWritable() {
     return this.truffleFile.isWritable();
   }
 
   @Builtin.Method(name = "name")
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Text getName() {
     var name = this.normalize().truffleFile.getName();
     return Text.create(name == null ? "/" : name);
@@ -535,7 +536,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "size_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public long getSize() throws IOException {
     if (this.truffleFile.isDirectory()) {
       throw new IOException("size can only be called on files.");
@@ -554,7 +555,7 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoFile normalize() {
     TruffleFile simplyNormalized = truffleFile.normalize();
     String name = simplyNormalized.getName();
@@ -567,7 +568,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "delete_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public void delete(boolean recursive) throws IOException {
     if (recursive && truffleFile.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
       deleteRecursively(truffleFile);
@@ -588,7 +589,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public void copy(
       EnsoFile target,
       Object options,
@@ -603,7 +604,7 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public void move(
       EnsoFile target,
       Object options,
@@ -616,7 +617,7 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean startsWith(EnsoFile parent) {
     return truffleFile.startsWith(parent.truffleFile);
   }
@@ -627,7 +628,7 @@ public final class EnsoFile implements EnsoObject {
           "Takes the text representation of a path and returns a TruffleFile corresponding to it.",
       autoRegister = false)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public static EnsoFile fromString(EnsoContext context, String path) {
     TruffleFile file = context.getPublicTruffleFile(path);
     return new EnsoFile(file);
@@ -638,7 +639,7 @@ public final class EnsoFile implements EnsoObject {
       description = "A file corresponding to the current working directory.",
       autoRegister = false)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public static EnsoFile currentDirectory(EnsoContext context) {
     TruffleFile file = context.getCurrentWorkingDirectory();
     return new EnsoFile(file);
@@ -649,13 +650,13 @@ public final class EnsoFile implements EnsoObject {
       description = "Gets the user's system-defined home directory.",
       autoRegister = false)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public static EnsoFile userHome(EnsoContext context) {
     return fromString(context, System.getProperty("user.home"));
   }
 
   @Override
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public String toString() {
     return "(File " + truffleFile.getPath() + ")";
   }
