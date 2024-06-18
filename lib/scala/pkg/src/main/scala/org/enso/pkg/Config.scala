@@ -2,7 +2,7 @@ package org.enso.pkg
 
 import io.circe._
 import io.circe.syntax._
-import io.circe.yaml.Printer
+import io.circe.yaml.{Parser, Printer}
 import org.enso.semver.SemVer
 import org.enso.editions.EditionSerialization._
 import org.enso.editions.{
@@ -15,7 +15,6 @@ import org.enso.editions.{
 import org.enso.pkg.validation.NameValidation
 
 import java.io.Reader
-
 import scala.util.Try
 
 /** Contact information to a user.
@@ -240,7 +239,7 @@ object Config {
 
   /** Tries to parse the [[Config]] directly from the Reader */
   def fromYaml(reader: Reader): Try[Config] = {
-    yaml.parser.parse(reader).flatMap(_.as[Config]).toTry
+    Parser.default.parse(reader).flatMap(_.as[Config]).toTry
   }
 
   /** Creates a simple edition that just defines the provided engine version.
