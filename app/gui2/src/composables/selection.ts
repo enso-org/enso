@@ -3,19 +3,21 @@ import { selectionMouseBindings } from '@/bindings'
 import { useEvent, usePointer } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
+import { filter, filterDefined, map } from '@/util/data/iterable'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
 import { dataAttribute, elementHierarchy } from '@/util/dom'
 import * as set from 'lib0/set'
-import { filter } from 'shared/util/data/iterable'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
 
-export function useSelection<T>(
+export function useSelection<T, PackedT>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
   margin: number,
   isValid: (element: T) => boolean,
+  pack: (element: T) => PackedT | undefined,
+  unpack: (packed: PackedT) => T | undefined,
   callbacks: {
     onSelected?: (element: T) => void
     onDeselected?: (element: T) => void
@@ -24,29 +26,35 @@ export function useSelection<T>(
   const anchor = shallowRef<Vec2>()
   let initiallySelected = new Set<T>()
   // Selection, including elements that do not (currently) pass `isValid`.
-  const rawSelected = shallowReactive(new Set<T>())
+  const rawSelected = shallowReactive(new Set<PackedT>())
 
-  const selected = computed(() => set.from(filter(rawSelected, isValid)))
+  const unpackedRawSelected = computed(() => set.from(filterDefined(map(rawSelected, unpack))))
+  const selected = computed(() => set.from(filter(unpackedRawSelected.value, isValid)))
   const isChanging = computed(() => anchor.value != null)
   const committedSelection = computed(() =>
     isChanging.value ? set.from(filter(initiallySelected, isValid)) : selected.value,
   )
 
   function readInitiallySelected() {
-    initiallySelected = set.from(rawSelected)
+    initiallySelected = unpackedRawSelected.value
   }
 
   function setSelection(newSelection: Set<T>) {
-    for (const id of newSelection)
-      if (!rawSelected.has(id)) {
-        rawSelected.add(id)
+    for (const id of newSelection) {
+      const packed = pack(id)
+      if (packed != null && !rawSelected.has(packed)) {
+        rawSelected.add(packed)
         callbacks.onSelected?.(id)
       }
-    for (const id of rawSelected)
-      if (!newSelection.has(id)) {
-        rawSelected.delete(id)
-        callbacks.onDeselected?.(id)
+    }
+
+    for (const packed of rawSelected) {
+      const id = unpack(packed)
+      if (id == null || !newSelection.has(id)) {
+        rawSelected.delete(packed)
+        if (id != null) callbacks.onDeselected?.(id)
       }
+    }
   }
 
   function execAdd() {
@@ -143,10 +151,16 @@ export function useSelection<T>(
     // === Selected nodes ===
     selected,
     selectAll: () => {
-      for (const id of elementRects.keys()) rawSelected.add(id)
+      for (const id of elementRects.keys()) {
+        const packed = pack(id)
+        if (packed) rawSelected.add(packed)
+      }
     },
     deselectAll: () => rawSelected.clear(),
-    isSelected: (element: T) => rawSelected.has(element),
+    isSelected: (element: T) => {
+      const packed = pack(element)
+      return packed != null && rawSelected.has(packed)
+    },
     committedSelection,
     setSelection,
     // === Selection changes ===
