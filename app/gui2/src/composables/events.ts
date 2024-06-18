@@ -1,5 +1,6 @@
 /** @file Vue composables for listening to DOM events. */
 
+import type { KeyboardComposable } from '@/composables/keyboard.ts'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { type VueInstance } from '@vueuse/core'
@@ -527,4 +528,61 @@ export function useArrows(
   )
 
   return { events, moving }
+}
+
+export function useWheelActions(keyboard: KeyboardComposable, captureDuration: number) {
+  let prevEventPanInfo:
+    | ({ expiration: number } & (
+        | { type: 'trackpad-zoom' }
+        | { type: 'wheel-zoom' }
+        | { type: 'pan'; trackpad: boolean }
+      ))
+    | undefined = undefined
+
+  function eventType(e: WheelEvent) {
+    if (e.ctrlKey) {
+      // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
+      // combination because the real Ctrl key emits keyup/keydown events.
+      const isGesture = !keyboard.ctrl
+      return isGesture ? 'trackpad-zoom' : 'wheel-zoom'
+    } else {
+      return 'pan'
+    }
+  }
+
+  function wheelEventType(e: WheelEvent, continueOnly?: boolean | undefined) {
+    const newType = eventType(e)
+    if (continueOnly) {
+      if (newType !== prevEventPanInfo?.type || e.timeStamp > prevEventPanInfo.expiration) {
+        prevEventPanInfo = undefined
+        return
+      }
+    }
+    const expiration = e.timeStamp + captureDuration
+    if (newType === 'trackpad-zoom' || newType === 'wheel-zoom') {
+      prevEventPanInfo = { expiration, type: newType }
+    }
+    if (newType === 'pan') {
+      const alreadyKnownTrackpad = prevEventPanInfo?.type === 'pan' && prevEventPanInfo.trackpad
+      prevEventPanInfo = {
+        expiration,
+        type: newType,
+        // Heuristic: Trackpad panning is usually multi-axis; wheel panning is not.
+        trackpad: alreadyKnownTrackpad || (e.deltaX !== 0 && e.deltaY !== 0),
+      }
+    }
+    return newType
+  }
+
+  function pointerMove() {
+    // If a `pointermove` event occurs, any trackpad action has ended.
+    if (
+      prevEventPanInfo?.type === 'trackpad-zoom' ||
+      (prevEventPanInfo?.type === 'pan' && prevEventPanInfo.trackpad)
+    ) {
+      prevEventPanInfo = undefined
+    }
+  }
+
+  return { pointerMove, wheelEventType }
 }

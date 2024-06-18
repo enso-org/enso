@@ -662,6 +662,7 @@ const groupColors = computed(() => {
     @click="handleClick"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
+    @wheel.capture="graphNavigator.pointerEventsCapture.wheel"
   >
     <div class="layer" :style="{ transform: graphNavigator.transform }">
       <GraphNodes
