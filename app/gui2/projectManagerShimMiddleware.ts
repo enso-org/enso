@@ -21,7 +21,13 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const PROJECTS_ROOT_DIRECTORY = path.join(os.homedir(), 'enso/projects')
-const GLOBAL_CONFIG = await import('enso-common/src/config.json', { assert: { type: 'json' } })
+// Should be the following:
+// import GLOBAL_CONFIG from 'enso-common/src/config.json' assert { type: 'json' }
+// except that Vite's config file is processed using a target that does not understand import
+// assertions.
+const GLOBAL_CONFIG = JSON.parse(
+  await fs.readFile(new URL('../common/src/config.json', import.meta.url), { encoding: 'utf-8' }),
+)
 
 // =============
 // === Types ===
