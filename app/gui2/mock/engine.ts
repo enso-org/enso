@@ -366,7 +366,7 @@ function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?
     typeof config.expression === 'string' ?
       // Getting widget configuration is a special case, where we sometimes pass lambda as
       // expression to discard the input value
-      /^[a-z]+ *->.*get_widget_json/.test(config.expression) ?
+      /^[a-z_]+ *->.*get_widget_json/.test(config.expression) ?
         mockWidgetConfiguration(config.positionalArgumentsExpressions?.at(0))
       : mockVizPreprocessors[`${config.visualizationModule}.${config.expression}`]
     : mockVizPreprocessors[`${config.expression.definedOnType}.${config.expression.name}`]
