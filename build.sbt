@@ -2791,6 +2791,17 @@ lazy val `benchmarks-common` =
     )
     .dependsOn(`polyglot-api`)
 
+lazy val `desktop-environment` =
+  project
+    .in(file("lib/java/desktop-environment"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion   % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+      )
+    )
+
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
