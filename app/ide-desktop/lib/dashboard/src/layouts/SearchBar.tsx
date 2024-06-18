@@ -26,41 +26,43 @@ export default function SearchBar(props: SearchBarProps) {
   const { query, setQuery, label, placeholder } = props
 
   return (
-    <FocusArea direction="horizontal">
-      {innerProps => (
-        <aria.Label
-          data-testid={props['data-testid']}
-          {...aria.mergeProps<aria.LabelProps>()(innerProps, {
-            className:
-              'group relative flex h-row items-center gap-asset-search-bar rounded-full px-input-x text-primary',
-          })}
-        >
-          <img src={FindIcon} className="relative z-1 placeholder" />
-          <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
-            <div className="padding relative h-row" />
-          </div>
-          <FocusRing placement="before">
-            <aria.SearchField
-              aria-label={label}
-              className="before:inset-x-button-focus-ring-inset relative grow before:text before:absolute before:my-auto before:rounded-full before:transition-all"
-              value={query}
-              onKeyDown={event => {
-                event.continuePropagation()
-              }}
-            >
-              <aria.Input
-                type="search"
-                size={1}
-                placeholder={placeholder}
-                className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
-                onChange={event => {
-                  setQuery(event.target.value)
+    <div className="flex justify-around">
+      <FocusArea direction="horizontal">
+        {innerProps => (
+          <aria.Label
+            data-testid={props['data-testid']}
+            {...aria.mergeProps<aria.LabelProps>()(innerProps, {
+              className:
+                'group relative flex basis-[480px] h-row items-center gap-asset-search-bar rounded-full px-input-x text-primary',
+            })}
+          >
+            <img src={FindIcon} className="relative z-1 placeholder" />
+            <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
+              <div className="padding relative h-row" />
+            </div>
+            <FocusRing placement="before">
+              <aria.SearchField
+                aria-label={label}
+                className="before:inset-x-button-focus-ring-inset relative grow before:text before:absolute before:my-auto before:rounded-full before:transition-all"
+                value={query}
+                onKeyDown={event => {
+                  event.continuePropagation()
                 }}
-              />
-            </aria.SearchField>
-          </FocusRing>
-        </aria.Label>
-      )}
-    </FocusArea>
+              >
+                <aria.Input
+                  type="search"
+                  size={1}
+                  placeholder={placeholder}
+                  className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
+                  onChange={event => {
+                    setQuery(event.target.value)
+                  }}
+                />
+              </aria.SearchField>
+            </FocusRing>
+          </aria.Label>
+        )}
+      </FocusArea>
+    </div>
   )
 }
