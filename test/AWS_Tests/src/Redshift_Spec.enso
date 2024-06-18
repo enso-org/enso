@@ -10,9 +10,10 @@ from Standard.AWS import Redshift_Details, AWS_Credential
 
 from Standard.Test import all
 
-import project.Database.Common.Common_Spec
-import project.Database.Helpers.Name_Generator
-import project.Common_Table_Operations
+import enso_dev.Table_Tests
+import enso_dev.Table_Tests.Database.Common.Common_Spec
+import enso_dev.Table_Tests.Database.Helpers.Name_Generator
+import enso_dev.Table_Tests.Common_Table_Operations
 
 type Data
     Value ~data
