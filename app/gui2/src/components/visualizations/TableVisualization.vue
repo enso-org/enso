@@ -259,32 +259,19 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
-// type ConstructivePattern = (placeholder: Ast.Owned) => Ast.Owned
-
-// function projector(parentPattern: ConstructivePattern | undefined) {
-//   const style = {
-//     spaced: parentPattern !== undefined,
-//   }
-//   return (selector: number | string) => (source: Ast.Owned) =>
-//     Ast.App.positional(
-//       Ast.PropertyAccess.new(
-//         source.module,
-//         parentPattern ? parentPattern(source) : source,
-//         Ast.identifier('get')!,
-//         style,
-//       ),
-//       typeof selector === 'number' ?
-//         Ast.tryNumberToEnso(selector, source.module)!
-//       : Ast.TextLiteral.new(selector, source.module),
-//       source.module,
-//     )
-// }
-
-const pattern = Pattern.new((ast) => Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('at')!))
+const getPattern = (index: number) =>
+  Pattern.new((ast) =>
+    Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('at')!),
+      Ast.tryNumberToEnso(index, ast.module)!,
+    ),
+  )
 
 function createNode(params: any) {
-  console.log(params)
-  config.createNodes({ content: pattern, commit: true })
+  config.createNodes({
+    content: getPattern(params.data[INDEX_FIELD_NAME]),
+    commit: true,
+  })
 }
 
 function indexField(): ColDef {
