@@ -232,7 +232,8 @@ public final class EnsoFile implements EnsoObject {
             for (var i = from; i < to; i++) {
               var b = is.read();
               if (b == -1) {
-                yield i - from;
+                var count = i - from;
+                yield count > 0 ? count : -1;
               }
               iop.writeArrayElement(args[0], i, (byte) b);
             }
