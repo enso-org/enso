@@ -17,10 +17,8 @@
     "ci-check": "run-p test prettier lint typecheck"
   },
   "workspaces": [
-    "app/ide-desktop",
-    "app/ide-desktop/lib/*",
-    "lib/js/runner",
-    "app/gui2"
+    "app/*",
+    "lib/js/runner"
   ],
   "overrides": {
     "tslib": "$tslib"
