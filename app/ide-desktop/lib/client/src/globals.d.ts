@@ -162,9 +162,8 @@ declare global {
             readonly ENSO_BUILD_ELECTRON_BUILDER_CONFIG?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly npm_package_name?: string
-
-            // === Cloud environment variables ===
-
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly PROJECT_MANAGER_IN_BUNDLE_PATH: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
 
@@ -183,5 +182,4 @@ declare global {
     // These are used in other files (because they're globals)
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUILD_INFO: buildJson.BuildInfo
-    const PROJECT_MANAGER_IN_BUNDLE_PATH: string
 }

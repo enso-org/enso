@@ -36,7 +36,7 @@ export const PROJECT_MANAGER_PATH = path.join(
     RESOURCES_PATH,
     paths.PROJECT_MANAGER_BUNDLE,
     // Placeholder for a bundler-provided define.
-    PROJECT_MANAGER_IN_BUNDLE_PATH
+    process.env.PROJECT_MANAGER_IN_BUNDLE_PATH
 )
 
 /** Relative path of Enso Project package metadata relative to the project root. */

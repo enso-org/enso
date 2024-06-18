@@ -42,7 +42,6 @@ export default vite.defineConfig({
     },
   },
   define: {
-    IS_VITE: JSON.stringify(true),
     // The sole hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': JSON.stringify(true),
     ...appConfig.getDefines(),
