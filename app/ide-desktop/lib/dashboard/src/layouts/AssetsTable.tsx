@@ -11,6 +11,7 @@ import * as mimeTypes from '#/data/mimeTypes'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import useOnScroll from '#/hooks/useOnScroll'
 
@@ -425,8 +426,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       -1
     )
   })
-  const [isDropping, setIsDropping] = React.useState(false)
-  const [isMainDropzoneVisible, setIsMainDropzoneVisible] = React.useState(true)
+  const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
   const [droppedFilesCount, setDroppedFilesCount] = React.useState(0)
   const isCloud = backend.type === backendModule.BackendType.remote
   /** Events sent when the asset list was still loading. */
@@ -615,25 +615,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     [displayItems, visibilities]
   )
 
-  React.useEffect(() => {
-    const root = rootRef.current
-    const mainDropzone = mainDropzoneRef.current
-    if (root != null && mainDropzone != null) {
-      const observer = new IntersectionObserver(
-        entries => {
-          for (const entry of entries) {
-            console.log(entry.intersectionRatio)
-            setIsMainDropzoneVisible(entry.intersectionRatio >= MINIMUM_DROPZONE_INTERSECTION_RATIO)
-          }
-        },
-        { root, threshold: MINIMUM_DROPZONE_INTERSECTION_RATIO }
-      )
-      observer.observe(mainDropzone)
-      return () => {
-        observer.disconnect()
-      }
-    }
-  }, [])
+  const isMainDropzoneVisible = intersectionHooks.useIntersectionRatio(
+    rootRef,
+    mainDropzoneRef,
+    MINIMUM_DROPZONE_INTERSECTION_RATIO,
+    ratio => ratio >= MINIMUM_DROPZONE_INTERSECTION_RATIO,
+    true
+  )
 
   const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
@@ -1929,9 +1917,14 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (filtered != null && filtered.length > 0) {
       event.preventDefault()
     } else if (event.dataTransfer.types.includes('Files')) {
-      setIsDropping(true)
-      setDroppedFilesCount(event.dataTransfer.items.length)
       event.preventDefault()
+    }
+  }
+
+  const updateIsDraggingFiles = (event: React.DragEvent<Element>) => {
+    if (event.dataTransfer.types.includes('Files')) {
+      setIsDraggingFiles(true)
+      setDroppedFilesCount(event.dataTransfer.items.length)
     }
   }
 
@@ -2411,7 +2404,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     })
   )
 
-  const dropzoneText = isDropping
+  const dropzoneText = isDraggingFiles
     ? droppedFilesCount === 1
       ? getText('assetsDropFileDescription')
       : getText('assetsDropFilesDescription', droppedFilesCount)
@@ -2441,7 +2434,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           />
         )
       }}
-      onDragEnter={onDropzoneDragOver}
       onDragLeave={event => {
         const payload = drag.LABELS.lookup(event)
         if (
@@ -2493,6 +2485,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}
+        onDragLeave={event => {
+          if (event.currentTarget === event.target) {
+            setIsDraggingFiles(false)
+          }
+        }}
         onDrop={event => {
           const payload = drag.ASSET_ROWS.lookup(event)
           const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
@@ -2566,6 +2563,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                   setKeyboardSelectedIndex(null)
                 }
               },
+              onDragEnter: updateIsDraggingFiles,
+              onDragOver: updateIsDraggingFiles,
+              onDragLeave: () => {
+                setIsDraggingFiles(false)
+              },
             })}
           >
             {!hidden && hiddenContextMenu}
@@ -2625,38 +2627,32 @@ export default function AssetsTable(props: AssetsTableProps) {
           </div>
         )}
       </FocusArea>
-      <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
-        <div
-          data-testid="root-directory-dropzone"
-          onDragEnter={onDropzoneDragOver}
-          onDragOver={onDropzoneDragOver}
-          onDragLeave={event => {
-            if (event.currentTarget === event.target) {
-              setIsDropping(false)
-            }
-          }}
-          onDrop={event => {
-            setIsDropping(false)
-            if (event.dataTransfer.types.includes('Files')) {
-              event.preventDefault()
-              event.stopPropagation()
-              dispatchAssetListEvent({
-                type: AssetListEventType.uploadFiles,
-                parentKey: rootDirectoryId,
-                parentId: rootDirectoryId,
-                files: Array.from(event.dataTransfer.files),
-              })
-            }
-          }}
-          className={tailwindMerge.twMerge(
-            'pointer-events-none flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 opacity-0 backdrop-blur-3xl transition-all',
-            isDropping && !isMainDropzoneVisible && 'pointer-events-auto opacity-100'
-          )}
-        >
-          <SvgMask src={DropFilesImage} className="size-8" />
-          {dropzoneText}
+      {isDraggingFiles && !isMainDropzoneVisible && (
+        <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
+          <div
+            data-testid="root-directory-dropzone"
+            className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
+            onDragEnter={onDropzoneDragOver}
+            onDragOver={onDropzoneDragOver}
+            onDrop={event => {
+              setIsDraggingFiles(false)
+              if (event.dataTransfer.types.includes('Files')) {
+                event.preventDefault()
+                event.stopPropagation()
+                dispatchAssetListEvent({
+                  type: AssetListEventType.uploadFiles,
+                  parentKey: rootDirectoryId,
+                  parentId: rootDirectoryId,
+                  files: Array.from(event.dataTransfer.files),
+                })
+              }
+            }}
+          >
+            <SvgMask src={DropFilesImage} className="size-8" />
+            {dropzoneText}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
