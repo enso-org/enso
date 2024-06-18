@@ -29,7 +29,7 @@ export default defineConfig({
   plugins: [
     vue(),
     react({
-      include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
+      include: fileURLToPath(new URL('../dashboard/**/*.tsx', import.meta.url)),
       babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
     }),
     gatewayServer(),
@@ -69,10 +69,7 @@ export default defineConfig({
         tailwindcss({
           ...tailwindConfig.default,
           content: tailwindConfig.default.content.map((glob: string) =>
-            glob.replace(
-              /^[.][/]/,
-              fileURLToPath(new URL('../ide-desktop/lib/dashboard/', import.meta.url)),
-            ),
+            glob.replace(/^[.][/]/, fileURLToPath(new URL('../dashboard/', import.meta.url))),
           ),
         }),
       ],

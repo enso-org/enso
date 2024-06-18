@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../tsconfig.json",
   "include": [
     "src",
     "e2e",
@@ -14,7 +14,7 @@
   "compilerOptions": {
     "composite": true,
     "noEmit": false,
-    "outDir": "../../../../node_modules/.cache/tsc",
+    "outDir": "../../node_modules/.cache/tsc",
     "paths": { "#/*": ["./src/*"] },
     "target": "ESNext",
     "lib": ["ESNext", "DOM", "ES2023"]

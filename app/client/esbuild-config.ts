@@ -55,9 +55,7 @@ export function bundlerOptions(
                 projectManagerInBundlePath
             ),
             'process.env.ELECTRON_DEV_MODE': JSON.stringify(String(devMode)),
-            'process.env.GUI_CONFIG_PATH': JSON.stringify(
-                path.resolve('../../../gui2/vite.config.ts')
-            ),
+            'process.env.GUI_CONFIG_PATH': JSON.stringify(path.resolve('../gui2/vite.config.ts')),
         },
         /* eslint-enable @typescript-eslint/naming-convention */
         sourcemap: true,

@@ -2,7 +2,7 @@
 
 import * as buildUtils from 'enso-common/src/buildUtils'
 
-import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
+import BUILD_INFO from '../../../build.json' assert { type: 'json' }
 
 // ==================
 // === Debug Info ===

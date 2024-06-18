@@ -6,6 +6,7 @@ import * as url from 'node:url'
 // ===============================
 // === readEnvironmentFromFile ===
 // ===============================
+console.log(':)')
 
 /** Read environment variables from a file based on the `ENSO_CLOUD_ENV_FILE_NAME`
  * environment variable. Reads from `.env` if the variable is `production`, blank or absent.
@@ -17,6 +18,7 @@ export async function readEnvironmentFromFile() {
     const isProduction = environment == null || environment === '' || environment === 'production'
     const fileName = isProduction ? '.env' : `.${environment}.env`
     const filePath = path.join(url.fileURLToPath(new URL('../../..', import.meta.url)), fileName)
+    console.log(filePath)
     const expectedKeys = Object.keys(DUMMY_DEFINES).map(key => key.replace(/^process[.]env[.]/, ''))
     /** @type {string[]} */
     const missingKeys = []
@@ -50,7 +52,7 @@ export async function readEnvironmentFromFile() {
         }
         const buildInfo = await (async () => {
             try {
-                return await import('../../../../../build.json', { assert: { type: 'json' } })
+                return await import('../../../build.json', { assert: { type: 'json' } })
             } catch {
                 return { commit: '', version: '', engineVersion: '', name: '' }
             }

@@ -1,7 +1,7 @@
 import { useEvent } from '@/composables/events'
 import { type ProjectStore } from '@/stores/project'
 import { useToast } from '@/util/toast'
-import { ProjectManagerEvents } from '../../../../ide-desktop/lib/dashboard/src/services/ProjectManager'
+import { ProjectManagerEvents } from '../../../../dashboard/src/services/ProjectManager'
 
 export function useGraphEditorToasts(projectStore: ProjectStore) {
   const toastStartup = useToast.info({ autoClose: false })

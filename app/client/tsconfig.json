@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../tsconfig.json",
   "compilerOptions": {
     "baseUrl": "./src",
     "esModuleInterop": true
@@ -8,11 +8,11 @@
     ".",
     "../content",
     "../types",
-    "../../../../build.json",
+    "../../build.json",
     "src/config.json"
   ],
   "references": [
-    { "path": "../../../gui2/tsconfig.server.json" },
+    { "path": "../gui2/tsconfig.server.json" },
     { "path": "../dashboard" }
   ]
 }

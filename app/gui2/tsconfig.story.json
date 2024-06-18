@@ -35,7 +35,7 @@
   },
   "references": [
     {
-      "path": "../ide-desktop/lib/dashboard/tsconfig.json"
+      "path": "../dashboard/tsconfig.json"
     }
   ]
 }
