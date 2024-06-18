@@ -15,11 +15,6 @@ export function getIdeDirectory(): string {
     return buildUtils.requireEnv('ENSO_BUILD_IDE')
 }
 
-/** Distribution directory for GUI. */
-export function getGuiDirectory(): string {
-    return buildUtils.requireEnv('ENSO_BUILD_GUI')
-}
-
 /** Path to the project manager bundle root. */
 export function getProjectManagerBundlePath(): string {
     return buildUtils.requireEnv('ENSO_BUILD_PROJECT_MANAGER')
