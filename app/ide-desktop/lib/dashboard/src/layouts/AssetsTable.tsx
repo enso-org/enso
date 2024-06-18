@@ -2322,14 +2322,6 @@ export default function AssetsTable(props: AssetsTableProps) {
               const ids = new Set(
                 selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key]
               )
-              // Expand ids to include ids of children as well.
-              for (const node of assetTree.preorderTraversal()) {
-                if (ids.has(node.key) && node.children != null) {
-                  for (const child of node.children) {
-                    ids.add(child.key)
-                  }
-                }
-              }
               let labelsPresent = 0
               for (const selectedKey of ids) {
                 const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
@@ -2362,14 +2354,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           }}
           onDrop={event => {
             const ids = new Set(selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key])
-            // Expand ids to include ids of descendants as well.
-            for (const node of assetTree.preorderTraversal()) {
-              if (ids.has(node.key) && node.children != null) {
-                for (const child of node.children) {
-                  ids.add(child.key)
-                }
-              }
-            }
             const payload = drag.LABELS.lookup(event)
             if (payload != null) {
               event.preventDefault()
