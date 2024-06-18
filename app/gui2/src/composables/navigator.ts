@@ -277,25 +277,23 @@ export function useNavigator(
     scale.skip()
   }
 
-  const { pointerMove, wheelEventType } = useWheelActions(keyboard, WHEEL_CAPTURE_DURATION_MS)
-
-  function handleWheel(e: WheelEvent, continueOnly?: boolean) {
-    const eventType = wheelEventType(e, continueOnly)
-    if (eventType === 'trackpad-zoom') {
-      // OS X trackpad events provide usable rate-of-change information.
-      updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
-    } else if (eventType === 'wheel-zoom') {
-      // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
-      stepZoom(-Math.sign(e.deltaY))
-    } else if (eventType === 'pan') {
+  const { events: wheelEvents, captureEvents: wheelEventsCapture } = useWheelActions(
+    keyboard,
+    WHEEL_CAPTURE_DURATION_MS,
+    (e, inputType) => {
+      if (inputType === 'trackpad') {
+        // OS X trackpad events provide usable rate-of-change information.
+        updateScale((oldValue: number) => oldValue * Math.exp(-e.deltaY / 100))
+      } else {
+        // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
+        stepZoom(-Math.sign(e.deltaY))
+      }
+    },
+    (e) => {
       const delta = new Vec2(e.deltaX, e.deltaY)
       scrollTo(center.value.addScaled(delta, 1 / scale.value))
-    } else {
-      return
-    }
-    e.preventDefault()
-    e.stopPropagation()
-  }
+    },
+  )
 
   return proxyRefs({
     pointerEvents: {
@@ -309,7 +307,6 @@ export function useNavigator(
         eventMousePos.value = eventScreenPos(e)
         panPointer.events.pointermove(e)
         zoomPointer.events.pointermove(e)
-        pointerMove()
       },
       pointerleave() {
         eventMousePos.value = null
@@ -324,14 +321,12 @@ export function useNavigator(
         panPointer.events.pointerdown(e)
         zoomPointer.events.pointerdown(e)
       },
-      wheel: handleWheel,
       contextmenu(e: Event) {
         e.preventDefault()
       },
+      wheel: wheelEvents.wheel,
     },
-    pointerEventsCapture: {
-      wheel: (e: WheelEvent) => handleWheel(e, true),
-    },
+    pointerEventsCapture: wheelEventsCapture,
     keyboardEvents: panArrows.events,
     translate,
     targetCenter: readonly(targetCenter),

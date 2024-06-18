@@ -530,7 +530,18 @@ export function useArrows(
   return { events, moving }
 }
 
-export function useWheelActions(keyboard: KeyboardComposable, captureDuration: number) {
+/** Supports panning or zooming "capturing" wheel events.
+ *
+ * While events are captured, further events of the same type will continue the pan/zoom action.
+ * The capture expires if no events are received within the specified `captureDurationMs`.
+ * A trackpad capture also expires if any pointer movement occurs.
+ */
+export function useWheelActions(
+  keyboard: KeyboardComposable,
+  captureDurationMs: number,
+  onZoom: (e: WheelEvent, inputType: 'trackpad' | 'wheel') => boolean | void,
+  onPan: (e: WheelEvent) => boolean | void,
+) {
   let prevEventPanInfo:
     | ({ expiration: number } & (
         | { type: 'trackpad-zoom' }
@@ -539,7 +550,8 @@ export function useWheelActions(keyboard: KeyboardComposable, captureDuration: n
       ))
     | undefined = undefined
 
-  function eventType(e: WheelEvent) {
+  type WheelEventType = 'trackpad-zoom' | 'wheel-zoom' | 'pan'
+  function classifyEvent(e: WheelEvent): WheelEventType {
     if (e.ctrlKey) {
       // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
       // combination because the real Ctrl key emits keyup/keydown events.
@@ -550,19 +562,22 @@ export function useWheelActions(keyboard: KeyboardComposable, captureDuration: n
     }
   }
 
-  function wheelEventType(e: WheelEvent, continueOnly?: boolean | undefined) {
-    const newType = eventType(e)
-    if (continueOnly) {
+  function handleWheel(e: WheelEvent) {
+    const newType = classifyEvent(e)
+    if (e.eventPhase === e.CAPTURING_PHASE) {
       if (newType !== prevEventPanInfo?.type || e.timeStamp > prevEventPanInfo.expiration) {
         prevEventPanInfo = undefined
         return
       }
     }
-    const expiration = e.timeStamp + captureDuration
-    if (newType === 'trackpad-zoom' || newType === 'wheel-zoom') {
+    const expiration = e.timeStamp + captureDurationMs
+    if (newType === 'wheel-zoom') {
       prevEventPanInfo = { expiration, type: newType }
-    }
-    if (newType === 'pan') {
+      onZoom(e, 'wheel')
+    } else if (newType === 'trackpad-zoom') {
+      prevEventPanInfo = { expiration, type: newType }
+      onZoom(e, 'trackpad')
+    } else if (newType === 'pan') {
       const alreadyKnownTrackpad = prevEventPanInfo?.type === 'pan' && prevEventPanInfo.trackpad
       prevEventPanInfo = {
         expiration,
@@ -570,11 +585,13 @@ export function useWheelActions(keyboard: KeyboardComposable, captureDuration: n
         // Heuristic: Trackpad panning is usually multi-axis; wheel panning is not.
         trackpad: alreadyKnownTrackpad || (e.deltaX !== 0 && e.deltaY !== 0),
       }
+      onPan(e)
     }
-    return newType
+    e.preventDefault()
+    e.stopPropagation()
   }
 
-  function pointerMove() {
+  function pointermove() {
     // If a `pointermove` event occurs, any trackpad action has ended.
     if (
       prevEventPanInfo?.type === 'trackpad-zoom' ||
@@ -584,5 +601,13 @@ export function useWheelActions(keyboard: KeyboardComposable, captureDuration: n
     }
   }
 
-  return { pointerMove, wheelEventType }
+  return {
+    events: {
+      wheel: handleWheel,
+    },
+    captureEvents: {
+      pointermove,
+      wheel: handleWheel,
+    },
+  }
 }
