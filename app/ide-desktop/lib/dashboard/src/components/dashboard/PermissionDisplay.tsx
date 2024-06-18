@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import * as tailwindMerge from 'tailwind-merge'
 
-import * as tooltipHooks from '#/hooks/tooltipHooks'
-
 import type * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
@@ -23,65 +21,65 @@ export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren
 
 /** Colored border around icons and text indicating permissions. */
 export default function PermissionDisplay(props: PermissionDisplayProps) {
-  const { action, className, onPress: onPress, children } = props
-  const { needsTooltip, tooltipTargetRef } = tooltipHooks.useNeedsTooltip()
+  const { action, className, onPress: onPress, children: childrenRaw } = props
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
+
+  const children =
+    typeof childrenRaw !== 'string' ? (
+      childrenRaw
+    ) : (
+      <ariaComponents.Text truncate="1" className="max-w-24 text-inversed">
+        {childrenRaw}
+      </ariaComponents.Text>
+    )
 
   switch (permission.type) {
     case permissionsModule.Permission.owner:
     case permissionsModule.Permission.admin:
     case permissionsModule.Permission.edit: {
       return (
-        <ariaComponents.TooltipTrigger>
-          <ariaComponents.Button
-            ref={tooltipTargetRef}
-            size="custom"
-            variant="custom"
-            isDisabled={!onPress}
-            className={tailwindMerge.twMerge(
-              'inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y',
-              permissionsModule.PERMISSION_CLASS_NAME[permission.type],
-              className
-            )}
-            onPress={onPress ?? (() => {})}
-          >
-            {children}
-          </ariaComponents.Button>
-          {needsTooltip && <ariaComponents.Tooltip>{children}</ariaComponents.Tooltip>}
-        </ariaComponents.TooltipTrigger>
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          isDisabled={!onPress}
+          className={tailwindMerge.twMerge(
+            'inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y',
+            permissionsModule.PERMISSION_CLASS_NAME[permission.type],
+            className
+          )}
+          onPress={onPress ?? (() => {})}
+        >
+          {children}
+        </ariaComponents.Button>
       )
     }
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       return (
-        <ariaComponents.TooltipTrigger>
-          <ariaComponents.Button
-            ref={tooltipTargetRef}
-            size="custom"
-            variant="custom"
+        <ariaComponents.Button
+          size="custom"
+          variant="custom"
+          className={tailwindMerge.twMerge(
+            'relative inline-block whitespace-nowrap rounded-full',
+            className
+          )}
+          onPress={onPress ?? (() => {})}
+        >
+          {permission.docs && (
+            <div className="absolute size-full rounded-full border-2 border-permission-docs clip-path-top" />
+          )}
+          {permission.execute && (
+            <div className="absolute size-full rounded-full border-2 border-permission-exec clip-path-bottom" />
+          )}
+          <div
             className={tailwindMerge.twMerge(
-              'relative inline-block whitespace-nowrap rounded-full',
-              className
+              'm-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y',
+              permissionsModule.PERMISSION_CLASS_NAME[permission.type]
             )}
-            onPress={onPress ?? (() => {})}
           >
-            {permission.docs && (
-              <div className="absolute size-full rounded-full border-2 border-permission-docs clip-path-top" />
-            )}
-            {permission.execute && (
-              <div className="absolute size-full rounded-full border-2 border-permission-exec clip-path-bottom" />
-            )}
-            <div
-              className={tailwindMerge.twMerge(
-                'm-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y',
-                permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-              )}
-            >
-              {children}
-            </div>
-          </ariaComponents.Button>
-          {needsTooltip && <ariaComponents.Tooltip>{children}</ariaComponents.Tooltip>}
-        </ariaComponents.TooltipTrigger>
+            {children}
+          </div>
+        </ariaComponents.Button>
       )
     }
   }
