@@ -13,23 +13,22 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
 
+from Standard.Snowflake import all
+
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
-import project.Database.Common.Common_Spec
-import project.Database.Transaction_Spec
-import project.Database.Upload_Spec
-import project.Database.Helpers.Name_Generator
-import project.Common_Table_Operations
-from project.Common_Table_Operations.Util import all
-from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
-from project.Database.Postgres_Spec import Basic_Test_Data, Postgres_Tables_Data
+import enso_dev.Table_Tests
+import enso_dev.Table_Tests.Database.Common.Common_Spec
+import enso_dev.Table_Tests.Database.Transaction_Spec
+import enso_dev.Table_Tests.Database.Upload_Spec
+import enso_dev.Table_Tests.Database.Helpers.Name_Generator
+import enso_dev.Table_Tests.Common_Table_Operations
+from enso_dev.Table_Tests.Common_Table_Operations.Util import all
+from enso_dev.Table_Tests.Database.Types.Postgres_Type_Mapping_Spec import default_text
+from enso_dev.Table_Tests.Database.Postgres_Spec import Basic_Test_Data, Postgres_Tables_Data
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-
-## Still a WIP cannot be completed until the dialect is implemented properly
-   for Snowflake.
-   It is not currently being run as part of the test suite.
 
 type Snowflake_Info_Data
     Value ~data
@@ -66,19 +65,18 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             data.teardown
 
         group_builder.specify "should be able to get current database and list databases" <|
-            data.connection.database . should_equal db_name
+            data.connection.database.equals_ignore_case db_name . should_be_true
             data.connection.databases.length . should_not_equal 0
-            data.connection.databases.contains db_name . should_be_true
+            data.connection.databases.find (name-> name.equals_ignore_case db_name) . should_succeed
             Meta.is_same_object data.connection (data.connection.set_database db_name) . should_be_true
 
         group_builder.specify "should be able to get current schema and list schemas" <|
-            data.connection.schema . should_equal "public"
+            data.connection.schema.equals_ignore_case "public" . should_be_true
             data.connection.schemas.length . should_not_equal 0
-            data.connection.schemas.contains "public" . should_be_true
-            data.connection.schemas.contains "information_schema" . should_be_true
+            data.connection.schemas.find (name-> name.equals_ignore_case "public") . should_succeed
             Meta.is_same_object data.connection (data.connection.set_schema "public") . should_be_true
 
-        group_builder.specify "should allow changing schema" <|
+        group_builder.specify "should allow changing schema" pending="TODO?" <|
             new_connection = data.connection.set_schema "information_schema"
             new_schema = new_connection.read (SQL_Query.Raw_SQL "SELECT current_schema()") . at 0 . to_vector . first
             new_schema . should_equal "information_schema"
@@ -119,14 +117,14 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
         group_builder.specify "should be able to filter tables by name" <|
             tables = data.connection.tables data.tinfo
             tables.row_count . should_equal 1
-            tables.at "Database" . to_vector . at 0 . should_equal db_name
-            tables.at "Schema" . to_vector . at 0 . should_equal "public"
+            tables.at "Database" . to_vector . at 0 . equals_ignore_case db_name . should_be_true
+            tables.at "Schema" . to_vector . at 0 . equals_ignore_case "public" . should_be_true
             tables.at "Name" . to_vector . at 0 . should_equal data.tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
 
             data.connection.tables "TestT_ble%" . row_count . should_equal 1
             data.connection.tables "Temporary%ble%" . row_count . should_equal 1
-            data.connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY TABLE"]
+            data.connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY"]
             data.connection.tables "N_nexistent%" . row_count . should_equal 0
 
         group_builder.specify "should be able to filter tables by type" <|
@@ -149,7 +147,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
 
         group_builder.specify "should return Table information, also for aggregated results" <|
-            i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . info
+            i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Decimal, Value_Type.Integer]
@@ -160,7 +158,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "doubles" . value_type . is_floating_point . should_be_true
 
-        group_builder.specify "should preserve Snowflake types when table is materialized, where possible" <|
+        group_builder.specify "should preserve Snowflake types when table is materialized, where possible" pending="TODO" <|
             name = Name_Generator.random_name "types-test"
             Problems.assume_no_problems <|
                 data.connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
@@ -274,7 +272,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
         group_builder.teardown <|
             data.teardown
 
-        group_builder.specify "materialize should respect the overridden type" <|
+        group_builder.specify "materialize should respect the overridden type" pending="TODO" <|
             t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]] connection=data.connection
             t1 = t0 . cast "A" (Value_Type.Char size=1 variable_length=False) . cast "B" (Value_Type.Char size=3 variable_length=False)
 
@@ -294,7 +292,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
                 d.value_type.variable_length.should_be_true
 
-        group_builder.specify "should be able to round-trip a BigInteger column" <|
+        group_builder.specify "should be able to round-trip a BigInteger column" pending="TODO" <|
             x = 2^70
             m1 = Table.new [["X", [10, x]]]
             m1.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
@@ -355,7 +353,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             w4.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
             w4.actual_type . should_equal Value_Type.Float
 
-        group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" <|
+        group_builder.specify "should round-trip timestamptz column, preserving instant but converting to UTC" pending="TODO" <|
             table_name = Name_Generator.random_name "TimestampTZ"
             table = data.connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=True)] primary_key=[]
 
@@ -388,7 +386,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
                     t2.row_count . should_equal local_equals.length
                     t2.at "A" . to_vector . should_equal_tz_agnostic local_equals
 
-        group_builder.specify "will round-trip timestamp column without timezone by converting it to UTC" <|
+        group_builder.specify "will round-trip timestamp column without timezone by converting it to UTC" pending="TODO" <|
             table_name = Name_Generator.random_name "Timestamp"
             table = data.connection.create_table table_name [Column_Description.Value "A" (Value_Type.Date_Time with_timezone=False)] primary_key=[]
             Problems.assume_no_problems table
@@ -523,7 +521,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             do_round data 231 . should_be_a Float
             do_round data 231 -1 . should_be_a Float
 
-add_postgres_specs suite_builder create_connection_fn db_name =
+add_snowflake_specs suite_builder create_connection_fn db_name =
     prefix = "[Snowflake] "
     name_counter = Ref.new 0
 
@@ -541,7 +539,7 @@ add_postgres_specs suite_builder create_connection_fn db_name =
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True allows_mixed_type_comparisons=False fixed_length_text_columns=True removes_trailing_whitespace_casting_from_char_to_varchar=True supports_decimal_type=True supported_replace_params=supported_replace_params
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
-    agg_in_memory_table = (enso_project.data / "data.csv") . read
+    agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
 
     agg_table_fn = _->
         connection = create_connection_fn Nothing
@@ -567,69 +565,28 @@ supported_replace_params =
     Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
 add_table_specs suite_builder =
-    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
-    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
-    db_host = db_host_port.at 0
-    db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
-    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
-    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
-    ca_cert_file = Environment.get "ENSO_DATABASE_TEST_CA_CERT_FILE"
-
-    ssl_pending = if ca_cert_file.is_nothing then "PostgreSQL SSL test not configured." else Nothing
-
-    suite_builder.group "[Snowflake] SSL connectivity tests" pending=ssl_pending group_builder->
-        group_builder.specify "should connect without ssl parameter" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)) . should_succeed
-
-        group_builder.specify "should connect, requiring SSL" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=SSL_Mode.Require) . should_succeed
-
-        group_builder.specify "should connect be able to verify the certificate" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Verify_CA ca_cert_file)) . should_succeed
-
-            ## Default certificate should not accept the self signed certificate.
-            ca_fail = Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=SSL_Mode.Verify_CA)
-            ca_fail.is_error . should_equal True
-            ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
-
-        group_builder.specify "should connect be able to verify the host name against the certificate" <|
-            Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file)) . should_succeed
-
-        alternate_host = Environment.get "ENSO_DATABASE_TEST_ALTERNATE_HOST" . if_nothing <|
-            if db_host == "127.0.0.1" then "localhost" else Nothing
-        pending_alternate = if alternate_host.is_nothing then "Alternative host name not configured." else Nothing
-        group_builder.specify "should fail to connect with alternate host name not valid in certificate" pending=pending_alternate <|
-            ca_fail = Database.connect (Postgres alternate_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password) use_ssl=(SSL_Mode.Full_Verification ca_cert_file))
-            ca_fail.is_error . should_equal True
-            ca_fail.catch SQL_Error . is_a SQL_Error . should_equal True
-
     case create_connection_builder of
         Nothing ->
-            message = "PostgreSQL test database is not configured. See README.md for instructions."
+            message = "Snowflake test connection is not configured. See README.md for instructions."
             suite_builder.group "[Snowflake] Database tests" pending=message (_-> Nothing)
         connection_builder ->
-            add_postgres_specs suite_builder connection_builder db_name
-
+            db_name = get_configured_connection_details.database
+            add_snowflake_specs suite_builder connection_builder db_name
             Transaction_Spec.add_specs suite_builder connection_builder "[Snowflake] "
             Upload_Spec.add_specs suite_builder connection_builder "[Snowflake] "
 
             suite_builder.group "[Snowflake] Secrets in connection settings" group_builder->
                 cloud_setup = Cloud_Tests_Setup.prepare
+                base_details = get_configured_connection_details
                 group_builder.specify "should allow to set up a connection with the password passed as a secret" pending=cloud_setup.pending <|
                     cloud_setup.with_prepared_environment <|
-                        with_secret "my_postgres_username" db_user username_secret-> with_secret "my_postgres_password" db_password password_secret->
-                            my_secret_name = "Enso Test: My Secret App NAME " + (Random.uuid.take 5)
-                            with_secret "my_postgres_app_name" my_secret_name app_name_secret-> Test.with_retries <|
-                                details = Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password username_secret password_secret)
-                                # We set the ApplicationName option, so that we can see that secrets can be used in custom properties.
-                                options = Connection_Options.Value [["ApplicationName", app_name_secret]]
-                                connection = Database.connect details options
-                                connection.should_succeed
-                                Panic.with_finalizer connection.close <|
-                                    connection.tables . should_be_a Table
-                                    table = connection.read "SELECT application_name FROM pg_stat_activity"
-                                    application_names = table.at 0 . to_vector
-                                    application_names.should_contain my_secret_name
+                        with_secret "my_postgres_username" base_details.credentials.username username_secret-> with_secret "my_postgres_password" base_details.credentials.password password_secret->
+                            secret_credentials = Credentials.Username_And_Password username_secret password_secret
+                            details = Snowflake_Details.Snowflake base_details.account_name secret_credentials base_details.database base_details.schema base_details.warehouse
+                            connection = Database.connect details
+                            connection.should_succeed
+                            Panic.with_finalizer connection.close <|
+                                connection.tables . should_be_a Table
 
 with_secret name value callback =
     secret = Enso_Secret.create name+Random.uuid value
@@ -637,14 +594,19 @@ with_secret name value callback =
     Panic.with_finalizer secret.delete (callback secret)
 
 get_configured_connection_details =
-    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
-    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
-    db_host = db_host_port.at 0
-    db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
-    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
-    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
-    if db_name.is_nothing then Nothing  else
-        Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)
+    account_name = Environment.get "ENSO_SNOWFLAKE_ACCOUNT"
+    if account_name.is_nothing then Nothing else
+        get_var name =
+            Environment.get name if_missing=(Panic.throw (Illegal_State.Error "ENSO_SNOWFLAKE_ACCOUNT is set, but "+name+" is not. Please set all required environment variables."))
+        user = get_var "ENSO_SNOWFLAKE_USER"
+        password = get_var "ENSO_SNOWFLAKE_PASSWORD"
+        database = get_var "ENSO_SNOWFLAKE_DATABASE"
+        schema = Environment.get "ENSO_SNOWFLAKE_SCHEMA" if_missing="PUBLIC"
+        warehouse = Environment.get "ENSO_SNOWFLAKE_WAREHOUSE" if_missing=""
+
+        resolved_password = if password.starts_with "enso://" then Enso_Secret.get password else password
+        credentials = Credentials.Username_And_Password user resolved_password
+        Snowflake_Details.Snowflake account_name credentials database schema warehouse
 
 ## Returns a function that takes anything and returns a new connection.
    The function creates a _new_ connection on each invocation

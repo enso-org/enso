@@ -70,6 +70,7 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
+import * as paywall from '#/components/Paywall'
 import * as rootComponent from '#/components/Root'
 
 import AboutModal from '#/modals/AboutModal'
@@ -488,6 +489,9 @@ function AppRouter(props: AppRouterProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  if (detect.IS_DEV_MODE) {
+    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
+  }
   result = (
     <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
       {result}

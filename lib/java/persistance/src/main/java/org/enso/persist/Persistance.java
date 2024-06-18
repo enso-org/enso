@@ -10,28 +10,24 @@ import java.util.function.Function;
 
 /**
  * Central persistance class. Use static {@link Persistance#write write} method to turn a graph of
- * JVM objects into a {@code byte[]}.
- *
- * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
+ * JVM objects into a {@code byte[]}. <br>
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
  *
  * <p>Use sibling static {@link Persistance#read readO} method to read the byte buffer back into
- * their memory representation.
- *
- * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+ * their memory representation. <br>
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
  *
  * <h2>Manual Persistance</h2>
  *
  * Unlike typical Java serialization (which tries to make things automatic), this framework requires
  * one to implement the persistance manually. For each class that one wants to support, one has to
  * implement subclass {@link Persistance} and implement its {@link Persistance#writeObject} and
- * {@link Persistance#readObject} method.
+ * {@link Persistance#readObject} method. <br>
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
+ * There is a semi-automatic way to generate such subclasses of {@link Persistance} via the {@link
+ * Persistable @Persistable} annotation.
  *
- * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
- *
- * <p>There is a semi-automatic way to generate such subclasses of {@link Persistance} via the
- * {@link Persistable @Persistable} annotation.
- *
- * @param <T>
+ * @param <T> type this persistance subclass operates on
  */
 public abstract class Persistance<T> implements Cloneable {
   final Class<T> clazz;
@@ -40,14 +36,11 @@ public abstract class Persistance<T> implements Cloneable {
 
   /**
    * Constructor for subclasses to register persistance for certain {@code clazz}. Sample
-   * registration:
-   *
-   * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
-   *
-   * <p>Each persistance requires unique ID. A stream created by {@link #write(Object,
-   * Function<Object, Object>)} and read by {@link #read(byte[], Function<Object, Object>)} contains
-   * a header derived from the all the IDs present in the system. When versioning the protocol and
-   * implementation:
+   * registration: <br>
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
+   * Each persistance requires unique ID. A stream created by {@link #write(Object, Function<Object,
+   * Object>)} and read by {@link #read(byte[], Function<Object, Object>)} contains a header derived
+   * from the all the IDs present in the system. When versioning the protocol and implementation:
    *
    * <ul>
    *   <li>when you change something really core in the Persitance itself - change the header
@@ -74,8 +67,23 @@ public abstract class Persistance<T> implements Cloneable {
     }
   }
 
+  /**
+   * Handle serialization of provided object.
+   *
+   * @param obj the object to serialize
+   * @param out the stream to persist the objec to
+   * @throws IOException thrown on I/O errors
+   */
   protected abstract void writeObject(T obj, Output out) throws IOException;
 
+  /**
+   * Handle deserialization on an object.
+   *
+   * @param in stream to read an instance of the object from
+   * @return instance of the deserialized object
+   * @throws IOException thrown on I/O errors
+   * @throws ClassNotFoundException thrown when class loading fails
+   */
   protected abstract T readObject(Input in) throws IOException, ClassNotFoundException;
 
   /** Prints the {@code clazz} and {@code id} values. */
@@ -158,9 +166,9 @@ public abstract class Persistance<T> implements Cloneable {
   }
 
   /**
-   * Read object written down by {@link #write} from an array.
-   *
-   * <p>{@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+   * Read object written down by {@link #write} from an array. <br>
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
    *
    * @param arr the stored bytes
    * @param readResolve either {@code null} or function to call for each object being stored to
@@ -209,6 +217,7 @@ public abstract class Persistance<T> implements Cloneable {
    * deferred towards the end, allowing to handle circular references inside of the serialized
    * structure.
    *
+   * @param <T> expected type of the referenced object
    * @see Input#readReference
    */
   public abstract static sealed class Reference<T> permits PerBufferReference, PerMemoryReference {
@@ -238,7 +247,7 @@ public abstract class Persistance<T> implements Cloneable {
     public <V> V get(Class<V> expectedType) {
       var value =
           switch (this) {
-            case PerMemoryReference m -> m.value();
+            case PerMemoryReference<T> m -> m.value();
             case PerBufferReference<T> b -> {
               try {
                 yield b.readObject(expectedType);

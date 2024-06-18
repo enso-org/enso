@@ -95,7 +95,7 @@ type Snowflake_Connection
     @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
-        if database == self.database then self else
+        if database . equals_ignore_case self.database then self else
             self.make_new database Nothing Nothing
 
     ## ICON metadata
@@ -117,7 +117,7 @@ type Snowflake_Connection
     @schema make_schema_selector
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
-        if schema == self.schema then self else
+        if schema . equals_ignore_case self.schema then self else
             self.make_new Nothing schema Nothing
 
     ## GROUP Standard.Base.Metadata

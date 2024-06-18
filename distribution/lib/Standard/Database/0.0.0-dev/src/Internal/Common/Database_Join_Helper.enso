@@ -34,7 +34,7 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
         SQL_Expression.Operation "==" [resolve_left left, resolve_right right]
     make_equals_ignore_case _ left right locale =
         Helpers.assume_default_locale locale <|
-            SQL_Expression.Operation "equals_ignore_case" [resolve_left left, resolve_right right]
+            SQL_Expression.Operation "EQUALS_IGNORE_CASE" [resolve_left left, resolve_right right]
     make_between _ left right_lower right_upper =
         args = [resolve_left left, resolve_right right_lower, resolve_right right_upper]
         SQL_Expression.Operation "BETWEEN" args

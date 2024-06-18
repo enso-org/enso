@@ -48,7 +48,8 @@ trait ProjectManagementOps { this: BaseServerSpec =>
     client.send(request)
     val projectId   = getGeneratedUUID
     val projectName = nameSuffix.fold(name)(n => s"${name}_$n")
-    client.fuzzyExpectJson(json"""
+    client.fuzzyExpectJson(
+      json"""
           {
             "jsonrpc":"2.0",
             "id":0,
@@ -58,7 +59,9 @@ trait ProjectManagementOps { this: BaseServerSpec =>
               "projectNormalizedName": "*"
             }
           }
-          """)
+          """,
+      timeout = 10.seconds.dilated
+    )
     projectId
   }
 

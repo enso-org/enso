@@ -78,7 +78,7 @@ sealed case class ImportExport(
   ): ImportExport =
     this
 
-  /** @inheritdoc */
+  /** String representation. */
   override def toString: String =
     s"""
        |Error.ImportExport(
