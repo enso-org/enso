@@ -1,6 +1,6 @@
+import { WidgetInput } from '@/providers/widgetRegistry'
 import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
-import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
-import type { ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   entryMethodPointer,
   makeArgument,
@@ -9,8 +9,9 @@ import {
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
-import type { AstId } from 'shared/ast'
+import type { Opt } from 'shared/util/data/opt'
 import { expect, test } from 'vitest'
+import { ref, type Ref } from 'vue'
 import {
   GET_WIDGETS_METHOD,
   WIDGETS_ENSO_MODULE,
@@ -61,42 +62,51 @@ test.each`
     assert(line != null)
     expect(line.node.externalId).toBe(eid('entireFunction'))
 
-    const db = {
-      getMethodCallInfo(astId: AstId): MethodCallInfo | undefined {
-        if (astId === id('entireFunction')) {
-          return {
-            suggestion: callSuggestion,
-            methodCall: {
-              notAppliedArguments: [],
-              methodPointer: entryMethodPointer(callSuggestion)!,
-            },
+    let visConfig: Ref<Opt<NodeVisualizationConfiguration>> | undefined
+    useWidgetFunctionCallInfo(
+      WidgetInput.FromAst(line.node),
+      {
+        getMethodCallInfo(astId) {
+          if (astId === id('entireFunction')) {
+            return {
+              suggestion: callSuggestion,
+              methodCall: {
+                notAppliedArguments: [],
+                methodPointer: entryMethodPointer(callSuggestion)!,
+              },
+            }
           }
-        }
-      },
-      getExpressionInfo(astId: AstId): ExpressionInfo | undefined {
-        if (subjectSpan != null && astId === id('subject')) {
-          return {
-            typename: subjectType,
-            methodCall: undefined,
-            payload: { type: 'Value' },
-            profilingInfo: [],
+        },
+        getExpressionInfo(astId) {
+          if (subjectSpan != null && astId === id('subject')) {
+            return {
+              typename: subjectType,
+              methodCall: undefined,
+              payload: { type: 'Value' },
+              profilingInfo: [],
+            }
           }
-        }
+        },
       },
-    }
-
-    const info = useWidgetFunctionCallInfo(line.node, db)
-    const visConfig = info.visualizationConfig.value
+      {
+        useVisualizationData(config) {
+          expect(visConfig, 'Only one visualizaiton is expected').toBeUndefined()
+          visConfig = config
+          return ref(null)
+        },
+      },
+    )
     assert(visConfig != null)
-    if (typeof visConfig.expression === 'string') {
-      expect(visConfig.expressionId).toBe(eid('entireFunction'))
-      expect(visConfig.expression).toBe(
-        `a -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${callSuggestion.definedIn}`,
+    assert(visConfig.value != null)
+    if (typeof visConfig.value.expression === 'string') {
+      expect(visConfig.value.expressionId).toBe(eid('entireFunction'))
+      expect(visConfig.value.expression).toBe(
+        `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${callSuggestion.definedIn}`,
       )
     } else {
-      expect(info.visualizationConfig.value?.expressionId).toBe(eid('self'))
+      expect(visConfig.value.expressionId).toBe(eid('self'))
     }
-    expect(info.visualizationConfig.value?.positionalArgumentsExpressions![0]).toBe(methodName)
-    expect(info.visualizationConfig.value?.positionalArgumentsExpressions![1]).toBe("['arg']")
+    expect(visConfig.value.positionalArgumentsExpressions![0]).toBe(methodName)
+    expect(visConfig.value.positionalArgumentsExpressions![1]).toBe("['arg']")
   },
 )

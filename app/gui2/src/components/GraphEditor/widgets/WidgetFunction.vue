@@ -10,13 +10,8 @@ import {
   widgetProps,
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
-import {
-  argsWidgetConfigurationSchema,
-  functionCallConfiguration,
-} from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -29,7 +24,7 @@ import {
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
 import { isIdentifier } from '@/util/qualifiedName.ts'
-import { computed, proxyRefs, toRef } from 'vue'
+import { computed, proxyRefs } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -49,8 +44,11 @@ provideFunctionInfo(
   }),
 )
 
-const { methodCallInfo, interpreted, visualizationConfig, selfArgumentPreapplied, subjectInfo } =
-  useWidgetFunctionCallInfo(() => props.input.value, graph.db)
+const { methodCallInfo, application } = useWidgetFunctionCallInfo(
+  () => props.input,
+  graph.db,
+  project,
+)
 
 const innerInput = computed(() => {
   if (application.value instanceof ArgumentApplication) {
@@ -66,58 +64,6 @@ const innerInput = computed(() => {
       }
   }
   return props.input
-})
-
-const subjectTypeMatchesMethod = computed(() => {
-  const funcType = methodCallInfo.value?.methodCall.methodPointer.definedOnType
-  return funcType != null && subjectInfo.value?.typename === `${funcType}.type`
-})
-
-const application = computed(() => {
-  const call = interpreted.value
-  if (!call) return null
-  const noArgsCall = call.kind === 'prefix' ? graph.db.getMethodCall(call.func.id) : undefined
-
-  return ArgumentApplication.FromInterpretedWithInfo(call, {
-    suggestion: methodCallInfo.value?.suggestion,
-    widgetCfg: widgetConfiguration.value,
-    subjectAsSelf: selfArgumentPreapplied.value,
-    notAppliedArguments:
-      (
-        noArgsCall != null &&
-        (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
-      ) ?
-        noArgsCall.notAppliedArguments
-      : undefined,
-  })
-})
-
-const inheritedConfig = computed(() => {
-  if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
-  if (props.input.dynamicConfig?.kind === 'OneOfFunctionCalls' && methodCallInfo.value != null) {
-    const cfg = props.input.dynamicConfig
-    const info = methodCallInfo.value
-    const fullName = entryQn(info?.suggestion)
-    const autoscopedName = '..' + info?.suggestion.name
-    return cfg.possibleFunctions.get(fullName) ?? cfg.possibleFunctions.get(autoscopedName)
-  }
-  return undefined
-})
-
-const visualizationData = project.useVisualizationData(visualizationConfig)
-const widgetConfiguration = computed(() => {
-  const data = visualizationData.value
-  if (data?.ok) {
-    const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
-    if (parseResult.success) {
-      return functionCallConfiguration(parseResult.data, inheritedConfig.value)
-    } else {
-      console.error('Unable to parse widget configuration.', data, parseResult.error)
-    }
-  } else if (data != null && !data.ok) {
-    data.error.log('Cannot load dynamic configuration')
-  }
-  return inheritedConfig.value
 })
 
 /**
