@@ -1,6 +1,8 @@
 /** @file Rendering for a settings section. */
 import * as React from 'react'
 
+import * as tailwindMerge from 'tailwind-merge'
+
 import type * as settingsData from '#/layouts/Settings/settingsData'
 import SettingsSection from '#/layouts/Settings/SettingsSection'
 
@@ -52,7 +54,10 @@ export default function SettingsTab(props: SettingsTabProps) {
       {columns.map((sectionsInColumn, i) => (
         <div
           key={i}
-          className={`flex min-w-settings-main-section flex-col gap-settings-subsection ${classes[i] ?? ''}`}
+          className={tailwindMerge.twMerge(
+            'flex min-w-settings-main-section flex-col gap-settings-subsection',
+            classes[i]
+          )}
         >
           {sectionsInColumn.map(section => (
             <SettingsSection key={section.nameId} context={context} data={section} />

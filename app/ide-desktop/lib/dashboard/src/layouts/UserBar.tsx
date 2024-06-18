@@ -22,7 +22,6 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 
 // ===============
 // === UserBar ===
