@@ -2549,8 +2549,10 @@ lazy val `engine-runner` = project
       if (smallJdkDirectory.exists()) {
         IO.delete(smallJdkDirectory)
       }
-      val JS_MODULES =
-        "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
+      val NI_MODULES =
+        "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
+      val JDK_MODULES =
+        "jdk.localedata,jdk.compiler.graal,jdk.httpserver,java.naming,java.net.http"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -2578,7 +2580,7 @@ lazy val `engine-runner` = project
       }
 
       val exec =
-        s"$jlink --module-path ${modules.mkString(":")} --output $smallJdkDirectory --add-modules $JS_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
+        s"$jlink --module-path ${modules.mkString(":")} --output $smallJdkDirectory --add-modules $NI_MODULES,$JDK_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
       val exitCode = scala.sys.process.Process(exec).!
 
       if (exitCode != 0) {
