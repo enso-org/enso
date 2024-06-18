@@ -99,6 +99,9 @@ LocalStorage.registerKey('enabledColumns', {
 // === Constants ===
 // =================
 
+/** If the ratio of intersection between the main dropzone that should be visible, and the
+ * scrollable container, is below this value, then the backup dropzone will be shown. */
+const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
 /** If the drag pointer is less than this distance away from the top or bottom of the
  * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
  * the top of the scroll container, or downwards if the cursor is near the bottom. */
@@ -422,12 +425,14 @@ export default function AssetsTable(props: AssetsTableProps) {
       -1
     )
   })
-  const [isDropzoneVisible, setIsDropzoneVisible] = React.useState(false)
+  const [isDropping, setIsDropping] = React.useState(false)
+  const [isMainDropzoneVisible, setIsMainDropzoneVisible] = React.useState(true)
   const [droppedFilesCount, setDroppedFilesCount] = React.useState(0)
   const isCloud = backend.type === backendModule.BackendType.remote
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const mainDropzoneRef = React.useRef<HTMLButtonElement | null>(null)
   const cleanupRootRef = React.useRef(() => {})
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<assetTreeNode.AnyAssetTreeNode>(assetTree)
@@ -609,6 +614,26 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
   )
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    const mainDropzone = mainDropzoneRef.current
+    if (root != null && mainDropzone != null) {
+      const observer = new IntersectionObserver(
+        entries => {
+          for (const entry of entries) {
+            console.log(entry.intersectionRatio)
+            setIsMainDropzoneVisible(entry.intersectionRatio >= MINIMUM_DROPZONE_INTERSECTION_RATIO)
+          }
+        },
+        { root, threshold: MINIMUM_DROPZONE_INTERSECTION_RATIO }
+      )
+      observer.observe(mainDropzone)
+      return () => {
+        observer.disconnect()
+      }
+    }
+  }, [])
 
   const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
 
@@ -1904,7 +1929,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (filtered != null && filtered.length > 0) {
       event.preventDefault()
     } else if (event.dataTransfer.types.includes('Files')) {
-      setIsDropzoneVisible(true)
+      setIsDropping(true)
       setDroppedFilesCount(event.dataTransfer.items.length)
       event.preventDefault()
     }
@@ -2386,7 +2411,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     })
   )
 
-  const dropzoneText = isDropzoneVisible
+  const dropzoneText = isDropping
     ? droppedFilesCount === 1
       ? getText('assetsDropFileDescription')
       : getText('assetsDropFilesDescription', droppedFilesCount)
@@ -2499,6 +2524,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         >
           <FocusRing>
             <aria.Button
+              ref={mainDropzoneRef}
               className="my-20 flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
               onPress={() => {}}
             >
@@ -2599,18 +2625,18 @@ export default function AssetsTable(props: AssetsTableProps) {
           </div>
         )}
       </FocusArea>
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
         <div
           data-testid="root-directory-dropzone"
           onDragEnter={onDropzoneDragOver}
           onDragOver={onDropzoneDragOver}
           onDragLeave={event => {
             if (event.currentTarget === event.target) {
-              setIsDropzoneVisible(false)
+              setIsDropping(false)
             }
           }}
           onDrop={event => {
-            setIsDropzoneVisible(false)
+            setIsDropping(false)
             if (event.dataTransfer.types.includes('Files')) {
               event.preventDefault()
               event.stopPropagation()
@@ -2623,11 +2649,11 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
           }}
           className={tailwindMerge.twMerge(
-            'pointer-events-none sticky left-0 top-0 flex h-full w-full flex-col items-center justify-center gap-3 rounded-default bg-selected-frame text-primary/50 opacity-0 backdrop-blur-3xl transition-all',
-            isDropzoneVisible && 'pointer-events-auto opacity-100'
+            'pointer-events-none flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 opacity-0 backdrop-blur-3xl transition-all',
+            isDropping && !isMainDropzoneVisible && 'pointer-events-auto opacity-100'
           )}
         >
-          <SvgMask src={DropFilesImage} className="size-[186px]" />
+          <SvgMask src={DropFilesImage} className="size-8" />
           {dropzoneText}
         </div>
       </div>
