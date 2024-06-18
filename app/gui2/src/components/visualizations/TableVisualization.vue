@@ -18,7 +18,6 @@ import {
   watchEffect,
   type Ref,
 } from 'vue'
-import type { NodeCreationOptions } from '../GraphEditor/nodeCreation'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -95,6 +94,8 @@ const emit = defineEmits<{
 const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
+const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
+const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -268,10 +269,18 @@ const getPattern = (index: number) =>
   )
 
 function createNode(params: any) {
-  config.createNodes({
-    content: getPattern(params.data[INDEX_FIELD_NAME]),
-    commit: true,
-  })
+  if (config.nodeType === VECTOR_NODE_TYPE) {
+    config.createNodes({
+      content: getPattern(params.data[INDEX_FIELD_NAME]),
+      commit: true,
+    })
+  }
+  if (config.nodeType === TABLE_NODE_TYPE) {
+    config.createNodes({
+      content: getPattern(params.data[INDEX_FIELD_NAME]),
+      commit: true,
+    })
+  }
 }
 
 function indexField(): ColDef {
