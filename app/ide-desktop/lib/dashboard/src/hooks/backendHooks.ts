@@ -228,11 +228,9 @@ export function useBackendQuery<Method extends keyof Backend>(
 // === useBackendMutation ===
 // ==========================
 
-// @ts-expect-error
 export function useBackendMutation<Method extends keyof Backend>(
   backend: Backend,
   method: Method,
-  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
   options?: Omit<
     reactQuery.UseMutationOptions<
       Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,
@@ -249,7 +247,6 @@ export function useBackendMutation<Method extends keyof Backend>(
 export function useBackendMutation<Method extends keyof Backend>(
   backend: Backend | null,
   method: Method,
-  args: Parameters<Extract<Backend[Method], (...args: never) => unknown>>,
   options?: Omit<
     reactQuery.UseMutationOptions<
       Awaited<ReturnType<Extract<Backend[Method], (...args: never) => unknown>>>,

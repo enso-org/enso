@@ -1,7 +1,7 @@
 /** @file Metadata for rendering each settings section. */
-import React from 'react'
+import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
+import type * as reactQuery from '@tanstack/react-query'
 
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
@@ -153,6 +153,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               if (oldName !== newName) {
                 context.updateOrganization([{ name: newName }]).catch(reset)
               }
+              return Promise.resolve()
             },
             getEditable: () => true,
           },
@@ -301,7 +302,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
         entries: [
           {
             type: SettingsEntryType.custom,
-            render: ActivityLogSettingsSection,
+            render: context =>
+              context.backend && <ActivityLogSettingsSection backend={context.backend} />,
           },
         ],
       },
@@ -356,7 +358,7 @@ export interface SettingsContext {
   readonly setUser: React.Dispatch<React.SetStateAction<backend.User>>
   readonly organization: backend.OrganizationInfo | null
   readonly updateOrganization: reactQuery.UseMutateAsyncFunction<
-    backend.OrganizationInfo | null,
+    backend.OrganizationInfo | null | undefined,
     Error,
     Parameters<Backend['updateOrganization']>,
     unknown
