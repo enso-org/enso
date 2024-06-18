@@ -80,6 +80,7 @@ import * as electron from 'electron'
 import opener from 'opener'
 
 import * as common from 'enso-common'
+import type * as dashboard from 'enso-dashboard'
 
 import * as contentConfig from 'content-config'
 import * as ipc from 'ipc'
@@ -158,7 +159,7 @@ export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
 function initSaveAccessTokenListener() {
     electron.ipcMain.on(
         ipc.Channel.saveAccessToken,
-        (event, accessTokenPayload: SaveAccessTokenPayload | null) => {
+        (event, accessTokenPayload: dashboard.AccessToken | null) => {
             event.preventDefault()
 
             /** Home directory for the credentials file.  */

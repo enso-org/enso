@@ -10,6 +10,8 @@ import * as appUtils from '#/appUtils'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
+import type * as saveAccessTokenModule from '#/utilities/accessToken'
+
 import * as cognitoModule from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
 
@@ -27,7 +29,7 @@ export interface AmplifyConfig {
   readonly userPoolId: string
   readonly userPoolWebClientId: string
   readonly urlOpener: ((url: string, redirectUrl: string) => void) | null
-  readonly saveAccessToken: ((accessToken: SaveAccessTokenPayload | null) => void) | null
+  readonly saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null
   readonly domain: string
   readonly scope: string[]
   readonly redirectSignIn: string
@@ -138,14 +140,15 @@ function loadAmplifyConfig(
   navigate: (url: string) => void
 ): AmplifyConfig | null {
   let urlOpener: ((url: string) => void) | null = null
-  let saveAccessToken: ((accessToken: SaveAccessTokenPayload | null) => void) | null = null
+  let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
+    null
   if ('authenticationApi' in window) {
     // When running on desktop we want to have option to save access token to a file,
     // so it can be reused later when issuing requests to the Cloud API.
     //
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
-    saveAccessToken = (accessToken: SaveAccessTokenPayload | null) => {
+    saveAccessToken = (accessToken: saveAccessTokenModule.AccessToken | null) => {
       window.authenticationApi.saveAccessToken(accessToken)
     }
   }

@@ -1,7 +1,7 @@
 /** @file Authentication module used by Enso IDE & Cloud.
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
-import * as React from 'react'
+import * as dashboard from 'react'
 
 import * as sentry from '@sentry/react'
 import * as reactQuery from '@tanstack/react-query'
@@ -20,6 +20,8 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import * as errorBoundary from '#/components/ErrorBoundary'
 
 import * as reactQueryDevtools from './ReactQueryDevtools'
+
+export type { AccessToken } from '#/utilities/accessToken'
 
 export type { GraphEditorRunner } from '#/layouts/Editor'
 
@@ -57,7 +59,7 @@ function run(props: Omit<app.AppProps, 'portalRoot'>) {
       integrations: [
         new sentry.BrowserTracing({
           routingInstrumentation: sentry.reactRouterV6Instrumentation(
-            React.useEffect,
+            dashboard.useEffect,
             reactRouter.useLocation,
             reactRouter.useNavigationType,
             reactRouter.createRoutesFromChildren,
@@ -91,10 +93,10 @@ function run(props: Omit<app.AppProps, 'portalRoot'>) {
   const queryClient = reactQueryClientModule.createReactQueryClient()
 
   reactDOM.createRoot(root).render(
-    <React.StrictMode>
+    <dashboard.StrictMode>
       <reactQuery.QueryClientProvider client={queryClient}>
         <errorBoundary.ErrorBoundary>
-          <React.Suspense fallback={<LoadingScreen />}>
+          <dashboard.Suspense fallback={<LoadingScreen />}>
             {detect.IS_DEV_MODE ? (
               <App {...props} portalRoot={portalRoot} />
             ) : (
@@ -104,12 +106,12 @@ function run(props: Omit<app.AppProps, 'portalRoot'>) {
                 portalRoot={portalRoot}
               />
             )}
-          </React.Suspense>
+          </dashboard.Suspense>
         </errorBoundary.ErrorBoundary>
 
         <reactQueryDevtools.ReactQueryDevtools />
       </reactQuery.QueryClientProvider>
-    </React.StrictMode>
+    </dashboard.StrictMode>
   )
 }
 

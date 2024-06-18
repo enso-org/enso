@@ -37,6 +37,7 @@
     "electron": "25.7.0",
     "electron-builder": "^24.13.3",
     "enso-common": "^1.0.0",
+    "enso-dashboard": "^0.1.0",
     "esbuild": "^0.19.3",
     "esbuild-plugin-yaml": "^0.0.1",
     "fast-glob": "^3.2.12",

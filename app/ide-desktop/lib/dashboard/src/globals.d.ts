@@ -2,6 +2,7 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
 /// <reference types="vite/client" />
+import type * as saveAccessToken from '#/utilities/accessToken'
 
 // This file is being imported for its types.
 // prettier-ignore
@@ -71,7 +72,7 @@ interface AuthenticationApi {
    * via a deep link. See `setDeepLinkHandler` for details. */
   readonly setDeepLinkHandler: (callback: (url: string) => void) => void
   /** Saves the access token to a file. */
-  readonly saveAccessToken: (accessToken: SaveAccessTokenPayload | null) => void
+  readonly saveAccessToken: (accessToken: saveAccessToken.AccessToken | null) => void
 }
 
 // ======================

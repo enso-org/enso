@@ -1,6 +1,7 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
+import type * as dashboard from 'enso-dashboard'
 
 // This file is being imported for its types.
 import * as buildJson from './../../../build.json' assert { type: 'json' }
@@ -54,7 +55,7 @@ interface AuthenticationApi {
      * via a deep link. See `setDeepLinkHandler` for details. */
     readonly setDeepLinkHandler: (callback: (url: string) => void) => void
     /** Saves the access token to a file. */
-    readonly saveAccessToken: (accessToken: SaveAccessTokenPayload | null) => void
+    readonly saveAccessToken: (accessToken: dashboard.AccessToken | null) => void
 }
 
 // ======================

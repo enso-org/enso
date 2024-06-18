@@ -5,6 +5,8 @@
 
 import * as electron from 'electron'
 
+import * as dashboard from 'enso-dashboard'
+
 import * as debug from 'debug'
 import * as ipc from 'ipc'
 
@@ -166,7 +168,7 @@ const AUTHENTICATION_API = {
      *
      * The backend doesn't have access to Electron's `localStorage` so we need to save access token
      * to a file. Then the token will be used to sign cloud API requests. */
-    saveAccessToken: (accessTokenPayload: SaveAccessTokenPayload | null) => {
+    saveAccessToken: (accessTokenPayload: dashboard.AccessToken | null) => {
         electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessTokenPayload)
     },
 }

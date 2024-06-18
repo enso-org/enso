@@ -37,6 +37,7 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
+import type * as saveAccessToken from '#/utilities/accessToken'
 import * as dateTime from '#/utilities/dateTime'
 
 import * as service from '#/authentication/service'
@@ -188,7 +189,7 @@ export class Cognito {
   }
 
   /** Save the access token to a file for further reuse. */
-  saveAccessToken(accessTokenPayload: SaveAccessTokenPayload | null) {
+  saveAccessToken(accessTokenPayload: saveAccessToken.AccessToken | null) {
     this.amplifyConfig.saveAccessToken?.(accessTokenPayload)
   }
 
