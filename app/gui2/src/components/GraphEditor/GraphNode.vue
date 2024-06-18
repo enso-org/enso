@@ -19,6 +19,7 @@ import NodeWidgetTree, {
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
+import { useKeyboard } from '@/composables/keyboard'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
@@ -220,9 +221,21 @@ function openFullMenu() {
 }
 
 const isDocsVisible = ref(false)
+const outputHovered = ref(false)
+const keyboard = useKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
 const visualizationHeight = computed(() => props.node.vis?.height ?? null)
-const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
+const isVisualizationEnabled = computed(() => props.node.vis?.visible ?? false)
+const isVisualizationPreviewed = computed(() => keyboard.mod && outputHovered.value)
+const isVisualizationVisible = computed(
+  () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
+)
+watch(isVisualizationPreviewed, (newVal, oldVal) => {
+  if (newVal && !oldVal) {
+    graph.db.moveNodeToTop(nodeId.value)
+  }
+})
+
 const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
 const bgStyleVariables = computed(() => {
@@ -384,12 +397,12 @@ const { getNodeColor, getNodeColors } = injectNodeColors()
 const matchableNodeColors = getNodeColors((node) => node !== nodeId.value)
 
 const graphSelectionSize = computed(() =>
-  isVisualizationVisible.value && visRect.value ? visRect.value.size : nodeSize.value,
+  isVisualizationEnabled.value && visRect.value ? visRect.value.size : nodeSize.value,
 )
 
 const nodeRect = computed(() => new Rect(props.node.position, nodeSize.value))
 const nodeOuterRect = computed(() =>
-  isVisualizationVisible.value && visRect.value ? visRect.value : nodeRect.value,
+  isVisualizationEnabled.value && visRect.value ? visRect.value : nodeRect.value,
 )
 watchEffect(() => {
   if (!nodeOuterRect.value.size.isZero()) {
@@ -405,14 +418,13 @@ watchEffect(() => {
     class="GraphNode"
     :style="{
       transform,
-      minWidth: isVisualizationVisible ? `${visualizationWidth ?? 200}px` : undefined,
+      minWidth: isVisualizationEnabled ? `${visualizationWidth ?? 200}px` : undefined,
       '--node-group-color': color,
       ...(node.zIndex ? { 'z-index': node.zIndex } : {}),
     }"
     :class="{
       selected,
       selectionVisible,
-      visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
     :data-node-id="nodeId"
@@ -452,11 +464,11 @@ watchEffect(() => {
       v-model:isRecordingOverridden="isRecordingOverridden"
       v-model:isDocsVisible="isDocsVisible"
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
-      :isVisualizationVisible="isVisualizationVisible"
+      :isVisualizationEnabled="isVisualizationEnabled"
       :isFullMenuVisible="menuVisible && menuFull"
       :nodeColor="getNodeColor(nodeId)"
       :matchableNodeColors="matchableNodeColors"
-      @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
+      @update:isVisualizationEnabled="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
@@ -479,9 +491,10 @@ watchEffect(() => {
       :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
+      :isPreview="isVisualizationPreviewed"
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
-      @update:visible="emit('update:visualizationVisible', $event)"
+      @update:enabled="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
       @update:height="emit('update:visualizationHeight', $event)"
@@ -531,6 +544,7 @@ watchEffect(() => {
         @portClick="(...args) => emit('outputPortClick', ...args)"
         @portDoubleClick="(...args) => emit('outputPortDoubleClick', ...args)"
         @update:hoverAnim="emit('update:hoverAnim', $event)"
+        @update:nodeHovered="outputHovered = $event"
       />
     </svg>
   </div>

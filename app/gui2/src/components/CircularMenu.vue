@@ -11,14 +11,14 @@ const props = defineProps<{
   isRecordingEnabledGlobally: boolean
   isRecordingOverridden: boolean
   isDocsVisible: boolean
-  isVisualizationVisible: boolean
+  isVisualizationEnabled: boolean
   isFullMenuVisible: boolean
   matchableNodeColors: Set<string>
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
-  'update:isVisualizationVisible': [isVisualizationVisible: boolean]
+  'update:isVisualizationEnabled': [isVisualizationEnabled: boolean]
   startEditing: []
   startEditingComment: []
   openFullMenu: []
@@ -62,8 +62,8 @@ const showColorPicker = ref(false)
         icon="eye"
         class="slot5"
         title="Visualization"
-        :modelValue="props.isVisualizationVisible"
-        @update:modelValue="emit('update:isVisualizationVisible', $event)"
+        :modelValue="props.isVisualizationEnabled"
+        @update:modelValue="emit('update:isVisualizationEnabled', $event)"
       />
       <SvgButton
         name="edit"
@@ -90,7 +90,7 @@ const showColorPicker = ref(false)
       />
     </div>
     <SmallPlusButton
-      v-if="!isVisualizationVisible"
+      v-if="!isVisualizationEnabled"
       class="below-slot5"
       @createNodes="emit('createNodes', $event)"
     />
