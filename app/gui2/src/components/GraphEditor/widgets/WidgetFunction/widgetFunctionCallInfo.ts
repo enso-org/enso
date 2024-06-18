@@ -102,7 +102,7 @@ export function useWidgetFunctionCallInfo(
       return {
         expressionId: toValue(inputAst).externalId,
         visualizationModule: WIDGETS_ENSO_MODULE,
-        expression: `a -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.definedIn}`,
+        expression: `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${info.suggestion.definedIn}`,
         positionalArgumentsExpressions,
       }
     }
