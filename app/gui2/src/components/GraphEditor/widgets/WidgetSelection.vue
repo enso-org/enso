@@ -251,7 +251,11 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
       dropDownInteraction.end()
       if (editedWidget.value)
         props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
-    } else {
+    } else if (isMulti.value) {
+      // In multi-select mode the children contain actual values; when a dropdown click occurs,
+      // we allow the event to propagate so the child widget can commit before the dropdown-toggle occurs.
+      // We don't do this in single-select mode because the value is treated as a filter in that case,
+      // so it shouldn't be committed as a value before the dropdown operation.
       return false
     }
   },
