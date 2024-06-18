@@ -9,12 +9,15 @@
 - [Copy-pasting multiple nodes][10194].
 - The documentation editor has [formatting toolbars][10064].
 - The documentation editor supports [rendering images][10205].
+- [Fixed a bug where drop-down were not displayed for some arguments][10297].
+  For example, `locale` parameter of `Equal_Ignore_Case` kind in join component.
 
 [10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
 [10194]: https://github.com/enso-org/enso/pull/10194
 [10198]: https://github.com/enso-org/enso/pull/10198
 [10205]: https://github.com/enso-org/enso/pull/10205
+[10297]: https://github.com/enso-org/enso/pull/10297
 
 #### Enso Standard Library
 
