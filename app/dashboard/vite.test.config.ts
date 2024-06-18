@@ -11,7 +11,7 @@ import * as appConfig from 'enso-common/src/appConfig'
 
 appConfig.loadTestEnvironmentVariables()
 
-const CONFIG = (await import('./vite.config')).default
+const CONFIG = await (await import('./vite.config')).default
 
 export default vite.mergeConfig(
   CONFIG,

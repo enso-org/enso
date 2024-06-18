@@ -12,7 +12,7 @@ appConfig.loadTestEnvironmentVariables()
 // This is required for `datalinkSchema.test.ts`.
 process.env.NODE_ENV = 'development'
 
-const VITE_CONFIG = (await import('./vite.config')).default
+const VITE_CONFIG = await (await import('./vite.config')).default
 
 export default vitestConfig.mergeConfig(
   VITE_CONFIG,
