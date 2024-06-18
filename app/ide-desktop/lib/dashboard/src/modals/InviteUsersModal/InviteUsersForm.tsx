@@ -51,33 +51,28 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
       const trimValue = value.trim()
       const { entries } = getEmailsFromInput(value)
 
-      // We wrap the code in a try-catch block to prevent the app from crashing
-      // if the browser does not support the CSS.highlights API.
-      // Currently, only Firefox doesn't support it.
-      try {
-        CSS.highlights.delete('field-wrong-email')
+      CSS.highlights?.delete('field-wrong-email')
 
-        let offset = 0
+      let offset = 0
 
-        const wrongEmailsRanges: Range[] = []
+      const wrongEmailsRanges: Range[] = []
 
-        for (const entry of entries) {
-          const emailIndex = trimValue.indexOf(entry.email, offset)
+      for (const entry of entries) {
+        const emailIndex = trimValue.indexOf(entry.email, offset)
 
-          const range = new Range()
-          range.setStart(inputRef.current.firstChild, emailIndex)
-          range.setEnd(inputRef.current.firstChild, emailIndex + entry.email.length)
+        const range = new Range()
+        range.setStart(inputRef.current.firstChild, emailIndex)
+        range.setEnd(inputRef.current.firstChild, emailIndex + entry.email.length)
 
-          if (!isEmail(entry.email)) {
-            wrongEmailsRanges.push(range)
-          }
-
-          offset = emailIndex + entry.email.length
+        if (!isEmail(entry.email)) {
+          wrongEmailsRanges.push(range)
         }
 
-        CSS.highlights.set('field-wrong-email', new Highlight(...wrongEmailsRanges))
-      } catch (error) {
-        // ignore error
+        offset = emailIndex + entry.email.length
+      }
+
+      if (typeof Highlight !== 'undefined') {
+        CSS.highlights?.set('field-wrong-email', new Highlight(...wrongEmailsRanges))
       }
     }
   })

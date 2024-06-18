@@ -21,6 +21,8 @@ import * as errorBoundary from '#/components/ErrorBoundary'
 
 import * as reactQueryDevtools from './ReactQueryDevtools'
 
+export type { GraphEditorRunner } from '#/layouts/Editor'
+
 // =================
 // === Constants ===
 // =================

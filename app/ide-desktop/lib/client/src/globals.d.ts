@@ -1,12 +1,9 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
-/// <reference types="vite/client" />
 
 // This file is being imported for its types.
-// prettier-ignore
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import * as buildJson from './../../build.json' assert {type: 'json'}
+import * as buildJson from './../../../build.json' assert { type: 'json' }
 
 // =============
 // === Types ===
@@ -162,8 +159,6 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly APPLETEAMID?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_BUILD_ICONS?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_BUILD_ELECTRON_BUILDER_CONFIG?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly npm_package_name?: string
@@ -171,37 +166,7 @@ declare global {
             // === Cloud environment variables ===
 
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_REDIRECT?: string
-            // When unset, the `.env` loader tries to load `.env` rather than `.<name>.env`.
-            // Set to the empty string to load `.env`.
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_ENVIRONMENT: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_API_URL?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_CHAT_URL?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_SENTRY_DSN?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_STRIPE_KEY?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_COGNITO_USER_POOL_ID?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_COGNITO_DOMAIN?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_COGNITO_REGION?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_GOOGLE_ANALYTICS_TAG?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_DASHBOARD_VERSION?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_DASHBOARD_COMMIT_HASH?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_ENSO_HOST?: string
 
             // === Electron watch script variables ===
 
@@ -219,5 +184,4 @@ declare global {
     /* eslint-disable @typescript-eslint/naming-convention */
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
-    const IS_VITE: boolean
 }
