@@ -53,6 +53,7 @@ export default function Settings() {
   // const user = backendHooks.useBackendUsersMe(backend)
   const organization = backendHooks.useBackendGetOrganization(backend)
   const isUserInOrganization = organization != null
+  const isQueryBlank = !/\S/.test(query)
 
   const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser')
   const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
@@ -111,31 +112,8 @@ export default function Settings() {
     [context, getText, isMatch]
   )
 
-  const data = React.useMemo<settingsData.SettingsTabData>(() => {
-    const tabData = settingsData.SETTINGS_TAB_DATA[tab]
-    if (!/\S/.test(query)) {
-      return tabData
-    } else {
-      if (isMatch(tabData.nameId)) {
-        return tabData
-      } else {
-        const sections = tabData.sections.flatMap(section => {
-          const matchingEntries = isMatch(getText(section.nameId))
-            ? section.entries
-            : section.entries.filter(doesEntryMatchQuery)
-          if (matchingEntries.length === 0) {
-            return []
-          } else {
-            return [{ ...section, entries: matchingEntries }]
-          }
-        })
-        return { ...tabData, sections }
-      }
-    }
-  }, [doesEntryMatchQuery, getText, isMatch, query, tab])
-
   const tabsToShow = React.useMemo<readonly SettingsTabType[]>(() => {
-    if (!/\S/.test(query)) {
+    if (isQueryBlank) {
       return settingsData.ALL_SETTINGS_TABS
     } else {
       return settingsData.SETTINGS_DATA.flatMap(tabSection =>
@@ -152,7 +130,31 @@ export default function Settings() {
           .map(tabData => tabData.settingsTab)
       )
     }
-  }, [doesEntryMatchQuery, getText, isMatch, query])
+  }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
+  const effectiveTab = tabsToShow.includes(tab) ? tab : tabsToShow[0] ?? SettingsTabType.members
+
+  const data = React.useMemo<settingsData.SettingsTabData>(() => {
+    const tabData = settingsData.SETTINGS_TAB_DATA[effectiveTab]
+    if (isQueryBlank) {
+      return tabData
+    } else {
+      if (isMatch(getText(tabData.nameId))) {
+        return tabData
+      } else {
+        const sections = tabData.sections.flatMap(section => {
+          const matchingEntries = isMatch(getText(section.nameId))
+            ? section.entries
+            : section.entries.filter(doesEntryMatchQuery)
+          if (matchingEntries.length === 0) {
+            return []
+          } else {
+            return [{ ...section, entries: matchingEntries }]
+          }
+        })
+        return { ...tabData, sections }
+      }
+    }
+  }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch, effectiveTab])
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-hidden px-page-x">
@@ -164,7 +166,7 @@ export default function Settings() {
               isMenu
               tabsToShow={tabsToShow}
               isUserInOrganization={isUserInOrganization}
-              tab={tab}
+              tab={effectiveTab}
               setTab={setTab}
               onClickCapture={() => {
                 setIsSidebarPopoverOpen(false)
@@ -192,7 +194,7 @@ export default function Settings() {
         <SettingsSidebar
           tabsToShow={tabsToShow}
           isUserInOrganization={isUserInOrganization}
-          tab={tab}
+          tab={effectiveTab}
           setTab={setTab}
         />
         <SettingsTab context={context} data={data} />
