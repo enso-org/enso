@@ -137,16 +137,16 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       permissionDisplay = (
-        <div className="flex w-permission-display gap-px">
+        <div className="flex w-[121px] gap-px">
           <ariaComponents.Button
-            size="custom"
+            size="xsmall"
             variant="custom"
             rounded="none"
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text flex-1 rounded-l-full py-permission-mini-button-y selectable',
+              'flex-1 rounded-l-full border-0 py-0 selectable',
               (!isDisabled || !input) && 'active',
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
             )}
@@ -155,13 +155,13 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
+            size="xsmall"
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text flex-1 py-permission-mini-button-y selectable',
+              'flex-1 border-0 py-0 selectable',
               permission.docs && (!isDisabled || !input) && 'active',
               permissionsModule.DOCS_CLASS_NAME
             )}
@@ -178,13 +178,13 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {getText('docsPermissionModifier')}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
+            size="xsmall"
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text flex-1 rounded-r-full py-permission-mini-button-y selectable',
+              'flex-1 rounded-r-full border-0 py-0 selectable',
               permission.execute && (!isDisabled || !input) && 'active',
               permissionsModule.EXEC_CLASS_NAME
             )}
@@ -207,13 +207,13 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     default: {
       permissionDisplay = (
         <ariaComponents.Button
-          size="custom"
+          size="xsmall"
           variant="custom"
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
           {...(isDisabled && error != null ? { title: error } : {})}
           className={tailwindMerge.twMerge(
-            'h-text w-permission-display rounded-full selectable',
+            'w-[121px] rounded-full border-0 py-0 selectable',
             (!isDisabled || !input) && 'active',
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
           )}

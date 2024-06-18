@@ -28,7 +28,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     typeof childrenRaw !== 'string' ? (
       childrenRaw
     ) : (
-      <ariaComponents.Text truncate="1" className="max-w-24 text-inversed">
+      <ariaComponents.Text truncate="1" className="max-w-24 text-inherit">
         {childrenRaw}
       </ariaComponents.Text>
     )
