@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -34,6 +35,20 @@ public abstract class NumericBuilder extends TypedBuilder {
   public static LongBuilder createLongBuilder(
       int size, IntegerType type, ProblemAggregator problemAggregator) {
     return LongBuilder.make(size, type, problemAggregator);
+  }
+
+  /**
+   * BigDecimals that come back from a database backend might in fact be
+   * integral, and we don't want to use Decimals and a Decimal column when a
+   * Integer and Integer Column can be used.
+   */
+  public static TypedBuilder createBuilderForBigDecimal(BigDecimal value, int size, ProblemAggregator problemAggregator) {
+    if (value.scale() <= 0) {
+      // The value is integral, so we use a BigIntegerBuilder, which can accept integral BigDecimals.
+      return new BigIntegerBuilder(size, problemAggregator);
+    } else {
+      return new BigDecimalBuilder(size);
+    }
   }
 
   @Override

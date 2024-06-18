@@ -9,6 +9,7 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -116,8 +117,9 @@ public class InferredBuilder extends Builder {
       currentBuilder = new StringBuilder(initialCapacity, TextType.VARIABLE_LENGTH);
     } else if (o instanceof BigInteger) {
       currentBuilder = new BigIntegerBuilder(initialCapacity, problemAggregator);
-    } else if (o instanceof BigDecimal) {
-      currentBuilder = new BigDecimalBuilder(initialCapacity);
+    } else if (o instanceof BigDecimal bigDecimal) {
+      currentBuilder =
+          NumericBuilder.createBuilderForBigDecimal(bigDecimal, initialCapacity, problemAggregator);
     } else if (o instanceof LocalDate) {
       currentBuilder = new DateBuilder(initialCapacity);
     } else if (o instanceof LocalTime) {
@@ -138,9 +140,7 @@ public class InferredBuilder extends Builder {
           new RetypeInfo(Long.class, IntegerType.INT_64),
           new RetypeInfo(Double.class, FloatType.FLOAT_64),
           new RetypeInfo(String.class, TextType.VARIABLE_LENGTH),
-          // TODO [RW] I think BigDecimals should not be coerced to floats, we should add Decimal
-          // support to in-memory tables at some point
-          // new RetypeInfo(BigDecimal.class, StorageType.FLOAT_64),
+          new RetypeInfo(BigDecimal.class, BigDecimalType.INSTANCE),
           new RetypeInfo(LocalDate.class, DateType.INSTANCE),
           new RetypeInfo(LocalTime.class, TimeOfDayType.INSTANCE),
           new RetypeInfo(ZonedDateTime.class, DateTimeType.INSTANCE),

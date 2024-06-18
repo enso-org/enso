@@ -191,12 +191,14 @@ default_fetcher_for_value_type value_type =
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
         Value_Type.Date_Time has_timezone ->
             if has_timezone then date_time_fetcher else local_date_time_fetcher
-        # If we can determine that scale = 0
+        ## If we can determine that scale <= 0, we use BigIntegerBuilder.
+           Otherwise, we use InferredBuilder, since it's possible some values
+           will be BigDecimal.
         Value_Type.Decimal _ scale ->
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
             case is_guaranteed_integer of
                 True  -> big_integer_fetcher
-                False -> big_decimal_fetcher
+                False -> fallback_fetcher
         _ -> fallback_fetcher
 
 ## PRIVATE
