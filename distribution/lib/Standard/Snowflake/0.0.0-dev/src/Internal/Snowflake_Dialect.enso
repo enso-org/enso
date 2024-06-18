@@ -416,11 +416,11 @@ make_order_descriptor internal_column sort_direction text_ordering =
 
 ## PRIVATE
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
-    (arg ++ " in (double precision 'NaN')").paren
+    (arg ++ " in ('NaN'::float)").paren
 
 ## PRIVATE
 is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
-    (arg ++ " in (double precision 'Infinity', double precision '-Infinity')").paren
+    (arg ++ " in ('Infinity'::float, '-Infinity'::float)").paren
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
@@ -428,11 +428,11 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
 
 ## PRIVATE
 floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
-    SQL_Builder.code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
+    SQL_Builder.code "CAST(" ++ x ++ " AS float) / CAST(" ++ y ++ " AS float)"
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "MOD" x-> y->
-    x ++ " - FLOOR(CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)) * " ++ y
+    x ++ " - FLOOR(CAST(" ++ x ++ " AS float) / CAST(" ++ y ++ " AS float)) * " ++ y
 
 ## PRIVATE
 decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
