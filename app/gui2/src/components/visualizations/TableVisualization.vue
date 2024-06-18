@@ -1,7 +1,9 @@
 <script lang="ts">
 import icons from '@/assets/icons.svg'
+import { Ast } from '@/util/ast'
+import { Pattern } from '@/util/ast/match'
 import { useAutoBlur } from '@/util/autoBlur'
-import { VisualizationContainer } from '@/util/visualizationBuiltins'
+import { VisualizationContainer, useVisualizationConfig } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type { CellClassParams, ColumnResizedEvent, ICellRendererParams } from 'ag-grid-community'
@@ -16,6 +18,7 @@ import {
   watchEffect,
   type Ref,
 } from 'vue'
+import type { NodeCreationOptions } from '../GraphEditor/nodeCreation'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -89,6 +92,7 @@ const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{
   'update:preprocessor': [module: string, method: string, ...args: string[]]
 }>()
+const config = useVisualizationConfig()
 
 const INDEX_FIELD_NAME = '#'
 
@@ -255,8 +259,36 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
+// type ConstructivePattern = (placeholder: Ast.Owned) => Ast.Owned
+
+// function projector(parentPattern: ConstructivePattern | undefined) {
+//   const style = {
+//     spaced: parentPattern !== undefined,
+//   }
+//   return (selector: number | string) => (source: Ast.Owned) =>
+//     Ast.App.positional(
+//       Ast.PropertyAccess.new(
+//         source.module,
+//         parentPattern ? parentPattern(source) : source,
+//         Ast.identifier('get')!,
+//         style,
+//       ),
+//       typeof selector === 'number' ?
+//         Ast.tryNumberToEnso(selector, source.module)!
+//       : Ast.TextLiteral.new(selector, source.module),
+//       source.module,
+//     )
+// }
+
+const pattern = Pattern.new((ast) => Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('at')!))
+
+function createNode(params: any) {
+  console.log(params)
+  config.createNodes({ content: pattern, commit: true })
+}
+
 function indexField(): ColDef {
-  return { field: INDEX_FIELD_NAME }
+  return { field: INDEX_FIELD_NAME, onCellClicked: (params) => createNode(params) }
 }
 
 /** Return a human-readable representation of an object. */
