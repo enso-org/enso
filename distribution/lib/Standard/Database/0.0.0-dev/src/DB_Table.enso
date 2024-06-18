@@ -3025,8 +3025,7 @@ make_literal_table connection column_vectors column_names alias =
                 column_name = column_names.at i
 
                 type_ref = values_to_type_ref column_vector.to_vector
-                generated_literal_column_name = "column"+(i+1).to_text
-                sql_expression = SQL_Expression.Column alias generated_literal_column_name
+                sql_expression = SQL_Expression.Column alias column_name
                 Internal_Column.Value column_name type_ref sql_expression
 
             DB_Table.Value alias connection internal_columns context
