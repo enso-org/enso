@@ -334,6 +334,7 @@ export function generateDirectoryName(name: string, directory = getProjectsDirec
   }
 
   let finalPath: string
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     suffix++
     const newName = `${name}${suffix === 0 ? '' : `_${suffix}`}`
