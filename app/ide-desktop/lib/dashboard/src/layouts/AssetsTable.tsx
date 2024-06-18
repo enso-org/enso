@@ -432,8 +432,11 @@ export default function AssetsTable(props: AssetsTableProps) {
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const rootRef = React.useRef<HTMLDivElement | null>(null)
-  const mainDropzoneRef = React.useRef<HTMLButtonElement | null>(null)
   const cleanupRootRef = React.useRef(() => {})
+  const mainDropzoneRef = React.useRef<HTMLButtonElement | null>(null)
+  const lastSelectedIdsRef = React.useRef<
+    backendModule.AssetId | ReadonlySet<backendModule.AssetId> | null
+  >(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<assetTreeNode.AnyAssetTreeNode>(assetTree)
   const pasteDataRef = React.useRef<pasteDataModule.PasteData<
@@ -2319,33 +2322,38 @@ export default function AssetsTable(props: AssetsTableProps) {
             if (payload != null) {
               event.preventDefault()
               event.stopPropagation()
-              const ids = new Set(
-                selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key]
-              )
-              let labelsPresent = 0
-              for (const selectedKey of ids) {
-                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (nodeLabels != null) {
-                  for (const label of nodeLabels) {
-                    if (payload.has(label)) {
-                      labelsPresent += 1
+              const idsReference = selectedKeysRef.current.has(key) ? selectedKeysRef.current : key
+              // This optimization is required in order to avoid severe lag on Firefox.
+              if (idsReference !== lastSelectedIdsRef.current) {
+                lastSelectedIdsRef.current = idsReference
+                const ids =
+                  typeof idsReference === 'string' ? new Set([idsReference]) : idsReference
+                let labelsPresent = 0
+                for (const selectedKey of ids) {
+                  const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                  if (nodeLabels != null) {
+                    for (const label of nodeLabels) {
+                      if (payload.has(label)) {
+                        labelsPresent += 1
+                      }
                     }
                   }
                 }
-              }
-              const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-              window.setTimeout(() => {
-                dispatchAssetEvent({
-                  type: shouldAdd
-                    ? AssetEventType.temporarilyAddLabels
-                    : AssetEventType.temporarilyRemoveLabels,
-                  ids,
-                  labelNames: payload,
+                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+                window.setTimeout(() => {
+                  dispatchAssetEvent({
+                    type: shouldAdd
+                      ? AssetEventType.temporarilyAddLabels
+                      : AssetEventType.temporarilyRemoveLabels,
+                    ids,
+                    labelNames: payload,
+                  })
                 })
-              })
+              }
             }
           }}
           onDragEnd={() => {
+            lastSelectedIdsRef.current = null
             dispatchAssetEvent({
               type: AssetEventType.temporarilyAddLabels,
               ids: selectedKeysRef.current,
@@ -2425,6 +2433,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           event.relatedTarget instanceof Node &&
           !event.currentTarget.contains(event.relatedTarget)
         ) {
+          lastSelectedIdsRef.current = null
           dispatchAssetEvent({
             type: AssetEventType.temporarilyAddLabels,
             ids: selectedKeysRef.current,
@@ -2470,6 +2479,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}
         onDragLeave={event => {
+          lastSelectedIdsRef.current = null
           if (event.currentTarget === event.target) {
             setIsDraggingFiles(false)
           }
@@ -2549,8 +2559,14 @@ export default function AssetsTable(props: AssetsTableProps) {
               },
               onDragEnter: updateIsDraggingFiles,
               onDragOver: updateIsDraggingFiles,
-              onDragLeave: () => {
-                setIsDraggingFiles(false)
+              onDragLeave: event => {
+                if (
+                  !(event.relatedTarget instanceof Node) ||
+                  !event.currentTarget.contains(event.relatedTarget)
+                ) {
+                  lastSelectedIdsRef.current = null
+                  setIsDraggingFiles(false)
+                }
               },
             })}
           >
