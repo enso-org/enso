@@ -43,7 +43,7 @@ add_specs suite_builder setup =
                 False ->
                     t2.should_fail_with Clashing_Column_Name
                 True ->
-                    Test.with_clue "The columns should be correctly distinguished." <|
+                    Test.with_clue "The columns should be correctly distinguished. " <|
                         t2.at "X" . to_vector . should_equal [1]
                         t2.at "x" . to_vector . should_equal [101]
 
