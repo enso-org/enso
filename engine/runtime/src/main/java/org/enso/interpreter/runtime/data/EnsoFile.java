@@ -10,6 +10,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -124,7 +125,7 @@ public final class EnsoFile implements EnsoObject {
                 to = from + iop.asLong(args[2]);
               }
               default -> {
-                throw ArityException.create(1, 1, args.length);
+                throw ArityException.create(1, 3, args.length);
               }
             }
             for (long i = from; i < to; i++) {
@@ -144,10 +145,17 @@ public final class EnsoFile implements EnsoObject {
           }
           default -> throw UnknownIdentifierException.create(name);
         };
-      } catch (InvalidArrayIndexException | IOException ex) {
+      } catch (IOException ex) {
+        throw raiseIOException(iop, ex);
+      } catch (InvalidArrayIndexException ex) {
         var ctx = EnsoContext.get(iop);
         throw ctx.raiseAssertionPanic(iop, name, ex);
       }
+    }
+
+    @Override
+    public String toString() {
+      return "EnsoOutputStream";
     }
   }
 
@@ -169,7 +177,9 @@ public final class EnsoFile implements EnsoObject {
   @ExportLibrary(InteropLibrary.class)
   static final class EnsoInputStream implements EnsoObject {
     private static final String[] MEMBERS =
-        new String[] {"read", "readAllBytes", "readNBytes", "close"};
+        new String[] {
+          "read", "readAllBytes", "readNBytes", "skipNBytes", "markSupported", "available", "close"
+        };
     private final InputStream is;
 
     EnsoInputStream(InputStream is) {
@@ -192,33 +202,98 @@ public final class EnsoFile implements EnsoObject {
       return ArrayLikeHelpers.wrapStrings(MEMBERS);
     }
 
+    @TruffleBoundary
     @ExportMessage
     Object invokeMember(String name, Object[] args, @CachedLibrary(limit = "3") InteropLibrary iop)
-        throws UnknownIdentifierException, UnsupportedMessageException {
+        throws UnknownIdentifierException,
+            UnsupportedMessageException,
+            ArityException,
+            UnsupportedTypeException {
       try {
         return switch (name) {
-          case "read" -> is.read();
+          case "read" -> {
+            if (args.length == 0) {
+              yield is.read();
+            }
+            long from;
+            long to;
+            switch (args.length) {
+              case 1 -> {
+                from = 0;
+                to = iop.getArraySize(args[0]);
+              }
+              case 3 -> {
+                from = iop.asLong(args[1]);
+                to = from + iop.asLong(args[2]);
+              }
+              default -> throw ArityException.create(0, 3, args.length);
+            }
+            for (var i = from; i < to; i++) {
+              var b = is.read();
+              if (b == -1) {
+                yield i - from;
+              }
+              iop.writeArrayElement(args[0], i, (byte) b);
+            }
+            yield to - from;
+          }
           case "readAllBytes" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
             var arr = is.readAllBytes();
             var buf = ByteBuffer.wrap(arr);
             yield ArrayLikeHelpers.wrapBuffer(buf);
           }
           case "readNBytes" -> {
+            if (args.length != 1) {
+              throw ArityException.create(1, 1, args.length);
+            }
             var len = iop.asInt(args[0]);
             var arr = is.readNBytes(len);
             var buf = ByteBuffer.wrap(arr);
             yield ArrayLikeHelpers.wrapBuffer(buf);
           }
+          case "skipNBytes" -> {
+            if (args.length != 1) {
+              throw ArityException.create(1, 1, args.length);
+            }
+            var len = iop.asInt(args[0]);
+            is.skipNBytes(len);
+            yield this;
+          }
+          case "markSupported" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
+            yield is.markSupported();
+          }
+          case "available" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
+            yield is.available();
+          }
           case "close" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
             is.close();
             yield this;
           }
           default -> throw UnknownIdentifierException.create(name);
         };
       } catch (IOException ex) {
+        throw raiseIOException(iop, ex);
+      } catch (InvalidArrayIndexException ex) {
         var ctx = EnsoContext.get(iop);
         throw ctx.raiseAssertionPanic(iop, name, ex);
       }
+    }
+
+    @Override
+    public String toString() {
+      return "EnsoInputStream";
     }
   }
 
@@ -603,5 +678,11 @@ public final class EnsoFile implements EnsoObject {
   @ExportMessage
   Type getType(@Bind("$node") Node node) {
     return EnsoContext.get(node).getBuiltins().file();
+  }
+
+  static RuntimeException raiseIOException(Node where, IOException ex) {
+    var ctx = EnsoContext.get(where);
+    var guestEx = ctx.asGuestValue(ex);
+    throw new PanicException(guestEx, where);
   }
 }
