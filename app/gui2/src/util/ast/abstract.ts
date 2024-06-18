@@ -2,6 +2,7 @@ import { normalizeQualifiedName, qnFromSegments } from '@/util/qualifiedName'
 import type {
   AstId,
   IdentifierOrOperatorIdentifier,
+  Mutable,
   MutableAst,
   NodeKey,
   Owned,
@@ -227,6 +228,12 @@ export function tryNumberToEnso(value: number, module: MutableModule) {
   if (!literal)
     console.warn(`Not implemented: Converting scientific-notation number to Enso value`, value)
   return literal
+}
+
+export function copyIntoNewModule<T extends Ast>(ast: T): Owned<Mutable<T>> {
+  const module = MutableModule.Transient()
+  module.importCopy(ast)
+  return module.getVersion(ast) as Owned<Mutable<T>>
 }
 
 declare const tokenKey: unique symbol

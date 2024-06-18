@@ -3,8 +3,9 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
-import { computed } from 'vue'
+import { computed, shallowRef, triggerRef, watchEffect } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
@@ -41,6 +42,62 @@ const value = computed({
 })
 
 const navigator = injectGraphNavigator(true)
+
+function useChildEditForwarding(widgetId: string) {
+  const editHandler = WidgetEditHandler.New(widgetId, props.input, {
+    cancel: () => (itemEdits.value = new Map()),
+    end: () => (itemEdits.value = new Map()),
+  })
+
+  const itemEdits = shallowRef(new Map<Ast.AstId, Ast.Owned | string>())
+  const updateEdits = (f: (itemEdits: Map<Ast.AstId, Ast.Owned | string>) => void) => {
+    f(itemEdits.value)
+    triggerRef(itemEdits)
+  }
+
+  function childEditHandler(widgetInput: WidgetInput, astId: Ast.AstId) {
+    return editHandler.child(`${widgetId}.Child`, widgetInput, {
+      cancel: () => updateEdits((itemEdits) => itemEdits.delete(astId)),
+      end: () => updateEdits((itemEdits) => itemEdits.delete(astId)),
+      edit: (_origin, value) => {
+        updateEdits((itemEdits) => itemEdits.set(astId, value))
+        return false
+      },
+    })
+  }
+
+  let editStarted = false
+  watchEffect(() => {
+    const inputValue = props.input.value
+    if (!(inputValue instanceof Ast.Ast)) return
+    if (!editStarted && itemEdits.value.size === 0) return
+    const editedAst = Ast.copyIntoNewModule(inputValue)
+    const module = editedAst.module
+    for (const [id, replacement] of itemEdits.value) {
+      const ast = module.tryGet(id)
+      if (!ast) {
+        continue
+      }
+      ast.replace(typeof replacement === 'string' ? Ast.parse(replacement, module) : replacement)
+    }
+    editHandler.edit(editedAst)
+    editStarted = true
+  })
+
+  return { childEditHandler }
+}
+
+const { childEditHandler } = useChildEditForwarding('WidgetVector')
+
+function itemInput(ast: Ast.Ast): WidgetInput {
+  const baseInput = WidgetInput.FromAst(ast)
+  return {
+    ...baseInput,
+    dynamicConfig: itemConfig.value,
+    forcePort: true,
+    editHandler: childEditHandler(baseInput, ast.id),
+  }
+}
 </script>
 
 <script lang="ts">
@@ -75,10 +132,7 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
     contenteditable="false"
   >
     <template #default="{ item }">
-      <NodeWidget
-        :input="{ ...WidgetInput.FromAst(item), dynamicConfig: itemConfig, forcePort: true }"
-        nest
-      />
+      <NodeWidget :input="itemInput(item)" nest />
     </template>
   </ListWidget>
 </template>

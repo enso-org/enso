@@ -196,7 +196,7 @@ const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(
 const selectedExpressions = computed(() => {
   const selected = new Set<string>()
   if (isMulti.value) {
-    for (const element of getValues(props.input.value)) {
+    for (const element of getValues(editedValue.value ?? props.input.value)) {
       const normalized = removeSurroundingParens(element.code())
       if (normalized) selected.add(normalized)
     }
@@ -251,6 +251,8 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
       dropDownInteraction.end()
       if (editedWidget.value)
         props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
+    } else {
+      return false
     }
   },
   start: () => {
@@ -319,7 +321,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   const edit = graph.startEdit()
   const tagValue = resolveTagExpression(edit, tag)
   if (isMulti.value) {
-    const inputValue = props.input.value
+    const inputValue = editedValue.value ?? props.input.value
     if (inputValue instanceof Ast.Vector) {
       toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
       props.onUpdate({ edit })

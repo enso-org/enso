@@ -113,7 +113,7 @@ export interface WidgetInput {
   dynamicConfig?: WidgetConfiguration | undefined
   /** Force the widget to be a connectible port. */
   forcePort?: boolean
-  editHandler?: WidgetEditHandler
+  editHandler?: WidgetEditHandler | undefined
 }
 
 /**

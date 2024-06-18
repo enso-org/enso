@@ -49,7 +49,8 @@ export class WidgetEditHandler {
     private readonly widgetId: WidgetId,
     private readonly hooks: WidgetEditHooks,
     private readonly parent: WidgetEditHandler | undefined,
-    private readonly portEditor: PortEditInitiatorOrResumer,
+    private readonly getPortEdit: PortEditInitiator,
+    private readonly portId: PortId,
     private readonly widgetTree: {
       currentEdit: WidgetEditHandler | undefined
     } = injectWidgetTree(),
@@ -82,17 +83,19 @@ export class WidgetEditHandler {
     input: WidgetInput,
     myInteraction: WidgetEditHooks,
   ): WidgetEditHandler {
+    const { getPortEdit, tryResume } = useGetPortEdit(
+      input.portId,
+      input[ArgumentInfoKey]?.argId,
+      injectInteractionHandler(),
+    )
     const editHandler = new WidgetEditHandler(
       widgetId as WidgetId,
       myInteraction,
       input.editHandler,
-      new PortEditInitiatorOrResumer(
-        input.portId,
-        input[ArgumentInfoKey]?.argId,
-        injectInteractionHandler(),
-      ),
+      getPortEdit,
+      input.portId,
     )
-    const portEdit = editHandler.portEditor.tryResume()
+    const portEdit = tryResume()
     if (portEdit) {
       const resumeHook = portEdit.getResumeHook(widgetId as WidgetId)
       if (resumeHook) {
@@ -106,6 +109,22 @@ export class WidgetEditHandler {
     return editHandler
   }
 
+  child(widgetId: string, input: WidgetInput, myInteraction: WidgetEditHooks): WidgetEditHandler {
+    const { getPortEdit } = useGetPortEdit(
+      input.portId,
+      input[ArgumentInfoKey]?.argId,
+      injectInteractionHandler(),
+      this.portId,
+    )
+    return new WidgetEditHandler(
+      widgetId as WidgetId,
+      myInteraction,
+      this,
+      getPortEdit,
+      input.portId,
+    )
+  }
+
   cancel() {
     this.portEdit.value?.cancel()
   }
@@ -117,7 +136,7 @@ export class WidgetEditHandler {
 
   private onStart(origin: WidgetId) {
     this.parent?.onStart?.(origin)
-    this.portEdit.value = this.portEditor.start()
+    this.portEdit.value = this.getPortEdit()
     this.portEdit.value.register(this.interaction)
     this.hooks.start?.(origin)
   }
@@ -127,8 +146,7 @@ export class WidgetEditHandler {
   }
 
   private onEdit(origin: WidgetId, value: Ast.Owned | string) {
-    this.hooks.edit?.(origin, value)
-    this.parent?.onEdit?.(origin, value)
+    if (this.hooks.edit?.(origin, value) !== false) this.parent?.onEdit?.(origin, value)
   }
 
   end() {
@@ -155,7 +173,7 @@ export interface WidgetEditHooks extends Interaction {
   /**
    * Hook called when a child widget, or this widget itself, provides an updated value.
    */
-  edit?(origin: WidgetId, value: Ast.Owned | string): void
+  edit?(origin: WidgetId, value: Ast.Owned | string): void | boolean
   /**
    * Hook enabling a widget to provide a handler for the add-item intent of a child widget. The parent can return true
    * to indicate that creating the new item has been handled and the child should not perform its action in this case.
@@ -187,6 +205,7 @@ class PortEditInteraction implements Interaction {
   readonly active: Ref<boolean>
   private readonly resumable: PortEditResumeData
   private readonly interactions = new Array<PortEditSubinteraction>()
+  private child: PortEditInteraction | undefined = undefined
 
   private constructor(
     public readonly portId: PortId,
@@ -210,21 +229,37 @@ class PortEditInteraction implements Interaction {
     return interaction
   }
 
+  startChild(
+    portId: PortId,
+    argId: string | undefined,
+    resumable?: Map<WidgetId, ResumeCallback> | undefined,
+  ) {
+    this.child?.end()
+    this.child = new PortEditInteraction(portId, argId, resumable, true, this.interactionHandler)
+    return this.child
+  }
+
+  tryGetPortEdit(portId: PortId): PortEditInteraction | undefined {
+    return portId === this.portId ? this : this.child?.tryGetPortEdit(portId)
+  }
+
   pointerdown(event: PointerEvent, navigator: GraphNavigator): boolean | void {
     for (const interaction of this.interactions) {
       if (!interaction.pointerdown) continue
-      if (interaction.pointerdown(event, navigator) !== false) break
+      if (interaction.pointerdown(event, navigator) !== false) return false
     }
-    return false
+    return this.child ? this.child.pointerdown(event, navigator) : false
   }
 
   cancel() {
     for (const interaction of this.interactions) interaction.cancel()
+    this.child?.cancel()
     this.shutdown()
   }
 
   end(origin?: WidgetId) {
     for (const interaction of this.interactions) interaction.end?.(origin)
+    this.child?.end()
     this.shutdown()
   }
 
@@ -282,36 +317,46 @@ interface PortEditSubinteraction extends Interaction {
   end(origin?: WidgetId | undefined): void
 }
 
-/** @internal Public for unit testing.
- *  Obtains a top-level interaction to edit a port (see {@link PortEditInteraction}), which may be a pre-existing
- *  ongoing interaction, or a newly-started interaction. */
-export class PortEditInitiatorOrResumer {
-  constructor(
-    private readonly portId: PortId,
-    private readonly argId: string | undefined,
-    private readonly interactionHandler: InteractionHandler,
-  ) {}
+interface PortEditInitiator {
+  (): PortEditInteraction
+}
 
-  start() {
-    const current = this.interactionHandler.getCurrent()
-    if (current instanceof PortEditInteraction && current.portId === this.portId) {
-      return current
-    } else {
-      return this.newEdit()
+function useGetPortEdit(
+  portId: PortId,
+  argId: string | undefined,
+  interactionHandler: InteractionHandler,
+  parentPortId?: PortId | undefined,
+) {
+  /** Obtains a top-level interaction to edit a port (see {@link PortEditInteraction}), which may be a pre-existing
+   *  ongoing interaction, or a newly-started interaction. */
+  function getPortEdit() {
+    const current = interactionHandler.getCurrent()
+    if (current instanceof PortEditInteraction) {
+      const edit = current.tryGetPortEdit(portId)
+      if (edit) {
+        return edit
+      } else if (parentPortId) {
+        const parent = current.tryGetPortEdit(parentPortId)
+        if (parent) {
+          return parent.startChild(portId, argId)
+        }
+      }
     }
+    return PortEditInteraction.Start(portId, argId, interactionHandler)
   }
 
-  tryResume() {
-    if (this.argId == null) return
-    const current = this.interactionHandler.getCurrent()
-    if (current instanceof SuspendedPortEdit && this.argId === current.argId) {
-      return this.newEdit(current.resumable)
+  function tryResume() {
+    if (argId == null) return
+    const current = interactionHandler.getCurrent()
+    if (current instanceof SuspendedPortEdit && argId === current.argId) {
+      return PortEditInteraction.Start(portId, argId, interactionHandler, current.resumable)
     } else {
       return
     }
   }
 
-  private newEdit(resumable?: PortEditResumeData) {
-    return PortEditInteraction.Start(this.portId, this.argId, this.interactionHandler, resumable)
+  return {
+    getPortEdit,
+    tryResume,
   }
 }
