@@ -123,9 +123,9 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
     <>
       <HorizontalMenuBar>
         <ariaComponents.Button
-          size="custom"
-          variant="custom"
-          className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+          variant="bar"
+          rounded="full"
+          size="small"
           onPress={event => {
             const rect = event.target.getBoundingClientRect()
             const position = { pageX: rect.left, pageY: rect.top }

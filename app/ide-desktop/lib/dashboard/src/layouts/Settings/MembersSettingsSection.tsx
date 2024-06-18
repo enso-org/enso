@@ -8,6 +8,7 @@ import * as backendHooks from '#/hooks/backendHooks'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 
@@ -51,13 +52,15 @@ export default function MembersSettingsTab(props: MembersSettingsTabProps) {
 
   return (
     <>
-      <ariaComponents.DialogTrigger>
-        <ariaComponents.Button variant="bar" rounded="full" size="small">
-          {getText('inviteMembers')}
-        </ariaComponents.Button>
+      <HorizontalMenuBar>
+        <ariaComponents.DialogTrigger>
+          <ariaComponents.Button variant="bar" rounded="full" size="small">
+            {getText('inviteMembers')}
+          </ariaComponents.Button>
 
-        <InviteUsersModal />
-      </ariaComponents.DialogTrigger>
+          <InviteUsersModal />
+        </ariaComponents.DialogTrigger>
+      </HorizontalMenuBar>
 
       <table className="table-fixed self-start rounded-rows">
         <thead>
