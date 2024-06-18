@@ -267,7 +267,6 @@ export default function AuthProvider(props: AuthProviderProps) {
         goOfflineInternal()
         setForceOfflineMode(false)
       } else if (session == null) {
-        setInitialized(true)
         setRemoteBackend(null)
         cognito?.saveAccessToken(null)
         sentry.setUser(null)
