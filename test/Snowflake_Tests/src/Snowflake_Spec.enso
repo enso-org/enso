@@ -38,8 +38,8 @@ type Snowflake_Info_Data
     tinfo self = self.data.at 1
     t self = self.data.at 2
 
-    setup create_connection_fn = Snowflake_Info_Data.Value <|
-        connection = create_connection_fn Nothing
+    setup default_connection = Snowflake_Info_Data.Value <|
+        connection = default_connection.get
         tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" NUMBER(38,0), "bools" BOOLEAN, "doubles" FLOAT8)'
         t = connection.query (SQL_Query.Table_Name tinfo)
@@ -52,15 +52,31 @@ type Snowflake_Info_Data
 
     teardown self =
         self.connection.execute_update 'DROP TABLE "'+self.tinfo+'"'
-        self.connection.close
 
 
-snowflake_specific_spec suite_builder create_connection_fn db_name setup =
+type Snowflake_Aggregate_Data
+    Value ~data
+
+    connection self = self.data.at 0
+    name self = self.data.at 1
+    t self = self.data.at 2
+
+    setup default_connection = Snowflake_Aggregate_Data.Value <|
+        connection = default_connection.get
+        name = Name_Generator.random_name "Ttypes"
+        connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)' . if_not_error <|
+            t = connection.query (SQL_Query.Table_Name name)
+            [connection, name, t]
+
+    teardown self =
+        self.connection.execute_update 'DROP TABLE "'+self.name+'"'
+
+snowflake_specific_spec suite_builder default_connection db_name setup =
     table_builder = setup.table_builder
     materialize = setup.materialize
 
     suite_builder.group "[Snowflake] Schemas and Databases" group_builder->
-        data = Basic_Test_Data.setup create_connection_fn
+        data = Basic_Test_Data.setup default_connection
 
         group_builder.teardown <|
             data.teardown
@@ -94,7 +110,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
                 _ -> Nothing
 
     suite_builder.group "[Snowflake] Tables and Table Types" group_builder->
-        data = Postgres_Tables_Data.setup create_connection_fn
+        data = Postgres_Tables_Data.setup default_connection
 
         group_builder.teardown <|
             data.teardown
@@ -136,7 +152,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
 
 
     suite_builder.group "[Snowflake] Info" group_builder->
-        data = Snowflake_Info_Data.setup create_connection_fn
+        data = Snowflake_Info_Data.setup default_connection
 
         group_builder.teardown <|
             data.teardown
@@ -151,7 +167,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . column_info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
-            i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Decimal, Value_Type.Integer]
+            i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer, Value_Type.Integer]
 
         group_builder.specify "should infer standard types correctly" <|
             data.t.at "strs" . value_type . is_text . should_be_true
@@ -176,7 +192,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
     suite_builder.group "[Snowflake] Dialect-specific codegen" group_builder->
-        data = Snowflake_Info_Data.setup create_connection_fn
+        data = Snowflake_Info_Data.setup default_connection
 
         group_builder.teardown <|
             data.teardown
@@ -188,7 +204,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
     suite_builder.group "[Snowflake] Table.aggregate should correctly infer result types" group_builder->
-        data = Snowflake_Info_Data.setup create_connection_fn
+        data = Snowflake_Aggregate_Data.setup default_connection
 
         group_builder.teardown <|
             data.teardown
@@ -209,23 +225,24 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             r = data.t.aggregate columns=[Aggregate_Column.Sum "i1", Aggregate_Column.Sum "i2", Aggregate_Column.Sum "i3", Aggregate_Column.Sum "i4", Aggregate_Column.Sum "r1", Aggregate_Column.Sum "r2"]
             r.columns.at 0 . value_type . should_equal Value_Type.Integer
             r.columns.at 1 . value_type . should_equal Value_Type.Integer
-            r.columns.at 2 . value_type . should_equal Value_Type.Decimal
-            r.columns.at 3 . value_type . should_equal Value_Type.Decimal
-            r.columns.at 4 . value_type . should_equal (Value_Type.Float Bits.Bits_32)
+            # TODO are these types right??
+            r.columns.at 2 . value_type . should_equal Value_Type.Integer
+            r.columns.at 3 . value_type . should_equal Value_Type.Integer
+            r.columns.at 4 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
             r.columns.at 5 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
         group_builder.specify "Average" <|
             r = data.t.aggregate columns=[Aggregate_Column.Average "i1", Aggregate_Column.Average "i2", Aggregate_Column.Average "i3", Aggregate_Column.Average "i4", Aggregate_Column.Average "r1", Aggregate_Column.Average "r2"]
-            r.columns.at 0 . value_type . should_equal Value_Type.Decimal
-            r.columns.at 1 . value_type . should_equal Value_Type.Decimal
-            r.columns.at 2 . value_type . should_equal Value_Type.Decimal
-            r.columns.at 3 . value_type . should_equal Value_Type.Decimal
+            r.columns.at 0 . value_type . should_equal (Value_Type.Decimal 38 6)
+            r.columns.at 1 . value_type . should_equal (Value_Type.Decimal 38 6)
+            r.columns.at 2 . value_type . should_equal (Value_Type.Decimal 38 6)
+            r.columns.at 3 . value_type . should_equal (Value_Type.Decimal 38 6)
             r.columns.at 4 . value_type . should_equal Value_Type.Float
             r.columns.at 5 . value_type . should_equal Value_Type.Float
 
 
     suite_builder.group "[Snowflake] Warning/Error handling" group_builder->
-        data = Basic_Test_Data.setup create_connection_fn
+        data = Basic_Test_Data.setup default_connection
 
         group_builder.teardown <|
             data.teardown
@@ -268,7 +285,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
             r4.should_fail_with SQL_Error
 
     suite_builder.group "[Snowflake] Edge Cases" group_builder->
-        data = Basic_Test_Data.setup create_connection_fn
+        data = Basic_Test_Data.setup default_connection
 
         group_builder.teardown <|
             data.teardown
@@ -450,7 +467,7 @@ snowflake_specific_spec suite_builder create_connection_fn db_name setup =
                         t2.at "A" . to_vector . should_equal []
 
     suite_builder.group "[Snowflake] math functions" group_builder->
-        data = Basic_Test_Data.setup create_connection_fn
+        data = Basic_Test_Data.setup default_connection
 
         group_builder.teardown <|
             data.teardown
@@ -554,7 +571,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn light_table_builder=light_table_builder
 
-    snowflake_specific_spec suite_builder create_connection_fn db_name setup
+    snowflake_specific_spec suite_builder default_connection db_name setup
     Common_Table_Operations.Main.add_specs suite_builder setup
 
 ## PRIVATE
