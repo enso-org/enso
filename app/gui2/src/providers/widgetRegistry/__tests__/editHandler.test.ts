@@ -3,7 +3,7 @@ import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
-import { useGetPortEdit, WidgetEditHandler, type WidgetId } from '../editHandler'
+import { WidgetEditHandler, useGetPortEdit, type WidgetId } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
