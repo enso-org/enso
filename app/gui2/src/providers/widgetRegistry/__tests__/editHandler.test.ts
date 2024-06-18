@@ -3,7 +3,7 @@ import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
-import { PortEditInitiator, WidgetEditHandler, type WidgetId } from '../editHandler'
+import { useGetPortEdit, WidgetEditHandler, type WidgetId } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
@@ -20,12 +20,14 @@ function editHandlerTree(
       if (id.startsWith(otherId) && otherId.length > (parent?.length ?? -1)) parent = otherId
     }
     const widgetId = id as WidgetId
+    const portId = `Port${id.slice(0, 1)}` as PortId
     const interaction = createInteraction(widgetId)
     const handler = new WidgetEditHandler(
       widgetId,
       interaction,
       parent ? handlers.get(parent)?.handler : undefined,
-      new PortEditInitiator(`Port${id.slice(0, 1)}` as PortId, undefined, interactionHandler),
+      useGetPortEdit(portId, undefined, interactionHandler).getPortEdit,
+      portId,
       widgetTree,
     )
     handlers.set(id, { handler, interaction })

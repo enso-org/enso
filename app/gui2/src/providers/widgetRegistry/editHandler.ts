@@ -321,7 +321,8 @@ interface PortEditInitiator {
   (): PortEditInteraction
 }
 
-function useGetPortEdit(
+/** @interal Exported for testing. */
+export function useGetPortEdit(
   portId: PortId,
   argId: string | undefined,
   interactionHandler: InteractionHandler,
