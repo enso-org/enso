@@ -894,11 +894,11 @@ Writable_File.from (that : File) = if Data_Link.is_data_link that then Data_Link
 ## PRIVATE
 local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
         source.copy_builtin destination copy_options
 
 ## PRIVATE
 local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
         source.move_builtin destination copy_options
