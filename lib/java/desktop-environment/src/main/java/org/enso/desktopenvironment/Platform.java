@@ -1,5 +1,8 @@
 package org.enso.desktopenvironment;
 
+import org.enso.desktopenvironment.directories.Directories;
+import org.enso.desktopenvironment.directories.DirectoriesFactory;
+
 public final class Platform {
 
   private static final String OS_NAME = "os.name";
@@ -7,31 +10,13 @@ public final class Platform {
   private static final String MAC = "mac";
   private static final String WINDOWS = "windows";
 
-  private static final Directories DIRECTORIES = initDirectories();
-
   private Platform() {}
 
   public static Directories getDirectories() {
-    return DIRECTORIES;
+    return DirectoriesFactory.getInstance();
   }
 
-  private static Directories initDirectories() {
-    if (isLinux()) {
-      return new LinuxDirectories();
-    }
-
-    if (isMacOs()) {
-      return new MacOsDirectories();
-    }
-
-    if (isWindows()) {
-      return new WindowsDirectories();
-    }
-
-    throw new UnsupportedOperationException("Unsupported OS '" + getOsName() + "'");
-  }
-
-  private static String getOsName() {
+  public static String getOsName() {
     return System.getProperty(OS_NAME);
   }
 

@@ -1,4 +1,4 @@
-package org.enso.desktopenvironment;
+package org.enso.desktopenvironment.directories;
 
 import java.nio.file.Files;
 import org.junit.Assert;
@@ -11,7 +11,7 @@ public class DirectoriesTest {
 
   @BeforeClass
   public static void setup() {
-    directories = Platform.getDirectories();
+    directories = DirectoriesFactory.getInstance();
   }
 
   @Test
@@ -21,7 +21,7 @@ public class DirectoriesTest {
   }
 
   @Test
-  public void getDocuments() throws Directories.DirectoryException {
+  public void getDocuments() throws DirectoriesException {
     var documents = directories.getDocuments();
     Assert.assertTrue(
         "User documents is not a directory" + documents, Files.isDirectory(documents));

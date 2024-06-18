@@ -213,6 +213,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def runOpts(options: CommandLine): ZIO[ZAny, Throwable, ExitCode] = {
     if (options.hasOption(Cli.HELP_OPTION)) {
       ZIO.succeed(Cli.printHelp()) *>
+      ZIO.succeed(
+        System.out.println(
+          "DOCUMENTS: " + org.enso.desktopenvironment.Platform.getDirectories.getDocuments
+        )
+      ) *>
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
