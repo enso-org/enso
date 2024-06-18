@@ -70,7 +70,7 @@ const emit = defineEmits<{
   'update:hoverAnim': [progress: number]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
-  'update:visualizationVisible': [visible: boolean]
+  'update:visualizationEnabled': [enabled: boolean]
   'update:visualizationFullscreen': [fullscreen: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
