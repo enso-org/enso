@@ -148,12 +148,12 @@ export function locateCreateButton(page: test.Locator | test.Page) {
 
 /** Find a button to open the editor (if any) on the current page. */
 export function locatePlayOrOpenProjectButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Open in editor')
+  return page.getByLabel('Open in editor')
 }
 
 /** Find a button to close the project (if any) on the current page. */
 export function locateStopProjectButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Stop execution')
+  return page.getByLabel('Stop execution')
 }
 
 /** Find all labels in the labels panel (if any) on the current page. */
@@ -370,7 +370,7 @@ export function locateNewLabelButton(page: test.Locator | test.Page) {
 
 /** Find an "upgrade" button (if any) on the current page. */
 export function locateUpgradeButton(page: test.Locator | test.Page) {
-  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade')
+  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade').first()
 }
 
 /**

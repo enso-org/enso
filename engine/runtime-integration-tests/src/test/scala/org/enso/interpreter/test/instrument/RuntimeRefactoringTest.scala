@@ -396,7 +396,8 @@ class RuntimeRefactoringTest
               "42"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )
@@ -718,7 +719,8 @@ class RuntimeRefactoringTest
               "42"
             )
           ),
-          execute = true
+          execute = true,
+          idMap   = None
         )
       )
     )

@@ -99,7 +99,7 @@ object Foreign {
     ): Definition =
       this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Foreign.Definition(

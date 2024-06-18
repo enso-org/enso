@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -69,7 +70,7 @@ public class PersistableProcessor extends AbstractProcessor {
   private static String findNameInPackage(Element e) {
     var sb = new StringBuilder();
     while (e != null && !(e instanceof PackageElement)) {
-      if (!sb.isEmpty()) {
+      if (sb.length() > 0) {
         sb.insert(0, ".");
       }
       sb.insert(0, e.getSimpleName());
@@ -112,7 +113,7 @@ public class PersistableProcessor extends AbstractProcessor {
                     e.getModifiers().contains(Modifier.PUBLIC)
                         && e.getKind() == ElementKind.CONSTRUCTOR)
             .sorted(richerConstructor)
-            .toList();
+            .collect(Collectors.toList());
 
     ExecutableElement cons;
     Element singleton;
@@ -125,7 +126,7 @@ public class PersistableProcessor extends AbstractProcessor {
                           && e.getModifiers().contains(Modifier.STATIC)
                           && e.getModifiers().contains(Modifier.PUBLIC))
               .filter(e -> tu.isSameType(e.asType(), typeElem.asType()))
-              .toList();
+              .collect(Collectors.toList());
       if (singletonFields.isEmpty()) {
         processingEnv
             .getMessager()

@@ -9,6 +9,7 @@ import * as sentry from '@sentry/react'
 import isNetworkError from 'is-network-error'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
+import invariant from 'tiny-invariant'
 
 import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
@@ -472,7 +473,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (cognito == null) {
       return false
     } else if (backend.type === backendModule.BackendType.local) {
-      toastError(getText('setUsernameLocalBackend'))
+      toastError(getText('setUsernameLocalBackendError'))
       return false
     } else {
       gtagEvent('cloud_user_created')
@@ -843,4 +844,15 @@ export function useNonPartialUserSession() {
 export function useUserSession() {
   // eslint-disable-next-line no-restricted-syntax
   return router.useOutletContext<UserSession | undefined>()
+}
+
+/**
+ * A React context hook returning the user session for a user that is fully logged in.
+ */
+export function useFullUserSession(): FullUserSession {
+  const session = router.useOutletContext<UserSession>()
+
+  invariant(session.type === UserSessionType.full, 'Expected a full user session.')
+
+  return session
 }

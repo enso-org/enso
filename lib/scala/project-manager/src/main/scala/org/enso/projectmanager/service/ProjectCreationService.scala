@@ -7,7 +7,7 @@ import org.enso.logger.masking.MaskedPath
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions
 import org.enso.projectmanager.service.ProjectServiceFailure.ProjectCreateFailed
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
@@ -35,7 +35,7 @@ class ProjectCreationService[
     name: String,
     engineVersion: SemVer,
     projectTemplate: Option[String],
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction
   ): F[ProjectServiceFailure, Unit] = Sync[F]
     .blockingOp {
       val versionManager = RuntimeVersionManagerFactory(

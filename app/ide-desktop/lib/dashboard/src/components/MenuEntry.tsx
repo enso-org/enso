@@ -86,6 +86,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
+  readonly icon?: string
   readonly hidden?: boolean
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
@@ -105,12 +106,14 @@ export default function MenuEntry(props: MenuEntryProps) {
     isDisabled = false,
     title,
     doAction,
+    icon,
     ...variantProps
   } = props
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const focusChildProps = focusHooks.useFocusChild()
   const info = inputBindings.metadata[action]
+
   React.useEffect(() => {
     // This is slower (but more convenient) than registering every shortcut in the context menu
     // at once.
@@ -134,7 +137,11 @@ export default function MenuEntry(props: MenuEntryProps) {
       >
         <div className={MENU_ENTRY_VARIANTS(variantProps)}>
           <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-            <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
+            <SvgMask
+              src={icon ?? info.icon ?? BlankIcon}
+              color={info.color}
+              className="size-icon"
+            />
             <aria.Text slot="label">{label ?? getText(ACTION_TO_TEXT_ID[action])}</aria.Text>
           </div>
           <KeyboardShortcut action={action} />

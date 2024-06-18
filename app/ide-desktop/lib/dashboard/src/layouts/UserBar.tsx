@@ -85,7 +85,7 @@ export default function UserBar(props: UserBarProps) {
 
           {shouldShowInviteButton && (
             <ariaComponents.DialogTrigger>
-              <ariaComponents.Button rounded="full" size="small" variant="tertiary">
+              <ariaComponents.Button size="small" variant="tertiary">
                 {getText('invite')}
               </ariaComponents.Button>
 
@@ -93,12 +93,7 @@ export default function UserBar(props: UserBarProps) {
             </ariaComponents.DialogTrigger>
           )}
 
-          <ariaComponents.Button
-            variant="primary"
-            rounded="full"
-            size="small"
-            href={appUtils.SUBSCRIBE_PATH}
-          >
+          <ariaComponents.Button variant="primary" size="small" href={appUtils.SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </ariaComponents.Button>
           {shouldShowShareButton && (

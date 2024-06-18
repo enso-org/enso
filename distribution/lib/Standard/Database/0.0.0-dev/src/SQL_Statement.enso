@@ -77,3 +77,8 @@ type SQL_Statement
                 JS_Object.from_pairs [["sql_interpolation", inner]]
         fragments = self.internal_fragments.map jsonify
         JS_Object.from_pairs [["query", fragments]]
+
+    ## PRIVATE
+    to_text self -> Text =
+        prepared = self.prepare
+        "SQL_Statement " + prepared.first + " with values " + prepared.second.to_text
