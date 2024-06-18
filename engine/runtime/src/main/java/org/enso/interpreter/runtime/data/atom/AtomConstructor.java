@@ -224,7 +224,7 @@ public final class AtomConstructor implements EnsoObject {
    */
   @TruffleBoundary
   public String getDisplayName() {
-    return name.equals("Value") || name.equals("Error") ? type.getName() + "." + name : name;
+    return name.equals("Value") || name.equals("Error") || name.equals("Warning") ? type.getName() + "." + name : name;
   }
 
   /**
