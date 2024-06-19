@@ -1,5 +1,5 @@
-/** @file A simple HTTP server which serves application data to the Electron web-view. */
-
+/** @file A HTTP server middleware which handles routes normally proxied through to
+ * the Project Manager. */
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'

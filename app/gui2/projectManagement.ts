@@ -1,12 +1,5 @@
-/** @file This module contains functions for importing projects into the Project Manager.
- *
- * Eventually this module should be replaced with a new Project Manager API that supports
- * importing projects.
- * For now, we basically do the following:
- * - if the project is already in the Project Manager's location, we just open it;
- * - if the project is in a different location, we copy it to the Project Manager's location
- * and open it.
- * - if the project is a bundle, we extract it to the Project Manager's location and open it. */
+/** @file Functions for importing projects. This module is only used in dev mode,
+ * by `projectManagerShimMiddleware.ts`. */
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
