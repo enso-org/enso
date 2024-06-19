@@ -280,7 +280,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           data-testid="asset-search-bar"
           {...aria.mergeProps<aria.LabelProps>()(innerProps, {
             className:
-              'group relative flex h-row grow items-center gap-asset-search-bar rounded-full px-input-x text-primary',
+              'z-1 group relative flex h-row grow items-center gap-asset-search-bar rounded-full px-input-x text-primary',
             ref: rootRef,
             onFocus: () => {
               setAreSuggestionsVisible(true)
