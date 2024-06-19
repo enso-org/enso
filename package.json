@@ -19,7 +19,7 @@
     "ci-check": "run-p test prettier lint typecheck"
   },
   "workspaces": [
-    "app/gui2",
+    "app/*",
     "app/ide-desktop/*",
     "lib/js/runner"
   ],
