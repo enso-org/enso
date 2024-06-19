@@ -25,10 +25,7 @@ from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata import Display, make_single_choice, Widget
 
-polyglot java import java.io.StringReader
 polyglot java import java.lang.Exception as JException
-polyglot java import javax.xml.parsers.DocumentBuilder
-polyglot java import javax.xml.parsers.DocumentBuilderFactory
 polyglot java import javax.xml.xpath.XPath
 polyglot java import javax.xml.xpath.XPathConstants
 polyglot java import javax.xml.xpath.XPathFactory
@@ -40,7 +37,6 @@ polyglot java import org.w3c.dom.Node
 polyglot java import org.w3c.dom.NodeList
 polyglot java import org.w3c.dom.NamedNodeMap
 polyglot java import org.w3c.dom.Text as Java_Text
-polyglot java import org.xml.sax.InputSource
 polyglot java import org.xml.sax.SAXException
 polyglot java import org.xml.sax.SAXParseException
 
@@ -78,7 +74,8 @@ type XML_Document
     from_stream : Input_Stream -> XML_Document ! XML_Error
     from_stream input_stream:Input_Stream =
         XML_Error.handle_java_exceptions <|
-           input_stream.with_java_stream java_stream-> XML_Document.from_source java_stream
+           input_stream.with_java_stream java_stream->
+                XML_Document.Value (XML_Utils.parseStream java_stream)
 
     ## GROUP Conversions
        ICON convert
@@ -96,20 +93,9 @@ type XML_Document
     from_text : Text -> XML_Document ! XML_Error
     from_text xml_string:Text =
         XML_Error.handle_java_exceptions <|
-            string_reader = StringReader.new xml_string
-            XML_Document.from_source (InputSource.new string_reader)
+            XML_Document.Value (XML_Utils.parseString xml_string)
 
-    ## PRIVATE
-       Read XML from an input source.
-    from_source : Any -> XML_Document ! XML_Error
-    from_source input_source =
-        document_builder_factory = DocumentBuilderFactory.newInstance
-        document_builder = document_builder_factory.newDocumentBuilder
-        XML_Utils.setCustomErrorHandler document_builder
-        XML_Document.Value (document_builder.parse input_source)
-
-    ## PRIVATE
-    Value (java_document:Document)
+    private Value (java_document:Document)
 
 
     ## GROUP Metadata
