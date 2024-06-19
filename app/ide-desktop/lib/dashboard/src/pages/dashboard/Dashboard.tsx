@@ -37,7 +37,6 @@ import * as array from '#/utilities/array'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import type * as types from '../../../../types/types'
 
