@@ -18,7 +18,7 @@ from Standard.Test import all
 
 import enso_dev.Base_Tests.Data.Round_Spec
 
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend, within_table
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -840,7 +840,7 @@ add_specs suite_builder setup =
             r = [0.5, 2.5, 2.5, 20.0]
             a.zip b (/) . should_equal r
 
-            t = table_builder [["A", a], ["B", b]]
+            t = build_sorted_table [["A", a], ["B", b]]
             t.at "A" . value_type . is_integer . should_be_true
             t.at "B" . value_type . is_integer . should_be_true
 
