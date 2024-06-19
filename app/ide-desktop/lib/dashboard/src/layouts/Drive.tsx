@@ -223,9 +223,6 @@ export default function Drive(props: DriveProps) {
           <div className="flex flex-col gap-status-page text-center text-base">
             <div>{getText('youAreNotLoggedIn')}</div>
             <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="button self-center bg-help text-white"
               onPress={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -259,9 +256,8 @@ export default function Drive(props: DriveProps) {
             </ariaComponents.Button>
             {localBackend == null && (
               <ariaComponents.Button
-                variant="primary"
-                size="medium"
                 data-testid="download-free-edition"
+                size="medium"
                 onPress={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {

@@ -13,7 +13,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import DatalinkInput from '#/components/dashboard/DatalinkInput'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
@@ -94,25 +93,14 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
         <div className="relative">
           <DatalinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <ButtonRow>
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            isDisabled={!isSubmittable}
-            className="button bg-invite text-white enabled:active"
-            onPress={doSubmit}
-          >
+        <ariaComponents.ButtonGroup>
+          <ariaComponents.Button variant="submit" isDisabled={!isSubmittable} onPress={doSubmit}>
             {getText('create')}
           </ariaComponents.Button>
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-selected-frame active"
-            onPress={unsetModal}
-          >
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
-        </ButtonRow>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

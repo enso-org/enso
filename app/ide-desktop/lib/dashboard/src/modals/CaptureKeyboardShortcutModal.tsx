@@ -12,7 +12,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
 
 import * as inputBindings from '#/utilities/inputBindings'
 
@@ -123,12 +122,10 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <aria.Text className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
         </aria.Text>
-        <ButtonRow>
+        <ariaComponents.ButtonGroup>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
+            variant="submit"
             isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
             onPress={() => {
               unsetModal()
               onSubmit(shortcut)
@@ -136,15 +133,10 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           >
             {getText('confirm')}
           </ariaComponents.Button>
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-selected-frame active"
-            onPress={unsetModal}
-          >
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
-        </ButtonRow>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

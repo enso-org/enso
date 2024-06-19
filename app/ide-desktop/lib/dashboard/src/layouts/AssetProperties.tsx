@@ -89,6 +89,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
   const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+  const getDatalinkMutate = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -97,13 +98,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await getDatalinkMutation.mutateAsync([item.item.id, item.item.title])
+        const value = await getDatalinkMutate([item.item.id, item.item.title])
         setDatalinkValue(value)
         setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item, getDatalinkMutation])
+  }, [backend, item.item, getDatalinkMutate])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
@@ -186,12 +187,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
               <div className="flex gap-buttons">
-                <ariaComponents.Button
-                  size="custom"
-                  variant="custom"
-                  className="button self-start bg-selected-frame"
-                  onPress={doEditDescription}
-                >
+                <ariaComponents.Button variant="cancel" onPress={doEditDescription}>
                   {getText('update')}
                 </ariaComponents.Button>
               </div>
@@ -260,15 +256,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 setValue={setEditedDatalinkValue}
               />
               {canEditThisAsset && (
-                <div className="flex gap-buttons">
+                <ariaComponents.ButtonGroup>
                   <ariaComponents.Button
-                    size="custom"
-                    variant="custom"
+                    variant="submit"
                     isDisabled={isDatalinkDisabled}
                     {...(isDatalinkDisabled
                       ? { title: 'Edit the Datalink before updating it.' }
                       : {})}
-                    className="button bg-invite text-white enabled:active"
                     onPress={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.datalink) {
@@ -295,17 +289,15 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                     {getText('update')}
                   </ariaComponents.Button>
                   <ariaComponents.Button
-                    size="custom"
-                    variant="custom"
+                    variant="cancel"
                     isDisabled={isDatalinkDisabled}
-                    className="button bg-selected-frame enabled:active"
                     onPress={() => {
                       setEditedDatalinkValue(datalinkValue)
                     }}
                   >
                     {getText('cancel')}
                   </ariaComponents.Button>
-                </div>
+                </ariaComponents.ButtonGroup>
               )}
             </>
           )}

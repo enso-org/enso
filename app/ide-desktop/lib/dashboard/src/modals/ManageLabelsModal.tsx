@@ -194,15 +194,11 @@ export default function ManageLabelsModal<
                     </div>
                   </FocusRing>
                   <ariaComponents.Button
-                    size="custom"
-                    variant="custom"
+                    variant="submit"
                     isDisabled={!canCreateNewLabel}
-                    className="button bg-invite px-button-x text-tag-text enabled:active"
                     onPress={eventModule.submitForm}
                   >
-                    <aria.Text className="h-text py-modal-invite-button-text-y">
-                      {getText('create')}
-                    </aria.Text>
+                    {getText('create')}
                   </ariaComponents.Button>
                 </div>
               )}

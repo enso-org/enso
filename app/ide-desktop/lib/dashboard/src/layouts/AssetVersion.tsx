@@ -15,7 +15,6 @@ import AssetListEventType from '#/events/AssetListEventType'
 import * as assetDiffView from '#/layouts/AssetDiffView'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import ButtonRow from '#/components/styled/ButtonRow'
 
 import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
@@ -94,7 +93,7 @@ export default function AssetVersion(props: AssetVersionProps) {
             >
               {opts => (
                 <div className="flex h-full flex-col gap-3">
-                  <ButtonRow>
+                  <ariaComponents.ButtonGroup>
                     <ariaComponents.TooltipTrigger>
                       <ariaComponents.Button
                         variant="icon"
@@ -125,7 +124,7 @@ export default function AssetVersion(props: AssetVersionProps) {
                         {getText('duplicateThisVersion')}
                       </ariaComponents.Tooltip>
                     </ariaComponents.TooltipTrigger>
-                  </ButtonRow>
+                  </ariaComponents.ButtonGroup>
                   <assetDiffView.AssetDiffView
                     latestVersionId={latestVersion.versionId}
                     versionId={version.versionId}

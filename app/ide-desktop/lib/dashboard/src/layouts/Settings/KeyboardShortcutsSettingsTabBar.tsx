@@ -7,9 +7,7 @@ import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
@@ -32,9 +30,8 @@ export default function KeyboardShortcutsSettingsTabBar(
   const { getText } = textProvider.useText()
 
   return (
-    <HorizontalMenuBar>
+    <ariaComponents.ButtonGroup>
       <ariaComponents.Button
-        size="custom"
         variant="bar"
         onPress={() => {
           setModal(
@@ -52,10 +49,8 @@ export default function KeyboardShortcutsSettingsTabBar(
           )
         }}
       >
-        <aria.Text className="text whitespace-nowrap font-semibold">
-          {getText('resetAll')}
-        </aria.Text>
+        {getText('resetAll')}
       </ariaComponents.Button>
-    </HorizontalMenuBar>
+    </ariaComponents.ButtonGroup>
   )
 }

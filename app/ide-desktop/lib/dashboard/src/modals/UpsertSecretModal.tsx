@@ -13,7 +13,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
 import Button from '#/components/styled/Button'
-import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
@@ -123,25 +122,14 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             )}
           </FocusArea>
         </div>
-        <ButtonRow>
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            isDisabled={!canSubmit}
-            className="button bg-invite text-white enabled:active"
-            onPress={doSubmit}
-          >
+        <ariaComponents.ButtonGroup>
+          <ariaComponents.Button variant="submit" isDisabled={!canSubmit} onPress={doSubmit}>
             {isCreatingSecret ? getText('create') : getText('update')}
           </ariaComponents.Button>
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-selected-frame enabled:active"
-            onPress={unsetModal}
-          >
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
-        </ButtonRow>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

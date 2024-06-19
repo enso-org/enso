@@ -67,9 +67,7 @@ export default function UserAccountSettingsSection(props: UserAccountSettingsSec
           <aria.Text className="text my-auto w-user-account-settings-label">
             {getText('email')}
           </aria.Text>
-          <aria.Text className="settings-value my-auto grow font-bold">
-            {user?.email ?? ''}
-          </aria.Text>
+          <aria.Text className="my-auto grow font-bold">{user?.email ?? ''}</aria.Text>
         </div>
       </div>
     </SettingsSection>

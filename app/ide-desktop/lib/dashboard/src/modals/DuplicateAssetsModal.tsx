@@ -13,7 +13,6 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
-import ButtonRow from '#/components/styled/ButtonRow'
 
 import * as backendModule from '#/services/Backend'
 
@@ -190,10 +189,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 </aria.Text>
               )}
               <ariaComponents.Button
-                size="custom"
-                variant="custom"
+                variant="cancel"
                 isDisabled={didUploadNonConflicting}
-                className="button relative self-start rounded-full bg-selected-frame selectable enabled:active"
                 onPress={() => {
                   doUploadNonConflicting()
                   setDidUploadNonConflicting(true)
@@ -219,11 +216,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               />
             </div>
             {count > 1 && (
-              <ButtonRow>
+              <ariaComponents.ButtonGroup>
                 <ariaComponents.Button
-                  size="custom"
-                  variant="custom"
-                  className="button bg-selected-frame active"
+                  variant="cancel"
                   onPress={() => {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
@@ -241,9 +236,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                   {getText('update')}
                 </ariaComponents.Button>
                 <ariaComponents.Button
-                  size="custom"
-                  variant="custom"
-                  className="button  bg-selected-frame active"
+                  variant="cancel"
                   onPress={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
@@ -262,7 +255,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                     ? getText('renameNewFile')
                     : getText('renameNewProject')}
                 </ariaComponents.Button>
-              </ButtonRow>
+              </ariaComponents.ButtonGroup>
             )}
           </>
         )}
@@ -280,11 +273,9 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               : getText('andOtherProjects', otherProjectsCount)}
           </aria.Text>
         )}
-        <ButtonRow>
+        <ariaComponents.ButtonGroup>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-invite text-white active"
+            variant="submit"
             onPress={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -294,9 +285,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             {count === 1 ? getText('update') : getText('updateAll')}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-invite text-white active"
+            variant="submit"
             onPress={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -311,15 +300,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 ? getText('renameNewFiles')
                 : getText('renameNewProjects')}
           </ariaComponents.Button>
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="button bg-selected-frame active"
-            onPress={unsetModal}
-          >
+          <ariaComponents.Button variant="cancel" onPress={unsetModal}>
             {getText('cancel')}
           </ariaComponents.Button>
-        </ButtonRow>
+        </ariaComponents.ButtonGroup>
       </form>
     </Modal>
   )

@@ -10,7 +10,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import ButtonRow from '#/components/styled/ButtonRow'
 import SvgMask from '#/components/SvgMask'
 
 // =================
@@ -93,18 +92,13 @@ export default function AboutModal() {
                 })}
               </tbody>
             </table>
-            <ButtonRow>
-              <ariaComponents.Button
-                size="custom"
-                variant="custom"
-                className="button relative bg-invite text-inversed active"
-                onPress={doCopy}
-              >
+            <ariaComponents.ButtonGroup>
+              <ariaComponents.Button variant="submit" onPress={doCopy}>
                 <aria.Text className="text">
                   {isCopied ? getText('copied') : getText('copy')}
                 </aria.Text>
               </ariaComponents.Button>
-            </ButtonRow>
+            </ariaComponents.ButtonGroup>
           </div>
         </div>
       </ariaComponents.Dialog>

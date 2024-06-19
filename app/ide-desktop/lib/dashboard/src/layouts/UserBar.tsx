@@ -81,7 +81,6 @@ export default function UserBar(props: UserBarProps) {
               setIsHelpChatOpen(true)
             }}
           />
-
           {shouldShowInviteButton && (
             <ariaComponents.DialogTrigger>
               <ariaComponents.Button size="small" variant="tertiary">
@@ -91,15 +90,12 @@ export default function UserBar(props: UserBarProps) {
               <InviteUsersModal />
             </ariaComponents.DialogTrigger>
           )}
-
           <ariaComponents.Button variant="primary" size="small" href={appUtils.SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </ariaComponents.Button>
           {shouldShowShareButton && (
             <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              variant="tertiary"
               aria-label={getText('shareButtonAltText')}
               onPress={() => {
                 setModal(
@@ -114,7 +110,7 @@ export default function UserBar(props: UserBarProps) {
                 )
               }}
             >
-              <aria.Text slot="label">{getText('share')}</aria.Text>
+              {getText('share')}
             </ariaComponents.Button>
           )}
           <ariaComponents.Button

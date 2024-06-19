@@ -19,7 +19,6 @@ import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
 
 import NewUserGroupModal from '#/modals/NewUserGroupModal'
@@ -125,22 +124,18 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
     <div className="flex h min-h-full flex-1 flex-col gap-settings-section overflow-hidden lg:h-auto lg:flex-row">
       <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
         <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
-          <HorizontalMenuBar>
+          <ariaComponents.ButtonGroup>
             <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              variant="bar"
               onPress={event => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }
                 setModal(<NewUserGroupModal backend={backend} event={position} />)
               }}
             >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('newUserGroup')}
-              </aria.Text>
+              {getText('newUserGroup')}
             </ariaComponents.Button>
-          </HorizontalMenuBar>
+          </ariaComponents.ButtonGroup>
           <div
             ref={rootRef}
             className={tailwindMerge.twMerge(
