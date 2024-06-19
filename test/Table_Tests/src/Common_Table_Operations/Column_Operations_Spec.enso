@@ -137,7 +137,7 @@ add_specs suite_builder setup =
     build_sorted_table table_structure table_builder=setup.table_builder =
         row_count = table_structure.first.second.length
         new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
-        table_builder new_structure . order_by "row_id"
+        table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
 
     ## Runs the provided callback with a few combinations of columns, where some
        of them are made Mixed (but still contain only the original values).
@@ -171,7 +171,7 @@ add_specs suite_builder setup =
         group_builder.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
             # TODO
-            IO.println t.at "X" . value_type
+            IO.println (t.at "X" . value_type)
             c1 = t.at "X" . iif 22 33
             c1.to_vector . should_equal [22, 33, Nothing, 22]
             c1.value_type . is_integer . should_be_true
@@ -807,7 +807,7 @@ add_specs suite_builder setup =
 
         case setup.test_selection.is_nan_and_nothing_distinct of
             True ->
-                t = table_builder [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Number.nan, Nothing]], ["Y", [1, 2, 3, 4, 5, Nothing]], ["Z", ["1", "2", "3", "4", "5", Nothing]]]
+                t = build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Number.nan, Nothing]], ["Y", [1, 2, 3, 4, 5, Nothing]], ["Z", ["1", "2", "3", "4", "5", Nothing]]]
 
                 group_builder.specify "should support is_nan" <|
                     t.at "X" . is_nan . to_vector . should_equal [False, False, False, False, True, Nothing]
@@ -824,13 +824,13 @@ add_specs suite_builder setup =
                     t.at "X" . is_nan . should_fail_with Unsupported_Database_Operation
 
                 group_builder.specify "should support is_infinite" <|
-                    t = table_builder [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Nothing]], ["Y", [1, 2, 3, 4, Nothing]], ["Z", ["1", "2", "3", "4", Nothing]]]
+                    t = build_sorted_table [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Nothing]], ["Y", [1, 2, 3, 4, Nothing]], ["Z", ["1", "2", "3", "4", Nothing]]]
                     t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, Nothing]
                     t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, Nothing]
                     t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
 
         group_builder.specify "should support is_blank" <|
-            t = table_builder [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
+            t = build_sorted_table [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
             t.at "X" . is_blank treat_nans_as_blank=True . to_vector . should_equal [False, False, True, True]
             t.at "Y" . is_blank treat_nans_as_blank=True . to_vector . should_equal [False, True, False, False]
 
@@ -857,7 +857,7 @@ add_specs suite_builder setup =
             r4 = [1.0, 2.5, 5.1, 20.0]
             a2.zip b2 (/) . should_equal r4
 
-            t2 = table_builder [["A", a2], ["B", b2]]
+            t2 = build_sorted_table [["A", a2], ["B", b2]]
             t2.at "A" . value_type . is_floating_point . should_be_true
             t2.at "B" . value_type . is_floating_point . should_be_true
 
@@ -871,7 +871,7 @@ add_specs suite_builder setup =
 
         db_pending = if setup.is_database then "Arithmetic error handling is currently not implemented for the Database backend."
         group_builder.specify "should allow division by 0 and report warnings" pending=db_pending <|
-            t = table_builder [["a", [3, 1, 0]], ["b", [2, 0, 0]], ["c", [1.5, 1.5, 0.0]], ["d", [1.5, 0.0, 0.0]]]
+            t = build_sorted_table [["a", [3, 1, 0]], ["b", [2, 0, 0]], ["c", [1.5, 1.5, 0.0]], ["d", [1.5, 0.0, 0.0]]]
             a = t.at "a"
             b = t.at "b"
             c = t.at "c"
@@ -948,8 +948,10 @@ add_specs suite_builder setup =
             group_builder.specify "should allow round on a float column (to >0 decimal places)" <|
                 table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
                 result = table.at "x" . cast type . round 1
-                result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
-                result.name . should_equal "round([x])"
+                within_table result <|
+                    IO.println result.to_sql
+                    result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
+                    result.name . should_equal "round([x])"
 
             group_builder.specify "should allow round on a float column (to <0 decimal places)" <|
                 table = table_builder [["x", [51.2, 59.3, 351.45, 359.11, -51.2, -59.3, -351.23, -359.69]]]
