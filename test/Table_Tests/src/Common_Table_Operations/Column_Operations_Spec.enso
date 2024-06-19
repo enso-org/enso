@@ -25,142 +25,104 @@ main filter=Nothing = run_default_backend add_specs filter
 type Arithmetic_Data
     Value ~data
 
-    connection self = self.data.at 0
-    x self = self.data.at 1
-    y self = self.data.at 2
+    x self = self.data.at 0
+    y self = self.data.at 1
 
-    setup create_connection_fn table_builder = Arithmetic_Data.Value <|
-        connection = create_connection_fn Nothing
-        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] connection=connection
+    setup table_builder = Arithmetic_Data.Value <|
+        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]], ["row_id", [1, 2, 3, 4]]] . order_by "row_id"
         x = t2.at "x"
         y = t2.at "y"
-        [connection, x, y]
-
-    teardown self =
-        self.connection.close
+        [x, y]
 
 type Min_Max_Data
     Value ~data
 
-    connection self = self.data.at 0
-    a self = self.data.at 1
-    b self = self.data.at 2
-    c self = self.data.at 3
-    t self = self.data.at 4
+    a self = self.data.at 0
+    b self = self.data.at 1
+    c self = self.data.at 2
+    t self = self.data.at 3
 
-    setup create_connection_fn table_builder = Min_Max_Data.Value <|
-        connection = create_connection_fn Nothing
-        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] connection=connection
+    setup table_builder = Min_Max_Data.Value <|
+        t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]] . order_by "a"
         a = t.at "a"
         b = t.at "b"
         c = t.at "c"
-        [connection, a, b, c, t]
-
-    teardown self =
-        drop_table self.connection self.t
-        self.connection.close
+        [a, b, c, t]
 
 type Literal_Data
     Value ~data
 
-    connection self = self.data.at 0
-    col0 self = self.data.at 1
-    col1 self = self.data.at 2
+    col0 self = self.data.at 0
+    col1 self = self.data.at 1
 
-    setup create_connection_fn table_builder = Literal_Data.Value <|
-        connection = create_connection_fn Nothing
-        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
-        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
-        [connection, col0, col1]
-
-    teardown self =
-        self.connection.close
+    setup table_builder = Literal_Data.Value <|
+        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']], ["row_id", [1, 2, 3]]] . order_by "row_id" . at "x"
+        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["row_id", [1, 2, 3]]] . order_by "row_id" . at "x"
+        [col0, col1]
 
 type Replace_Data
     Value ~data
 
-    connection self = self.data.at 0
-    col self = self.data.at 1
-    patterns self = self.data.at 2
-    replacements self = self.data.at 3
+    col self = self.data.at 0
+    patterns self = self.data.at 1
+    replacements self = self.data.at 2
 
-    setup create_connection_fn table_builder = Replace_Data.Value <|
-        connection = create_connection_fn Nothing
-        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
+    setup table_builder = Replace_Data.Value <|
+        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']], ["row_id", [1, 2, 3, 4, 5]]] . order_by "row_id"
         col = table.at "x"
         patterns = table.at "patterns"
         replacements = table.at "replacements"
-        [connection, col, patterns, replacements]
-
-    teardown self =
-        self.connection.close
+        [col, patterns, replacements]
 
 
 type Text_Replace_Data
     Value ~data
 
-    connection self = self.data.at 0
-    a self = self.data.at 1
-    b self = self.data.at 2
-    c self = self.data.at 3
-    d self = self.data.at 4
+    a self = self.data.at 0
+    b self = self.data.at 1
+    c self = self.data.at 2
+    d self = self.data.at 3
 
-    setup create_connection_fn table_builder = Text_Replace_Data.Value <|
-        connection = create_connection_fn Nothing
-        t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]] connection=connection
+    setup table_builder = Text_Replace_Data.Value <|
+        t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]] . order_by "C"
         a = t4.at "A"
         b = t4.at "B"
         c = t4.at "C"
         d = t4.at "D"
-        [connection, a, b, c, d]
-
-    teardown self =
-        self.connection.close
-
+        [a, b, c, d]
 
 type Trim_Data
     Value ~data
 
-    connection self = self.data.at 0
-    a self = self.data.at 1
-    b self = self.data.at 2
-    c self = self.data.at 3
+    a self = self.data.at 0
+    b self = self.data.at 1
+    c self = self.data.at 2
 
-    setup create_connection_fn table_builder = Trim_Data.Value <|
-        connection = create_connection_fn Nothing
-        table = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]]
+    setup table_builder = Trim_Data.Value <|
+        table = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]] . order_by "C"
         a = table.at "A"
         b = table.at "B"
         c = table.at "C"
-
-        [connection, a, b, c]
-
-    teardown self =
-        self.connection.close
-
+        [a, b, c]
 
 type Names_Data
     Value ~data
 
-    connection self = self.data.at 0
-    t self = self.data.at 1
+    t self = self.data.at 0
 
-    setup create_connection_fn table_builder = Names_Data.Value <|
-        connection = create_connection_fn Nothing
-        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]]
-        [connection, t]
-
-    teardown self =
-        self.connection.close
+    setup table_builder = Names_Data.Value <|
+        t = table_builder [["a", [1, 2, 3]], ["b", ['x', 'y', 'z']], ["c", [1.0, 2.0, 3.0]], ["d", [True, False, True]]] . order_by "a"
+        [t]
 
 
 add_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
+    table_builder = setup.table_builder
+    light_table_builder = setup.light_table_builder
     pending_datetime = if setup.test_selection.date_time.not then "Date/Time operations are not supported by this backend."
     suite_builder.group prefix+"(Column_Operations_Spec) Rounding numeric tests" group_builder->
         do_op n op =
-            table = setup.light_table_builder [["x", [n]]]
+            table = light_table_builder [["x", [n]]]
             result = table.at "x" |> op
             result.to_vector.at 0
 
@@ -200,9 +162,11 @@ add_specs suite_builder setup =
                     callback_with_clue aligned_table
 
     suite_builder.group prefix+"(Column_Operations_Spec) Boolean Column Operations" group_builder->
-        table_builder = setup.light_table_builder
+        table_builder = light_table_builder
         group_builder.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
+            # TODO
+            IO.println t.at "X" . value_type
             c1 = t.at "X" . iif 22 33
             c1.to_vector . should_equal [22, 33, Nothing, 22]
             c1.value_type . is_integer . should_be_true
@@ -763,14 +727,7 @@ add_specs suite_builder setup =
             ((t.at "A").between (t.at "B") (t.at "C")) . to_vector . should_equal r
 
     suite_builder.group prefix+"(Column_Operations_Spec) Arithmetic Column Operations" group_builder->
-        data = Arithmetic_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        data = Arithmetic_Data.setup setup.table_builder
         group_builder.specify "should allow basic operations" <|
             (data.x + data.y).to_vector . should_equal [3, 7.25, 10, Nothing]
             (data.x - data.y).to_vector . should_equal [-1.0, 0.75, 0.0, Nothing]
@@ -1271,11 +1228,7 @@ add_specs suite_builder setup =
                 c3.value_type.is_text . should_be_true
 
     suite_builder.group prefix+"(Column_Operations_Spec) Min/Max Operations" group_builder->
-        data = Min_Max_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+        data = Min_Max_Data.setup setup.table_builder
         group_builder.specify "should allow one or more args and return the correct type" <|
             c1 = data.a.min 2
             c1.to_vector . should_equal [1, 2, 2]
@@ -1344,11 +1297,7 @@ add_specs suite_builder setup =
                 result . to_vector . should_equal expected
 
     suite_builder.group prefix+"(Column_Operations_Spec) replace: literal text pattern and replacement" group_builder->
-        data = Literal_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+        data = Literal_Data.setup setup.table_builder
         group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
             do_replace data.col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
             do_replace data.col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
@@ -1368,14 +1317,7 @@ add_specs suite_builder setup =
             do_replace data.col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
     suite_builder.group prefix+"(Column_Operations_Spec) replace: literal regex pattern and replacement" group_builder->
-        data = Literal_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        data = Literal_Data.setup setup.table_builder
         group_builder.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
             do_replace data.col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
 
@@ -1394,21 +1336,13 @@ add_specs suite_builder setup =
             do_replace col regex "asdf" ["asdf"]
     
     suite_builder.group prefix+"(Column_Operations_Spec) replace: Named_Pattern and replacement" group_builder->
-        data = Literal_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+        data = Literal_Data.setup setup.table_builder
         group_builder.specify "can use Named_Patterns" <|
             do_replace data.col1 Named_Pattern.Symbols 'hey' expected=['aheybcdhey AheybCdhey aheybcdhey', 'abac ad Ab aCAd']
 
 
     suite_builder.group prefix+"(Column_Operations_Spec) replace: pattern and replacement columns" group_builder->
-        data = Replace_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+        data = Replace_Data.setup setup.table_builder
         group_builder.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
             do_replace data.col data.patterns data.replacements expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
             do_replace data.col data.patterns data.replacements case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
@@ -1457,14 +1391,7 @@ add_specs suite_builder setup =
     suite_builder.group prefix+"(Column_Operations_Spec) Column Operations - Text Replace (in-memory only)" group_builder->
 
         if setup.is_database.not then
-            data = Text_Replace_Data.setup create_connection_fn setup.table_builder
-
-            group_builder.teardown <|
-                data.teardown
-
-            table_builder cols =
-                setup.table_builder cols connection=data.connection
-
+            data = Text_Replace_Data.setup setup.table_builder
             group_builder.specify "should allow simple replacing" <|
                 data.a.text_replace "a" "#" . to_vector . should_equal ["Alph#", "Br#vo", "Ch#rlie", "Delt#", "Echo", "Foxtrot"]
                 data.a.text_replace "o" "#" . to_vector . should_equal ["Alpha", "Brav#", "Charlie", "Delta", "Ech#", "F#xtr#t"]
@@ -1528,11 +1455,7 @@ add_specs suite_builder setup =
                     vt3.variable_length.should_be_true
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column Operations - Text Trim" group_builder->
-        data = Trim_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
+        data = Trim_Data.setup setup.table_builder
         group_builder.specify "should trim whitespace by default" <|
             with_mixed_columns_if_supported [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]]] t->
                 a = t.at "A"
@@ -1570,14 +1493,7 @@ add_specs suite_builder setup =
             c2.value_type.should_equal Value_Type.Boolean
 
     suite_builder.group prefix+"(Column_Operations_Spec) Colum Operations - Names" group_builder->
-        data = Names_Data.setup create_connection_fn setup.table_builder
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
+        data = Names_Data.setup setup.table_builder
         group_builder.specify "arithmetic" <|
             ((data.t.at "a") + 42) . name . should_equal "[a] + 42"
             ((data.t.at "a") - (data.t.at "c")) . name . should_equal "[a] - [c]"
