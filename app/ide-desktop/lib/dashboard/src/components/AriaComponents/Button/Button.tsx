@@ -89,6 +89,8 @@ export const BUTTON_STYLES = twv.tv({
     size: {
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
       icon: { icon: 'h-4' },
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'project-icon': { icon: 'h-6' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: text.TEXT_STYLE({
