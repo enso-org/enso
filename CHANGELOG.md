@@ -11,6 +11,8 @@
 - The documentation editor supports [rendering images][10205].
 - [Fixed a bug where drop-down were not displayed for some arguments][10297].
   For example, `locale` parameter of `Equal_Ignore_Case` kind in join component.
+- [Node previews][10310]: Node may be previewed by hovering output port while
+  pressing <kbd>Ctrl</kbd> key (<kbd>Cmd</kbd> on macOS).
 
 [10064]: https://github.com/enso-org/enso/pull/10064
 [10179]: https://github.com/enso-org/enso/pull/10179
@@ -18,6 +20,7 @@
 [10198]: https://github.com/enso-org/enso/pull/10198
 [10205]: https://github.com/enso-org/enso/pull/10205
 [10297]: https://github.com/enso-org/enso/pull/10297
+[10310]: https://github.com/enso-org/enso/pull/10310
 
 #### Enso Standard Library
 
