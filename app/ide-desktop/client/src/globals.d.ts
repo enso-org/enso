@@ -4,7 +4,8 @@
 import type * as dashboard from 'enso-dashboard'
 
 // This file is being imported for its types.
-import * as buildJson from './../build.json' assert { type: 'json' }
+// eslint-disable-next-line no-restricted-syntax
+import * as buildJson from './../../build.json' assert { type: 'json' }
 
 // =============
 // === Types ===

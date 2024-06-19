@@ -50,7 +50,7 @@ export async function readEnvironmentFromFile() {
         }
         const buildInfo = await (async () => {
             try {
-                return await import('../../../build.json', { assert: { type: 'json' } })
+                return await import('../../../../build.json', { assert: { type: 'json' } })
             } catch {
                 return { commit: '', version: '', engineVersion: '', name: '' }
             }
