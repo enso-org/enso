@@ -119,6 +119,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             new_schema . should_equal "information_schema"
 
         group_builder.specify "should allow changing database" <|
+            connection = default_connection.get
             databases = connection.databases.filter d->((d!=db_name) && (d!='rdsadmin'))
             pending_database = if databases.length != 0 then Nothing else "Cannot test changing database unless two databases defined."
             case pending_database of
