@@ -2472,6 +2472,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         </tbody>
       </table>
       <div
+        data-testid="root-directory-dropzone"
         className={tailwindMerge.twMerge(
           'sticky left grid max-w-container grow place-items-center',
           category !== Category.cloud && category !== Category.local && 'hidden'
@@ -2630,7 +2631,6 @@ export default function AssetsTable(props: AssetsTableProps) {
       {isDraggingFiles && !isMainDropzoneVisible && (
         <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
           <div
-            data-testid="root-directory-dropzone"
             className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
             onDragEnter={onDropzoneDragOver}
             onDragOver={onDropzoneDragOver}
