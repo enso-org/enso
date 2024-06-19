@@ -111,9 +111,8 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                 >
                                   <KeyboardShortcut shortcut={binding} />
                                   <ariaComponents.Button
-                                    size="medium"
+                                    size="icon"
                                     variant="outline"
-                                    isCentered
                                     icon={CrossIcon}
                                     onPress={() => {
                                       inputBindings.delete(action, binding)
@@ -125,9 +124,8 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                               <div className="grow" />
                               <div className="flex min-w-max shrink-0 items-center gap-keyboard-shortcuts-button">
                                 <ariaComponents.Button
-                                  size="medium"
+                                  size="icon"
                                   variant="outline"
-                                  isCentered
                                   icon={Plus2Icon}
                                   onPress={() => {
                                     setModal(
@@ -143,9 +141,8 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   }}
                                 />
                                 <ariaComponents.Button
-                                  size="medium"
+                                  size="icon"
                                   variant="outline"
-                                  isCentered
                                   icon={ReloadIcon}
                                   onPress={() => {
                                     inputBindings.reset(action)

@@ -79,7 +79,6 @@ export const BUTTON_STYLES = twv.tv({
     'transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out',
   ],
   variants: {
-    isCentered: { true: '' },
     isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
     isFocused: {
       true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
@@ -89,6 +88,7 @@ export const BUTTON_STYLES = twv.tv({
     fullWidthText: { true: { text: 'w-full' } },
     size: {
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
+      icon: { icon: 'h-4' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: text.TEXT_STYLE({
@@ -238,11 +238,6 @@ export const BUTTON_STYLES = twv.tv({
       class: { base: 'p-0 rounded-full', icon: 'h-[5.5cap]' },
       iconOnly: true,
     },
-    {
-      size: 'medium',
-      isCentered: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-4' },
-    },
     { variant: 'link', size: 'xxsmall', class: 'font-medium' },
     { variant: 'link', size: 'xsmall', class: 'font-medium' },
     { variant: 'link', size: 'small', class: 'font-medium' },
@@ -264,7 +259,6 @@ export const Button = React.forwardRef(function Button(
     icon,
     loading = false,
     isDisabled,
-    isCentered,
     showIconOnHover,
     iconPosition,
     size,
@@ -353,7 +347,6 @@ export const Button = React.forwardRef(function Button(
     text: textClasses,
   } = BUTTON_STYLES({
     isDisabled,
-    isCentered,
     loading: isLoading,
     fullWidth,
     fullWidthText,
