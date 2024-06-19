@@ -11,7 +11,7 @@ class MacOsDirectories implements Directories {
    * Get the user documents path.
    *
    * <p>On macOS, the 'Documents' directory acts like a symlink and points to the real
-   * locale-dependent user documents folder.</p
+   * locale-dependent user documents folder.
    *
    * @return the path to the user documents directory.
    * @throws DirectoriesException when unable to resolve the real documents path.
