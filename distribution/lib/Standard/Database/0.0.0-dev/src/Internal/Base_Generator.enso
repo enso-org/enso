@@ -29,7 +29,9 @@ type Internal_Dialect
          identifier name in such a way that it can be used in the query; that
          usually consists of wrapping the name in quotes and escaping any quotes
          within it.
-    Value (operation_map:(Map Text (Vector (SQL_Builder->SQL_Builder)))) (wrap_identifier_raw:(Text->Text))
+       - make_table_literal: A function that generates a SQL expression for a
+         table literal.
+    Value (operation_map:(Map Text (Vector (SQL_Builder->SQL_Builder)))) (wrap_identifier_raw:(Text->Text)) (make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder)
 
     ## PRIVATE
     wrap_identifier : Text -> SQL_Builder
@@ -45,13 +47,17 @@ type Internal_Dialect
     extend_with : Vector Any -> Internal_Dialect
     extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect.Value new_map self.wrap_identifier_raw
+        Internal_Dialect.Value new_map self.wrap_identifier_raw self.make_table_literal
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
     is_supported : Text -> Boolean
     is_supported self operation =
         self.operation_map.contains_key operation
+
+    ## PRIVATE
+    override_make_table_literal self (make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder) -> Internal_Dialect =
+        Internal_Dialect.Value self.operation_map self.wrap_identifier_raw make_table_literal
 
 ## PRIVATE
 
@@ -209,7 +215,7 @@ base_dialect =
     types = [simple_cast]
     windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
     base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
-    Internal_Dialect.Value base_map wrap_in_quotes
+    Internal_Dialect.Value base_map wrap_in_quotes (default_make_table_literal wrap_in_quotes)
 
 ## PRIVATE
 is_empty = lift_unary_op "IS_EMPTY" arg->
@@ -357,9 +363,7 @@ generate_from_part dialect from_spec = case from_spec of
         SQL_Builder.code raw_sql . paren ++ alias dialect as_name
     From_Spec.Literal_Values vecs column_names as_name ->
         Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
-        values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
-        structure = (dialect.wrap_identifier as_name) ++ (SQL_Builder.join ", " (column_names.map dialect.wrap_identifier) . paren)
-        SQL_Builder.code "(VALUES " ++ values ++ ") AS " ++ structure
+        dialect.make_table_literal vecs column_names as_name
     From_Spec.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
@@ -376,6 +380,14 @@ generate_from_part dialect from_spec = case from_spec of
     From_Spec.Sub_Query columns context as_name ->
         sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
+
+## PRIVATE
+default_make_table_literal wrap_identifier vecs column_names as_name =
+    values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
+    wrap_identifier_as_builder n =
+        SQL_Builder.code (wrap_identifier n)
+    structure = (wrap_identifier_as_builder as_name) ++ (SQL_Builder.join ", " (column_names.map wrap_identifier_as_builder) . paren)
+    SQL_Builder.code "(VALUES " ++ values ++ ") AS " ++ structure
 
 ## PRIVATE
 fold_case = lift_unary_op "FOLD_CASE" arg->
