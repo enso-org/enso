@@ -6,6 +6,7 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
+import * as reactQuery from '@tanstack/react-query'
 import isNetworkError from 'is-network-error'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
@@ -158,6 +159,7 @@ export interface AuthProviderProps {
 export default function AuthProvider(props: AuthProviderProps) {
   const { shouldStartInOfflineMode, setRemoteBackend, authService, onAuthenticated } = props
   const { children } = props
+  const queryClient = reactQuery.useQueryClient()
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, onSessionError } = sessionProvider.useSession()
@@ -190,7 +192,6 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [])
 
   const goOfflineInternal = React.useCallback(() => {
-    setInitialized(true)
     sentry.setUser(null)
     setUserSession(OFFLINE_USER_SESSION)
     setRemoteBackend(null)
@@ -267,7 +268,6 @@ export default function AuthProvider(props: AuthProviderProps) {
         goOfflineInternal()
         setForceOfflineMode(false)
       } else if (session == null) {
-        setRemoteBackend(null)
         cognito?.saveAccessToken(null)
         sentry.setUser(null)
         setUserSession(null)
@@ -347,8 +347,8 @@ export default function AuthProvider(props: AuthProviderProps) {
         }
 
         setUserSession(newUserSession)
-        setInitialized(true)
       }
+      setInitialized(true)
     }
 
     fetchSession().catch(error => {
@@ -589,6 +589,7 @@ export default function AuthProvider(props: AuthProviderProps) {
         error: getText('signOutError'),
         pending: getText('loggingOut'),
       })
+      await queryClient.invalidateQueries({ queryKey: ['userSession'] })
       setIsLoggingOut(false)
       return true
     }
