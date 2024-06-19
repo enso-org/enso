@@ -44,7 +44,7 @@ import * as Y from 'yjs'
 interface LsUrls {
   rpcUrl: string
   dataUrl: string
-  ydocUrl: URL
+  ydocUrl: string
 }
 
 function resolveLsUrl(config: GuiConfig): LsUrls {
@@ -64,12 +64,14 @@ function resolveLsUrl(config: GuiConfig): LsUrls {
       ydocUrl = new URL(rpcUrl)
       ydocUrl.port = '1234'
     }
-    ydocUrl.pathname = '/project'
+    if (!URL.canParse(engine.ydocUrl)) {
+      ydocUrl.pathname = '/project/index'
+    }
 
     return {
       rpcUrl,
       dataUrl,
-      ydocUrl,
+      ydocUrl: ydocUrl.href,
     }
   }
   throw new Error('Incomplete engine configuration')
@@ -154,9 +156,11 @@ export const { provideFn: provideProjectStore, injectFn: useProjectStore } = cre
 
     let yDocsProvider: ReturnType<typeof attachProvider> | undefined
     watchEffect((onCleanup) => {
+      const [, serverUrl = lsUrls.ydocUrl, roomName = ''] =
+        lsUrls.ydocUrl.match(/^(.+)[/](.+?)$/) ?? []
       yDocsProvider = attachProvider(
-        lsUrls.ydocUrl.href,
-        'index',
+        serverUrl,
+        roomName,
         { ls: lsUrls.rpcUrl },
         doc,
         awareness.internal,
