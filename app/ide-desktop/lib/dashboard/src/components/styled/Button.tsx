@@ -95,7 +95,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
   return tooltipElement == null ? (
     button
   ) : (
-    <ariaComponents.TooltipTrigger>
+    <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
       {button}
       <ariaComponents.Tooltip
         {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}

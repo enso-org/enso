@@ -357,12 +357,7 @@ export default function Dashboard(props: DashboardProps) {
 
   return (
     <Page hideInfoBar hideChat>
-      <div
-        className={tailwindMerge.twMerge(
-          'flex text-xs text-primary',
-          page === pageSwitcher.Page.editor && 'pointer-events-none cursor-none'
-        )}
-      >
+      <div className="flex text-xs text-primary">
         <div
           className="relative flex h-screen grow select-none flex-col container-size"
           onContextMenu={event => {
