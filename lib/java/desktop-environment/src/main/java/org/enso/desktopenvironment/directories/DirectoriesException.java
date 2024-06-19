@@ -1,6 +1,9 @@
 package org.enso.desktopenvironment.directories;
 
-public final class DirectoriesException extends Exception {
+import java.io.IOException;
+
+/** Indicates an issue when accessing user directories. */
+public final class DirectoriesException extends IOException {
 
   public DirectoriesException(String message) {
     super(message);
