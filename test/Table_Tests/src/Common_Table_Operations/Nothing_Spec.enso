@@ -50,8 +50,14 @@ add_specs suite_builder setup =
 
     table_builder = setup.light_table_builder
     table_builder_typed columns value_type =
-        raw_table = setup.light_table_builder columns
-        raw_table.cast raw_table.column_names value_type
+        ## TODO light_table_builder fails here with
+           Cannot cast Unsupported_Data_Type (NULL) type into ...
+        #raw_table = setup.light_table_builder columns
+        #raw_table.cast raw_table.column_names value_type
+        # TODO maybe use different builder depending on DB??
+        cast_columns = columns.map c->
+            Column.from_vector (c.at 0) (c.at 1) . cast value_type
+        setup.table_builder cast_columns
 
     suite_builder.group prefix+"(Nothing_Spec) Comparisons" group_builder->
         comparisons = [["==", ==], ["!=", !=], ["<", <]] + (if setup.test_selection.run_advanced_edge_case_tests then [["<=", <=], [">", >], [">=", >=]] else [])
