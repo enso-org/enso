@@ -95,6 +95,7 @@ export const BUTTON_STYLES = twv.tv({
     fullWidthText: { true: { text: 'w-full' } },
     size: {
       custom: { base: '', extraClickZone: '', icon: 'h-full' },
+      icon: { icon: 'h-4' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: text.TEXT_STYLE({

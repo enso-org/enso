@@ -15,9 +15,9 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-import Button from '#/components/styled/Button'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
@@ -165,13 +165,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <Button
-        image={FolderArrowIcon}
-        alt={item.children == null ? getText('expand') : getText('collapse')}
+      <ariaComponents.Button
+        icon={FolderArrowIcon}
+        size="icon"
+        variant="custom"
+        aria-label={item.children == null ? getText('expand') : getText('collapse')}
         tooltipPlacement="left"
-        buttonClassName="m-0 hidden group-hover:inline-block"
         className={tailwindMerge.twMerge(
-          'size-4 cursor-pointer transition-transform duration-arrow',
+          'm-0 hidden cursor-pointer border-0 transition-transform duration-arrow group-hover:m-name-column-icon group-hover:inline-block',
           item.children != null && 'rotate-90'
         )}
         onPress={() => {
