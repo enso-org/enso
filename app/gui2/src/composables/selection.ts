@@ -11,17 +11,69 @@ import { dataAttribute, elementHierarchy } from '@/util/dom'
 import * as set from 'lib0/set'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
 
+interface BaseSelectionOptions<T> {
+  margin?: number
+  isValid?: (element: T) => boolean
+  onSelected?: (element: T) => void
+  onDeselected?: (element: T) => void
+}
+interface SelectionPackingOptions<T, PackedT> {
+  /** The `pack` and `unpack` functions are used to maintain state in a transformed form.
+   *
+   * If provided, all operations that modify or query state will transparently operate on packed state. This can be
+   * used to expose a selection interface based on one element type (`T`), while allowing the selection set to be
+   * maintained using a more stable element type (`PackedT`).
+   *
+   * For example, the selection can expose a `NodeId` API, while internally storing `ExternalId`s.
+   */
+  pack: (element: T) => PackedT | undefined
+  unpack: (packed: PackedT) => T | undefined
+}
+export type SelectionOptions<T, PackedT> =
+  | BaseSelectionOptions<T>
+  | (BaseSelectionOptions<T> & SelectionPackingOptions<T, PackedT>)
+
+export function useSelection<T>(
+  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  elementRects: Map<T, Rect>,
+  options: BaseSelectionOptions<T>,
+): UseSelection<T, T>
 export function useSelection<T, PackedT>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
-  margin: number,
-  isValid: (element: T) => boolean,
-  pack: (element: T) => PackedT | undefined,
-  unpack: (packed: PackedT) => T | undefined,
-  callbacks: {
-    onSelected?: (element: T) => void
-    onDeselected?: (element: T) => void
-  } = {},
+  options: BaseSelectionOptions<T> & SelectionPackingOptions<T, PackedT>,
+): UseSelection<T, PackedT>
+export function useSelection<T, PackedT>(
+  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  elementRects: Map<T, Rect>,
+  options: SelectionOptions<T, PackedT> = {},
+): UseSelection<T, PackedT> {
+  const BASE_DEFAULTS: Required<BaseSelectionOptions<T>> = {
+    margin: 0,
+    isValid: () => true,
+    onSelected: () => {},
+    onDeselected: () => {},
+  }
+  const PACKING_DEFAULTS: SelectionPackingOptions<T, T> = {
+    pack: (element: T) => element,
+    unpack: (packed: T) => packed,
+  }
+  return useSelectionImpl(
+    navigator,
+    elementRects,
+    { ...BASE_DEFAULTS, ...options },
+    'pack' in options ? options
+      // The function signature ensures that if a `pack` function is not provided, PackedT = T.
+    : (PACKING_DEFAULTS as unknown as SelectionPackingOptions<T, PackedT>),
+  )
+}
+
+type UseSelection<T, PackedT> = ReturnType<typeof useSelectionImpl<T, PackedT>>
+function useSelectionImpl<T, PackedT>(
+  navigator: { sceneMousePos: Vec2 | null; scale: number },
+  elementRects: Map<T, Rect>,
+  { margin, isValid, onSelected, onDeselected }: Required<BaseSelectionOptions<T>>,
+  { pack, unpack }: SelectionPackingOptions<T, PackedT>,
 ) {
   const anchor = shallowRef<Vec2>()
   let initiallySelected = new Set<T>()
@@ -44,7 +96,7 @@ export function useSelection<T, PackedT>(
       const packed = pack(id)
       if (packed != null && !rawSelected.has(packed)) {
         rawSelected.add(packed)
-        callbacks.onSelected?.(id)
+        onSelected(id)
       }
     }
 
@@ -52,7 +104,7 @@ export function useSelection<T, PackedT>(
       const id = unpack(packed)
       if (id == null || !newSelection.has(id)) {
         rawSelected.delete(packed)
-        if (id != null) callbacks.onDeselected?.(id)
+        if (id != null) onDeselected(id)
       }
     }
   }
