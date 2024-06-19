@@ -14,15 +14,7 @@ function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
   rects.set(3, Rect.FromBounds(1, 20, 10, 30))
   rects.set(4, Rect.FromBounds(20, 20, 30, 30))
   const navigator = proxyRefs({ sceneMousePos: sceneMousePos ?? ref(Vec2.Zero), scale: 1 })
-  const allNodesValid = () => true
-  const selection = useSelection(
-    navigator,
-    rects,
-    0,
-    allNodesValid,
-    (id) => id,
-    (id) => id,
-  )
+  const selection = useSelection(navigator, rects)
   selection.setSelection(new Set([1, 2]))
   return selection
 }
