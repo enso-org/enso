@@ -13,7 +13,6 @@ import * as textProvider from '#/providers/TextProvider'
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 

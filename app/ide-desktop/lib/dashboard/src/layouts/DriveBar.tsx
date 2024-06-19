@@ -21,7 +21,6 @@ import StartModal from '#/layouts/StartModal'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Button from '#/components/styled/Button'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
@@ -79,130 +78,122 @@ export default function DriveBar(props: DriveBarProps) {
     case Category.recent: {
       // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
       // in the given directory, to avoid name collisions.
-      return (
-        <div className="flex h-row py-drive-bar-y">
-          <HorizontalMenuBar />
-        </div>
-      )
+      return <ariaComponents.ButtonGroup className="grow-0" />
     }
     case Category.trash: {
       return (
-        <div className="flex h-row py-drive-bar-y">
-          <HorizontalMenuBar>
-            <ariaComponents.Button
-              variant="bar"
-              onPress={() => {
-                setModal(
-                  <ConfirmDeleteModal
-                    actionText={getText('allTrashedItemsForever')}
-                    doDelete={doEmptyTrash}
-                  />
-                )
-              }}
-            >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('clearTrash')}
-              </aria.Text>
-            </ariaComponents.Button>
-          </HorizontalMenuBar>
-        </div>
+        <ariaComponents.ButtonGroup className="grow-0">
+          <ariaComponents.Button
+            variant="bar"
+            onPress={() => {
+              setModal(
+                <ConfirmDeleteModal
+                  actionText={getText('allTrashedItemsForever')}
+                  doDelete={doEmptyTrash}
+                />
+              )
+            }}
+          >
+            <aria.Text className="text whitespace-nowrap font-semibold">
+              {getText('clearTrash')}
+            </aria.Text>
+          </ariaComponents.Button>
+        </ariaComponents.ButtonGroup>
       )
     }
     case Category.cloud:
     case Category.local: {
       return (
-        <div className="flex h-row py-drive-bar-y">
-          <HorizontalMenuBar>
-            <aria.DialogTrigger>
-              <ariaComponents.Button
-                size="medium"
-                variant="tertiary"
-                className="px-2.5"
-                onPress={() => {}}
-              >
-                {getText('startWithATemplate')}
-              </ariaComponents.Button>
-              <StartModal createProject={doCreateProject} />
-            </aria.DialogTrigger>
+        <ariaComponents.ButtonGroup className="grow-0">
+          <aria.DialogTrigger>
             <ariaComponents.Button
               size="medium"
-              variant="bar"
-              onPress={() => {
-                doCreateProject()
-              }}
+              variant="tertiary"
+              className="px-2.5"
+              onPress={() => {}}
             >
-              {getText('newEmptyProject')}
+              {getText('startWithATemplate')}
             </ariaComponents.Button>
-            <div className="flex h-row items-center gap-icons rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
+            <StartModal createProject={doCreateProject} />
+          </aria.DialogTrigger>
+          <ariaComponents.Button
+            size="medium"
+            variant="bar"
+            onPress={() => {
+              doCreateProject()
+            }}
+          >
+            {getText('newEmptyProject')}
+          </ariaComponents.Button>
+          <div className="flex h-row items-center gap-icons rounded-full border-0.5 border-primary/20 px-drive-bar-icons-x text-primary/50">
+            <Button
+              active
+              image={AddFolderIcon}
+              alt={getText('newFolder')}
+              onPress={() => {
+                doCreateDirectory()
+              }}
+            />
+            {isCloud && (
               <Button
                 active
-                image={AddFolderIcon}
-                alt={getText('newFolder')}
+                image={AddKeyIcon}
+                alt={getText('newSecret')}
                 onPress={() => {
-                  doCreateDirectory()
+                  setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
                 }}
               />
-              {isCloud && (
-                <Button
-                  active
-                  image={AddKeyIcon}
-                  alt={getText('newSecret')}
-                  onPress={() => {
-                    setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
-                  }}
-                />
-              )}
-              {isCloud && (
-                <Button
-                  active
-                  image={AddDatalinkIcon}
-                  alt={getText('newDatalink')}
-                  onPress={() => {
-                    setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
-                  }}
-                />
-              )}
-              <aria.Input
-                ref={uploadFilesRef}
-                type="file"
-                multiple
-                id="upload_files_input"
-                name="upload_files_input"
-                className="hidden"
-                onInput={event => {
-                  if (event.currentTarget.files != null) {
-                    doUploadFiles(Array.from(event.currentTarget.files))
-                  }
-                  // Clear the list of selected files. Otherwise, `onInput` will not be
-                  // dispatched again if the same file is selected.
-                  event.currentTarget.value = ''
-                }}
-              />
+            )}
+            {isCloud && (
               <Button
                 active
-                image={DataUploadIcon}
-                alt={getText('uploadFiles')}
+                image={AddDatalinkIcon}
+                alt={getText('newDatalink')}
                 onPress={() => {
-                  unsetModal()
-                  uploadFilesRef.current?.click()
+                  setModal(<UpsertDatalinkModal doCreate={doCreateDatalink} />)
                 }}
               />
-              <Button
-                active={canDownload}
-                isDisabled={!canDownload}
-                image={DataDownloadIcon}
-                alt={getText('downloadFiles')}
-                error={
-                  isCloud ? getText('canOnlyDownloadFilesError') : getText('noProjectSelectedError')
+            )}
+            <aria.Input
+              ref={uploadFilesRef}
+              type="file"
+              multiple
+              id="upload_files_input"
+              name="upload_files_input"
+              className="hidden"
+              onInput={event => {
+                if (event.currentTarget.files != null) {
+                  doUploadFiles(Array.from(event.currentTarget.files))
                 }
-                onPress={() => {
-                  unsetModal()
-                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
-                }}
-              />
-            </div>
-          </HorizontalMenuBar>
-        </div>
+                // Clear the list of selected files. Otherwise, `onInput` will not be
+                // dispatched again if the same file is selected.
+                event.currentTarget.value = ''
+              }}
+            />
+            <Button
+              active
+              image={DataUploadIcon}
+              alt={getText('uploadFiles')}
+              onPress={() => {
+                unsetModal()
+                uploadFilesRef.current?.click()
+              }}
+            />
+            <Button
+              active={canDownload}
+              isDisabled={!canDownload}
+              image={DataDownloadIcon}
+              alt={getText('downloadFiles')}
+              error={
+                isCloud ? getText('canOnlyDownloadFilesError') : getText('noProjectSelectedError')
+              }
+              onPress={() => {
+                unsetModal()
+                dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+              }}
+            />
+          </div>
+        </ariaComponents.ButtonGroup>
       )
     }
   }
