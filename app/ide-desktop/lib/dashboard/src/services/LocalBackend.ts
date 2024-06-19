@@ -189,6 +189,7 @@ export default class LocalBackend extends Backend {
       },
       jsonAddress: null,
       binaryAddress: null,
+      ydocAddress: null,
     }))
   }
 
@@ -280,6 +281,7 @@ export default class LocalBackend extends Backend {
           ideVersion: version,
           jsonAddress: null,
           binaryAddress: null,
+          ydocAddress: null,
           organizationId: '',
           packageName: project.name,
           projectId,
@@ -303,6 +305,7 @@ export default class LocalBackend extends Backend {
         },
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
+        ydocAddress: null,
         organizationId: '',
         packageName: cachedProject.projectNormalizedName,
         projectId,

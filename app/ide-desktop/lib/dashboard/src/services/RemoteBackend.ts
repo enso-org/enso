@@ -585,6 +585,7 @@ export default class RemoteBackend extends Backend {
         ...project,
         jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
+        ydocAddress: project.address != null ? backend.Address(`${project.address}ydoc`) : null,
       }))
     }
   }
@@ -667,6 +668,7 @@ export default class RemoteBackend extends Backend {
         engineVersion: project.engine_version,
         jsonAddress: project.address != null ? backend.Address(`${project.address}json`) : null,
         binaryAddress: project.address != null ? backend.Address(`${project.address}binary`) : null,
+        ydocAddress: project.address != null ? backend.Address(`${project.address}ydoc`) : null,
       }
     }
   }
