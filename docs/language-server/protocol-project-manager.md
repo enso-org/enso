@@ -1014,7 +1014,9 @@ null;
 ### `logging-service/get-endpoint`
 
 Requests the endpoint for connecting to the logging service.
-****
+
+---
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
