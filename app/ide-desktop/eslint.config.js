@@ -205,7 +205,7 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: `JSXAttribute[name.name=/^(?:className)$/] TemplateLiteral`,
         message:
-            'Use `tv` from `tailwind-variants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
+            'Use `tv` from `#/utilities/tailwindVariants` or `twMerge` from `tailwind-merge` instead of template strings for classes',
     },
     {
         selector: 'JSXOpeningElement[name.name=button] > JSXIdentifier',

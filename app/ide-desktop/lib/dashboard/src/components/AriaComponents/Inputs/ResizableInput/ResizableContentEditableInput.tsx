@@ -3,14 +3,13 @@
  */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as varants from './variants'
 

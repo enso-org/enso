@@ -1,14 +1,14 @@
 /** @file A toolbar for displaying asset information. */
 import * as React from 'react'
 
-import * as tailwindVariants from 'tailwind-variants'
-
 import SettingsIcon from 'enso-assets/settings.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
+
+import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===

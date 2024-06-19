@@ -8,13 +8,13 @@
 
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as billingHooks from '#/hooks/billing'
 
 import * as authProvider from '#/providers/AuthProvider'
 
 import * as paywallComponents from '#/components/Paywall'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 /**
  * Props for the `withPaywall` HOC.

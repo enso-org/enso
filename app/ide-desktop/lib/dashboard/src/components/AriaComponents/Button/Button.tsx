@@ -1,14 +1,14 @@
 /** @file A styled button. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinnerModule from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as text from '../Text'
 
