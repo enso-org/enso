@@ -30,6 +30,7 @@ polyglot java import javax.xml.xpath.XPath
 polyglot java import javax.xml.xpath.XPathConstants
 polyglot java import javax.xml.xpath.XPathFactory
 polyglot java import org.enso.base.XML_Utils
+polyglot java import org.enso.base.XML_Utils.InputStreamLike
 polyglot java import org.w3c.dom.Attr
 polyglot java import org.w3c.dom.Document
 polyglot java import org.w3c.dom.Element
