@@ -943,9 +943,16 @@ add_specs suite_builder setup =
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
+        build_sorted_table table_structure =
+            # Workaround for https://github.com/enso-org/enso/issues/10321
+            if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
+                row_count = table_structure.first.second.length
+                new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
+                table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
+
         group_builder.specify "should insert the separator, add prefix and suffix" <|
-            table = table_builder [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]], ["row_id", [1, 2, 3, 4]]]
-            result = table.order_by "row_id" . aggregate ["A"] [Concatenate "B" prefix="[[" suffix="]]" separator="; "]
+            table = build_sorted_table [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
+            result = table.aggregate ["A"] [Concatenate "B" prefix="[[" suffix="]]" separator="; "]
             result.row_count . should_equal 2
             materialized = materialize result . order_by ([Sort_Column.Name "A"])
             Problems.assume_no_problems materialized
@@ -956,8 +963,8 @@ add_specs suite_builder setup =
             materialized.columns.at 1 . to_vector . should_equal ["[[b]]", "[[a; c; d]]"]
 
         group_builder.specify "should correctly escape separator and quote characters but only if necessary" <|
-            table = table_builder [["A", ["1,0", "b", "'c", "''", ","]], ["row_id", [1, 2, 3, 4, 5]]]
-            result = table.order_by "row_id" . aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
+            table = build_sorted_table [["A", ["1,0", "b", "'c", "''", ","]]]
+            result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
             Problems.assume_no_problems materialized
@@ -966,8 +973,8 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',b,'''c','''''',',']]"]
 
         group_builder.specify "should correctly handle missing values and empty values with quote character" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]], ["row_id", [1, 2, 3, 4, 5, 6, 7, 8]]]
-            result = table.order_by "row_id" . aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
+            table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
             Problems.assume_no_problems materialized
@@ -976,8 +983,8 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',A,'','',B,,,C]]"]
 
         group_builder.specify "will not be able to distinguish missing values from empty values without quote character" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]], ["row_id", [1, 2, 3, 4, 5, 6, 7, 8]]]
-            result = table.order_by "row_id" . aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator=",")]
+            table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator=",")]
             result.row_count . should_equal 1
             materialized = materialize result
             ## Currently `Unquoted_Delimiter` is only reported in-memory, as
@@ -991,8 +998,8 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["[[1,0,A,,,B,,,C]]"]
 
         group_builder.specify "should work with empty separator" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]], ["row_id", [1, 2, 3, 4, 5, 6, 7, 8]]]
-            result = table.order_by "row_id" . aggregate columns=[(Concatenate "A")]
+            table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            result = table.aggregate columns=[(Concatenate "A")]
             result.row_count . should_equal 1
             materialized = materialize result
             Problems.assume_no_problems materialized
@@ -1001,8 +1008,8 @@ add_specs suite_builder setup =
             materialized.columns.at 0 . to_vector . should_equal ["1,0ABC"]
 
         group_builder.specify "should work with empty separator but non-empty quote" <|
-            table = table_builder [["A", ["1'0", "A", "", "", "B", Nothing, Nothing, "C"]], ["row_id", [1, 2, 3, 4, 5, 6, 7, 8]]]
-            result = table.order_by "row_id" . aggregate columns=[(Concatenate "A" quote_char="'")]
+            table = build_sorted_table [["A", ["1'0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            result = table.aggregate columns=[(Concatenate "A" quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
             Problems.assume_no_problems materialized

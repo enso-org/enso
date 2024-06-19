@@ -135,9 +135,11 @@ add_specs suite_builder setup =
             3.1 . round -16 . should_fail_with Illegal_Argument
 
     build_sorted_table table_structure table_builder=setup.table_builder =
-        row_count = table_structure.first.second.length
-        new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
-        table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
+        # Workaround for https://github.com/enso-org/enso/issues/10321
+        if setup.prefix.contains "Snowflake" . not then table_builder table_structure else
+            row_count = table_structure.first.second.length
+            new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
+            table_builder new_structure . order_by "row_id" . remove_columns ["row_id"]
 
     ## Runs the provided callback with a few combinations of columns, where some
        of them are made Mixed (but still contain only the original values).
