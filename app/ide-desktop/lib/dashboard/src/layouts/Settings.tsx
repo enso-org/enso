@@ -6,6 +6,7 @@ import BurgerMenuIcon from 'enso-assets/burger_menu.svg'
 import * as backendHooks from '#/hooks/backendHooks'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
@@ -19,9 +20,9 @@ import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
 import Button from '#/components/styled/Button'
+import * as suspense from '#/components/Suspense'
 
 import type Backend from '#/services/Backend'
 
@@ -44,10 +45,10 @@ export default function Settings(props: SettingsProps) {
     SettingsTab.account,
     array.includesPredicate(Object.values(SettingsTab))
   )
+  const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  const user = backendHooks.useBackendUsersMe(backend)
   const organization = backendHooks.useBackendGetOrganization(backend)
   const isUserInOrganization = organization != null
 
@@ -118,7 +119,7 @@ export default function Settings(props: SettingsProps) {
           {settingsTab !== SettingsTab.organization &&
           settingsTab !== SettingsTab.members &&
           settingsTab !== SettingsTab.userGroups
-            ? user?.name ?? 'your account'
+            ? user.name
             : organization?.name ?? 'your organization'}
         </div>
       </aria.Heading>
@@ -130,9 +131,7 @@ export default function Settings(props: SettingsProps) {
           setSettingsTab={setSettingsTab}
         />
         <errorBoundary.ErrorBoundary>
-          <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
-            {content}
-          </React.Suspense>
+          <suspense.Suspense loaderProps={{ minHeight: 'h64' }}>{content}</suspense.Suspense>
         </errorBoundary.ErrorBoundary>
       </div>
     </div>

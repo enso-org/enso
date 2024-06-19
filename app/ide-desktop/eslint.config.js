@@ -469,11 +469,6 @@ export default [
             'no-restricted-properties': [
                 'error',
                 {
-                    object: 'router',
-                    property: 'useNavigate',
-                    message: 'Use `hooks.useNavigate` instead.',
-                },
-                {
                     object: 'console',
                     message: 'Avoid leaving debugging statements when committing code',
                 },

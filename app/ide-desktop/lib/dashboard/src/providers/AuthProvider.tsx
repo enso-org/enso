@@ -6,7 +6,7 @@
 import * as React from 'react'
 
 import * as sentry from '@sentry/react'
-import isNetworkError from 'is-network-error'
+import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
@@ -18,31 +18,23 @@ import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
 
+import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import LoadingScreen from '#/pages/authentication/LoadingScreen'
+import * as ariaComponents from '#/components/AriaComponents'
+import * as resultComponent from '#/components/Result'
 
-import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
-import RemoteBackend from '#/services/RemoteBackend'
+import * as backendModule from '#/services/Backend'
+import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
-import HttpClient from '#/utilities/HttpClient'
-import * as object from '#/utilities/object'
 
 import * as cognitoModule from '#/authentication/cognito'
 import type * as authServiceModule from '#/authentication/service'
-
-// =================
-// === Constants ===
-// =================
-
-/** The minimum delay between two requests. */
-const REQUEST_DELAY_MS = 200
 
 // ===================
 // === UserSession ===
@@ -56,28 +48,13 @@ export enum UserSessionType {
 }
 
 /** Properties common to all {@link UserSession}s. */
-interface BaseUserSession<Type extends UserSessionType> {
+interface BaseUserSession {
   /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
-  readonly type: Type
+  readonly type: UserSessionType
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
   readonly accessToken: string
   /** User's email address. */
   readonly email: string
-}
-
-// Extends `BaseUserSession` in order to inherit the documentation.
-/** Empty object of an offline user session.
- * Contains some fields from {@link FullUserSession} to allow destructuring. */
-export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
-  readonly accessToken: null
-  readonly user: null
-}
-
-/** The singleton instance of {@link OfflineUserSession}. Minimizes React re-renders. */
-const OFFLINE_USER_SESSION: Readonly<OfflineUserSession> = {
-  type: UserSessionType.offline,
-  accessToken: null,
-  user: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -86,17 +63,20 @@ const OFFLINE_USER_SESSION: Readonly<OfflineUserSession> = {
  * If a user has not yet set their username, they do not yet have an organization associated with
  * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
  * used by the `SetUsername` component. */
-export interface PartialUserSession extends BaseUserSession<UserSessionType.partial> {}
+export interface PartialUserSession extends BaseUserSession {
+  readonly type: UserSessionType.partial
+}
 
 /** Object containing the currently signed-in user's session data. */
-export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
+export interface FullUserSession extends BaseUserSession {
   /** User's organization information. */
+  readonly type: UserSessionType.full
   readonly user: backendModule.User
 }
 
 /** A user session for a user that may be either fully registered,
  * or in the process of registering. */
-export type UserSession = FullUserSession | OfflineUserSession | PartialUserSession
+export type UserSession = FullUserSession | PartialUserSession
 
 // ===================
 // === AuthContext ===
@@ -110,12 +90,12 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  *
  * See `Cognito` for details on each of the authentication functions. */
 interface AuthContextType {
-  readonly goOffline: (shouldShowToast?: boolean) => Promise<boolean>
   readonly signUp: (
     email: string,
     password: string,
     organizationId: string | null
   ) => Promise<boolean>
+  readonly authQueryKey: reactQuery.QueryKey
   readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
   readonly setUsername: (backend: Backend, username: string, email: string) => Promise<boolean>
   readonly signInWithGoogle: () => Promise<boolean>
@@ -124,13 +104,17 @@ interface AuthContextType {
   readonly forgotPassword: (email: string) => Promise<boolean>
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
-  readonly signOut: () => Promise<boolean>
-  readonly restoreUser: (backend: Backend) => Promise<boolean>
+  readonly signOut: () => Promise<void>
+  /**
+   * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
+   */
+  readonly setUser: (user: Partial<backendModule.User>) => void
+  readonly deleteUser: () => Promise<boolean>
+  readonly restoreUser: () => Promise<boolean>
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
   readonly session: UserSession | null
-  readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
   /** Return `true` if the user is marked for deletion. */
   readonly isUserMarkedForDeletion: () => boolean
   /** Return `true` if the user is deleted completely. */
@@ -145,10 +129,35 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 // === AuthProvider ===
 // ====================
 
+/**
+ * Query to fetch the user's session data from the backend.
+ */
+function createUsersMeQuery(
+  session: cognitoModule.UserSession | null,
+  remoteBackend: RemoteBackend
+) {
+  return reactQuery.queryOptions({
+    queryKey: ['usersMe', session?.clientId] as const,
+    queryFn: async () => {
+      if (session == null) {
+        // eslint-disable-next-line no-restricted-syntax
+        return null
+      }
+
+      const user = await remoteBackend.usersMe()
+
+      // if API returns null, user is not yet registered
+      // but already authenticated with Cognito
+      return user == null
+        ? ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
+        : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
+    },
+  })
+}
+
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly setRemoteBackend: (backend: RemoteBackend | null) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
@@ -157,11 +166,11 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
-  const { shouldStartInOfflineMode, setRemoteBackend, authService, onAuthenticated } = props
+  const { authService, onAuthenticated } = props
   const { children } = props
-  const logger = loggerProvider.useLogger()
+  const remoteBackend = backendProvider.useRemoteBackendStrict()
   const { cognito } = authService ?? {}
-  const { session, onSessionError } = sessionProvider.useSession()
+  const { session, sessionQueryKey } = sessionProvider.useSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const { unsetModal } = modalProvider.useSetModal()
@@ -169,210 +178,56 @@ export default function AuthProvider(props: AuthProviderProps) {
   // and the function call would error.
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
-  const [forceOfflineMode, setForceOfflineMode] = React.useState(shouldStartInOfflineMode)
-  const [initialized, setInitialized] = React.useState(false)
-  const [userSession, setUserSession] = React.useState<UserSession | null>(null)
   const toastId = React.useId()
 
-  const setUser = React.useCallback((valueOrUpdater: React.SetStateAction<backendModule.User>) => {
-    setUserSession(oldUserSession => {
-      if (oldUserSession == null || !('user' in oldUserSession) || oldUserSession.user == null) {
-        return oldUserSession
-      } else {
-        return object.merge(oldUserSession, {
-          user:
-            typeof valueOrUpdater !== 'function'
-              ? valueOrUpdater
-              : valueOrUpdater(oldUserSession.user),
-        })
-      }
-    })
-  }, [])
+  const queryClient = reactQuery.useQueryClient()
 
-  const goOfflineInternal = React.useCallback(() => {
-    setInitialized(true)
-    sentry.setUser(null)
-    setUserSession(OFFLINE_USER_SESSION)
-    setRemoteBackend(null)
-  }, [/* should never change */ setRemoteBackend])
+  const usersMeQuery = createUsersMeQuery(session, remoteBackend)
 
-  const goOffline = React.useCallback(
-    (shouldShowToast = true) => {
-      if (shouldShowToast) {
-        toast.toast.error('You are offline, switching to offline mode.')
-      }
-      goOfflineInternal()
-      navigate(appUtils.DASHBOARD_PATH)
-      return Promise.resolve(true)
+  const { data: userData } = reactQuery.useSuspenseQuery(usersMeQuery)
+
+  const createUserMutation = reactQuery.useMutation({
+    mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
+    meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
+  })
+
+  const deleteUserMutation = reactQuery.useMutation({
+    mutationFn: () => remoteBackend.deleteUser(),
+    meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
+  })
+
+  const restoreUserMutation = reactQuery.useMutation({
+    mutationFn: () => remoteBackend.restoreUser(),
+    meta: { invalidates: [usersMeQuery.queryKey], awaitInvalidates: true },
+  })
+
+  const logoutMutation = reactQuery.useMutation({
+    mutationFn: () => (cognito != null ? cognito.signOut() : Promise.reject()),
+    onMutate: () => {
+      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
+      unsetModal()
     },
-    [goOfflineInternal, /* should never change */ navigate]
-  )
+    onSuccess: async () => {
+      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
+      document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
+      gtagEvent('cloud_sign_out')
+      cognito?.saveAccessToken(null)
+      localStorage.clearUserSpecificEntries()
+      sentry.setUser(null)
+
+      await queryClient.clearWithPersister()
+
+      return toast.toast.success(getText('signOutSuccess'))
+    },
+    onError: () => toast.toast.error(getText('signOutError')),
+    meta: { invalidates: [sessionQueryKey], awaitInvalidates: true },
+  })
 
   // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
   // defined by this component.
-  const gtagEvent = React.useCallback(
-    (name: string, params?: object) => {
-      if (userSession?.type !== UserSessionType.offline) {
-        gtag.event(name, params)
-      }
-    },
-    [userSession?.type]
-  )
-  const gtagEventRef = React.useRef(gtagEvent)
-  gtagEventRef.current = gtagEvent
-
-  React.useEffect(() => {
-    gtag.gtag('set', {
-      platform: detect.platform(),
-      architecture: detect.architecture(),
-    })
-
-    return gtagHooks.gtagOpenCloseCallback(gtagEventRef, 'open_app', 'close_app')
+  const gtagEvent = React.useCallback((name: string, params?: object) => {
+    gtag.event(name, params)
   }, [])
-
-  // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
-  // circular dependency.
-  React.useEffect(() => {
-    if (!navigator.onLine) {
-      void goOffline()
-    }
-  }, [/* should never change */ goOffline])
-
-  React.useEffect(() => {
-    if (authService == null) {
-      // The authentication client secrets and endpoint URLs are not set.
-      goOfflineInternal()
-      navigate(appUtils.DASHBOARD_PATH)
-    }
-  }, [authService, navigate, /* should never change */ goOfflineInternal])
-
-  React.useEffect(
-    () =>
-      onSessionError(error => {
-        if (isNetworkError(error)) {
-          void goOffline()
-        }
-      }),
-    [onSessionError, /* should never change */ goOffline]
-  )
-
-  /** Fetch the JWT access token from the session via the AWS Amplify library.
-   *
-   * When invoked, retrieves the access token (if available) from the storage method chosen when
-   * Amplify was configured (e.g. local storage). If the token is not available, return `undefined`.
-   * If the token has expired, automatically refreshes the token and returns the new token. */
-  React.useEffect(() => {
-    const fetchSession = async () => {
-      if (!navigator.onLine || forceOfflineMode) {
-        goOfflineInternal()
-        setForceOfflineMode(false)
-      } else if (session == null) {
-        setInitialized(true)
-        if (!initialized) {
-          sentry.setUser(null)
-          setUserSession(null)
-        }
-      } else {
-        const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
-        const backend = new RemoteBackend(client, logger, getText)
-        // The backend MUST be the remote backend before login is finished.
-        // This is because the "set username" flow requires the remote backend.
-        if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
-          setRemoteBackend(backend)
-        }
-        gtagEvent('cloud_open')
-        void backend.logEvent('cloud_open')
-        let user: backendModule.User | null
-        while (true) {
-          try {
-            user = await backend.usersMe()
-            break
-          } catch (error) {
-            // The value may have changed after the `await`.
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (!navigator.onLine || isNetworkError(error)) {
-              void goOffline()
-              // eslint-disable-next-line no-restricted-syntax
-              return
-            }
-            // This prevents a busy loop when request blocking is enabled in DevTools.
-            // The UI will be blank indefinitely. This is intentional, since for real
-            // network outages, `navigator.onLine` will be false.
-            await new Promise<void>(resolve => {
-              window.setTimeout(resolve, REQUEST_DELAY_MS)
-            })
-          }
-        }
-        const url = new URL(location.href)
-        if (url.searchParams.get('authentication') === 'false') {
-          url.searchParams.delete('authentication')
-          history.replaceState(null, '', url.toString())
-        }
-        let newUserSession: UserSession
-        if (user == null) {
-          sentry.setUser({ email: session.email })
-          newUserSession = {
-            type: UserSessionType.partial,
-            ...session,
-          }
-        } else {
-          sentry.setUser({
-            id: user.userId,
-            email: user.email,
-            username: user.name,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            ip_address: '{{auto}}',
-          })
-          newUserSession = {
-            type: UserSessionType.full,
-            ...session,
-            user,
-          }
-
-          // 34560000 is the recommended max cookie age.
-          const parentDomain = location.hostname.replace(/^[^.]*\./, '')
-          document.cookie = `logged_in=yes;max-age=34560000;domain=${parentDomain};samesite=strict;secure`
-
-          // Save access token so can it be reused by the backend.
-          cognito?.saveAccessToken({
-            accessToken: session.accessToken,
-            clientId: session.clientId,
-            expireAt: session.expireAt,
-            refreshToken: session.refreshToken,
-            refreshUrl: session.refreshUrl,
-          })
-
-          // Execute the callback that should inform the Electron app that the user has logged in.
-          // This is done to transition the app from the authentication/dashboard view to the IDE.
-          onAuthenticated(session.accessToken)
-        }
-
-        setUserSession(newUserSession)
-        setInitialized(true)
-      }
-    }
-
-    fetchSession().catch(error => {
-      if (isUserFacingError(error)) {
-        toast.toast.error(error.message)
-        logger.error(error.message)
-      } else {
-        logger.error(error)
-      }
-    })
-    // `userSession` MUST NOT be a dependency as `setUserSession` is called every time
-    // by this effect. Because it is an object literal, it will never be equal to the previous
-    // value.
-    // `initialized` MUST NOT be a dependency as it breaks offline mode.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    cognito,
-    logger,
-    onAuthenticated,
-    session,
-    /* should never change */ setRemoteBackend,
-    /* should never change */ goOfflineInternal,
-  ])
 
   /** Wrap a function returning a {@link Promise} to display a loading toast notification
    * until the returned {@link Promise} finishes loading. */
@@ -458,6 +313,7 @@ export default function AuthProvider(props: AuthProviderProps) {
       const result = await cognito.signInWithPassword(email, password)
       if (result.ok) {
         toastSuccess(getText('signInWithPasswordSuccess'))
+        void queryClient.invalidateQueries({ queryKey: sessionQueryKey })
       } else {
         if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
           // It may not be safe to pass the user's password in the URL.
@@ -477,12 +333,13 @@ export default function AuthProvider(props: AuthProviderProps) {
       return false
     } else {
       gtagEvent('cloud_user_created')
+
       try {
         const organizationId = await cognito.organizationId()
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
         await toast.toast.promise(
-          backend.createUser({
+          createUserMutation.mutateAsync({
             userName: username,
             userEmail: backendModule.EmailAddress(email),
             organizationId:
@@ -508,22 +365,45 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
-  const restoreUser = async (backend: Backend) => {
+  const deleteUser = async () => {
     if (cognito == null) {
       return false
     } else {
-      if (backend.type === backendModule.BackendType.local) {
-        toastError(getText('restoreUserLocalBackendError'))
-        return false
-      } else {
-        await backend.restoreUser()
-        setUser(object.merger({ removeAt: null }))
+      await deleteUserMutation.mutateAsync()
 
-        toastSuccess(getText('restoreUserSuccess'))
-        navigate(appUtils.DASHBOARD_PATH)
+      toastSuccess(getText('deleteUserSuccess'))
 
-        return true
-      }
+      return true
+    }
+  }
+
+  const restoreUser = async () => {
+    if (cognito == null) {
+      return false
+    } else {
+      await restoreUserMutation.mutateAsync()
+
+      toastSuccess(getText('restoreUserSuccess'))
+
+      return true
+    }
+  }
+
+  /**
+   * Update the user session data in the React Query cache.
+   * This only works for full user sessions.
+   * @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`.
+   */
+  const setUser = (user: Partial<backendModule.User>) => {
+    const currentUser = queryClient.getQueryData(usersMeQuery.queryKey)
+
+    if (currentUser != null && currentUser.type === UserSessionType.full) {
+      const currentUserData = currentUser.user
+      const nextUserData: backendModule.User = Object.assign(currentUserData, user)
+
+      queryClient.setQueryData(usersMeQuery.queryKey, { ...currentUser, user: nextUserData })
+
+      void queryClient.invalidateQueries({ queryKey: usersMeQuery.queryKey })
     }
   }
 
@@ -571,37 +451,11 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
-  const signOut = async () => {
-    if (cognito == null) {
-      return false
-    } else {
-      const parentDomain = location.hostname.replace(/^[^.]*\./, '')
-      document.cookie = `logged_in=no;max-age=0;domain=${parentDomain}`
-      gtagEvent('cloud_sign_out')
-      cognito.saveAccessToken(null)
-      localStorage.clearUserSpecificEntries()
-      setInitialized(false)
-      sentry.setUser(null)
-      setUserSession(null)
-      // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
-      unsetModal()
-      // This should not omit success and error toasts as it is not possible
-      // to render this optimistically.
-      await toast.toast.promise(cognito.signOut(), {
-        success: getText('signOutSuccess'),
-        error: getText('signOutError'),
-        pending: getText('loggingOut'),
-      })
-      return true
-    }
-  }
-
-  const isUserMarkedForDeletion = () =>
-    !!(userSession && 'user' in userSession && userSession.user?.removeAt)
+  const isUserMarkedForDeletion = () => !!(userData && 'user' in userData && userData.user.removeAt)
 
   const isUserDeleted = () => {
-    if (userSession && 'user' in userSession && userSession.user?.removeAt) {
-      const removeAtDate = new Date(userSession.user.removeAt)
+    if (userData && 'user' in userData && userData.user.removeAt) {
+      const removeAtDate = new Date(userData.user.removeAt)
       const now = new Date()
 
       return removeAtDate <= now
@@ -611,8 +465,8 @@ export default function AuthProvider(props: AuthProviderProps) {
   }
 
   const isUserSoftDeleted = () => {
-    if (userSession && 'user' in userSession && userSession.user?.removeAt) {
-      const removeAtDate = new Date(userSession.user.removeAt)
+    if (userData && 'user' in userData && userData.user.removeAt) {
+      const removeAtDate = new Date(userData.user.removeAt)
       const now = new Date()
 
       return removeAtDate > now
@@ -621,8 +475,36 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }
 
+  React.useEffect(() => {
+    if (userData?.type === UserSessionType.full) {
+      sentry.setUser({
+        id: userData.user.userId,
+        email: userData.email,
+        username: userData.user.name,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        ip_address: '{{auto}}',
+      })
+    }
+  }, [userData])
+
+  React.useEffect(() => {
+    if (userData?.type === UserSessionType.partial) {
+      sentry.setUser({ email: userData.email })
+    }
+  }, [userData])
+
+  React.useEffect(() => {
+    gtag.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
+    return gtagHooks.gtagOpenCloseCallback({ current: gtagEvent }, 'open_app', 'close_app')
+  }, [gtagEvent])
+
+  React.useEffect(() => {
+    if (userData?.type === UserSessionType.full) {
+      onAuthenticated(userData.accessToken)
+    }
+  }, [userData, onAuthenticated])
+
   const value = {
-    goOffline: goOffline,
     signUp: withLoadingToast(signUp),
     confirmSignUp: withLoadingToast(confirmSignUp),
     setUsername,
@@ -630,15 +512,19 @@ export default function AuthProvider(props: AuthProviderProps) {
     isUserDeleted,
     isUserSoftDeleted,
     restoreUser,
+    deleteUser,
     signInWithGoogle: () => {
       if (cognito == null) {
         return Promise.resolve(false)
       } else {
         gtagEvent('cloud_sign_in', { provider: 'Google' })
-        return cognito.signInWithGoogle().then(
-          () => true,
-          () => false
-        )
+        return cognito
+          .signInWithGoogle()
+          .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
+          .then(
+            () => true,
+            () => false
+          )
       }
     },
     signInWithGitHub: () => {
@@ -646,41 +532,40 @@ export default function AuthProvider(props: AuthProviderProps) {
         return Promise.resolve(false)
       } else {
         gtagEvent('cloud_sign_in', { provider: 'GitHub' })
-        return cognito.signInWithGitHub().then(
-          () => true,
-          () => false
-        )
+        return cognito
+          .signInWithGitHub()
+          .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
+          .then(
+            () => true,
+            () => false
+          )
       }
     },
-    signInWithPassword: withLoadingToast(signInWithPassword),
+    signInWithPassword: signInWithPassword,
     forgotPassword: withLoadingToast(forgotPassword),
     resetPassword: withLoadingToast(resetPassword),
     changePassword: withLoadingToast(changePassword),
-    signOut,
-    session: userSession,
+    session: userData,
+    signOut: logoutMutation.mutateAsync,
     setUser,
-  }
+    authQueryKey: usersMeQuery.queryKey,
+  } satisfies AuthContextType
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Only render the underlying app after we assert for the presence of a current user. */}
-      {initialized ? children : <LoadingScreen />}
+      {children}
+
+      <ariaComponents.Dialog
+        aria-label={getText('loggingOut')}
+        isDismissable={false}
+        isKeyboardDismissDisabled
+        hideCloseButton
+        modalProps={{ isOpen: logoutMutation.isPending }}
+      >
+        <resultComponent.Result status="loading" title={getText('loggingOut')} />
+      </ariaComponents.Dialog>
     </AuthContext.Provider>
   )
-}
-
-/** Type of an error containing a `string`-typed `message` field.
- *
- * Many types of errors fall into this category. We use this type to check if an error can be safely
- * displayed to the user. */
-interface UserFacingError {
-  /** The user-facing error message. */
-  readonly message: string
-}
-
-/** Return `true` if the value is a {@link UserFacingError}. */
-function isUserFacingError(value: unknown): value is UserFacingError {
-  return typeof value === 'object' && value != null && 'message' in value
 }
 
 // ===============

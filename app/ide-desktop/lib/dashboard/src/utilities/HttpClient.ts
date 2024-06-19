@@ -52,7 +52,7 @@ export default class HttpClient {
      *
      * This is useful for setting headers that are required for every request, like
      * authentication tokens. */
-    public defaultHeaders: HeadersInit
+    public defaultHeaders: HeadersInit = {}
   ) {}
 
   /** Send an HTTP GET request to the specified URL. */
@@ -118,6 +118,17 @@ export default class HttpClient {
       url,
       payload: payload ? JSON.stringify(payload) : null,
     })
+  }
+
+  /**
+   * Set the session token to be included in the Authorization header of every request.
+   */
+  setSessionToken(token: string) {
+    this.defaultHeaders = {
+      ...this.defaultHeaders,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      Authorization: `Bearer ${token}`,
+    }
   }
 
   /** Execute an HTTP request to the specified URL, with the given HTTP method.

@@ -53,7 +53,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   const { setModal } = modalProvider.useSetModal()
   const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const plusButtonRef = React.useRef<HTMLButtonElement>(null)
   const managesThisAsset =

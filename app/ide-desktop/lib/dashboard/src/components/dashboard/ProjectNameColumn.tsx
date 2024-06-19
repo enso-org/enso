@@ -59,7 +59,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
     asset.permissions?.find(
-      backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+      backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
     ) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
@@ -75,7 +75,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
   const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
-    isCloud && projectState.openedBy != null && projectState.openedBy !== user?.email
+    isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 
   const createProjectMutation = backendHooks.useBackendMutation(backend, 'createProject')
   const updateProjectMutation = backendHooks.useBackendMutation(backend, 'updateProject')

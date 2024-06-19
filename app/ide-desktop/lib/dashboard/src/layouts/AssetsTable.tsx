@@ -1494,7 +1494,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
-            ...(user != null ? { openedBy: user.email } : {}),
+            openedBy: user.email,
             ...(path != null ? { path } : {}),
           },
           labels: [],
@@ -1711,7 +1711,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
-            ...(user != null ? { openedBy: user.email } : {}),
+            openedBy: user.email,
             ...(event.original.projectState.path != null
               ? { path: event.original.projectState.path }
               : {}),

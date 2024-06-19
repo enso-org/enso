@@ -6,7 +6,6 @@ import * as router from 'react-router-dom'
 
 import * as appUtils from '#/appUtils'
 
-import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -20,7 +19,7 @@ export default function ConfirmRegistration() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const auth = authProvider.useAuth()
   const location = router.useLocation()
-  const navigate = navigateHooks.useNavigate()
+  const navigate = router.useNavigate()
 
   const query = new URLSearchParams(location.search)
   const verificationCode = query.get('verification_code')

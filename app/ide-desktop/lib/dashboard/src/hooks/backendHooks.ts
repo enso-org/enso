@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
 
 import * as authProvider from '#/providers/AuthProvider'
 
@@ -218,9 +217,10 @@ export function useBackendQuery<Method extends keyof Backend>(
     readonly unknown[]
   >({
     ...options,
-    queryKey: [backend, method, ...args, ...(options?.queryKey ?? [])],
+    queryKey: [backend?.type, method, ...args, ...(options?.queryKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     queryFn: () => (backend?.[method] as any)?.(...args),
+    networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
   })
 }
 
@@ -252,6 +252,7 @@ export function useBackendMutation<Method extends keyof Backend>(
     mutationKey: [backend, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: args => (backend[method] as any)(...args),
+    networkMode: backend.type === backendModule.BackendType.local ? 'always' : 'online',
   })
 }
 
@@ -366,7 +367,6 @@ export function useBackendListUserGroups(
   backend: Backend
 ): readonly WithPlaceholder<backendModule.UserGroupInfo>[] | null {
   const { user } = authProvider.useNonPartialUserSession()
-  invariant(user != null, 'User must exist for user groups to be listed.')
   const listUserGroupsQuery = useBackendQuery(backend, 'listUserGroups', [])
   const createUserGroupVariables = useBackendMutationVariables(backend, 'createUserGroup')
   const deleteUserGroupVariables = useBackendMutationVariables(backend, 'deleteUserGroup')

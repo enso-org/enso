@@ -127,15 +127,6 @@ export default class RemoteBackend extends Backend {
     private getText: ReturnType<typeof textProvider.useText>['getText']
   ) {
     super()
-    // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
-    // set.
-    if (!new Headers(this.client.defaultHeaders).has('Authorization')) {
-      const message = 'Authorization header not set.'
-      this.logger.error(message)
-      throw new Error(message)
-    } else {
-      return
-    }
   }
 
   /** Set `this.getText`. This function is exposed rather than the property itself to make it clear

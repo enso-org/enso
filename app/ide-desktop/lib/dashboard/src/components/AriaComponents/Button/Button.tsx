@@ -101,19 +101,21 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
-          weight: 'bold',
+          weight: 'semibold',
           className: 'flex px-[11px] py-[5px]',
         }),
         content: 'gap-2',
+        icon: 'mb-[-0.3cap]',
         extraClickZone: 'after:inset-[-6px]',
       },
       medium: {
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
-          weight: 'bold',
+          weight: 'semibold',
           className: 'flex px-[9px] py-[3px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-2',
         extraClickZone: 'after:inset-[-8px]',
       },
@@ -121,8 +123,10 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          weight: 'medium',
           className: 'flex px-[7px] py-[1px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-10px]',
       },
@@ -130,8 +134,10 @@ export const BUTTON_STYLES = twv.tv({
         base: text.TEXT_STYLE({
           variant: 'body',
           color: 'custom',
+          weight: 'medium',
           className: 'flex px-[5px] py-[1px]',
         }),
+        icon: 'mb-[-0.3cap]',
         content: 'gap-1',
         extraClickZone: 'after:inset-[-12px]',
       },
@@ -148,7 +154,9 @@ export const BUTTON_STYLES = twv.tv({
         extraClickZone: 'after:inset-[-12px]',
       },
     },
-    iconOnly: { true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }) } },
+    iconOnly: {
+      true: { base: text.TEXT_STYLE({ disableLineHeightCompensation: true }), icon: 'mb-[unset]' },
+    },
     rounded: {
       full: 'rounded-full',
       large: 'rounded-lg',

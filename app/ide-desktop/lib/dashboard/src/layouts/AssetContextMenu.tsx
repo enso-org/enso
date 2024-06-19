@@ -71,7 +71,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.item
   const self = asset.permissions?.find(
-    backendModule.isUserPermissionAnd(permission => permission.user.userId === user?.userId)
+    backendModule.isUserPermissionAnd(permission => permission.user.userId === user.userId)
   )
   const isCloud = categoryModule.isCloud(category)
 
@@ -92,7 +92,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     isCloud &&
     backendModule.assetIsProject(asset) &&
     asset.projectState.openedBy != null &&
-    asset.projectState.openedBy !== user?.email
+    asset.projectState.openedBy !== user.email
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return category === Category.trash ? (

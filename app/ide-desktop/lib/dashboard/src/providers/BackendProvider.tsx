@@ -9,7 +9,7 @@ import * as common from 'enso-common'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
-import type Backend from '#/services/Backend'
+import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 // ======================
@@ -19,7 +19,7 @@ import type RemoteBackend from '#/services/RemoteBackend'
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
   readonly remoteBackend: RemoteBackend | null
-  readonly localBackend: Backend | null
+  readonly localBackend: LocalBackend | null
 }
 
 const BackendContext = React.createContext<BackendContextType>({
@@ -30,7 +30,7 @@ const BackendContext = React.createContext<BackendContextType>({
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
   readonly remoteBackend: RemoteBackend | null
-  readonly localBackend: Backend | null
+  readonly localBackend: LocalBackend | null
 }
 
 // =======================
@@ -92,6 +92,7 @@ export function useLocalBackend() {
 export function useBackend(category: Category) {
   const remoteBackend = useRemoteBackend()
   const localBackend = useLocalBackend()
+
   if (categoryModule.isCloud(category)) {
     invariant(
       remoteBackend != null,

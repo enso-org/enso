@@ -281,17 +281,22 @@ export class Cognito {
       const currentUser = await currentAuthenticatedUser()
       const refreshToken = (await amplify.Auth.currentSession()).getRefreshToken()
 
-      await new Promise((resolve, reject) => {
-        currentUser.unwrap().refreshSession(refreshToken, (error, session) => {
-          if (error instanceof Error) {
-            reject(error)
-          } else {
-            resolve(session)
-          }
-        })
+      return await new Promise<cognito.CognitoUserSession>((resolve, reject) => {
+        currentUser
+          .unwrap()
+          .refreshSession(refreshToken, (error, session: cognito.CognitoUserSession) => {
+            if (error instanceof Error) {
+              reject(error)
+            } else {
+              resolve(session)
+            }
+          })
       })
     })
-    return result.mapErr(intoCurrentSessionErrorType)
+
+    return result
+      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
+      .unwrapOr(null)
   }
 
   /** Sign out the current user. */
