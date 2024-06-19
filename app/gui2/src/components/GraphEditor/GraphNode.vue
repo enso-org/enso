@@ -226,7 +226,9 @@ const keyboard = useKeyboard()
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
 const visualizationHeight = computed(() => props.node.vis?.height ?? null)
 const isVisualizationEnabled = computed(() => props.node.vis?.visible ?? false)
-const isVisualizationPreviewed = computed(() => keyboard.mod && outputHovered.value)
+const isVisualizationPreviewed = computed(
+  () => keyboard.mod && outputHovered.value && !isVisualizationEnabled.value,
+)
 const isVisualizationVisible = computed(
   () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
 )
@@ -468,7 +470,7 @@ watchEffect(() => {
       :isFullMenuVisible="menuVisible && menuFull"
       :nodeColor="getNodeColor(nodeId)"
       :matchableNodeColors="matchableNodeColors"
-      @update:isVisualizationEnabled="emit('update:visualizationVisible', $event)"
+      @update:isVisualizationEnabled="emit('update:visualizationEnabled', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
@@ -494,7 +496,7 @@ watchEffect(() => {
       :isPreview="isVisualizationPreviewed"
       @update:rect="updateVisualizationRect"
       @update:id="emit('update:visualizationId', $event)"
-      @update:enabled="emit('update:visualizationVisible', $event)"
+      @update:enabled="emit('update:visualizationEnabled', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
       @update:height="emit('update:visualizationHeight', $event)"
