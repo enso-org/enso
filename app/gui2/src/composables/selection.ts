@@ -36,7 +36,7 @@ export type SelectionOptions<T, PackedT> =
 export function useSelection<T>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
-  options: BaseSelectionOptions<T>,
+  options: BaseSelectionOptions<T> = {},
 ): UseSelection<T, T>
 export function useSelection<T, PackedT>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
@@ -46,7 +46,7 @@ export function useSelection<T, PackedT>(
 export function useSelection<T, PackedT>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
-  options: SelectionOptions<T, PackedT> = {},
+  options: SelectionOptions<T, PackedT>,
 ): UseSelection<T, PackedT> {
   const BASE_DEFAULTS: Required<BaseSelectionOptions<T>> = {
     margin: 0,
