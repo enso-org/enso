@@ -96,6 +96,7 @@ const config = useVisualizationConfig()
 const INDEX_FIELD_NAME = '#'
 const TABLE_NODE_TYPE = 'Standard.Table.Table.Table'
 const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
+const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 
 const rowLimit = ref(0)
 const page = ref(0)
@@ -260,7 +261,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
-const getVectorPattern = (index: number) =>
+const getPattern = (index: number) =>
   Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('at')!),
@@ -271,15 +272,15 @@ const getVectorPattern = (index: number) =>
 const getTablePattern = (index: number) =>
   Pattern.new((ast) =>
     Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('take')!),
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get')!),
       Ast.tryNumberToEnso(index + 1, ast.module)!,
     ),
   )
 
 function createNode(params: any) {
-  if (config.nodeType === VECTOR_NODE_TYPE) {
+  if (config.nodeType === VECTOR_NODE_TYPE || COLUMN_NODE_TYPE) {
     config.createNodes({
-      content: getVectorPattern(params.data[INDEX_FIELD_NAME]),
+      content: getPattern(params.data[INDEX_FIELD_NAME]),
       commit: true,
     })
   }
