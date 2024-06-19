@@ -948,10 +948,11 @@ add_specs suite_builder setup =
             group_builder.specify "should allow round on a float column (to >0 decimal places)" <|
                 table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
                 result = table.at "x" . cast type . round 1
-                within_table result <|
-                    IO.println result.to_sql
-                    result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
-                    result.name . should_equal "round([x])"
+                # TODO why it's becoming an Int?
+                IO.println (result.value_type)
+                IO.println (result.cast Value_Type.Char . to_vector)
+                result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
+                result.name . should_equal "round([x])"
 
             group_builder.specify "should allow round on a float column (to <0 decimal places)" <|
                 table = table_builder [["x", [51.2, 59.3, 351.45, 359.11, -51.2, -59.3, -351.23, -359.69]]]
