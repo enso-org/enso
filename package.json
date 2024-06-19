@@ -19,7 +19,8 @@
     "ci-check": "run-p test prettier lint typecheck"
   },
   "workspaces": [
-    "app/*",
+    "app/gui2",
+    "app/ide-desktop/*",
     "lib/js/runner"
   ],
   "overrides": {
