@@ -260,7 +260,7 @@ function toField(name: string, valueType?: ValueType | null | undefined): ColDef
   }
 }
 
-const getPattern = (index: number) =>
+const getVectorPattern = (index: number) =>
   Pattern.new((ast) =>
     Ast.App.positional(
       Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('at')!),
@@ -268,16 +268,24 @@ const getPattern = (index: number) =>
     ),
   )
 
+const getTablePattern = (index: number) =>
+  Pattern.new((ast) =>
+    Ast.App.positional(
+      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('take')!),
+      Ast.tryNumberToEnso(index + 1, ast.module)!,
+    ),
+  )
+
 function createNode(params: any) {
   if (config.nodeType === VECTOR_NODE_TYPE) {
     config.createNodes({
-      content: getPattern(params.data[INDEX_FIELD_NAME]),
+      content: getVectorPattern(params.data[INDEX_FIELD_NAME]),
       commit: true,
     })
   }
   if (config.nodeType === TABLE_NODE_TYPE) {
     config.createNodes({
-      content: getPattern(params.data[INDEX_FIELD_NAME]),
+      content: getTablePattern(params.data[INDEX_FIELD_NAME]),
       commit: true,
     })
   }
