@@ -1,9 +1,9 @@
 /** @file A styled horizontal button row. Does not have padding; does not have a background. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import FocusArea from '#/components/styled/FocusArea'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === ButtonRow ===

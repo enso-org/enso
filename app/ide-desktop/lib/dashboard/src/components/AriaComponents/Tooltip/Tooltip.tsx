@@ -1,8 +1,8 @@
 /** @file Displays the description of an element on hover or focus. */
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 import * as portal from '#/components/Portal'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as text from '../Text'
 

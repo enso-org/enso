@@ -3,11 +3,10 @@
  */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as aria from '#/components/aria'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as textProvider from './TextProvider'
 import * as visualTooltip from './useVisualTooltip'
@@ -33,6 +32,10 @@ export const TEXT_STYLE = twv.tv({
       success: 'text-share',
       disabled: 'text-primary/30',
       invert: 'text-white/80',
+    },
+    font: {
+      default: '',
+      naming: 'font-naming',
     },
     // we use custom padding for the text variants to make sure the text is aligned with the grid
     // leading is also adjusted to make sure the text is aligned with the grid
@@ -92,6 +95,7 @@ export const TEXT_STYLE = twv.tv({
   },
   defaultVariants: {
     variant: 'body',
+    font: 'default',
     weight: 'medium',
     transform: 'none',
     color: 'primary',
@@ -131,16 +135,17 @@ export const Text = React.forwardRef(function Text(
 ) {
   const {
     className,
-    variant = 'body',
-    italic = false,
-    weight = 'medium',
-    nowrap = false,
-    monospace = false,
-    transform = 'none',
+    variant,
+    font,
+    italic,
+    weight,
+    nowrap,
+    monospace,
+    transform,
     truncate,
     lineClamp = 1,
     children,
-    color = 'primary',
+    color,
     balance,
     elementType: ElementType = 'span',
     tooltip: tooltipElement = children,
@@ -155,6 +160,7 @@ export const Text = React.forwardRef(function Text(
 
   const textClasses = TEXT_STYLE({
     variant,
+    font,
     weight,
     transform,
     monospace,
