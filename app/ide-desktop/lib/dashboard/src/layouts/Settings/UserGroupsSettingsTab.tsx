@@ -4,9 +4,11 @@ import * as React from 'react'
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
+import * as billingHooks from '#/hooks/billing'
 import * as scrollHooks from '#/hooks/scrollHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -16,6 +18,7 @@ import UserGroupUserRow from '#/layouts/Settings/UserGroupUserRow'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import * as paywallComponents from '#/components/Paywall'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 import SettingsSection from '#/components/styled/settings/SettingsSection'
@@ -27,6 +30,8 @@ import type Backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
+import * as withPaywall from './withPaywall'
+
 // =============================
 // === UserGroupsSettingsTab ===
 // =============================
@@ -37,10 +42,11 @@ export interface UserGroupsSettingsTabProps {
 }
 
 /** Settings tab for viewing and editing organization members. */
-export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps) {
+function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps) {
   const { backend } = props
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const { user } = authProvider.useFullUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const users = backendHooks.useBackendListUsers(backend)
   const userGroups = backendHooks.useBackendListUserGroupsWithUsers(backend)
@@ -53,6 +59,12 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
     [users]
   )
   const isLoading = userGroups == null || users == null
+
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
+
+  const isUnderPaywall = isFeatureUnderPaywall('userGroupsFull')
+  const userGroupsLeft = isUnderPaywall ? 1 - (userGroups?.length ?? 0) : Infinity
+  const shouldDisplayPaywall = isUnderPaywall ? userGroupsLeft <= 0 : false
 
   const { onScroll: onUserGroupsTableScroll, shadowClassName } =
     scrollHooks.useStickyTableHeaderOnScroll(rootRef, bodyRef, true)
@@ -126,20 +138,41 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
       <div className="flex h-3/5 w-settings-main-section max-w-full flex-col gap-settings-subsection lg:h-[unset] lg:min-w">
         <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
           <HorizontalMenuBar>
-            <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="px-new-project-button-x flex h-row items-center rounded-full bg-frame"
-              onPress={event => {
-                const rect = event.target.getBoundingClientRect()
-                const position = { pageX: rect.left, pageY: rect.top }
-                setModal(<NewUserGroupModal backend={backend} event={position} />)
-              }}
-            >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('newUserGroup')}
-              </aria.Text>
-            </ariaComponents.Button>
+            <div className="flex items-center gap-2">
+              {shouldDisplayPaywall && (
+                <paywallComponents.PaywallDialogButton
+                  feature="userGroupsFull"
+                  variant="bar"
+                  size="medium"
+                  rounded="full"
+                  iconPosition="end"
+                  tooltip={getText('userGroupsPaywallMessage')}
+                >
+                  {getText('newUserGroup')}
+                </paywallComponents.PaywallDialogButton>
+              )}
+              {!shouldDisplayPaywall && (
+                <ariaComponents.Button
+                  size="medium"
+                  variant="bar"
+                  onPress={event => {
+                    const rect = event.target.getBoundingClientRect()
+                    const position = { pageX: rect.left, pageY: rect.top }
+                    setModal(<NewUserGroupModal backend={backend} event={position} />)
+                  }}
+                >
+                  {getText('newUserGroup')}
+                </ariaComponents.Button>
+              )}
+
+              {isUnderPaywall && (
+                <span className="text-xs">
+                  {userGroupsLeft <= 0
+                    ? getText('userGroupsPaywallMessage')
+                    : getText('userGroupsLimitMessage', userGroupsLeft)}
+                </span>
+              )}
+            </div>
           </HorizontalMenuBar>
           <div
             ref={rootRef}
@@ -207,9 +240,12 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
           </div>
         </SettingsSection>
       </div>
+
       <SettingsSection noFocusArea title={getText('users')} className="h-2/5 lg:h-[unset]">
         <MembersTable draggable populateWithSelf backend={backend} />
       </SettingsSection>
     </div>
   )
 }
+
+export default withPaywall.withPaywall(UserGroupsSettingsTab, { feature: 'userGroups' })

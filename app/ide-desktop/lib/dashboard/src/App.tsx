@@ -77,9 +77,9 @@ import AboutModal from '#/modals/AboutModal'
 import * as setOrganizationNameModal from '#/modals/SetOrganizationNameModal'
 import * as termsOfServiceModal from '#/modals/TermsOfServiceModal'
 
-import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
+import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
@@ -223,7 +223,7 @@ function AppRouter(props: AppRouterProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { setModal } = modalProvider.useSetModal()
   const navigator2D = navigator2DProvider.useNavigator2D()
-  const [remoteBackend, setRemoteBackend] = React.useState<Backend | null>(null)
+  const [remoteBackend, setRemoteBackend] = React.useState<RemoteBackend | null>(null)
   const [localBackend] = React.useState(() =>
     projectManagerUrl != null && projectManagerRootDirectory != null
       ? new LocalBackend(projectManagerUrl, projectManagerRootDirectory)
@@ -456,6 +456,11 @@ function AppRouter(props: AppRouterProps) {
   )
 
   let result = routes
+
+  if (detect.IS_DEV_MODE) {
+    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
+  }
+
   result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = (
     <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
@@ -489,9 +494,6 @@ function AppRouter(props: AppRouterProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
-  if (detect.IS_DEV_MODE) {
-    result = <paywall.PaywallDevtools>{result}</paywall.PaywallDevtools>
-  }
   result = (
     <rootComponent.Root navigate={navigate} portalRoot={portalRoot}>
       {result}

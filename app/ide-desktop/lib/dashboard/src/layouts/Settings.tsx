@@ -52,6 +52,7 @@ export default function Settings(props: SettingsProps) {
   const isUserInOrganization = organization != null
 
   let content: React.JSX.Element | null
+
   switch (settingsTab) {
     case SettingsTab.account: {
       content = backend == null ? null : <AccountSettingsTab backend={backend} />
@@ -62,7 +63,7 @@ export default function Settings(props: SettingsProps) {
       break
     }
     case SettingsTab.members: {
-      content = backend == null ? null : <MembersSettingsTab backend={backend} />
+      content = <MembersSettingsTab />
       break
     }
     case SettingsTab.userGroups: {

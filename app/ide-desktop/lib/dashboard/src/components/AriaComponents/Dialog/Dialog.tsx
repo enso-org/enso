@@ -204,6 +204,7 @@ export function Dialog(props: DialogProps) {
                           slot="title"
                           level={2}
                           className={dialogSlots.heading()}
+                          weight="semibold"
                         >
                           {title}
                         </ariaComponents.Text.Heading>

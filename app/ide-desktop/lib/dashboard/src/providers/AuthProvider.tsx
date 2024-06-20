@@ -148,7 +148,7 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
-  readonly setRemoteBackend: (backend: Backend | null) => void
+  readonly setRemoteBackend: (backend: RemoteBackend | null) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
@@ -842,7 +842,6 @@ export function useNonPartialUserSession() {
 
 /** A React context hook returning the user session for a user that may or may not be logged in. */
 export function useUserSession() {
-  // eslint-disable-next-line no-restricted-syntax
   return router.useOutletContext<UserSession | undefined>()
 }
 
