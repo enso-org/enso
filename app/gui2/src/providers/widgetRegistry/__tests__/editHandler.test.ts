@@ -1,17 +1,19 @@
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
+import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
 import { assert } from 'shared/util/assert'
 import { expect, test, vi, type Mock } from 'vitest'
-import { WidgetEditHandler, useGetPortEdit, type WidgetId } from '../editHandler'
+import { proxyRefs } from 'vue'
+import { WidgetEditHandler, type WidgetId } from '../editHandler'
 
 // If widget's name is a prefix of another widget's name, then it is its ancestor.
 // The ancestor with longest name is a direct parent.
 function editHandlerTree(
   widgets: string[],
   interactionHandler: InteractionHandler,
-  createInteraction: (name: WidgetId) => Record<string, Mock>,
-  widgetTree: { currentEdit: WidgetEditHandler | undefined },
+  createInteraction: (name: PortId) => Record<string, Mock>,
+  widgetTree: CurrentEdit,
 ): Map<string, { handler: WidgetEditHandler; interaction: Record<string, Mock> }> {
   const handlers = new Map()
   for (const id of widgets) {
@@ -19,16 +21,14 @@ function editHandlerTree(
     for (const [otherId] of handlers) {
       if (id.startsWith(otherId) && otherId.length > (parent?.length ?? -1)) parent = otherId
     }
-    const widgetId = id as WidgetId
-    const portId = `Port${id.slice(0, 1)}` as PortId
-    const interaction = createInteraction(widgetId)
+    const portId = id as PortId
+    const interaction = createInteraction(portId)
     const handler = new WidgetEditHandler(
-      widgetId,
+      portId,
       interaction,
       parent ? handlers.get(parent)?.handler : undefined,
-      useGetPortEdit(portId, undefined, interactionHandler).getPortEdit,
-      portId,
       widgetTree,
+      interactionHandler,
     )
     handlers.set(id, { handler, interaction })
   }
@@ -47,7 +47,7 @@ test.each`
   'Edit interaction propagation starting from $edited in $widgets tree',
   ({ widgets, edited, expectedPropagation }) => {
     const interactionHandler = new InteractionHandler()
-    const widgetTree = { currentEdit: undefined }
+    const widgetTree = proxyRefs(useCurrentEdit())
     const handlers = editHandlerTree(
       widgets,
       interactionHandler,
@@ -129,7 +129,7 @@ test.each`
     const event = new MouseEvent('pointerdown') as PointerEvent
     const navigator = {} as GraphNavigator
     const interactionHandler = new InteractionHandler()
-    const widgetTree = { currentEdit: undefined }
+    const widgetTree = proxyRefs(useCurrentEdit())
 
     const propagatingHandlersSet = new Set(propagatingHandlers)
     const nonPropagatingHandlersSet = new Set(nonPropagatingHandlers)

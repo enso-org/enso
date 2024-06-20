@@ -266,7 +266,10 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
   cancel: () => {},
   end: () => {},
   pointerdown: (e, _) => {
-    if (targetIsOutside(e, unrefElement(dropdownElement))) {
+    if (
+      targetIsOutside(e, unrefElement(dropdownElement)) &&
+      targetIsOutside(e, unrefElement(widgetRoot))
+    ) {
       dropDownInteraction.end()
       if (editedWidget.value)
         props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
@@ -290,10 +293,13 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     dropDownInteraction.start()
     return true
   },
+  childEnded: () => {
+    if (!isMulti.value) dropDownInteraction.end()
+  },
 })
 
 function toggleDropdownWidget() {
-  if (!dropDownInteraction.active.value) dropDownInteraction.start()
+  if (!dropDownInteraction.isActive()) dropDownInteraction.start()
   else dropDownInteraction.cancel()
 }
 
@@ -430,7 +436,7 @@ declare module '@/providers/widgetRegistry' {
     <Teleport v-if="tree.nodeElement" :to="tree.nodeElement">
       <SizeTransition height :duration="100">
         <DropdownWidget
-          v-if="dropDownInteraction.active.value"
+          v-if="dropDownInteraction.isActive()"
           ref="dropdownElement"
           :style="floatingStyles"
           :color="'var(--node-color-primary)'"

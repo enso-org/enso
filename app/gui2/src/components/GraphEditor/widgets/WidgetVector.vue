@@ -2,10 +2,11 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
+import type { PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { WidgetEditHandler, type WidgetId } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
-import { computed, shallowRef, triggerRef, watchEffect } from 'vue'
+import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
@@ -43,59 +44,52 @@ const value = computed({
 
 const navigator = injectGraphNavigator(true)
 
-function useChildEditForwarding(widgetId: string) {
-  const editHandler = WidgetEditHandler.New(widgetId, props.input, {
-    cancel: () => (itemEdits.value = new Map()),
-    end: () => (itemEdits.value = new Map()),
-  })
-
-  const itemEdits = shallowRef(new Map<Ast.AstId, Ast.Owned | string>())
-  const updateEdits = (f: (itemEdits: Map<Ast.AstId, Ast.Owned | string>) => void) => {
-    f(itemEdits.value)
-    triggerRef(itemEdits)
-  }
-
-  function childEditHandler(widgetInput: WidgetInput, astId: Ast.AstId) {
-    return editHandler.child(`${widgetId}.Child`, widgetInput, {
-      cancel: () => updateEdits((itemEdits) => itemEdits.delete(astId)),
-      end: () => updateEdits((itemEdits) => itemEdits.delete(astId)),
-      edit: (_origin, value) => {
-        updateEdits((itemEdits) => itemEdits.set(astId, value))
-        return false
-      },
-    })
-  }
-
+function useChildEditForwarding(input: WatchSource<Ast.Ast | unknown>) {
   let editStarted = false
+  const childEdit = shallowRef<{ astId: Ast.AstId; editedValue: Ast.Owned | string }>()
+
   watchEffect(() => {
-    const inputValue = props.input.value
+    if (!editStarted && !childEdit.value) return
+    const inputValue = toValue(input)
     if (!(inputValue instanceof Ast.Ast)) return
-    if (!editStarted && itemEdits.value.size === 0) return
     const editedAst = Ast.copyIntoNewModule(inputValue)
-    const module = editedAst.module
-    for (const [id, replacement] of itemEdits.value) {
-      const ast = module.tryGet(id)
-      if (!ast) {
-        continue
+    if (childEdit.value) {
+      const module = editedAst.module
+      const ast = module.tryGet(childEdit.value.astId)
+      if (ast) {
+        const replacement = childEdit.value.editedValue
+        ast.replace(typeof replacement === 'string' ? Ast.parse(replacement, module) : replacement)
       }
-      ast.replace(typeof replacement === 'string' ? Ast.parse(replacement, module) : replacement)
     }
     editHandler.edit(editedAst)
     editStarted = true
   })
 
-  return { childEditHandler }
+  return {
+    childEnded: () => (childEdit.value = undefined),
+    edit: (origin: PortId, value: Ast.Owned | string) => {
+      // The ID is used to locate a subtree; if the port isn't identified by an AstId, the lookup will simply fail.
+      const astId = origin as Ast.AstId
+      childEdit.value = { astId, editedValue: value }
+      return false
+    },
+  }
 }
+const { childEnded, edit } = useChildEditForwarding(toRef(props.input, 'value'))
 
-const { childEditHandler } = useChildEditForwarding('WidgetVector')
+const editHandler = WidgetEditHandler.New('WidgetVector', props.input, {
+  cancel: () => {},
+  end: () => {},
+  childEnded,
+  edit,
+})
 
 function itemInput(ast: Ast.Ast): WidgetInput {
-  const baseInput = WidgetInput.FromAst(ast)
   return {
-    ...baseInput,
+    ...WidgetInput.FromAst(ast),
     dynamicConfig: itemConfig.value,
     forcePort: true,
-    editHandler: childEditHandler(baseInput, ast.id),
+    editHandler,
   }
 }
 </script>
