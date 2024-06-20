@@ -195,7 +195,7 @@ export default class DrivePageActions extends BaseActions {
   /** Toggle the Asset Panel open or closed. */
   toggleAssetPanel() {
     return this.step('Toggle asset panel', page =>
-      page.getByAltText('Asset Panel').locator('visible=true').click()
+      page.getByLabel('Asset Panel').locator('visible=true').click()
     )
   }
 

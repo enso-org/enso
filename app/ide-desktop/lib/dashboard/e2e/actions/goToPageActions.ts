@@ -26,17 +26,17 @@ export function goToPageActions(
 ): GoToPageActions {
   return {
     drive: () =>
-      step('Go to "Drive" page', page =>
+      step('Go to "Data Catalog" page', page =>
         page
           .getByRole('button')
-          .filter({ has: page.getByAltText('Catalog') })
+          .filter({ has: page.getByText('Data Catalog') })
           .click()
       ).into(DrivePageActions),
     editor: () =>
-      step('Go to "Graph Editor" page', page =>
+      step('Go to "Spatial Analysis" page', page =>
         page
           .getByRole('button')
-          .filter({ has: page.getByAltText('Graph Editor') })
+          .filter({ has: page.getByText('Spatial Analysis') })
           .click()
       ).into(EditorPageActions),
     settings: () =>

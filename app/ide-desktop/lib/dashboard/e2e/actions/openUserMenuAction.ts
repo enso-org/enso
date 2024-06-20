@@ -11,6 +11,6 @@ export function openUserMenuAction<T extends BaseActions>(
   step: (name: string, callback: baseActions.PageCallback) => T
 ) {
   return step('Open user menu', page =>
-    page.getByAltText('Open user menu').locator('visible=true').click()
+    page.getByAltText('User Settings').locator('visible=true').click()
   )
 }
