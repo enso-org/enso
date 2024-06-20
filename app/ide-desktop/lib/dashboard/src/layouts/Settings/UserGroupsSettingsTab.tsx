@@ -127,18 +127,14 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
         <SettingsSection noFocusArea title={getText('userGroups')} className="overflow-hidden">
           <HorizontalMenuBar>
             <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="px-new-project-button-x flex h-row items-center rounded-full bg-frame"
+              variant="bar"
               onPress={event => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }
                 setModal(<NewUserGroupModal backend={backend} event={position} />)
               }}
             >
-              <aria.Text className="text whitespace-nowrap font-semibold">
-                {getText('newUserGroup')}
-              </aria.Text>
+              {getText('newUserGroup')}
             </ariaComponents.Button>
           </HorizontalMenuBar>
           <div
