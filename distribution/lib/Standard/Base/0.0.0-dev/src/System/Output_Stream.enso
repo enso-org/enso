@@ -111,7 +111,9 @@ type Output_Stream
        Arguments:
        - f: Applies a function over the internal java stream.
     with_java_stream : (Java_Output_Stream -> Any) -> Any
-    with_java_stream self f = self.stream_resource . with f
+    with_java_stream self f = self.stream_resource . with raw_stream->
+         java_stream = Stream_Utils.asOutputStream raw_stream
+         f java_stream
 
     ## PRIVATE
        ADVANCED
