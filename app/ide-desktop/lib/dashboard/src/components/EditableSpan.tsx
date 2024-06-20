@@ -128,7 +128,7 @@ export default function EditableSpan(props: EditableSpanProps) {
           {isSubmittable && (
             <ariaComponents.Button
               size="icon"
-              variant="outline"
+              variant="ghost"
               icon={TickIcon}
               aria-label={getText('confirmEdit')}
               onPress={eventModule.submitForm}
@@ -136,7 +136,7 @@ export default function EditableSpan(props: EditableSpanProps) {
           )}
           <ariaComponents.Button
             size="icon"
-            variant="outline"
+            variant="ghost"
             icon={CrossIcon}
             aria-label={getText('cancelEdit')}
             onPress={() => {

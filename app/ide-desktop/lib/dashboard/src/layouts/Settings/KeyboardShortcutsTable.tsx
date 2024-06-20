@@ -107,9 +107,10 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                 >
                                   <KeyboardShortcut shortcut={binding} />
                                   <ariaComponents.Button
-                                    variant="icon"
-                                    size="xsmall"
+                                    variant="ghost"
+                                    size="icon"
                                     aria-label={getText('removeShortcut')}
+                                    tooltipPlacement="top left"
                                     icon={CrossIcon}
                                     onPress={() => {
                                       inputBindings.delete(action, binding)
@@ -121,8 +122,9 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                               <div className="ml-auto flex items-center gap-2">
                                 <ariaComponents.Button
                                   variant="ghost"
-                                  size="xsmall"
+                                  size="icon"
                                   aria-label={getText('addShortcut')}
+                                  tooltipPlacement="top left"
                                   icon={Plus2Icon}
                                   onPress={() => {
                                     setModal(
@@ -139,8 +141,9 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                 />
                                 <ariaComponents.Button
                                   variant="ghost"
-                                  size="xsmall"
+                                  size="icon"
                                   aria-label={getText('resetShortcut')}
+                                  tooltipPlacement="top left"
                                   icon={ReloadIcon}
                                   onPress={() => {
                                     inputBindings.reset(action)
