@@ -102,14 +102,14 @@ class GlobalNamesTest extends CompilerTest {
       .map(expr => expr.asInstanceOf[Expression.Binding].expression)
 
     "not resolve uppercase method names to applications with no arguments" in {
-      val expr = bodyExprs(1)
-      expr shouldBe an[errors.Resolution]
+      val x2Expr = bodyExprs(1)
+      x2Expr shouldBe an[errors.Resolution]
     }
 
     "resolve method names to applications" in {
-      val expr = bodyExprs(2)
-      expr shouldBe an[Application.Prefix]
-      val app = expr.asInstanceOf[Application.Prefix]
+      val x3Expr = bodyExprs(2)
+      x3Expr shouldBe an[Application.Prefix]
+      val app = x3Expr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "constant"
       app.arguments.length shouldEqual 1
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
@@ -118,16 +118,16 @@ class GlobalNamesTest extends CompilerTest {
     }
 
     "not resolve uppercase method names to applications with arguments" in {
-      val expr = bodyExprs(3)
-      expr shouldBe an[Application.Prefix]
-      val app = expr.asInstanceOf[Application.Prefix]
+      val x4Expr = bodyExprs(3)
+      x4Expr shouldBe an[Application.Prefix]
+      val app = x4Expr.asInstanceOf[Application.Prefix]
       app.function shouldBe an[errors.Resolution]
     }
 
     "resolve method names in applications by adding the self argument" in {
-      val expr = bodyExprs(4)
-      expr shouldBe an[Application.Prefix]
-      val app = expr.asInstanceOf[Application.Prefix]
+      val x5Expr = bodyExprs(4)
+      x5Expr shouldBe an[Application.Prefix]
+      val app = x5Expr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 2
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
@@ -136,9 +136,9 @@ class GlobalNamesTest extends CompilerTest {
     }
 
     "resolve method names in partial applications by adding the self argument" in {
-      val expr = bodyExprs(5)
-      expr shouldBe an[Application.Prefix]
-      val app = expr.asInstanceOf[Application.Prefix]
+      val yExpr = bodyExprs(5)
+      yExpr shouldBe an[Application.Prefix]
+      val app = yExpr.asInstanceOf[Application.Prefix]
       app.function.asInstanceOf[Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 1
       app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
