@@ -51,10 +51,18 @@
   "name":"[Lscala.Tuple2;"
 },
 {
+  "name":"[Lsun.security.pkcs.SignerInfo;"
+},
+{
   "name":"[S"
 },
 {
   "name":"[Z"
+},
+{
+  "name":"ch.qos.logback.classic.encoder.PatternLayoutEncoder",
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
   "name":"ch.qos.logback.classic.pattern.DateConverter",
@@ -81,12 +89,41 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"ch.qos.logback.classic.pattern.ThreadConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.ConsoleAppender",
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.OutputStreamAppender",
+  "methods":[{"name":"setEncoder","parameterTypes":["ch.qos.logback.core.encoder.Encoder"] }]
+},
+{
+  "name":"ch.qos.logback.core.encoder.Encoder",
+  "methods":[{"name":"valueOf","parameterTypes":["java.lang.String"] }]
+},
+{
+  "name":"ch.qos.logback.core.encoder.LayoutWrappingEncoder",
+  "methods":[{"name":"setParent","parameterTypes":["ch.qos.logback.core.spi.ContextAware"] }]
+},
+{
+  "name":"ch.qos.logback.core.pattern.PatternLayoutEncoderBase",
+  "methods":[{"name":"setPattern","parameterTypes":["java.lang.String"] }]
+},
+{
   "name":"ch.qos.logback.core.rolling.helper.DateTokenConverter",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
   "name":"ch.qos.logback.core.rolling.helper.IntegerTokenConverter",
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.spi.ContextAware",
+  "methods":[{"name":"valueOf","parameterTypes":["java.lang.String"] }]
 },
 {
   "name":"com.fasterxml.jackson.core.JsonProcessingException"
@@ -180,6 +217,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"com.sun.crypto.provider.HmacCore$HmacSHA256",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"com.sun.crypto.provider.TlsKeyMaterialGenerator",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
@@ -244,11 +285,27 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"com.univocity.parsers.common.TextParsingException"
+},
+{
+  "name":"java.beans.Introspector"
+},
+{
+  "name":"java.io.BufferedInputStream"
+},
+{
   "name":"java.io.ByteArrayInputStream"
+},
+{
+  "name":"java.io.ByteArrayOutputStream"
 },
 {
   "name":"java.io.File"
@@ -272,13 +329,25 @@
   "name":"java.io.OutputStream"
 },
 {
+  "name":"java.io.PrintWriter"
+},
+{
+  "name":"java.io.Reader"
+},
+{
   "name":"java.io.Serializable"
 },
 {
   "name":"java.io.StringReader"
 },
 {
+  "name":"java.io.StringWriter"
+},
+{
   "name":"java.io.UncheckedIOException"
+},
+{
+  "name":"java.io.Writer"
 },
 {
   "name":"java.lang.ArithmeticException"
@@ -401,6 +470,9 @@
 {
   "name":"java.lang.Throwable",
   "methods":[{"name":"addSuppressed","parameterTypes":["java.lang.Throwable"] }]
+},
+{
+  "name":"java.lang.UnsupportedOperationException"
 },
 {
   "name":"java.lang.Void",
@@ -528,13 +600,37 @@
   "name":"java.net.http.HttpClient"
 },
 {
+  "name":"java.net.http.HttpClient$Builder"
+},
+{
+  "name":"java.net.http.HttpClient$Redirect"
+},
+{
+  "name":"java.net.http.HttpClient.Builder"
+},
+{
+  "name":"java.net.http.HttpClient.Redirect"
+},
+{
   "name":"java.net.http.HttpRequest"
 },
 {
   "name":"java.net.http.HttpRequest$BodyPublisher"
 },
 {
+  "name":"java.net.http.HttpRequest$BodyPublishers"
+},
+{
+  "name":"java.net.http.HttpRequest$Builder"
+},
+{
   "name":"java.net.http.HttpRequest.BodyPublisher"
+},
+{
+  "name":"java.net.http.HttpRequest.BodyPublishers"
+},
+{
+  "name":"java.net.http.HttpRequest.Builder"
 },
 {
   "name":"java.nio.Buffer"
@@ -585,6 +681,9 @@
   "name":"java.nio.file.attribute.PosixFilePermission"
 },
 {
+  "name":"java.nio.file.attribute.PosixFilePermissions"
+},
+{
   "name":"java.security.AlgorithmParametersSpi"
 },
 {
@@ -624,10 +723,37 @@
   "name":"java.security.spec.DSAParameterSpec"
 },
 {
+  "name":"java.sql.Connection"
+},
+{
+  "name":"java.sql.DatabaseMetaData"
+},
+{
   "name":"java.sql.Date"
 },
 {
+  "name":"java.sql.JDBCType"
+},
+{
+  "name":"java.sql.PreparedStatement"
+},
+{
+  "name":"java.sql.ResultSet"
+},
+{
+  "name":"java.sql.ResultSetMetaData"
+},
+{
+  "name":"java.sql.SQLException"
+},
+{
+  "name":"java.sql.SQLTimeoutException"
+},
+{
   "name":"java.sql.Timestamp"
+},
+{
+  "name":"java.sql.Types"
 },
 {
   "name":"java.text.DecimalFormat"
@@ -711,6 +837,9 @@
   "name":"java.time.temporal.TemporalUnit"
 },
 {
+  "name":"java.time.temporal.UnsupportedTemporalTypeException"
+},
+{
   "name":"java.util.AbstractList"
 },
 {
@@ -720,7 +849,25 @@
   "name":"java.util.Base64"
 },
 {
+  "name":"java.util.Base64$Decoder"
+},
+{
+  "name":"java.util.Base64$Encoder"
+},
+{
+  "name":"java.util.Base64.Decoder"
+},
+{
+  "name":"java.util.Base64.Encoder"
+},
+{
   "name":"java.util.Date"
+},
+{
+  "name":"java.util.HashSet"
+},
+{
+  "name":"java.util.Iterator"
 },
 {
   "name":"java.util.List"
@@ -745,6 +892,9 @@
 },
 {
   "name":"java.util.Random"
+},
+{
+  "name":"java.util.Set"
 },
 {
   "name":"java.util.UUID"
@@ -782,6 +932,9 @@
 {
   "name":"java.util.logging.LoggingMXBean",
   "queryAllPublicMethods":true
+},
+{
+  "name":"java.util.regex.Pattern"
 },
 {
   "name":"javax.management.MBeanOperationInfo",
@@ -833,6 +986,9 @@
 },
 {
   "name":"javax.xml.parsers.DocumentBuilderFactory"
+},
+{
+  "name":"javax.xml.xpath.XPath"
 },
 {
   "name":"javax.xml.xpath.XPathConstants"
@@ -923,6 +1079,15 @@
 {
   "name":"org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.poi.UnsupportedFileFormatException"
+},
+{
+  "name":"org.apache.poi.poifs.filesystem.NotOLE2FileException"
+},
+{
+  "name":"org.apache.poi.ss.usermodel.Workbook"
 },
 {
   "name":"org.bouncycastle.jcajce.provider.asymmetric.COMPOSITE$Mappings",
@@ -1389,16 +1554,52 @@
   "name":"org.enso.base.Regex_Utils"
 },
 {
+  "name":"org.enso.base.Stream_Utils"
+},
+{
+  "name":"org.enso.base.Stream_Utils$InputStreamLike"
+},
+{
+  "name":"org.enso.base.Stream_Utils$OutputStreamLike"
+},
+{
+  "name":"org.enso.base.Stream_Utils.InputStreamLike"
+},
+{
+  "name":"org.enso.base.Stream_Utils.OutputStreamLike"
+},
+{
   "name":"org.enso.base.Text_Utils"
 },
 {
   "name":"org.enso.base.Time_Utils"
 },
 {
+  "name":"org.enso.base.Time_Utils$AdjustOp"
+},
+{
+  "name":"org.enso.base.Time_Utils.AdjustOp"
+},
+{
+  "name":"org.enso.base.WithProblems"
+},
+{
   "name":"org.enso.base.XML_Utils"
 },
 {
   "name":"org.enso.base.arrays.LongArrayList"
+},
+{
+  "name":"org.enso.base.encoding.DecodingProblem"
+},
+{
+  "name":"org.enso.base.encoding.DecodingProblemAggregator"
+},
+{
+  "name":"org.enso.base.encoding.Encoding_Utils"
+},
+{
+  "name":"org.enso.base.encoding.NewlineDetector"
 },
 {
   "name":"org.enso.base.encoding.ReportingStreamDecoder"
@@ -1434,10 +1635,40 @@
   "name":"org.enso.base.enso_cloud.HideableValue"
 },
 {
+  "name":"org.enso.base.enso_cloud.HideableValue$Base64EncodeValue"
+},
+{
+  "name":"org.enso.base.enso_cloud.HideableValue$ConcatValues"
+},
+{
+  "name":"org.enso.base.enso_cloud.HideableValue$PlainValue"
+},
+{
+  "name":"org.enso.base.enso_cloud.HideableValue$SecretValue"
+},
+{
+  "name":"org.enso.base.enso_cloud.HideableValue.Base64EncodeValue"
+},
+{
+  "name":"org.enso.base.enso_cloud.HideableValue.ConcatValues"
+},
+{
+  "name":"org.enso.base.enso_cloud.HideableValue.PlainValue"
+},
+{
+  "name":"org.enso.base.enso_cloud.HideableValue.SecretValue"
+},
+{
+  "name":"org.enso.base.enso_cloud.audit.AuditLog"
+},
+{
   "name":"org.enso.base.file_format.FileFormatSPI"
 },
 {
   "name":"org.enso.base.file_system.FileSystemSPI"
+},
+{
+  "name":"org.enso.base.file_system.File_Utils"
 },
 {
   "name":"org.enso.base.net.URITransformer"
@@ -1458,6 +1689,12 @@
   "name":"org.enso.base.numeric.Decimal_Utils"
 },
 {
+  "name":"org.enso.base.polyglot.NumericConverter"
+},
+{
+  "name":"org.enso.base.polyglot.WrappedDataflowError"
+},
+{
   "name":"org.enso.base.random.RandomInstanceHolder"
 },
 {
@@ -1470,10 +1707,19 @@
   "name":"org.enso.base.statistics.FitError"
 },
 {
+  "name":"org.enso.base.statistics.LinearModel"
+},
+{
   "name":"org.enso.base.statistics.Moments"
 },
 {
   "name":"org.enso.base.statistics.Rank"
+},
+{
+  "name":"org.enso.base.statistics.Rank$Method"
+},
+{
+  "name":"org.enso.base.statistics.Rank.Method"
 },
 {
   "name":"org.enso.base.statistics.Regression"
@@ -1485,16 +1731,31 @@
   "name":"org.enso.base.text.CaseFoldedString"
 },
 {
+  "name":"org.enso.base.text.GraphemeSpan"
+},
+{
   "name":"org.enso.base.text.Replacer_Cache"
 },
 {
+  "name":"org.enso.base.text.ResultWithWarnings"
+},
+{
   "name":"org.enso.base.text.TextFoldingStrategy"
+},
+{
+  "name":"org.enso.base.text.Utf16Span"
 },
 {
   "name":"org.enso.base.time.CustomTemporalUnits"
 },
 {
   "name":"org.enso.base.time.Date_Period_Utils"
+},
+{
+  "name":"org.enso.base.time.Date_Time_Utils"
+},
+{
+  "name":"org.enso.base.time.Date_Utils"
 },
 {
   "name":"org.enso.base.time.EnsoDateTimeFormatter"
@@ -1507,6 +1768,9 @@
 },
 {
   "name":"org.enso.base.time.FormatterKind"
+},
+{
+  "name":"org.enso.base.time.Time_Of_Day_Utils"
 },
 {
   "name":"org.enso.base_test_helpers.CallbackHelper"
@@ -1533,6 +1797,10 @@
 },
 {
   "name":"org.enso.compiler.core.ir.IrPersistance$PersistIdentifiedLocation",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.core.ir.IrPersistance$PersistJavaListLazy",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
@@ -1756,6 +2024,14 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"org.enso.compiler.core.ir.PersistWarning_NotInvokable",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.core.ir.PersistWarning_TypeMismatch",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"org.enso.compiler.core.ir.PersistWarning_WrongBuiltinMethod",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
@@ -1908,6 +2184,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"org.enso.compiler.pass.analyse.PersistTypeInference",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"org.enso.compiler.pass.analyse.PersistTypeNames$",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
@@ -1918,6 +2198,61 @@
 {
   "name":"org.enso.compiler.pass.analyse.PersistTypeSignatures_Signature",
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistAtomTypeInterfaceFromBindingsMap",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistInferredType",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistQualifiedName",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistTypeRepresentation_ArrowType",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistTypeRepresentation_AtomType",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistTypeRepresentation_IntersectionType",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistTypeRepresentation_SumType",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistTypeRepresentation_TopType",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistTypeRepresentation_TypeObject",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.compiler.pass.analyse.types.PersistTypeRepresentation_UnresolvedSymbol",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.database.DatabaseConnectionDetailsSPI"
+},
+{
+  "name":"org.enso.database.JDBCProxy"
+},
+{
+  "name":"org.enso.database.JDBCUtils"
+},
+{
+  "name":"org.enso.database.dryrun.HiddenTableReferenceCounter"
+},
+{
+  "name":"org.enso.database.dryrun.OperationSynchronizer"
 },
 {
   "name":"org.enso.interpreter.caches.ImportExportCache$PersistBindingsMap",
@@ -1953,6 +2288,10 @@
 },
 {
   "name":"org.enso.interpreter.caches.PersistBindingsMap$SymbolRestriction$Union",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistBindingsMap_Argument",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
@@ -2008,7 +2347,55 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"org.enso.interpreter.caches.PersistLibraryName",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"org.enso.interpreter.caches.PersistQualifiedName",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_Argument",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_Constructor",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_Conversion",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_DefinedMethod",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_Function",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_Getter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_Local",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_Module",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestion_Type",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistSuggestionsCache_CachedSuggestions",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.enso.interpreter.caches.PersistUtils$PersistArrayList",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
@@ -2365,6 +2752,10 @@
 },
 {
   "name":"org.enso.interpreter.node.expression.builtin.error.GetAllArrayWarningMethodGen",
+  "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.GetAllVectorWarningMethodGen",
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
 },
 {
@@ -3056,6 +3447,10 @@
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
 },
 {
+  "name":"org.enso.interpreter.node.expression.builtin.resource.TakeManagedResourceMethodGen",
+  "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
+},
+{
   "name":"org.enso.interpreter.node.expression.builtin.resource.WithMethodGen",
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
 },
@@ -3191,6 +3586,405 @@
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
 },
 {
+  "name":"org.enso.table.aggregations.Aggregator"
+},
+{
+  "name":"org.enso.table.aggregations.Concatenate"
+},
+{
+  "name":"org.enso.table.aggregations.Count"
+},
+{
+  "name":"org.enso.table.aggregations.CountDistinct"
+},
+{
+  "name":"org.enso.table.aggregations.CountEmpty"
+},
+{
+  "name":"org.enso.table.aggregations.CountNothing"
+},
+{
+  "name":"org.enso.table.aggregations.First"
+},
+{
+  "name":"org.enso.table.aggregations.GroupBy"
+},
+{
+  "name":"org.enso.table.aggregations.Last"
+},
+{
+  "name":"org.enso.table.aggregations.Mean"
+},
+{
+  "name":"org.enso.table.aggregations.MinOrMax"
+},
+{
+  "name":"org.enso.table.aggregations.Mode"
+},
+{
+  "name":"org.enso.table.aggregations.Percentile"
+},
+{
+  "name":"org.enso.table.aggregations.ShortestOrLongest"
+},
+{
+  "name":"org.enso.table.aggregations.StandardDeviation"
+},
+{
+  "name":"org.enso.table.aggregations.Sum"
+},
+{
+  "name":"org.enso.table.data.column.builder.BigIntegerBuilder"
+},
+{
+  "name":"org.enso.table.data.column.builder.BoolBuilder"
+},
+{
+  "name":"org.enso.table.data.column.builder.Builder"
+},
+{
+  "name":"org.enso.table.data.column.builder.DateBuilder"
+},
+{
+  "name":"org.enso.table.data.column.builder.DateTimeBuilder"
+},
+{
+  "name":"org.enso.table.data.column.builder.InferredBuilder"
+},
+{
+  "name":"org.enso.table.data.column.builder.LossOfBigDecimalPrecision"
+},
+{
+  "name":"org.enso.table.data.column.builder.LossOfIntegerPrecision"
+},
+{
+  "name":"org.enso.table.data.column.builder.NumericBuilder"
+},
+{
+  "name":"org.enso.table.data.column.builder.StringBuilder"
+},
+{
+  "name":"org.enso.table.data.column.builder.TimeOfDayBuilder"
+},
+{
+  "name":"org.enso.table.data.column.operation.CountNothing"
+},
+{
+  "name":"org.enso.table.data.column.operation.UnaryOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.cast.CastProblemAggregator"
+},
+{
+  "name":"org.enso.table.data.column.operation.cast.ConversionFailure"
+},
+{
+  "name":"org.enso.table.data.column.operation.cast.ConversionFailureType"
+},
+{
+  "name":"org.enso.table.data.column.operation.map.MapOperationProblemAggregator"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.DatePartOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.IsEmptyOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.IsInfiniteOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.IsNaNOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.IsNothingOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.NotOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.TextLengthOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.TruncatedTimePartOperation"
+},
+{
+  "name":"org.enso.table.data.column.operation.unary.UnaryRoundOperation"
+},
+{
+  "name":"org.enso.table.data.column.storage.Storage"
+},
+{
+  "name":"org.enso.table.data.column.storage.numeric.LongRangeStorage"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.AnyObjectType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.BigDecimalType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.BigIntegerType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.Bits"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.BooleanType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.DateTimeType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.DateType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.FloatType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.IntegerType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.StorageType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.TextType"
+},
+{
+  "name":"org.enso.table.data.column.storage.type.TimeOfDayType"
+},
+{
+  "name":"org.enso.table.data.index.MultiValueIndex"
+},
+{
+  "name":"org.enso.table.data.mask.OrderMask"
+},
+{
+  "name":"org.enso.table.data.table.Column"
+},
+{
+  "name":"org.enso.table.data.table.Table"
+},
+{
+  "name":"org.enso.table.data.table.TableToXml"
+},
+{
+  "name":"org.enso.table.data.table.join.JoinKind"
+},
+{
+  "name":"org.enso.table.data.table.join.conditions.Between"
+},
+{
+  "name":"org.enso.table.data.table.join.conditions.Equals"
+},
+{
+  "name":"org.enso.table.data.table.join.conditions.EqualsIgnoreCase"
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupColumnDescription"
+},
+{
+  "name":"org.enso.table.data.table.join.lookup.LookupJoin"
+},
+{
+  "name":"org.enso.table.data.table.problems.ArithmeticError"
+},
+{
+  "name":"org.enso.table.data.table.problems.ArithmeticOverflow"
+},
+{
+  "name":"org.enso.table.data.table.problems.FloatingPointGrouping"
+},
+{
+  "name":"org.enso.table.data.table.problems.IgnoredNaN"
+},
+{
+  "name":"org.enso.table.data.table.problems.IgnoredNothing"
+},
+{
+  "name":"org.enso.table.data.table.problems.IllegalArgumentError"
+},
+{
+  "name":"org.enso.table.data.table.problems.InvalidAggregation"
+},
+{
+  "name":"org.enso.table.data.table.problems.UnquotedCharactersInOutput"
+},
+{
+  "name":"org.enso.table.data.table.problems.UnquotedDelimiter"
+},
+{
+  "name":"org.enso.table.error.ColumnCountMismatchException"
+},
+{
+  "name":"org.enso.table.error.ColumnNameMismatchException"
+},
+{
+  "name":"org.enso.table.error.EmptyFileException"
+},
+{
+  "name":"org.enso.table.error.EmptySheetException"
+},
+{
+  "name":"org.enso.table.error.ExistingDataException"
+},
+{
+  "name":"org.enso.table.error.InvalidColumnNameException"
+},
+{
+  "name":"org.enso.table.error.InvalidLocationException"
+},
+{
+  "name":"org.enso.table.error.NonUniqueLookupKey"
+},
+{
+  "name":"org.enso.table.error.NullValuesInKeyColumns"
+},
+{
+  "name":"org.enso.table.error.RangeExceededException"
+},
+{
+  "name":"org.enso.table.error.TooManyColumnsException"
+},
+{
+  "name":"org.enso.table.error.UnmatchedRow"
+},
+{
+  "name":"org.enso.table.error.ValueTypeMismatchException"
+},
+{
+  "name":"org.enso.table.excel.ExcelConnectionPool"
+},
+{
+  "name":"org.enso.table.excel.ExcelFileFormat"
+},
+{
+  "name":"org.enso.table.excel.ExcelHeaders"
+},
+{
+  "name":"org.enso.table.excel.ExcelRange"
+},
+{
+  "name":"org.enso.table.excel.ReadOnlyExcelConnection"
+},
+{
+  "name":"org.enso.table.expressions.ExpressionVisitorImpl"
+},
+{
+  "name":"org.enso.table.formatting.AnyObjectFormatter"
+},
+{
+  "name":"org.enso.table.formatting.BooleanFormatter"
+},
+{
+  "name":"org.enso.table.formatting.DateFormatter"
+},
+{
+  "name":"org.enso.table.formatting.DateTimeFormatter"
+},
+{
+  "name":"org.enso.table.formatting.DecimalFormatter"
+},
+{
+  "name":"org.enso.table.formatting.IntegerFormatter"
+},
+{
+  "name":"org.enso.table.formatting.TextFormatter"
+},
+{
+  "name":"org.enso.table.formatting.TimeFormatter"
+},
+{
+  "name":"org.enso.table.operations.AddRowNumber"
+},
+{
+  "name":"org.enso.table.operations.AddRunning"
+},
+{
+  "name":"org.enso.table.operations.OrderBuilder"
+},
+{
+  "name":"org.enso.table.parsing.BooleanParser"
+},
+{
+  "name":"org.enso.table.parsing.DateParser"
+},
+{
+  "name":"org.enso.table.parsing.DateTimeParser"
+},
+{
+  "name":"org.enso.table.parsing.IdentityParser"
+},
+{
+  "name":"org.enso.table.parsing.NumberParser"
+},
+{
+  "name":"org.enso.table.parsing.TimeOfDayParser"
+},
+{
+  "name":"org.enso.table.parsing.TypeInferringParser"
+},
+{
+  "name":"org.enso.table.parsing.WhitespaceStrippingParser"
+},
+{
+  "name":"org.enso.table.parsing.problems.AdditionalInvalidRows"
+},
+{
+  "name":"org.enso.table.parsing.problems.InvalidFormat"
+},
+{
+  "name":"org.enso.table.parsing.problems.InvalidRow"
+},
+{
+  "name":"org.enso.table.parsing.problems.MismatchedQuote"
+},
+{
+  "name":"org.enso.table.parsing.problems.ParseProblemAggregator"
+},
+{
+  "name":"org.enso.table.problems.ProblemAggregator"
+},
+{
+  "name":"org.enso.table.read.DelimitedReader"
+},
+{
+  "name":"org.enso.table.read.ExcelReader"
+},
+{
+  "name":"org.enso.table.read.ParsingFailedException"
+},
+{
+  "name":"org.enso.table.read.QuoteStrippingParser"
+},
+{
+  "name":"org.enso.table.util.ColumnMapper"
+},
+{
+  "name":"org.enso.table.util.NameDeduplicator"
+},
+{
+  "name":"org.enso.table.util.problems.DuplicateNames"
+},
+{
+  "name":"org.enso.table.util.problems.InvalidNames"
+},
+{
+  "name":"org.enso.table.write.DelimitedWriter"
+},
+{
+  "name":"org.enso.table.write.ExcelWriter"
+},
+{
+  "name":"org.enso.table.write.ExistingDataMode"
+},
+{
+  "name":"org.enso.table.write.ExistingFileBehavior"
+},
+{
+  "name":"org.enso.table.write.WriteQuoteBehavior"
+},
+{
   "name":"org.graalvm.collections.Pair"
 },
 {
@@ -3225,10 +4019,22 @@
   "name":"org.openide.util.RequestProcessor"
 },
 {
+  "name":"org.sqlite.SQLiteErrorCode"
+},
+{
+  "name":"org.sqlite.SQLiteException"
+},
+{
+  "name":"org.w3c.dom.Attr"
+},
+{
   "name":"org.w3c.dom.Document"
 },
 {
   "name":"org.w3c.dom.Element"
+},
+{
+  "name":"org.w3c.dom.NamedNodeMap"
 },
 {
   "name":"org.w3c.dom.Node"
@@ -3389,6 +4195,9 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"sun.security.util.ObjectIdentifier"
+},
+{
   "name":"sun.security.x509.AuthorityInfoAccessExtension",
   "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
 },
@@ -3403,6 +4212,9 @@
 {
   "name":"sun.security.x509.CRLDistributionPointsExtension",
   "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.CertificateExtensions"
 },
 {
   "name":"sun.security.x509.CertificatePoliciesExtension",
