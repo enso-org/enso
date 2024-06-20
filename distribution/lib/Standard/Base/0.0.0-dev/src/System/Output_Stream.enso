@@ -14,10 +14,11 @@ from project.System.Input_Stream import close_stream
 
 polyglot java import java.io.ByteArrayOutputStream
 polyglot java import java.io.OutputStream as Java_Output_Stream
-polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import org.enso.base.encoding.Encoding_Utils
+
 polyglot java import org.enso.base.Stream_Utils
 polyglot java import org.enso.base.Stream_Utils.OutputStreamLike
+polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 
 ## PRIVATE
    An output stream, allowing for interactive writing of contents.

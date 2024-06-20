@@ -4,7 +4,15 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { setIfUndefined } from 'lib0/map'
 import type { AstId } from 'shared/ast'
-import { computed, effectScope, onScopeDispose, ref, watchEffect, type EffectScope } from 'vue'
+import {
+  computed,
+  effectScope,
+  onScopeDispose,
+  ref,
+  watch,
+  watchEffect,
+  type EffectScope,
+} from 'vue'
 
 const props = defineProps<{ nodeId: NodeId; forceVisible: boolean }>()
 
@@ -12,6 +20,7 @@ const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
   'update:hoverAnim': [progress: number]
+  'update:nodeHovered': [hovered: boolean]
 }>()
 
 const graph = useGraphStore()
@@ -47,6 +56,11 @@ const outputPorts = computed((): PortData[] => {
 const mouseOverOutput = ref<AstId>()
 
 const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
+watch(outputHovered, (newVal, oldVal) => {
+  if ((newVal != null) !== (oldVal != null)) {
+    emit('update:nodeHovered', newVal != null)
+  }
+})
 
 const anyPortDisconnected = computed(() => {
   for (const port of outputPortsSet.value) {

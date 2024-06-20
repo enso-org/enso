@@ -1,8 +1,6 @@
 /** @file A list of members in the organization. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -18,6 +16,8 @@ import * as aria from '#/components/aria'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ====================
 // === MembersTable ===
@@ -46,11 +46,14 @@ export default function MembersTable(props: MembersTableProps) {
     () => (user == null ? null : { isPlaceholder: false, ...user }),
     [user]
   )
+
+  const backendListUsers = backendHooks.useBackendListUsers(backend)
+
   const users = React.useMemo(
     () =>
-      backendHooks.useBackendListUsers(backend) ??
+      backendListUsers ??
       (populateWithSelf && userWithPlaceholder != null ? [userWithPlaceholder] : null),
-    [backend, populateWithSelf, userWithPlaceholder]
+    [backendListUsers, populateWithSelf, userWithPlaceholder]
   )
   const usersMap = React.useMemo(
     () => new Map((users ?? []).map(member => [member.userId, member])),

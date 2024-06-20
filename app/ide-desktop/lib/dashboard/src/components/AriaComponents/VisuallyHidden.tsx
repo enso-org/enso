@@ -5,7 +5,7 @@
  */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
+import * as twv from '#/utilities/tailwindVariants'
 
 /**
  * Props for the {@link VisuallyHidden} component.

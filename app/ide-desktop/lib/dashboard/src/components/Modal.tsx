@@ -1,11 +1,11 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
 import * as React from 'react'
 
-import * as tailwindVariants from 'tailwind-variants'
-
 import * as modalProvider from '#/providers/ModalProvider'
 
 import FocusRoot from '#/components/styled/FocusRoot'
+
+import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
