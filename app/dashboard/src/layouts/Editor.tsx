@@ -10,13 +10,6 @@ import * as backendProvider from '#/providers/BackendProvider'
 
 import type * as backendModule from '#/services/Backend'
 
-// =================
-// === Constants ===
-// =================
-
-/** The horizontal offset of the editor's top bar from the left edge of the window. */
-const TOP_BAR_X_OFFSET_PX = 96
-
 // ====================
 // === StringConfig ===
 // ====================

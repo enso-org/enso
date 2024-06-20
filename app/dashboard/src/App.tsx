@@ -68,7 +68,7 @@ import Dashboard from '#/pages/dashboard/Dashboard'
 import * as subscribe from '#/pages/subscribe/Subscribe'
 import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 
-import * as editor from '#/layouts/Editor'
+import type * as editor from '#/layouts/Editor'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
