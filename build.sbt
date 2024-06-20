@@ -3571,7 +3571,7 @@ ThisBuild / buildEngineDistributionNoIndex := {
 lazy val runEngineDistribution =
   inputKey[Unit]("Run or --debug the engine distribution with arguments")
 runEngineDistribution := {
-  buildEngineDistribution.value
+  buildEngineDistributionNoIndex.value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runEnginePackage(
     engineDistributionRoot.value,
