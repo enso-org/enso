@@ -93,7 +93,7 @@ export default function Settings(props: SettingsProps) {
   }, [noContent, setSettingsTab])
 
   return (
-    <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
+    <div className="mt-4 flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
       <aria.Heading level={1} className="flex h-heading px-heading-x text-xl font-bold">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />

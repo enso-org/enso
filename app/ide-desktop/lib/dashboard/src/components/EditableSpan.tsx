@@ -129,7 +129,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
             onPress={eventModule.submitForm}
           >
-            <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
+            <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-4" />
           </ariaComponents.Button>
         )}
         <FocusRing>
@@ -145,16 +145,16 @@ export default function EditableSpan(props: EditableSpanProps) {
               })
             }}
           >
-            <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
+            <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-4" />
           </ariaComponents.Button>
         </FocusRing>
       </form>
     )
   } else {
     return (
-      <aria.Text data-testid={props['data-testid']} className={className}>
+      <ariaComponents.Text data-testid={props['data-testid']} className={className}>
         {children}
-      </aria.Text>
+      </ariaComponents.Text>
     )
   }
 }

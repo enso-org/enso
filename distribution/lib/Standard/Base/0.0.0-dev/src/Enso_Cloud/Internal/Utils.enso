@@ -96,7 +96,7 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_B
         . catch Request_Error as_connection_error
     if response.is_error && (retries > 0) then http_request method url body additional_headers error_handlers (retries - 1) else
         if response.code.is_success then response else
-            is_unauthorized = (response.code == HTTP_Status_Code.unauthorized) || (response.code == HTTP_Status_Code.forbidden)
+            is_unauthorized = response.code == HTTP_Status_Code.unauthorized
             case is_unauthorized of
                 True -> if retries < 0 then Error.throw Enso_Cloud_Error.Unauthorized else
                     Authentication.refresh_access_token
@@ -110,7 +110,7 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_B
                     error_code = json_payload.get "code"
                     handler = error_code.if_not_nothing <| error_handlers.get error_code
                     case handler of
-                        Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error url response.code payload)
+                        Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error method url response.code payload)
                         _ : Function -> handler json_payload
 
 ## PRIVATE

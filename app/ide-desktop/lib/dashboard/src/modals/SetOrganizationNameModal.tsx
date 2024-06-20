@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router'
-import * as tailwindMerge from 'tailwind-merge'
 
 import * as backendHooks from '#/hooks/backendHooks'
 
@@ -15,6 +14,8 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as backendModule from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

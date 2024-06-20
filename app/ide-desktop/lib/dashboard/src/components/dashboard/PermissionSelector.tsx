@@ -1,8 +1,6 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
@@ -11,8 +9,8 @@ import Modal from '#/components/Modal'
 
 import type * as backend from '#/services/Backend'
 
-import type * as permissions from '#/utilities/permissions'
-import * as permissionsModule from '#/utilities/permissions'
+import * as permissions from '#/utilities/permissions'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -40,7 +38,7 @@ export interface PermissionSelectorProps {
   /** When `true`, the button is not clickable. */
   readonly isDisabled?: boolean
   /** When `true`, the button has lowered opacity when it is disabled. */
-  readonly input?: boolean
+  readonly isInput?: boolean
   /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
   readonly typeSelectorYOffsetPx?: number
   readonly error?: string | null
@@ -55,14 +53,14 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-  const { showDelete = false, isDisabled = false, input = false, typeSelectorYOffsetPx } = props
+  const { showDelete = false, isDisabled = false, isInput = false, typeSelectorYOffsetPx } = props
   const { error, selfPermission, action: actionRaw, assetType, className } = props
   const { onChange, doDelete } = props
   const { getText } = textProvider.useText()
   const [action, setActionRaw] = React.useState(actionRaw)
   const [TheChild, setTheChild] = React.useState<(() => React.JSX.Element) | null>()
   const permissionSelectorButtonRef = React.useRef<HTMLButtonElement>(null)
-  const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
+  const permission = permissions.FROM_PERMISSION_ACTION[action]
 
   const setAction = (newAction: permissions.PermissionAction) => {
     setActionRaw(newAction)
@@ -111,15 +109,15 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                     style={{ left, top }}
                     onChange={type => {
                       setTheChild(null)
-                      if (type === permissionsModule.Permission.delete) {
+                      if (type === permissions.Permission.delete) {
                         doDelete?.()
                       } else {
-                        const newAction = permissionsModule.TYPE_TO_PERMISSION_ACTION[type]
-                        const newPermissions = permissionsModule.FROM_PERMISSION_ACTION[newAction]
+                        const newAction = permissions.TYPE_TO_PERMISSION_ACTION[type]
+                        const newPermissions = permissions.FROM_PERMISSION_ACTION[newAction]
                         if ('docs' in permission && 'docs' in newPermissions) {
-                          setAction(permissionsModule.toPermissionAction({ ...permission, type }))
+                          setAction(permissions.toPermissionAction({ ...permission, type }))
                         } else {
-                          setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
+                          setAction(permissions.TYPE_TO_PERMISSION_ACTION[type])
                         }
                       }
                     }}
@@ -134,40 +132,37 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
   let permissionDisplay: React.JSX.Element
 
   switch (permission.type) {
-    case permissionsModule.Permission.read:
-    case permissionsModule.Permission.view: {
+    case permissions.Permission.read:
+    case permissions.Permission.view: {
       permissionDisplay = (
-        <div className="flex w-permission-display gap-px">
+        <div className="flex w-[121px] gap-px">
           <ariaComponents.Button
-            size="custom"
+            size="xsmall"
             variant="custom"
             rounded="none"
             ref={permissionSelectorButtonRef}
             isDisabled={isDisabled}
+            isActive={!isDisabled || !isInput}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text flex-1 rounded-l-full py-permission-mini-button-y selectable',
-              (!isDisabled || !input) && 'active',
-              permissionsModule.PERMISSION_CLASS_NAME[permission.type]
+              'flex-1 rounded-l-full border-0 py-0',
+              permissions.PERMISSION_CLASS_NAME[permission.type]
             )}
             onPress={doShowPermissionTypeSelector}
           >
-            {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
+            {getText(permissions.TYPE_TO_TEXT_ID[permission.type])}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
+            size="xsmall"
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
+            isActive={permission.docs && (!isDisabled || !isInput)}
             {...(isDisabled && error != null ? { title: error } : {})}
-            className={tailwindMerge.twMerge(
-              'h-text flex-1 py-permission-mini-button-y selectable',
-              permission.docs && (!isDisabled || !input) && 'active',
-              permissionsModule.DOCS_CLASS_NAME
-            )}
+            className={tailwindMerge.twMerge('flex-1 border-0 py-0', permissions.DOCS_CLASS_NAME)}
             onPress={() => {
               setAction(
-                permissionsModule.toPermissionAction({
+                permissions.toPermissionAction({
                   type: permission.type,
                   execute: false,
                   docs: !permission.docs,
@@ -178,19 +173,19 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {getText('docsPermissionModifier')}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
+            size="xsmall"
             variant="custom"
             rounded="none"
             isDisabled={isDisabled}
+            isActive={permission.execute && (!isDisabled || !isInput)}
             {...(isDisabled && error != null ? { title: error } : {})}
             className={tailwindMerge.twMerge(
-              'h-text flex-1 rounded-r-full py-permission-mini-button-y selectable',
-              permission.execute && (!isDisabled || !input) && 'active',
-              permissionsModule.EXEC_CLASS_NAME
+              'flex-1 rounded-r-full border-0 py-0',
+              permissions.EXEC_CLASS_NAME
             )}
             onPress={() => {
               setAction(
-                permissionsModule.toPermissionAction({
+                permissions.toPermissionAction({
                   type: permission.type,
                   execute: !permission.execute,
                   docs: false,
@@ -207,19 +202,19 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     default: {
       permissionDisplay = (
         <ariaComponents.Button
-          size="custom"
+          size="xxsmall"
           variant="custom"
           ref={permissionSelectorButtonRef}
           isDisabled={isDisabled}
+          isActive={!isDisabled || !isInput}
           {...(isDisabled && error != null ? { title: error } : {})}
           className={tailwindMerge.twMerge(
-            'h-text w-permission-display rounded-full selectable',
-            (!isDisabled || !input) && 'active',
-            permissionsModule.PERMISSION_CLASS_NAME[permission.type]
+            'h-6 w-[121px] rounded-full',
+            permissions.PERMISSION_CLASS_NAME[permission.type]
           )}
           onPress={doShowPermissionTypeSelector}
         >
-          {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
+          {getText(permissions.TYPE_TO_TEXT_ID[permission.type])}
         </ariaComponents.Button>
       )
       break

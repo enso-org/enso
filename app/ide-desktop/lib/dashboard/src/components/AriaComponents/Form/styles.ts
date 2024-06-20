@@ -3,7 +3,7 @@
  *
  * Styles for form components.
  */
-import * as twv from 'tailwind-variants'
+import * as twv from '#/utilities/tailwindVariants'
 
 /**
  * Props for form components.
