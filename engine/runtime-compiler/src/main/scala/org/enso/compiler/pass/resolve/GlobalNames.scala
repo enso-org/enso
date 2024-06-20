@@ -187,12 +187,17 @@ case object GlobalNames extends IRPass {
                       lit,
                       errors.Resolution.ResolverError(error)
                     )
-                  case Right(
-                        List(r @ BindingsMap.ResolvedModuleMethod(mod, method))
-                      ) =>
+                  case Right(values)
+                      if values.exists(_.isInstanceOf[ResolvedModuleMethod]) =>
+                    val resolvedModuleMethod = values.collectFirst {
+                      case r: ResolvedModuleMethod => r
+                    }.get
                     if (isInsideApplication) {
                       lit.updateMetadata(
-                        new MetadataPair(this, BindingsMap.Resolution(r))
+                        new MetadataPair(
+                          this,
+                          BindingsMap.Resolution(resolvedModuleMethod)
+                        )
                       )
                     } else {
                       val self = freshNameSupply
@@ -201,14 +206,15 @@ case object GlobalNames extends IRPass {
                           new MetadataPair(
                             this,
                             BindingsMap.Resolution(
-                              BindingsMap.ResolvedModule(mod)
+                              BindingsMap
+                                .ResolvedModule(resolvedModuleMethod.module)
                             )
                           )
                         )
                       // The synthetic applications gets the location so that instrumentation
                       // identifies the node correctly
                       val fun = lit.copy(
-                        name     = method.name,
+                        name     = resolvedModuleMethod.method.name,
                         location = None
                       )
                       val app = Application.Prefix(
