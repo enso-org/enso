@@ -1,8 +1,6 @@
 /** @file A heading for the "Modified" column. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TimeIcon from '#/assets/time.svg'
 
@@ -15,6 +13,7 @@ import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import Button from '#/components/styled/Button'
 
 import * as sorting from '#/utilities/sorting'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(
@@ -35,12 +34,12 @@ export default function ModifiedColumnHeading(
             ? getText('stopSortingByModificationDate')
             : getText('sortByModificationDateDescending')
       }
-      className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
+      className="group flex h-table-row w-full cursor-pointer items-center gap-icon-with-text"
     >
       <Button
         active
         image={TimeIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('modifiedColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.modified)

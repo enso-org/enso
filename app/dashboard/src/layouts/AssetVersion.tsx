@@ -1,8 +1,6 @@
 /** @file Displays information describing a specific version of an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import CompareIcon from '#/assets/compare.svg'
 import DuplicateIcon from '#/assets/duplicate.svg'
 import RestoreIcon from '#/assets/restore.svg'
@@ -22,6 +20,7 @@ import * as backendService from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ====================
 // === AssetVersion ===

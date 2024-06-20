@@ -1,8 +1,6 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DataUploadIcon from '#/assets/data_upload.svg'
 import KeyIcon from '#/assets/key.svg'
 import Play2Icon from '#/assets/play2.svg'
@@ -28,6 +26,7 @@ import type Backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as sorting from '#/utilities/sorting'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -206,7 +205,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByName')
                         : getText('sortByNameDescending')
                   }
-                  className="group flex h-drive-table-heading w-full items-center justify-start gap-icon-with-text"
+                  className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.type
@@ -253,7 +252,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByEmail')
                         : getText('sortByEmailDescending')
                   }
-                  className="group flex h-drive-table-heading w-full items-center justify-start gap-icon-with-text"
+                  className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.email
@@ -300,7 +299,7 @@ export default function ActivityLogSettingsTab(props: ActivityLogSettingsTabProp
                         ? getText('stopSortingByTimestamp')
                         : getText('sortByTimestampDescending')
                   }
-                  className="group flex h-drive-table-heading w-full items-center justify-start gap-icon-with-text"
+                  className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                   onPress={() => {
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.timestamp

@@ -18,7 +18,7 @@ async function initGraph(page: Page) {
 const EDGE_PARTS = 2
 
 /**
-  Scenario: We disconnect the `sum` parameter in the `prod` node by clicking on the edge and pressing the delete key.
+  Scenario: We disconnect the `sum` parameter in the `prod` node by clicking on the edge and clicking on the background.
  */
 test('Disconnect an edge from a port', async ({ page }) => {
   await initGraph(page)
@@ -32,7 +32,6 @@ test('Disconnect an edge from a port', async ({ page }) => {
     force: true,
   })
   await page.mouse.click(500, -500)
-  await page.keyboard.press('Delete')
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(EDGE_PARTS)
 })
 

@@ -3,9 +3,10 @@ import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { DisplayMode } from '@/providers/widgetRegistry/configuration'
-import type { GraphDb, MethodCallInfo } from '@/stores/graph/graphDatabase'
+import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
 import type { ExternalId } from 'shared/yjsModel'
 import { assert } from './assert'
@@ -134,7 +135,7 @@ export class ArgumentAst extends Argument {
   }
 }
 
-type InterpretedCall = InterpretedInfix | InterpretedPrefix
+export type InterpretedCall = InterpretedInfix | InterpretedPrefix
 
 interface InterpretedInfix {
   kind: 'infix'
@@ -478,12 +479,12 @@ export function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
  * We also don’t consider infix applications here, as using them inside a prefix chain would require additional syntax (like parenthesis). */
 export function getMethodCallInfoRecursively(
   ast: Ast.Ast,
-  db: GraphDb,
+  graphDb: { getMethodCallInfo(id: AstId): MethodCallInfo | undefined },
 ): MethodCallInfo | undefined {
   let appliedArgs = 0
   const appliedNamedArgs: string[] = []
   for (;;) {
-    const info = db.getMethodCallInfo(ast.id)
+    const info = graphDb.getMethodCallInfo(ast.id)
     if (info) {
       // There is an info available! Stop the recursion and adjust `notAppliedArguments`.
       // Indices of all named arguments applied so far.

@@ -1,8 +1,6 @@
 /** @file A row of the user groups table representing a user. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import Cross2 from '#/assets/cross2.svg'
 
 import type * as backendHooks from '#/hooks/backendHooks'
@@ -18,6 +16,8 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import type * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ========================
 // === UserGroupUserRow ===
@@ -95,9 +95,9 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
               />
             )
           }}
-          className="absolute right-full mr-4 size-icon -translate-y-1/2"
+          className="absolute right-full mr-4 size-4 -translate-y-1/2"
         >
-          <img src={Cross2} className="size-icon" />
+          <img src={Cross2} className="size-4" />
         </ariaComponents.Button>
       </aria.Cell>
     </aria.Row>

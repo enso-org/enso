@@ -51,6 +51,7 @@ type RawDataSource = { type: 'raw'; data: any }
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
+  isPreview?: boolean
   nodePosition: Vec2
   nodeSize: Vec2
   width: Opt<number>
@@ -64,7 +65,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
   'update:id': [id: VisualizationIdentifier]
-  'update:visible': [visible: boolean]
+  'update:enabled': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
   'update:height': [height: number]
@@ -310,7 +311,10 @@ provideVisualizationConfig({
   get nodeType() {
     return props.typename
   },
-  hide: () => emit('update:visible', false),
+  get isPreview() {
+    return props.isPreview ?? false
+  },
+  hide: () => emit('update:enabled', false),
   updateType: (id) => emit('update:id', id),
   createNodes: (...options) => emit('createNodes', options),
 })

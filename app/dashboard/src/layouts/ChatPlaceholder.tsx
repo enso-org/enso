@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
-import * as tailwindMerge from 'tailwind-merge'
 
 import CloseLargeIcon from '#/assets/close_large.svg'
 
@@ -16,6 +15,8 @@ import * as textProvider from '#/providers/TextProvider'
 import * as chat from '#/layouts/Chat'
 
 import * as ariaComponents from '#/components/AriaComponents'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {

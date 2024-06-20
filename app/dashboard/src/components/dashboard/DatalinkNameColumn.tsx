@@ -1,8 +1,6 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DatalinkIcon from '#/assets/datalink.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -23,6 +21,7 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 
 // ====================
@@ -132,7 +131,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
         indent.indentClass(item.depth)
       )}
       onKeyDown={event => {
@@ -151,7 +150,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }
       }}
     >
-      <img src={DatalinkIcon} className="m-name-column-icon size-icon" />
+      <img src={DatalinkIcon} className="m-name-column-icon size-4" />
       <EditableSpan
         editable={false}
         onSubmit={async newTitle => {
@@ -170,7 +169,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         onCancel={() => {
           setIsEditing(false)
         }}
-        className="text grow bg-transparent"
+        className="text grow bg-transparent font-naming"
       >
         {asset.title}
       </EditableSpan>

@@ -1,7 +1,7 @@
 /** @file A full-screen loading spinner. */
-import * as twv from 'tailwind-variants'
-
 import Spinner, * as spinnerModule from '#/components/Spinner'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===

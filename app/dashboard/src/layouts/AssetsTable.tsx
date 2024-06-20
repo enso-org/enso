@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as toast from 'react-toastify'
-import * as tailwindMerge from 'tailwind-merge'
 
 import DropFilesImage from '#/assets/drop_files.svg'
 
@@ -73,6 +72,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as set from '#/utilities/set'
 import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
 
@@ -107,11 +107,9 @@ const AUTOSCROLL_THRESHOLD_PX = 50
 const AUTOSCROLL_SPEED = 100
 /** The autoscroll speed is `AUTOSCROLL_SPEED / (distance + AUTOSCROLL_DAMPENING)`. */
 const AUTOSCROLL_DAMPENING = 10
-/** The height of the header row. */
-const HEADER_HEIGHT_PX = 33
 /** The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling. */
-const ROW_HEIGHT_PX = 32
+const ROW_HEIGHT_PX = 38
 /** The size of the loading spinner. */
 const LOADING_SPINNER_SIZE_PX = 36
 /** The number of pixels the header bar should shrink when the column selector is visible,
@@ -2097,7 +2095,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (scrollContainer != null) {
         const rect = scrollContainer.getBoundingClientRect()
         if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
-          const distanceToTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
+          const distanceToTop = Math.max(0, rectangle.top - rect.top - ROW_HEIGHT_PX)
           if (distanceToTop < AUTOSCROLL_THRESHOLD_PX) {
             scrollContainer.scrollTop -= Math.floor(
               AUTOSCROLL_SPEED / (distanceToTop + AUTOSCROLL_DAMPENING)
@@ -2122,10 +2120,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }
         const overlapsHorizontally = rect.right > rectangle.left && rect.left < rectangle.right
-        const selectionTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
+        const selectionTop = Math.max(0, rectangle.top - rect.top - ROW_HEIGHT_PX)
         const selectionBottom = Math.max(
           0,
-          Math.min(rect.height, rectangle.bottom - rect.top - HEADER_HEIGHT_PX)
+          Math.min(rect.height, rectangle.bottom - rect.top - ROW_HEIGHT_PX)
         )
         const range = dragSelectionRangeRef.current
         if (!overlapsHorizontally) {
@@ -2483,7 +2481,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </table>
       <div
         className={tailwindMerge.twMerge(
-          'sticky left grid max-w-container grow place-items-center',
+          'sticky left-0 grid max-w-container grow place-items-center',
           category !== Category.cloud && category !== Category.local && 'hidden'
         )}
         onDragEnter={onDropzoneDragOver}
@@ -2562,10 +2560,10 @@ export default function AssetsTable(props: AssetsTableProps) {
             )}
             <div className="flex h-max min-h-full w-max min-w-full flex-col">
               {isCloud && (
-                <div className="flex-0 sticky top flex h flex-col">
+                <div className="flex-0 sticky top-0 flex h-0 flex-col">
                   <div
                     data-testid="extra-columns"
-                    className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
+                    className="sticky right-0 flex self-end px-2 py-3"
                   >
                     <FocusArea direction="horizontal">
                       {columnsBarProps => (

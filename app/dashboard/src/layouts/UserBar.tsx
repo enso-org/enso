@@ -15,6 +15,7 @@ import UserMenu from '#/layouts/UserMenu'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
@@ -47,7 +48,7 @@ export default function UserBar(props: UserBarProps) {
   const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { setModal, updateModal } = modalProvider.useSetModal()
+  const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const self =
     user != null
@@ -67,80 +68,71 @@ export default function UserBar(props: UserBarProps) {
   return (
     <FocusArea active={!invisible} direction="horizontal">
       {innerProps => (
-        <div
-          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-1 rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
-          {...innerProps}
-        >
-          <ariaComponents.Button
-            variant="icon"
-            size="custom"
-            className="mr-1"
-            icon={ChatIcon}
-            aria-label={getText('openHelpChat')}
-            onPress={() => {
-              setIsHelpChatOpen(true)
-            }}
-          />
-
-          {shouldShowInviteButton && (
-            <ariaComponents.DialogTrigger>
-              <ariaComponents.Button size="small" variant="tertiary">
-                {getText('invite')}
-              </ariaComponents.Button>
-
-              <InviteUsersModal />
-            </ariaComponents.DialogTrigger>
-          )}
-
-          <ariaComponents.Button variant="primary" size="small" href={appUtils.SUBSCRIBE_PATH}>
-            {getText('upgrade')}
-          </ariaComponents.Button>
-          {shouldShowShareButton && (
-            <ariaComponents.Button
-              size="custom"
-              variant="custom"
-              className="text my-auto rounded-full bg-share px-button-x text-inversed"
-              aria-label={getText('shareButtonAltText')}
-              onPress={() => {
-                setModal(
-                  <ManagePermissionsModal
-                    backend={backend}
-                    item={projectAsset}
-                    setItem={setProjectAsset}
-                    self={self}
-                    doRemoveSelf={doRemoveSelf}
-                    eventTarget={null}
-                  />
-                )
-              }}
-            >
-              <aria.Text slot="label">{getText('share')}</aria.Text>
-            </ariaComponents.Button>
-          )}
-          <ariaComponents.Button
-            size="custom"
-            variant="custom"
-            className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
-            aria-label={getText('userMenuAltText')}
-            onPress={() => {
-              updateModal(oldModal =>
-                oldModal?.type === UserMenu ? null : (
-                  <UserMenu setPage={setPage} onSignOut={onSignOut} />
-                )
-              )
-            }}
+        <div className="bg-primary/5 pt-0.5">
+          <div
+            className="flex h-[46px] shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-3"
+            {...innerProps}
           >
-            <img
-              src={user?.profilePicture ?? DefaultUserIcon}
-              alt={getText('openUserMenu')}
-              className="pointer-events-none"
-              height={28}
-              width={28}
+            <ariaComponents.Button
+              variant="icon"
+              size="custom"
+              className="mr-1"
+              icon={ChatIcon}
+              aria-label={getText('openHelpChat')}
+              onPress={() => {
+                setIsHelpChatOpen(true)
+              }}
             />
-          </ariaComponents.Button>
-          {/* Required for shortcuts to work. */}
-          <div className="hidden">
-            <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />
+
+            {shouldShowInviteButton && (
+              <ariaComponents.DialogTrigger>
+                <ariaComponents.Button size="medium" variant="tertiary">
+                  {getText('invite')}
+                </ariaComponents.Button>
+
+                <InviteUsersModal />
+              </ariaComponents.DialogTrigger>
+            )}
+
+            <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
+              {getText('upgrade')}
+            </ariaComponents.Button>
+            {shouldShowShareButton && (
+              <ariaComponents.Button
+                size="medium"
+                variant="tertiary"
+                aria-label={getText('shareButtonAltText')}
+                onPress={() => {
+                  setModal(
+                    <ManagePermissionsModal
+                      backend={backend}
+                      item={projectAsset}
+                      setItem={setProjectAsset}
+                      self={self}
+                      doRemoveSelf={doRemoveSelf}
+                      eventTarget={null}
+                    />
+                  )
+                }}
+              >
+                <aria.Text slot="label">{getText('share')}</aria.Text>
+              </ariaComponents.Button>
+            )}
+            <Button
+              active
+              mask={false}
+              alt={getText('userMenuAltText')}
+              image={user?.profilePicture ?? DefaultUserIcon}
+              buttonClassName="rounded-full after:rounded-full"
+              className="h-row-h w-row-h rounded-full"
+              onPress={() => {
+                setModal(<UserMenu setPage={setPage} onSignOut={onSignOut} />)
+              }}
+            />
+            {/* Required for shortcuts to work. */}
+            <div className="hidden">
+              <UserMenu hidden setPage={setPage} onSignOut={onSignOut} />
+            </div>
           </div>
         </div>
       )}

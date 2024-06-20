@@ -112,7 +112,7 @@ export default function Editor(props: EditorProps) {
             displayedProjectName: project.name,
           },
           window: {
-            topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+            topBarOffset: '0',
           },
         },
         projectId,

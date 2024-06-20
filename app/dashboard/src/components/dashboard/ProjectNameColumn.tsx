@@ -1,8 +1,6 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import NetworkIcon from '#/assets/network.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -31,6 +29,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
 
@@ -295,7 +294,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
         indent.indentClass(item.depth)
       )}
       onKeyDown={event => {
@@ -319,7 +318,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       }}
     >
       {!canExecute ? (
-        <SvgMask src={NetworkIcon} className="m-name-column-icon size-icon" />
+        <SvgMask src={NetworkIcon} className="m-name-column-icon size-4" />
       ) : (
         <ProjectIcon
           backend={backend}
@@ -342,7 +341,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
         className={tailwindMerge.twMerge(
-          'text grow bg-transparent',
+          'text grow bg-transparent font-naming',
           canExecute && !isOtherUserUsingProject && 'cursor-pointer',
           rowState.isEditingName && 'cursor-text'
         )}

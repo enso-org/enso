@@ -1,7 +1,7 @@
 /** @file File containing SVG icon definitions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===============
 // === SvgMask ===

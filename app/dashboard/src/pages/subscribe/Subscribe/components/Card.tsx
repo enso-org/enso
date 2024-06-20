@@ -5,8 +5,6 @@
  */
 import * as React from 'react'
 
-import * as tw from 'tailwind-merge'
-
 import Check from '#/assets/check_mark.svg'
 
 import type * as text from '#/text'
@@ -15,6 +13,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
+
+import * as tw from '#/utilities/tailwindMerge'
 
 /**
  * Card props

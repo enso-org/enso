@@ -1,8 +1,6 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
-import * as tailwindVariants from 'tailwind-variants'
-
 import BlankIcon from '#/assets/blank.svg'
 
 import type * as text from '#/text'
@@ -20,6 +18,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
@@ -132,11 +131,7 @@ export default function MenuEntry(props: MenuEntryProps) {
       >
         <div className={MENU_ENTRY_VARIANTS(variantProps)}>
           <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-            <SvgMask
-              src={icon ?? info.icon ?? BlankIcon}
-              color={info.color}
-              className="size-icon"
-            />
+            <SvgMask src={icon ?? info.icon ?? BlankIcon} color={info.color} className="size-4" />
             <aria.Text slot="label">{label ?? getText(ACTION_TO_TEXT_ID[action])}</aria.Text>
           </div>
           <KeyboardShortcut action={action} />

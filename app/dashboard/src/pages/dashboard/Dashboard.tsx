@@ -2,8 +2,6 @@
  * interactive components. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as detect from 'enso-common/src/detect'
 
 import * as eventHooks from '#/hooks/eventHooks'
@@ -20,9 +18,6 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/AssetPanel'
-import AssetPanel from '#/layouts/AssetPanel'
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import Category, * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
@@ -39,7 +34,6 @@ import type Backend from '#/services/Backend'
 import type * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
-import AssetQuery from '#/utilities/AssetQuery'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -138,8 +132,6 @@ export default function Dashboard(props: DashboardProps) {
     (value: unknown): value is pageSwitcher.Page =>
       array.includes(Object.values(pageSwitcher.Page), value)
   )
-  const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
   const [projectStartupInfo, setProjectStartupInfo] =
     React.useState<backendModule.ProjectStartupInfo | null>(null)
   const [openProjectAbortController, setOpenProjectAbortController] =
@@ -147,12 +139,6 @@ export default function Dashboard(props: DashboardProps) {
   const [assetListEvents, dispatchAssetListEvent] =
     eventHooks.useEvent<assetListEvent.AssetListEvent>()
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
-  const [assetPanelProps, setAssetPanelProps] =
-    React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
-  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
-    () => localStorage.get('isAssetPanelVisible') ?? false
-  )
-  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const defaultCategory = remoteBackend != null ? Category.cloud : Category.local
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
@@ -163,22 +149,17 @@ export default function Dashboard(props: DashboardProps) {
 
   const isCloud = categoryModule.isCloud(category)
   const isUserEnabled = session.user?.isEnabled === true
-  const isAssetPanelVisible =
-    page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
 
   if (isCloud && !isUserEnabled && localBackend != null) {
-    setCategory(Category.local)
+    setTimeout(() => {
+      // This sets `BrowserRouter`, so it must not be set synchronously.
+      setCategory(Category.local)
+    })
   }
 
   React.useEffect(() => {
     setInitialized(true)
   }, [])
-
-  React.useEffect(() => {
-    if (query.query !== '') {
-      setPage(pageSwitcher.Page.drive)
-    }
-  }, [query, setPage])
 
   React.useEffect(() => {
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
@@ -272,10 +253,6 @@ export default function Dashboard(props: DashboardProps) {
     // `initialized` is NOT a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectStartupInfo, /* should never change */ localStorage])
-
-  React.useEffect(() => {
-    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
-  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (page !== pageSwitcher.Page.settings) {
@@ -377,34 +354,21 @@ export default function Dashboard(props: DashboardProps) {
 
   return (
     <Page hideInfoBar hideChat>
-      <div
-        className={tailwindMerge.twMerge(
-          'flex text-xs text-primary',
-          page === pageSwitcher.Page.editor && 'pointer-events-none cursor-none'
-        )}
-      >
+      <div className="flex text-xs text-primary">
         <div
-          className="relative flex h-screen grow select-none flex-col gap-top-level container-size"
+          className="relative flex h-screen grow select-none flex-col container-size"
           onContextMenu={event => {
             event.preventDefault()
             unsetModal()
           }}
         >
           <TopBar
-            backend={remoteBackend}
-            isCloud={isCloud}
             projectAsset={projectStartupInfo?.projectAsset ?? null}
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}
             setPage={setPage}
             isEditorDisabled={projectStartupInfo == null}
             setIsHelpChatOpen={setIsHelpChatOpen}
-            query={query}
-            setQuery={setQuery}
-            suggestions={suggestions}
-            isAssetPanelVisible={isAssetPanelVisible}
-            isAssetPanelEnabled={isAssetPanelEnabled}
-            setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}
           />
@@ -413,17 +377,12 @@ export default function Dashboard(props: DashboardProps) {
             setCategory={setCategory}
             hidden={page !== pageSwitcher.Page.drive}
             initialProjectName={initialProjectName}
-            query={query}
-            setQuery={setQuery}
-            setSuggestions={setSuggestions}
             projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}
             assetEvents={assetEvents}
             dispatchAssetEvent={dispatchAssetEvent}
-            setAssetPanelProps={setAssetPanelProps}
-            setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
             doOpenEditor={doOpenEditor}
             doCloseEditor={doCloseEditor}
           />
@@ -449,26 +408,6 @@ export default function Dashboard(props: DashboardProps) {
               doClose={() => {
                 setIsHelpChatOpen(false)
               }}
-            />
-          )}
-        </div>
-        <div
-          className={tailwindMerge.twMerge(
-            'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
-            isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
-          )}
-        >
-          {isAssetPanelVisible && (
-            <AssetPanel
-              key={assetPanelProps?.item?.item.id}
-              backend={assetPanelProps?.backend ?? null}
-              item={assetPanelProps?.item ?? null}
-              setItem={assetPanelProps?.setItem ?? null}
-              setQuery={setQuery}
-              category={defaultCategory}
-              dispatchAssetEvent={dispatchAssetEvent}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-              isReadonly={category === Category.trash}
             />
           )}
         </div>
