@@ -93,7 +93,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         <ariaComponents.Button
           ref={plusButtonRef}
           size="icon"
-          variant="outline"
+          variant="ghost"
           icon={Plus2Icon}
           className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           onPress={() => {

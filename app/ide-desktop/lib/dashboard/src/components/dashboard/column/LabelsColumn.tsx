@@ -143,7 +143,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         <ariaComponents.Button
           ref={plusButtonRef}
           size="icon"
-          variant="outline"
+          variant="ghost"
           className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           icon={Plus2Icon}
           onPress={() => {

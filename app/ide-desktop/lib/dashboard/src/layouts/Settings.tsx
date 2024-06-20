@@ -122,7 +122,7 @@ export default function Settings(props: SettingsProps) {
         <ariaComponents.Text
           variant="h1"
           truncate="1"
-          className="ml-[0.625rem] h-[2.25rem] max-w-[30ch] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug"
+          className="ml-2.5 w-max max-w-[30ch] rounded-full bg-frame px-[9px]"
         >
           {settingsTab !== SettingsTab.organization &&
           settingsTab !== SettingsTab.members &&
