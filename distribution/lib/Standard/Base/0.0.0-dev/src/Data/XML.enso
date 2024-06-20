@@ -95,6 +95,10 @@ type XML_Document
         XML_Error.handle_java_exceptions <|
             XML_Document.Value (XML_Utils.parseString xml_string)
 
+    ## PRIVATE
+       Wrap Java's Document to XML_Document
+    new doc:Document = XML_Document.Value doc
+
     private Value (java_document:Document)
 
 
