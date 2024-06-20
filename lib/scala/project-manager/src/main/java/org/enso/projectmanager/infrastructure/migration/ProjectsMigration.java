@@ -10,29 +10,26 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.enso.desktopenvironment.Platform;
 import org.enso.desktopenvironment.directories.DirectoriesException;
+import org.enso.projectmanager.boot.configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class ProjectsMigration {
 
-  private static final String ENSO_PROJECTS = "enso-projects";
-
   private static final Logger logger = LoggerFactory.getLogger(ProjectsMigration.class);
 
   private ProjectsMigration() {}
 
-  public static void migrate(File oldProjectsPath) {
+  public static void migrate(configuration.StorageConfig storageConfig) {
+    var oldProjectsPath =
+        Platform.getDirectories().getUserHome().resolve("enso").resolve("projects").toFile();
     if (oldProjectsPath.isDirectory()) {
-      File newProjectsPath;
       try {
-        var userDocumentsPath = Platform.getDirectories().getDocuments();
-        newProjectsPath = userDocumentsPath.resolve(ENSO_PROJECTS).toFile();
+        File newProjectsPath = storageConfig.userProjectsPath();
+        migrateProjectsDirectory(oldProjectsPath, newProjectsPath);
       } catch (DirectoriesException e) {
         logger.error("Migration aborted. Failed to get user documents directory.", e);
-        return;
       }
-
-      migrateProjectsDirectory(oldProjectsPath, newProjectsPath);
     }
   }
 
@@ -74,8 +71,11 @@ public final class ProjectsMigration {
         } catch (IOException ex) {
           logger.error(
               "Failed to set permissions on projects directory '{}'.", newProjectsPath, ex);
+          return;
         }
       }
+
+      logger.info("Projects migration successful.");
     }
   }
 

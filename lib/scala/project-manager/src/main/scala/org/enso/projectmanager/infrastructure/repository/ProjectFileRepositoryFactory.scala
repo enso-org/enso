@@ -21,9 +21,7 @@ class ProjectFileRepositoryFactory[
   override def getProjectRepository(
     projectsDirectory: Option[File]
   ): ProjectRepository[F] = {
-    val config = projectsDirectory.fold(storageConfig)(dir =>
-      storageConfig.copy(userProjectsPath = dir)
-    )
+    val config = storageConfig.copy(projectsPath = projectsDirectory)
     new ProjectFileRepository[F](config, clock, fileSystem, gen)
   }
 }
