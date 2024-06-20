@@ -95,10 +95,7 @@ export default function Settings(props: SettingsProps) {
 
   return (
     <div className="mt-4 flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
-      <aria.Heading
-        level={1}
-        className="flex h-heading items-center px-heading-x text-xl font-bold"
-      >
+      <aria.Heading level={1} className="flex items-center px-heading-x">
         <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
           <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
           <aria.Popover UNSTABLE_portalContainer={root}>
@@ -121,7 +118,7 @@ export default function Settings(props: SettingsProps) {
         <ariaComponents.Text
           variant="h1"
           truncate="1"
-          className="rounded-full bg-frame px-2.5"
+          className="ml-2.5 max-w-lg rounded-full bg-frame px-2.5"
           aria-hidden
         >
           {settingsTab !== SettingsTab.organization &&
