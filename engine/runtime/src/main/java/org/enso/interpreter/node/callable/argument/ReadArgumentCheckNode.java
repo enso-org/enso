@@ -157,7 +157,8 @@ public abstract class ReadArgumentCheckNode extends Node {
     };
   }
 
-  public static ReadArgumentCheckNode build(String comment, Type expectedType) {
+  public static ReadArgumentCheckNode build(EnsoContext ctx, String comment, Type expectedType) {
+    assert ctx.getBuiltins().any() != expectedType : "Don't check for Any: " + expectedType;
     return ReadArgumentCheckNodeFactory.TypeCheckNodeGen.create(comment, expectedType);
   }
 
@@ -422,6 +423,9 @@ public abstract class ReadArgumentCheckNode extends Node {
     Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {
       if (v instanceof EnsoMultiValue multi) {
         return multi.allTypes();
+      }
+      if (v instanceof UnresolvedConstructor) {
+        return null;
       }
       if (typeOfNode.execute(v) instanceof Type from) {
         if (previous != null && previous.length == 1 && previous[0] == from) {

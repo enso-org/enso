@@ -29,6 +29,7 @@ import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.IdMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.suggestions.ExportsBuilder;
 import org.enso.compiler.suggestions.ExportsMap;
@@ -158,6 +159,12 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public CharSequence getCharacters(CompilerContext.Module module) throws IOException {
     return module.getCharacters();
+  }
+
+  @Override
+  public IdMap getIdMap(CompilerContext.Module module) {
+    var moduleIdMap = module.getIdMap();
+    return moduleIdMap == null ? IdMap.empty() : moduleIdMap;
   }
 
   @Override
@@ -669,6 +676,7 @@ final class TruffleCompilerContext implements CompilerContext {
   private final class ModuleUpdater implements Updater, AutoCloseable {
     private final Module module;
     private BindingsMap[] map;
+    private IdMap idMap;
     private org.enso.compiler.core.ir.Module[] ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
@@ -682,6 +690,11 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public void bindingsMap(BindingsMap map) {
       this.map = new BindingsMap[] {map};
+    }
+
+    @Override
+    public void idMap(IdMap idMap) {
+      this.idMap = idMap;
     }
 
     @Override
@@ -713,12 +726,15 @@ final class TruffleCompilerContext implements CompilerContext {
     public void close() {
       if (map != null) {
         if (module.bindings != null && map[0] != null) {
-          loggerCompiler.log(Level.FINEST, "Reassigining bindings to {0}", module);
+          loggerCompiler.log(Level.FINEST, "Reassigning bindings to {0}", module);
         }
         module.bindings = map[0];
       }
       if (ir != null) {
         module.module.unsafeSetIr(ir[0]);
+      }
+      if (idMap != null) {
+        module.module.unsafeSetIdMap(idMap);
       }
       if (stage != null) {
         module.module.unsafeSetCompilationStage(stage);
@@ -736,6 +752,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   public static final class Module extends CompilerContext.Module {
+
     private final org.enso.interpreter.runtime.Module module;
     private BindingsMap bindings;
 
@@ -759,7 +776,7 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     /** Intentionally not public. */
-    final org.enso.interpreter.runtime.Module unsafeModule() {
+    org.enso.interpreter.runtime.Module unsafeModule() {
       return module;
     }
 
@@ -787,7 +804,12 @@ final class TruffleCompilerContext implements CompilerContext {
       return bindings;
     }
 
-    final TruffleFile getSourceFile() {
+    @Override
+    public IdMap getIdMap() {
+      return module.getIdMap();
+    }
+
+    TruffleFile getSourceFile() {
       return module.getSourceFile();
     }
 

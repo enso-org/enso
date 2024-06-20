@@ -60,7 +60,7 @@ interface PlaceholderOverrides {
   readonly userAgentX: [userAgent: string]
   readonly compareVersionXWithLatest: [versionNumber: number]
   readonly onDateX: [dateString: string]
-  readonly xUsersSelected: [usersCount: number]
+  readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
   readonly upgradeTo: [planName: string]
   readonly enterTheNewKeyboardShortcutFor: [actionName: string]
   readonly downloadProjectError: [projectName: string]
@@ -113,6 +113,13 @@ interface PlaceholderOverrides {
 
   readonly subscribeSuccessSubtitle: [string]
   readonly assetsDropFilesDescription: [count: number]
+
+  readonly paywallAvailabilityLevel: [plan: string]
+  readonly paywallScreenDescription: [plan: string]
+  readonly userGroupsLimitMessage: [limit: number]
+  readonly inviteFormSeatsLeftError: [exceedBy: number]
+  readonly inviteFormSeatsLeft: [seatsLeft: number]
+  readonly seatsLeft: [seatsLeft: number, seatsTotal: number]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

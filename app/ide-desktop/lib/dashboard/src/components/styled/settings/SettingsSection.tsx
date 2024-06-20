@@ -1,10 +1,10 @@
 /** @file A styled settings section. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =======================
 // === SettingsSection ===

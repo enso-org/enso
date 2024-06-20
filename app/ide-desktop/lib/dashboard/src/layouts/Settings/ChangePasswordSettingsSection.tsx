@@ -96,19 +96,17 @@ export default function ChangePasswordSettingsSection() {
         </aria.TextField>
         <ButtonRow>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
+            size="small"
+            variant="submit"
             isDisabled={!canSubmitPassword}
-            className="settings-value rounded-full bg-invite font-medium text-white selectable enabled:active"
             onPress={eventModule.submitForm}
           >
             {getText('change')}
           </ariaComponents.Button>
           <ariaComponents.Button
-            size="custom"
-            variant="custom"
+            size="small"
+            variant="cancel"
             isDisabled={!canCancel}
-            className="settings-value rounded-full bg-selected-frame font-medium selectable enabled:active"
             onPress={() => {
               setKey(uniqueString.uniqueString())
               setCurrentPassword('')

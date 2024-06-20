@@ -42,7 +42,6 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
   backdrop-filter: var(--blur-app-bg);
   padding: 4px 4px;
   width: 42px;
-  cursor: pointer;
 }
 
 .left-end {

@@ -2,9 +2,9 @@
 
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as ariaComponents from '#/components/AriaComponents'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===

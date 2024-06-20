@@ -4,7 +4,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router'
-import * as tailwindMerge from 'tailwind-merge'
 import * as z from 'zod'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -15,6 +14,7 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import LocalStorage from '#/utilities/LocalStorage'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

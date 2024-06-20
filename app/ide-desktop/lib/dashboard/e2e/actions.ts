@@ -82,9 +82,7 @@ export function locateSecretValueInput(page: test.Page) {
 
 /** Find a search bar input (if any) on the current page. */
 export function locateSearchBarInput(page: test.Page) {
-  return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, Datalinks, users, and more.'
-  )
+  return locateSearchBar(page).getByPlaceholder(/(?:)/)
 }
 
 /** Find the name column of the given assets table row. */
@@ -118,7 +116,7 @@ export function locateChangeButton(page: test.Locator | test.Page) {
 
 /** Find a user menu button (if any) on the current locator. */
 export function locateUserMenuButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Open user menu').locator('visible=true')
+  return page.getByAltText('User Settings').locator('visible=true')
 }
 
 /** Find a "sign out" button (if any) on the current locator. */
@@ -148,12 +146,12 @@ export function locateCreateButton(page: test.Locator | test.Page) {
 
 /** Find a button to open the editor (if any) on the current page. */
 export function locatePlayOrOpenProjectButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Open in editor')
+  return page.getByLabel('Open in editor')
 }
 
 /** Find a button to close the project (if any) on the current page. */
 export function locateStopProjectButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Stop execution')
+  return page.getByLabel('Stop execution')
 }
 
 /** Find all labels in the labels panel (if any) on the current page. */
@@ -370,7 +368,7 @@ export function locateNewLabelButton(page: test.Locator | test.Page) {
 
 /** Find an "upgrade" button (if any) on the current page. */
 export function locateUpgradeButton(page: test.Locator | test.Page) {
-  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade')
+  return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade').first()
 }
 
 /**
@@ -402,7 +400,7 @@ export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
 
 /** Find an icon to open or close the asset panel (if any) on the current page. */
 export function locateAssetPanelIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Asset Panel').locator('visible=true')
+  return page.getByLabel('Asset Panel').locator('visible=true')
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
@@ -439,12 +437,12 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 /** Find a "drive page" icon (if any) on the current page. */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Catalog') })
+  return page.getByRole('button', { name: 'Data Catalog' })
 }
 
 /** Find an "editor page" icon (if any) on the current page. */
 export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Graph Editor') })
+  return page.getByRole('button', { name: 'Spatial Analysis' })
 }
 
 /** Find a "settings page" icon (if any) on the current page. */
@@ -514,13 +512,17 @@ export function locateAssetName(locator: test.Locator) {
 /** Find assets table rows that represent directories that can be expanded (if any)
  * on the current page. */
 export function locateExpandableDirectories(page: test.Page) {
-  return locateAssetRows(page).filter({ has: page.getByAltText('Expand') })
+  // The icon is hidden when not hovered so `getByLabel` will not work.
+  // eslint-disable-next-line no-restricted-properties
+  return locateAssetRows(page).filter({ has: page.locator('[aria-label=Expand]') })
 }
 
 /** Find assets table rows that represent directories that can be collapsed (if any)
  * on the current page. */
 export function locateCollapsibleDirectories(page: test.Page) {
-  return locateAssetRows(page).filter({ has: page.getByAltText('Collapse') })
+  // The icon is hidden when not hovered so `getByLabel` will not work.
+  // eslint-disable-next-line no-restricted-properties
+  return locateAssetRows(page).filter({ has: page.locator('[aria-label=Collapse]') })
 }
 
 /** Find a "confirm delete" modal (if any) on the current page. */

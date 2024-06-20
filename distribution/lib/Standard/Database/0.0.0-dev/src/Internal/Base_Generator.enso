@@ -118,6 +118,20 @@ lift_binary_op name function =
 
 ## PRIVATE
 
+   A helper function to create a binary operation from a SQL function name.
+
+   Arguments:
+   - name: Name of the operation, used for error reporting.
+   - sql_function: SQL function taking two arguments.
+lift_binary_sql_function : Text -> Text -> Pair Text (Vector SQL_Builder -> SQL_Builder)
+lift_binary_sql_function name:Text sql_function:Text =
+    function first second =
+        res = SQL_Builder.code (sql_function + "(") ++ first ++ "," ++ second ++ ")"
+        res.paren
+    lift_binary_op name function
+
+## PRIVATE
+
    A helper function to create a unary operator which is added to the right of
    the expression.
 
@@ -181,7 +195,7 @@ base_dialect =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"], ["ROUND", make_function "ROUND"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"]]
+    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["MOD", make_function "MOD"], ["^", make_function "POWER"], ["ROUND", make_function "ROUND"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
@@ -375,7 +389,7 @@ make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" _->
     Error.throw <| Unsupported_Database_Operation.Error ("Case sensitive operations are not currently supported by this connection.")
 
 ## PRIVATE
-simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a-> b->
+simple_equals_ignore_case = Base_Generator.lift_binary_op "EQUALS_IGNORE_CASE" a-> b->
     SQL_Builder.code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
 
 ## PRIVATE
@@ -464,7 +478,8 @@ generate_query dialect query = case query of
         prefix = case ctx.distinct_on of
             Nothing -> SQL_Builder.code ""
             expressions : Vector ->
-                # TODO I just realised this does not make sense in other backends than Postgres, so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
+                ## TODO I just realised this does not make sense in other backends than Postgres,
+                   so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
                 generated = SQL_Builder.join ", " (expressions.map (generate_expression dialect))
                 SQL_Builder.code "DISTINCT ON (" ++ generated ++ ") "
         SQL_Builder.code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
@@ -583,3 +598,9 @@ generate_column_description dialect descriptor =
     suffix = if modifiers.is_empty then SQL_Builder.empty else
         SQL_Builder.code " " ++ (SQL_Builder.join " " modifiers)
     (dialect.wrap_identifier descriptor.name) ++ " " ++ descriptor.sql_type ++ suffix
+
+## PRIVATE
+   A heuristic used by `Connection.query` to determine if a given text looks
+   like a SQL query for the given dialect or is rather a table name.
+is_probably_a_query : Text -> Boolean
+is_probably_a_query text = (text.contains "SELECT ") || (text.contains "EXEC ")

@@ -1,8 +1,6 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import BlankIcon from 'enso-assets/blank.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -45,6 +43,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 
 // =================
@@ -758,7 +757,7 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }}
                 className={tailwindMerge.twMerge(
-                  'h-row rounded-full transition-all ease-in-out rounded-rows-child',
+                  'h-table-row rounded-full transition-all ease-in-out rounded-rows-child',
                   visibility,
                   (isDraggedOver || selected) && 'selected'
                 )}
@@ -947,7 +946,7 @@ export default function AssetRow(props: AssetRowProps) {
           <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
-                'flex h-row w-container justify-center rounded-full rounded-rows-child',
+                'flex h-table-row w-container items-center justify-center rounded-full rounded-rows-child',
                 indent.indentClass(item.depth)
               )}
             >
@@ -963,7 +962,7 @@ export default function AssetRow(props: AssetRowProps) {
           <td colSpan={columns.length} className="border-r p-0 rounded-rows-skip-level">
             <div
               className={tailwindMerge.twMerge(
-                'flex h-row items-center rounded-full rounded-rows-child',
+                'flex h-table-row items-center rounded-full rounded-rows-child',
                 indent.indentClass(item.depth)
               )}
             >

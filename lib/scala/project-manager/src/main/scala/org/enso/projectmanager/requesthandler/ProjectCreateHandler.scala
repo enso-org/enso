@@ -6,7 +6,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Exec, Sync}
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions
 import org.enso.projectmanager.infrastructure.file.Files
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
@@ -48,7 +48,7 @@ class ProjectCreateHandler[
     params =>
       val version = params.version.getOrElse(DefaultEnsoVersion)
       val missingComponentAction =
-        params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
+        params.missingComponentAction.getOrElse(MissingComponentActions.Fail)
 
       for {
         actualVersion <- configurationService

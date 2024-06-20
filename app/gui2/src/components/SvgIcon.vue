@@ -23,6 +23,7 @@ const props = defineProps<{
 
 <style scoped>
 svg {
+  overflow: visible; /* Prevent slight cutting off icons that are using all available space. */
   width: var(--icon-width, var(--icon-size, 16px));
   height: var(--icon-height, var(--icon-size, 16px));
   transform: var(--icon-transform);

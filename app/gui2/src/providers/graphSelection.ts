@@ -1,8 +1,9 @@
 import type { NavigatorComposable } from '@/composables/navigator'
-import { useGraphHover, useSelection } from '@/composables/selection'
+import { useGraphHover, useSelection, type SelectionOptions } from '@/composables/selection'
 import { createContextStore } from '@/providers'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
+import type { ExternalId } from 'shared/yjsModel'
 import { proxyRefs } from 'vue'
 
 const SELECTION_BRUSH_MARGIN_PX = 6
@@ -14,14 +15,10 @@ const { provideFn, injectFn } = createContextStore(
     navigator: NavigatorComposable,
     nodeRects: Map<NodeId, Rect>,
     isPortEnabled,
-    isValid: (id: NodeId) => boolean,
-    callbacks: {
-      onSelected?: (id: NodeId) => void
-      onDeselected?: (id: NodeId) => void
-    } = {},
+    options: SelectionOptions<NodeId, ExternalId>,
   ) =>
     proxyRefs({
-      ...useSelection(navigator, nodeRects, SELECTION_BRUSH_MARGIN_PX, isValid, callbacks),
+      ...useSelection(navigator, nodeRects, { margin: SELECTION_BRUSH_MARGIN_PX, ...options }),
       ...useGraphHover(isPortEnabled),
     }),
 )

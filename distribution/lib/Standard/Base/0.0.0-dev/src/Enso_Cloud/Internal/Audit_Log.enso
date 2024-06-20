@@ -30,6 +30,7 @@ type Audit_Log
          - `operation`
          - `localTimestamp`
          - `projectName`
+         - `projectSessionId`
     report_event event_type:Text message:Text (metadata:JS_Object = JS_Object.from_pairs []) (async : Boolean = True) -> Nothing =
         Illegal_Argument.handle_java_exception <|
             case async of

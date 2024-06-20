@@ -163,7 +163,7 @@ object Method {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.Method.Explicit(
@@ -342,7 +342,7 @@ object Method {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.Method.Binding(
@@ -485,7 +485,7 @@ object Method {
       )
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Definition.Method.Conversion(

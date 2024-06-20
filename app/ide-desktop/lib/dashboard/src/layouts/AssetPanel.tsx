@@ -1,8 +1,6 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -15,14 +13,15 @@ import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import type AssetQuery from '#/utilities/AssetQuery'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =====================
 // === AssetPanelTab ===
@@ -65,7 +64,6 @@ export interface AssetPanelRequiredProps {
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly isReadonly?: boolean
-  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
@@ -73,7 +71,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { backend, item, isReadonly = false, setItem, setQuery, category } = props
+  const { backend, item, isReadonly = false, setItem, category } = props
   const { dispatchAssetEvent, dispatchAssetListEvent } = props
 
   const { getText } = textProvider.useText()
@@ -114,12 +112,12 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
+      className="p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-frame pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
     >
-      <div className="flex gap-2">
+      <ariaComponents.ButtonGroup className="mt-4 grow-0 basis-8">
         {item != null &&
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
@@ -163,7 +161,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
-      </div>
+      </ariaComponents.ButtonGroup>
       {item == null || setItem == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}
@@ -177,7 +175,6 @@ export default function AssetPanel(props: AssetPanelProps) {
               item={item}
               setItem={setItem}
               category={category}
-              setQuery={setQuery}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}

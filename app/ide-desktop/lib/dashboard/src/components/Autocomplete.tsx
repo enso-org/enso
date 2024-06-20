@@ -1,10 +1,10 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import FocusRing from '#/components/styled/FocusRing'
 import Input from '#/components/styled/Input'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -191,7 +191,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               autoFocus={autoFocus}
               size={1}
               value={text ?? ''}
-              placeholder={placeholder}
+              placeholder={placeholder == null ? placeholder : placeholder}
               className="text grow rounded-full bg-transparent px-button-x"
               onFocus={() => {
                 setIsDropdownVisible(true)
@@ -236,7 +236,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         >
           <div
             className={tailwindMerge.twMerge(
-              'relative max-h-autocomplete-suggestions w-full overflow-auto rounded-default',
+              'relative max-h-autocomplete-suggestions w-full overflow-y-auto overflow-x-hidden rounded-default',
               isDropdownVisible && matchingItems.length !== 0 ? '' : 'h-0'
             )}
           >

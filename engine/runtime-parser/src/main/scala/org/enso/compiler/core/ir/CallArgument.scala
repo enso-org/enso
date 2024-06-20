@@ -124,7 +124,7 @@ object CallArgument {
       copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |CallArgument.Specified(

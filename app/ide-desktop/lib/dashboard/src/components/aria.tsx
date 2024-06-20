@@ -9,6 +9,10 @@ export * from 'react-aria-components'
 export * from '@react-stately/overlays'
 export * from '@react-stately/tooltip'
 
+// ==================
+// === mergeProps ===
+// ==================
+
 /** Merges multiple props objects together.
  * Event handlers are chained, classNames are combined, and ids are deduplicated -
  * different ids will trigger a side-effect and re-render components hooked up with `useId`.

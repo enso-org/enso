@@ -8,6 +8,12 @@ import java.nio.charset.StandardCharsets;
 
 public final class Parser implements AutoCloseable {
   private static void initializeLibraries() {
+    try {
+      System.loadLibrary("enso_parser");
+      return;
+    } catch (LinkageError err) {
+      // try harder to find the library
+    }
     String os = System.getProperty("os.name");
     String name;
     if (os.startsWith("Mac")) {
@@ -34,7 +40,7 @@ public final class Parser implements AutoCloseable {
       }
       parser = path;
       System.load(parser.getAbsolutePath());
-    } catch (URISyntaxException | LinkageError e) {
+    } catch (IllegalArgumentException | URISyntaxException | LinkageError e) {
       File root = new File(".").getAbsoluteFile();
       if (!searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
         throw new IllegalStateException("Cannot load parser from " + parser, e);
