@@ -61,10 +61,10 @@ object configuration {
     /** @return a path to the user projects directory. */
     @throws[DirectoriesException]
     def userProjectsPath: File = {
-        val projectsRootDirectory =
-          projectsRoot.getOrElse(Platform.getDirectories.getDocuments.toFile)
-        new File(projectsRootDirectory, projectsDirectory)
-      }
+      val projectsRootDirectory =
+        projectsRoot.getOrElse(Platform.getDirectories.getDocuments.toFile)
+      new File(projectsRootDirectory, projectsDirectory)
+    }
   }
 
   /** A configuration object for timeout properties.
