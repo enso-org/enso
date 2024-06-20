@@ -1,8 +1,6 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import * as React from 'react'
 
-import * as syncRefHooks from '#/hooks/syncRefHooks'
-
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 

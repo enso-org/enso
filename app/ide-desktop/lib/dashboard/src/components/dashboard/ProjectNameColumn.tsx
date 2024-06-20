@@ -270,22 +270,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   )
 
   const handleClick = inputBindings.handler({
-    open: () => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: asset.id,
-        shouldAutomaticallySwitchPage: true,
-        runInBackground: false,
-      })
-    },
-    run: () => {
-      dispatchAssetEvent({
-        type: AssetEventType.openProject,
-        id: asset.id,
-        shouldAutomaticallySwitchPage: false,
-        runInBackground: true,
-      })
-    },
     editName: () => {
       setIsEditing(true)
     },
@@ -314,6 +298,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           selectedKeys.current.size === 1
         ) {
           setIsEditing(true)
+        } else if (eventModule.isDoubleClick(event)) {
+          dispatchAssetEvent({
+            type: AssetEventType.openProject,
+            id: asset.id,
+            shouldAutomaticallySwitchPage: true,
+            runInBackground: false,
+          })
         }
       }}
     >

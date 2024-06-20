@@ -233,10 +233,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
             }
           }
         } else {
-          setShouldOpenWhenReady(!event.runInBackground)
-          setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
-          setIsRunningInBackground(event.runInBackground)
-          void openProject(event.runInBackground)
+          if (backendModule.IS_OPENING_OR_OPENED[state]) {
+            if (!isRunningInBackground) {
+              doOpenEditor(true)
+            }
+          } else {
+            setShouldOpenWhenReady(!event.runInBackground)
+            setShouldSwitchPage(event.shouldAutomaticallySwitchPage)
+            setIsRunningInBackground(event.runInBackground)
+            void openProject(event.runInBackground)
+          }
         }
         break
       }
