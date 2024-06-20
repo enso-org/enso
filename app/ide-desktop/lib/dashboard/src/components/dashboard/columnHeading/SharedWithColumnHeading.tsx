@@ -27,7 +27,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
   const isUnderPaywall = isFeatureUnderPaywall('share')
 
   return (
-    <div className="h-table-row flex w-full items-center gap-icon-with-text">
+    <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <ariaComponents.Button
         variant="icon"
         size="xsmall"

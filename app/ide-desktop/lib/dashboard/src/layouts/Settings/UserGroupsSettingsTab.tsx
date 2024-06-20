@@ -27,6 +27,7 @@ import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 import * as withPaywall from './withPaywall'

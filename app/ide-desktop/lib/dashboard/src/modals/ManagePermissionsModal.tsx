@@ -332,7 +332,7 @@ export default function ManagePermissionsModal<
                         autoFocus
                         placeholder={
                           // `listedUsers` will always include the current user.
-                          (listedUsers.data?? []).length > 1
+                          (listedUsers.data ?? []).length > 1
                             ? getText('inviteUserPlaceholder')
                             : getText('inviteFirstUserPlaceholder')
                         }
