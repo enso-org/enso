@@ -1785,7 +1785,8 @@
 },
 {
   "name":"org.enso.base_test_helpers.IntHolder",
-  "methods":[{"name":"<init>","parameterTypes":["int"] }]
+  "methods":[{"name":"<init>","parameterTypes":["int"] }],
+  "fields":[{"name":"value"}, {"name":"boxed"}]
 },
 {
   "name":"org.enso.base_test_helpers.IntHolderEquals",
