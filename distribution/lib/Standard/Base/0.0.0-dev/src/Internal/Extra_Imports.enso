@@ -18,6 +18,7 @@ polyglot java import org.enso.base.ObjectComparator
 # often used in tests
 polyglot java import java.util.ArrayList
 polyglot java import java.util.Map
+polyglot java import java.nio.CharBuffer
 polyglot java import java.nio.file.Path
 polyglot java import java.io.FileOutputStream
 polyglot java import java.math.BigInteger

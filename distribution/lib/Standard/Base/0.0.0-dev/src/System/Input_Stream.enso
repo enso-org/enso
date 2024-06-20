@@ -160,7 +160,8 @@ type Input_Stream
        The current stream may be invalidated after the conversion, and it should
        no longer be used - only the returned stream should be used.
     as_peekable_stream self -> Input_Stream = if self.is_peekable then self else
-        raw_java_stream = self.stream_resource.take
+        raw_stream = self.stream_resource.take
+        raw_java_stream = Stream_Utils.asInputStream raw_stream
         buffered_stream = BufferedInputStream.new raw_java_stream
         Input_Stream.new buffered_stream self.error_handler self.associated_source
 
