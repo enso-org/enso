@@ -797,7 +797,7 @@ type File
                 matcher = File_Utils.matchPath "glob:"+used_filter
                 all_files.filter file->
                     pathStr = self.relativize file . path
-                    matcher.test pathStr
+                    File_Utils.matches matcher pathStr
 
     ## GROUP Metadata
        ICON metadata
