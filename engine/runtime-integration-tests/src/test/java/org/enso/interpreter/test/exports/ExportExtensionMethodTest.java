@@ -74,7 +74,7 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        from project.T_Module export My_Type, Other_Type, extension_method
+        from project.T_Module export My_Type, My_Other_Type, extension_method
         """);
     var mainMod =
         new SourceModule(
