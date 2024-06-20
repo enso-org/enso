@@ -13,6 +13,7 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.No_Such_Conversion
+import project.Errors.Common.No_Such_Method
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
@@ -60,8 +61,8 @@ type Json
     parse : Text -> Nothing | Boolean | Number | Text | Vector | Date | Date_Time | Time_Of_Day | JS_Object ! Invalid_JSON
     parse (json : Text) =
         error_handler js_exception =
-            line = js_exception.payload.getLocation.getLineNr.to_text
-            col = js_exception.payload.getLocation.getColumnNr.to_text
+            line = Panic.catch No_Such_Method js_exception.payload.getLocation.getLineNr.to_text (_->"...")
+            col = Panic.catch No_Such_Method js_exception.payload.getLocation.getColumnNr.to_text (_->"...")
             pos = '[line: '+line+', column: '+col+']'
             Error.throw (Invalid_JSON.Error js_exception.payload.getOriginalMessage+' at position '+pos)
 
