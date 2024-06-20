@@ -278,7 +278,7 @@ const getTablePattern = (index: number) =>
   )
 
 function createNode(params: any) {
-  if (config.nodeType === VECTOR_NODE_TYPE || COLUMN_NODE_TYPE) {
+  if (config.nodeType === VECTOR_NODE_TYPE || config.nodeType === COLUMN_NODE_TYPE) {
     config.createNodes({
       content: getPattern(params.data[INDEX_FIELD_NAME]),
       commit: true,
