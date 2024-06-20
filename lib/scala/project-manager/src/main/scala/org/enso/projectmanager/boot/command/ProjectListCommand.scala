@@ -44,14 +44,14 @@ object ProjectListCommand {
     projectsPath: Option[File],
     limitOpt: Option[Int]
   ): ProjectListCommand[F] = {
-    val clock         = new RealClock[F]
-    val fileSystem    = new BlockingFileSystem[F](config.timeout.ioTimeout)
-    val gen           = new SystemGenerator[F]
-    val storageConfig = config.storage.copy(projectsPath = projectsPath)
+    val clock      = new RealClock[F]
+    val fileSystem = new BlockingFileSystem[F](config.timeout.ioTimeout)
+    val gen        = new SystemGenerator[F]
 
     val projectRepository =
       new ProjectFileRepository[F](
-        storageConfig,
+        projectsPath.getOrElse(config.storage.userProjectsPath),
+        config.storage,
         clock,
         fileSystem,
         gen

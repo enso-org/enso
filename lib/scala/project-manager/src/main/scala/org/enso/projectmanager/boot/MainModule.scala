@@ -76,6 +76,7 @@ class MainModule[
 
   lazy val projectRepository =
     new ProjectFileRepository[F](
+      config.storage.userProjectsPath,
       config.storage,
       clock,
       fileSystem,

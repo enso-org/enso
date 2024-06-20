@@ -39,6 +39,7 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
 class ProjectFileRepository[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
 ](
+  projectsPath: File,
   storageConfig: StorageConfig,
   clock: Clock[F],
   fileSystem: FileSystem[F],
@@ -60,7 +61,7 @@ class ProjectFileRepository[
   /** @inheritdoc */
   override def getAll(): F[ProjectRepositoryFailure, List[Project]] = {
     fileSystem
-      .list(storageConfig.userProjectsPath)
+      .list(projectsPath)
       .map(_.filter(_.isDirectory))
       .recover { case FileNotFound | NotDirectory =>
         Nil
@@ -243,7 +244,7 @@ class ProjectFileRepository[
 
     for {
       project <- getProject(projectId)
-      primaryPath = new File(storageConfig.userProjectsPath, newName)
+      primaryPath = new File(projectsPath, newName)
       finalPath <-
         if (isLocationOk(project.path, primaryPath)) {
           CovariantFlatMap[F].pure(primaryPath)
@@ -283,7 +284,7 @@ class ProjectFileRepository[
       .tailRecM[ProjectRepositoryFailure, Int, File](0) { number =>
         val path =
           new File(
-            storageConfig.userProjectsPath,
+            projectsPath,
             moduleName + genSuffix(number)
           )
         fileSystem
