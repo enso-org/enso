@@ -54,6 +54,35 @@ public class ExportStaticMethodTest {
   }
 
   @Test
+  public void staticAndModuleMethodsWithSameNameCanBeImported() throws IOException {
+    var tMod =
+        new SourceModule(
+            QualifiedName.fromString("T_Module"),
+            """
+        type My_Type
+            method x = x
+        method x = x
+        """);
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+        from project.T_Module import My_Type, method
+        main =
+            My_Type.method 42 == method 42
+        """);
+    var projDir = tempFolder.newFolder().toPath();
+    ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
+
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.isBoolean(), is(true));
+          assertThat(res.asBoolean(), is(true));
+        });
+  }
+
+  @Test
   public void moduleMethodIsInBindingMap() throws IOException {
     var tMod =
         new SourceModule(
@@ -85,7 +114,8 @@ public class ExportStaticMethodTest {
   public void staticMethodIsInBindingMap() throws IOException {
     var tMod =
         new SourceModule(
-            QualifiedName.fromString("T_Module"), """
+            QualifiedName.fromString("T_Module"),
+            """
         type My_Type
         My_Type.static_method x = x
         """);
