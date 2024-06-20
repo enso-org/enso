@@ -130,20 +130,26 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const isLoading = sortedLogs == null
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <FocusArea direction="horizontal">
         {innerProps => (
-          <div className="flex gap-3" {...innerProps}>
+          <div className="flex flex-wrap gap-3" {...innerProps}>
             <div className="flex items-center gap-2">
-              {getText('startDate')}
+              <ariaComponents.Text className="whitespace-nowrap">
+                {getText('startDate')}
+              </ariaComponents.Text>
               <DateInput date={startDate} onInput={setStartDate} />
             </div>
             <div className="flex items-center gap-2">
-              {getText('endDate')}
+              <ariaComponents.Text className="whitespace-nowrap">
+                {getText('endDate')}
+              </ariaComponents.Text>
               <DateInput date={endDate} onInput={setEndDate} />
             </div>
             <div className="flex items-center gap-2">
-              {getText('types')}
+              <ariaComponents.Text className="whitespace-nowrap">
+                {getText('types')}
+              </ariaComponents.Text>
               <Dropdown
                 multiple
                 items={backendModule.EVENT_TYPES}
@@ -162,8 +168,10 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 }}
               />
             </div>
-            <div className="flex items-center gap-activity-log-filter">
-              {getText('users')}
+            <div className="flex items-center gap-2">
+              <ariaComponents.Text className="whitespace-nowrap">
+                {getText('users')}
+              </ariaComponents.Text>
               <Dropdown
                 multiple
                 items={allEmails}
@@ -355,7 +363,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           )}
         </tbody>
       </table>
-    </>
+    </div>
   )
 }
 
