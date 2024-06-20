@@ -1,8 +1,6 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as appUtils from '#/appUtils'
 
 import * as eventCallback from '#/hooks/eventCallbackHooks'
@@ -19,6 +17,7 @@ import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as assetPanel from '#/layouts/AssetPanel'
+import AssetPanel from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTable from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
@@ -37,6 +36,7 @@ import AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ===================
 // === DriveStatus ===
@@ -72,8 +72,6 @@ export interface DriveProps {
   readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
-  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
-  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly doOpenEditor: (
     backend: Backend,
     project: backendModule.ProjectAsset,
@@ -85,10 +83,9 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { hidden, initialProjectName, projectStartupInfo, setProjectStartupInfo } = props
+  const { hidden, initialProjectName, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
-  const { setIsAssetPanelTemporarilyVisible, category, setCategory } = props
+  const { setProjectStartupInfo, doOpenEditor, doCloseEditor, category, setCategory } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -101,6 +98,12 @@ export default function Drive(props: DriveProps) {
   const [suggestions, setSuggestions] = React.useState<readonly assetSearchBar.Suggestion[]>([])
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
+  const [assetPanelProps, setAssetPanelProps] =
+    React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
+  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
+    () => localStorage.get('isAssetPanelVisible') ?? false
+  )
+  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const rootDirectoryId = React.useMemo(
     () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
     [backend, user]
@@ -117,11 +120,16 @@ export default function Drive(props: DriveProps) {
         : isCloud && user?.isEnabled !== true
           ? DriveStatus.notEnabled
           : DriveStatus.ok
+  const isAssetPanelVisible = isAssetPanelEnabled || isAssetPanelTemporarilyVisible
 
   const onSetCategory = eventCallback.useEventCallback((value: Category) => {
     setCategory(value)
     localStorage.set('driveCategory', value)
   })
+
+  React.useEffect(() => {
+    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
+  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {
@@ -278,64 +286,91 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.ok: {
       return (
-        <div
-          data-testid="drive-view"
-          className={tailwindMerge.twMerge(
-            'flex flex-1 flex-col gap-drive-heading overflow-visible px-page-x',
-            hidden && 'hidden'
-          )}
-        >
-          <DriveBar
-            backend={backend}
-            category={category}
-            query={query}
-            setQuery={setQuery}
-            suggestions={suggestions}
-            canDownload={canDownload}
-            doEmptyTrash={doEmptyTrash}
-            doCreateProject={doCreateProject}
-            doUploadFiles={doUploadFiles}
-            doCreateDirectory={doCreateDirectory}
-            doCreateSecret={doCreateSecret}
-            doCreateDatalink={doCreateDatalink}
-            dispatchAssetEvent={dispatchAssetEvent}
-          />
-          <div className="flex flex-1 gap-drive overflow-hidden">
-            <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
-              <CategorySwitcher
-                category={category}
-                setCategory={onSetCategory}
-                dispatchAssetEvent={dispatchAssetEvent}
-              />
-              {isCloud && (
-                <Labels
-                  backend={backend}
-                  draggable={category !== Category.trash}
-                  query={query}
-                  setQuery={setQuery}
-                />
-              )}
-            </div>
-            <AssetsTable
-              hidden={hidden}
+        <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
+          <div
+            data-testid="drive-view"
+            className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-page-x"
+          >
+            <DriveBar
+              backend={backend}
               query={query}
               setQuery={setQuery}
-              setSuggestions={setSuggestions}
-              setCanDownload={setCanDownload}
-              setProjectStartupInfo={setProjectStartupInfo}
+              suggestions={suggestions}
               category={category}
-              initialProjectName={initialProjectName}
-              projectStartupInfo={projectStartupInfo}
-              assetEvents={assetEvents}
+              canDownload={canDownload}
+              isAssetPanelOpen={isAssetPanelVisible}
+              setIsAssetPanelOpen={valueOrUpdater => {
+                const newValue =
+                  typeof valueOrUpdater === 'function'
+                    ? valueOrUpdater(isAssetPanelVisible)
+                    : valueOrUpdater
+                setIsAssetPanelTemporarilyVisible(false)
+                setIsAssetPanelEnabled(newValue)
+              }}
+              doEmptyTrash={doEmptyTrash}
+              doCreateProject={doCreateProject}
+              doUploadFiles={doUploadFiles}
+              doCreateDirectory={doCreateDirectory}
+              doCreateSecret={doCreateSecret}
+              doCreateDatalink={doCreateDatalink}
               dispatchAssetEvent={dispatchAssetEvent}
-              assetListEvents={assetListEvents}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-              setAssetPanelProps={setAssetPanelProps}
-              setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-              targetDirectoryNodeRef={targetDirectoryNodeRef}
-              doOpenEditor={doOpenEditor}
-              doCloseEditor={doCloseEditor}
             />
+            <div className="flex flex-1 gap-drive overflow-hidden">
+              <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
+                <CategorySwitcher
+                  category={category}
+                  setCategory={onSetCategory}
+                  dispatchAssetEvent={dispatchAssetEvent}
+                />
+                {isCloud && (
+                  <Labels
+                    backend={backend}
+                    draggable={category !== Category.trash}
+                    query={query}
+                    setQuery={setQuery}
+                  />
+                )}
+              </div>
+              <AssetsTable
+                hidden={hidden}
+                query={query}
+                setQuery={setQuery}
+                setCanDownload={setCanDownload}
+                setProjectStartupInfo={setProjectStartupInfo}
+                category={category}
+                setSuggestions={setSuggestions}
+                initialProjectName={initialProjectName}
+                projectStartupInfo={projectStartupInfo}
+                assetEvents={assetEvents}
+                dispatchAssetEvent={dispatchAssetEvent}
+                assetListEvents={assetListEvents}
+                dispatchAssetListEvent={dispatchAssetListEvent}
+                setAssetPanelProps={setAssetPanelProps}
+                setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
+                targetDirectoryNodeRef={targetDirectoryNodeRef}
+                doOpenEditor={doOpenEditor}
+                doCloseEditor={doCloseEditor}
+              />
+            </div>
+          </div>
+          <div
+            className={tailwindMerge.twMerge(
+              'flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out',
+              isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
+            )}
+          >
+            {isAssetPanelVisible && (
+              <AssetPanel
+                key={assetPanelProps?.item?.item.id}
+                backend={assetPanelProps?.backend ?? null}
+                item={assetPanelProps?.item ?? null}
+                setItem={assetPanelProps?.setItem ?? null}
+                category={category}
+                dispatchAssetEvent={dispatchAssetEvent}
+                dispatchAssetListEvent={dispatchAssetListEvent}
+                isReadonly={category === Category.trash}
+              />
+            )}
           </div>
         </div>
       )

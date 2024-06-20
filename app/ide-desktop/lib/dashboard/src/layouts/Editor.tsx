@@ -13,13 +13,6 @@ import type * as backendModule from '#/services/Backend'
 import type * as types from '../../../types/types'
 
 // =================
-// === Constants ===
-// =================
-
-/** The horizontal offset of the editor's top bar from the left edge of the window. */
-const TOP_BAR_X_OFFSET_PX = 96
-
-// =================
 // === Component ===
 // =================
 
@@ -84,7 +77,7 @@ export default function Editor(props: EditorProps) {
             displayedProjectName: project.name,
           },
           window: {
-            topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
+            topBarOffset: '0',
           },
         },
         projectId,

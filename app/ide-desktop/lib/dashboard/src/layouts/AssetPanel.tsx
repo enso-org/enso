@@ -1,8 +1,6 @@
 /** @file A panel containing the description and settings for an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -14,6 +12,7 @@ import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
+import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
@@ -21,6 +20,7 @@ import type Backend from '#/services/Backend'
 import * as array from '#/utilities/array'
 import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =====================
 // === AssetPanelTab ===
@@ -105,12 +105,12 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
+      className="p-top-bar-margin pointer-events-none absolute flex h-full w-asset-panel flex-col gap-asset-panel bg-frame pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
     >
-      <div className="flex">
+      <HorizontalMenuBar className="mt-4">
         {item != null &&
           item.item.type !== backendModule.AssetType.secret &&
           item.item.type !== backendModule.AssetType.directory && (
@@ -118,8 +118,8 @@ export default function AssetPanel(props: AssetPanelProps) {
               size="custom"
               variant="custom"
               className={tailwindMerge.twMerge(
-                'button pointer-events-auto select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame',
-                tab === AssetPanelTab.versions && 'bg-selected-frame active'
+                'button pointer-events-auto h-8 select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-primary/[8%]',
+                tab === AssetPanelTab.versions && 'bg-primary/[8%] active'
               )}
               onPress={() => {
                 setTab(oldTab =>
@@ -132,9 +132,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               {getText('versions')}
             </ariaComponents.Button>
           )}
-        {/* Spacing. The top right asset and user bars overlap this area. */}
-        <div className="grow" />
-      </div>
+      </HorizontalMenuBar>
       {item == null || setItem == null || backend == null ? (
         <div className="grid grow place-items-center text-lg">
           {getText('selectExactlyOneAssetToViewItsDetails')}

@@ -187,7 +187,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       </FocusArea>
       <table className="table-fixed self-start rounded-rows">
         <thead>
-          <tr className="h-row">
+          <tr className="h-table-row">
             <th className="w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r text-left text-sm font-semibold last:border-r-0" />
             <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
               <ariaComponents.Button
@@ -200,7 +200,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByName')
                       : getText('sortByNameDescending')
                 }
-                className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type
@@ -247,7 +247,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByEmail')
                       : getText('sortByEmailDescending')
                 }
-                className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email
@@ -294,7 +294,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByTimestamp')
                       : getText('sortByTimestampDescending')
                 }
-                className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp
@@ -334,7 +334,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         </thead>
         <tbody className="select-text">
           {isLoading ? (
-            <tr className="h-row">
+            <tr className="h-table-row">
               <td colSpan={4} className="rounded-full bg-transparent">
                 <div className="flex justify-center">
                   <StatelessSpinner size={32} state={statelessSpinner.SpinnerState.loadingMedium} />
@@ -343,7 +343,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
             </tr>
           ) : (
             sortedLogs.map((log, i) => (
-              <tr key={i} className="h-row">
+              <tr key={i} className="h-table-row">
                 <td className="border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r first:rounded-l-full last:rounded-r-full last:border-r-0">
                   <div className="flex items-center">
                     <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />

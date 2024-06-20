@@ -17,11 +17,11 @@ export default function LabelsColumnHeading(props: column.AssetColumnHeadingProp
   const { getText } = textProvider.useText()
 
   return (
-    <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
+    <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         active
         image={TagIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('labelsColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.labels)

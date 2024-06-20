@@ -17,11 +17,11 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
   const { getText } = textProvider.useText()
 
   return (
-    <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
+    <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         active
         image={PeopleIcon}
-        className="size-icon"
+        className="size-4"
         alt={getText('sharedWithColumnHide')}
         onPress={() => {
           hideColumn(columnUtils.Column.sharedWith)

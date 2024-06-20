@@ -1,8 +1,6 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
@@ -11,6 +9,8 @@ import type * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 
 import * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =============
 // === Label ===

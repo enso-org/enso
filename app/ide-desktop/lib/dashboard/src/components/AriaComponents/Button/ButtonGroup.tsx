@@ -1,7 +1,7 @@
 /** @file A group of buttons. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
+import * as twv from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===

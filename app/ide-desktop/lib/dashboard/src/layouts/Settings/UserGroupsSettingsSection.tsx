@@ -1,8 +1,6 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -24,6 +22,8 @@ import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================================
 // === UserGroupsSettingsSection ===

@@ -111,7 +111,7 @@ export default function KeyboardShortcutsSettingsSection() {
                         <SvgMask
                           src={info.icon ?? BlankIcon}
                           color={info.color}
-                          className="size-icon"
+                          className="size-4"
                         />
                       </td>
                       <td className="border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
@@ -140,7 +140,7 @@ export default function KeyboardShortcutsSettingsSection() {
                                         doRefresh()
                                       }}
                                     >
-                                      <SvgMask src={CrossIcon} className="size-icon" />
+                                      <SvgMask src={CrossIcon} className="size-4" />
                                     </ariaComponents.Button>
                                   </div>
                                 ))}

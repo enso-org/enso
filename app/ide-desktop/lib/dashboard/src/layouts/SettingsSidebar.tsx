@@ -1,8 +1,6 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as textProvider from '#/providers/TextProvider'
 
 import * as settingsData from '#/layouts/Settings/settingsData'
@@ -12,6 +10,8 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =======================
 // === SettingsSidebar ===
