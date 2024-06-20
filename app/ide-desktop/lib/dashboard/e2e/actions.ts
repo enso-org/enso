@@ -1,7 +1,12 @@
+/* eslint-disable @typescript-eslint/no-redeclare */
 /** @file Various actions, locators, and constants used in end-to-end tests. */
 import * as test from '@playwright/test'
 
+import DrivePageActions from './actions/DrivePageActions'
+import LoginPageActions from './actions/LoginPageActions'
 import * as apiModule from './api'
+
+/* eslint-disable @typescript-eslint/no-namespace */
 
 // =================
 // === Constants ===
@@ -33,21 +38,6 @@ export function locatePasswordInput(page: test.Locator | test.Page) {
 /** Find a "confirm password" input (if any) on the current page. */
 export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
   return page.getByPlaceholder('Confirm your password')
-}
-
-/** Find a "current password" input (if any) on the current page. */
-export function locateCurrentPasswordInput(page: test.Locator | test.Page) {
-  return page.getByPlaceholder('Enter your current password')
-}
-
-/** Find a "new password" input (if any) on the current page. */
-export function locateNewPasswordInput(page: test.Locator | test.Page) {
-  return page.getByPlaceholder('Enter your new password')
-}
-
-/** Find a "confirm new password" input (if any) on the current page. */
-export function locateConfirmNewPasswordInput(page: test.Locator | test.Page) {
-  return page.getByPlaceholder('Confirm your new password')
 }
 
 /** Find a "username" input (if any) on the current page. */
@@ -109,21 +99,6 @@ export function locateRegisterButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Register' }).getByText('Register')
 }
 
-/** Find a "change" button (if any) on the current locator. */
-export function locateChangeButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Change' }).getByText('Change')
-}
-
-/** Find a user menu button (if any) on the current locator. */
-export function locateUserMenuButton(page: test.Locator | test.Page) {
-  return page.getByAltText('User Settings').locator('visible=true')
-}
-
-/** Find a "sign out" button (if any) on the current locator. */
-export function locateLogoutButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Logout' }).getByText('Logout')
-}
-
 /** Find a "set username" button (if any) on the current page. */
 export function locateSetUsernameButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Set Username' }).getByText('Set Username')
@@ -163,21 +138,6 @@ export function locateLabelsPanelLabels(page: test.Page) {
       // eslint-disable-next-line no-restricted-properties
       .and(page.locator(':nth-child(1)'))
   )
-}
-
-/** Find a "cloud" category button (if any) on the current page. */
-export function locateCloudButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Cloud' }).getByText('Cloud')
-}
-
-/** Find a "local" category button (if any) on the current page. */
-export function locateLocalButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Local' }).getByText('Local')
-}
-
-/** Find a "trash" button (if any) on the current page. */
-export function locateTrashButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Trash' }).getByText('Trash')
 }
 
 /** Find a tick button (if any) on the current page. */
@@ -245,121 +205,7 @@ export function locateTrashCategory(page: test.Locator | test.Page) {
   return page.getByLabel('Trash').locator('visible=true')
 }
 
-// === Context menu buttons ===
-
-/** Find an "open" button (if any) on the current page. */
-export function locateOpenButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Open' }).getByText('Open')
-}
-
-/** Find an "upload to cloud" button (if any) on the current page. */
-export function locateUploadToCloudButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Upload To Cloud' }).getByText('Upload To Cloud')
-}
-
-/** Find a "rename" button (if any) on the current page. */
-export function locateRenameButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Rename' }).getByText('Rename')
-}
-
-/** Find a "snapshot" button (if any) on the current page. */
-export function locateSnapshotButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Snapshot' }).getByText('Snapshot')
-}
-
-/** Find a "move to trash" button (if any) on the current page. */
-export function locateMoveToTrashButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Move To Trash' }).getByText('Move To Trash')
-}
-
-/** Find a "move all to trash" button (if any) on the current page. */
-export function locateMoveAllToTrashButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Move All To Trash' }).getByText('Move All To Trash')
-}
-
-/** Find a "restore from trash" button (if any) on the current page. */
-export function locateRestoreFromTrashButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Restore From Trash' }).getByText('Restore From Trash')
-}
-
-/** Find a "restore all from trash" button (if any) on the current page. */
-export function locateRestoreAllFromTrashButton(page: test.Locator | test.Page) {
-  return page
-    .getByRole('button', { name: 'Restore All From Trash' })
-    .getByText('Restore All From Trash')
-}
-
-/** Find a "share" button (if any) on the current page. */
-export function locateShareButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Share' }).getByText('Share')
-}
-
-/** Find a "label" button (if any) on the current page. */
-export function locateLabelButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Label' }).getByText('Label')
-}
-
-/** Find a "duplicate" button (if any) on the current page. */
-export function locateDuplicateButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Duplicate' }).getByText('Duplicate')
-}
-
-/** Find a "copy" button (if any) on the current page. */
-export function locateCopyButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Copy' }).getByText('Copy')
-}
-
-/** Find a "cut" button (if any) on the current page. */
-export function locateCutButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Cut' }).getByText('Cut')
-}
-
-/** Find a "paste" button (if any) on the current page. */
-export function locatePasteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Paste' }).getByText('Paste')
-}
-
-/** Find a "download" button (if any) on the current page. */
-export function locateDownloadButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Download' }).getByText('Download')
-}
-
-/** Find a "download app" button (if any) on the current page. */
-export function locateDownloadAppButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Download App' }).getByText('Download App')
-}
-
-/** Find an "upload files" button (if any) on the current page. */
-export function locateUploadFilesButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Upload Files' }).getByText('Upload Files')
-}
-
-/** Find a "start modal" button (if any) on the current page. */
-export function locateStartModalButton(page: test.Locator | test.Page) {
-  return page
-    .getByRole('button', { name: 'Start with a template' })
-    .getByText('Start with a template')
-}
-
-/** Find a "new project" button (if any) on the current page. */
-export function locateNewProjectButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Empty Project' }).getByText('New Empty Project')
-}
-
-/** Find a "new folder" button (if any) on the current page. */
-export function locateNewFolderButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Folder' }).getByText('New Folder')
-}
-
-/** Find a "new secret" button (if any) on the current page. */
-export function locateNewSecretButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Secret' }).getByText('New Secret')
-}
-
-/** Find a "new data connector" button (if any) on the current page. */
-export function locateNewDataConnectorButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'New Data Connector' }).getByText('New Data Connector')
-}
+// === Other buttons ===
 
 /** Find a "new label" button (if any) on the current page. */
 export function locateNewLabelButton(page: test.Locator | test.Page) {
@@ -371,9 +217,7 @@ export function locateUpgradeButton(page: test.Locator | test.Page) {
   return page.getByRole('link', { name: 'Upgrade', exact: true }).getByText('Upgrade').first()
 }
 
-/**
- * Find a not enabled stub view (if any) on the current page.
- */
+/** Find a not enabled stub view (if any) on the current page. */
 export function locateNotEnabledStub(page: test.Locator | test.Page) {
   return page.getByTestId('not-enabled-stub')
 }
@@ -388,19 +232,9 @@ export function locateNewSecretIcon(page: test.Locator | test.Page) {
   return page.getByRole('button').filter({ has: page.getByAltText('New Secret') })
 }
 
-/** Find an "upload files" icon (if any) on the current page. */
-export function locateUploadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Import') })
-}
-
 /** Find a "download files" icon (if any) on the current page. */
 export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
   return page.getByRole('button').filter({ has: page.getByAltText('Export') })
-}
-
-/** Find an icon to open or close the asset panel (if any) on the current page. */
-export function locateAssetPanelIcon(page: test.Locator | test.Page) {
-  return page.getByLabel('Asset Panel').locator('visible=true')
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
@@ -418,6 +252,11 @@ export function locateSearchBarSuggestions(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-suggestion')
 }
 
+/** Find a "home page" icon (if any) on the current page. */
+export function locateHomePageIcon(page: test.Locator | test.Page) {
+  return page.getByRole('button').filter({ has: page.getByAltText('Home') })
+}
+
 // === Icon locators ===
 
 // These are specifically icons that are not also buttons.
@@ -433,26 +272,14 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
   return page.getByAltText('Sort Descending')
 }
 
-// === Page locators ===
-
-/** Find a "drive page" icon (if any) on the current page. */
-export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Data Catalog' })
-}
-
-/** Find an "editor page" icon (if any) on the current page. */
-export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Spatial Analysis' })
-}
-
-/** Find a "settings page" icon (if any) on the current page. */
-export function locateSettingsPageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Settings') })
-}
+// === Heading locators ===
 
 /** Find a "name" column heading (if any) on the current page. */
 export function locateNameColumnHeading(page: test.Locator | test.Page) {
-  return page.getByLabel('Sort by name').or(page.getByLabel('Stop sorting by name'))
+  return page
+    .getByLabel('Sort by name')
+    .or(page.getByLabel('Stop sorting by name'))
+    .or(page.getByLabel('Sort by name descending'))
 }
 
 /** Find a "modified" column heading (if any) on the current page. */
@@ -460,6 +287,7 @@ export function locateModifiedColumnHeading(page: test.Locator | test.Page) {
   return page
     .getByLabel('Sort by modification date')
     .or(page.getByLabel('Stop sorting by modification date'))
+    .or(page.getByLabel('Sort by modification date descending'))
 }
 
 // === Container locators ===
@@ -582,7 +410,7 @@ export function locateLabelsList(page: test.Page) {
 /** Find an asset panel (if any) on the current page. */
 export function locateAssetPanel(page: test.Page) {
   // This has no identifying features.
-  return page.getByTestId('asset-panel')
+  return page.getByTestId('asset-panel').locator('visible=true')
 }
 
 /** Find a search bar (if any) on the current page. */
@@ -619,6 +447,171 @@ export function locateAssetPanelPermissions(page: test.Page) {
   return locateAssetPanel(page).getByTestId('asset-panel-permissions').getByRole('button')
 }
 
+export namespace settings {
+  export namespace tab {
+    export namespace organization {
+      /** Find an "organization" tab button. */
+      export function locate(page: test.Page) {
+        return page.getByRole('button', { name: 'Organization' }).getByText('Organization')
+      }
+    }
+    export namespace members {
+      /** Find a "members" tab button. */
+      export function locate(page: test.Page) {
+        return page.getByRole('button', { name: 'Members', exact: true }).getByText('Members')
+      }
+    }
+  }
+
+  export namespace userAccount {
+    /** Navigate so that the "user account" settings section is visible. */
+    export async function go(page: test.Page) {
+      await test.test.step('Go to "user account" settings section', async () => {
+        await press(page, 'Mod+,')
+      })
+    }
+
+    /** Find a "user account" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('User Account')).locator('..')
+    }
+
+    /** Find a "name" input in the "user account" settings section. */
+    export function locateNameInput(page: test.Page) {
+      return locate(page).getByLabel('Name')
+    }
+  }
+
+  export namespace changePassword {
+    /** Navigate so that the "change password" settings section is visible. */
+    export async function go(page: test.Page) {
+      await test.test.step('Go to "change password" settings section', async () => {
+        await press(page, 'Mod+,')
+      })
+    }
+
+    /** Find a "change password" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Change Password')).locator('..')
+    }
+
+    /** Find a "current password" input in the "user account" settings section. */
+    export function locateCurrentPasswordInput(page: test.Page) {
+      return locate(page).getByLabel('Current password')
+    }
+
+    /** Find a "new password" input in the "user account" settings section. */
+    export function locateNewPasswordInput(page: test.Page) {
+      return locate(page).getByLabel('New password', { exact: true })
+    }
+
+    /** Find a "confirm new password" input in the "user account" settings section. */
+    export function locateConfirmNewPasswordInput(page: test.Page) {
+      return locate(page).getByLabel('Confirm new password')
+    }
+
+    /** Find a "change" button. */
+    export function locateChangeButton(page: test.Page) {
+      return locate(page).getByRole('button', { name: 'Change' }).getByText('Change')
+    }
+  }
+
+  export namespace profilePicture {
+    /** Navigate so that the "profile picture" settings section is visible. */
+    export async function go(page: test.Page) {
+      await test.test.step('Go to "profile picture" settings section', async () => {
+        await press(page, 'Mod+,')
+      })
+    }
+
+    /** Find a "profile picture" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Profile Picture')).locator('..')
+    }
+
+    /** Find a "profile picture" input. */
+    export function locateInput(page: test.Page) {
+      return locate(page).locator('label')
+    }
+  }
+
+  export namespace organization {
+    /** Navigate so that the "organization" settings section is visible. */
+    export async function go(page: test.Page) {
+      await test.test.step('Go to "organization" settings section', async () => {
+        await press(page, 'Mod+,')
+        await settings.tab.organization.locate(page).click()
+      })
+    }
+
+    /** Find an "organization" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Organization')).locator('..')
+    }
+
+    /** Find a "name" input in the "organization" settings section. */
+    export function locateNameInput(page: test.Page) {
+      return locate(page).getByLabel('Organization display name')
+    }
+
+    /** Find an "email" input in the "organization" settings section. */
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    export function locateEmailInput(page: test.Page) {
+      return locate(page).getByLabel('Email')
+    }
+
+    /** Find an "website" input in the "organization" settings section. */
+    export function locateWebsiteInput(page: test.Page) {
+      return locate(page).getByLabel('Website')
+    }
+
+    /** Find an "location" input in the "organization" settings section. */
+    export function locateLocationInput(page: test.Page) {
+      return locate(page).getByLabel('Location')
+    }
+  }
+
+  export namespace organizationProfilePicture {
+    /** Navigate so that the "organization profile picture" settings section is visible. */
+    export async function go(page: test.Page) {
+      await test.test.step('Go to "organization profile picture" settings section', async () => {
+        await press(page, 'Mod+,')
+        await settings.tab.organization.locate(page).click()
+      })
+    }
+
+    /** Find an "organization profile picture" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Profile Picture')).locator('..')
+    }
+
+    /** Find a "profile picture" input. */
+    export function locateInput(page: test.Page) {
+      return locate(page).locator('label')
+    }
+  }
+
+  export namespace members {
+    /** Navigate so that the "members" settings section is visible. */
+    export async function go(page: test.Page, force = false) {
+      await test.test.step('Go to "members" settings section', async () => {
+        await press(page, 'Mod+,')
+        await settings.tab.members.locate(page).click({ force })
+      })
+    }
+
+    /** Find a "members" settings section. */
+    export function locate(page: test.Page) {
+      return page.getByRole('heading').and(page.getByText('Members')).locator('..')
+    }
+
+    /** Find all rows representing members of the current organization. */
+    export function locateMembersRows(page: test.Page) {
+      return locate(page).locator('tbody').getByRole('row')
+    }
+  }
+}
+
 // ===============================
 // === Visual layout utilities ===
 // ===============================
@@ -631,7 +624,7 @@ export function getAssetRowLeftPx(locator: test.Locator) {
 }
 
 // ===================================
-// === expect functions for themes ===
+// === Expect functions for themes ===
 // ===================================
 
 /** A test assertion to confirm that the element has the class `selected`. */
@@ -641,45 +634,29 @@ export async function expectClassSelected(locator: test.Locator) {
   })
 }
 
-/** A test assertion to confirm that the element has the class `selected`. */
-export async function expectNotTransparent(locator: test.Locator) {
-  await test.test.step('expect.not.transparent', async () => {
-    await test.expect
-      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
-      .not.toBe('0')
+// ==============================
+// === Other expect functions ===
+// ==============================
+
+/** A test assertion to confirm that the element is fully transparent. */
+export async function expectOpacity0(locator: test.Locator) {
+  await test.test.step('Expect `opacity: 0`', async () => {
+    await test
+      .expect(async () => {
+        test.expect(await locator.evaluate(el => getComputedStyle(el).opacity)).toBe('0')
+      })
+      .toPass()
   })
 }
 
-/** A test assertion to confirm that the element has the class `selected`. */
-export async function expectTransparent(locator: test.Locator) {
-  await test.test.step('expect.transparent', async () => {
-    await test.expect
-      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
-      .toBe('0')
-  })
-}
-
-// ============================
-// === expectPlaceholderRow ===
-// ============================
-
-/** A test assertion to confirm that there is only one row visible, and that row is the
- * placeholder row displayed when there are no assets to show. */
-export async function expectPlaceholderRow(page: test.Page) {
-  const assetRows = locateAssetRows(page)
-  await test.test.step('Expect placeholder row', async () => {
-    await test.expect(assetRows).toHaveCount(1)
-    await test.expect(assetRows).toHaveText(/You have no files/)
-  })
-}
-
-/** A test assertion to confirm that there is only one row visible, and that row is the
- * placeholder row displayed when there are no assets in Trash. */
-export async function expectTrashPlaceholderRow(page: test.Page) {
-  const assetRows = locateAssetRows(page)
-  await test.test.step('Expect trash placeholder row', async () => {
-    await test.expect(assetRows).toHaveCount(1)
-    await test.expect(assetRows).toHaveText(/Your trash is empty/)
+/** A test assertion to confirm that the element is not fully transparent. */
+export async function expectNotOpacity0(locator: test.Locator) {
+  await test.test.step('Expect not `opacity: 0`', async () => {
+    await test
+      .expect(async () => {
+        test.expect(await locator.evaluate(el => getComputedStyle(el).opacity)).not.toBe('0')
+      })
+      .toPass()
   })
 }
 
@@ -688,7 +665,7 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
 // =======================
 
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+export const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
 
 /** Click an asset row. The center must not be clicked as that is the button for adding a label. */
 export async function clickAssetRow(assetRow: test.Locator) {
@@ -727,19 +704,21 @@ export async function modModifier(page: test.Page) {
 /** Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
  * on all other platforms. */
 export async function press(page: test.Page, keyOrShortcut: string) {
-  if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
-    let userAgent = ''
-    await test.test.step('Detect browser OS', async () => {
-      userAgent = await page.evaluate(() => navigator.userAgent)
-    })
-    const isMacOS = /\bMac OS\b/i.test(userAgent)
-    const ctrlKey = isMacOS ? 'Meta' : 'Control'
-    const deleteKey = isMacOS ? 'Backspace' : 'Delete'
-    const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
-    await test.test.step(`Press '${shortcut}'`, () => page.keyboard.press(shortcut))
-  } else {
-    await page.keyboard.press(keyOrShortcut)
-  }
+  await test.test.step(`Press '${keyOrShortcut}'`, async () => {
+    if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
+      let userAgent = ''
+      await test.test.step('Detect browser OS', async () => {
+        userAgent = await page.evaluate(() => navigator.userAgent)
+      })
+      const isMacOS = /\bMac OS\b/i.test(userAgent)
+      const ctrlKey = isMacOS ? 'Meta' : 'Control'
+      const deleteKey = isMacOS ? 'Backspace' : 'Delete'
+      const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
+      await page.keyboard.press(shortcut)
+    } else {
+      await page.keyboard.press(keyOrShortcut)
+    }
+  })
 }
 
 // =============
@@ -754,12 +733,31 @@ export async function login(
   email = 'email@example.com',
   password = VALID_PASSWORD
 ) {
-  await page.goto('/')
-  await locateEmailInput(page).fill(email)
-  await locatePasswordInput(page).fill(password)
-  await locateLoginButton(page).click()
-  await locateToastCloseButton(page).click()
-  await passTermsAndConditionsDialog({ page })
+  await test.test.step('Login', async () => {
+    await page.goto('/')
+    await locateEmailInput(page).fill(email)
+    await locatePasswordInput(page).fill(password)
+    await locateLoginButton(page).click()
+    await locateToastCloseButton(page).click()
+    await passTermsAndConditionsDialog({ page })
+  })
+}
+
+// ==============================
+// === mockIsInPlaywrightTest ===
+// ==============================
+
+/** Inject `isInPlaywrightTest` into the page. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function mockIsInPlaywrightTest({ page }: MockParams) {
+  await test.test.step('Mock `isInPlaywrightTest`', async () => {
+    await page.evaluate(() => {
+      // @ts-expect-error This is SAFE - it is a mistake for this variable to be written to
+      // from anywhere else.
+      window.isInPlaywrightTest = true
+    })
+  })
 }
 
 // ================
@@ -779,7 +777,8 @@ interface MockParams {
 // eslint-disable-next-line no-restricted-syntax
 async function mockDate({ page }: MockParams) {
   // https://github.com/microsoft/playwright/issues/6347#issuecomment-1085850728
-  await page.addInitScript(`{
+  await test.test.step('Mock Date', async () => {
+    await page.addInitScript(`{
         Date = class extends Date {
             constructor(...args) {
                 if (args.length === 0) {
@@ -793,20 +792,21 @@ async function mockDate({ page }: MockParams) {
         const __DateNow = Date.now;
         Date.now = () => __DateNow() + __DateNowOffset;
     }`)
+  })
 }
 
-/**
- * Passes Terms and conditions dialog
- */
+/** Pass the Terms and conditions dialog. */
 export async function passTermsAndConditionsDialog({ page }: MockParams) {
   // wait for terms and conditions dialog to appear
   // but don't fail if it doesn't appear
   try {
-    // wait for terms and conditions dialog to appear
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
-    await page.getByRole('checkbox').click()
-    await page.getByRole('button', { name: 'Accept' }).click()
+    await test.test.step('Accept Terms and Conditions', async () => {
+      // wait for terms and conditions dialog to appear
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
+      await page.getByRole('checkbox').click()
+      await page.getByRole('button', { name: 'Accept' }).click()
+    })
   } catch (error) {
     // do nothing
   }
@@ -828,9 +828,12 @@ export const mockApi = apiModule.mockApi
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAll({ page }: MockParams) {
-  const api = await mockApi({ page })
-  await mockDate({ page })
-  return { api }
+  return await test.test.step('Execute all mocks', async () => {
+    const api = await mockApi({ page })
+    await mockIsInPlaywrightTest({ page })
+    await mockDate({ page })
+    return { api, pageActions: new LoginPageActions(page) }
+  })
 }
 
 // =======================
@@ -841,8 +844,13 @@ export async function mockAll({ page }: MockParams) {
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
 export async function mockAllAndLogin({ page }: MockParams) {
-  const mocks = await mockAll({ page })
-  await login({ page })
-  await passTermsAndConditionsDialog({ page })
-  return mocks
+  return await test.test.step('Execute all mocks and login', async () => {
+    const mocks = await mockAll({ page })
+    await login({ page })
+    await passTermsAndConditionsDialog({ page })
+    // This MUST run after login because globals are reset when the browser
+    // is navigated to another page.
+    await mockIsInPlaywrightTest({ page })
+    return { ...mocks, pageActions: new DrivePageActions(page) }
+  })
 }

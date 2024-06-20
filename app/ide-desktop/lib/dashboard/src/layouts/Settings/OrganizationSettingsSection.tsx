@@ -107,6 +107,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
         <aria.TextField
           key={organization?.name ?? 0}
           defaultValue={organization?.name ?? ''}
+          validate={name => (/\S/.test(name) ? true : '')}
           className="flex h-row gap-settings-entry"
         >
           <aria.Label className="text my-auto w-organization-settings-label">
@@ -122,28 +123,32 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
         <aria.TextField
           key={organization?.email ?? 1}
           defaultValue={organization?.email ?? ''}
-          className="flex h-row gap-settings-entry"
+          validate={email => (isEmail(email) ? true : getText('invalidEmailValidationError'))}
+          className="flex h-row items-start gap-settings-entry"
         >
           <aria.Label className="text my-auto w-organization-settings-label">
             {getText('email')}
           </aria.Label>
-          <SettingsInput
-            key={organization?.email}
-            ref={emailRef}
-            type="text"
-            onSubmit={value => {
-              if (isEmail(value)) {
-                void doUpdateEmail()
-              } else {
-                emailRef.current?.focus()
-              }
-            }}
-            onChange={() => {
-              emailRef.current?.setCustomValidity(
-                isEmail(emailRef.current.value) ? '' : 'Invalid email.'
-              )
-            }}
-          />
+          <div className="flex grow flex-col">
+            <SettingsInput
+              key={organization?.email}
+              ref={emailRef}
+              type="text"
+              onSubmit={value => {
+                if (isEmail(value)) {
+                  void doUpdateEmail()
+                } else {
+                  emailRef.current?.focus()
+                }
+              }}
+              onChange={() => {
+                emailRef.current?.setCustomValidity(
+                  isEmail(emailRef.current.value) ? '' : 'Invalid email.'
+                )
+              }}
+            />
+            <aria.FieldError className="text-red-700" />
+          </div>
         </aria.TextField>
         <aria.TextField
           key={organization?.website ?? 2}

@@ -51,6 +51,8 @@
   "otherUserIsUsingProjectError": "Someone else is using this project",
   "localBackendNotDetectedError": "Could not detect the local backend",
 
+  "invalidEmailValidationError": "Invalid email",
+
   "projectHasNoSourceFilesPhrase": "project has no source files",
   "fileNotFoundPhrase": "file not found",
 
@@ -604,6 +606,7 @@
   "userGroupNamePlaceholder": "Enter the name of the user group",
 
   "assetSearchFieldLabel": "Search through items",
+  "startModalLabel": "Start modal",
   "userMenuLabel": "User menu",
   "infoMenuLabel": "Info menu",
   "categorySwitcherMenuLabel": "Category switcher",
@@ -643,10 +646,8 @@
   "arbitraryFormErrorMessage": "Something went wrong while submitting the form. Please try again or contact the administrators.",
 
   "subscribeSubmit": "Subscribe",
-  "BankCardLabel": "Bank Card",
+  "bankCardLabel": "Bank Card",
   "contactSales": "Contact Sales",
-  "contactSalesDescription": "Contact our sales team to learn more about our Enterprise plan.",
-  "ContactSalesButtonLabel": "Contact Us",
 
   "setOrgNameTitle": "Set your organization name",
 

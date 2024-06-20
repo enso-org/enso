@@ -108,6 +108,7 @@ declare global {
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
         readonly navigationApi: NavigationApi
+        readonly isInPlaywrightTest?: boolean
         readonly menuApi: MenuApi
         readonly versionInfo?: VersionInfo
         toggleDevtools: () => void

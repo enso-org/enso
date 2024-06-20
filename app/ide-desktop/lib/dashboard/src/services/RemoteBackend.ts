@@ -134,11 +134,6 @@ export default class RemoteBackend extends Backend {
       this.logger.error(message)
       throw new Error(message)
     } else {
-      if (detect.IS_DEV_MODE) {
-        // @ts-expect-error This exists only for debugging purposes. It does not have types
-        // because it MUST NOT be used in this codebase.
-        window.remoteBackend = this
-      }
       return
     }
   }
@@ -254,8 +249,8 @@ export default class RemoteBackend extends Backend {
   }
 
   /** List all invitations. */
-  override async listInvitations(): Promise<backend.Invitation[]> {
-    const response = await this.get<backend.InvitationListRequestBody>(
+  override async listInvitations(): Promise<readonly backend.Invitation[]> {
+    const response = await this.get<backend.ListInvitationsResponseBody>(
       remoteBackendPaths.INVITATION_PATH
     )
 
