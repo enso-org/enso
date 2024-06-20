@@ -339,6 +339,7 @@ function toggleVectorValue(vector: Ast.MutableVector, value: string, previousSta
 function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   const edit = graph.startEdit()
   const tagValue = resolveTagExpression(edit, tag)
+  console.log('expressionTagClicked', tagValue)
   if (isMulti.value) {
     const inputValue = props.input.value
     if (inputValue instanceof Ast.Vector) {
@@ -353,6 +354,7 @@ function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
       props.onUpdate({ edit, portUpdate: { value: vector, origin: props.input.portId } })
     }
   } else {
+    console.log('Updating widget', tagValue)
     props.onUpdate({ edit, portUpdate: { value: tagValue, origin: props.input.portId } })
   }
 }
