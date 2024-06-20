@@ -152,6 +152,43 @@ class GlobalNamesTest extends CompilerTest {
     }
   }
 
+  "Global names of static methods" should {
+    "resolve module method name by adding the self argument" in {
+      implicit val ctx: ModuleContext = mkModuleContext._1
+      val ir =
+        """
+          |method x = x
+          |
+          |type My_Type
+          |    method x = x
+          |
+          |main =
+          |    method 42
+          |    0
+          |""".stripMargin.preprocessModule.analyse
+      val mainMethodExprs = ir
+        .bindings(3)
+        .asInstanceOf[definition.Method.Explicit]
+        .body
+        .asInstanceOf[Function.Lambda]
+        .body
+        .asInstanceOf[Expression.Block]
+        .expressions
+      val moduleMethodCall = mainMethodExprs(0)
+        .asInstanceOf[Application.Prefix]
+      moduleMethodCall.function
+        .asInstanceOf[Name.Literal]
+        .name shouldEqual "method"
+      moduleMethodCall.arguments.length shouldEqual 2
+      moduleMethodCall
+        .arguments(0)
+        .value
+        .getMetadata(GlobalNames) shouldEqual Some(
+        Resolution(ResolvedModule(ctx.moduleReference()))
+      )
+    }
+  }
+
   "Undefined names" should {
     "be detected and reported" in {
       implicit val ctx: ModuleContext = mkModuleContext._1
