@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
-import * as tailwindMerge from 'tailwind-merge'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -27,6 +26,7 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -285,7 +285,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <ariaComponents.Button
           size="custom"
           variant="custom"
-          noExtraClickZone
           icon={PlayIcon}
           aria-label={getText('openInEditor')}
           tooltipPlacement="left"
@@ -305,18 +304,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
-        <div className="relative">
+        <div className="relative flex">
           <ariaComponents.Button
             size="custom"
             variant="custom"
-            noExtraClickZone
             isDisabled={isOtherUserUsingProject}
+            isActive={!isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
             tooltipPlacement="left"
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
             className={tailwindMerge.twMerge(
-              'size-project-icon border-0 selectable enabled:active',
+              'size-project-icon border-0',
               isRunningInBackground && 'text-green'
             )}
             onPress={closeProject}
@@ -333,12 +332,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.opened:
       return (
         <div className="flex flex-row gap-0.5">
-          <div className="relative">
+          <div className="relative flex">
             <ariaComponents.Button
               size="custom"
               variant="custom"
-              noExtraClickZone
               isDisabled={isOtherUserUsingProject}
+              isActive={!isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
               tooltipPlacement="left"
@@ -346,7 +345,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 ? { title: getText('otherUserIsUsingProjectError') }
                 : {})}
               className={tailwindMerge.twMerge(
-                'size-project-icon border-0 selectable enabled:active',
+                'size-project-icon border-0',
                 isRunningInBackground && 'text-green'
               )}
               onPress={closeProject}
@@ -363,7 +362,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             <ariaComponents.Button
               size="custom"
               variant="custom"
-              noExtraClickZone
               className="size-project-icon border-0"
               icon={ArrowUpIcon}
               aria-label={getText('openInEditor')}

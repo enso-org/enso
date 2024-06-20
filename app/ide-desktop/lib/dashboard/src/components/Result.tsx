@@ -1,13 +1,13 @@
 /** @file Display the result of an operation. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import Success from 'enso-assets/check_mark.svg'
 import Error from 'enso-assets/cross.svg'
 
 import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

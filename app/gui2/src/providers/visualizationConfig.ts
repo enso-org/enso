@@ -17,6 +17,7 @@ export interface VisualizationConfig {
   readonly scale: number
   readonly isFocused: boolean
   readonly nodeType: string | undefined
+  readonly isPreview: boolean
   isBelowToolbar: boolean
   width: number
   height: number

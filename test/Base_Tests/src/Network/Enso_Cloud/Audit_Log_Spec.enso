@@ -39,15 +39,18 @@ add_specs suite_builder =
 
         group_builder.specify "will include the project id in the log message, if provided by the Cloud" <| setup.with_prepared_environment <|
             example_project_id = "project-27xJM00p8jWoL2qByTo6tQfciWC"
+            example_session_id = "projectsession-foobar"
             Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_ID" example_project_id <|
-                random_payload = "payload-" + Random.uuid
-                Audit_Log.report_event "TestEventInCloud" "Message⛅" (JS_Object.from_pairs [["my_field", random_payload]]) async=False . should_succeed
-                my_event = Test.with_retries <|
-                    event = get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
-                    event.should_succeed
-                    event
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_SESSION_ID" example_session_id <|
+                    random_payload = "payload-" + Random.uuid
+                    Audit_Log.report_event "TestEventInCloud" "Message⛅" (JS_Object.from_pairs [["my_field", random_payload]]) async=False . should_succeed
+                    my_event = Test.with_retries <|
+                        event = get_audit_log_events . find ev-> (ev.metadata.get "my_field") == random_payload
+                        event.should_succeed
+                        event
 
-                my_event.project_id . should_equal example_project_id
+                    my_event.project_id . should_equal example_project_id
+                    my_event.metadata.get "projectSessionId" . should_equal example_session_id
 
         group_builder.specify "does not allow restricted fields in metadata" <| setup.with_prepared_environment <|
             Audit_Log.report_event "TestEventType" "Message" (JS_Object.from_pairs [["type", "my type override?"]]) . should_fail_with Illegal_Argument

@@ -7,7 +7,7 @@ import org.enso.pkg.{ComponentGroups, QualifiedName}
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.editing.model
-import org.enso.text.editing.model.{Range, TextEdit}
+import org.enso.text.editing.model.{IdMap, Range, TextEdit}
 
 import java.io.File
 import java.util.UUID
@@ -1091,7 +1091,8 @@ object Runtime {
     final case class EditFileNotification(
       path: File,
       edits: Seq[TextEdit],
-      execute: Boolean
+      execute: Boolean,
+      idMap: Option[IdMap]
     ) extends ApiRequest
         with ToLogString {
 
@@ -1100,7 +1101,9 @@ object Runtime {
         "EditFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
         (if (shouldMask) edits.map(_ => STUB) else edits) +
-        ",execute=" + execute + ")"
+        ",execute=" + execute +
+        "idMap=" + idMap.map(_ => STUB) +
+        ")"
     }
 
     /** A notification sent to the server about in-memory file contents being

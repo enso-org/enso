@@ -6,7 +6,6 @@ import * as textProvider from '#/providers/TextProvider'
 import Samples from '#/layouts/Samples'
 import WhatsNew from '#/layouts/WhatsNew'
 
-import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 // ==================
@@ -24,22 +23,20 @@ export default function StartModal(props: StartModalProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <ariaComponents.Dialog
-      aria-label={getText('startModalLabel')}
-      type="fullscreen"
-      closeButton="floating"
-    >
+    <ariaComponents.Dialog type="fullscreen" title={getText('selectTemplate')}>
       {opts => (
-        <div className="relative mb-4 flex flex-1 flex-col gap-home text-xs text-primary">
-          <aria.Heading
-            level={2}
-            className="py-banner-item mx-10 mt-16 self-center text-center text-3xl font-light leading-snug"
+        <div className="mb-4 flex flex-1 flex-col gap-home text-xs text-primary">
+          <ariaComponents.Text
+            elementType="p"
+            variant="custom"
+            balance
+            className="mx-10 my-12 max-w-[45rem] self-center text-center text-3xl font-light leading-snug"
           >
-            <aria.Text className="inline-block max-w-[45rem]">
-              {getText('welcomeSubtitle')}
-            </aria.Text>
-          </aria.Heading>
+            {getText('welcomeSubtitle')}
+          </ariaComponents.Text>
+
           <WhatsNew />
+
           <Samples
             createProject={(templateId, templateName) => {
               createProjectRaw(templateId, templateName)

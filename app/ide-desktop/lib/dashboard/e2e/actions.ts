@@ -72,9 +72,7 @@ export function locateSecretValueInput(page: test.Page) {
 
 /** Find a search bar input (if any) on the current page. */
 export function locateSearchBarInput(page: test.Page) {
-  return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, Datalinks, users, and more.'
-  )
+  return locateSearchBar(page).getByPlaceholder(/(?:)/)
 }
 
 /** Find the name column of the given assets table row. */
@@ -342,13 +340,17 @@ export function locateAssetName(locator: test.Locator) {
 /** Find assets table rows that represent directories that can be expanded (if any)
  * on the current page. */
 export function locateExpandableDirectories(page: test.Page) {
-  return locateAssetRows(page).filter({ has: page.getByAltText('Expand') })
+  // The icon is hidden when not hovered so `getByLabel` will not work.
+  // eslint-disable-next-line no-restricted-properties
+  return locateAssetRows(page).filter({ has: page.locator('[aria-label=Expand]') })
 }
 
 /** Find assets table rows that represent directories that can be collapsed (if any)
  * on the current page. */
 export function locateCollapsibleDirectories(page: test.Page) {
-  return locateAssetRows(page).filter({ has: page.getByAltText('Collapse') })
+  // The icon is hidden when not hovered so `getByLabel` will not work.
+  // eslint-disable-next-line no-restricted-properties
+  return locateAssetRows(page).filter({ has: page.locator('[aria-label=Collapse]') })
 }
 
 /** Find a "confirm delete" modal (if any) on the current page. */

@@ -1,14 +1,14 @@
 /** @file A styled button. */
 import * as React from 'react'
 
-import * as twv from 'tailwind-variants'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Spinner, * as spinnerModule from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
+
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as text from '../Text'
 
@@ -57,6 +57,7 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
+  readonly contentClassName?: string
   readonly children?: React.ReactNode
   readonly testId?: string
 
@@ -83,11 +84,18 @@ export const BUTTON_STYLES = twv.tv({
     isFocused: {
       true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
     },
+    isActive: {
+      none: '',
+      false:
+        'disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75',
+      true: 'opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default',
+    },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
     fullWidthText: { true: { text: 'w-full' } },
     size: {
-      custom: { base: '', extraClickZone: 'after:inset-[-12px]', icon: 'h-full' },
+      custom: { base: '', extraClickZone: '', icon: 'h-full' },
+      icon: { icon: 'h-4' },
       hero: { base: 'px-8 py-4 text-lg font-bold', content: 'gap-[0.75em]' },
       large: {
         base: text.TEXT_STYLE({
@@ -158,7 +166,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary: 'relative text-white bg-accent hover:bg-accent-dark',
+      tertiary: 'bg-accent text-white hover:bg-accent-dark',
       cancel: 'bg-white/50 hover:bg-white',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
@@ -172,7 +180,7 @@ export const BUTTON_STYLES = twv.tv({
         'text-primary hover:text-primary/80 hover:bg-white focus-visible:text-primary/80 focus-visible:bg-white',
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline: 'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2',
-      bar: 'rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
+      bar: 'rounded-full border-0.5 border-primary/20 transition-colors hover:bg-primary/10',
     },
     iconPosition: {
       start: { content: '' },
@@ -181,7 +189,6 @@ export const BUTTON_STYLES = twv.tv({
     showIconOnHover: {
       true: { icon: 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100' },
     },
-    noExtraClickZone: { true: { extraClickZone: 'after:inset-0' } },
   },
   slots: {
     extraClickZone: 'flex relative after:absolute after:cursor-pointer',
@@ -192,6 +199,7 @@ export const BUTTON_STYLES = twv.tv({
     icon: 'h-[2cap] flex-none aspect-square',
   },
   defaultVariants: {
+    isActive: 'none',
     loading: false,
     fullWidth: false,
     size: 'xsmall',
@@ -230,11 +238,11 @@ export const BUTTON_STYLES = twv.tv({
     {
       size: 'large',
       iconOnly: true,
-      class: { base: 'p-0 rounded-full', icon: 'h-[2.25cap] -mt-[0.1cap]' },
+      class: { base: 'p-0 rounded-full', icon: 'h-[3.65cap]' },
     },
     {
       size: 'hero',
-      class: { base: 'p-0 rounded-full', icon: 'h-[2.5cap] -mt-[0.1cap]' },
+      class: { base: 'p-0 rounded-full', icon: 'h-[5.5cap]' },
       iconOnly: true,
     },
     { variant: 'link', size: 'xxsmall', class: 'font-medium' },
@@ -253,15 +261,16 @@ export const Button = React.forwardRef(function Button(
 ) {
   const {
     className,
+    contentClassName,
     children,
     variant,
     icon,
     loading = false,
     isDisabled,
+    isActive,
     showIconOnHover,
     iconPosition,
     size,
-    noExtraClickZone,
     fullWidth,
     fullWidthText,
     rounded,
@@ -287,7 +296,15 @@ export const Button = React.forwardRef(function Button(
     'data-testid': testId ?? (isLink ? 'link' : 'button'),
   }
   const isIconOnly = (children == null || children === '' || children === false) && icon != null
-  const shouldShowTooltip = isIconOnly || tooltip !== false
+  const shouldShowTooltip = (() => {
+    if (tooltip === false) {
+      return false
+    } else if (isIconOnly) {
+      return true
+    } else {
+      return tooltip != null
+    }
+  })()
   const tooltipElement = shouldShowTooltip ? tooltip ?? ariaProps['aria-label'] : null
 
   const isLoading = loading || implicitlyLoading
@@ -339,8 +356,8 @@ export const Button = React.forwardRef(function Button(
     text: textClasses,
   } = BUTTON_STYLES({
     isDisabled,
+    isActive,
     loading: isLoading,
-    noExtraClickZone,
     fullWidth,
     fullWidthText,
     size,
@@ -395,7 +412,7 @@ export const Button = React.forwardRef(function Button(
       )}
     >
       <span className={wrapper()}>
-        <span ref={contentRef} className={content()}>
+        <span ref={contentRef} className={content({ className: contentClassName })}>
           {childrenFactory()}
         </span>
 
@@ -413,6 +430,7 @@ export const Button = React.forwardRef(function Button(
   ) : (
     <ariaComponents.TooltipTrigger delay={0} closeDelay={0}>
       {button}
+
       <ariaComponents.Tooltip
         {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}
       >

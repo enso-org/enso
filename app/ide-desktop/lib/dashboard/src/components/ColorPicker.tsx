@@ -1,8 +1,6 @@
 /** @file A color picker to select from a predetermined list of colors. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as focusHooks from '#/hooks/focusHooks'
 
 import * as focusClassProvider from '#/providers/FocusClassProvider'
@@ -13,6 +11,8 @@ import FocusRing from '#/components/styled/FocusRing'
 import RadioGroup from '#/components/styled/RadioGroup'
 
 import * as backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** Props for a {@link ColorPickerItem}. */
 export interface InternalColorPickerItemProps {

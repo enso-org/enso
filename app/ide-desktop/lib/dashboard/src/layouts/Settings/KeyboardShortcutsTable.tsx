@@ -87,11 +87,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                 return (
                   <tr key={action} className="rounded-rows-child">
                     <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-icon-column-r">
-                      <SvgMask
-                        src={info.icon ?? BlankIcon}
-                        color={info.color}
-                        className="size-icon"
-                      />
+                      <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-4" />
                     </td>
                     <td className="border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
                       {info.name}
@@ -119,7 +115,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                       doRefresh()
                                     }}
                                   >
-                                    <SvgMask src={CrossIcon} className="size-icon" />
+                                    <SvgMask src={CrossIcon} className="size-4" />
                                   </ariaComponents.Button>
                                 </div>
                               ))}

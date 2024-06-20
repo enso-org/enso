@@ -4,7 +4,7 @@
  * Variants for the ResizableInput component.
  */
 
-import * as twv from 'tailwind-variants'
+import * as twv from '#/utilities/tailwindVariants'
 
 import * as text from '../../Text'
 
