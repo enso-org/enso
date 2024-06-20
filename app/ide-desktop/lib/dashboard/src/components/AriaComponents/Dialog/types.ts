@@ -5,6 +5,7 @@ import type * as aria from '#/components/aria'
 export interface DialogProps extends aria.DialogProps {
   readonly title?: string
   readonly isDismissable?: boolean
+  readonly isOpen?: boolean
   readonly onOpenChange?: (isOpen: boolean) => void
   readonly isKeyboardDismissDisabled?: boolean
   readonly modalProps?: Pick<aria.ModalOverlayProps, 'className' | 'defaultOpen' | 'isOpen'>

@@ -13,7 +13,6 @@ import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import HorizontalMenuBar from '#/components/styled/HorizontalMenuBar'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'

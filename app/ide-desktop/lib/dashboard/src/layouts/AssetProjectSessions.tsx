@@ -44,7 +44,10 @@ function AssetProjectSessionsInternal(props: AssetProjectSessionsInternalProps) 
 
   const projectSessionsQuery = reactQuery.useSuspenseQuery({
     queryKey: ['getProjectSessions', item.item.id, item.item.title],
-    queryFn: () => backend.listProjectSessions(item.item.id, item.item.title),
+    queryFn: async () => {
+      const sessions = await backend.listProjectSessions(item.item.id, item.item.title)
+      return [...sessions].reverse()
+    },
   })
 
   return (
