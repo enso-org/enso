@@ -65,6 +65,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   }, [anchorAnimFactor, anchor])
 
   React.useEffect(() => {
+    const target = targetRef.current ?? document.body
     const isEventInBounds = (event: MouseEvent, parent?: HTMLElement | null) => {
       if (parent == null) {
         return true
@@ -140,13 +141,13 @@ export default function SelectionBrush(props: SelectionBrushProps) {
       }
     }
 
-    document.addEventListener('mousedown', onMouseDown)
+    target.addEventListener('mousedown', onMouseDown)
     document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('dragstart', onDragStart, { capture: true })
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('click', onClick, { capture: true })
     return () => {
-      document.removeEventListener('mousedown', onMouseDown)
+      target.removeEventListener('mousedown', onMouseDown)
       document.removeEventListener('mouseup', onMouseUp)
       document.removeEventListener('dragstart', onDragStart, { capture: true })
       document.removeEventListener('mousemove', onMouseMove)

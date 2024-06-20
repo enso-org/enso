@@ -144,7 +144,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           ref={plusButtonRef}
           size="icon"
           variant="ghost"
-          className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          showIconOnHover
           icon={Plus2Icon}
           onPress={() => {
             setModal(

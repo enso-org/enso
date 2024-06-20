@@ -1,21 +1,22 @@
 /** @file Execute a function on scroll. */
 import * as React from 'react'
 
+import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
+
 // ===================
 // === useOnScroll ===
 // ===================
 
 /** Execute a function on scroll. */
 export default function useOnScroll(callback: () => void, dependencies: React.DependencyList) {
-  const callbackRef = React.useRef(callback)
-  callbackRef.current = callback
+  const callbackTrampoline = eventCallbackHooks.useEventCallback(callback)
   const updateClipPathRef = React.useRef(() => {})
 
   const onScroll = React.useMemo(() => {
     let isClipPathUpdateQueued = false
     const updateClipPath = () => {
       isClipPathUpdateQueued = false
-      callbackRef.current()
+      callbackTrampoline()
     }
     updateClipPathRef.current = updateClipPath
     updateClipPath()
@@ -25,7 +26,7 @@ export default function useOnScroll(callback: () => void, dependencies: React.De
         requestAnimationFrame(updateClipPath)
       }
     }
-  }, [])
+  }, [callbackTrampoline])
 
   React.useLayoutEffect(() => {
     updateClipPathRef.current()

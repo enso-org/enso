@@ -114,15 +114,15 @@ export default function Settings(props: SettingsProps) {
             />
           </aria.Popover>
         </aria.MenuTrigger>
-        <ariaComponents.Text variant="h1" className="py-heading-y">
-          {getText('settingsFor')}
-        </ariaComponents.Text>
-        {/* This UI element does not appear anywhere else. */}
-        {/* eslint-disable-next-line no-restricted-syntax */}
+        <ariaComponents.Text.Heading>
+          <span>{getText('settingsFor')}</span>
+        </ariaComponents.Text.Heading>
+
         <ariaComponents.Text
           variant="h1"
           truncate="1"
-          className="ml-2.5 w-max max-w-[30ch] rounded-full bg-frame px-[9px]"
+          className="rounded-full bg-frame px-2.5"
+          aria-hidden
         >
           {settingsTab !== SettingsTab.organization &&
           settingsTab !== SettingsTab.members &&
@@ -131,16 +131,20 @@ export default function Settings(props: SettingsProps) {
             : organization?.name ?? 'your organization'}
         </ariaComponents.Text>
       </aria.Heading>
-      <div className="flex flex-1 gap-settings overflow-hidden">
-        <SettingsSidebar
-          hasBackend={backend != null}
-          isUserInOrganization={isUserInOrganization}
-          settingsTab={settingsTab}
-          setSettingsTab={setSettingsTab}
-        />
+      <div className="mt-8 flex flex-1 gap-6 overflow-hidden pr-0.5">
+        <aside className="flex h-full flex-col overflow-y-auto overflow-x-hidden pb-12">
+          <SettingsSidebar
+            hasBackend={backend != null}
+            isUserInOrganization={isUserInOrganization}
+            settingsTab={settingsTab}
+            setSettingsTab={setSettingsTab}
+          />
+        </aside>
         <errorBoundary.ErrorBoundary>
           <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
-            {content}
+            <main className="h-full w-full flex-shrink-0 flex-grow basis-0 overflow-y-auto overflow-x-hidden pb-12 pl-1.5 pr-3">
+              <div className="w-full max-w-[840px]">{content}</div>
+            </main>
           </React.Suspense>
         </errorBoundary.ErrorBoundary>
       </div>
