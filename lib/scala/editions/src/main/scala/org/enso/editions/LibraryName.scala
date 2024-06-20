@@ -2,6 +2,9 @@ package org.enso.editions
 
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, DecodingFailure, Encoder}
+import org.enso.yaml.SnakeYamlDecoder
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 
 /** Represents a library name that should uniquely identify the library.
   *
@@ -21,6 +24,41 @@ case class LibraryName(namespace: String, name: String) {
 }
 
 object LibraryName {
+
+  object Fields {
+    val Namespace = "namespace"
+    val Email     = "email"
+  }
+
+  implicit val yamlDecoder: SnakeYamlDecoder[LibraryName] =
+    new SnakeYamlDecoder[LibraryName] {
+      override def decode(node: Node): Either[Throwable, LibraryName] =
+        node match {
+          case mappingNode: MappingNode =>
+            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+
+            if (mappingNode.getValue.size() != 2)
+              Left(new YAMLException("invalid number of fields for Contact"))
+            else {
+              val clazzMap = mappingKV(mappingNode)
+              val result = for {
+                namesapce <- clazzMap
+                  .get(Fields.Namespace)
+                  .toRight(
+                    new YAMLException(s"Missing '${Fields.Namespace}' field")
+                  )
+                  .flatMap(stringDecoder.decode)
+                email <- clazzMap
+                  .get(Fields.Email)
+                  .toRight(
+                    new YAMLException(s"Missing '${Fields.Email}' field")
+                  )
+                  .flatMap(stringDecoder.decode)
+              } yield LibraryName(namesapce, email)
+              result
+            }
+        }
+    }
 
   /** A [[Decoder]] instance allowing to parse a [[LibraryName]]. */
   implicit val decoder: Decoder[LibraryName] = { json =>

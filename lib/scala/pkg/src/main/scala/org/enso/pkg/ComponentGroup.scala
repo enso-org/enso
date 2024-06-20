@@ -3,6 +3,9 @@ package org.enso.pkg
 import io.circe._
 import io.circe.syntax._
 import org.enso.editions.LibraryName
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
+import org.enso.yaml.SnakeYamlDecoder
 
 /** The description of component groups provided by the package.
   *
@@ -45,6 +48,37 @@ object ComponentGroups {
         json.getOrElse[List[ExtendedComponentGroup]](Fields.Extends)(List())
     } yield ComponentGroups(newGroups, extendsGroups)
   }
+
+  implicit val yamlDecoder: SnakeYamlDecoder[ComponentGroups] =
+    new SnakeYamlDecoder[ComponentGroups] {
+      override def decode(node: Node): Either[Throwable, ComponentGroups] =
+        node match {
+          case mappingNode: MappingNode =>
+            if (mappingNode.getValue.size() > 2)
+              Left(
+                new YAMLException(
+                  "Invalid number of fields for ComponentGroups. Expected: 2"
+                )
+              )
+            else {
+              val clazzMap = mappingKV(mappingNode)
+              val newGroupsDecoder =
+                implicitly[SnakeYamlDecoder[List[ComponentGroup]]]
+              val extendedGroupsDecoder =
+                implicitly[SnakeYamlDecoder[List[ExtendedComponentGroup]]]
+              for {
+                newGroups <- clazzMap
+                  .get(Fields.New)
+                  .map(newGroupsDecoder.decode)
+                  .getOrElse(Right(Nil))
+                extendedGroups <- clazzMap
+                  .get(Fields.Extends)
+                  .map(extendedGroupsDecoder.decode)
+                  .getOrElse(Right(Nil))
+              } yield ComponentGroups(newGroups, extendedGroups)
+            }
+        }
+    }
 }
 
 /** The definition of a single component group.
@@ -64,10 +98,64 @@ object ComponentGroup {
 
   /** Fields for use when serializing the [[ComponentGroup]]. */
   private object Fields {
+    val Group   = "group"
     val Color   = "color"
     val Icon    = "icon"
     val Exports = "exports"
   }
+
+  implicit val decoderSnake: SnakeYamlDecoder[ComponentGroup] =
+    new SnakeYamlDecoder[ComponentGroup] {
+      override def decode(node: Node): Either[Throwable, ComponentGroup] =
+        node match {
+          case mappingNode: MappingNode =>
+            if (mappingNode.getValue.size() > 4)
+              Left(
+                new YAMLException("Invalid number of fields for ComponentGroup")
+              )
+            else {
+              if (mappingNode.getValue.size() == 1) {
+                val groupNode = mappingNode.getValue.get(0)
+                (groupNode.getKeyNode, groupNode.getValueNode) match {
+                  case (scalarNode: ScalarNode, mappingNode: MappingNode) =>
+                    val clazzMap     = mappingKV(mappingNode)
+                    val groupDecoder = implicitly[SnakeYamlDecoder[GroupName]]
+                    val colorDecoder =
+                      implicitly[SnakeYamlDecoder[Option[String]]]
+                    val iconDecoder =
+                      implicitly[SnakeYamlDecoder[Option[String]]]
+                    val exportDecoder =
+                      implicitly[SnakeYamlDecoder[Seq[Component]]]
+                    for {
+                      group <- groupDecoder.decode(scalarNode)
+                      color <- clazzMap
+                        .get(Fields.Color)
+                        .map(colorDecoder.decode)
+                        .getOrElse(Right(None))
+                      icon <- clazzMap
+                        .get(Fields.Icon)
+                        .map(iconDecoder.decode)
+                        .getOrElse(Right(None))
+                      exports <- clazzMap
+                        .get(Fields.Exports)
+                        .map(exportDecoder.decode)
+                        .getOrElse(Right(Seq.empty))
+                    } yield ComponentGroup(group, color, icon, exports)
+                  case _ =>
+                    Left(
+                      new YAMLException(
+                        "Failed to decode Component Group's name"
+                      )
+                    )
+                }
+              } else {
+                Left(
+                  new YAMLException("Failed to decode Component Group's name")
+                )
+              }
+            }
+        }
+    }
 
   /** [[Encoder]] instance for the [[ComponentGroup]]. */
   implicit val encoder: Encoder[ComponentGroup] = { componentGroup =>
@@ -131,8 +219,40 @@ object ExtendedComponentGroup {
 
   /** Fields for use when serializing the [[ExtendedComponentGroup]]. */
   private object Fields {
+    val Group   = "group"
     val Exports = "exports"
   }
+
+  implicit val decoderSnake: SnakeYamlDecoder[ExtendedComponentGroup] =
+    new SnakeYamlDecoder[ExtendedComponentGroup] {
+      override def decode(
+        node: Node
+      ): Either[Throwable, ExtendedComponentGroup] = node match {
+        case mappingNode: MappingNode =>
+          if (mappingNode.getValue.size() > 2)
+            Left(
+              new YAMLException(
+                "Invalid number of fields for ExtendedComponentGroup"
+              )
+            )
+          else {
+            val clazzMap = mappingKV(mappingNode)
+
+            val groupDecoder  = implicitly[SnakeYamlDecoder[GroupReference]]
+            val exportDecoder = implicitly[SnakeYamlDecoder[Seq[Component]]]
+            for {
+              group <- clazzMap
+                .get(Fields.Group)
+                .toRight(new YAMLException(s"Missing '${Fields.Group}' field"))
+                .flatMap(groupDecoder.decode)
+              exports <- clazzMap
+                .get(Fields.Exports)
+                .map(exportDecoder.decode)
+                .getOrElse(Right(Seq.empty))
+            } yield ExtendedComponentGroup(group, exports)
+          }
+      }
+    }
 
   /** [[Encoder]] instance for the [[ExtendedComponentGroup]]. */
   implicit val encoder: Encoder[ExtendedComponentGroup] = {
@@ -200,8 +320,38 @@ case class Component(name: String, shortcut: Option[Shortcut])
 object Component {
 
   object Fields {
+    val Name     = "name"
     val Shortcut = "shortcut"
   }
+
+  implicit val decoderSnake: SnakeYamlDecoder[Component] =
+    new SnakeYamlDecoder[Component] {
+      override def decode(node: Node): Either[Throwable, Component] =
+        node match {
+          case mappingNode: MappingNode =>
+            if (mappingNode.getValue.size() > 2)
+              Left(new YAMLException("invalid number of fields for Component"))
+            else {
+              val clazzMap = mappingKV(mappingNode)
+
+              val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+              val shortcutDecoder =
+                implicitly[SnakeYamlDecoder[Option[Shortcut]]]
+              for {
+                name <- clazzMap
+                  .get(Fields.Name)
+                  .toRight(new YAMLException(s"Missing '${Fields.Name}' field"))
+                  .flatMap(stringDecoder.decode)
+                shortcut <- clazzMap
+                  .get(Fields.Shortcut)
+                  .map(shortcutDecoder.decode)
+                  .getOrElse(Right(None))
+              } yield Component(name, shortcut)
+            }
+          case _: ScalarNode =>
+            ???
+        }
+    }
 
   /** [[Encoder]] instance for the [[Component]]. */
   implicit val encoder: Encoder[Component] = { component =>
@@ -256,6 +406,30 @@ object Component {
 case class Shortcut(key: String)
 object Shortcut {
 
+  object Fields {
+    val Key = "key"
+  }
+
+  implicit val decoderSnake: SnakeYamlDecoder[Shortcut] =
+    new SnakeYamlDecoder[Shortcut] {
+      override def decode(node: Node): Either[Throwable, Shortcut] =
+        node match {
+          case mappingNode: MappingNode =>
+            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+
+            if (mappingNode.getValue.size() != 1)
+              Left(new YAMLException("Invalid number of fields for Shortcut"))
+            else {
+              val clazzMap = mappingKV(mappingNode)
+              clazzMap
+                .get(Fields.Key)
+                .toRight(new YAMLException("Missing 'key' field"))
+                .flatMap(stringDecoder.decode)
+                .map(Shortcut(_))
+            }
+        }
+    }
+
   /** [[Encoder]] instance for the [[Shortcut]]. */
   implicit val encoder: Encoder[Shortcut] = { shortcut =>
     shortcut.key.asJson
@@ -307,6 +481,43 @@ object GroupReference {
       case _ =>
         None
     }
+
+  object Fields {
+    val LibraryName = "library-name"
+    val GroupName   = "group-name"
+  }
+
+  implicit val decoderSnake: SnakeYamlDecoder[GroupReference] =
+    new SnakeYamlDecoder[GroupReference] {
+      override def decode(node: Node): Either[Throwable, GroupReference] =
+        node match {
+          case mappingNode: MappingNode =>
+            if (mappingNode.getValue.size() > 2)
+              Left(
+                new YAMLException("Invalid number of fields for GroupReference")
+              )
+            else {
+              val clazzMap = mappingKV(mappingNode)
+
+              val libraryNameDecoder = implicitly[SnakeYamlDecoder[LibraryName]]
+              val groupNameDecoder   = implicitly[SnakeYamlDecoder[GroupName]]
+              for {
+                libraryName <- clazzMap
+                  .get(Fields.LibraryName)
+                  .toRight(
+                    new YAMLException(s"Missing '${Fields.LibraryName}' field")
+                  )
+                  .flatMap(libraryNameDecoder.decode)
+                groupName <- clazzMap
+                  .get(Fields.GroupName)
+                  .toRight(
+                    new YAMLException(s"Missing '${Fields.GroupName}' field")
+                  )
+                  .flatMap(groupNameDecoder.decode)
+              } yield GroupReference(libraryName, groupName)
+            }
+        }
+    }
 }
 
 /** The module name.
@@ -315,6 +526,33 @@ object GroupReference {
   */
 case class GroupName(name: String)
 object GroupName {
+
+  object Fields {
+    val Name = "name"
+  }
+
+  implicit val decoderSnake: SnakeYamlDecoder[GroupName] =
+    new SnakeYamlDecoder[GroupName] {
+      override def decode(node: Node): Either[Throwable, GroupName] =
+        node match {
+          case mappingNode: MappingNode =>
+            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+
+            if (mappingNode.getValue.size() != 1)
+              Left(new YAMLException("Invalid number of fields for GroupName"))
+            else {
+              val clazzMap = mappingKV(mappingNode)
+              clazzMap
+                .get(Fields.Name)
+                .toRight(new YAMLException(s"Missing '${Fields.Name}' field"))
+                .flatMap(stringDecoder.decode)
+                .map(GroupName(_))
+            }
+          case scalarNode: ScalarNode =>
+            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+            stringDecoder.decode(scalarNode).map(GroupName(_))
+        }
+    }
 
   /** Create a [[GroupName]] from its components. */
   def fromComponents(item: String, items: List[String]): GroupName =

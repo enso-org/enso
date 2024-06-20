@@ -13,8 +13,12 @@ import org.enso.editions.{
   SemVerEnsoVersion
 }
 import org.enso.pkg.validation.NameValidation
+import org.enso.yaml.SnakeYamlDecoder
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{MappingNode, Node, ScalarNode}
 
-import java.io.Reader
+import java.io.{Reader, StringReader}
+import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Try
 
 /** Contact information to a user.
@@ -75,6 +79,38 @@ object Contact {
       _     <- verifyAtLeastOneDefined(name, email)
     } yield Contact(name, email)
   }
+
+  implicit val decoderSnake: SnakeYamlDecoder[Contact] =
+    new SnakeYamlDecoder[Contact] {
+      override def decode(node: Node): Either[Throwable, Contact] = node match {
+        case mappingNode: MappingNode =>
+          val optString = implicitly[SnakeYamlDecoder[Option[String]]]
+
+          if (mappingNode.getValue.size() > 2)
+            Left(new YAMLException("invalid number of fields for Contact"))
+          else {
+            val clazzMap = mappingNode.getValue.asScala.map { node =>
+              node.getKeyNode match {
+                case n: ScalarNode =>
+                  (n.getValue, node.getValueNode)
+                case _ =>
+                  ???
+              }
+            }.toMap
+            val result = for {
+              name <- clazzMap
+                .get("name")
+                .map(optString.decode)
+                .getOrElse(Right(None))
+              email <- clazzMap
+                .get("email")
+                .map(optString.decode)
+                .getOrElse(Right(None))
+            } yield Contact(name, email)
+            result
+          }
+      }
+    }
 }
 
 /** Represents a package configuration stored in the `package.yaml` file.
@@ -125,7 +161,10 @@ case class Config(
 
 object Config {
 
-  val defaultNamespace: String = "local"
+  val defaultNamespace: String    = "local"
+  val defaultVersion: String      = "dev"
+  val defaultLicense: String      = ""
+  val defaultPreferLocalLibraries = false
 
   private object JsonFields {
     val name: String           = "name"
@@ -141,6 +180,98 @@ object Config {
     val componentGroups        = "component-groups"
   }
 
+  implicit val yamlDecoder: SnakeYamlDecoder[Config] =
+    new SnakeYamlDecoder[Config] {
+      override def decode(node: Node): Either[Throwable, Config] = node match {
+        case mappingNode: MappingNode =>
+          if (mappingNode.getValue.size() > 10)
+            Left(new YAMLException("invalid number of fields for Contact"))
+          else {
+            val clazzMap      = mappingKV(mappingNode)
+            val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+            val normalizedNameDecoder =
+              implicitly[SnakeYamlDecoder[Option[String]]]
+            val contactDecoder     = implicitly[SnakeYamlDecoder[List[Contact]]]
+            val editionNameDecoder = implicitly[SnakeYamlDecoder[EditionName]]
+            val editionDecoder =
+              implicitly[SnakeYamlDecoder[Option[Editions.RawEdition]]]
+            val booleanDecoder = implicitly[SnakeYamlDecoder[Boolean]]
+            val componentGroups =
+              implicitly[SnakeYamlDecoder[Option[ComponentGroups]]]
+            for {
+              name <- clazzMap
+                .get(JsonFields.name)
+                .toRight(
+                  new YAMLException(s"Missing '${JsonFields.name}' field")
+                )
+                .flatMap(stringDecoder.decode)
+              normalizedName <- clazzMap
+                .get(JsonFields.normalizedName)
+                .map(normalizedNameDecoder.decode)
+                .getOrElse(Right(None))
+              namespace <- clazzMap
+                .get(JsonFields.namespace)
+                .map(stringDecoder.decode)
+                .getOrElse(Right(defaultNamespace))
+              version <- clazzMap
+                .get(JsonFields.version)
+                .map(stringDecoder.decode)
+                .getOrElse(Right(defaultVersion))
+              license <- clazzMap
+                .get(JsonFields.license)
+                .map(stringDecoder.decode)
+                .getOrElse(Right(defaultLicense))
+              authors <- clazzMap
+                .get(JsonFields.author)
+                .map(contactDecoder.decode)
+                .getOrElse(Right(Nil))
+              maintainers <- clazzMap
+                .get(JsonFields.maintainer)
+                .map(contactDecoder.decode)
+                .getOrElse(Right(Nil))
+              rawEdition = clazzMap
+                .get(JsonFields.edition)
+                .flatMap(x =>
+                  editionNameDecoder.decode(x).toOption.map(Left(_))
+                )
+                .getOrElse(
+                  clazzMap
+                    .get(JsonFields.edition)
+                    .map(editionDecoder.decode)
+                    .getOrElse(Right(None))
+                )
+                .asInstanceOf[Either[EditionName, Option[Editions.RawEdition]]]
+              edition <- rawEdition.fold(
+                editionName =>
+                  Right(
+                    Some(Editions.Raw.Edition(parent = Some(editionName.name)))
+                  ),
+                r => Right(r)
+              )
+              preferLocalLibraries <- clazzMap
+                .get(JsonFields.preferLocalLibraries)
+                .map(booleanDecoder.decode)
+                .getOrElse(Right(defaultPreferLocalLibraries))
+              componentGroups <- clazzMap
+                .get(JsonFields.componentGroups)
+                .map(componentGroups.decode)
+                .getOrElse(Right(None))
+            } yield Config(
+              name,
+              normalizedName,
+              namespace,
+              version,
+              license,
+              authors,
+              maintainers,
+              edition,
+              preferLocalLibraries,
+              componentGroups
+            )
+          }
+      }
+    }
+
   implicit val decoder: Decoder[Config] = { json =>
     for {
       name           <- json.get[String](JsonFields.name)
@@ -148,7 +279,7 @@ object Config {
       namespace <- json.getOrElse[String](JsonFields.namespace)(
         defaultNamespace
       )
-      version     <- json.getOrElse[String](JsonFields.version)("dev")
+      version     <- json.getOrElse[String](JsonFields.version)(defaultVersion)
       ensoVersion <- json.get[Option[EnsoVersion]](JsonFields.ensoVersion)
       rawEdition <- json
         .get[EditionName](JsonFields.edition)
@@ -162,11 +293,13 @@ object Config {
         editionName => Some(Editions.Raw.Edition(parent = Some(editionName))),
         identity
       )
-      license    <- json.getOrElse(JsonFields.license)("")
+      license    <- json.getOrElse(JsonFields.license)(defaultLicense)
       author     <- json.getOrElse[List[Contact]](JsonFields.author)(List())
       maintainer <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
       preferLocal <-
-        json.getOrElse[Boolean](JsonFields.preferLocalLibraries)(false)
+        json.getOrElse[Boolean](JsonFields.preferLocalLibraries)(
+          defaultPreferLocalLibraries
+        )
       finalEdition <-
         editionOrVersionBackwardsCompatibility(edition, ensoVersion).left.map {
           error => DecodingFailure(error, json.history)
@@ -233,13 +366,20 @@ object Config {
   }
 
   /** Tries to parse the [[Config]] from a YAML string. */
-  def fromYaml(yamlString: String): Try[Config] = {
+  /*def fromYaml(yamlString: String): Try[Config] = {
     yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
-  }
+  }*/
 
   /** Tries to parse the [[Config]] directly from the Reader */
   def fromYaml(reader: Reader): Try[Config] = {
     Parser.default.parse(reader).flatMap(_.as[Config]).toTry
+  }
+
+  def fromYaml(yamlString: String): Try[Config] = {
+    val snakeYaml = new org.yaml.snakeyaml.Yaml()
+    Try(snakeYaml.compose(new StringReader(yamlString))).toEither
+      .flatMap(implicitly[SnakeYamlDecoder[Config]].decode(_))
+      .toTry
   }
 
   /** Creates a simple edition that just defines the provided engine version.

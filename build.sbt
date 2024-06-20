@@ -419,6 +419,7 @@ val circeYamlVersion          = "0.15.1"
 val circeGenericExtrasVersion = "0.14.3"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
+val snakeyamlVersion = "2.2"
 
 // === Commons ================================================================
 
@@ -749,7 +750,17 @@ lazy val yaml = (project in file("lib/java/yaml"))
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-yaml" % circeYamlVersion % "provided"
+      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided"
+    )
+  )
+
+lazy val `scala-yaml` = (project in file("lib/scala/yaml"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "org.yaml" % "snakeyaml" % snakeyamlVersion % "provided"
     )
   )
 
@@ -2747,10 +2758,12 @@ lazy val `distribution-manager` = project
     frgaalJavaCompilerSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
-      "commons-io"                  % "commons-io"    % commonsIoVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion  % "provided",
+      "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"   % jsoniterVersion,
+      "com.typesafe.scala-logging"            %% "scala-logging"         % scalaLoggingVersion,
+      "io.circe"                              %% "circe-yaml"            % circeYamlVersion,
+      "commons-io"                             % "commons-io"            % commonsIoVersion,
+      "org.scalatest"                         %% "scalatest"             % scalatestVersion % Test
     )
   )
   .dependsOn(editions)
@@ -2969,6 +2982,7 @@ lazy val semver = project
     cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
   )
   .dependsOn(testkit % Test)
+  .dependsOn(`scala-yaml`)
 
 lazy val downloader = (project in file("lib/scala/downloader"))
   .settings(

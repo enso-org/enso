@@ -1,6 +1,9 @@
 package org.enso.editions
 
-import org.enso.semver.SemVer
+import org.enso.semver.{SemVer, SemVerJson}
+import org.yaml.snakeyaml.nodes.{MappingNode, Node}
+import org.enso.yaml.SnakeYamlDecoder
+import org.yaml.snakeyaml.error.YAMLException
 
 /** Defines the general edition structure.
   *
@@ -41,6 +44,89 @@ trait Editions {
       * example `Prefix.Library_Name`.
       */
     def name: LibraryName
+  }
+
+  implicit def nestedEditionTypeDecoder: SnakeYamlDecoder[NestedEditionType]
+  implicit def libraryRepositoryTypeDecoder
+    : SnakeYamlDecoder[LibraryRepositoryType]
+
+  object Library {
+
+    trait LibraryFields {
+      val name = "name"
+    }
+
+    object LocalLibraryFields extends LibraryFields
+    object PublishedLibraryFields extends LibraryFields {
+      val version    = "version"
+      val repository = "repository"
+    }
+
+    implicit val yamlDecoder: SnakeYamlDecoder[Library] =
+      new SnakeYamlDecoder[Library] {
+        override def decode(node: Node): Either[Throwable, Library] =
+          node match {
+            case mappingNode: MappingNode =>
+              val bindings = mappingKV(mappingNode)
+
+              bindings.get(LocalLibraryFields.name) match {
+                case Some(node) =>
+                  if (bindings.size == 1) {
+                    implicitly[SnakeYamlDecoder[LibraryName]]
+                      .decode(node)
+                      .map(LocalLibrary(_))
+                  } else if (
+                    bindings.size == 3 && bindings.contains(
+                      PublishedLibraryFields.version
+                    ) && bindings.contains(PublishedLibraryFields.repository)
+                  ) {
+                    val libraryNameDecoder =
+                      implicitly[SnakeYamlDecoder[LibraryName]]
+                    val versionDecoder = SemVerJson.yamlDecoder
+                    val repositoryDecoder =
+                      implicitly[SnakeYamlDecoder[LibraryRepositoryType]]
+                    for {
+                      name <- bindings
+                        .get(PublishedLibraryFields.name)
+                        .toRight(
+                          new YAMLException(
+                            s"Missing '${PublishedLibraryFields.name}' field"
+                          )
+                        )
+                        .flatMap(libraryNameDecoder.decode)
+                      version <- bindings
+                        .get(PublishedLibraryFields.version)
+                        .toRight(
+                          new YAMLException(
+                            s"Missing '${PublishedLibraryFields.version}' field"
+                          )
+                        )
+                        .flatMap(versionDecoder.decode)
+                      repository <- bindings
+                        .get(PublishedLibraryFields.repository)
+                        .toRight(
+                          new YAMLException(
+                            s"Missing '${PublishedLibraryFields.repository}' field"
+                          )
+                        )
+                        .flatMap(repositoryDecoder.decode)
+                    } yield PublishedLibrary(name, version, repository)
+                  } else {
+                    Left(
+                      new YAMLException(
+                        "Unrecognized Library fields: " + bindings.keySet
+                      )
+                    )
+                  }
+                case None =>
+                  Left(
+                    new YAMLException(
+                      s"Library requires `${LocalLibraryFields.name}` field"
+                    )
+                  )
+              }
+          }
+      }
   }
 
   /** Represents a local library. */
@@ -111,6 +197,55 @@ trait Editions {
       libraries.map(l => (l.name, l)).toMap
     )
   }
+
+  object Fields {
+    val parent        = "parent"
+    val engineVersion = "engine-version"
+    val repositories  = "repositories"
+    val libraries     = "libraries"
+  }
+
+  implicit val decoderSnake: SnakeYamlDecoder[Edition] =
+    new SnakeYamlDecoder[Edition] {
+      import org.enso.semver.SemVerJson._
+      override def decode(node: Node): Either[Throwable, Edition] = node match {
+        case mappingNode: MappingNode =>
+          if (mappingNode.getValue.size() > 4)
+            Left(
+              new YAMLException(
+                "Invalid number of fields: " + mappingNode.getValue.size()
+              )
+            )
+          else {
+            val clazzMap = mappingKV(mappingNode)
+            val parentDecoder =
+              implicitly[SnakeYamlDecoder[Option[NestedEditionType]]]
+            val semverDecoder = implicitly[SnakeYamlDecoder[Option[SemVer]]]
+            val repositoriesDecoder =
+              implicitly[SnakeYamlDecoder[Map[String, Editions.Repository]]]
+            val librariesDecoder =
+              implicitly[SnakeYamlDecoder[Map[LibraryName, Library]]]
+            for {
+              parent <- clazzMap
+                .get(Fields.parent)
+                .map(parentDecoder.decode)
+                .getOrElse(Right(None))
+              engineVersion <- clazzMap
+                .get(Fields.engineVersion)
+                .map(semverDecoder.decode)
+                .getOrElse(Right(None))
+              repositories <- clazzMap
+                .get(Fields.repositories)
+                .map(repositoriesDecoder.decode)
+                .getOrElse(Right(Map.empty[String, Editions.Repository]))
+              libraries <- clazzMap
+                .get(Fields.libraries)
+                .map(librariesDecoder.decode)
+                .getOrElse(Right(Map.empty[LibraryName, Library]))
+            } yield Edition(parent, engineVersion, repositories, libraries)
+          }
+      }
+    }
 }
 
 object Editions {
@@ -120,11 +255,50 @@ object Editions {
 
   object Repository {
 
+    object Fields {
+      val name = "name"
+      val url  = "url"
+    }
+
     /** An alternative constructor for unnamed repositories.
       *
       * The URL is used as the repository name.
       */
     def apply(url: String): Repository = Repository(url, url)
+
+    implicit val yamlDecoder: SnakeYamlDecoder[Repository] =
+      new SnakeYamlDecoder[Repository] {
+        override def decode(node: Node): Either[Throwable, Repository] =
+          node match {
+            case mappingNode: MappingNode =>
+              val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+
+              if (mappingNode.getValue.size() != 2)
+                Left(
+                  new YAMLException(
+                    s"Invalid number of fields for Repository: ${mappingNode.getValue.size()}"
+                  )
+                )
+              else {
+                val clazzMap = mappingKV(mappingNode)
+                val result = for {
+                  name <- clazzMap
+                    .get(Fields.name)
+                    .toRight(
+                      new YAMLException(s"Missing '${Fields.name}' field")
+                    )
+                    .flatMap(stringDecoder.decode)
+                  url <- clazzMap
+                    .get(Fields.url)
+                    .toRight(
+                      new YAMLException(s"Missing '${Fields.url}' field")
+                    )
+                    .flatMap(stringDecoder.decode)
+                } yield Repository(name, url)
+                result
+              }
+          }
+      }
   }
 
   /** Implements the Raw editions that can be directly parsed from a YAML
@@ -136,6 +310,12 @@ object Editions {
   object Raw extends Editions {
     override type NestedEditionType     = String
     override type LibraryRepositoryType = String
+
+    implicit override def nestedEditionTypeDecoder
+      : SnakeYamlDecoder[NestedEditionType] = SnakeYamlDecoder.stringDecoderYaml
+    implicit override def libraryRepositoryTypeDecoder
+      : SnakeYamlDecoder[LibraryRepositoryType] =
+      SnakeYamlDecoder.stringDecoderYaml
   }
 
   /** Implements the Resolved editions which are obtained by analyzing the Raw
@@ -144,6 +324,11 @@ object Editions {
   object Resolved extends Editions {
     override type NestedEditionType     = this.Edition
     override type LibraryRepositoryType = Repository
+
+    implicit override def nestedEditionTypeDecoder
+      : SnakeYamlDecoder[NestedEditionType] = decoderSnake
+    implicit override def libraryRepositoryTypeDecoder
+      : SnakeYamlDecoder[Repository] = Repository.yamlDecoder
   }
 
   /** An alias for Raw editions. */

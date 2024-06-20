@@ -2,6 +2,9 @@ package org.enso.editions
 
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
+import org.yaml.snakeyaml.error.YAMLException
+import org.yaml.snakeyaml.nodes.{Node, ScalarNode, Tag}
+import org.enso.yaml.SnakeYamlDecoder
 
 /** A helper type to handle special parsing logic of edition names.
   *
@@ -22,6 +25,22 @@ object EditionName {
 
   /** A helper method for constructing an [[EditionName]]. */
   def apply(name: String): EditionName = new EditionName(name)
+
+  implicit val decoderSnake: SnakeYamlDecoder[EditionName] =
+    new SnakeYamlDecoder[EditionName] {
+      override def decode(node: Node): Either[Throwable, EditionName] =
+        node match {
+          case scalarNode: ScalarNode =>
+            scalarNode.getTag match {
+              case Tag.NULL => Left(new YAMLException("Missing edition name"))
+              case _ =>
+                val stringDecoder = implicitly[SnakeYamlDecoder[String]]
+                stringDecoder.decode(scalarNode).map(EditionName(_))
+            }
+          case _ =>
+            Left(new YAMLException("Unexpected edition name"))
+        }
+    }
 
   /** A [[Decoder]] instance for [[EditionName]] that accepts not only strings
     * but also numbers as valid edition names.
