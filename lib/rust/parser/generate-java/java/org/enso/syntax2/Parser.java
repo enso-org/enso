@@ -45,7 +45,8 @@ public final class Parser implements AutoCloseable {
       System.load(path.getAbsolutePath());
     } catch (NullPointerException | IllegalArgumentException | LinkageError e) {
       if (!searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
-        if (!searchFromDirToTop(e, new File("."), "target", "rust", "debug", name)) {
+        if (!searchFromDirToTop(
+            e, new File(".").getAbsoluteFile(), "target", "rust", "debug", name)) {
           throw new IllegalStateException("Cannot load parser from " + root, e);
         }
       }
