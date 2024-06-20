@@ -26,7 +26,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'selected-frame': 'rgb(255 255 255 / 70%)',
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
-        'not-selected': 'rgb(0 0 0 / 15%)',
+        'not-selected': 'rgb(0 0 0 / 30%)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
         help: '#3f68ce',

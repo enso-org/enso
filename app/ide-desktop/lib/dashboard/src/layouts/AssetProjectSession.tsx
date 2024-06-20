@@ -32,8 +32,8 @@ export default function AssetProjectSession(props: AssetProjectSessionProps) {
   return (
     <div className="flex w-full flex-1 shrink-0 select-none flex-row gap-4 rounded-2xl p-2">
       <div className="flex flex-1 flex-col">
-        <time className="text-xs text-not-selected">
-          {getText('onDateX', dateTime.formatDateTime(new Date(projectSession.createdAt)))}
+        <time className="text-xs">
+          {dateTime.formatDateTime(new Date(projectSession.createdAt))}
         </time>
       </div>
       <div className="flex items-center gap-1">
