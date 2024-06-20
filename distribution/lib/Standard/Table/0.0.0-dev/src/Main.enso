@@ -29,4 +29,3 @@ from project.Constants export all
 from project.Expression export expr
 from project.Extensions.Column_Vector_Extensions export all
 from project.Extensions.Table_Conversions export all
-from project.Simple_Expression export simple_expr
