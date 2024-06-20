@@ -19,9 +19,10 @@ test.test('create project', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewProjectButton(page).click()
+  await test.expect(actions.locateEditor(page)).toBeVisible()
+  await actions.locateDrivePageIcon(page).click()
   // Assets: [0: Project 1]
   await test.expect(assetRows).toHaveCount(1)
-  await test.expect(actions.locateEditor(page)).toBeVisible()
 })
 
 test.test('upload file', async ({ page }) => {
