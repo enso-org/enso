@@ -2,7 +2,7 @@ import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo.ts'
 import type { AstId, TokenId } from '@/util/ast/abstract.ts'
 import { identity } from '@vueuse/core'
-import type { RendererElement } from 'vue'
+import type { Ref, RendererElement } from 'vue'
 
 interface SelectionArrowInfo {
   /** Id of the subexpression that should display arrow underneath. */
@@ -12,6 +12,10 @@ interface SelectionArrowInfo {
   /** Whether or not the arrow provided by this context instance was already requested.
    * Do not request the arrow twice, it will be stolen from other elements! */
   handled: boolean
+  /**
+   *
+   */
+  suppressArrow: boolean
 }
 
 export { injectFn as injectSelectionArrow, provideFn as provideSelectionArrow }
