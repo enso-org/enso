@@ -176,4 +176,19 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
       node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)]
     )
   }
+
+  /** Check whether a pending rename is valid. */
+  isNewTitleValid(newTitle: string, siblings?: readonly AssetTreeNode[] | null) {
+    siblings ??= []
+    return (
+      newTitle !== '' &&
+      newTitle !== this.item.title &&
+      siblings.every(sibling => {
+        const isSelf = sibling.key === this.key
+        const hasSameType = sibling.item.type === this.item.type
+        const hasSameTitle = sibling.item.title === newTitle
+        return !(!isSelf && hasSameType && hasSameTitle)
+      })
+    )
+  }
 }

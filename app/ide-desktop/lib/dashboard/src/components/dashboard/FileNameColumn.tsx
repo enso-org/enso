@@ -175,14 +175,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         editable={rowState.isEditingName}
         className="text grow bg-transparent font-naming"
         checkSubmittable={newTitle =>
-          newTitle !== '' &&
-          newTitle !== item.item.title &&
-          (nodeMap.current.get(item.directoryKey)?.children ?? []).every(child => {
-            const isSelf = child.key === item.key
-            const hasSameType = child.item.type === item.type
-            const hasSameTitle = child.item.title === newTitle
-            return !(!isSelf && hasSameType && hasSameTitle)
-          })
+          item.isNewTitleValid(newTitle, nodeMap.current.get(item.directoryKey)?.children)
         }
         onSubmit={doRename}
         onCancel={() => {
