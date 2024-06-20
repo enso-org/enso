@@ -47,7 +47,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
 
-  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user?.plan })
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 
   const isUnderPaywall = isFeatureUnderPaywall('share')
 

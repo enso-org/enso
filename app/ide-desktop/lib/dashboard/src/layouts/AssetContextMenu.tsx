@@ -75,7 +75,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   )
   const isCloud = categoryModule.isCloud(category)
 
-  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user?.plan })
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
   const isUnderPaywall = isFeatureUnderPaywall('share')
 
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own

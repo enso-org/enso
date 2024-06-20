@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import type * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import SvgMask from '#/components/SvgMask'
 
 // ====================
 // === SubmitButton ===

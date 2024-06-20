@@ -22,12 +22,12 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
 
   const { user } = authProvider.useNonPartialUserSession()
 
-  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user?.plan })
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 
   const isUnderPaywall = isFeatureUnderPaywall('share')
 
   return (
-    <div className="flex h-table-row w-full items-center gap-icon-with-text">
+    <div className="h-table-row flex w-full items-center gap-icon-with-text">
       <ariaComponents.Button
         variant="icon"
         size="xsmall"

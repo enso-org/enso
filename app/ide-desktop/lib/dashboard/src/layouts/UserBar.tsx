@@ -54,7 +54,7 @@ export default function UserBar(props: UserBarProps) {
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
-  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user?.plan })
+  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
 
   const self =
     projectAsset?.permissions?.find(
@@ -71,9 +71,7 @@ export default function UserBar(props: UserBarProps) {
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
 
   const shouldShowInviteButton =
-    backend != null &&
-    !shouldShowShareButton &&
-    !shouldShowUpgradeButton
+    backend != null && !shouldShowShareButton && !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
