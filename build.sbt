@@ -414,9 +414,9 @@ val catsVersion = "2.9.0"
 
 // === Circe ==================================================================
 
-val circeVersion              = "0.14.5"
-val circeYamlVersion          = "0.14.2"
-val circeGenericExtrasVersion = "0.14.2"
+val circeVersion              = "0.14.7"
+val circeYamlVersion          = "0.15.1"
+val circeGenericExtrasVersion = "0.14.3"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 

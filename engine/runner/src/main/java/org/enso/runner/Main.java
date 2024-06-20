@@ -31,7 +31,6 @@ import org.enso.languageserver.boot.LanguageServerConfig;
 import org.enso.languageserver.boot.ProfilingConfig;
 import org.enso.languageserver.boot.StartupConfig;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
-import org.enso.pkg.ComponentGroups;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -46,6 +45,7 @@ import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
+import scala.Option$;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.FiniteDuration;
@@ -582,7 +582,7 @@ public final class Main {
             authors,
             nil(),
             "",
-            ComponentGroups.empty());
+            Option$.MODULE$.empty());
     throw exitSuccess();
   }
 
