@@ -40,7 +40,7 @@ export default function EditableSpan(props: EditableSpanProps) {
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isSubmittable, setIsSubmittable] = React.useState(false)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
   const cancelledRef = React.useRef(false)
   const checkSubmittableRef = React.useRef(checkSubmittable)
   checkSubmittableRef.current = checkSubmittable
@@ -101,7 +101,13 @@ export default function EditableSpan(props: EditableSpanProps) {
         <aria.Input
           data-testid={props['data-testid']}
           className={tailwindMerge.twMerge('rounded-lg', className)}
-          ref={inputRef}
+          ref={element => {
+            inputRef.current = element
+            if (element) {
+              element.style.width = '0'
+              element.style.width = `${element.scrollWidth}px`
+            }
+          }}
           autoFocus
           type="text"
           size={1}
@@ -112,6 +118,10 @@ export default function EditableSpan(props: EditableSpanProps) {
           onKeyDown={event => {
             if (event.key !== 'Escape') {
               event.stopPropagation()
+            }
+            if (event.target instanceof HTMLElement) {
+              event.target.style.width = '0'
+              event.target.style.width = `${event.target.scrollWidth}px`
             }
           }}
           {...(inputPattern == null ? {} : { pattern: inputPattern })}
