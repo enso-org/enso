@@ -271,9 +271,17 @@ const getPattern = (index: number) =>
 
 const getTablePattern = (index: number) =>
   Pattern.new((ast) =>
-    Ast.App.positional(
-      Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get')!),
-      Ast.tryNumberToEnso(index + 1, ast.module)!,
+    Ast.OprApp.new(
+      ast.module,
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('rows')!),
+        Ast.parse('(..All_Rows)'),
+      ),
+      '.',
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('get')!),
+        Ast.tryNumberToEnso(index, ast.module)!,
+      ),
     ),
   )
 
