@@ -22,7 +22,7 @@ import * as projectManagement from './projectManagement'
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
-const PROJECTS_ROOT_DIRECTORY = path.join(os.homedir(), 'enso/projects')
+const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory()
 
 // =============
 // === Types ===
