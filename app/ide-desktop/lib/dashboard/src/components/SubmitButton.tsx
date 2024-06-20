@@ -25,6 +25,7 @@ export default function SubmitButton(props: SubmitButtonProps) {
     <ariaComponents.Button
       variant="submit"
       isDisabled={isDisabled}
+      isActive={!isDisabled}
       type="submit"
       className="py-1"
       onPress={onPress}

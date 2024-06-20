@@ -1,8 +1,6 @@
 /** @file A modal to create a user group. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -17,6 +15,7 @@ import type Backend from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =========================
 // === NewUserGroupModal ===

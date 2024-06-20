@@ -1,8 +1,6 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -11,6 +9,8 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ==========================
 // === ConfirmDeleteModal ===

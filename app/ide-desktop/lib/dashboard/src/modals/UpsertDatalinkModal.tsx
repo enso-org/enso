@@ -1,8 +1,6 @@
 /** @file A modal for creating a Datalink. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import SCHEMA from '#/data/datalinkSchema.json' assert { type: 'json' }
 import * as datalinkValidator from '#/data/datalinkValidator'
 
@@ -17,6 +15,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

@@ -1,8 +1,6 @@
 /** @file An input that outputs a {@link Date}. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import CrossIcon from 'enso-assets/cross.svg'
 import FolderArrowDoubleIcon from 'enso-assets/folder_arrow_double.svg'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
@@ -17,6 +15,7 @@ import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 import * as dateTime from '#/utilities/dateTime'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -135,7 +134,7 @@ export default function DateInput(props: DateInputProps) {
                 onInput(null)
               }}
             >
-              <SvgMask src={CrossIcon} className="size-icon" />
+              <SvgMask src={CrossIcon} className="size-4" />
             </ariaComponents.Button>
           )}
         </div>

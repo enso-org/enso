@@ -1,8 +1,6 @@
 /** @file A selector for all possible permission types. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
@@ -10,6 +8,7 @@ import FocusArea from '#/components/styled/FocusArea'
 import * as backend from '#/services/Backend'
 
 import * as permissions from '#/utilities/permissions'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

@@ -1,8 +1,6 @@
 /** @file A modal for capturing an arbitrary keyboard shortcut. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as detect from 'enso-common/src/detect'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -14,6 +12,7 @@ import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import Modal from '#/components/Modal'
 
 import * as inputBindings from '#/utilities/inputBindings'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ==============================
 // === eventToPartialShortcut ===

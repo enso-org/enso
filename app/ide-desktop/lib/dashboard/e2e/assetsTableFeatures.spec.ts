@@ -3,6 +3,8 @@ import * as test from '@playwright/test'
 
 import * as actions from './actions'
 
+const PASS_TIMEOUT = 5_000
+
 test.test('extra columns should stick to right side of assets table', async ({ page }) => {
   await actions.mockAllAndLogin({ page })
   await actions.locateAccessedByProjectsColumnToggle(page).click()
@@ -30,7 +32,7 @@ test.test('extra columns should stick to right side of assets table', async ({ p
       )
       test.expect(extraColumnsRight).toEqual(assetsTableRight)
     })
-    .toPass()
+    .toPass({ timeout: PASS_TIMEOUT })
 })
 
 test.test('extra columns should stick to top of scroll container', async ({ page }) => {
@@ -73,7 +75,7 @@ test.test('extra columns should stick to top of scroll container', async ({ page
       })
       test.expect(extraColumnsTop).toEqual(assetsTableTop)
     })
-    .toPass()
+    .toPass({ timeout: PASS_TIMEOUT })
 })
 
 test.test('can drop onto root directory dropzone', async ({ page }) => {

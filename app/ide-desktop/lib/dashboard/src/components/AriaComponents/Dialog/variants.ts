@@ -3,7 +3,7 @@
  *
  * Variants for the Dialog component.
  */
-import * as twv from 'tailwind-variants'
+import * as twv from '#/utilities/tailwindVariants'
 
 export const DIALOG_BACKGROUND = twv.tv({
   base: 'backdrop-blur-md',

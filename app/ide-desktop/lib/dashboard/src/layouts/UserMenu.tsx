@@ -1,8 +1,6 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
@@ -26,6 +24,7 @@ import AboutModal from '#/modals/AboutModal'
 
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // ================
 // === UserMenu ===
@@ -69,8 +68,8 @@ export default function UserMenu(props: UserMenuProps) {
       <div
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
         className={tailwindMerge.twMerge(
-          'absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
-          initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'
+          'absolute right-2 top-2 flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu',
+          initialized ? 'w-user-menu p-user-menu' : 'size-row-h'
         )}
         onClick={event => {
           event.stopPropagation()
@@ -84,10 +83,10 @@ export default function UserMenu(props: UserMenuProps) {
                 initialized && 'px-menu-entry'
               )}
             >
-              <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
+              <div className="flex size-row-h shrink-0 items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
-                  className="pointer-events-none size-profile-picture"
+                  className="pointer-events-none size-row-h"
                 />
               </div>
               <aria.Text className="text">{user.name}</aria.Text>
@@ -144,7 +143,7 @@ export default function UserMenu(props: UserMenuProps) {
           </>
         ) : (
           <>
-            <div className="flex h-profile-picture items-center">
+            <div className="flex h-row items-center">
               <aria.Text className="text">{getText('youAreNotLoggedIn')}</aria.Text>
             </div>
             <div className="flex flex-col">
