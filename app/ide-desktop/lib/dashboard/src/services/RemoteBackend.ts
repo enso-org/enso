@@ -135,11 +135,6 @@ export default class RemoteBackend extends Backend {
       this.logger.error(message)
       throw new Error(message)
     } else {
-      if (detect.IS_DEV_MODE) {
-        // @ts-expect-error This exists only for debugging purposes. It does not have types
-        // because it MUST NOT be used in this codebase.
-        window.remoteBackend = this
-      }
       return
     }
   }
@@ -182,7 +177,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<backend.User[]> {
+  override async listUsers(): Promise<readonly backend.User[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (!responseIsSuccessful(response)) {

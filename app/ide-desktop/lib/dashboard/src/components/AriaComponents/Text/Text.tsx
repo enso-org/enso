@@ -42,9 +42,9 @@ export const TEXT_STYLE = twv.tv({
     // leading should always be after the text size to make sure it is not stripped by twMerge
     variant: {
       custom: '',
-      body: 'text-xs leading-[20px] before:h-[1px] after:h-[3px]',
-      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px]',
-      subtitle: 'text-[13.5px] leading-[20px] before:h-[1px] after:h-[3px]',
+      body: 'text-xs leading-[20px] before:h-[1px] after:h-[3px] font-medium',
+      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] font-bold',
+      subtitle: 'text-[13.5px] leading-[19px] before:h-[1px] after:h-[3px] font-bold',
     },
     weight: {
       custom: '',
@@ -88,7 +88,7 @@ export const TEXT_STYLE = twv.tv({
       all: 'select-all',
     },
     disableLineHeightCompensation: {
-      true: '',
+      true: 'before:hidden after:hidden before:w-0 after:w-0',
       false:
         'inline-block flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
     },
@@ -105,24 +105,6 @@ export const TEXT_STYLE = twv.tv({
     disableLineHeightCompensation: false,
     textSelection: 'auto',
   },
-  compoundVariants: [
-    { variant: 'h1', class: 'font-bold' },
-    {
-      variant: 'h1',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-    {
-      variant: 'body',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-    {
-      variant: 'subtitle',
-      disableLineHeightCompensation: true,
-      class: 'before:h-[unset] after:h-[unset]',
-    },
-  ],
 })
 
 /**

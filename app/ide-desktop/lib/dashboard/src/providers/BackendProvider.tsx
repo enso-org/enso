@@ -10,6 +10,7 @@ import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import type Backend from '#/services/Backend'
+import type RemoteBackend from '#/services/RemoteBackend'
 
 // ======================
 // === BackendContext ===
@@ -17,7 +18,7 @@ import type Backend from '#/services/Backend'
 
 /** State contained in a `BackendContext`. */
 export interface BackendContextType {
-  readonly remoteBackend: Backend | null
+  readonly remoteBackend: RemoteBackend | null
   readonly localBackend: Backend | null
 }
 
@@ -28,7 +29,7 @@ const BackendContext = React.createContext<BackendContextType>({
 
 /** Props for a {@link BackendProvider}. */
 export interface BackendProviderProps extends Readonly<React.PropsWithChildren> {
-  readonly remoteBackend: Backend | null
+  readonly remoteBackend: RemoteBackend | null
   readonly localBackend: Backend | null
 }
 

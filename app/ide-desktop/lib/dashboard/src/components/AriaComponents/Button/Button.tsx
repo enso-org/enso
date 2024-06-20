@@ -162,7 +162,7 @@ export const BUTTON_STYLES = twv.tv({
     variant: {
       custom: 'focus-visible:outline-offset-2',
       link: {
-        base: 'inline-flex px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
+        base: 'inline-block px-0 py-0 rounded-sm text-primary/50 underline hover:text-primary border-none',
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
@@ -171,7 +171,7 @@ export const BUTTON_STYLES = twv.tv({
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
       icon: {
-        base: 'opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
+        base: 'border-0 opacity-80 hover:opacity-100 focus-visible:opacity-100 text-primary',
         wrapper: 'w-full h-full',
         content: 'w-full h-full',
         extraClickZone: 'w-full h-full',

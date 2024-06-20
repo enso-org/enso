@@ -107,7 +107,7 @@ export default class HttpClient {
       method: HttpMethod.put,
       url,
       payload,
-      mimetype: 'application/octet-stream',
+      mimetype: payload.type || 'application/octet-stream',
     })
   }
 
@@ -124,9 +124,16 @@ export default class HttpClient {
    * @throws {Error} if the HTTP request fails. */
   private async request<T = void>(options: HttpClientRequestOptions) {
     const headers = new Headers(this.defaultHeaders)
-    if (options.payload != null) {
+    let payload = options.payload
+    if (payload != null) {
       const contentType = options.mimetype ?? 'application/json'
       headers.set('Content-Type', contentType)
+    }
+
+    // `Blob` request payloads are NOT VISIBLE in Playwright due to a Chromium bug.
+    // https://github.com/microsoft/playwright/issues/6479#issuecomment-1574627457
+    if (window.isInPlaywrightTest === true && payload instanceof Blob) {
+      payload = await payload.arrayBuffer()
     }
 
     try {
@@ -137,7 +144,7 @@ export default class HttpClient {
         method: options.method,
         headers,
         keepalive: options.keepalive ?? false,
-        ...(options.payload != null ? { body: options.payload } : {}),
+        ...(payload != null ? { body: payload } : {}),
       })) as ResponseWithTypedJson<T>
       document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
       return response
