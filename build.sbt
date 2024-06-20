@@ -2614,6 +2614,7 @@ lazy val `engine-runner` = project
             "-H:IncludeResources=.*Main.enso$",
             "-H:+AddAllCharsets",
             "-H:+IncludeAllLocales",
+            "-ea",
             // useful perf & debug switches:
             // "-g",
             // "-H:+SourceLevelDebug",
