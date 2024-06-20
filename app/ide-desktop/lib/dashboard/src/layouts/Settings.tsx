@@ -18,6 +18,7 @@ import UserGroupsSettingsTab from '#/layouts/Settings/UserGroupsSettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
@@ -113,16 +114,22 @@ export default function Settings(props: SettingsProps) {
             />
           </aria.Popover>
         </aria.MenuTrigger>
-        <aria.Text className="py-heading-y">{getText('settingsFor')}</aria.Text>
+        <ariaComponents.Text variant="h1" className="py-heading-y">
+          {getText('settingsFor')}
+        </ariaComponents.Text>
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
-        <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
+        <ariaComponents.Text
+          variant="h1"
+          truncate="1"
+          className="ml-[0.625rem] h-[2.25rem] max-w-[30ch] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug"
+        >
           {settingsTab !== SettingsTab.organization &&
           settingsTab !== SettingsTab.members &&
           settingsTab !== SettingsTab.userGroups
             ? user?.name ?? 'your account'
             : organization?.name ?? 'your organization'}
-        </div>
+        </ariaComponents.Text>
       </aria.Heading>
       <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar
