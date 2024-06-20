@@ -198,7 +198,7 @@ default_fetcher_for_value_type value_type =
             is_guaranteed_integer = scale.is_nothing.not && scale <= 0
             case is_guaranteed_integer of
                 True  -> big_integer_fetcher
-                False -> fallback_fetcher
+                False -> big_decimal_fetcher
         _ -> fallback_fetcher
 
 ## PRIVATE

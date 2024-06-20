@@ -53,8 +53,6 @@ public class NumericConverter {
   public static BigInteger coerceToBigInteger(Object o) {
     if (o instanceof BigInteger bigInteger) {
       return bigInteger;
-    } else if (o instanceof BigDecimal bigDecimal) {
-      return bigDecimal.toBigIntegerExact();
     } else {
       long longValue = coerceToLong(o);
       return BigInteger.valueOf(longValue);
@@ -100,11 +98,7 @@ public class NumericConverter {
   }
 
   public static boolean isCoercibleToBigInteger(Object o) {
-    return o instanceof BigInteger || isIntegralBigDecimal(o) || isCoercibleToLong(o);
-  }
-
-  private static boolean isIntegralBigDecimal(Object o) {
-    return o instanceof BigDecimal bigDecimal && bigDecimal.scale() <= 0;
+    return o instanceof BigInteger || isCoercibleToLong(o);
   }
 
   /**
