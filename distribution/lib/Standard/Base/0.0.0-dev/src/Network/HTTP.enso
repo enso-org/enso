@@ -32,6 +32,7 @@ polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpRequest
 polyglot java import java.net.http.HttpRequest.BodyPublisher
+polyglot java import java.net.http.HttpRequest.BodyPublishers
 polyglot java import java.net.InetSocketAddress
 polyglot java import java.net.ProxySelector
 polyglot java import java.nio.file.Path
