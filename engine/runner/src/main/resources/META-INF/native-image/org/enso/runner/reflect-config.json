@@ -1797,6 +1797,10 @@
   "methods":[{"name":"floatId","parameterTypes":["java.lang.Double"] }]
 },
 {
+  "name":"org.enso.base_test_helpers.RangeStream",
+  "methods":[{"name":"<init>","parameterTypes":["int", "int"] }]
+},
+{
   "name":"org.enso.compiler.core.ir.IrPersistance$PersistDiagnosticStorage",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
