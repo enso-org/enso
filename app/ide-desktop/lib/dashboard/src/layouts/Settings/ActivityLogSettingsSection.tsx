@@ -200,7 +200,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByName')
                       : getText('sortByNameDescending')
                 }
-                className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type
@@ -226,9 +226,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   src={SortAscendingIcon}
                   className={tailwindMerge.twMerge(
                     'transition-all duration-arrow',
-                    sortInfo?.field === ActivityLogSortableColumn.type
-                      ? 'selectable active'
-                      : 'transparent group-hover:selectable',
+                    sortInfo?.field !== ActivityLogSortableColumn.type &&
+                      'opacity-0 group-hover:opacity-50',
                     sortInfo?.field === ActivityLogSortableColumn.type &&
                       isDescending &&
                       'rotate-180'
@@ -247,7 +246,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByEmail')
                       : getText('sortByEmailDescending')
                 }
-                className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email
@@ -273,9 +272,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   src={SortAscendingIcon}
                   className={tailwindMerge.twMerge(
                     'transition-all duration-arrow',
-                    sortInfo?.field === ActivityLogSortableColumn.email
-                      ? 'selectable active'
-                      : 'transparent group-hover:selectable',
+                    sortInfo?.field !== ActivityLogSortableColumn.email &&
+                      'opacity-0 group-hover:opacity-50',
                     sortInfo?.field === ActivityLogSortableColumn.email &&
                       isDescending &&
                       'rotate-180'
@@ -294,7 +292,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByTimestamp')
                       : getText('sortByTimestampDescending')
                 }
-                className="group flex h-table-row w-full items-center gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp
@@ -320,9 +318,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   src={SortAscendingIcon}
                   className={tailwindMerge.twMerge(
                     'transition-all duration-arrow',
-                    sortInfo?.field === ActivityLogSortableColumn.timestamp
-                      ? 'selectable active'
-                      : 'transparent group-hover:selectable',
+                    sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
+                      'opacity-0 group-hover:opacity-50',
                     sortInfo?.field === ActivityLogSortableColumn.timestamp &&
                       isDescending &&
                       'rotate-180'
