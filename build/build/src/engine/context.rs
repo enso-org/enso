@@ -630,8 +630,6 @@ pub async fn runner_sanity_test(
     repo_root: &crate::paths::generated::RepoRoot,
     enso_java: Option<&str>,
 ) -> Result {
-    let factorial_input = "6";
-    let factorial_expected_output = "720";
     let engine_package = repo_root.built_distribution.enso_engine_triple.engine_package.as_path();
     // The engine package is necessary for running the native runner.
     ide_ci::fs::tokio::require_exist(engine_package).await?;
