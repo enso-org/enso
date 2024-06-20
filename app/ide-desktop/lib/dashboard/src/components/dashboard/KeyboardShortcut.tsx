@@ -16,6 +16,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
 
 import * as inputBindingsModule from '#/utilities/inputBindings'
@@ -26,9 +27,9 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // ========================
 
 /** The size (both width and height) of key icons. */
-const ICON_SIZE_PX = 13
+const ICON_SIZE_PX = '1.5cap'
 
-const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX }
+const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX, marginTop: '0.1cap' }
 
 /** Props for values of {@link MODIFIER_JSX}. */
 interface InternalModifierProps {
@@ -124,24 +125,24 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       .sort(inputBindingsModule.compareModifiers)
       .map(inputBindingsModule.toModifierKey)
     return (
-      <aria.Text
+      <div
         className={tailwindMerge.twMerge(
-          'flex h-text items-center',
+          'flex items-center',
           detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
         )}
       >
         {modifiers.map(
           modifier =>
             MODIFIER_JSX[detect.platform()][modifier]?.({ getText }) ?? (
-              <aria.Text key={modifier} className="text">
+              <ariaComponents.Text key={modifier}>
                 {getText(MODIFIER_TO_TEXT_ID[modifier])}
-              </aria.Text>
+              </ariaComponents.Text>
             )
         )}
-        <aria.Text className="text">
+        <ariaComponents.Text>
           {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}
-        </aria.Text>
-      </aria.Text>
+        </ariaComponents.Text>
+      </div>
     )
   }
 }

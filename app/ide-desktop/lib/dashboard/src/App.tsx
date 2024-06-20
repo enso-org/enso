@@ -253,7 +253,7 @@ function AppRouter(props: AppRouterProps) {
         }
       }
     }
-  }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+  }, [localStorage, inputBindingsRaw])
 
   React.useEffect(() => {
     if (remoteBackend) {
@@ -315,14 +315,14 @@ function AppRouter(props: AppRouterProps) {
         return inputBindingsRaw.unregister.bind(inputBindingsRaw)
       },
     }
-  }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+  }, [localStorage, inputBindingsRaw])
 
   const mainPageUrl = getMainPageUrl()
 
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
-  }, [props, /* should never change */ navigate])
+  }, [props, navigate])
 
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const refreshUserSession =
@@ -335,7 +335,7 @@ function AppRouter(props: AppRouterProps) {
         setModal(<AboutModal />)
       })
     }
-  }, [/* should never change */ setModal])
+  }, [setModal])
 
   React.useEffect(() => {
     const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
@@ -366,15 +366,15 @@ function AppRouter(props: AppRouterProps) {
           app.contains(selection.anchorNode) &&
           selection.focusNode != null &&
           app.contains(selection.focusNode)
-        if (selection != null && !appContainsSelection) {
-          selection.removeAllRanges()
+        if (!appContainsSelection) {
+          selection?.removeAllRanges()
         }
       }
     }
-
     const onSelectStart = () => {
       isClick = false
     }
+
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('mouseup', onMouseUp)
     document.addEventListener('selectstart', onSelectStart)

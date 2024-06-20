@@ -70,7 +70,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         })
       )
     },
-    [/* should never change */ setItem]
+    [setItem]
   )
 
   return (
@@ -108,10 +108,11 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
       )}
       {managesThisAsset && !isUnderPaywall && (
         <ariaComponents.Button
-          variant="icon"
-          size="xsmall"
+          ref={plusButtonRef}
+          size="icon"
+          variant="ghost"
           icon={Plus2Icon}
-          className="opacity-0 group-hover:opacity-100"
+          showIconOnHover
           onPress={() => {
             setModal(
               <ManagePermissionsModal
@@ -122,10 +123,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
                 self={self}
                 eventTarget={plusButtonRef.current}
                 doRemoveSelf={() => {
-                  dispatchAssetEvent({
-                    type: AssetEventType.removeSelf,
-                    id: asset.id,
-                  })
+                  dispatchAssetEvent({ type: AssetEventType.removeSelf, id: asset.id })
                 }}
               />
             )

@@ -70,7 +70,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       setItemInner(valueOrUpdater)
       setItemRaw(valueOrUpdater)
     },
-    [/* should never change */ setItemRaw]
+    [setItemRaw]
   )
   const labels = backendHooks.useBackendListTags(backend) ?? []
   const self = item.item.permissions?.find(
@@ -87,6 +87,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const createDatalinkMutation = backendHooks.useBackendMutation(backend, 'createDatalink')
   const getDatalinkMutation = backendHooks.useBackendMutation(backend, 'getDatalink')
   const updateAssetMutation = backendHooks.useBackendMutation(backend, 'updateAsset')
+  const getDatalinkMutate = getDatalinkMutation.mutateAsync
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -95,13 +96,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.datalink) {
-        const value = await getDatalinkMutation.mutateAsync([item.item.id, item.item.title])
+        const value = await getDatalinkMutate([item.item.id, item.item.title])
         setDatalinkValue(value)
         setEditedDatalinkValue(value)
         setIsDatalinkFetched(true)
       }
     })()
-  }, [backend, item.item, getDatalinkMutation])
+  }, [backend, item.item, getDatalinkMutate])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)

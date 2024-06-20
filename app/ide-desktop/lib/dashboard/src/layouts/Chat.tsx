@@ -465,7 +465,7 @@ export default function Chat(props: ChatProps) {
     } else {
       return
     }
-  }, [isOpen, /* should never change */ endpoint])
+  }, [isOpen, endpoint])
 
   React.useLayoutEffect(() => {
     const element = messagesRef.current
@@ -630,7 +630,7 @@ export default function Chat(props: ChatProps) {
         })
       }
     },
-    [threads, toastAndLog, /* should never change */ sendMessage]
+    [threads, toastAndLog, sendMessage]
   )
 
   const sendCurrentMessage = React.useCallback(
@@ -680,14 +680,7 @@ export default function Chat(props: ChatProps) {
         }
       }
     },
-    [
-      threads,
-      threadId,
-      threadTitle,
-      shouldIgnoreMessageLimit,
-      getText,
-      /* should never change */ sendMessage,
-    ]
+    [threads, threadId, threadTitle, shouldIgnoreMessageLimit, getText, sendMessage]
   )
 
   const upgradeToPro = () => {

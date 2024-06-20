@@ -129,7 +129,7 @@ export default function ManagePermissionsModal<
     // This is SAFE, as the type of asset is not being changed.
     // eslint-disable-next-line no-restricted-syntax
     setItem(object.merger({ permissions } as Partial<Asset>))
-  }, [permissions, /* should never change */ setItem])
+  }, [permissions, setItem])
 
   if (backend.type === backendModule.BackendType.local) {
     // This should never happen - the local backend does not have the "shared with" column,

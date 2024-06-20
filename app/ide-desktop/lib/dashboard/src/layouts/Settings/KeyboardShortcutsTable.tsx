@@ -4,7 +4,7 @@ import * as React from 'react'
 import BlankIcon from 'enso-assets/blank.svg'
 import CrossIcon from 'enso-assets/cross.svg'
 import Plus2Icon from 'enso-assets/plus2.svg'
-import ReloadInCircleIcon from 'enso-assets/reload_in_circle.svg'
+import ReloadIcon from 'enso-assets/reload.svg'
 
 import type * as refreshHooks from '#/hooks/refreshHooks'
 import * as scrollHooks from '#/hooks/scrollHooks'
@@ -99,7 +99,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                             {/* I don't know why this padding is needed,
                              * given that this is a flex container. */}
                             {/* eslint-disable-next-line no-restricted-syntax */}
-                            <div className="flex gap-buttons pr-4">
+                            <div className="flex items-center gap-buttons pr-4">
                               {info.bindings.map((binding, j) => (
                                 <div
                                   key={j}
@@ -107,23 +107,27 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                 >
                                   <KeyboardShortcut shortcut={binding} />
                                   <ariaComponents.Button
-                                    size="custom"
-                                    variant="custom"
-                                    className="flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg"
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={getText('removeShortcut')}
+                                    tooltipPlacement="top left"
+                                    icon={CrossIcon}
+                                    showIconOnHover
                                     onPress={() => {
                                       inputBindings.delete(action, binding)
                                       doRefresh()
                                     }}
-                                  >
-                                    <SvgMask src={CrossIcon} className="size-4" />
-                                  </ariaComponents.Button>
+                                  />
                                 </div>
                               ))}
-                              <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
+                              <div className="ml-auto flex items-center gap-2">
                                 <ariaComponents.Button
-                                  size="custom"
-                                  variant="custom"
-                                  className="focus-default my-auto flex rounded-full"
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={getText('addShortcut')}
+                                  tooltipPlacement="top left"
+                                  icon={Plus2Icon}
+                                  showIconOnHover
                                   onPress={() => {
                                     setModal(
                                       <CaptureKeyboardShortcutModal
@@ -136,20 +140,19 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                       />
                                     )
                                   }}
-                                >
-                                  <img className="size-plus-icon" src={Plus2Icon} />
-                                </ariaComponents.Button>
+                                />
                                 <ariaComponents.Button
-                                  size="custom"
-                                  variant="custom"
-                                  className="my-auto flex rounded-full"
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={getText('resetShortcut')}
+                                  tooltipPlacement="top left"
+                                  icon={ReloadIcon}
+                                  showIconOnHover
                                   onPress={() => {
                                     inputBindings.reset(action)
                                     doRefresh()
                                   }}
-                                >
-                                  <img className="size-plus-icon" src={ReloadInCircleIcon} />
-                                </ariaComponents.Button>
+                                />
                               </div>
                             </div>
                           </div>

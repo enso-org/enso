@@ -79,10 +79,10 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     return (element: HTMLDivElement | null) => {
       const backgroundElement = backgroundRef.current
       if (backgroundElement != null) {
+        selectedTabRef.current = element
         if (element == null) {
           backgroundElement.style.clipPath = ''
         } else {
-          selectedTabRef.current = element
           const bounds = element.getBoundingClientRect()
           const rootBounds = backgroundElement.getBoundingClientRect()
           const tabLeft = bounds.left - rootBounds.left
@@ -119,6 +119,12 @@ export default function PageSwitcher(props: PageSwitcherProps) {
       }
     }
   }
+
+  React.useEffect(() => {
+    if (visiblePageData.every(pageData => page !== pageData.page)) {
+      updateClipPath(null)
+    }
+  }, [page, updateClipPath, visiblePageData])
 
   return (
     <div className="relative flex grow">

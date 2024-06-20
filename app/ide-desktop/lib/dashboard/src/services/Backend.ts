@@ -1260,7 +1260,7 @@ export default abstract class Backend {
   /** Return the ID of the root directory, if known. */
   abstract rootDirectoryId(user: User | null): DirectoryId | null
   /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<User[]>
+  abstract listUsers(): Promise<readonly User[]>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Change the username of the current user. */
