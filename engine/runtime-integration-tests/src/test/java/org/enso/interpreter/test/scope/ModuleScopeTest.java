@@ -46,18 +46,23 @@ public class ModuleScopeTest {
 
   @Test
   public void staticMethodIsInResolvedExports() throws IOException {
-    var aMod = new SourceModule(QualifiedName.fromString("A_module"), """
+    var aMod =
+        new SourceModule(
+            QualifiedName.fromString("A_module"),
+            """
         type My_Type
         My_Type.extension_method self = 42
         """);
-    var mainMod = new SourceModule(QualifiedName.fromString("Main"), """
+    var mainMod =
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
         export project.A_Module.My_Type
         export project.A_Module.extension_method
         main = 42
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
-
   }
 
   @Test
