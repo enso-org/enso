@@ -26,6 +26,7 @@ import type Backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as sorting from '#/utilities/sorting'
+import * as tailwindVariants from '#/utilities/tailwindVariants'
 
 // =================
 // === Constants ===
@@ -188,8 +189,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       <table className="table-fixed self-start rounded-rows">
         <thead>
           <tr className="h-table-row">
-            <th className="w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r text-left text-sm font-semibold last:border-r-0" />
-            <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            <th className="w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pr-icon-column-r text-left text-sm font-semibold last:border-r-0" />
+            <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding text-left text-sm font-semibold last:border-r-0">
               <ariaComponents.Button
                 size="custom"
                 variant="custom"
@@ -200,7 +201,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByName')
                       : getText('sortByNameDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type
@@ -235,7 +236,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 />
               </ariaComponents.Button>
             </th>
-            <th className="w-activity-log-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            <th className="w-activity-log-email-column border-x-2 border-transparent bg-clip-padding text-left text-sm font-semibold last:border-r-0">
               <ariaComponents.Button
                 size="custom"
                 variant="custom"
@@ -246,7 +247,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByEmail')
                       : getText('sortByEmailDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email
@@ -281,7 +282,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                 />
               </ariaComponents.Button>
             </th>
-            <th className="w-activity-log-timestamp-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+            <th className="w-activity-log-timestamp-column border-x-2 border-transparent bg-clip-padding text-left text-sm font-semibold last:border-r-0">
               <ariaComponents.Button
                 size="custom"
                 variant="custom"
@@ -292,7 +293,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       ? getText('stopSortingByTimestamp')
                       : getText('sortByTimestampDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp
@@ -341,18 +342,18 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           ) : (
             sortedLogs.map((log, i) => (
               <tr key={i} className="h-table-row">
-                <td className="border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                   <div className="flex items-center">
                     <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />
                   </div>
                 </td>
-                <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                   {EVENT_TYPE_NAME[log.metadata.type]}
                 </td>
-                <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                   {log.userEmail}
                 </td>
-                <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                   {log.timestamp ? dateTime.formatDateTime(new Date(log.timestamp)) : ''}
                 </td>
               </tr>
