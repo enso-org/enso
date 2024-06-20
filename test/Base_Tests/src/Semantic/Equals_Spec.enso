@@ -5,8 +5,8 @@ from Standard.Test import all
 
 
 polyglot java import java.math.BigInteger as Java_Big_Integer
-polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.util.Random as Java_Random
+polyglot java import org.enso.base.file_system.File_Utils
 polyglot java import org.enso.base_test_helpers.IntHolder
 polyglot java import org.enso.base_test_helpers.IntHolderEquals
 
@@ -180,8 +180,8 @@ add_specs suite_builder =
             ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
 
         group_builder.specify "should dispatch to equals on host values" <|
-            path1 = Java_Path.of "home" "user" . resolve "file.txt"
-            path2 = Java_Path.of "home" "user" "file.txt"
+            path1 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
+            path2 = File_Utils.toPath "home" . resolve "user" . resolve "file.txt"
             (path1 == path2).should_be_true
             path3 = path1.resolve "subfile.txt"
             (path3 == path2).should_be_false

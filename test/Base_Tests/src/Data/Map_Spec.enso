@@ -5,8 +5,8 @@ import Standard.Base.Errors.No_Such_Key.No_Such_Key
 from Standard.Test import all
 
 
-polyglot java import java.nio.file.Path as JavaPath
 polyglot java import java.util.Map as JavaMap
+polyglot java import org.enso.base.file_system.File_Utils
 
 ## Type that violates reflexivity
 type My_Nan
@@ -278,11 +278,11 @@ add_specs suite_builder =
             map.get (js_str "A") . should_equal 42
 
         group_builder.specify "should support host objects as keys" <|
-            # JavaPath has proper implementation of hashCode
-            map = Map.singleton (JavaPath.of "/home/user/file.txt") 42
+            # java.nio.path.Path has proper implementation of hashCode
+            map = Map.singleton (File_Utils.toPath "/home/user/file.txt") 42
             map.get "X" . should_equal Nothing
             map.get "A" . should_equal Nothing
-            map.get (JavaPath.of "/home/user/file.txt") . should_equal 42
+            map.get (File_Utils.toPath "/home/user/file.txt") . should_equal 42
 
         group_builder.specify "should support Python objects as keys" pending=pending_python_missing <|
             py_obj = py_wrapper 42

@@ -7,6 +7,10 @@ import java.nio.file.PathMatcher;
 public final class File_Utils {
   private File_Utils() {}
 
+  public static Path toPath(String path) {
+    return Path.of(path);
+  }
+
   public static PathMatcher matchPath(String filter) {
     var fs = FileSystems.getDefault();
     var matcher = fs.getPathMatcher(filter);
