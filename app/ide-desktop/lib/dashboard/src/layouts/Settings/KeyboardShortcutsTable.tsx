@@ -112,6 +112,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                     aria-label={getText('removeShortcut')}
                                     tooltipPlacement="top left"
                                     icon={CrossIcon}
+                                    className="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
                                     onPress={() => {
                                       inputBindings.delete(action, binding)
                                       doRefresh()
@@ -126,6 +127,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   aria-label={getText('addShortcut')}
                                   tooltipPlacement="top left"
                                   icon={Plus2Icon}
+                                  className="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
                                   onPress={() => {
                                     setModal(
                                       <CaptureKeyboardShortcutModal
@@ -145,6 +147,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   aria-label={getText('resetShortcut')}
                                   tooltipPlacement="top left"
                                   icon={ReloadIcon}
+                                  className="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
                                   onPress={() => {
                                     inputBindings.reset(action)
                                     doRefresh()
