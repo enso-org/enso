@@ -131,7 +131,7 @@ public class ExtensionMethodResolutionTest {
   }
 
   @Test
-  public void resolutionFromImportedModulesIsCompilerError1() throws IOException {
+  public void resolutionFromImportedModulesIsDeterministic1() throws IOException {
     var xMod =
         new SourceModule(QualifiedName.fromString("X"), """
             type T
@@ -161,11 +161,19 @@ public class ExtensionMethodResolutionTest {
             """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
-    testProjectCompilationFailure(projDir, ambiguousResolutionErrorMessageMatcher);
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(
+              "Method resolution from imported modules should be deterministic "
+                  + "(Y module is imported first)",
+              res.asString(),
+              is("Y"));
+        });
   }
 
   @Test
-  public void resolutionFromImportedModulesIsCompilerError2() throws IOException {
+  public void resolutionFromImportedModulesIsDeterministic2() throws IOException {
     var xMod =
         new SourceModule(QualifiedName.fromString("X"), """
             type T
@@ -195,7 +203,15 @@ public class ExtensionMethodResolutionTest {
             """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(xMod, yMod, zMod, mainMod), projDir);
-    testProjectCompilationFailure(projDir, ambiguousResolutionErrorMessageMatcher);
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(
+              "Method resolution from imported modules should be deterministic "
+                  + "(Z module is imported first)",
+              res.asString(),
+              is("Z"));
+        });
   }
 
   @Test
