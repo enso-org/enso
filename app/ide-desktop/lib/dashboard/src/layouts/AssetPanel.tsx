@@ -125,7 +125,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               size="medium"
               variant="ghost"
               className={tailwindMerge.twMerge(
-                'pointer-events-auto',
+                'pointer-events-auto disabled:opacity-100',
                 tab === AssetPanelTab.versions && 'bg-white opacity-100'
               )}
               onPress={() => {
@@ -145,7 +145,7 @@ export default function AssetPanel(props: AssetPanelProps) {
             variant="ghost"
             isDisabled={tab === AssetPanelTab.projectSessions}
             className={tailwindMerge.twMerge(
-              'pointer-events-auto',
+              'pointer-events-auto disabled:opacity-100',
               tab === AssetPanelTab.projectSessions && 'bg-white opacity-100'
             )}
             onPress={() => {
