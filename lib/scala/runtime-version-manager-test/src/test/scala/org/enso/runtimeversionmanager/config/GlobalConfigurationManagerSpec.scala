@@ -25,7 +25,7 @@ class GlobalConfigurationManagerSpec
   }
 
   "GlobalConfigurationManager" should {
-    "allow to edit and remove (even unknown) keys" in {
+    "allow to edit and remove known keys" in {
       val configurationManager = makeConfigManager()
       val value                = Json.fromInt(42)
       configurationManager.updateConfigRaw("unknown-key", value)
