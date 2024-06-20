@@ -192,7 +192,7 @@ add_specs suite_builder setup =
             t1 = table_builder [["X", [1,2,3]]]
             t2 = t1.set (t1.at "X" * 100) as="Y"
             t3 = t2.set (expr "[X] + 10") as="Z"
-            t4 = t3.set (Simple_Expression.From (Column_Ref.Name "X") (Simple_Calculation.Add 1000)) as="X"
+            t4 = t3.set (Simple_Expression.Simple_Expr (Column_Ref.Name "X") (Simple_Calculation.Add 1000)) as="X"
 
             t4.at "X" . to_vector . should_equal [1001, 1002, 1003]
             t4.at "Y" . to_vector . should_equal [100, 200, 300]
