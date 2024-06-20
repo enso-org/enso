@@ -1,8 +1,6 @@
 /** @file A panel to switch between settings tabs. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
 import LogIcon from 'enso-assets/log.svg'
 import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
@@ -17,6 +15,8 @@ import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

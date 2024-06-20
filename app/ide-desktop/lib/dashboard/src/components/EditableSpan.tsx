@@ -152,9 +152,9 @@ export default function EditableSpan(props: EditableSpanProps) {
     )
   } else {
     return (
-      <aria.Text data-testid={props['data-testid']} className={className}>
+      <ariaComponents.Text data-testid={props['data-testid']} className={className}>
         {children}
-      </aria.Text>
+      </ariaComponents.Text>
     )
   }
 }

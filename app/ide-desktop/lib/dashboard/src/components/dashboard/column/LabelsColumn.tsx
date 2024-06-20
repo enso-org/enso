@@ -17,7 +17,6 @@ import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
-import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -75,7 +74,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             key={label}
             data-testid="asset-label"
             title={getText('rightClickToRemoveLabel')}
-            color={labelsByName.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
+            color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
             active={!temporarilyRemovedLabels.has(label)}
             isDisabled={temporarilyRemovedLabels.has(label)}
             negated={temporarilyRemovedLabels.has(label)}
@@ -133,7 +132,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <Label
             isDisabled
             key={label}
-            color={labelsByName.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
+            color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
             className="pointer-events-none"
             onPress={() => {}}
           >

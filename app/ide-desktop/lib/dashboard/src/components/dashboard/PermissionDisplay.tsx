@@ -1,12 +1,11 @@
 /** @file Colored border around icons and text indicating permissions. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import type * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 
 import * as permissionsModule from '#/utilities/permissions'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Component ===
@@ -16,12 +15,12 @@ import * as permissionsModule from '#/utilities/permissions'
 export interface PermissionDisplayProps extends Readonly<React.PropsWithChildren> {
   readonly action: permissionsModule.PermissionAction
   readonly className?: string
-  readonly onPress?: (event: aria.PressEvent) => void
+  readonly onPress?: ((event: aria.PressEvent) => void) | null
 }
 
 /** Colored border around icons and text indicating permissions. */
 export default function PermissionDisplay(props: PermissionDisplayProps) {
-  const { action, className, onPress: onPress, children: childrenRaw } = props
+  const { action, className, onPress, children: childrenRaw } = props
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
   const children =
@@ -43,7 +42,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           variant="custom"
           isDisabled={!onPress}
           className={tailwindMerge.twMerge(
-            'inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y',
+            'inline-block h-6 whitespace-nowrap rounded-full px-[7px]',
             permissionsModule.PERMISSION_CLASS_NAME[permission.type],
             className
           )}
@@ -73,8 +72,9 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           )}
           <div
             className={tailwindMerge.twMerge(
-              'm-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y',
-              permissionsModule.PERMISSION_CLASS_NAME[permission.type]
+              'm-1 flex h-6 items-center rounded-full px-[7px]',
+              permissionsModule.PERMISSION_CLASS_NAME[permission.type],
+              (permission.docs || permission.execute) && 'm-1'
             )}
           >
             {children}

@@ -1,11 +1,11 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

@@ -12,6 +12,7 @@ import {
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentAst,
@@ -24,7 +25,6 @@ import { initializeFFI } from 'shared/ast/ffi'
 import type { ExpressionUpdatePayload, MethodCall } from 'shared/languageServerTypes'
 import { assertEqual, assertNotEqual } from 'shared/util/assert'
 import { assert, expect, test } from 'vitest'
-import type { AstId } from '../abstract'
 
 await initializeFFI()
 

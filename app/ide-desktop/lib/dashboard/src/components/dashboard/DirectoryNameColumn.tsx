@@ -1,8 +1,6 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 
@@ -17,9 +15,9 @@ import * as textProvider from '#/providers/TextProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-import Button from '#/components/styled/Button'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
@@ -28,6 +26,7 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
 
@@ -147,7 +146,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        'group flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
         indent.indentClass(item.depth)
       )}
       onKeyDown={event => {
@@ -168,26 +167,26 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
     >
-      <div className="m-name-column-icon hidden group-hover:inline-block">
-        <Button
-          image={FolderArrowIcon}
-          alt={isExpanded ? getText('collapse') : getText('expand')}
-          tooltipPlacement="left"
-          className={tailwindMerge.twMerge(
-            'size-icon cursor-pointer transition-transform duration-arrow',
-            isExpanded && 'rotate-90'
-          )}
-          onPress={() => {
-            doToggleDirectoryExpansion(asset.id, item.key, asset.title)
-          }}
-        />
-      </div>
-      <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
+      <ariaComponents.Button
+        icon={FolderArrowIcon}
+        size="icon"
+        variant="custom"
+        aria-label={isExpanded ? getText('collapse') : getText('expand')}
+        tooltipPlacement="left"
+        className={tailwindMerge.twMerge(
+          'm-0 hidden cursor-pointer border-0 transition-transform duration-arrow group-hover:m-name-column-icon group-hover:inline-block',
+          isExpanded && 'rotate-90'
+        )}
+        onPress={() => {
+          doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+        }}
+      />
+      <SvgMask src={FolderIcon} className="m-name-column-icon size-4 group-hover:hidden" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
         className={tailwindMerge.twMerge(
-          'text grow cursor-pointer bg-transparent',
+          'text grow cursor-pointer bg-transparent font-naming',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         )}
         checkSubmittable={newTitle =>

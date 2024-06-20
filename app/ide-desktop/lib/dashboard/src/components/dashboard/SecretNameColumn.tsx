@@ -1,8 +1,6 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import KeyIcon from 'enso-assets/key.svg'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -16,7 +14,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import * as aria from '#/components/aria'
+import * as ariaComponents from '#/components/AriaComponents'
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
 
@@ -27,6 +25,7 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 
 // =====================
@@ -134,7 +133,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
+        'flex h-table-row min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y',
         indent.indentClass(item.depth)
       )}
       onKeyDown={event => {
@@ -165,11 +164,15 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={KeyIcon} className="m-name-column-icon size-icon" />
+      <SvgMask src={KeyIcon} className="m-name-column-icon size-4" />
       {/* Secrets cannot be renamed. */}
-      <aria.Text data-testid="asset-row-name" className="text grow bg-transparent">
+      <ariaComponents.Text
+        data-testid="asset-row-name"
+        font="naming"
+        className="grow bg-transparent"
+      >
         {asset.title}
-      </aria.Text>
+      </ariaComponents.Text>
     </div>
   )
 }

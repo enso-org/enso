@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
-import * as tailwindMerge from 'tailwind-merge'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -27,6 +26,7 @@ import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
 import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -309,14 +309,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
             size="project-icon"
             variant="icon"
             isDisabled={isOtherUserUsingProject}
+            isActive={!isOtherUserUsingProject}
             icon={StopIcon}
             aria-label={getText('stopExecution')}
             tooltipPlacement="left"
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
-            className={tailwindMerge.twMerge(
-              'border-0 selectable enabled:active',
-              isRunningInBackground && 'text-green'
-            )}
+            className={tailwindMerge.twMerge('border-0', isRunningInBackground && 'text-green')}
             onPress={closeProject}
           />
           <Spinner
@@ -336,16 +334,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
               size="project-icon"
               variant="icon"
               isDisabled={isOtherUserUsingProject}
+              isActive={!isOtherUserUsingProject}
               icon={StopIcon}
               aria-label={getText('stopExecution')}
               tooltipPlacement="left"
               {...(isOtherUserUsingProject
                 ? { title: getText('otherUserIsUsingProjectError') }
                 : {})}
-              className={tailwindMerge.twMerge(
-                'border-0 selectable enabled:active',
-                isRunningInBackground && 'text-green'
-              )}
+              className={tailwindMerge.twMerge('border-0', isRunningInBackground && 'text-green')}
               onPress={closeProject}
             />
             <Spinner

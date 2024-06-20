@@ -60,7 +60,7 @@ interface PlaceholderOverrides {
   readonly userAgentX: [userAgent: string]
   readonly compareVersionXWithLatest: [versionNumber: number]
   readonly onDateX: [dateString: string]
-  readonly xUsersSelected: [usersCount: number]
+  readonly xUsersAndGroupsSelected: [usersAndGroupsCount: number]
   readonly upgradeTo: [planName: string]
   readonly enterTheNewKeyboardShortcutFor: [actionName: string]
   readonly downloadProjectError: [projectName: string]

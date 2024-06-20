@@ -488,8 +488,10 @@ export class GraphDb {
 
 declare const brandNodeId: unique symbol
 export type NodeId = AstId & { [brandNodeId]: never }
-export function asNodeId(id: Ast.AstId): NodeId {
-  return id as NodeId
+export function asNodeId(id: Ast.AstId): NodeId
+export function asNodeId(id: Ast.AstId | undefined): NodeId | undefined
+export function asNodeId(id: Ast.AstId | undefined): NodeId | undefined {
+  return id != null ? (id as NodeId) : undefined
 }
 
 export interface NodeDataFromAst {

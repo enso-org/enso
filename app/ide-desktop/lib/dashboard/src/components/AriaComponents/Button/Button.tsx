@@ -57,6 +57,7 @@ export interface BaseButtonProps extends Omit<twv.VariantProps<typeof BUTTON_STY
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
   readonly onPress?: (event: aria.PressEvent) => Promise<void> | void
+  readonly contentClassName?: string
   readonly children?: React.ReactNode
   readonly testId?: string
 
@@ -82,6 +83,12 @@ export const BUTTON_STYLES = twv.tv({
     isDisabled: { true: 'disabled:opacity-50 disabled:cursor-not-allowed' },
     isFocused: {
       true: 'focus:outline-none focus-visible:outline focus-visible:outline-primary focus-visible:outline-offset-2',
+    },
+    isActive: {
+      none: '',
+      false:
+        'disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75',
+      true: 'opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default',
     },
     loading: { true: { base: 'cursor-wait' } },
     fullWidth: { true: 'w-full' },
@@ -161,7 +168,7 @@ export const BUTTON_STYLES = twv.tv({
         icon: 'h-[1.25cap] mt-[0.25cap]',
       },
       primary: 'bg-primary text-white hover:bg-primary/70',
-      tertiary: 'relative text-white bg-accent hover:bg-accent-dark',
+      tertiary: 'bg-accent text-white hover:bg-accent-dark',
       cancel: 'bg-white/50 hover:bg-white',
       delete:
         'bg-danger/80 hover:bg-danger text-white focus-visible:outline-danger focus-visible:bg-danger',
@@ -176,7 +183,7 @@ export const BUTTON_STYLES = twv.tv({
       submit: 'bg-invite text-white opacity-80 hover:opacity-100 focus-visible:outline-offset-2',
       outline:
         'border-primary/40 text-primary hover:border-primary focus-visible:outline-offset-2 hover:bg-primary/10',
-      bar: 'rounded-full border-0.5 border-primary/20 px-new-project-button-x transition-colors hover:bg-primary/10',
+      bar: 'rounded-full border-0.5 border-primary/20 transition-colors hover:bg-primary/10',
     },
     iconPosition: {
       start: { content: '' },
@@ -195,6 +202,7 @@ export const BUTTON_STYLES = twv.tv({
     icon: 'h-[2cap] flex-none aspect-square',
   },
   defaultVariants: {
+    isActive: 'none',
     loading: false,
     fullWidth: false,
     size: 'xsmall',
@@ -256,11 +264,13 @@ export const Button = React.forwardRef(function Button(
 ) {
   const {
     className,
+    contentClassName,
     children,
     variant,
     icon,
     loading = false,
     isDisabled,
+    isActive,
     showIconOnHover,
     iconPosition,
     size,
@@ -349,6 +359,7 @@ export const Button = React.forwardRef(function Button(
     text: textClasses,
   } = BUTTON_STYLES({
     isDisabled,
+    isActive,
     loading: isLoading,
     fullWidth,
     fullWidthText,
@@ -404,7 +415,7 @@ export const Button = React.forwardRef(function Button(
       )}
     >
       <span className={wrapper()}>
-        <span ref={contentRef} className={content()}>
+        <span ref={contentRef} className={content({ className: contentClassName })}>
           {childrenFactory()}
         </span>
 

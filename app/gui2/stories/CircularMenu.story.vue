@@ -21,7 +21,7 @@ const isVisualizationVisible = ref(false)
         <CircularMenu
           v-model:is-auto-evaluation-disabled="isAutoEvaluationDisabled"
           v-model:is-docs-visible="isDocsVisible"
-          v-model:is-visualization-visible="isVisualizationVisible"
+          v-model:is-visualization-enabled="isVisualizationVisible"
           @update:isAutoEvaluationDisabled="logEvent('update:isAutoEvaluationDisabled', [$event])"
           @update:isDocsVisible="logEvent('update:isDocsVisible', [$event])"
           @update:isVisualizationVisible="logEvent('update:isVisualizationVisible', [$event])"

@@ -1,8 +1,6 @@
 /** @file A modal for creating a new label. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as backendHooks from '#/hooks/backendHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -19,6 +17,8 @@ import FocusRing from '#/components/styled/FocusRing'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===

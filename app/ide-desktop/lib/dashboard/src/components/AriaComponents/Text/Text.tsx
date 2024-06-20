@@ -33,6 +33,10 @@ export const TEXT_STYLE = twv.tv({
       disabled: 'text-primary/30',
       invert: 'text-white/80',
     },
+    font: {
+      default: '',
+      naming: 'font-naming',
+    },
     // we use custom padding for the text variants to make sure the text is aligned with the grid
     // leading is also adjusted to make sure the text is aligned with the grid
     // leading should always be after the text size to make sure it is not stripped by twMerge
@@ -91,6 +95,7 @@ export const TEXT_STYLE = twv.tv({
   },
   defaultVariants: {
     variant: 'body',
+    font: 'default',
     weight: 'medium',
     transform: 'none',
     color: 'primary',
@@ -130,16 +135,17 @@ export const Text = React.forwardRef(function Text(
 ) {
   const {
     className,
-    variant = 'body',
-    italic = false,
-    weight = 'medium',
-    nowrap = false,
-    monospace = false,
-    transform = 'none',
+    variant,
+    font,
+    italic,
+    weight,
+    nowrap,
+    monospace,
+    transform,
     truncate,
     lineClamp = 1,
     children,
-    color = 'primary',
+    color,
     balance,
     elementType: ElementType = 'span',
     tooltip: tooltipElement = children,
@@ -154,6 +160,7 @@ export const Text = React.forwardRef(function Text(
 
   const textClasses = TEXT_STYLE({
     variant,
+    font,
     weight,
     transform,
     monospace,

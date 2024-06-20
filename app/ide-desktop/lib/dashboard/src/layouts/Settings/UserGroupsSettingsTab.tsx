@@ -1,8 +1,6 @@
 /** @file Settings tab for viewing and editing roles for all users in the organization. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as mimeTypes from '#/data/mimeTypes'
 
 import * as backendHooks from '#/hooks/backendHooks'
@@ -26,6 +24,8 @@ import NewUserGroupModal from '#/modals/NewUserGroupModal'
 
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
+
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =============================
 // === UserGroupsSettingsTab ===
@@ -129,7 +129,7 @@ export default function UserGroupsSettingsTab(props: UserGroupsSettingsTabProps)
             <ariaComponents.Button
               size="custom"
               variant="custom"
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              className="px-new-project-button-x flex h-row items-center rounded-full bg-frame"
               onPress={event => {
                 const rect = event.target.getBoundingClientRect()
                 const position = { pageX: rect.left, pageY: rect.top }

@@ -299,9 +299,9 @@ export default function ManagePermissionsModal<
                   }}
                   {...innerProps}
                 >
-                  <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
+                  <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-1">
                     <PermissionSelector
-                      input
+                      isInput
                       isDisabled={willInviteNewUser}
                       selfPermission={self.permission}
                       typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
@@ -315,15 +315,17 @@ export default function ManagePermissionsModal<
                         autoFocus
                         placeholder={
                           // `listedUsers` will always include the current user.
-                          listedUsers?.length !== 1
+                          (listedUsers ?? []).length > 1
                             ? getText('inviteUserPlaceholder')
                             : getText('inviteFirstUserPlaceholder')
                         }
                         type="text"
                         itemsToString={items =>
-                          items.length === 1 && items[0] != null && 'email' in items[0]
-                            ? items[0].email
-                            : getText('xUsersSelected', items.length)
+                          items.length === 1 && items[0] != null
+                            ? 'email' in items[0]
+                              ? items[0].email
+                              : items[0].groupName
+                            : getText('xUsersAndGroupsSelected', items.length)
                         }
                         values={usersAndUserGroups}
                         setValues={setUserAndUserGroups}
@@ -350,20 +352,17 @@ export default function ManagePermissionsModal<
                     </div>
                   </div>
                   <ariaComponents.Button
-                    size="custom"
-                    variant="custom"
+                    size="medium"
+                    variant="submit"
                     isDisabled={
                       willInviteNewUser
                         ? email == null || !isEmail(email)
                         : usersAndUserGroups.length === 0 ||
                           (email != null && emailsOfUsersWithPermission.has(email))
                     }
-                    className="button bg-invite px-button-x text-tag-text selectable enabled:active"
                     onPress={doSubmit}
                   >
-                    <div className="h-text py-modal-invite-button-text-y">
-                      {willInviteNewUser ? getText('invite') : getText('share')}
-                    </div>
+                    {willInviteNewUser ? getText('invite') : getText('share')}
                   </ariaComponents.Button>
                 </form>
               )}

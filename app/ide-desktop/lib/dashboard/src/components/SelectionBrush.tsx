@@ -1,8 +1,6 @@
 /** @file A selection brush to indicate the area being selected by the mouse drag action. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import * as animationHooks from '#/hooks/animationHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -11,6 +9,7 @@ import Portal from '#/components/Portal'
 
 import * as eventModule from '#/utilities/event'
 import type * as geometry from '#/utilities/geometry'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
