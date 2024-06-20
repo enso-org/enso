@@ -669,6 +669,9 @@
   "name":"java.nio.file.Path"
 },
 {
+  "name":"java.nio.file.WatchEvent$Modifier"
+},
+{
   "name":"java.nio.file.Path[]"
 },
 {
@@ -1773,19 +1776,24 @@
   "name":"org.enso.base.time.Time_Of_Day_Utils"
 },
 {
-  "name":"org.enso.base_test_helpers.CallbackHelper"
+  "name":"org.enso.base_test_helpers.CallbackHelper",
+  "methods":[{"name":"runCallbackInt","parameterTypes":["java.util.function.Function","int"] }]
 },
 {
-  "name":"org.enso.base_test_helpers.FileSystemHelper"
+  "name":"org.enso.base_test_helpers.FileSystemHelper",
+  "methods":[{"name":"setWritable","parameterTypes":["java.lang.String","boolean"] }]
 },
 {
-  "name":"org.enso.base_test_helpers.IntHolder"
+  "name":"org.enso.base_test_helpers.IntHolder",
+  "methods":[{"name":"<init>","parameterTypes":["int"] }]
 },
 {
-  "name":"org.enso.base_test_helpers.IntHolderEquals"
+  "name":"org.enso.base_test_helpers.IntHolderEquals",
+  "methods":[{"name":"<init>","parameterTypes":["int"] }]
 },
 {
-  "name":"org.enso.base_test_helpers.Number_Utils"
+  "name":"org.enso.base_test_helpers.Number_Utils",
+  "methods":[{"name":"floatId","parameterTypes":["java.lang.Double"] }]
 },
 {
   "name":"org.enso.compiler.core.ir.IrPersistance$PersistDiagnosticStorage",
