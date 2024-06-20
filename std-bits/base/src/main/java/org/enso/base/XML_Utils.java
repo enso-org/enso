@@ -69,33 +69,8 @@ public class XML_Utils {
     return out.toString();
   }
 
-  public static Document parseStream(InputStreamLike inputStreamLike)
+  public static Document parseStream(InputStream is)
       throws ParserConfigurationException, SAXException, IOException {
-    var is =
-        new InputStream() {
-          @Override
-          public int read(byte[] b, int off, int len) throws IOException {
-            return inputStreamLike.read(b, off, len);
-          }
-
-          @Override
-          public int read() throws IOException {
-            byte[] arr = new byte[1];
-            int read = read(arr, 0, 1);
-            if (read == -1) {
-              return -1;
-            }
-            if (read != 1) {
-              throw new IOException();
-            }
-            return arr[0];
-          }
-
-          @Override
-          public int read(byte[] b) throws IOException {
-            return read(b, 0, b.length);
-          }
-        };
     return doParse(new InputSource(is));
   }
 
@@ -128,9 +103,5 @@ public class XML_Utils {
             throw e;
           }
         });
-  }
-
-  public static interface InputStreamLike {
-    public int read(byte[] arr, int off, int len) throws IOException;
   }
 }
