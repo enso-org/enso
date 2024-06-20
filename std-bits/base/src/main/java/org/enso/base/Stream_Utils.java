@@ -18,6 +18,10 @@ public final class Stream_Utils {
    */
   public static interface InputStreamLike {
     public int read(byte[] arr, int off, int len) throws IOException;
+
+    public default int available() {
+      return 0;
+    }
   }
 
   /**
@@ -125,6 +129,15 @@ public final class Stream_Utils {
     @Override
     public int read(byte[] b) throws IOException {
       return read(b, 0, b.length);
+    }
+
+    @Override
+    public int available() throws IOException {
+      try {
+        return inputStreamLike.available();
+      } catch (Error | Exception e) {
+        return 0;
+      }
     }
   }
 
