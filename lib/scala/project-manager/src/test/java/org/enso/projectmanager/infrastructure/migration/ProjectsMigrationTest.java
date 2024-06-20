@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermissions;
 import org.apache.commons.io.FileUtils;
+import org.enso.desktopenvironment.Platform;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,15 +38,17 @@ public class ProjectsMigrationTest {
 
   @Test
   public void setProjectDirectoryPermissions() throws IOException {
-    File projectsDir = tmp.newFolder("projects");
-    createProjectStructure(projectsDir, "Project1");
+    if (!Platform.isWindows()) {
+      File projectsDir = tmp.newFolder("projects");
+      createProjectStructure(projectsDir, "Project1");
 
-    Assert.assertTrue(projectsDir.isDirectory());
+      Assert.assertTrue(projectsDir.isDirectory());
 
-    ProjectsMigration.setProjectsDirectoryPermissions(projectsDir);
+      ProjectsMigration.setProjectsDirectoryPermissions(projectsDir);
 
-    var permissions = Files.getPosixFilePermissions(projectsDir.toPath());
-    Assert.assertEquals("rwx------", PosixFilePermissions.toString(permissions));
+      var permissions = Files.getPosixFilePermissions(projectsDir.toPath());
+      Assert.assertEquals("rwx------", PosixFilePermissions.toString(permissions));
+    }
   }
 
   @Test

@@ -67,11 +67,14 @@ public final class ProjectsMigration {
         return;
       }
 
-      try {
-        logger.info("Setting projects directory permissions '{}'.", newProjectsPath);
-        setProjectsDirectoryPermissions(newProjectsPath);
-      } catch (IOException ex) {
-        logger.error("Failed to set permissions on projects directory '{}'.", newProjectsPath, ex);
+      if (!Platform.isWindows()) {
+        try {
+          logger.info("Setting projects directory permissions '{}'.", newProjectsPath);
+          setProjectsDirectoryPermissions(newProjectsPath);
+        } catch (IOException ex) {
+          logger.error(
+              "Failed to set permissions on projects directory '{}'.", newProjectsPath, ex);
+        }
       }
     }
   }
