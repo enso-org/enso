@@ -78,6 +78,51 @@ object Patterns extends IRPass {
     }
   }
 
+  /** Just delegates to the same-named method from [[BindingsMap]]
+    * and expects a single resolution.
+    */
+  private def resolveSingleQualifiedName(
+    bindingsMap: BindingsMap,
+    parts: List[String]
+  ): Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName] = {
+    bindingsMap.resolveQualifiedName(parts) match {
+      case Left(err) => Left(err)
+      case Right(resolvedNames) =>
+        assert(resolvedNames.size == 1, "Expected a single resolution")
+        Right(resolvedNames.head)
+    }
+  }
+
+  /** @inheritdoc [[resolveSingleQualifiedName]]
+    */
+  private def resolveSingleQualifiedNameIn(
+    bindingsMap: BindingsMap,
+    scope: BindingsMap.ResolvedName,
+    submoduleNames: List[String],
+    finalItem: String
+  ): Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName] = {
+    bindingsMap.resolveQualifiedNameIn(scope, submoduleNames, finalItem) match {
+      case Left(err) => Left(err)
+      case Right(resolvedNames) =>
+        assert(resolvedNames.size == 1, "Expected a single resolution")
+        Right(resolvedNames.head)
+    }
+  }
+
+  /** @inheritdoc [[resolveSingleQualifiedName]]
+    */
+  private def resolveSingleName(
+    bindingsMap: BindingsMap,
+    name: String
+  ): Either[BindingsMap.ResolutionError, BindingsMap.ResolvedName] = {
+    bindingsMap.resolveName(name) match {
+      case Left(err) => Left(err)
+      case Right(resolvedNames) =>
+        assert(resolvedNames.size == 1, "Expected a single resolution")
+        Right(resolvedNames.head)
+    }
+  }
+
   private def doExpression(
     expr: Expression,
     bindings: BindingsMap,
@@ -93,7 +138,8 @@ object Patterns extends IRPass {
                 qual.parts match {
                   case (_: Name.SelfType) :: (others :+ item) =>
                     selfTypeResolution.map(
-                      bindings.resolveQualifiedNameIn(
+                      resolveSingleQualifiedNameIn(
+                        bindings,
                         _,
                         others.map(_.name),
                         item.name
@@ -102,11 +148,11 @@ object Patterns extends IRPass {
                   case _ =>
                     val parts = qual.parts.map(_.name)
                     Some(
-                      bindings.resolveQualifiedName(parts)
+                      resolveSingleQualifiedName(bindings, parts)
                     )
                 }
               case lit: Name.Literal =>
-                Some(bindings.resolveName(lit.name))
+                Some(resolveSingleName(bindings, lit.name))
               case _: Name.SelfType =>
                 selfTypeResolution.map(Right(_))
               case _ => None
@@ -164,6 +210,10 @@ object Patterns extends IRPass {
                     )
                   )
                   r.setLocation(consName.location)
+                case Right(_) =>
+                  throw new CompilerError(
+                    "Impossible, should be transformed into an error before."
+                  )
               }
               .getOrElse(consName)
 
@@ -210,10 +260,10 @@ object Patterns extends IRPass {
               case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)
                 Some(
-                  bindings.resolveQualifiedName(parts)
+                  resolveSingleQualifiedName(bindings, parts)
                 )
               case lit: Name.Literal =>
-                Some(bindings.resolveName(lit.name))
+                Some(resolveSingleName(bindings, lit.name))
               case _: Name.SelfType =>
                 selfTypeResolution.map(Right(_))
               case _ => None

@@ -1015,7 +1015,7 @@ class IrToTruffle(
               actualModule.getBindingsMap.resolveName(
                 staticMethod.tpName
               ) match {
-                case Right(BindingsMap.ResolvedType(modWithTp, _)) =>
+                case Right(List(BindingsMap.ResolvedType(modWithTp, _))) =>
                   val tpScope = asScope(modWithTp.unsafeAsModule())
                   val tp      = tpScope.getType(staticMethod.tpName, true)
                   assert(
@@ -1053,7 +1053,9 @@ class IrToTruffle(
               actualModule.getBindingsMap.resolveName(
                 conversionMethod.targetTpName
               ) match {
-                case Right(BindingsMap.ResolvedType(modWithTargetTp, _)) =>
+                case Right(
+                      List(BindingsMap.ResolvedType(modWithTargetTp, _))
+                    ) =>
                   val targetTpScope = asScope(modWithTargetTp.unsafeAsModule())
                   val targetTp =
                     targetTpScope.getType(conversionMethod.targetTpName, true)
@@ -1064,7 +1066,9 @@ class IrToTruffle(
                   actualModule.getBindingsMap.resolveName(
                     conversionMethod.sourceTpName
                   ) match {
-                    case Right(BindingsMap.ResolvedType(modWithSourceTp, _)) =>
+                    case Right(
+                          List(BindingsMap.ResolvedType(modWithSourceTp, _))
+                        ) =>
                       val sourceTpScope =
                         asScope(modWithSourceTp.unsafeAsModule())
                       val sourceTp = sourceTpScope.getType(
@@ -1104,23 +1108,6 @@ class IrToTruffle(
           }
         }
       case _ => throw new CompilerError("Unreachable")
-    }
-  }
-
-  @scala.annotation.unused
-  private def resolveType(
-    actualModule: CompilerContext.Module,
-    tpName: String
-  ): Type = {
-    actualModule.getBindingsMap.resolveName(tpName) match {
-      case Left(resolutionErr) =>
-        throw new CompilerError(
-          s"Type $tpName should be resolved in the module ${actualModule.getName.toString}, " +
-          s"but failed with resolution error $resolutionErr"
-        )
-      case Right(resolution) =>
-        val sourceTpMod = resolution.module.unsafeAsModule()
-        asScope(sourceTpMod).getType(tpName, true)
     }
   }
 

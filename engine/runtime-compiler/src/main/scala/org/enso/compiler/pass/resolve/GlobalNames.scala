@@ -122,15 +122,21 @@ case object GlobalNames extends IRPass {
       case tp: Definition.Type =>
         tp.copy(members =
           tp.members.map(
-            _.mapExpressions(
+            _.mapExpressions { expr =>
+              val selfTypeResolution =
+                bindings.resolveName(tp.name.name) match {
+                  case Right(List(resolvedName)) =>
+                    Some(Resolution(resolvedName))
+                  case _ => None
+                }
               processExpression(
-                _,
+                expr,
                 bindings,
                 tp.params,
                 freshNameSupply,
-                bindings.resolveName(tp.name.name).toOption.map(Resolution)
+                selfTypeResolution
               )
-            )
+            }
           )
         )
 
@@ -182,7 +188,7 @@ case object GlobalNames extends IRPass {
                       errors.Resolution.ResolverError(error)
                     )
                   case Right(
-                        r @ BindingsMap.ResolvedModuleMethod(mod, method)
+                        List(r @ BindingsMap.ResolvedModuleMethod(mod, method))
                       ) =>
                     if (isInsideApplication) {
                       lit.updateMetadata(
@@ -224,9 +230,11 @@ case object GlobalNames extends IRPass {
                       fun.passData.remove(ExpressionAnnotations)
                       app
                     }
-                  case Right(value) =>
-                    lit.updateMetadata(
-                      new MetadataPair(this, BindingsMap.Resolution(value))
+                  case Right(values) =>
+                    values.foldLeft(lit)((lit, value) =>
+                      lit.updateMetadata(
+                        new MetadataPair(this, BindingsMap.Resolution(value))
+                      )
                     )
                 }
 
@@ -410,8 +418,8 @@ case object GlobalNames extends IRPass {
           )
           .resolveExportedName(consName.name)
         resolution match {
-          case Right(res) => Some(res)
-          case _          => None
+          case Right(List(res)) => Some(res)
+          case _                => None
         }
       case _ => None
     }
