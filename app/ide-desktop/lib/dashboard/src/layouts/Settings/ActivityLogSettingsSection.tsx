@@ -1,8 +1,6 @@
 /** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
-import * as tailwindMerge from 'tailwind-merge'
-
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 import KeyIcon from 'enso-assets/key.svg'
 import Play2Icon from 'enso-assets/play2.svg'
@@ -26,7 +24,7 @@ import type Backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as sorting from '#/utilities/sorting'
-import * as tailwindVariants from '#/utilities/tailwindVariants'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 // =================
 // === Constants ===
@@ -135,16 +133,16 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     <>
       <FocusArea direction="horizontal">
         {innerProps => (
-          <div className="flex gap-activity-log-filters" {...innerProps}>
-            <div className="flex items-center gap-activity-log-filter">
+          <div className="flex gap-3" {...innerProps}>
+            <div className="flex items-center gap-2">
               {getText('startDate')}
               <DateInput date={startDate} onInput={setStartDate} />
             </div>
-            <div className="flex items-center gap-activity-log-filter">
+            <div className="flex items-center gap-2">
               {getText('endDate')}
               <DateInput date={endDate} onInput={setEndDate} />
             </div>
-            <div className="flex items-center gap-activity-log-filter">
+            <div className="flex items-center gap-2">
               {getText('types')}
               <Dropdown
                 multiple
@@ -189,8 +187,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       <table className="table-fixed self-start rounded-rows">
         <thead>
           <tr className="h-table-row">
-            <th className="w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pr-icon-column-r text-left text-sm font-semibold last:border-r-0" />
-            <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding text-left text-sm font-semibold last:border-r-0">
+            <ActivityLogHeaderCell className="w-8" />
+            <ActivityLogHeaderCell className="w-32">
               <ariaComponents.Button
                 size="custom"
                 variant="custom"
@@ -235,8 +233,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   )}
                 />
               </ariaComponents.Button>
-            </th>
-            <th className="w-activity-log-email-column border-x-2 border-transparent bg-clip-padding text-left text-sm font-semibold last:border-r-0">
+            </ActivityLogHeaderCell>
+            <ActivityLogHeaderCell className="w-48">
               <ariaComponents.Button
                 size="custom"
                 variant="custom"
@@ -281,8 +279,8 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   )}
                 />
               </ariaComponents.Button>
-            </th>
-            <th className="w-activity-log-timestamp-column border-x-2 border-transparent bg-clip-padding text-left text-sm font-semibold last:border-r-0">
+            </ActivityLogHeaderCell>
+            <ActivityLogHeaderCell className="w-36">
               <ariaComponents.Button
                 size="custom"
                 variant="custom"
@@ -327,7 +325,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   )}
                 />
               </ariaComponents.Button>
-            </th>
+            </ActivityLogHeaderCell>
           </tr>
         </thead>
         <tbody className="select-text">
@@ -342,25 +340,64 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           ) : (
             sortedLogs.map((log, i) => (
               <tr key={i} className="h-table-row">
-                <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <ActivityLogTableCell>
                   <div className="flex items-center">
                     <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />
                   </div>
-                </td>
-                <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                  {EVENT_TYPE_NAME[log.metadata.type]}
-                </td>
-                <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                  {log.userEmail}
-                </td>
-                <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                </ActivityLogTableCell>
+                <ActivityLogTableCell>{EVENT_TYPE_NAME[log.metadata.type]}</ActivityLogTableCell>
+                <ActivityLogTableCell>{log.userEmail}</ActivityLogTableCell>
+                <ActivityLogTableCell>
                   {log.timestamp ? dateTime.formatDateTime(new Date(log.timestamp)) : ''}
-                </td>
+                </ActivityLogTableCell>
               </tr>
             ))
           )}
         </tbody>
       </table>
     </>
+  )
+}
+
+// =============================
+// === ActivityLogHeaderCell ===
+// =============================
+
+/** Props for a {@link ActivityLogHeaderCell}. */
+export interface ActivityLogHeaderCellProps extends Readonly<React.PropsWithChildren> {
+  readonly className?: string
+}
+
+/** A styled table cell for an {@link ActivityLogSettingsSection}. */
+function ActivityLogHeaderCell(props: ActivityLogHeaderCellProps) {
+  const { children, className } = props
+
+  return (
+    <td
+      className={tailwindMerge.twMerge(
+        'border-x-2 border-transparent bg-clip-padding text-left text-sm font-semibold last:border-r-0',
+        className
+      )}
+    >
+      {children}
+    </td>
+  )
+}
+
+// ============================
+// === ActivityLogTableCell ===
+// ============================
+
+/** Props for a {@link ActivityLogTableCell}. */
+export interface ActivityLogTableCellProps extends Readonly<React.PropsWithChildren> {}
+
+/** A styled table cell for an {@link ActivityLogSettingsSection}. */
+function ActivityLogTableCell(props: ActivityLogTableCellProps) {
+  const { children } = props
+
+  return (
+    <td className="border-x-2 border-transparent bg-clip-padding px-name-column-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+      {children}
+    </td>
   )
 }
