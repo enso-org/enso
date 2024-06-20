@@ -99,7 +99,7 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                             {/* I don't know why this padding is needed,
                              * given that this is a flex container. */}
                             {/* eslint-disable-next-line no-restricted-syntax */}
-                            <div className="flex gap-buttons pr-4">
+                            <div className="flex items-center gap-buttons pr-4">
                               {info.bindings.map((binding, j) => (
                                 <div
                                   key={j}
@@ -107,8 +107,9 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                 >
                                   <KeyboardShortcut shortcut={binding} />
                                   <ariaComponents.Button
-                                    size="icon"
-                                    variant="outline"
+                                    variant="icon"
+                                    size="xsmall"
+                                    aria-label={getText('removeShortcut')}
                                     icon={CrossIcon}
                                     onPress={() => {
                                       inputBindings.delete(action, binding)
@@ -117,11 +118,11 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   />
                                 </div>
                               ))}
-                              <div className="grow" />
-                              <div className="flex min-w-max shrink-0 items-center gap-keyboard-shortcuts-button">
+                              <div className="ml-auto flex items-center gap-2">
                                 <ariaComponents.Button
-                                  size="icon"
-                                  variant="outline"
+                                  variant="ghost"
+                                  size="xsmall"
+                                  aria-label={getText('addShortcut')}
                                   icon={Plus2Icon}
                                   onPress={() => {
                                     setModal(
@@ -137,8 +138,9 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                                   }}
                                 />
                                 <ariaComponents.Button
-                                  size="icon"
-                                  variant="outline"
+                                  variant="ghost"
+                                  size="xsmall"
+                                  aria-label={getText('resetShortcut')}
                                   icon={ReloadIcon}
                                   onPress={() => {
                                     inputBindings.reset(action)
