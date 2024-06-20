@@ -54,12 +54,12 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
       {
         queryKey: ['listInvitations'],
         queryFn: async () => backend.listInvitations(),
-        select: (invitations: backendModule.Invitation[]) => invitations.length,
+        select: (invitations: readonly backendModule.Invitation[]) => invitations.length,
       },
       {
         queryKey: ['listUsers'],
         queryFn: async () => backend.listUsers(),
-        select: (users: backendModule.User[]) => users.length,
+        select: (users: readonly backendModule.User[]) => users.length,
       },
     ],
   })

@@ -61,7 +61,7 @@ export default function UserAccountSettingsSection(props: UserAccountSettingsSec
           <aria.Label className="text my-auto w-user-account-settings-label">
             {getText('name')}
           </aria.Label>
-          <SettingsInput ref={nameRef} type="text" onSubmit={doUpdateName} />
+          <SettingsInput key={user?.name ?? ''} ref={nameRef} type="text" onSubmit={doUpdateName} />
         </aria.TextField>
         <div className="flex h-row gap-settings-entry">
           <aria.Text className="text my-auto w-user-account-settings-label">

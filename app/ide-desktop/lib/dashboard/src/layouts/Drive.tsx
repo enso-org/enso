@@ -161,18 +161,12 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [
-      isCloud,
-      rootDirectoryId,
-      sessionType,
-      toastAndLog,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [isCloud, rootDirectoryId, sessionType, toastAndLog, dispatchAssetListEvent]
   )
 
   const doEmptyTrash = React.useCallback(() => {
     dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
-  }, [/* should never change */ dispatchAssetListEvent])
+  }, [dispatchAssetListEvent])
 
   const doCreateProject = React.useCallback(
     (templateId: string | null = null, templateName: string | null = null) => {
@@ -185,7 +179,7 @@ export default function Drive(props: DriveProps) {
         preferredName: templateName,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   const doCreateDirectory = React.useCallback(() => {
@@ -194,7 +188,7 @@ export default function Drive(props: DriveProps) {
       parentKey: targetDirectoryNodeRef.current?.key ?? rootDirectoryId,
       parentId: targetDirectoryNodeRef.current?.item.id ?? rootDirectoryId,
     })
-  }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
+  }, [rootDirectoryId, dispatchAssetListEvent])
 
   const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
@@ -206,7 +200,7 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   const doCreateDatalink = React.useCallback(
@@ -219,7 +213,7 @@ export default function Drive(props: DriveProps) {
         value,
       })
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectoryId, dispatchAssetListEvent]
   )
 
   switch (status) {

@@ -33,7 +33,7 @@ export function useNavigate() {
         originalNavigate(...(args as [never, never?]))
       }
     },
-    [/* should never change */ goOffline, /* should never change */ originalNavigate]
+    [goOffline, originalNavigate]
   )
 
   return navigate
