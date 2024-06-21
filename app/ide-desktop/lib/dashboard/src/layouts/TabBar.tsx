@@ -160,7 +160,10 @@ export function Tab(props: InternalTabProps) {
   return (
     <div
       ref={isActive ? updateClipPath : null}
-      className={tailwindMerge.twMerge('relative h-full', !isActive && 'hover:enabled:bg-frame')}
+      className={tailwindMerge.twMerge(
+        'group relative h-full',
+        !isActive && 'hover:enabled:bg-frame'
+      )}
     >
       <ariaComponents.Button
         size="custom"
@@ -178,7 +181,7 @@ export function Tab(props: InternalTabProps) {
       </ariaComponents.Button>
       {onClose && (
         <ariaComponents.CloseButton
-          className="absolute right-4 top-1/2 -translate-y-1/2"
+          className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
           onPress={onClose}
         />
       )}

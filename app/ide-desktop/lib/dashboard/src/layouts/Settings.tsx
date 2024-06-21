@@ -93,46 +93,33 @@ export default function Settings() {
     <ariaComponents.DialogTrigger defaultOpen>
       {/* This button is not visible - it is only to provide the button for this `DialogTrigger`. */}
       <aria.Button className="h-0 w-0" />
-      <ariaComponents.Dialog title={getText('settings')} type="fullscreen">
-        <div
-          className="mt-4 flex min-h-full flex-1 flex-col gap-6 overflow-hidden px-page-x"
-          onClick={event => {
-            event.stopPropagation()
-          }}
-        >
-          <aria.Heading level={1} className="flex items-center px-heading-x">
-            <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
-              <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
-              <aria.Popover UNSTABLE_portalContainer={root}>
-                <SettingsSidebar
-                  isMenu
-                  hasBackend={backend != null}
-                  isUserInOrganization={isUserInOrganization}
-                  settingsTab={settingsTab}
-                  setSettingsTab={setSettingsTab}
-                  onClickCapture={() => {
-                    setIsSidebarPopoverOpen(false)
-                  }}
-                />
-              </aria.Popover>
-            </aria.MenuTrigger>
-            <ariaComponents.Text.Heading className="font-bold">
-              <span>{getText('settingsFor')}</span>
-            </ariaComponents.Text.Heading>
-
-            <ariaComponents.Text
-              variant="h1"
-              truncate="1"
-              className="ml-2.5 max-w-lg rounded-full bg-frame px-2.5 font-bold"
-              aria-hidden
-            >
-              {settingsTab !== SettingsTab.organization &&
-              settingsTab !== SettingsTab.members &&
-              settingsTab !== SettingsTab.userGroups
-                ? user.name
-                : organization?.name ?? 'your organization'}
-            </ariaComponents.Text>
-          </aria.Heading>
+      <ariaComponents.Dialog
+        title={getText(
+          'settingsFor',
+          settingsTab !== SettingsTab.organization &&
+            settingsTab !== SettingsTab.members &&
+            settingsTab !== SettingsTab.userGroups
+            ? user.name
+            : organization?.name ?? 'your organization'
+        )}
+        type="fullscreen"
+      >
+        <div className="flex flex-1 flex-col gap-6 overflow-hidden px-page-x">
+          <aria.MenuTrigger isOpen={isSidebarPopoverOpen} onOpenChange={setIsSidebarPopoverOpen}>
+            <Button image={BurgerMenuIcon} buttonClassName="mr-3 sm:hidden" onPress={() => {}} />
+            <aria.Popover UNSTABLE_portalContainer={root}>
+              <SettingsSidebar
+                isMenu
+                hasBackend={backend != null}
+                isUserInOrganization={isUserInOrganization}
+                settingsTab={settingsTab}
+                setSettingsTab={setSettingsTab}
+                onClickCapture={() => {
+                  setIsSidebarPopoverOpen(false)
+                }}
+              />
+            </aria.Popover>
+          </aria.MenuTrigger>
           <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
             <aside className="flex h-full flex-col overflow-y-auto overflow-x-hidden pb-12">
               <SettingsSidebar
@@ -144,7 +131,7 @@ export default function Settings() {
             </aside>
             <errorBoundary.ErrorBoundary>
               <suspense.Suspense loaderProps={{ minHeight: 'h64' }}>
-                <main className="h-full w-full flex-shrink-0 flex-grow basis-0 overflow-y-auto overflow-x-hidden pb-12 pl-1.5 pr-3">
+                <main className="h-full w-full flex-1 overflow-y-auto overflow-x-hidden pb-12 pl-1.5 pr-3">
                   <div className="w-full max-w-[840px]">{content}</div>
                 </main>
               </suspense.Suspense>

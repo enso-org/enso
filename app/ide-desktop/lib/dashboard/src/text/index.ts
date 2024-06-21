@@ -112,6 +112,7 @@ interface PlaceholderOverrides {
   readonly subscribeSuccessSubtitle: [string]
   readonly assetsDropFilesDescription: [count: number]
 
+  readonly settingsFor: [name: string]
   readonly paywallAvailabilityLevel: [plan: string]
   readonly paywallScreenDescription: [plan: string]
   readonly userGroupsLimitMessage: [limit: number]
