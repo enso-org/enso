@@ -140,8 +140,13 @@ export default function DateInput(props: DateInputProps) {
         </div>
       </FocusRing>
       {isPickerVisible && (
-        <div className="absolute left-1/2 top-text-h mt-date-input-gap">
-          <div className="relative -translate-x-1/2 rounded-2xl border border-primary/10 p-date-input shadow-soft before:absolute before:inset-0 before:rounded-2xl before:backdrop-blur-3xl">
+        <div className="absolute left-1/2 top-text-h z-1 mt-date-input-gap">
+          <div
+            className={ariaComponents.DIALOG_BACKGROUND({
+              className:
+                'relative -translate-x-1/2 rounded-2xl border border-primary/10 p-date-input shadow-soft',
+            })}
+          >
             <div className="relative mb-date-input-gap">
               <div className="flex items-center">
                 <ariaComponents.Button
