@@ -17,6 +17,12 @@ type Image_File_Format
     For_File
 
     ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Image_File_Format | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:Image_File_Format) _->Nothing
+
+    ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Image_File_Format | Nothing
     for_read file:File_Format_Metadata =
@@ -30,7 +36,7 @@ type Image_File_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Image" (Meta.get_qualified_type_name Image_File_Format)+".For_File"]
+    get_dropdown_options = [Option "Image" "..For_File"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`

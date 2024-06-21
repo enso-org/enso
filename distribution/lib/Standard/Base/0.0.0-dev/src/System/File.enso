@@ -18,6 +18,7 @@ import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Function.Function
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -291,11 +292,12 @@ type File
              example_xls_to_table = Examples.xls.read (Excel_Format.Sheet 'Dates')
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! File_Error
-    read self format=Auto_Detect (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+    read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) =
+        resolved = File_Format.resolve format
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
-            if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self format on_problems else
-                File_Format.handle_format_missing_arguments format <|
-                    format.read self on_problems
+            if Data_Link.is_data_link self then Data_Link_Helpers.read_data_link self resolved on_problems else
+                File_Format.handle_format_missing_arguments resolved <|
+                    resolved.read self on_problems
 
     ## ALIAS load bytes, open bytes
        ICON data_input

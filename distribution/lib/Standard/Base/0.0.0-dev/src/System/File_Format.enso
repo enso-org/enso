@@ -17,6 +17,7 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
@@ -90,6 +91,19 @@ type File_Format
     all = [Auto_Detect] + format_types
 
     ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> File_Format
+    resolve constructor = case constructor of
+        _ : Function ->
+            try_next idx =
+                if idx >= format_types.length then Error.throw (Illegal_Argument.Error "Expected a file format, but got a function.") else
+                    format = format_types.at idx
+                    resolved = format.resolve constructor
+                    if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
+            try_next 0
+        _ -> constructor
+
+    ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
@@ -116,7 +130,7 @@ type File_Format
     handle_format_missing_arguments format ~action =
         case format of
             _ : Function ->
-                Error.throw (Illegal_Argument.Error "Expected a file format, but got a function. Perhaps the format is missing some required arguments?")
+                Error.throw (Illegal_Argument.Error "Expected a file format, but got a function.")
             _ -> action
 
 ## A file format for plain text files.
@@ -131,6 +145,12 @@ type Plain_Text_Format
          overridden.
     @encoding Encoding.default_widget
     Plain_Text (encoding : Encoding | Infer = Infer)
+
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Plain_Text_Format | Nothing
+    resolve constructor =
+        Panic.catch Any (constructor:Plain_Text_Format) _->Nothing
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -155,7 +175,7 @@ type Plain_Text_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Plain Text" (Meta.get_qualified_type_name Plain_Text_Format)+".Plain_Text"]
+    get_dropdown_options = [Option "Plain Text" "..Plain_Text"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -179,6 +199,13 @@ type Plain_Text_Format
 
 ## A file format for reading or writing files as a sequence of bytes.
 type Bytes
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Bytes | Nothing
+    resolve constructor =
+        _ = constructor
+        Nothing
+
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Bytes | Nothing
@@ -212,6 +239,13 @@ type Bytes
 
 ## A file format for reading and writing files as JSON.
 type JSON_Format
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Bytes | Nothing
+    resolve constructor =
+        _ = constructor
+        Nothing
+
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> JSON_Format | Nothing
@@ -258,7 +292,6 @@ JSON_Format.from (that : JS_Object) =
 
 ## A setting to infer the default behaviour of some option.
 type Infer
-
 
 ## PRIVATE
    A helper for parsing the JSON representation of `Boolean | Infer`.
