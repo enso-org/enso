@@ -5,8 +5,8 @@ import Standard.Base.Errors.No_Such_Key.No_Such_Key
 from Standard.Test import all
 
 
-polyglot java import java.nio.file.Path as JavaPath
 polyglot java import java.util.Map as JavaMap
+polyglot java import org.enso.base.file_system.File_Utils
 
 ## Type that violates reflexivity
 type My_Nan
@@ -105,7 +105,7 @@ add_specs suite_builder =
         empty_map_fn = entry.get 1
         pending = entry.get 2
         add_common_specs suite_builder lang pending empty_map_fn
-            
+
     suite_builder.group "Enso maps" group_builder->
 
 
@@ -278,11 +278,11 @@ add_specs suite_builder =
             map.get (js_str "A") . should_equal 42
 
         group_builder.specify "should support host objects as keys" <|
-            # JavaPath has proper implementation of hashCode
-            map = Map.singleton (JavaPath.of "/home/user/file.txt") 42
+            # java.nio.path.Path has proper implementation of hashCode
+            map = Map.singleton (File_Utils.toPath "/home/user/file.txt") 42
             map.get "X" . should_equal Nothing
             map.get "A" . should_equal Nothing
-            map.get (JavaPath.of "/home/user/file.txt") . should_equal 42
+            map.get (File_Utils.toPath "/home/user/file.txt") . should_equal 42
 
         group_builder.specify "should support Python objects as keys" pending=pending_python_missing <|
             py_obj = py_wrapper 42
@@ -464,14 +464,14 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_m
     suite_builder.group prefix+": Common polyglot Map operations" pending=pending group_builder->
         group_builder.specify "should get the default comparator for polyglot maps" <|
             Comparable.from empty_map . should_equal Default_Comparator
-            
+
         group_builder.specify "should compare two hash maps" <|
             (empty_map.insert "a" 1).should_equal (empty_map.insert "a" 1)
             (empty_map.insert "b" 2).should_not_equal (empty_map.insert "a" 1)
             empty_map.should_equal empty_map
             empty_map.should_not_equal (empty_map.insert "a" 1)
             (empty_map.insert "a" 1 . insert "b" 2).should_equal (empty_map.insert "b" 2 . insert "a" 1)
-            
+
         group_builder.specify "should allow checking for non emptiness" <|
             non_empty = empty_map . insert "foo" 1234
             empty_map.not_empty . should_be_false
@@ -481,7 +481,7 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_m
             non_empty = empty_map.insert "a" "b" . insert "x" "y"
             empty_map.size . should_equal 0
             non_empty.size . should_equal 2
-            
+
         group_builder.specify "should allow checking for emptiness" <|
             non_empty = empty_map . insert "foo" 1234
             empty_map.is_empty . should_be_true
@@ -558,7 +558,11 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_m
             empty_map.insert Nothing 1 . insert Nothing 2 . get Nothing . should_equal 2
             empty_map.insert Nothing 1 . should_equal (empty_map.insert Nothing 1)
             empty_map.insert Nothing 1 . insert Nothing 2 . at Nothing . should_equal 2
+
+        group_builder.specify "should handle JavaScript null as keys" <|
             empty_map.insert js_null 1 . at Nothing . should_equal 1
+
+        group_builder.specify "should handle Python None as keys" pending=pending_python_missing <|
             empty_map.insert py_none 1 . at Nothing . should_equal 1
 
         group_builder.specify "should define a well-defined text conversion" <|

@@ -15,6 +15,9 @@ from project.System.Input_Stream import close_stream
 polyglot java import java.io.ByteArrayOutputStream
 polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import org.enso.base.encoding.Encoding_Utils
+
+polyglot java import org.enso.base.Stream_Utils
+polyglot java import org.enso.base.Stream_Utils.OutputStreamLike
 polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 
 ## PRIVATE
@@ -57,7 +60,7 @@ type Output_Stream
        - stream_resource: The internal resource that represents the underlying
          stream.
        - error_handler: An error handler for IOExceptions thrown when writing.
-    Value stream_resource error_handler
+    private Value stream_resource error_handler
 
     ## PRIVATE
        ADVANCED
@@ -66,7 +69,8 @@ type Output_Stream
        Arguments:
        - contents: A vector of bytes to write.
     write_bytes : Vector Integer -> Nothing
-    write_bytes self contents = self.stream_resource . with java_stream->
+    write_bytes self contents = self.stream_resource . with raw_stream->
+        java_stream = Stream_Utils.asOutputStream raw_stream
         self.error_handler <|
             java_stream.write contents
             java_stream.flush
@@ -80,7 +84,8 @@ type Output_Stream
        - input_stream: An Input_Stream to write to this stream.
     write_stream : Input_Stream -> Nothing
     write_stream self input_stream:Input_Stream =
-        self.stream_resource . with java_output_stream->
+        self.stream_resource . with raw_stream->
+            java_output_stream = Stream_Utils.asOutputStream raw_stream
             self.error_handler <|
                 input_stream.with_java_stream java_input_stream->
                     java_input_stream.transferTo java_output_stream
@@ -107,7 +112,9 @@ type Output_Stream
        Arguments:
        - f: Applies a function over the internal java stream.
     with_java_stream : (Java_Output_Stream -> Any) -> Any
-    with_java_stream self f = self.stream_resource . with f
+    with_java_stream self f = self.stream_resource . with raw_stream->
+         java_stream = Stream_Utils.asOutputStream raw_stream
+         f java_stream
 
     ## PRIVATE
        ADVANCED

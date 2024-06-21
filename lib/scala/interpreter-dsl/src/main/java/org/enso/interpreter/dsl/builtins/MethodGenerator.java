@@ -105,8 +105,7 @@ public abstract class MethodGenerator {
                       Kind.ERROR,
                       "Automatic conversion of value of type "
                           + tpe.baseType()
-                          + " to guest value requires explicit '@Builtin.ReturningGuestObject'"
-                          + " annotation");
+                          + " is no longer supported.");
             }
             return "Object";
           }

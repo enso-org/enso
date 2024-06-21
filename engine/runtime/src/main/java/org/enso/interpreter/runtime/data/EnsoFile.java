@@ -4,9 +4,13 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -22,16 +26,22 @@ import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.OpenOption;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
-import java.util.function.IntFunction;
+import java.util.function.Function;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -54,60 +64,273 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "output_stream_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
-  public OutputStream outputStream(Object opts, EnsoContext ctx) throws IOException {
-    OpenOption[] openOptions =
-        convertInteropArray(opts, InteropLibrary.getUncached(), ctx, OpenOption[]::new);
-    return this.truffleFile.newOutputStream(openOptions);
+  @TruffleBoundary
+  public EnsoObject outputStream(
+      Object opts,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode,
+      EnsoContext ctx)
+      throws IOException {
+    var options = namesToValues(opts, lengthNode, atNode, ctx, StandardOpenOption::valueOf);
+    var os = this.truffleFile.newOutputStream(options.toArray(OpenOption[]::new));
+    return new EnsoOutputStream(os);
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class EnsoOutputStream implements EnsoObject {
+    private static final String[] MEMBERS = new String[] {"write", "flush", "close"};
+    private final OutputStream os;
+
+    EnsoOutputStream(OutputStream os) {
+      this.os = os;
+    }
+
+    @ExportMessage
+    boolean hasMembers() {
+      return true;
+    }
+
+    @TruffleBoundary
+    @ExportMessage
+    boolean isMemberInvocable(String member) {
+      return Arrays.asList(MEMBERS).contains(member);
+    }
+
+    @ExportMessage
+    Object getMembers(boolean includeInternal) throws UnsupportedMessageException {
+      return ArrayLikeHelpers.wrapStrings(MEMBERS);
+    }
+
+    @TruffleBoundary
+    @ExportMessage
+    Object invokeMember(
+        String name,
+        Object[] args,
+        @Cached ArrayLikeLengthNode lengthNode,
+        @Cached ArrayLikeAtNode atNode,
+        @CachedLibrary(limit = "3") InteropLibrary iop)
+        throws ArityException, UnsupportedMessageException, UnknownIdentifierException {
+      try {
+        return switch (name) {
+          case "write" -> {
+            long from;
+            long to;
+            switch (args.length) {
+              case 1 -> {
+                from = 0;
+                to = lengthNode.executeLength(args[0]);
+              }
+              case 3 -> {
+                from = iop.asLong(args[1]);
+                to = from + iop.asLong(args[2]);
+              }
+              default -> {
+                throw ArityException.create(1, 3, args.length);
+              }
+            }
+            for (long i = from; i < to; i++) {
+              var elem = atNode.executeAt(args[0], i);
+              var byt = iop.asInt(elem);
+              os.write(byt);
+            }
+            yield this;
+          }
+          case "flush" -> {
+            os.flush();
+            yield this;
+          }
+          case "close" -> {
+            os.close();
+            yield this;
+          }
+          default -> throw UnknownIdentifierException.create(name);
+        };
+      } catch (IOException ex) {
+        throw raiseIOException(iop, ex);
+      } catch (InvalidArrayIndexException ex) {
+        var ctx = EnsoContext.get(iop);
+        throw ctx.raiseAssertionPanic(iop, name, ex);
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "EnsoOutputStream";
+    }
   }
 
   @Builtin.Method(name = "input_stream_builtin")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
-  @Builtin.ReturningGuestObject
-  @CompilerDirectives.TruffleBoundary
-  public InputStream inputStream(Object opts, EnsoContext ctx) throws IOException {
-    OpenOption[] openOptions =
-        convertInteropArray(opts, InteropLibrary.getUncached(), ctx, OpenOption[]::new);
-    return this.truffleFile.newInputStream(openOptions);
+  @TruffleBoundary
+  public EnsoObject inputStream(
+      Object opts,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode,
+      EnsoContext ctx)
+      throws IOException {
+    var options = namesToValues(opts, lengthNode, atNode, ctx, StandardOpenOption::valueOf);
+    var is = this.truffleFile.newInputStream(options.toArray(OpenOption[]::new));
+    return new EnsoInputStream(is);
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class EnsoInputStream implements EnsoObject {
+    private static final String[] MEMBERS =
+        new String[] {
+          "read", "readAllBytes", "readNBytes", "skipNBytes", "markSupported", "available", "close"
+        };
+    private final InputStream is;
+
+    EnsoInputStream(InputStream is) {
+      this.is = is;
+    }
+
+    @ExportMessage
+    boolean hasMembers() {
+      return true;
+    }
+
+    @TruffleBoundary
+    @ExportMessage
+    boolean isMemberInvocable(String member) {
+      return Arrays.asList(MEMBERS).contains(member);
+    }
+
+    @ExportMessage
+    Object getMembers(boolean includeInternal) throws UnsupportedMessageException {
+      return ArrayLikeHelpers.wrapStrings(MEMBERS);
+    }
+
+    @TruffleBoundary
+    @ExportMessage
+    Object invokeMember(String name, Object[] args, @CachedLibrary(limit = "3") InteropLibrary iop)
+        throws UnknownIdentifierException,
+            UnsupportedMessageException,
+            ArityException,
+            UnsupportedTypeException {
+      try {
+        return switch (name) {
+          case "read" -> {
+            if (args.length == 0) {
+              yield is.read();
+            }
+            long from;
+            long to;
+            switch (args.length) {
+              case 1 -> {
+                from = 0;
+                to = iop.getArraySize(args[0]);
+              }
+              case 3 -> {
+                from = iop.asLong(args[1]);
+                to = from + iop.asLong(args[2]);
+              }
+              default -> throw ArityException.create(0, 3, args.length);
+            }
+            for (var i = from; i < to; i++) {
+              var b = is.read();
+              if (b == -1) {
+                var count = i - from;
+                yield count > 0 ? count : -1;
+              }
+              iop.writeArrayElement(args[0], i, (byte) b);
+            }
+            yield to - from;
+          }
+          case "readAllBytes" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
+            var arr = is.readAllBytes();
+            var buf = ByteBuffer.wrap(arr);
+            yield ArrayLikeHelpers.wrapBuffer(buf);
+          }
+          case "readNBytes" -> {
+            if (args.length != 1) {
+              throw ArityException.create(1, 1, args.length);
+            }
+            var len = iop.asInt(args[0]);
+            var arr = is.readNBytes(len);
+            var buf = ByteBuffer.wrap(arr);
+            yield ArrayLikeHelpers.wrapBuffer(buf);
+          }
+          case "skipNBytes" -> {
+            if (args.length != 1) {
+              throw ArityException.create(1, 1, args.length);
+            }
+            var len = iop.asInt(args[0]);
+            is.skipNBytes(len);
+            yield this;
+          }
+          case "markSupported" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
+            yield is.markSupported();
+          }
+          case "available" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
+            yield is.available();
+          }
+          case "close" -> {
+            if (args.length != 0) {
+              throw ArityException.create(0, 0, args.length);
+            }
+            is.close();
+            yield this;
+          }
+          default -> throw UnknownIdentifierException.create(name);
+        };
+      } catch (IOException ex) {
+        throw raiseIOException(iop, ex);
+      } catch (InvalidArrayIndexException ex) {
+        var ctx = EnsoContext.get(iop);
+        throw ctx.raiseAssertionPanic(iop, name, ex);
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "EnsoInputStream";
+    }
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> T[] convertInteropArray(
-      Object arr, InteropLibrary interop, EnsoContext ctx, IntFunction<T[]> hostArrayCtor) {
-    if (!interop.hasArrayElements(arr)) {
-      var vecType = ctx.getBuiltins().vector().getType();
-      var typeError = ctx.getBuiltins().error().makeTypeError(vecType, arr, "opts");
-      throw new PanicException(typeError, interop);
-    }
-    T[] hostArr;
+  @TruffleBoundary
+  private static <T> List<T> namesToValues(
+      Object arr,
+      ArrayLikeLengthNode lengthNode,
+      ArrayLikeAtNode atNode,
+      EnsoContext ctx,
+      Function<String, T> convertor) {
+    var size = (int) lengthNode.executeLength(arr);
+    List<T> hostArr = new ArrayList<>();
     try {
-      int size = Math.toIntExact(interop.getArraySize(arr));
-      hostArr = hostArrayCtor.apply(size);
-      for (int i = 0; i < size; i++) {
-        Object elem = interop.readArrayElement(arr, i);
-        if (!ctx.isJavaPolyglotObject(elem)) {
+      for (var i = 0; i < size; i++) {
+        var elem = atNode.executeAt(arr, i);
+        if (elem instanceof Text name) {
+          hostArr.add(convertor.apply(name.toString()));
+        } else {
           var err =
               ctx.getBuiltins()
                   .error()
-                  .makeUnsupportedArgumentsError(
-                      new Object[] {arr},
-                      "Arguments to opts should be host objects from java.io package");
-          throw new PanicException(err, interop);
+                  .makeTypeError(ctx.getBuiltins().text(), elem, "File_Access permissions");
+          throw new PanicException(err, lengthNode);
         }
-        hostArr[i] = (T) ctx.asJavaPolyglotObject(elem);
       }
-    } catch (ClassCastException | UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw EnsoContext.get(interop).raiseAssertionPanic(interop, null, e);
+    } catch (ClassCastException | InvalidArrayIndexException e) {
+      throw EnsoContext.get(lengthNode).raiseAssertionPanic(lengthNode, null, e);
     }
     return hostArr;
   }
 
   @Builtin.Method(name = "read_last_bytes_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoObject readLastBytes(long n) throws IOException {
     try (SeekableByteChannel channel =
         this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
@@ -136,7 +359,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "creation_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoDateTime getCreationTime() throws IOException {
     return new EnsoDateTime(
         ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC));
@@ -144,7 +367,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "last_modified_time_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoDateTime getLastModifiedTime() throws IOException {
     return new EnsoDateTime(
         ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC));
@@ -152,14 +375,13 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "posix_permissions_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @Builtin.ReturningGuestObject
-  @CompilerDirectives.TruffleBoundary
-  public Set<PosixFilePermission> getPosixPermissions() throws IOException {
-    return truffleFile.getPosixPermissions();
+  @TruffleBoundary
+  public Text getPosixPermissions() throws IOException {
+    return Text.create(PosixFilePermissions.toString(truffleFile.getPosixPermissions()));
   }
 
   @Builtin.Method(name = "parent")
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoObject getParent() {
     // Normalization is needed to correctly handle paths containing `..` and `.`.
     var parentOrNull = this.normalize().truffleFile.getParent();
@@ -179,32 +401,32 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method(name = "absolute")
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoFile getAbsoluteFile() {
     return new EnsoFile(this.truffleFile.getAbsoluteFile());
   }
 
   @Builtin.Method(name = "path")
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Text getPath() {
     return Text.create(this.truffleFile.getPath());
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean isAbsolute() {
     return this.truffleFile.isAbsolute();
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean isDirectory() {
     return this.truffleFile.isDirectory();
   }
 
   @Builtin.Method(name = "create_directory_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public void createDirectories() throws IOException {
     try {
       this.truffleFile.createDirectories();
@@ -282,32 +504,32 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "list_immediate_children_array")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoObject list() throws IOException {
     return ArrayLikeHelpers.wrapEnsoObjects(
         this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new));
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoFile relativize(EnsoFile other) {
     return new EnsoFile(this.truffleFile.relativize(other.truffleFile));
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean isRegularFile() {
     return this.truffleFile.isRegularFile();
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean isWritable() {
     return this.truffleFile.isWritable();
   }
 
   @Builtin.Method(name = "name")
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public Text getName() {
     var name = this.normalize().truffleFile.getName();
     return Text.create(name == null ? "/" : name);
@@ -315,7 +537,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "size_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public long getSize() throws IOException {
     if (this.truffleFile.isDirectory()) {
       throw new IOException("size can only be called on files.");
@@ -334,7 +556,7 @@ public final class EnsoFile implements EnsoObject {
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public EnsoFile normalize() {
     TruffleFile simplyNormalized = truffleFile.normalize();
     String name = simplyNormalized.getName();
@@ -347,7 +569,7 @@ public final class EnsoFile implements EnsoObject {
 
   @Builtin.Method(name = "delete_builtin")
   @Builtin.WrapException(from = IOException.class)
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public void delete(boolean recursive) throws IOException {
     if (recursive && truffleFile.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
       deleteRecursively(truffleFile);
@@ -368,25 +590,35 @@ public final class EnsoFile implements EnsoObject {
   @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
-  public void copy(EnsoFile target, Object options, EnsoContext ctx) throws IOException {
-    CopyOption[] copyOptions =
-        convertInteropArray(options, InteropLibrary.getUncached(), ctx, CopyOption[]::new);
-    truffleFile.copy(target.truffleFile, copyOptions);
+  @TruffleBoundary
+  public void copy(
+      EnsoFile target,
+      Object options,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode,
+      EnsoContext ctx)
+      throws IOException {
+    var copyOptions = namesToValues(options, lengthNode, atNode, ctx, StandardCopyOption::valueOf);
+    truffleFile.copy(target.truffleFile, copyOptions.toArray(CopyOption[]::new));
   }
 
   @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
   @Builtin.WrapException(from = IOException.class)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
-  public void move(EnsoFile target, Object options, EnsoContext ctx) throws IOException {
-    CopyOption[] copyOptions =
-        convertInteropArray(options, InteropLibrary.getUncached(), ctx, CopyOption[]::new);
-    truffleFile.move(target.truffleFile, copyOptions);
+  @TruffleBoundary
+  public void move(
+      EnsoFile target,
+      Object options,
+      @Cached ArrayLikeLengthNode lengthNode,
+      @Cached ArrayLikeAtNode atNode,
+      EnsoContext ctx)
+      throws IOException {
+    var copyOptions = namesToValues(options, lengthNode, atNode, ctx, StandardCopyOption::valueOf);
+    truffleFile.move(target.truffleFile, copyOptions.toArray(CopyOption[]::new));
   }
 
   @Builtin.Method
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public boolean startsWith(EnsoFile parent) {
     return truffleFile.startsWith(parent.truffleFile);
   }
@@ -397,7 +629,7 @@ public final class EnsoFile implements EnsoObject {
           "Takes the text representation of a path and returns a TruffleFile corresponding to it.",
       autoRegister = false)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public static EnsoFile fromString(EnsoContext context, String path) {
     TruffleFile file = context.getPublicTruffleFile(path);
     return new EnsoFile(file);
@@ -408,7 +640,7 @@ public final class EnsoFile implements EnsoObject {
       description = "A file corresponding to the current working directory.",
       autoRegister = false)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public static EnsoFile currentDirectory(EnsoContext context) {
     TruffleFile file = context.getCurrentWorkingDirectory();
     return new EnsoFile(file);
@@ -419,13 +651,13 @@ public final class EnsoFile implements EnsoObject {
       description = "Gets the user's system-defined home directory.",
       autoRegister = false)
   @Builtin.Specialize
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public static EnsoFile userHome(EnsoContext context) {
     return fromString(context, System.getProperty("user.home"));
   }
 
   @Override
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public String toString() {
     return "(File " + truffleFile.getPath() + ")";
   }
@@ -448,5 +680,11 @@ public final class EnsoFile implements EnsoObject {
   @ExportMessage
   Type getType(@Bind("$node") Node node) {
     return EnsoContext.get(node).getBuiltins().file();
+  }
+
+  static RuntimeException raiseIOException(Node where, IOException ex) {
+    var ctx = EnsoContext.get(where);
+    var guestEx = ctx.asGuestValue(ex);
+    throw new PanicException(guestEx, where);
   }
 }
