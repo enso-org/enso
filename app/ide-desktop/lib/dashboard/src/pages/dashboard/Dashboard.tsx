@@ -383,7 +383,10 @@ export default function Dashboard(props: DashboardProps) {
                     setPage(TabType.editor)
                   }}
                   onClose={() => {
-                    setProjectStartupInfo(null)
+                    dispatchAssetEvent({
+                      type: AssetEventType.closeProject,
+                      id: projectStartupInfo.projectAsset.id,
+                    })
                     setPage(TabType.drive)
                   }}
                 >
