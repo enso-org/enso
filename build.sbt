@@ -2579,12 +2579,19 @@ lazy val `engine-runner` = project
           )
       }
 
-      val exec =
-        s"$jlink --module-path ${modules.mkString(":")} --output $smallJdkDirectory --add-modules $NI_MODULES,$JDK_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
-      val exitCode = scala.sys.process.Process(exec).!
-
+      var jlinkArgs = Seq(
+        "--module-path",
+        modules.mkString(File.pathSeparator),
+        "--output",
+        smallJdkDirectory.toString(),
+        "--add-modules",
+        s"$NI_MODULES,$JDK_MODULES,$DEBUG_MODULES,$PYTHON_MODULES"
+      )
+      val exitCode = scala.sys.process.Process(jlink.toString(), jlinkArgs).!
       if (exitCode != 0) {
-        throw new RuntimeException(s"Cannot execute smalljdk.sh")
+        throw new RuntimeException(
+          s"Failed to execute $jlink ${jlinkArgs.mkString(" ")} - exit code: $exitCode"
+        )
       }
       libDirs.foreach(libDir =>
         IO.copyDirectory(
