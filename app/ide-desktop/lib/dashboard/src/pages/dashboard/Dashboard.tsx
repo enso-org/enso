@@ -370,7 +370,7 @@ export default function Dashboard(props: DashboardProps) {
                 isActive={page === TabType.drive}
                 icon={DriveIcon}
                 onPress={() => {
-                  setPage(TabType.editor)
+                  setPage(TabType.drive)
                 }}
               >
                 {getText('drivePageName')}
@@ -384,6 +384,7 @@ export default function Dashboard(props: DashboardProps) {
                   }}
                   onClose={() => {
                     setProjectStartupInfo(null)
+                    setPage(TabType.drive)
                   }}
                 >
                   {projectStartupInfo.projectAsset.title}

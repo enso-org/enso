@@ -1,6 +1,8 @@
 /** @file Switcher to choose the currently visible full-screen page. */
 import * as React from 'react'
 
+import invariant from 'tiny-invariant'
+
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import FocusArea from '#/components/styled/FocusArea'
@@ -13,6 +15,24 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 
 /** The corner radius of the tabs. */
 const TAB_RADIUS_PX = 24
+
+// =====================
+// === TabBarContext ===
+// =====================
+
+/** Context for a {@link TabBarContext}. */
+interface TabBarContextValue {
+  readonly updateClipPath: (element: HTMLDivElement | null) => void
+}
+
+const TabBarContext = React.createContext<TabBarContextValue | null>(null)
+
+/** Custom hook to get tab bar context. */
+function useTabBarContext() {
+  const context = React.useContext(TabBarContext)
+  invariant(context, '`useTabBarContext` must be used inside a `<TabBar />`')
+  return context
+}
 
 // ==============
 // === TabBar ===
@@ -79,16 +99,18 @@ export default function TabBar(props: TabBarProps) {
   }
 
   return (
-    <div className="relative flex grow">
-      <div
-        ref={element => {
-          backgroundRef.current = element
-          updateResizeObserver(element)
-        }}
-        className="pointer-events-none absolute inset-0 bg-primary/5"
-      />
-      <Tabs>{children}</Tabs>
-    </div>
+    <TabBarContext.Provider value={{ updateClipPath }}>
+      <div className="relative flex grow">
+        <div
+          ref={element => {
+            backgroundRef.current = element
+            updateResizeObserver(element)
+          }}
+          className="pointer-events-none absolute inset-0 bg-primary/5"
+        />
+        <Tabs>{children}</Tabs>
+      </div>
+    </TabBarContext.Provider>
   )
 }
 
@@ -131,12 +153,13 @@ interface InternalTabProps extends Readonly<React.PropsWithChildren> {
 }
 
 /** A tab in a {@link TabBar}. */
-function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivElement>) {
+export function Tab(props: InternalTabProps) {
   const { isActive, icon, children, onPress, onClose } = props
+  const { updateClipPath } = useTabBarContext()
 
   return (
     <div
-      ref={ref}
+      ref={isActive ? updateClipPath : null}
       className={tailwindMerge.twMerge('relative h-full', !isActive && 'hover:enabled:bg-frame')}
     >
       <ariaComponents.Button
@@ -145,19 +168,20 @@ function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivEle
         icon={icon}
         isDisabled={isActive}
         isActive={isActive}
-        className="relative flex h-full items-center gap-3 pl-4 pr-8"
+        className={tailwindMerge.twMerge(
+          'relative flex h-full items-center gap-3 px-4',
+          onClose && 'pr-10'
+        )}
         onPress={onPress}
       >
         {children}
       </ariaComponents.Button>
       {onClose && (
         <ariaComponents.CloseButton
-          className="absolute right-4 h-1/2 -translate-y-1/2"
+          className="absolute right-4 top-1/2 -translate-y-1/2"
           onPress={onClose}
         />
       )}
     </div>
   )
 }
-
-export const Tab = React.forwardRef(TabInternal)

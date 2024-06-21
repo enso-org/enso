@@ -11,7 +11,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Settings from '#/layouts/Settings'
-import type * as pageSwitcher from '#/layouts/TabBar'
 
 import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'
