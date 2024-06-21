@@ -41,7 +41,7 @@ test.test('extra columns should stick to top of scroll container', async ({ page
   for (let i = 0; i < 100; i += 1) {
     api.addFile('a')
   }
-  await actions.login({ page })
+  await actions.reload({ page })
 
   await actions.locateAccessedByProjectsColumnToggle(page).click()
   await actions.locateAccessedDataColumnToggle(page).click()
@@ -83,7 +83,7 @@ test.test('can drop onto root directory dropzone', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
   const asset = api.addDirectory('a')
   api.addFile('b', { parentId: asset.id })
-  await actions.login({ page })
+  await actions.reload({ page })
 
   await assetRows.nth(0).dblclick()
   const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))

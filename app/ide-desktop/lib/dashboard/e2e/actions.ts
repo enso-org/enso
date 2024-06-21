@@ -82,13 +82,6 @@ export function locateAssetRowName(locator: test.Locator) {
 
 // === Button locators ===
 
-/** Find a toast close button (if any) on the current locator. */
-export function locateToastCloseButton(page: test.Locator | test.Page) {
-  // There is no other simple way to uniquely identify this element.
-  // eslint-disable-next-line no-restricted-properties
-  return page.locator('.Toastify__close-button')
-}
-
 /** Find a "login" button (if any) on the current locator. */
 export function locateLoginButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Login', exact: true }).getByText('Login')
@@ -130,10 +123,11 @@ export function locateStopProjectButton(page: test.Locator | test.Page) {
 }
 
 /** Find all labels in the labels panel (if any) on the current page. */
-export function locateLabelsPanelLabels(page: test.Page) {
+export function locateLabelsPanelLabels(page: test.Page, name?: string) {
   return (
     locateLabelsPanel(page)
       .getByRole('button')
+      .filter(name != null ? { has: page.getByText(name) } : {})
       // The delete button is also a `button`.
       // eslint-disable-next-line no-restricted-properties
       .and(page.locator(':nth-child(1)'))
@@ -224,17 +218,17 @@ export function locateNotEnabledStub(page: test.Locator | test.Page) {
 
 /** Find a "new folder" icon (if any) on the current page. */
 export function locateNewFolderIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('New Folder') })
+  return page.getByRole('button', { name: 'New Folder' })
 }
 
 /** Find a "new secret" icon (if any) on the current page. */
 export function locateNewSecretIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('New Secret') })
+  return page.getByRole('button', { name: 'New Secret' })
 }
 
 /** Find a "download files" icon (if any) on the current page. */
 export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Export') })
+  return page.getByRole('button', { name: 'Export' })
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
@@ -250,11 +244,6 @@ export function locateSearchBarLabels(page: test.Page) {
 /** Find a list of labels in the search bar (if any) on the current page. */
 export function locateSearchBarSuggestions(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-suggestion')
-}
-
-/** Find a "home page" icon (if any) on the current page. */
-export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByRole('button').filter({ has: page.getByAltText('Home') })
 }
 
 // === Icon locators ===
@@ -731,32 +720,52 @@ export async function press(page: test.Page, keyOrShortcut: string) {
 export async function login(
   { page }: MockParams,
   email = 'email@example.com',
-  password = VALID_PASSWORD
+  password = VALID_PASSWORD,
+  first = true
 ) {
   await test.test.step('Login', async () => {
     await page.goto('/')
     await locateEmailInput(page).fill(email)
     await locatePasswordInput(page).fill(password)
     await locateLoginButton(page).click()
-    await locateToastCloseButton(page).click()
-    await passTermsAndConditionsDialog({ page })
+    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+    if (first) {
+      await passTermsAndConditionsDialog({ page })
+      await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+    }
   })
 }
 
-// ==============================
-// === mockIsInPlaywrightTest ===
-// ==============================
+// ==============
+// === reload ===
+// ==============
 
-/** Inject `isInPlaywrightTest` into the page. */
+/** Reload. */
 // This syntax is required for Playwright to work properly.
 // eslint-disable-next-line no-restricted-syntax
-export async function mockIsInPlaywrightTest({ page }: MockParams) {
-  await test.test.step('Mock `isInPlaywrightTest`', async () => {
-    await page.evaluate(() => {
-      // @ts-expect-error This is SAFE - it is a mistake for this variable to be written to
-      // from anywhere else.
-      window.isInPlaywrightTest = true
-    })
+export async function reload({ page }: MockParams) {
+  await test.test.step('Reload', async () => {
+    await page.reload()
+    await test.expect(page.getByText('Logging in to Enso...')).not.toBeVisible()
+  })
+}
+
+// =============
+// === relog ===
+// =============
+
+/** Logout and then login again. */
+// This syntax is required for Playwright to work properly.
+// eslint-disable-next-line no-restricted-syntax
+export async function relog(
+  { page }: MockParams,
+  email = 'email@example.com',
+  password = VALID_PASSWORD
+) {
+  await test.test.step('Relog', async () => {
+    await page.getByAltText('User Settings').locator('visible=true').click()
+    await page.getByRole('button', { name: 'Logout' }).getByText('Logout').click()
+    await login({ page }, email, password, false)
   })
 }
 
@@ -797,19 +806,11 @@ async function mockDate({ page }: MockParams) {
 
 /** Pass the Terms and conditions dialog. */
 export async function passTermsAndConditionsDialog({ page }: MockParams) {
-  // wait for terms and conditions dialog to appear
-  // but don't fail if it doesn't appear
-  try {
-    await test.test.step('Accept Terms and Conditions', async () => {
-      // wait for terms and conditions dialog to appear
-      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      await page.waitForSelector('#terms-of-service-modal', { timeout: 500 })
-      await page.getByRole('checkbox').click()
-      await page.getByRole('button', { name: 'Accept' }).click()
-    })
-  } catch (error) {
-    // do nothing
-  }
+  await test.test.step('Accept Terms and Conditions', async () => {
+    await page.waitForSelector('#terms-of-service-modal')
+    await page.getByRole('checkbox').click()
+    await page.getByRole('button', { name: 'Accept' }).click()
+  })
 }
 
 // ===============
@@ -830,7 +831,6 @@ export const mockApi = apiModule.mockApi
 export async function mockAll({ page }: MockParams) {
   return await test.test.step('Execute all mocks', async () => {
     const api = await mockApi({ page })
-    await mockIsInPlaywrightTest({ page })
     await mockDate({ page })
     return { api, pageActions: new LoginPageActions(page) }
   })
@@ -847,10 +847,6 @@ export async function mockAllAndLogin({ page }: MockParams) {
   return await test.test.step('Execute all mocks and login', async () => {
     const mocks = await mockAll({ page })
     await login({ page })
-    await passTermsAndConditionsDialog({ page })
-    // This MUST run after login because globals are reset when the browser
-    // is navigated to another page.
-    await mockIsInPlaywrightTest({ page })
     return { ...mocks, pageActions: new DrivePageActions(page) }
   })
 }

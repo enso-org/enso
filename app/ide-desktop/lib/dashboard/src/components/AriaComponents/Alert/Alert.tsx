@@ -4,8 +4,6 @@ import * as React from 'react'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
-import * as text from '../Text'
-
 // =================
 // === Constants ===
 // =================
@@ -34,21 +32,9 @@ export const ALERT_STYLES = twv.tv({
     },
     size: {
       custom: '',
-      small: text.TEXT_STYLE({
-        color: 'custom',
-        variant: 'body',
-        class: 'px-1.5 pt-1 pb-1',
-      }),
-      medium: text.TEXT_STYLE({
-        color: 'custom',
-        variant: 'body',
-        class: 'px-3 pt-1 pb-1',
-      }),
-      large: text.TEXT_STYLE({
-        color: 'custom',
-        variant: 'subtitle',
-        class: 'px-4 pt-2 pb-2',
-      }),
+      small: 'px-1.5 pt-1 pb-1',
+      medium: 'px-3 pt-1 pb-1',
+      large: 'px-4 pt-2 pb-2',
     },
   },
   defaultVariants: {

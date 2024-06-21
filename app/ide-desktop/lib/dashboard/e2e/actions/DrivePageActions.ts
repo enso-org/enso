@@ -158,10 +158,7 @@ export default class DrivePageActions extends BaseActions {
   /** Create a new folder using the icon in the Drive Bar. */
   createFolder() {
     return this.step('Create folder', page =>
-      page
-        .getByRole('button')
-        .filter({ has: page.getByAltText('New Folder') })
-        .click()
+      page.getByRole('button', { name: 'New Folder' }).click()
     )
   }
 
@@ -173,10 +170,7 @@ export default class DrivePageActions extends BaseActions {
   ) {
     return this.step(`Upload file '${name}'`, async page => {
       const fileChooserPromise = page.waitForEvent('filechooser')
-      await page
-        .getByRole('button')
-        .filter({ has: page.getByAltText('Import') })
-        .click()
+      await page.getByRole('button', { name: 'Import' }).click()
       const fileChooser = await fileChooserPromise
       await fileChooser.setFiles([{ name, buffer: Buffer.from(contents), mimeType }])
     })
@@ -209,10 +203,7 @@ export default class DrivePageActions extends BaseActions {
   /** Open the Data Link creation modal by clicking on the Data Link icon. */
   openDataLinkModal() {
     return this.step('Open "new data link" modal', page =>
-      page
-        .getByRole('button')
-        .filter({ has: page.getByAltText('New Datalink') })
-        .click()
+      page.getByRole('button', { name: 'New Datalink' }).click()
     ).into(NewDataLinkModalActions)
   }
 

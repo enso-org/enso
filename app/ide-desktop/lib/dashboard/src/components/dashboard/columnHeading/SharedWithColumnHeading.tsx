@@ -22,7 +22,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
 
   const { user } = authProvider.useNonPartialUserSession()
 
-  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user?.plan })
+  const { isFeatureUnderPaywall } = billingHooks.usePaywall({ plan: user.plan })
 
   const isUnderPaywall = isFeatureUnderPaywall('share')
 

@@ -439,7 +439,7 @@
 }
 
 :where(.enso-dashboard) {
-  @apply absolute inset-0 overflow-hidden;
+  @apply absolute inset-0 overflow-hidden flex flex-col;
 }
 
 /* These styles MUST still be copied

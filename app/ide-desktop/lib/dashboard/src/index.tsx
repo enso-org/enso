@@ -18,6 +18,9 @@ import * as reactQueryClientModule from '#/reactQueryClient'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
+import * as suspense from '#/components/Suspense'
+
+import HttpClient from '#/utilities/HttpClient'
 
 import * as reactQueryDevtools from './ReactQueryDevtools'
 
@@ -42,7 +45,7 @@ const SENTRY_SAMPLE_RATE = 0.005
 export // This export declaration must be broken up to satisfy the `require-jsdoc` rule.
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
-function run(props: Omit<app.AppProps, 'portalRoot'>) {
+function run(props: Omit<app.AppProps, 'httpClient' | 'portalRoot'>) {
   const { vibrancy, supportsDeepLinks } = props
   if (
     !detect.IS_DEV_MODE &&
@@ -85,24 +88,25 @@ function run(props: Omit<app.AppProps, 'portalRoot'>) {
 
   // `supportsDeepLinks` will be incorrect when accessing the installed Electron app's pages
   // via the browser.
-  const actuallySupportsDeepLinks = supportsDeepLinks && detect.isOnElectron()
+  const actuallySupportsDeepLinks = detect.IS_DEV_MODE
+    ? supportsDeepLinks
+    : supportsDeepLinks && detect.isOnElectron()
+
+  const httpClient = new HttpClient()
   const queryClient = reactQueryClientModule.createReactQueryClient()
 
   reactDOM.createRoot(root).render(
     <React.StrictMode>
       <reactQuery.QueryClientProvider client={queryClient}>
         <errorBoundary.ErrorBoundary>
-          <React.Suspense fallback={<LoadingScreen />}>
-            {detect.IS_DEV_MODE ? (
-              <App {...props} portalRoot={portalRoot} />
-            ) : (
-              <App
-                {...props}
-                supportsDeepLinks={actuallySupportsDeepLinks}
-                portalRoot={portalRoot}
-              />
-            )}
-          </React.Suspense>
+          <suspense.Suspense fallback={<LoadingScreen />}>
+            <App
+              {...props}
+              supportsDeepLinks={actuallySupportsDeepLinks}
+              portalRoot={portalRoot}
+              httpClient={httpClient}
+            />
+          </suspense.Suspense>
         </errorBoundary.ErrorBoundary>
 
         <reactQueryDevtools.ReactQueryDevtools />
