@@ -66,18 +66,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             getValue: context => context.user.name,
             setValue: async (context, newName, reset) => {
               const oldName = context.user.name
-              if (newName === oldName) {
-                return
-              } else {
-                try {
-                  context.setUser(object.merger({ name: newName }))
-                  await context.updateUser([{ username: newName }])
-                } catch (error) {
-                  context.setUser(object.merger({ name: oldName }))
-                  context.toastAndLog(null, error)
-                  reset()
-                }
-                return
+              if (newName !== oldName) {
+                await context.updateUser([{ username: newName }]).catch(reset)
               }
             },
             validate: name => (/\S/.test(name) ? true : ''),
@@ -153,9 +143,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             setValue: async (context, newName, reset) => {
               const oldName = context.organization?.name ?? null
               if (oldName !== newName) {
-                context.updateOrganization([{ name: newName }]).catch(reset)
+                await context.updateOrganization([{ name: newName }]).catch(reset)
               }
-              return Promise.resolve()
             },
             validate: name => (/\S/.test(name) ? true : ''),
             getEditable: () => true,
@@ -357,7 +346,6 @@ export interface SettingsContext {
     unknown
   >
   readonly backend: Backend | null
-  readonly setUser: React.Dispatch<React.SetStateAction<backend.User>>
   readonly organization: backend.OrganizationInfo | null
   readonly updateOrganization: reactQuery.UseMutateAsyncFunction<
     backend.OrganizationInfo | null | undefined,

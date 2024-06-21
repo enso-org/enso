@@ -45,7 +45,7 @@ export default function Settings() {
     array.includesPredicate(Object.values(SettingsTabType))
   )
   const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { setUser, authQueryKey } = authProvider.useAuth()
+  const { setUsername, authQueryKey } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [query, setQuery] = React.useState('')
@@ -66,7 +66,6 @@ export default function Settings() {
     () => ({
       accessToken,
       user,
-      setUser,
       updateUser,
       backend,
       organization,
@@ -74,17 +73,7 @@ export default function Settings() {
       toastAndLog,
       getText,
     }),
-    [
-      accessToken,
-      backend,
-      getText,
-      organization,
-      setUser,
-      toastAndLog,
-      updateOrganization,
-      updateUser,
-      user,
-    ]
+    [accessToken, backend, getText, organization, toastAndLog, updateOrganization, updateUser, user]
   )
 
   const isMatch = React.useMemo(() => {
@@ -197,7 +186,7 @@ export default function Settings() {
         placeholder={getText('settingsSearchBarPlaceholder')}
       />
       <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
-        <aside className="flex h-full flex-col overflow-y-auto overflow-x-hidden pb-12">
+        <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
           <SettingsSidebar
             tabsToShow={tabsToShow}
             isUserInOrganization={isUserInOrganization}

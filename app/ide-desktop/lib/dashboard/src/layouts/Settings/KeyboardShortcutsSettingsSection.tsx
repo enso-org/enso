@@ -142,12 +142,11 @@ export default function KeyboardShortcutsSettingsSection() {
                                         inputBindings.delete(action, binding)
                                         doRefresh()
                                       }}
-                                    >
-                                      <SvgMask src={CrossIcon} className="size-4" />
-                                    </ariaComponents.Button>
+                                    />
                                   </div>
                                 ))}
-                                <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
+                                <div className="grow" />
+                                <div className="gap-keyboard-shortcuts-buttons flex shrink-0 items-center">
                                   <ariaComponents.Button
                                     variant="ghost"
                                     size="icon"

@@ -74,9 +74,7 @@ export default function SettingsTab(props: SettingsTabProps) {
   return (
     <errorBoundary.ErrorBoundary>
       <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
-        <main className="h-full w-full flex-shrink-0 flex-grow basis-0 overflow-y-auto overflow-x-hidden pb-12 pl-1.5 pr-3">
-          <div className="w-full max-w-[840px]">{content}</div>
-        </main>
+        {content}
       </React.Suspense>
     </errorBoundary.ErrorBoundary>
   )
