@@ -424,7 +424,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             t3 . at "X" . value_type . precision . should_equal Nothing
             t3 . at "X" . value_type . scale . should_equal Nothing
             # Works but only relying on imprecise float equality:
-            t3 . at "X" . to_vector . should_equal [super_large . to_float]
+            t3 . at "X" . to_vector . should_equal [super_large]
             w3 = Problems.expect_only_warning Inexact_Type_Coercion t3
             w3.requested_type . should_equal (Value_Type.Decimal precision=Nothing scale=0)
             w3.actual_type . should_equal (Value_Type.Decimal precision=Nothing scale=Nothing)
@@ -609,10 +609,11 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             do_round data 231.2 -1 . should_be_a Float
 
         group_builder.specify "round returns the correct type" <|
-            do_round data 231 1 . should_be_a Float
+            # TODO https://github.com/enso-org/enso/issues/10345
+            do_round data 231 1 . should_be_a Decimal
             do_round data 231 0 . should_be_a Float
             do_round data 231 . should_be_a Float
-            do_round data 231 -1 . should_be_a Float
+            do_round data 231 -1 . should_be_a Decimal
 
 add_postgres_specs suite_builder create_connection_fn db_name =
     prefix = "[PostgreSQL] "
