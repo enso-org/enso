@@ -27,29 +27,37 @@ export default function SettingsInputEntry(props: SettingsInputEntryProps) {
   const value = getValue(context)
   const isEditable = getEditable(context)
 
+  const onChange =
+    validate == null
+      ? null
+      : () => {
+          if (ref.current) {
+            const errorMessage = validate(ref.current.value, context)
+            ref.current.setCustomValidity(errorMessage === true ? '' : errorMessage)
+          }
+        }
+
   const input = (
     <SettingsInput
       ref={ref}
       isDisabled={!isEditable}
       key={value}
       type="text"
+      {...(onChange ? { onChange } : {})}
       onSubmit={newValue => {
-        void setValue(context, newValue, () => {
-          if (ref.current) {
-            ref.current.value = value
-          }
-        })
+        if (ref.current?.validity.valid === true) {
+          void setValue(context, newValue, () => {
+            if (ref.current) {
+              ref.current.value = value
+            }
+          })
+        }
       }}
     />
   )
 
   return (
-    <aria.TextField
-      key={value}
-      defaultValue={value}
-      {...(validate == null ? {} : { validate: newValue => validate(newValue, context) })}
-      className="flex h-row gap-settings-entry"
-    >
+    <aria.TextField key={value} defaultValue={value} className="flex h-row gap-settings-entry">
       <aria.Label className="text my-auto w-organization-settings-label">
         {getText(nameId)}
       </aria.Label>

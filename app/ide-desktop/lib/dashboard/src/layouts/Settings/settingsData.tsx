@@ -30,7 +30,6 @@ import ProfilePictureInput from '#/layouts/Settings/ProfilePictureInput'
 import SettingsTabType from '#/layouts/Settings/SettingsTabType'
 import UserGroupsSettingsSection from '#/layouts/Settings/UserGroupsSettingsSection'
 
-import type * as aria from '#/components/aria'
 import * as menuEntry from '#/components/MenuEntry'
 
 import * as backend from '#/services/Backend'
@@ -373,7 +372,7 @@ export interface SettingsInputEntryData {
   readonly nameId: text.TextId & `${string}SettingsInput`
   readonly getValue: (context: SettingsContext) => string
   readonly setValue: (context: SettingsContext, value: string, reset: () => void) => Promise<void>
-  readonly validate?: (value: string, context: SettingsContext) => aria.ValidationError | true
+  readonly validate?: (value: string, context: SettingsContext) => string | true
   readonly getEditable: (context: SettingsContext) => boolean
 }
 
