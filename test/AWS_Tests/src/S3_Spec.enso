@@ -420,12 +420,12 @@ add_specs suite_builder =
                     my_file.read . should_equal "version2"
 
                     # ensure correct format is used for reading the .bak file - Auto_Detect fails because it does not know the `.bak` extension
-                    bak_file.read Plain_Text . should_equal "version1"
+                    bak_file.read Plain_Text_Format.Plain_Text . should_equal "version1"
 
                     "version3".write my_file . should_succeed
 
                     my_file.read . should_equal "version3"
-                    bak_file.read Plain_Text . should_equal "version2"
+                    bak_file.read Plain_Text_Format.Plain_Text . should_equal "version2"
 
                     # No new file was created
                     parent_dir = my_file.parent

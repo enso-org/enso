@@ -72,7 +72,7 @@ add_specs suite_builder =
                 stream = make_stream "test payload 1"
                 tmp = Temporary_File.from_stream stream
                 tmp.with_file f->
-                    f.read Plain_Text . should_equal "test payload 1"
+                    f.read ..Plain_Text . should_equal "test payload 1"
 
         group_builder.specify "will fail if materializing an already closed input stream" <|
             stream = Input_Stream.new (InputStream.nullInputStream) (File_Error.handle_java_exceptions Nothing)

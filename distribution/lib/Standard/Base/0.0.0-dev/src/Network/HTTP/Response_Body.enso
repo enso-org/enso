@@ -127,7 +127,7 @@ type Response_Body
          fallback.
     @encoding Encoding.default_widget
     decode_as_text : Encoding | Infer -> Text
-    decode_as_text self (encoding : Encoding | Infer = Infer) = self.decode (Plain_Text_Format.Plain_Text encoding)
+    decode_as_text self (encoding : Encoding | Infer = Infer) = self.decode (..Plain_Text encoding)
 
     ## ALIAS parse as json, parse json
        GROUP Conversions

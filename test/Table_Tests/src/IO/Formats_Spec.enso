@@ -74,7 +74,7 @@ add_specs suite_builder =
 
             f2 = (transient / "test5.txt")
             f2.delete_if_exists
-            my_format = Plain_Text Encoding.ascii
+            my_format = ..Plain_Text Encoding.ascii
             r2 = t1.write f2 my_format
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Unsupported_Output_Type
