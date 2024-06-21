@@ -34,6 +34,7 @@ polyglot java import java.time.DateTimeException
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.base.Time_Utils.AdjustOp
 
 ## PRIVATE
    Constructs a new Date from a year, month, and day.

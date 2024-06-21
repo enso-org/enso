@@ -2,6 +2,7 @@ package org.enso.distribution.config
 
 import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
+import io.circe.yaml.Parser
 import io.circe.{yaml, Json}
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.FileSystem.PathSyntax
@@ -85,7 +86,7 @@ object GlobalConfigurationManager {
   private def readConfig(path: Path): Try[GlobalConfig] =
     Using(Files.newBufferedReader(path)) { reader =>
       for {
-        json   <- yaml.parser.parse(reader)
+        json   <- Parser.default.parse(reader)
         config <- json.as[GlobalConfig]
       } yield config
     }.flatMap(_.toTry)

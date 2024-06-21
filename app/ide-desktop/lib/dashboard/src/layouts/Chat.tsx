@@ -426,7 +426,7 @@ export default function Chat(props: ChatProps) {
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const accessToken = rawAccessToken!
+  const accessToken = rawAccessToken
 
   const [isPaidUser, setIsPaidUser] = React.useState(true)
   const [isReplyEnabled, setIsReplyEnabled] = React.useState(false)
@@ -465,7 +465,7 @@ export default function Chat(props: ChatProps) {
     } else {
       return
     }
-  }, [isOpen, /* should never change */ endpoint])
+  }, [isOpen, endpoint])
 
   React.useLayoutEffect(() => {
     const element = messagesRef.current
@@ -630,7 +630,7 @@ export default function Chat(props: ChatProps) {
         })
       }
     },
-    [threads, toastAndLog, /* should never change */ sendMessage]
+    [threads, toastAndLog, sendMessage]
   )
 
   const sendCurrentMessage = React.useCallback(
@@ -680,14 +680,7 @@ export default function Chat(props: ChatProps) {
         }
       }
     },
-    [
-      threads,
-      threadId,
-      threadTitle,
-      shouldIgnoreMessageLimit,
-      getText,
-      /* should never change */ sendMessage,
-    ]
+    [threads, threadId, threadTitle, shouldIgnoreMessageLimit, getText, sendMessage]
   )
 
   const upgradeToPro = () => {

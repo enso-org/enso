@@ -4,8 +4,6 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router'
 
-import * as backendHooks from '#/hooks/backendHooks'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -31,31 +29,29 @@ const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.e
  * Shows up when the user is on the team plan and the organization name is the default. */
 export function SetOrganizationNameModal() {
   const { getText } = textProvider.useText()
+
   const backend = backendProvider.useRemoteBackendStrict()
   const { session } = authProvider.useAuth()
-  const userId = session && 'user' in session && session.user?.userId ? session.user.userId : null
-  const userPlan =
-    session && 'user' in session && session.user?.plan != null ? session.user.plan : null
+
+  const user = session != null && 'user' in session ? session.user : null
+  const userId = user?.userId ?? null
+  const userPlan = user?.plan ?? null
+
   const { data: organizationName } = reactQuery.useSuspenseQuery({
     queryKey: ['organization', userId],
-    queryFn: () => {
-      if (backend.type === backendModule.BackendType.remote) {
-        return backend.getOrganization().catch(() => null)
-      } else {
-        return null
-      }
-    },
+    queryFn: () => backend.getOrganization().catch(() => null),
     staleTime: Infinity,
     select: data => data?.name ?? '',
   })
+
+  const submit = reactQuery.useMutation({
+    mutationKey: ['organization', userId],
+    mutationFn: (name: string) => backend.updateOrganization({ name }),
+    meta: { invalidates: [['organization', userId]], awaitInvalidates: true },
+  })
+
   const shouldShowModal =
     userPlan != null && PLANS_TO_SPECIFY_ORG_NAME.includes(userPlan) && organizationName === ''
-
-  const updateOrganizationMutation = backendHooks.useBackendMutation(
-    backend,
-    'updateOrganization',
-    { meta: { invalidates: [['organization', userId]], awaitInvalidates: true } }
-  )
 
   return (
     <>
@@ -78,7 +74,7 @@ export function SetOrganizationNameModal() {
                 .max(255, getText('arbitraryFieldTooLong')),
             })
           )}
-          onSubmit={({ name }) => updateOrganizationMutation.mutateAsync([{ name }])}
+          onSubmit={({ name }) => submit.mutateAsync(name)}
         >
           {({ register, formState }) => {
             return (

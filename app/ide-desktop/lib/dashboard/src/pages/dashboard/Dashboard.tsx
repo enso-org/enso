@@ -47,7 +47,6 @@ import type * as types from '../../../../types/types'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly driveCategory: Category
     readonly isAssetPanelVisible: boolean
     readonly page: pageSwitcher.Page
     readonly projectStartupInfo: backendModule.ProjectStartupInfo
@@ -61,11 +60,6 @@ LocalStorage.registerKey('isAssetPanelVisible', {
 const PAGES = Object.values(pageSwitcher.Page)
 LocalStorage.registerKey('page', {
   tryParse: value => (array.includes(PAGES, value) ? value : null),
-})
-
-const CATEGORIES = Object.values(Category)
-LocalStorage.registerKey('driveCategory', {
-  tryParse: value => (array.includes(CATEGORIES, value) ? value : null),
 })
 
 const BACKEND_TYPES = Object.values(backendModule.BackendType)
@@ -125,6 +119,8 @@ export default function Dashboard(props: DashboardProps) {
   const { localStorage } = localStorageProvider.useLocalStorage()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
 
   // These pages MUST be ROUTER PAGES.
@@ -144,13 +140,18 @@ export default function Dashboard(props: DashboardProps) {
   const defaultCategory = remoteBackend != null ? Category.cloud : Category.local
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
-    () =>
-      remoteBackend == null ? Category.local : localStorage.get('driveCategory') ?? defaultCategory,
-    (value): value is Category => array.includes(Object.values(Category), value)
+    () => defaultCategory,
+    (value): value is Category => {
+      if (array.includes(Object.values(Category), value)) {
+        return categoryModule.isLocal(value) ? localBackend != null : true
+      } else {
+        return false
+      }
+    }
   )
 
   const isCloud = categoryModule.isCloud(category)
-  const isUserEnabled = session.user?.isEnabled === true
+  const isUserEnabled = session.user.isEnabled
 
   if (isCloud && !isUserEnabled && localBackend != null) {
     setTimeout(() => {
@@ -245,22 +246,20 @@ export default function Dashboard(props: DashboardProps) {
   })
 
   React.useEffect(() => {
-    if (initialized) {
+    if (initializedRef.current) {
       if (projectStartupInfo != null) {
         localStorage.set('projectStartupInfo', projectStartupInfo)
       } else {
         localStorage.delete('projectStartupInfo')
       }
     }
-    // `initialized` is NOT a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectStartupInfo, /* should never change */ localStorage])
+  }, [projectStartupInfo, localStorage])
 
   React.useEffect(() => {
     if (page !== pageSwitcher.Page.settings) {
       localStorage.set('page', page)
     }
-  }, [page, /* should never change */ localStorage])
+  }, [page, localStorage])
 
   React.useEffect(
     () =>
@@ -345,7 +344,7 @@ export default function Dashboard(props: DashboardProps) {
       dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
       setProjectStartupInfo(null)
     }
-  }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
+  }, [projectStartupInfo?.projectAsset, dispatchAssetListEvent])
 
   const onSignOut = React.useCallback(() => {
     if (page === pageSwitcher.Page.editor) {
@@ -395,8 +394,8 @@ export default function Dashboard(props: DashboardProps) {
             appRunner={appRunner}
           />
           {page === pageSwitcher.Page.settings && <Settings backend={remoteBackend} />}
-          {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
+
+          {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               isOpen={isHelpChatOpen}
               doClose={() => {

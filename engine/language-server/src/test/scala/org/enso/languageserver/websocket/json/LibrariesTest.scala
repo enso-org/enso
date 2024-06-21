@@ -326,7 +326,7 @@ class LibrariesTest
           .get
           .copy(
             componentGroups =
-              Right(TestComponentGroups.testLibraryComponentGroups)
+              Some(TestComponentGroups.testLibraryComponentGroups)
           )
       Files.writeString(packageFile, packageConfig.toYaml)
 

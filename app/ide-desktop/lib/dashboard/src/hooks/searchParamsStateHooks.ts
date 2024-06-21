@@ -22,7 +22,7 @@ type SearchParamsStateReturnType<T> = Readonly<
 >
 
 /**
- * Hook that synchronize a state in the URL search params. It returns the value, a setter and a clear function.
+ * Hook to synchronize a state in the URL search params. It returns the value, a setter and a clear function.
  * @param key - The key to store the value in the URL search params.
  * @param defaultValue - The default value to use if the key is not present in the URL search params.
  * @param predicate - A function to check if the value is of the right type.

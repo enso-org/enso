@@ -12,6 +12,10 @@ export const TAILWIND_MERGE_CONFIG = {
       p: [{ p: [() => true] }],
       w: [{ w: [() => true] }],
       h: [{ h: [() => true] }],
+      size: [{ size: [() => true] }],
+    },
+    conflictingClassGroups: {
+      size: ['w', 'h'] as const,
     },
   },
 }

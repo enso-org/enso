@@ -262,12 +262,15 @@ export class Cognito {
    * password, new password, and repeat new password to change their old password to the new
    * one. The validation of the repeated new password is handled by the `changePasswordModel`
    * component. */
-  async changePassword(_oldPassword: string, _newPassword: string) {
+  async changePassword(oldPassword: string, newPassword: string) {
     const cognitoUserResult = await currentAuthenticatedUser()
     if (cognitoUserResult.ok) {
-      const result = await results.Result.wrapAsync(async () => {
-        // Ignored.
-      })
+      const result = await results.Result.wrapAsync(() =>
+        fetch('https://mock-cognito.com/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ oldPassword, newPassword }),
+        })
+      )
       return result.mapErr(original.intoAmplifyErrorOrThrow)
     } else {
       return results.Err(cognitoUserResult.val)
@@ -298,6 +301,8 @@ export interface UserSession {
   readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
   readonly accessToken: string
+  /** Cognito app integration client ID. */
+  readonly clientId?: string
 }
 
 /** Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.
@@ -310,7 +315,7 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
     throw new Error('Payload does not have an email field.')
   } else {
     const accessToken = `.${window.btoa(JSON.stringify({ username: email }))}.`
-    return { email, accessToken }
+    return { email, accessToken, clientId: '' }
   }
 }
 

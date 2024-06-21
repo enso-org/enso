@@ -337,13 +337,8 @@ private class DefaultPackageRepository(
     if (loadedComponents.contains(pkg.libraryName)) Right(())
     else {
       pkg.getConfig().componentGroups match {
-        case Left(err) =>
-          Left(PackageRepository.Error.PackageLoadingError(err.getMessage()))
-        case Right(componentGroups) =>
-          logger.debug(
-            s"Resolving component groups of package [${pkg.normalizedName}]."
-          )
-
+        case None => Right(())
+        case Some(componentGroups) =>
           registerComponentGroups(pkg.libraryName, componentGroups.newGroups)
           componentGroups.extendedGroups
             .foldLeft[Either[PackageRepository.Error, Unit]](Right(())) {

@@ -38,6 +38,7 @@ import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { provideGraphStore, type NodeId } from '@/stores/graph'
+import { asNodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { provideProjectStore } from '@/stores/project'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -206,11 +207,11 @@ const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
   graphStore.isPortEnabled,
-  (id) => graphStore.db.nodeIdToNode.has(id),
   {
-    onSelected(id) {
-      graphStore.db.moveNodeToTop(id)
-    },
+    isValid: (id) => graphStore.db.nodeIdToNode.has(id),
+    pack: (id) => graphStore.db.nodeIdToNode.get(id)?.rootExpr.externalId,
+    unpack: (eid) => asNodeId(graphStore.db.idFromExternal(eid)),
+    onSelected: (id) => graphStore.db.moveNodeToTop(id),
   },
 )
 

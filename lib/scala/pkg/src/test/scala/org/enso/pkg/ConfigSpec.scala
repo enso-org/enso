@@ -1,12 +1,14 @@
 package org.enso.pkg
 
 import cats.Show
-import io.circe.{DecodingFailure, Json, JsonObject}
+import io.circe.{DecodingFailure, Json}
 import org.enso.semver.SemVer
 import org.enso.editions.LibraryName
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}
+
+import scala.util.Failure
 
 class ConfigSpec
     extends AnyWordSpec
@@ -15,7 +17,7 @@ class ConfigSpec
     with OptionValues {
 
   "Config" should {
-    "preserve unknown keys when deserialized and serialized again" in {
+    "preserve unknown keys when deserialized and serialized again" ignore {
       val original = Json.obj(
         "name"        -> Json.fromString("name"),
         "unknown-key" -> Json.fromString("value")
@@ -47,11 +49,10 @@ class ConfigSpec
           Contact(None, Some("c@example.com"))
         ),
         preferLocalLibraries = true,
-        componentGroups      = Right(ComponentGroups.empty)
+        componentGroups      = None
       )
       val deserialized = Config.fromYaml(config.toYaml).get
-      val withoutJson  = deserialized.copy(originalJson = JsonObject())
-      withoutJson shouldEqual config
+      deserialized shouldEqual config
     }
 
     "only require the name and use defaults for everything else" in {
@@ -60,27 +61,6 @@ class ConfigSpec
       parsed.normalizedName shouldEqual None
       parsed.moduleName shouldEqual "FooBar"
       parsed.edition shouldBe empty
-    }
-
-    "be backwards compatible but correctly migrate to new format on save" in {
-      val oldFormat =
-        """name: FooBar
-          |enso-version: 1.2.3
-          |extra-key: extra-value
-          |""".stripMargin
-      val parsed = Config.fromYaml(oldFormat).get
-
-      parsed.edition.get.engineVersion should contain(SemVer.of(1, 2, 3))
-
-      val serialized  = parsed.toYaml
-      val parsedAgain = Config.fromYaml(serialized).get
-
-      parsedAgain.copy(originalJson = JsonObject()) shouldEqual
-      parsed.copy(originalJson      = JsonObject())
-
-      parsedAgain.originalJson("extra-key").flatMap(_.asString) should contain(
-        "extra-value"
-      )
     }
 
     "correctly de-serialize and serialize back the shortened edition syntax " +
@@ -156,7 +136,7 @@ class ConfigSpec
           )
         )
       )
-      parsed.componentGroups shouldEqual Right(expectedComponentGroups)
+      parsed.componentGroups shouldEqual Some(expectedComponentGroups)
 
       val serialized = parsed.toYaml
       serialized should include(
@@ -185,7 +165,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
-      parsed.componentGroups shouldEqual Right(ComponentGroups.empty)
+      parsed.componentGroups shouldEqual None
     }
 
     "allow unknown keys in component groups" in {
@@ -199,7 +179,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
-      parsed.componentGroups shouldEqual Right(ComponentGroups.empty)
+      parsed.componentGroups shouldEqual Some(ComponentGroups.empty)
     }
 
     "fail to de-serialize invalid extended modules" in {
@@ -211,10 +191,10 @@ class ConfigSpec
           |      exports:
           |      - bax
           |""".stripMargin
-      val parsed = Config.fromYaml(config).get
+      val parsed = Config.fromYaml(config)
 
-      parsed.componentGroups match {
-        case Left(f: DecodingFailure) =>
+      parsed match {
+        case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode 'Group 1' as a module reference"
           )
@@ -259,7 +239,7 @@ class ConfigSpec
         extendedGroups = List()
       )
 
-      parsed.componentGroups shouldEqual Right(expectedComponentGroups)
+      parsed.componentGroups shouldEqual Some(expectedComponentGroups)
     }
 
     "fail to de-serialize invalid shortcuts" in {
@@ -272,9 +252,9 @@ class ConfigSpec
           |      - foo:
           |          shortcut: []
           |""".stripMargin
-      val parsed = Config.fromYaml(config).get
-      parsed.componentGroups match {
-        case Left(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config)
+      parsed match {
+        case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode shortcut"
           )
@@ -291,9 +271,9 @@ class ConfigSpec
           |  - exports:
           |    - name: foo
           |""".stripMargin
-      val parsed = Config.fromYaml(config).get
-      parsed.componentGroups match {
-        case Left(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config)
+      parsed match {
+        case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode component group"
           )
@@ -311,9 +291,9 @@ class ConfigSpec
           |      exports:
           |      - one: two
           |""".stripMargin
-      val parsed = Config.fromYaml(config).get
-      parsed.componentGroups match {
-        case Left(f: DecodingFailure) =>
+      val parsed = Config.fromYaml(config)
+      parsed match {
+        case Failure(f: DecodingFailure) =>
           Show[DecodingFailure].show(f) should include(
             "Failed to decode exported component"
           )

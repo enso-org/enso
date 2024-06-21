@@ -6,6 +6,8 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
 
+import * as billing from '#/hooks/billing'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -15,6 +17,7 @@ import UserMenu from '#/layouts/UserMenu'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import * as paywall from '#/components/Paywall'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 
@@ -47,23 +50,28 @@ export interface UserBarProps {
 export default function UserBar(props: UserBarProps) {
   const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
-  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+
+  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
+
   const self =
-    user != null
-      ? projectAsset?.permissions?.find(
-          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
-        ) ?? null
-      : null
+    projectAsset?.permissions?.find(
+      backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+    ) ?? null
+
   const shouldShowShareButton =
     backend != null &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
+
+  const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
+
   const shouldShowInviteButton =
-    backend != null && sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
+    backend != null && !shouldShowShareButton && !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -84,6 +92,12 @@ export default function UserBar(props: UserBarProps) {
               }}
             />
 
+            {shouldShowUpgradeButton && (
+              <paywall.PaywallDialogButton feature={'inviteUser'} size="medium" variant="tertiary">
+                {getText('invite')}
+              </paywall.PaywallDialogButton>
+            )}
+
             {shouldShowInviteButton && (
               <ariaComponents.DialogTrigger>
                 <ariaComponents.Button size="medium" variant="tertiary">
@@ -97,6 +111,7 @@ export default function UserBar(props: UserBarProps) {
             <ariaComponents.Button variant="primary" size="medium" href={appUtils.SUBSCRIBE_PATH}>
               {getText('upgrade')}
             </ariaComponents.Button>
+
             {shouldShowShareButton && (
               <ariaComponents.Button
                 size="medium"
@@ -122,7 +137,7 @@ export default function UserBar(props: UserBarProps) {
               active
               mask={false}
               alt={getText('userMenuAltText')}
-              image={user?.profilePicture ?? DefaultUserIcon}
+              image={user.profilePicture ?? DefaultUserIcon}
               buttonClassName="rounded-full after:rounded-full"
               className="h-row-h w-row-h rounded-full"
               onPress={() => {

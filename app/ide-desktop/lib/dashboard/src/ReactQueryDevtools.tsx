@@ -1,8 +1,11 @@
-/** @file Show the React Query Devtools. */
+/**
+ * @file Show the React Query Devtools.
+ */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as reactQueryDevtools from '@tanstack/react-query-devtools'
+import * as errorBoundary from 'react-error-boundary'
 
 const ReactQueryDevtoolsProduction = React.lazy(() =>
   import('@tanstack/react-query-devtools/build/modern/production.js').then(d => ({
@@ -26,7 +29,12 @@ export function ReactQueryDevtools() {
   }, [])
 
   return (
-    <>
+    <errorBoundary.ErrorBoundary
+      fallbackRender={({ resetErrorBoundary }) => {
+        resetErrorBoundary()
+        return null
+      }}
+    >
       <reactQueryDevtools.ReactQueryDevtools client={client} />
 
       {showDevtools && (
@@ -34,6 +42,6 @@ export function ReactQueryDevtools() {
           <ReactQueryDevtoolsProduction client={client} />
         </React.Suspense>
       )}
-    </>
+    </errorBoundary.ErrorBoundary>
   )
 }

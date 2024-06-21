@@ -10,8 +10,9 @@ import * as mimeTypes from '#/data/mimeTypes'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as backendHooks from '#/hooks/backendHooks'
 import * as eventHooks from '#/hooks/eventHooks'
-import * as scrollHooks from '#/hooks/scrollHooks'
+import * as intersectionHooks from '#/hooks/intersectionHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import useOnScroll from '#/hooks/useOnScroll'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
@@ -99,6 +100,9 @@ LocalStorage.registerKey('enabledColumns', {
 // === Constants ===
 // =================
 
+/** If the ratio of intersection between the main dropzone that should be visible, and the
+ * scrollable container, is below this value, then the backup dropzone will be shown. */
+const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
 /** If the drag pointer is less than this distance away from the top or bottom of the
  * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
  * the top of the scroll container, or downwards if the cursor is near the bottom. */
@@ -382,7 +386,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { doOpenEditor: doOpenEditorRaw, doCloseEditor: doCloseEditorRaw } = props
   const { setAssetPanelProps, targetDirectoryNodeRef, setIsAssetPanelTemporarilyVisible } = props
 
-  const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const backend = backendProvider.useBackend(category)
   const labels = backendHooks.useBackendListTags(backend)
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -392,6 +396,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const navigator2D = navigator2DProvider.useNavigator2D()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
+  const initializedRef = React.useRef(initialized)
+  initializedRef.current = initialized
   const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortInfo, setSortInfo] =
@@ -418,12 +424,17 @@ export default function AssetsTable(props: AssetsTableProps) {
       -1
     )
   })
-  const [isDropzoneVisible, setIsDropzoneVisible] = React.useState(false)
+  const [isDraggingFiles, setIsDraggingFiles] = React.useState(false)
   const [droppedFilesCount, setDroppedFilesCount] = React.useState(0)
   const isCloud = backend.type === backendModule.BackendType.remote
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const cleanupRootRef = React.useRef(() => {})
+  const mainDropzoneRef = React.useRef<HTMLButtonElement | null>(null)
+  const lastSelectedIdsRef = React.useRef<
+    backendModule.AssetId | ReadonlySet<backendModule.AssetId> | null
+  >(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<assetTreeNode.AnyAssetTreeNode>(assetTree)
   const pasteDataRef = React.useRef<pasteDataModule.PasteData<
@@ -603,6 +614,14 @@ export default function AssetsTable(props: AssetsTableProps) {
   const visibleItems = React.useMemo(
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
+  )
+
+  const isMainDropzoneVisible = intersectionHooks.useIntersectionRatio(
+    rootRef,
+    mainDropzoneRef,
+    MINIMUM_DROPZONE_INTERSECTION_RATIO,
+    ratio => ratio >= MINIMUM_DROPZONE_INTERSECTION_RATIO,
+    true
   )
 
   const updateSecretMutation = backendHooks.useBackendMutation(backend, 'updateSecret')
@@ -823,7 +842,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [isCloud, assetTree, query, visibilities, labels, /* should never change */ setSuggestions])
+  }, [isCloud, assetTree, query, visibilities, labels, setSuggestions])
 
   React.useEffect(() => {
     setIsLoading(true)
@@ -854,11 +873,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         },
       })
     }
-  }, [
-    hidden,
-    /* should never change */ inputBindings,
-    /* should never change */ dispatchAssetEvent,
-  ])
+  }, [hidden, inputBindings, dispatchAssetEvent])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -916,7 +931,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
       }
     },
-    [isCloud, /* should never change */ setCanDownload]
+    [isCloud, setCanDownload]
   )
 
   const clearSelectedKeys = React.useCallback(() => {
@@ -940,7 +955,9 @@ export default function AssetsTable(props: AssetsTableProps) {
           newAssets.map(asset =>
             AssetTreeNode.fromAsset(asset, rootDirectory.id, rootDirectory.id, 0)
           ),
-          -1
+          -1,
+          rootDirectory.id,
+          true
         )
         setAssetTree(newRootNode)
         // The project name here might also be a string with project id, e.g.
@@ -978,20 +995,15 @@ export default function AssetsTable(props: AssetsTableProps) {
         return null
       })
     },
-    [
-      rootDirectoryId,
-      toastAndLog,
-      /* should never change */ setNameOfProjectToImmediatelyOpen,
-      /* should never change */ dispatchAssetEvent,
-    ]
+    [rootDirectoryId, toastAndLog, setNameOfProjectToImmediatelyOpen, dispatchAssetEvent]
   )
+  const overwriteNodesRef = React.useRef(overwriteNodes)
+  overwriteNodesRef.current = overwriteNodes
 
   React.useEffect(() => {
-    if (initialized) {
-      overwriteNodes([])
+    if (initializedRef.current) {
+      overwriteNodesRef.current([])
     }
-    // `overwriteAssets` is a callback, not a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backend, category])
 
   asyncEffectHooks.useAsyncEffect(
@@ -1026,7 +1038,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [category, accessToken, user, backend, setSelectedKeys]
+    [category, backend, setSelectedKeys]
   )
 
   React.useEffect(() => {
@@ -1034,24 +1046,20 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (savedEnabledColumns != null) {
       setEnabledColumns(new Set(savedEnabledColumns))
     }
-  }, [/* should never change */ localStorage])
+  }, [localStorage])
 
   React.useEffect(() => {
     if (initialized) {
       localStorage.set('enabledColumns', [...enabledColumns])
     }
-  }, [enabledColumns, initialized, /* should never change */ localStorage])
+  }, [enabledColumns, initialized, localStorage])
 
   React.useEffect(() => {
     if (selectedKeysRef.current.size !== 1) {
       setAssetPanelProps(null)
       setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [
-    selectedKeysRef.current.size,
-    /* should never change */ setAssetPanelProps,
-    /* should never change */ setIsAssetPanelTemporarilyVisible,
-  ])
+  }, [selectedKeysRef.current.size, setAssetPanelProps, setIsAssetPanelTemporarilyVisible])
 
   const directoryListAbortControllersRef = React.useRef(
     new Map<backendModule.DirectoryId, AbortController>()
@@ -1064,7 +1072,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       override?: boolean
     ) => {
       const directory = nodeMapRef.current.get(key)
-      const isExpanded = directory?.children != null
+      const isExpanded = directory?.children != null && directory.isExpanded
       const shouldExpand = override ?? !isExpanded
       if (shouldExpand === isExpanded) {
         // This is fine, as this is near the top of a very long function.
@@ -1078,23 +1086,26 @@ export default function AssetsTable(props: AssetsTableProps) {
           directoryListAbortControllersRef.current.delete(directoryId)
         }
         setAssetTree(oldAssetTree =>
-          oldAssetTree.map(item => (item.key !== key ? item : item.with({ children: null })))
+          oldAssetTree.map(item => (item.key !== key ? item : item.with({ isExpanded: false })))
         )
       } else {
         setAssetTree(oldAssetTree =>
           oldAssetTree.map(item =>
             item.key !== key
               ? item
-              : item.with({
-                  children: [
-                    AssetTreeNode.fromAsset(
-                      backendModule.createSpecialLoadingAsset(directoryId),
-                      key,
-                      directoryId,
-                      item.depth + 1
-                    ),
-                  ],
-                })
+              : item.children != null
+                ? item.with({ isExpanded: true })
+                : item.with({
+                    isExpanded: true,
+                    children: [
+                      AssetTreeNode.fromAsset(
+                        backendModule.createSpecialLoadingAsset(directoryId),
+                        key,
+                        directoryId,
+                        item.depth + 1
+                      ),
+                    ],
+                  })
           )
         )
         void (async () => {
@@ -1494,7 +1505,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
-            ...(user != null ? { openedBy: user.email } : {}),
+            openedBy: user.email,
             ...(path != null ? { path } : {}),
           },
           labels: [],
@@ -1711,7 +1722,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           projectState: {
             type: backendModule.ProjectState.placeholder,
             volumeId: '',
-            ...(user != null ? { openedBy: user.email } : {}),
+            openedBy: user.email,
             ...(event.original.projectState.path != null
               ? { path: event.original.projectState.path }
               : {}),
@@ -1818,7 +1829,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doCopy = React.useCallback(() => {
     unsetModal()
     setPasteData({ type: PasteType.copy, data: selectedKeysRef.current })
-  }, [/* should never change */ unsetModal])
+  }, [unsetModal])
 
   const doCut = React.useCallback(() => {
     unsetModal()
@@ -1828,12 +1839,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     setPasteData({ type: PasteType.move, data: selectedKeysRef.current })
     dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeysRef.current })
     setSelectedKeys(new Set())
-  }, [
-    pasteData,
-    setSelectedKeys,
-    /* should never change */ unsetModal,
-    /* should never change */ dispatchAssetEvent,
-  ])
+  }, [pasteData, setSelectedKeys, unsetModal, dispatchAssetEvent])
 
   const doPaste = React.useCallback(
     (newParentKey: backendModule.DirectoryId, newParentId: backendModule.DirectoryId) => {
@@ -1865,13 +1871,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [
-      pasteData,
-      doToggleDirectoryExpansion,
-      /* should never change */ unsetModal,
-      /* should never change */ dispatchAssetEvent,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [pasteData, doToggleDirectoryExpansion, unsetModal, dispatchAssetEvent, dispatchAssetListEvent]
   )
 
   const hideColumn = React.useCallback((column: columnUtils.Column) => {
@@ -1906,9 +1906,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
-      /* should never change */ clearSelectedKeys,
-      /* should never change */ dispatchAssetEvent,
-      /* should never change */ dispatchAssetListEvent,
+      clearSelectedKeys,
+      dispatchAssetEvent,
+      dispatchAssetListEvent,
     ]
   )
 
@@ -1918,9 +1918,14 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (filtered != null && filtered.length > 0) {
       event.preventDefault()
     } else if (event.dataTransfer.types.includes('Files')) {
-      setIsDropzoneVisible(true)
-      setDroppedFilesCount(event.dataTransfer.items.length)
       event.preventDefault()
+    }
+  }
+
+  const updateIsDraggingFiles = (event: React.DragEvent<Element>) => {
+    if (event.dataTransfer.types.includes('Files')) {
+      setIsDraggingFiles(true)
+      setDroppedFilesCount(event.dataTransfer.items.length)
     }
   }
 
@@ -1969,19 +1974,19 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
-      /* should never change */ hideColumn,
-      /* should never change */ setAssetPanelProps,
-      /* should never change */ setIsAssetPanelTemporarilyVisible,
-      /* should never change */ setProjectStartupInfo,
-      /* should never change */ setQuery,
-      /* should never change */ dispatchAssetEvent,
-      /* should never change */ dispatchAssetListEvent,
+      hideColumn,
+      setAssetPanelProps,
+      setIsAssetPanelTemporarilyVisible,
+      setQuery,
+      setProjectStartupInfo,
+      dispatchAssetEvent,
+      dispatchAssetListEvent,
     ]
   )
 
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.
-  const onScroll = scrollHooks.useOnScroll(() => {
+  const updateClipPath = useOnScroll(() => {
     if (bodyRef.current != null && rootRef.current != null) {
       bodyRef.current.style.clipPath = `inset(${rootRef.current.scrollTop}px 0 0 0)`
     }
@@ -1996,7 +2001,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       const rightOffset = rootRef.current.clientWidth + rootRef.current.scrollLeft - shrinkBy
       headerRowRef.current.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
     }
-  }, [enabledColumns.size])
+  }, [backend.type, enabledColumns.size])
+
+  const updateClipPathObserver = React.useMemo(
+    () => new ResizeObserver(updateClipPath),
+    [updateClipPath]
+  )
 
   React.useEffect(
     () =>
@@ -2015,11 +2025,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         },
         false
       ),
-    [
-      setSelectedKeys,
-      /* should never change */ inputBindings,
-      /* should never change */ setMostRecentlySelectedIndex,
-    ]
+    [setSelectedKeys, inputBindings, setMostRecentlySelectedIndex]
   )
 
   React.useEffect(() => {
@@ -2076,7 +2082,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       })(event, false)
       return result
     },
-    [/* should never change */ inputBindings]
+    [inputBindings]
   )
 
   // Only non-`null` when it is different to`selectedKeys`.
@@ -2167,7 +2173,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setVisuallySelectedKeysOverride(null)
       dragSelectionRangeRef.current = null
     },
-    [displayItems, calculateNewKeys, /* should never change */ setSelectedKeys]
+    [displayItems, calculateNewKeys, setSelectedKeys]
   )
 
   const onSelectionDragCancel = React.useCallback(() => {
@@ -2197,12 +2203,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectionStartIndexRef.current = null
       }
     },
-    [
-      visibleItems,
-      calculateNewKeys,
-      /* should never change */ setSelectedKeys,
-      /* should never change */ setMostRecentlySelectedIndex,
-    ]
+    [visibleItems, calculateNewKeys, setSelectedKeys, setMostRecentlySelectedIndex]
   )
 
   const columns = columnUtils.getColumnList(backend.type, enabledColumns)
@@ -2290,7 +2291,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               <DragModal
                 event={event}
                 className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
-                doCleanup={() => {
+                onDragEnd={() => {
                   drag.ASSET_ROWS.unbind(payload)
                 }}
               >
@@ -2319,41 +2320,38 @@ export default function AssetsTable(props: AssetsTableProps) {
             if (payload != null) {
               event.preventDefault()
               event.stopPropagation()
-              const ids = new Set(
-                selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key]
-              )
-              // Expand ids to include ids of children as well.
-              for (const node of assetTree.preorderTraversal()) {
-                if (ids.has(node.key) && node.children != null) {
-                  for (const child of node.children) {
-                    ids.add(child.key)
-                  }
-                }
-              }
-              let labelsPresent = 0
-              for (const selectedKey of ids) {
-                const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
-                if (nodeLabels != null) {
-                  for (const label of nodeLabels) {
-                    if (payload.has(label)) {
-                      labelsPresent += 1
+              const idsReference = selectedKeysRef.current.has(key) ? selectedKeysRef.current : key
+              // This optimization is required in order to avoid severe lag on Firefox.
+              if (idsReference !== lastSelectedIdsRef.current) {
+                lastSelectedIdsRef.current = idsReference
+                const ids =
+                  typeof idsReference === 'string' ? new Set([idsReference]) : idsReference
+                let labelsPresent = 0
+                for (const selectedKey of ids) {
+                  const nodeLabels = nodeMapRef.current.get(selectedKey)?.item.labels
+                  if (nodeLabels != null) {
+                    for (const label of nodeLabels) {
+                      if (payload.has(label)) {
+                        labelsPresent += 1
+                      }
                     }
                   }
                 }
-              }
-              const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-              window.setTimeout(() => {
-                dispatchAssetEvent({
-                  type: shouldAdd
-                    ? AssetEventType.temporarilyAddLabels
-                    : AssetEventType.temporarilyRemoveLabels,
-                  ids,
-                  labelNames: payload,
+                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+                window.setTimeout(() => {
+                  dispatchAssetEvent({
+                    type: shouldAdd
+                      ? AssetEventType.temporarilyAddLabels
+                      : AssetEventType.temporarilyRemoveLabels,
+                    ids,
+                    labelNames: payload,
+                  })
                 })
-              })
+              }
             }
           }}
           onDragEnd={() => {
+            lastSelectedIdsRef.current = null
             dispatchAssetEvent({
               type: AssetEventType.temporarilyAddLabels,
               ids: selectedKeysRef.current,
@@ -2362,14 +2360,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           }}
           onDrop={event => {
             const ids = new Set(selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key])
-            // Expand ids to include ids of descendants as well.
-            for (const node of assetTree.preorderTraversal()) {
-              if (ids.has(node.key) && node.children != null) {
-                for (const child of node.children) {
-                  ids.add(child.key)
-                }
-              }
-            }
             const payload = drag.LABELS.lookup(event)
             if (payload != null) {
               event.preventDefault()
@@ -2404,7 +2394,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     })
   )
 
-  const dropzoneText = isDropzoneVisible
+  const dropzoneText = isDraggingFiles
     ? droppedFilesCount === 1
       ? getText('assetsDropFileDescription')
       : getText('assetsDropFilesDescription', droppedFilesCount)
@@ -2434,7 +2424,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           />
         )
       }}
-      onDragEnter={onDropzoneDragOver}
       onDragLeave={event => {
         const payload = drag.LABELS.lookup(event)
         if (
@@ -2442,6 +2431,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           event.relatedTarget instanceof Node &&
           !event.currentTarget.contains(event.relatedTarget)
         ) {
+          lastSelectedIdsRef.current = null
           dispatchAssetEvent({
             type: AssetEventType.temporarilyAddLabels,
             ids: selectedKeysRef.current,
@@ -2480,12 +2470,19 @@ export default function AssetsTable(props: AssetsTableProps) {
         </tbody>
       </table>
       <div
+        data-testid="root-directory-dropzone"
         className={tailwindMerge.twMerge(
           'sticky left-0 grid max-w-container grow place-items-center',
           category !== Category.cloud && category !== Category.local && 'hidden'
         )}
         onDragEnter={onDropzoneDragOver}
         onDragOver={onDropzoneDragOver}
+        onDragLeave={event => {
+          lastSelectedIdsRef.current = null
+          if (event.currentTarget === event.target) {
+            setIsDraggingFiles(false)
+          }
+        }}
         onDrop={event => {
           const payload = drag.ASSET_ROWS.lookup(event)
           const filtered = payload?.filter(item => item.asset.parentId !== rootDirectoryId)
@@ -2517,6 +2514,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         >
           <FocusRing>
             <aria.Button
+              ref={mainDropzoneRef}
               className="my-20 flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
               onPress={() => {}}
             >
@@ -2535,10 +2533,21 @@ export default function AssetsTable(props: AssetsTableProps) {
         {innerProps => (
           <div
             {...aria.mergeProps<JSX.IntrinsicElements['div']>()(innerProps, {
-              ref: rootRef,
+              ref: value => {
+                rootRef.current = value
+                cleanupRootRef.current()
+                if (value) {
+                  updateClipPathObserver.observe(value)
+                  cleanupRootRef.current = () => {
+                    updateClipPathObserver.unobserve(value)
+                  }
+                } else {
+                  cleanupRootRef.current = () => {}
+                }
+              },
               className: 'flex-1 overflow-auto container-size w-full h-full',
               onKeyDown,
-              onScroll,
+              onScroll: updateClipPath,
               onBlur: event => {
                 if (
                   event.relatedTarget instanceof HTMLElement &&
@@ -2547,12 +2556,24 @@ export default function AssetsTable(props: AssetsTableProps) {
                   setKeyboardSelectedIndex(null)
                 }
               },
+              onDragEnter: updateIsDraggingFiles,
+              onDragOver: updateIsDraggingFiles,
+              onDragLeave: event => {
+                if (
+                  !(event.relatedTarget instanceof Node) ||
+                  !event.currentTarget.contains(event.relatedTarget)
+                ) {
+                  lastSelectedIdsRef.current = null
+                  setIsDraggingFiles(false)
+                }
+              },
             })}
           >
             {!hidden && hiddenContextMenu}
             {!hidden && (
               <SelectionBrush
                 targetRef={rootRef}
+                margin={8}
                 onDrag={onSelectionDrag}
                 onDragEnd={onSelectionDragEnd}
                 onDragCancel={onSelectionDragCancel}
@@ -2605,38 +2626,31 @@ export default function AssetsTable(props: AssetsTableProps) {
           </div>
         )}
       </FocusArea>
-      <div className="pointer-events-none absolute inset-0">
-        <div
-          data-testid="root-directory-dropzone"
-          onDragEnter={onDropzoneDragOver}
-          onDragOver={onDropzoneDragOver}
-          onDragLeave={event => {
-            if (event.currentTarget === event.target) {
-              setIsDropzoneVisible(false)
-            }
-          }}
-          onDrop={event => {
-            setIsDropzoneVisible(false)
-            if (event.dataTransfer.types.includes('Files')) {
-              event.preventDefault()
-              event.stopPropagation()
-              dispatchAssetListEvent({
-                type: AssetListEventType.uploadFiles,
-                parentKey: rootDirectoryId,
-                parentId: rootDirectoryId,
-                files: Array.from(event.dataTransfer.files),
-              })
-            }
-          }}
-          className={tailwindMerge.twMerge(
-            'pointer-events-none sticky left-0 top-0 flex h-full w-full flex-col items-center justify-center gap-3 rounded-default bg-selected-frame text-primary/50 opacity-0 backdrop-blur-3xl transition-all',
-            isDropzoneVisible && 'pointer-events-auto opacity-100'
-          )}
-        >
-          <SvgMask src={DropFilesImage} className="size-[186px]" />
-          {dropzoneText}
+      {isDraggingFiles && !isMainDropzoneVisible && (
+        <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
+          <div
+            className="flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"
+            onDragEnter={onDropzoneDragOver}
+            onDragOver={onDropzoneDragOver}
+            onDrop={event => {
+              setIsDraggingFiles(false)
+              if (event.dataTransfer.types.includes('Files')) {
+                event.preventDefault()
+                event.stopPropagation()
+                dispatchAssetListEvent({
+                  type: AssetListEventType.uploadFiles,
+                  parentKey: rootDirectoryId,
+                  parentId: rootDirectoryId,
+                  files: Array.from(event.dataTransfer.files),
+                })
+              }
+            }}
+          >
+            <SvgMask src={DropFilesImage} className="size-8" />
+            {dropzoneText}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

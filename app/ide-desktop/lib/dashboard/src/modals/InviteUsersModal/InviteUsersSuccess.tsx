@@ -52,18 +52,17 @@ export function InviteUsersSuccess(props: InviteUsersSuccessProps) {
 
   return (
     <result.Result
-      icon={false}
-      subtitle={
+      status="success"
+      subtitle={getText('inviteUserLinkCopyDescription')}
+      title={
         emails.length > MAX_EMAILS_DISPLAYED
           ? getText('inviteManyUsersSuccess', emails.length)
           : getText('inviteSuccess', emailListFormatter.format(emails))
       }
     >
-      <p className="mb-4 text-sm text-primary">{getText('inviteUserLinkCopyDescription')}</p>
-
       <ariaComponents.CopyBlock
         copyText={invitationLink}
-        className="mb-6"
+        className="mb-6 mt-1"
         title={getText('copyInviteLink')}
       />
 

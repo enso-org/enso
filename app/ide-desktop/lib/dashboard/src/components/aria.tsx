@@ -20,7 +20,6 @@ export * from '@react-stately/tooltip'
  *
  * The constraint is defaulted to `never` to make an explicit constraint mandatory. */
 export function mergeProps<Constraint extends object = never>() {
-  // eslint-disable-next-line no-restricted-syntax
   return <T extends (Partial<Constraint> | null | undefined)[]>(...args: T) =>
     aria.mergeProps(...args)
 }
