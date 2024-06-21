@@ -1,20 +1,19 @@
 import * as child_process from 'node:child_process'
 import * as os from 'node:os'
 import * as path from 'node:path'
-
-import * as detect from 'enso-common/src/detect'
+import * as process from 'node:process'
 
 /**
  * Detects path of the user documents directory depending on the operating system.
  */
 export function getDocumentsPath(): string | undefined {
-    if (detect.isOnLinux()) {
+    if (process.platform === 'linux') {
         return getLinuxDocumentsPath()
     }
-    if (detect.isOnMacOS()) {
+    if (process.platform === 'darwin') {
         return getMacOsDocumentsPath()
     }
-    if (detect.isOnWindows()) {
+    if (process.platform === 'win32') {
         return getWindowsDocumentsPath()
     }
 }
@@ -24,11 +23,8 @@ export function getDocumentsPath(): string | undefined {
  */
 function getLinuxDocumentsPath(): string {
     const xdgDocumentsPath = getXdgDocumentsPath()
-    if (xdgDocumentsPath == null) {
-        return path.join(os.homedir(), 'enso')
-    }
 
-    return xdgDocumentsPath
+    return xdgDocumentsPath ?? path.join(os.homedir(), 'enso')
 }
 
 /**
