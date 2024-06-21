@@ -4,7 +4,6 @@ import AutoSizedInput from './widgets/AutoSizedInput.vue'
 
 const model = defineModel<string>({ required: true })
 const _props = defineProps<{ active: boolean; editing: boolean }>()
-const emit = defineEmits<{ renamed: [newName: string] }>()
 
 const input = ref<ComponentInstance<typeof AutoSizedInput>>()
 watch(input, (input, old) => {
@@ -14,13 +13,7 @@ watch(input, (input, old) => {
 
 <template>
   <div :class="['NavBreadcrumb', { inactive: !active }]">
-    <AutoSizedInput
-      v-if="editing"
-      ref="input"
-      v-model.lazy="model"
-      :autoSelect="true"
-      @change="emit('renamed', $event ?? '')"
-    />
+    <AutoSizedInput v-if="editing" ref="input" v-model.lazy="model" :autoSelect="true" />
     <span v-else v-text="model"></span>
   </div>
 </template>

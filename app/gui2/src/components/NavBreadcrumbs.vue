@@ -44,7 +44,7 @@ async function renameBreadcrumb(index: number, newName: string) {
         :title="index === 0 ? 'Project Name' : ''"
         class="clickable"
         @click.stop="stackNavigator.handleBreadcrumbClick(index)"
-        @renamed="renameBreadcrumb(index, $event)"
+        @update:modelValue="renameBreadcrumb(index, $event)"
       />
     </template>
   </div>
