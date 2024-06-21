@@ -58,13 +58,11 @@ export default function OrganizationProfilePictureInput(
         <aria.Label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <img
             src={organization?.picture ?? DefaultUserIcon}
-            width={128}
-            height={128}
-            className="pointer-events-none"
+            className="pointer-events-none h-full w-full"
           />
           <aria.Input
             type="file"
-            className="focus-child w"
+            className="focus-child w-0"
             accept="image/*"
             onChange={doUploadOrganizationPicture}
           />

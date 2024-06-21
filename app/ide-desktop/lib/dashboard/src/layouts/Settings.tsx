@@ -45,18 +45,19 @@ export default function Settings() {
     array.includesPredicate(Object.values(SettingsTabType))
   )
   const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { setUser } = authProvider.useAuth()
+  const { setUser, authQueryKey } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
-  // const user = backendHooks.useBackendUsersMe(backend)
   const organization = backendHooks.useBackendGetOrganization(backend)
   const isUserInOrganization = organization != null
   const isQueryBlank = !/\S/.test(query)
 
-  const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser')
+  const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
+    meta: { invalidates: [authQueryKey], awaitInvalidates: true },
+  })
   const updateOrganizationMutation = backendHooks.useBackendMutation(backend, 'updateOrganization')
   const updateUser = updateUserMutation.mutateAsync
   const updateOrganization = updateOrganizationMutation.mutateAsync
@@ -175,21 +176,17 @@ export default function Settings() {
             />
           </aria.Popover>
         </aria.MenuTrigger>
-        <ariaComponents.Text.Heading>
+        <ariaComponents.Text.Heading className="font-bold">
           <span>{getText('settingsFor')}</span>
         </ariaComponents.Text.Heading>
 
         <ariaComponents.Text
           variant="h1"
           truncate="1"
-          className="ml-2.5 max-w-lg rounded-full bg-frame px-2.5"
+          className="ml-2.5 max-w-lg rounded-full bg-frame px-2.5 font-bold"
           aria-hidden
         >
-          {effectiveTab !== SettingsTabType.organization &&
-          effectiveTab !== SettingsTabType.members &&
-          effectiveTab !== SettingsTabType.userGroups
-            ? user?.name ?? 'your account'
-            : organization?.name ?? 'your organization'}
+          {data.organizationOnly === true ? organization?.name ?? 'your organization' : user.name}
         </ariaComponents.Text>
       </aria.Heading>
       <SearchBar

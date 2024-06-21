@@ -83,19 +83,19 @@ export const RadioGroup = React.forwardRef(function RadioGroup<
     <aria.RadioGroup
       ref={mergeRefs.mergeRefs(ref, field.ref)}
       {...radioGroupProps}
-      className={base}
       name={field.name}
       value={field.value}
       isDisabled={field.disabled ?? isDisabled}
+      onChange={field.onChange}
+      onBlur={field.onBlur}
+      className={base}
       isRequired={isRequired}
       isReadOnly={isReadOnly}
       isInvalid={invalid}
-      onChange={field.onChange}
-      onBlur={field.onBlur}
     >
       <radioGroupContext.RadioGroupProvider>
         <formComponent.Form.Field
-          name={field.name}
+          name={name}
           form={formInstance}
           label={label}
           description={description}

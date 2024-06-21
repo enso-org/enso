@@ -49,7 +49,6 @@ test.test('sort', async ({ page }) => {
   // g directory
   // c project
   // d file
-  await page.goto('/')
   await actions.login({ page })
 
   // By default, assets should be grouped by type.

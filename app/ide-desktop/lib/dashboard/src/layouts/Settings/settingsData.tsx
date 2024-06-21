@@ -63,9 +63,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'userNameSettingsInput',
-            getValue: context => context.user?.name ?? '',
+            getValue: context => context.user.name,
             setValue: async (context, newName, reset) => {
-              const oldName = context.user?.name ?? ''
+              const oldName = context.user.name
               if (newName === oldName) {
                 return
               } else {
@@ -86,7 +86,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.input,
             nameId: 'userEmailSettingsInput',
-            getValue: context => context.user?.email ?? '',
+            getValue: context => context.user.email,
             // A user's email currently cannot be changed.
             setValue: async () => {},
             validate: (email, context) =>
@@ -106,10 +106,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
               // The shape of the JWT payload is statically known.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const username: string | null =
-                context.accessToken != null
-                  ? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
-                    JSON.parse(atob(context.accessToken.split('.')[1]!)).username
-                  : null
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
+                JSON.parse(atob(context.accessToken.split('.')[1]!)).username
               return username != null ? !/^Github_|^Google_/.test(username) : false
             },
           },
@@ -122,8 +120,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: SettingsEntryType.custom,
             aliasesId: 'deleteUserAccountSettingsCustomEntryAliases',
-            render: context =>
-              context.backend && <DeleteUserAccountSettingsSection backend={context.backend} />,
+            render: () => <DeleteUserAccountSettingsSection />,
           },
         ],
       },
@@ -351,8 +348,8 @@ export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap(section =>
 
 /** Metadata describing inputs passed to every settings entry. */
 export interface SettingsContext {
-  readonly accessToken: string | null
-  readonly user: backend.User | null
+  readonly accessToken: string
+  readonly user: backend.User
   readonly updateUser: reactQuery.UseMutateAsyncFunction<
     void,
     Error,

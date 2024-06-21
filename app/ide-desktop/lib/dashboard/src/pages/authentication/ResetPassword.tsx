@@ -10,10 +10,10 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
 
-import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
@@ -36,8 +36,10 @@ export default function ResetPassword() {
   const { resetPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const location = router.useLocation()
-  const navigate = navigateHooks.useNavigate()
+  const navigate = router.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const localBackend = backendProvider.useLocalBackend()
+  const supportsOffline = localBackend != null
 
   const query = new URLSearchParams(location.search)
   const email = query.get('email')
@@ -68,6 +70,7 @@ export default function ResetPassword() {
 
   return (
     <AuthenticationPage
+      supportsOffline={supportsOffline}
       title={getText('resetYourPassword')}
       footer={<Link to={appUtils.LOGIN_PATH} icon={GoBackIcon} text={getText('goBackToLogin')} />}
       onSubmit={async event => {

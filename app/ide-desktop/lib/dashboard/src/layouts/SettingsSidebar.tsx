@@ -56,7 +56,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
               <div key={name} className="flex flex-col items-start">
                 <aria.Header
                   id={`${name}_header`}
-                  className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy"
+                  className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-[13.5px] font-bold leading-cozy"
                 >
                   {name}
                 </aria.Header>

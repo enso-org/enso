@@ -5,8 +5,8 @@ import * as React from 'react'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
-import * as loader from '#/components/Loader'
 import * as portal from '#/components/Portal'
+import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
@@ -222,9 +222,9 @@ export function Dialog(props: DialogProps) {
                         }}
                       >
                         <errorBoundary.ErrorBoundary>
-                          <React.Suspense fallback={<loader.Loader minHeight="h32" />}>
+                          <suspense.Suspense loaderProps={{ minHeight: 'h32' }}>
                             {typeof children === 'function' ? children(opts) : children}
-                          </React.Suspense>
+                          </suspense.Suspense>
                         </errorBoundary.ErrorBoundary>
                       </div>
                     </dialogProvider.DialogProvider>

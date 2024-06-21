@@ -518,7 +518,7 @@ export default class LocalBackend extends Backend {
 
   /** Return `null`. This function should never need to be called. */
   override usersMe() {
-    return Promise.resolve(null)
+    return this.invalidOperation()
   }
 
   /** Create a directory. */

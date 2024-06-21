@@ -10,9 +10,10 @@ import type * as text from '#/text'
 
 import * as mimeTypes from '#/data/mimeTypes'
 
+import * as offlineHooks from '#/hooks/offlineHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -163,9 +164,9 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { dispatchAssetEvent } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackend()
+  const { isOffline } = offlineHooks.useOffline()
+
   const localBackend = backendProvider.useLocalBackend()
   /** The list of *visible* categories. */
   const categoryData = React.useMemo(
@@ -191,10 +192,12 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           return null
         }
       }
-      default: {
-        if (remoteBackend == null) {
-          return getText('youAreNotLoggedIn')
-        } else if (user?.isEnabled !== true) {
+      case Category.cloud:
+      case Category.recent:
+      case Category.trash: {
+        if (isOffline) {
+          return getText('unavailableOffline')
+        } else if (!user.isEnabled) {
           return getText('notEnabledSubtitle')
         } else {
           return null
@@ -207,10 +210,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     setCategory(categoryData[0]?.category ?? Category.cloud)
   }
 
-  React.useEffect(() => {
-    localStorage.set('driveCategory', category)
-  }, [category, localStorage])
-
   return (
     <FocusArea direction="vertical">
       {innerProps => (
@@ -218,6 +217,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
             {getText('category')}
           </ariaComponents.Text>
+
           <div
             aria-label={getText('categorySwitcherMenuLabel')}
             role="grid"
@@ -225,6 +225,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           >
             {categoryData.map(data => {
               const error = getCategoryError(data.category)
+
               return (
                 <CategorySwitcherItem
                   key={data.category}

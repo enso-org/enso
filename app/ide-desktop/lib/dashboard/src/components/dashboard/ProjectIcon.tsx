@@ -100,7 +100,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         })
         if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
           newProjectState = object.omit(newProjectState, 'openedBy')
-        } else if (user != null) {
+        } else {
           newProjectState = object.merge(newProjectState, {
             openedBy: user.email,
           })
@@ -124,7 +124,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     item.projectState.type !== backendModule.ProjectState.placeholder
   const isCloud = backend.type === backendModule.BackendType.remote
   const isOtherUserUsingProject =
-    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user?.email
+    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
 
   const openProjectMutation = backendHooks.useBackendMutation(backend, 'openProject')
   const closeProjectMutation = backendHooks.useBackendMutation(backend, 'closeProject')
@@ -174,6 +174,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const openEditorMutation = reactQuery.useMutation({
     mutationKey: ['openEditor', item.id],
+    networkMode: 'always',
     mutationFn: async (abortController: AbortController) => {
       if (!isRunningInBackground && isCloud) {
         toast.toast.loading(LOADING_MESSAGE, { toastId })

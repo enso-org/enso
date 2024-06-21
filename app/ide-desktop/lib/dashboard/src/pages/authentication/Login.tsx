@@ -15,6 +15,7 @@ import * as detect from 'enso-common/src/detect'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
@@ -34,6 +35,7 @@ import * as eventModule from '#/utilities/event'
 /** A form for users to log in. */
 export default function Login() {
   const location = router.useLocation()
+  const navigate = router.useNavigate()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
   const { getText } = textProvider.useText()
 
@@ -46,10 +48,14 @@ export default function Login() {
   const shouldReportValidityRef = React.useRef(true)
   const formRef = React.useRef<HTMLFormElement>(null)
 
+  const localBackend = backendProvider.useLocalBackend()
+  const supportsOffline = localBackend != null
+
   return (
     <AuthenticationPage
       isNotForm
       title={getText('loginToYourAccount')}
+      supportsOffline={supportsOffline}
       footer={
         <>
           <Link
@@ -75,6 +81,7 @@ export default function Login() {
           onPress={() => {
             shouldReportValidityRef.current = false
             void signInWithGoogle()
+            setIsSubmitting(true)
           }}
         >
           {getText('signUpOrLoginWithGoogle')}
@@ -88,6 +95,7 @@ export default function Login() {
           onPress={() => {
             shouldReportValidityRef.current = false
             void signInWithGitHub()
+            setIsSubmitting(true)
           }}
         >
           {getText('signUpOrLoginWithGitHub')}
@@ -103,6 +111,7 @@ export default function Login() {
           await signInWithPassword(email, password)
           shouldReportValidityRef.current = true
           setIsSubmitting(false)
+          navigate(appUtils.DASHBOARD_PATH)
         }}
       >
         <Input
@@ -133,8 +142,10 @@ export default function Login() {
           />
           <TextLink to={appUtils.FORGOT_PASSWORD_PATH} text={getText('forgotYourPassword')} />
         </div>
+
         <SubmitButton
           isDisabled={isSubmitting}
+          isLoading={isSubmitting}
           text={getText('login')}
           icon={ArrowRightIcon}
           onPress={eventModule.submitForm}
