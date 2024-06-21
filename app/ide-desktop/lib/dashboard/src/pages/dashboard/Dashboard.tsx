@@ -24,7 +24,6 @@ import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
 import Editor from '#/layouts/Editor'
 import * as pageSwitcher from '#/layouts/PageSwitcher'
-import Settings from '#/layouts/Settings'
 import TopBar from '#/layouts/TopBar'
 
 import Page from '#/components/Page'
@@ -256,9 +255,7 @@ export default function Dashboard(props: DashboardProps) {
   }, [projectStartupInfo, localStorage])
 
   React.useEffect(() => {
-    if (page !== pageSwitcher.Page.settings) {
-      localStorage.set('page', page)
-    }
+    localStorage.set('page', page)
   }, [page, localStorage])
 
   React.useEffect(
@@ -268,13 +265,7 @@ export default function Dashboard(props: DashboardProps) {
           updateModal(oldModal => {
             if (oldModal == null) {
               queueMicrotask(() => {
-                setPage(oldPage => {
-                  if (oldPage !== pageSwitcher.Page.settings) {
-                    return oldPage
-                  } else {
-                    return localStorage.get('page') ?? pageSwitcher.Page.drive
-                  }
-                })
+                setPage(localStorage.get('page') ?? pageSwitcher.Page.drive)
               })
               return oldModal
             } else {
@@ -393,7 +384,6 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-          {page === pageSwitcher.Page.settings && <Settings backend={remoteBackend} />}
 
           {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat

@@ -22,7 +22,6 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 export enum Page {
   drive = 'drive',
   editor = 'editor',
-  settings = 'settings',
 }
 
 // =================

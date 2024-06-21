@@ -38,7 +38,6 @@ export default function TopBar(props: TopBarProps) {
       <UserBar
         backend={remoteBackend}
         page={page}
-        setPage={setPage}
         setIsHelpChatOpen={setIsHelpChatOpen}
         projectAsset={projectAsset}
         setProjectAsset={setProjectAsset}

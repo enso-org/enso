@@ -70,7 +70,12 @@ export default function AboutModal() {
       {/* This button is not visible - it is only to provide the button for this `DialogTrigger`. */}
       <aria.Button className="h-0 w-0" />
       <ariaComponents.Dialog className="w-[30rem]">
-        <div className="relative flex items-center gap-4">
+        <div
+          className="relative flex items-center gap-4"
+          onClick={event => {
+            event.stopPropagation()
+          }}
+        >
           <SvgMask src={LogoIcon} className="size-16 shrink-0" />
           <div className="flex flex-col gap-3">
             <div className="text-base font-semibold">
