@@ -33,7 +33,6 @@ import UserBar from '#/layouts/UserBar'
 import Page from '#/components/Page'
 
 import * as backendModule from '#/services/Backend'
-import type Backend from '#/services/Backend'
 import type * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
@@ -58,7 +57,7 @@ declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly isAssetPanelVisible: boolean
     readonly page: TabType
-    readonly projectStartupInfo: backendModule.ProjectStartupInfo
+    readonly projectStartupInfo: backendModule.ProjectStartupInfo<backendModule.Project>
   }
 }
 
@@ -193,14 +192,19 @@ export default function Dashboard(props: DashboardProps) {
                 savedProjectStartupInfo.projectAsset.title
               )
               if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
-                const project = await remoteBackend.waitUntilProjectIsReady(
+                const projectPromise = remoteBackend.waitUntilProjectIsReady(
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.parentId,
                   savedProjectStartupInfo.projectAsset.title,
                   abortController
                 )
+                setProjectStartupInfo(
+                  object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, {
+                    project: projectPromise,
+                  })
+                )
+                await projectPromise
                 if (!abortController.signal.aborted) {
-                  setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
                   if (page === TabType.editor) {
                     setPage(page)
                   }
@@ -223,12 +227,17 @@ export default function Dashboard(props: DashboardProps) {
               },
               savedProjectStartupInfo.projectAsset.title
             )
-            const project = await localBackend.getProjectDetails(
+            const projectPromise = localBackend.getProjectDetails(
               savedProjectStartupInfo.projectAsset.id,
               savedProjectStartupInfo.projectAsset.parentId,
               savedProjectStartupInfo.projectAsset.title
             )
-            setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+            setProjectStartupInfo(
+              object.merge<backendModule.ProjectStartupInfo>(savedProjectStartupInfo, {
+                project: projectPromise,
+              })
+            )
+            await projectPromise
             if (page === TabType.editor) {
               setPage(page)
             }
@@ -257,7 +266,9 @@ export default function Dashboard(props: DashboardProps) {
   React.useEffect(() => {
     if (initializedRef.current) {
       if (projectStartupInfo != null) {
-        localStorage.set('projectStartupInfo', projectStartupInfo)
+        void Promise.resolve(projectStartupInfo.project).then(project => {
+          localStorage.set('projectStartupInfo', { ...projectStartupInfo, project })
+        })
       } else {
         localStorage.delete('projectStartupInfo')
       }
@@ -306,38 +317,14 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [inputBindings])
 
-  const doOpenEditor = React.useCallback(
-    async (
-      backend: Backend,
-      newProject: backendModule.ProjectAsset,
-      setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
-      switchPage: boolean
-    ) => {
-      if (switchPage) {
-        setPage(TabType.editor)
-      }
-      if (projectStartupInfo?.project.projectId !== newProject.id) {
-        setProjectStartupInfo({
-          project: await backend.getProjectDetails(
-            newProject.id,
-            newProject.parentId,
-            newProject.title
-          ),
-          projectAsset: newProject,
-          setProjectAsset: setProjectAsset,
-          backendType: backend.type,
-          accessToken: session.accessToken,
-        })
-      }
-    },
-    [projectStartupInfo?.project.projectId, session.accessToken, setPage]
-  )
+  const doOpenEditor = React.useCallback(() => {
+    setPage(TabType.editor)
+  }, [setPage])
 
-  const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
-    setProjectStartupInfo(oldInfo =>
-      oldInfo?.projectAsset.id === closingProject.id ? null : oldInfo
-    )
-  }, [])
+  const doCloseEditor = React.useCallback(() => {
+    setProjectStartupInfo(null)
+    setPage(TabType.drive)
+  }, [setPage])
 
   const doRemoveSelf = React.useCallback(() => {
     if (projectStartupInfo?.projectAsset != null) {
@@ -409,7 +396,6 @@ export default function Dashboard(props: DashboardProps) {
             setCategory={setCategory}
             hidden={page !== TabType.drive}
             initialProjectName={initialProjectName}
-            projectStartupInfo={projectStartupInfo}
             setProjectStartupInfo={setProjectStartupInfo}
             assetListEvents={assetListEvents}
             dispatchAssetListEvent={dispatchAssetListEvent}

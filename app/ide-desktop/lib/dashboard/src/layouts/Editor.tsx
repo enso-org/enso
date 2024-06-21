@@ -1,12 +1,16 @@
 /** @file The container that launches the IDE. */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
+
 import * as appUtils from '#/appUtils'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+
+import * as suspense from '#/components/Suspense'
 
 import type * as backendModule from '#/services/Backend'
 
@@ -26,12 +30,39 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
+  const { projectStartupInfo } = props
+
+  return (
+    <suspense.Suspense>
+      {projectStartupInfo && <EditorInternal {...props} projectStartupInfo={projectStartupInfo} />}
+    </suspense.Suspense>
+  )
+}
+
+// ======================
+// === EditorInternal ===
+// ======================
+
+/** Props for an {@link EditorInternal}. */
+interface EditorInternalProps extends EditorProps {
+  readonly projectStartupInfo: backendModule.ProjectStartupInfo
+}
+
+/** An internal editor. */
+function EditorInternal(props: EditorInternalProps) {
   const { hidden, ydocUrl, projectStartupInfo, appRunner: AppRunner } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const gtagEvent = gtagHooks.useGtagEvent()
   const gtagEventRef = React.useRef(gtagEvent)
   gtagEventRef.current = gtagEvent
   const remoteBackend = backendProvider.useRemoteBackend()
+
+  const projectQuery = reactQuery.useSuspenseQuery({
+    queryKey: ['editorProject'],
+    queryFn: () => projectStartupInfo.project,
+    staleTime: 0,
+  })
+  const project = projectQuery.data
 
   const logEvent = React.useCallback(
     (message: string, projectId?: string | null, metadata?: object | null) => {
@@ -51,9 +82,6 @@ export default function Editor(props: EditorProps) {
   }, [projectStartupInfo, hidden])
 
   const appProps: types.EditorProps | null = React.useMemo(() => {
-    // eslint-disable-next-line no-restricted-syntax
-    if (projectStartupInfo == null) return null
-    const { project } = projectStartupInfo
     const projectId = projectStartupInfo.projectAsset.id
     const jsonAddress = project.jsonAddress
     const binaryAddress = project.binaryAddress
@@ -86,9 +114,9 @@ export default function Editor(props: EditorProps) {
         logEvent,
       }
     }
-  }, [projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl])
+  }, [project, projectStartupInfo, toastAndLog, hidden, logEvent, ydocUrl])
 
-  if (projectStartupInfo == null || AppRunner == null || appProps == null) {
+  if (AppRunner == null || appProps == null) {
     return <></>
   } else {
     // Currently the GUI component needs to be fully rerendered whenever the project is changed. Once

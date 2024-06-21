@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
-import * as toast from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -32,8 +31,6 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 // === Constants ===
 // =================
 
-const LOADING_MESSAGE =
-  'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
 const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
@@ -74,7 +71,7 @@ export interface ProjectIconProps {
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setProjectStartupInfo: (projectStartupInfo: backendModule.ProjectStartupInfo) => void
   readonly doCloseEditor: () => void
-  readonly doOpenEditor: (switchPage: boolean) => void
+  readonly doOpenEditor: () => void
 }
 
 /** An interactive icon indicating the status of a project. */
@@ -118,7 +115,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
   const doOpenEditorRef = React.useRef(doOpenEditor)
   doOpenEditorRef.current = doOpenEditor
-  const toastId: toast.Id = React.useId()
   const isOpening =
     backendModule.IS_OPENING[item.projectState.type] &&
     item.projectState.type !== backendModule.ProjectState.placeholder
@@ -176,24 +172,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
     mutationKey: ['openEditor', item.id],
     networkMode: 'always',
     mutationFn: async (abortController: AbortController) => {
-      if (!isRunningInBackground && isCloud) {
-        toast.toast.loading(LOADING_MESSAGE, { toastId })
-      }
-      const project = await waitUntilProjectIsReadyMutation.mutateAsync([
+      const projectPromise = waitUntilProjectIsReadyMutation.mutateAsync([
         item.id,
         item.parentId,
         item.title,
         abortController,
       ])
       setProjectStartupInfo({
-        project,
+        project: projectPromise,
         projectAsset: item,
         setProjectAsset: setItem,
         backendType: backend.type,
         accessToken: session?.accessToken ?? null,
       })
+      await projectPromise
       if (!abortController.signal.aborted) {
-        toast.toast.dismiss(toastId)
         setState(backendModule.ProjectState.opened)
       }
     },
@@ -235,8 +228,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
         } else {
           if (backendModule.IS_OPENING_OR_OPENED[state]) {
-            if (!isRunningInBackground) {
-              doOpenEditor(true)
+            if (!isRunningInBackground && event.shouldAutomaticallySwitchPage) {
+              doOpenEditor()
             }
           } else {
             setShouldOpenWhenReady(!event.runInBackground)
@@ -266,7 +259,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
-        doOpenEditorRef.current(shouldSwitchPage)
+        doOpenEditorRef.current()
         setShouldOpenWhenReady(false)
       }
     }
@@ -276,7 +269,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
     if (!isRunningInBackground) {
       doCloseEditor()
     }
-    toast.toast.dismiss(toastId)
     setShouldOpenWhenReady(false)
     setState(backendModule.ProjectState.closing)
     await closeProjectMutation.mutateAsync([item.id, item.title])
@@ -371,7 +363,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               tooltipPlacement="right"
               className="h-6 border-0"
               onPress={() => {
-                doOpenEditor(true)
+                doOpenEditor()
               }}
             />
           )}
