@@ -97,3 +97,19 @@ export function qnSlice(
 export function qnIsTopElement(name: QualifiedName): boolean {
   return !/[.].*?[.].*?[.]/.test(name)
 }
+
+/**
+ * Replace the project name in this qualified name if equal to `oldProject`, otherwise return `qn`.
+ *
+ * The namespace will be unchanged.
+ */
+export function qnReplaceProjectName(
+  qn: QualifiedName,
+  oldProject: string,
+  newProject: Identifier,
+): QualifiedName {
+  return qn.replace(
+    new RegExp(`^(${identifierRegexPart}\\.)${oldProject}(?=\\.|$)`),
+    `$1${newProject}`,
+  ) as QualifiedName
+}

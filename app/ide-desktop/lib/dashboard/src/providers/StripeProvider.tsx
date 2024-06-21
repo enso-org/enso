@@ -31,6 +31,7 @@ export const stripeQuery = reactQuery.queryOptions({
   queryKey: ['stripe', process.env.ENSO_CLOUD_STRIPE_KEY] as const,
   staleTime: Infinity,
   gcTime: Infinity,
+  meta: { persist: false },
   queryFn: async ({ queryKey }) => {
     const stripeKey = queryKey[1]
 

@@ -50,18 +50,16 @@ export interface UserBarProps {
 export default function UserBar(props: UserBarProps) {
   const { backend, invisible = false, page, setPage, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
-  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
 
-  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user?.plan })
+  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
 
   const self =
-    user != null
-      ? projectAsset?.permissions?.find(
-          backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
-        ) ?? null
-      : null
+    projectAsset?.permissions?.find(
+      backendModule.isUserPermissionAnd(permissions => permissions.user.userId === user.userId)
+    ) ?? null
 
   const shouldShowShareButton =
     backend != null &&
@@ -73,10 +71,7 @@ export default function UserBar(props: UserBarProps) {
   const shouldShowUpgradeButton = isFeatureUnderPaywall('inviteUser')
 
   const shouldShowInviteButton =
-    backend != null &&
-    sessionType === authProvider.UserSessionType.full &&
-    !shouldShowShareButton &&
-    !shouldShowUpgradeButton
+    backend != null && !shouldShowShareButton && !shouldShowUpgradeButton
 
   return (
     <FocusArea active={!invisible} direction="horizontal">
@@ -142,7 +137,7 @@ export default function UserBar(props: UserBarProps) {
               active
               mask={false}
               alt={getText('userMenuAltText')}
-              image={user?.profilePicture ?? DefaultUserIcon}
+              image={user.profilePicture ?? DefaultUserIcon}
               buttonClassName="rounded-full after:rounded-full"
               className="h-row-h w-row-h rounded-full"
               onPress={() => {

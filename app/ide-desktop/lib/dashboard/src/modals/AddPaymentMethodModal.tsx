@@ -145,11 +145,11 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
         />
       </ariaComponents.Form.Field>
 
-      <ariaComponents.Form.FormError />
-
       <ariaComponents.Form.Submit loading={cardElement == null}>
         {submitText}
       </ariaComponents.Form.Submit>
+
+      <ariaComponents.Form.FormError />
     </ariaComponents.Form>
   )
 }

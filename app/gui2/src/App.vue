@@ -25,6 +25,7 @@ const props = defineProps<{
   logEvent: LogEvent
   hidden: boolean
   ignoreParamsRegex?: RegExp
+  renameProject: (newName: string) => void
 }>()
 
 const classSet = provideAppClassSet()
@@ -71,7 +72,13 @@ registerAutoBlurHandler()
     :unrecognizedOptions="appConfig.unrecognizedOptions"
     :config="appConfig.config"
   />
-  <ProjectView v-else v-show="!props.hidden" class="App" :class="[...classSet.keys()]" />
+  <ProjectView
+    v-else
+    v-show="!props.hidden"
+    class="App"
+    :class="[...classSet.keys()]"
+    :renameProject="renameProject"
+  />
   <Teleport to="body">
     <TooltipDisplayer :registry="appTooltips" />
   </Teleport>
