@@ -3,17 +3,19 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import * as process from 'node:process'
 
+export const DOCUMENTS = getDocumentsPath()
+
 /**
  * Detects path of the user documents directory depending on the operating system.
  */
-export function getDocumentsPath(): string | undefined {
-    if (process.platform === 'linux' || process.platform === 'freebsd') {
+function getDocumentsPath(): string | undefined {
+    if (process.platform === 'linux') {
         return getLinuxDocumentsPath()
     }
     if (process.platform === 'darwin') {
         return getMacOsDocumentsPath()
     }
-    if (process.platform === 'win32' || process.platform === 'cygwin') {
+    if (process.platform === 'win32') {
         return getWindowsDocumentsPath()
     }
 }
@@ -32,7 +34,7 @@ function getLinuxDocumentsPath(): string {
  */
 function getXdgDocumentsPath(): string | undefined {
     const out = child_process.spawnSync('xdg-user-dir', ['DOCUMENTS'], { timeout: 3000 })
-    if (out.error) {
+    if (out.error !== undefined) {
         return
     }
 
@@ -62,7 +64,7 @@ function getWindowsDocumentsPath(): string | undefined {
         { timeout: 3000 }
     )
 
-    if (out.error) {
+    if (out.error !== undefined) {
         return
     }
 
