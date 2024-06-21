@@ -23,8 +23,8 @@ import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import Drive from '#/layouts/Drive'
 import Editor from '#/layouts/Editor'
-import * as pageSwitcher from '#/layouts/PageSwitcher'
-import TopBar from '#/layouts/TopBar'
+import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
+import UserBar from '#/layouts/UserBar'
 
 import Page from '#/components/Page'
 
@@ -354,16 +354,22 @@ export default function Dashboard(props: DashboardProps) {
             unsetModal()
           }}
         >
-          <TopBar
-            projectAsset={projectStartupInfo?.projectAsset ?? null}
-            setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
-            page={page}
-            setPage={setPage}
-            isEditorDisabled={projectStartupInfo == null}
-            setIsHelpChatOpen={setIsHelpChatOpen}
-            doRemoveSelf={doRemoveSelf}
-            onSignOut={onSignOut}
-          />
+          <div className="flex">
+            <PageSwitcher
+              page={page}
+              setPage={setPage}
+              isEditorDisabled={projectStartupInfo == null}
+            />
+            <UserBar
+              backend={remoteBackend}
+              page={page}
+              setIsHelpChatOpen={setIsHelpChatOpen}
+              projectAsset={projectStartupInfo?.projectAsset ?? null}
+              setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
+              doRemoveSelf={doRemoveSelf}
+              onSignOut={onSignOut}
+            />
+          </div>
           <Drive
             category={category}
             setCategory={setCategory}
@@ -384,7 +390,6 @@ export default function Dashboard(props: DashboardProps) {
             projectStartupInfo={projectStartupInfo}
             appRunner={appRunner}
           />
-
           {process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               isOpen={isHelpChatOpen}

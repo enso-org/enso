@@ -32,8 +32,8 @@ export enum Page {
 const TAB_RADIUS_PX = 24
 
 const PAGE_DATA: PageUIData[] = [
-  { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName' },
-  { page: Page.editor, icon: WorkspaceIcon, nameId: 'editorPageName' },
+  { page: Page.drive, icon: DriveIcon, nameId: 'drivePageName', canClose: false },
+  { page: Page.editor, icon: WorkspaceIcon, nameId: 'editorPageName', canClose: true },
 ]
 
 // ==================
@@ -45,6 +45,7 @@ interface PageUIData {
   readonly page: Page
   readonly icon: string
   readonly nameId: Extract<text.TextId, `${Page}PageName`>
+  readonly canClose: boolean
 }
 
 // ====================
@@ -192,7 +193,7 @@ interface InternalTabProps extends PageUIData {
 
 /** A tab in a {@link PageSwitcher}. */
 function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivElement>) {
-  const { isActive, page, nameId, icon, onPress } = props
+  const { isActive, page, nameId, icon, canClose, onPress } = props
   const { getText } = textProvider.useText()
 
   return (
@@ -200,7 +201,7 @@ function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivEle
       key={page}
       ref={ref}
       className={tailwindMerge.twMerge(
-        'h-full transition-[padding-left]',
+        'relative h-full',
         page !== page && 'hover:enabled:bg-frame'
       )}
     >
@@ -210,11 +211,17 @@ function TabInternal(props: InternalTabProps, ref: React.ForwardedRef<HTMLDivEle
         icon={icon}
         isDisabled={isActive}
         isActive={isActive}
-        className="flex h-full items-center gap-3 px-4"
+        className="relative flex h-full items-center gap-3 pl-4 pr-8"
         onPress={onPress}
       >
         {getText(nameId)}
       </ariaComponents.Button>
+      {canClose && (
+        <ariaComponents.CloseButton
+          className="absolute right-4 h-1/2 -translate-y-1/2"
+          onPress={() => {}}
+        />
+      )}
     </div>
   )
 }
