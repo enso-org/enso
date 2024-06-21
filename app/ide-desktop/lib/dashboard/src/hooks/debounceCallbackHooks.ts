@@ -6,7 +6,7 @@
 import * as React from 'react'
 
 import * as callbackHooks from './eventCallbackHooks'
-import * as unmountEffect from './unmountEffectHooks'
+import * as unmountEffect from './unmountHooks'
 
 /**
  * Wrap a callback into debounce function
@@ -17,76 +17,75 @@ export function useDebouncedCallback<Fn extends (...args: never[]) => unknown>(
   delay: number,
   maxWait = 0
 ): DebouncedFunction<Fn> {
-  const callbackEvent = callbackHooks.useEventCallback(callback)
-  const timeout = React.useRef<ReturnType<typeof setTimeout>>()
-  const waitTimeout = React.useRef<ReturnType<typeof setTimeout>>()
-  const lastCall = React.useRef<{ args: Parameters<Fn>; this: ThisParameterType<Fn> }>()
+  const stableCallback = callbackHooks.useEventCallback(callback)
+  const timeoutIdRef = React.useRef<ReturnType<typeof setTimeout>>()
+  const waitTimeoutIdRef = React.useRef<ReturnType<typeof setTimeout>>()
+  const lastCallRef = React.useRef<{ args: Parameters<Fn> }>()
 
   const clear = () => {
-    if (timeout.current) {
-      clearTimeout(timeout.current)
-      timeout.current = undefined
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current)
+      timeoutIdRef.current = undefined
     }
 
-    if (waitTimeout.current) {
-      clearTimeout(waitTimeout.current)
-      waitTimeout.current = undefined
+    if (waitTimeoutIdRef.current) {
+      clearTimeout(waitTimeoutIdRef.current)
+      waitTimeoutIdRef.current = undefined
     }
   }
 
   // cancel scheduled execution on unmount
-  unmountEffect.useUnmountEffect(clear)
+  unmountEffect.useUnmount(clear)
 
   return React.useMemo(() => {
     const execute = () => {
-      if (!lastCall.current) {
+      if (!lastCallRef.current) {
         // eslint-disable-next-line no-restricted-syntax
         return
       }
 
-      const context = lastCall.current
-      lastCall.current = undefined
+      const context = lastCallRef.current
+      lastCallRef.current = undefined
 
-      callbackEvent.apply(context.this, context.args)
+      stableCallback(...context.args)
 
       clear()
     }
 
     // eslint-disable-next-line no-restricted-syntax
-    const wrapped = function (this, ...args) {
-      if (timeout.current) {
-        clearTimeout(timeout.current)
+    const wrapped = (...args: Parameters<Fn>) => {
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current)
       }
 
-      lastCall.current = { args, this: this }
+      lastCallRef.current = { args }
 
       if (delay === 0) {
         execute()
       } else {
         // plan regular execution
-        timeout.current = setTimeout(execute, delay)
+        timeoutIdRef.current = setTimeout(execute, delay)
 
         // plan maxWait execution if required
-        if (maxWait > 0 && !waitTimeout.current) {
-          waitTimeout.current = setTimeout(execute, maxWait)
+        if (maxWait > 0 && !waitTimeoutIdRef.current) {
+          waitTimeoutIdRef.current = setTimeout(execute, maxWait)
         }
       }
-    } as DebouncedFunction<Fn>
+    }
 
     Object.defineProperties(wrapped, {
-      length: { value: callbackEvent.length },
-      name: { value: `${callbackEvent.name || 'anonymous'}__debounced__${delay}` },
+      length: { value: stableCallback.length },
+      name: { value: `${stableCallback.name || 'anonymous'}__debounced__${delay}` },
     })
 
     return wrapped
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callbackEvent, delay, maxWait, ...deps])
+  }, [stableCallback, delay, maxWait, ...deps])
 }
 
 /**
  *
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface DebouncedFunction<Fn extends (...args: any[]) => any> {
+export interface DebouncedFunction<Fn extends (...args: never[]) => unknown> {
   (this: ThisParameterType<Fn>, ...args: Parameters<Fn>): void
 }

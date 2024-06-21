@@ -21,7 +21,9 @@ export function useDebounceState<S>(
   const currentValueRef = React.useRef(state)
   const [, startTransition] = React.useTransition()
 
-  const dSetState = debouncedCallback.useDebouncedCallback<React.Dispatch<React.SetStateAction<S>>>(
+  const debouncedSetState = debouncedCallback.useDebouncedCallback<
+    React.Dispatch<React.SetStateAction<S>>
+  >(
     value => {
       startTransition(() => {
         setState(value)
@@ -34,7 +36,7 @@ export function useDebounceState<S>(
   const setValue = eventCallbackHooks.useEventCallback((next: S | ((currentValue: S) => S)) => {
     currentValueRef.current = next instanceof Function ? next(currentValueRef.current) : next
 
-    dSetState(currentValueRef.current)
+    debouncedSetState(currentValueRef.current)
   })
 
   return [state, setValue]
