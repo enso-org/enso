@@ -28,8 +28,6 @@ import type Backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 
-import * as withPaywall from './withPaywall'
-
 // =================================
 // === UserGroupsSettingsSection ===
 // =================================
@@ -40,7 +38,7 @@ export interface UserGroupsSettingsSectionProps {
 }
 
 /** Settings tab for viewing and editing organization members. */
-function UserGroupsSettingsSection(props: UserGroupsSettingsSectionProps) {
+export default function UserGroupsSettingsSection(props: UserGroupsSettingsSectionProps) {
   const { backend } = props
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -237,5 +235,3 @@ function UserGroupsSettingsSection(props: UserGroupsSettingsSectionProps) {
     </>
   )
 }
-
-export default withPaywall.withPaywall(UserGroupsSettingsSection, { feature: 'userGroups' })

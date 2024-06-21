@@ -19,8 +19,6 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 import type * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
-import * as paywallSettingsLayout from './withPaywall'
-
 // =================
 // === Constants ===
 // =================
@@ -32,7 +30,7 @@ const LIST_USERS_STALE_TIME_MS = 60_000
 // ==============================
 
 /** Settings tab for viewing and editing organization members. */
-export function MembersSettingsSection() {
+export default function MembersSettingsSection() {
   const { getText } = textProvider.useText()
   const backend = backendProvider.useRemoteBackendStrict()
   const { user } = authProvider.useFullUserSession()
@@ -243,7 +241,3 @@ function RemoveInvitationButton(props: RemoveInvitationButtonProps) {
     </ariaComponents.Button>
   )
 }
-
-export default paywallSettingsLayout.withPaywall(MembersSettingsSection, {
-  feature: 'inviteUser',
-})

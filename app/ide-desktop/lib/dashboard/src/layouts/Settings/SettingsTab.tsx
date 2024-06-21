@@ -3,7 +3,12 @@ import * as React from 'react'
 
 import * as tailwindMerge from 'tailwind-merge'
 
+import * as billing from '#/hooks/billing'
+
+import * as authProvider from '#/providers/AuthProvider'
+
 import type * as settingsData from '#/layouts/Settings/settingsData'
+import SettingsPaywall from '#/layouts/Settings/SettingsPaywall'
 import SettingsSection from '#/layouts/Settings/SettingsSection'
 
 import * as errorBoundary from '#/components/ErrorBoundary'
@@ -23,6 +28,10 @@ export interface SettingsTabProps {
 export default function SettingsTab(props: SettingsTabProps) {
   const { context, data } = props
   const { sections } = data
+  const { user } = authProvider.useFullUserSession()
+  const { isFeatureUnderPaywall } = billing.usePaywall({ plan: user.plan })
+  const paywallFeature =
+    data.feature != null && isFeatureUnderPaywall(data.feature) ? data.feature : null
   const [columns, classes] = React.useMemo<
     [readonly (readonly settingsData.SettingsSectionData[])[], readonly string[]]
   >(() => {
@@ -46,36 +55,40 @@ export default function SettingsTab(props: SettingsTabProps) {
     return [resultColumns, resultClasses]
   }, [sections])
 
-  const content =
-    columns.length === 1 ? (
-      <div className="flex grow flex-col gap-settings-subsection overflow-auto">
-        {sections.map(section => (
-          <SettingsSection key={section.nameId} context={context} data={section} />
-        ))}
-      </div>
-    ) : (
-      <div className="flex min-h-full grow flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row">
-        {columns.map((sectionsInColumn, i) => (
-          <div
-            key={i}
-            className={tailwindMerge.twMerge(
-              'flex min-w-settings-main-section flex-col gap-settings-subsection',
-              classes[i]
-            )}
-          >
-            {sectionsInColumn.map(section => (
-              <SettingsSection key={section.nameId} context={context} data={section} />
-            ))}
-          </div>
-        ))}
-      </div>
-    )
+  if (paywallFeature) {
+    return <SettingsPaywall feature={paywallFeature} />
+  } else {
+    const content =
+      columns.length === 1 ? (
+        <div className="flex grow flex-col gap-settings-subsection overflow-auto">
+          {sections.map(section => (
+            <SettingsSection key={section.nameId} context={context} data={section} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex min-h-full grow flex-col gap-settings-section overflow-auto lg:h-auto lg:flex-row">
+          {columns.map((sectionsInColumn, i) => (
+            <div
+              key={i}
+              className={tailwindMerge.twMerge(
+                'flex min-w-settings-main-section flex-col gap-settings-subsection',
+                classes[i]
+              )}
+            >
+              {sectionsInColumn.map(section => (
+                <SettingsSection key={section.nameId} context={context} data={section} />
+              ))}
+            </div>
+          ))}
+        </div>
+      )
 
-  return (
-    <errorBoundary.ErrorBoundary>
-      <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
-        {content}
-      </React.Suspense>
-    </errorBoundary.ErrorBoundary>
-  )
+    return (
+      <errorBoundary.ErrorBoundary>
+        <React.Suspense fallback={<loader.Loader size="medium" minHeight="h64" />}>
+          {content}
+        </React.Suspense>
+      </errorBoundary.ErrorBoundary>
+    )
+  }
 }

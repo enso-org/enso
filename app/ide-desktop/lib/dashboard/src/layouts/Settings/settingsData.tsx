@@ -14,6 +14,7 @@ import type * as text from '#/text'
 
 import * as inputBindings from '#/configurations/inputBindings'
 
+import type * as billing from '#/hooks/billing'
 import type * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import type * as textProvider from '#/providers/TextProvider'
@@ -208,6 +209,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.members,
     icon: PeopleIcon,
     organizationOnly: true,
+    feature: 'inviteUser',
     sections: [
       {
         nameId: 'membersSettingsSection',
@@ -224,6 +226,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     nameId: 'userGroupsSettingsTab',
     settingsTab: SettingsTabType.userGroups,
     icon: PeopleSettingsIcon,
+    organizationOnly: true,
+    feature: 'userGroups',
     sections: [
       {
         nameId: 'userGroupsSettingsSection',
@@ -395,7 +399,7 @@ export type SettingsEntryData = SettingsCustomEntryData | SettingsInputEntryData
 // === SettingsTabData ===
 // =======================
 
-/** Metadata describing a settings tab. */
+/** Metadata describing a settings section. */
 export interface SettingsSectionData {
   readonly nameId: text.TextId & `${string}SettingsSection`
   /** The first column is column 1, not column 0. */
@@ -417,6 +421,9 @@ export interface SettingsTabData {
   readonly settingsTab: SettingsTabType
   readonly icon: string
   readonly organizationOnly?: true
+  /** The feature behind which this settings tab is locked. If the user cannot access the feature,
+   * a paywall is shown instead of the settings tab. */
+  readonly feature?: billing.PaywallFeatureName
   readonly sections: readonly SettingsSectionData[]
 }
 

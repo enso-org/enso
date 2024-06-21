@@ -45,14 +45,13 @@ export default function Settings() {
     array.includesPredicate(Object.values(SettingsTabType))
   )
   const { user, accessToken } = authProvider.useNonPartialUserSession()
-  const { setUsername, authQueryKey } = authProvider.useAuth()
+  const { authQueryKey } = authProvider.useAuth()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [query, setQuery] = React.useState('')
   const root = portal.useStrictPortalContext()
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = React.useState(false)
   const organization = backendHooks.useBackendGetOrganization(backend)
-  const isUserInOrganization = organization != null
   const isQueryBlank = !/\S/.test(query)
 
   const updateUserMutation = backendHooks.useBackendMutation(backend, 'updateUser', {
@@ -156,7 +155,6 @@ export default function Settings() {
             <SettingsSidebar
               isMenu
               tabsToShow={tabsToShow}
-              isUserInOrganization={isUserInOrganization}
               tab={effectiveTab}
               setTab={setTab}
               onClickCapture={() => {
@@ -187,12 +185,7 @@ export default function Settings() {
       />
       <div className="flex flex-1 gap-6 overflow-hidden pr-0.5">
         <aside className="hidden h-full shrink-0 basis-[206px] flex-col overflow-y-auto overflow-x-hidden pb-12 sm:flex">
-          <SettingsSidebar
-            tabsToShow={tabsToShow}
-            isUserInOrganization={isUserInOrganization}
-            tab={tab}
-            setTab={setTab}
-          />
+          <SettingsSidebar tabsToShow={tabsToShow} tab={tab} setTab={setTab} />
         </aside>
         <SettingsTab context={context} data={data} />
       </div>

@@ -21,7 +21,6 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 export interface SettingsSidebarProps {
   readonly tabsToShow: readonly SettingsTabType[]
   readonly isMenu?: true
-  readonly isUserInOrganization: boolean
   readonly tab: SettingsTabType
   readonly setTab: React.Dispatch<React.SetStateAction<SettingsTabType>>
   readonly onClickCapture?: () => void
@@ -29,7 +28,7 @@ export interface SettingsSidebarProps {
 
 /** A panel to switch between settings tabs. */
 export default function SettingsSidebar(props: SettingsSidebarProps) {
-  const { tabsToShow, isMenu = false, isUserInOrganization, tab, setTab } = props
+  const { tabsToShow, isMenu = false, tab, setTab } = props
   const { onClickCapture } = props
   const { getText } = textProvider.useText()
 
@@ -64,7 +63,6 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                   {visibleTabData.map(tabData => (
                     <SidebarTabButton
                       key={tabData.settingsTab}
-                      isDisabled={(tabData.organizationOnly ?? false) && !isUserInOrganization}
                       id={tabData.settingsTab}
                       icon={tabData.icon}
                       label={getText(tabData.nameId)}
