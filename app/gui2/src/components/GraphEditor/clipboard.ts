@@ -189,5 +189,5 @@ export function isSpreadsheetTsv(htmlContent: string) {
   // clipboard data. We want to avoid false negatives (even if a browser changes its sanitization), and in case of a
   // false positive the user is pasting data we don't have any good way to handle, so trying to make a Table from it is
   // acceptable.
-  return /<table[ >]/.test(htmlContent)
+  return /<table[ >]/i.test(htmlContent)
 }
