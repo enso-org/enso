@@ -1,9 +1,14 @@
-import * as child_process from 'node:child_process'
+/**
+ * @file This module contains the logic for the detection of user-specific desktop environment attributes.
+ */
+
+import * as childProcess from 'node:child_process'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import * as process from 'node:process'
 
 export const DOCUMENTS = getDocumentsPath()
+
+const CHILD_PROCESS_TIMEOUT = 3000
 
 /**
  * Detects path of the user documents directory depending on the operating system.
@@ -11,12 +16,12 @@ export const DOCUMENTS = getDocumentsPath()
 function getDocumentsPath(): string | undefined {
     if (process.platform === 'linux') {
         return getLinuxDocumentsPath()
-    }
-    if (process.platform === 'darwin') {
+    } else if (process.platform === 'darwin') {
         return getMacOsDocumentsPath()
-    }
-    if (process.platform === 'win32') {
+    } else if (process.platform === 'win32') {
         return getWindowsDocumentsPath()
+    } else {
+        return
     }
 }
 
@@ -33,12 +38,15 @@ function getLinuxDocumentsPath(): string {
  * Gets the documents directory from the XDG directory management system.
  */
 function getXdgDocumentsPath(): string | undefined {
-    const out = child_process.spawnSync('xdg-user-dir', ['DOCUMENTS'], { timeout: 3000 })
+    const out = childProcess.spawnSync('xdg-user-dir', ['DOCUMENTS'], {
+        timeout: CHILD_PROCESS_TIMEOUT,
+    })
+
     if (out.error !== undefined) {
         return
+    } else {
+        return out.stdout.toString().trim()
     }
-
-    return out.stdout.toString().trim()
 }
 
 /**
@@ -53,7 +61,7 @@ function getMacOsDocumentsPath(): string {
  * Get the path to the `My Documents` Windows directory.
  */
 function getWindowsDocumentsPath(): string | undefined {
-    const out = child_process.spawnSync(
+    const out = childProcess.spawnSync(
         'reg',
         [
             'query',
@@ -61,14 +69,13 @@ function getWindowsDocumentsPath(): string | undefined {
             '/v',
             'personal',
         ],
-        { timeout: 3000 }
+        { timeout: CHILD_PROCESS_TIMEOUT }
     )
 
     if (out.error !== undefined) {
         return
+    } else {
+        const stdoutString = out.stdout.toString()
+        return stdoutString.split('\\s\\s+')[4]
     }
-
-    const stdoutString = out.stdout.toString()
-
-    return stdoutString.split('\\s\\s+')[4]
 }
